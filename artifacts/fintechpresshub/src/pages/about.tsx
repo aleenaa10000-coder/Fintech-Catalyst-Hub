@@ -1,8 +1,10 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { motion } from "framer-motion";
-import { Users, Target, ShieldCheck } from "lucide-react";
+import { Users, Target, ShieldCheck, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 import aboutOffice from "@/assets/about-office.png";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/PageHero";
 
 export default function About() {
@@ -93,27 +95,48 @@ export default function About() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="bg-card">
-              <CardContent className="pt-6">
-                <Target className="w-12 h-12 text-primary mb-4" />
-                <h3 className="text-xl font-bold mb-2">Precision</h3>
-                <p className="text-muted-foreground">We measure twice and cut once. Our SEO strategies are backed by rigorous data analysis and competitor research.</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card">
-              <CardContent className="pt-6">
-                <ShieldCheck className="w-12 h-12 text-primary mb-4" />
-                <h3 className="text-xl font-bold mb-2">Integrity</h3>
-                <p className="text-muted-foreground">No black-hat tactics or empty promises. We build sustainable organic growth engines that withstand algorithm updates.</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card">
-              <CardContent className="pt-6">
-                <Users className="w-12 h-12 text-primary mb-4" />
-                <h3 className="text-xl font-bold mb-2">Partnership</h3>
-                <p className="text-muted-foreground">We act as an extension of your internal marketing team, aligning our KPIs directly with your revenue goals.</p>
-              </CardContent>
-            </Card>
+            {[
+              {
+                Icon: Target,
+                title: "Precision",
+                body: "We measure twice and cut once. Our SEO strategies are backed by rigorous data analysis and competitor research.",
+              },
+              {
+                Icon: ShieldCheck,
+                title: "Integrity",
+                body: "No black-hat tactics or empty promises. We build sustainable organic growth engines that withstand algorithm updates.",
+              },
+              {
+                Icon: Users,
+                title: "Partnership",
+                body: "We act as an extension of your internal marketing team, aligning our KPIs directly with your revenue goals.",
+              },
+            ].map(({ Icon, title, body }) => (
+              <Card
+                key={title}
+                className="group relative overflow-hidden bg-card border-border/60 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-[#0052FF]/15 hover:border-[#0052FF]/40 bg-gradient-to-br from-card to-card hover:from-[#0052FF]/5 hover:to-[#0052FF]/15"
+              >
+                <CardContent className="pt-6">
+                  <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-[#0052FF] group-hover:text-white">
+                    <Icon className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">{title}</h3>
+                  <p className="text-muted-foreground">{body}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="mt-12 flex justify-center">
+            <Link href="/services">
+              <Button
+                size="lg"
+                className="h-12 px-8 font-semibold bg-[#0052FF] hover:bg-[#0047DB] text-white shadow-lg group"
+              >
+                Learn more about our process
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
