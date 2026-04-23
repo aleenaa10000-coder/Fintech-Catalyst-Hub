@@ -1,6 +1,6 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { motion } from "framer-motion";
-import { CheckCircle2, Users, Target, ShieldCheck } from "lucide-react";
+import { Users, Target, ShieldCheck } from "lucide-react";
 import aboutOffice from "@/assets/about-office.png";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHero } from "@/components/PageHero";
@@ -38,33 +38,46 @@ export default function About() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5 }}
               >
-                <img src={aboutOffice} alt="Modern Professional Office" className="rounded-2xl shadow-xl w-full h-auto aspect-[4/3] object-cover border" />
+                <img
+                  src={aboutOffice}
+                  alt="Modern Professional Office"
+                  className="rounded-2xl w-full h-auto aspect-[4/3] object-cover border border-blue-500/20 shadow-2xl shadow-blue-500/10 ring-1 ring-blue-500/10"
+                />
               </motion.div>
             </div>
             <div className="flex-1 space-y-6">
               <motion.div
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 60 }}
                 whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
               >
                 <h2 className="text-3xl font-bold">Our Methodology</h2>
-                <p className="text-lg text-muted-foreground">
+                <p className="text-lg text-muted-foreground mt-3">
                   Our approach is rooted in data and executed with editorial precision. We don't just chase volume; we chase qualified pipeline. Every piece of content we produce is designed to position your brand as an authority while capturing high-intent search queries.
                 </p>
-                <div className="space-y-4 mt-8">
+                <ol className="space-y-5 mt-8">
                   {[
                     "Data-Driven Topic Clusters",
                     "Subject Matter Expert (SME) Interviews",
                     "Technical SEO Optimization",
-                    "High-Authority Digital PR"
+                    "High-Authority Digital PR",
                   ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                    <motion.li
+                      key={i}
+                      initial={{ opacity: 0, x: 30 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, margin: "-60px" }}
+                      transition={{ duration: 0.45, delay: 0.15 + i * 0.08, ease: "easeOut" }}
+                      className="flex items-center gap-4"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm ring-1 ring-primary/20">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
                       <span className="text-foreground font-medium">{item}</span>
-                    </div>
+                    </motion.li>
                   ))}
-                </div>
+                </ol>
               </motion.div>
             </div>
           </div>
