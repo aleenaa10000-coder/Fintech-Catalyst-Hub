@@ -1,7 +1,7 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useListServices } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
-import { PenTool, Link2, Newspaper, Network, Sparkles, type LucideIcon } from "lucide-react";
+import { PenTool, Link2, Newspaper, Network, Search, Sparkles, type LucideIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -12,6 +12,7 @@ const deliverableIconBySlug: Record<string, LucideIcon> = {
   "off-page-seo": Link2,
   "guest-posting": Newspaper,
   "topical-authority": Network,
+  "fintech-seo-audit": Search,
 };
 
 export default function Services() {

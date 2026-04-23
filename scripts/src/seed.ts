@@ -77,6 +77,21 @@ async function seed() {
       ],
       icon: "target",
     },
+    {
+      slug: "fintech-seo-audit",
+      name: "Fintech SEO Audits",
+      tagline: "A 30-day deep-dive that uncovers the rankings you’re leaving on the table.",
+      description:
+        "A senior-led technical, on-page, and content audit specifically for fintech sites. We benchmark you against three direct competitors, surface the highest-ROI fixes, and hand you a prioritized 90-day roadmap your team can execute (or we can execute for you).",
+      deliverables: [
+        "Full technical crawl with Core Web Vitals review",
+        "On-page audit of your top 50 revenue pages",
+        "Content gap analysis vs. three named competitors",
+        "Backlink profile health check",
+        "Prioritized 90-day SEO roadmap",
+      ],
+      icon: "search",
+    },
   ]);
 
   console.log("Seeding pricing plans...");
