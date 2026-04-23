@@ -20,12 +20,21 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-gradient-to-br from-[#1e40af] via-[#1d4ed8] to-[#1e3a8a]">
         <div className="absolute inset-0 z-0">
-          <img src={heroBg} alt="Abstract Financial Data" className="w-full h-full object-cover opacity-10" />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/80 to-background" />
+          <img src={heroBg} alt="Abstract Financial Data" className="w-full h-full object-cover opacity-10 mix-blend-overlay" />
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)",
+              backgroundSize: "48px 48px",
+            }}
+          />
+          <div className="absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full bg-blue-400/30 blur-3xl" />
+          <div className="absolute -bottom-24 -right-24 w-[28rem] h-[28rem] rounded-full bg-indigo-500/30 blur-3xl" />
         </div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <motion.div
@@ -33,21 +42,21 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-foreground mb-6 leading-tight">
-                Optimized Fintech Content That <span className="text-primary">Ranks & Converts</span>
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-tight">
+                Optimized Fintech Content That <span className="text-blue-200">Ranks & Converts</span>
               </h1>
-              <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-xl text-blue-100/90 mb-10 max-w-2xl mx-auto leading-relaxed">
                 We blend deep financial expertise with high-authority link building and technical SEO to scale organic growth for ambitious fintech companies.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link href="/contact">
-                  <Button size="lg" className="h-12 px-8 text-base">
+                  <Button size="lg" className="h-12 px-8 text-base bg-white text-blue-700 hover:bg-blue-50">
                     Get a Free Audit
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
                 <Link href="/services">
-                  <Button variant="outline" size="lg" className="h-12 px-8 text-base">
+                  <Button variant="outline" size="lg" className="h-12 px-8 text-base border-white/40 text-white bg-white/10 hover:bg-white/20 hover:text-white">
                     View Our Services
                   </Button>
                 </Link>
