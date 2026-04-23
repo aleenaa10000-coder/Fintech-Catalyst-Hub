@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { MapPin, Mail, Phone, Clock } from "lucide-react";
+import { PageHero } from "@/components/PageHero";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
@@ -60,14 +61,11 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="pt-24 pb-16 bg-secondary/30 border-b">
-        <div className="container mx-auto px-4 text-center max-w-4xl">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">Let's Scale Your Organic Growth</h1>
-          <p className="text-xl text-muted-foreground">
-            Request a free SEO audit or discuss how we can build your content moat.
-          </p>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Contact Us"
+        title={<>Let's Scale Your Organic Growth</>}
+        description="Request a free SEO audit or talk to our strategy team about building a defensible content and link-building moat for your fintech."
+      />
 
       <section className="py-24">
         <div className="container mx-auto px-4 max-w-6xl">

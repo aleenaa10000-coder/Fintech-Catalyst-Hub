@@ -3,27 +3,18 @@ import { motion } from "framer-motion";
 import { CheckCircle2, Users, Target, ShieldCheck } from "lucide-react";
 import aboutOffice from "@/assets/about-office.png";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHero } from "@/components/PageHero";
 
 export default function About() {
   useDocumentTitle("About FintechPressHub | Fintech SEO Agency", "Bridging the gap between deep fintech expertise and search visibility.");
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="pt-24 pb-16 border-b">
-        <div className="container mx-auto px-4 text-center max-w-4xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">Bridging Fintech Expertise & Search Visibility</h1>
-            <p className="text-xl text-muted-foreground leading-relaxed">
-              We started FintechPressHub because we noticed a gap: generalist marketing agencies didn't understand the nuances of Open Banking, BaaS, or DeFi, while financial experts didn't know how to rank on Google.
-            </p>
-          </motion.div>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="About FintechPressHub"
+        title={<>Bridging Fintech Expertise & Search Visibility</>}
+        description="We started FintechPressHub because we saw a gap: generalist marketing agencies didn't understand the nuances of Open Banking, BaaS, or DeFi, while financial experts didn't know how to rank on Google. We built the team that does both."
+      />
 
       {/* Mission & Image */}
       <section className="py-24 bg-secondary/30">

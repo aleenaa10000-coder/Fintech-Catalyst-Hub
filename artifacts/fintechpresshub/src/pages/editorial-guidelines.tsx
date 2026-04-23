@@ -1,12 +1,17 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageHero } from "@/components/PageHero";
 
 export default function EditorialGuidelines() {
   useDocumentTitle("Editorial Guidelines | FintechPressHub");
 
   return (
-    <div className="min-h-screen bg-background py-24">
-      <div className="container mx-auto px-4 max-w-3xl">
-        <h1 className="text-4xl font-bold mb-8">Editorial Guidelines</h1>
+    <div className="min-h-screen bg-background">
+      <PageHero
+        eyebrow="Editorial"
+        title={<>Editorial Guidelines</>}
+        description="The standards we hold our internal writers, guest contributors, and client deliverables to — covering accuracy, sourcing, AI usage, tone, and compliance."
+      />
+      <div className="container mx-auto px-4 max-w-3xl py-20">
         <div className="prose prose-lg dark:prose-invert max-w-none">
           <p className="text-muted-foreground mb-8">Last updated: October 1, 2023</p>
           

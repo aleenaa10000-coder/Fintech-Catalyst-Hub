@@ -6,6 +6,7 @@ import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHero } from "@/components/PageHero";
 
 export default function Blog() {
   useDocumentTitle("Blog | FintechPressHub", "Insights, strategies, and guides on fintech marketing and SEO.");
@@ -16,20 +17,11 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="pt-24 pb-16 bg-secondary/30 border-b">
-        <div className="container mx-auto px-4 text-center max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">The Fintech Growth Hub</h1>
-            <p className="text-xl text-muted-foreground">
-              Actionable insights on SEO, digital PR, and content marketing for financial technology brands.
-            </p>
-          </motion.div>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="The Fintech Growth Hub"
+        title={<>Insights From the Front Lines of Fintech SEO</>}
+        description="Actionable strategy on SEO, off-page authority, digital PR, and content marketing — written by the operators running these programs for fintech brands every day."
+      />
 
       <section className="py-12 border-b bg-card">
         <div className="container mx-auto px-4">

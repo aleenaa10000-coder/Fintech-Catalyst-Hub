@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Link } from "wouter";
+import { PageHero } from "@/components/PageHero";
 
 export default function Pricing() {
   useDocumentTitle("Pricing | FintechPressHub", "Transparent pricing for fintech SEO and content marketing.");
@@ -13,20 +14,11 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="pt-24 pb-16 bg-secondary/30 border-b">
-        <div className="container mx-auto px-4 text-center max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">Invest in Sustainable Growth</h1>
-            <p className="text-xl text-muted-foreground">
-              Transparent, retainer-based pricing with clear deliverables. Scale your organic acquisition pipeline with predictable costs.
-            </p>
-          </motion.div>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Pricing"
+        title={<>Invest in Sustainable Growth</>}
+        description="Transparent, retainer-based pricing with clear deliverables. Scale your organic acquisition pipeline with predictable costs and senior fintech operators on every account."
+      />
 
       <section className="py-24">
         <div className="container mx-auto px-4">

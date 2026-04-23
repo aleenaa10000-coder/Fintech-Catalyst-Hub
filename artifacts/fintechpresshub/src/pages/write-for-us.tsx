@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { CheckCircle2, FileText, Globe, Link as LinkIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHero } from "@/components/PageHero";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
@@ -61,14 +62,11 @@ export default function WriteForUs() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="pt-24 pb-16 bg-secondary/30 border-b">
-        <div className="container mx-auto px-4 text-center max-w-4xl">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">Write for FintechPressHub</h1>
-          <p className="text-xl text-muted-foreground">
-            We accept high-quality guest contributions from established fintech operators, marketers, and founders.
-          </p>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Write For Us"
+        title={<>Write for FintechPressHub</>}
+        description="We accept high-quality guest contributions from established fintech operators, marketers, and founders. Read the editorial guidelines below, then send us your pitch."
+      />
 
       <section className="py-24">
         <div className="container mx-auto px-4 max-w-6xl">

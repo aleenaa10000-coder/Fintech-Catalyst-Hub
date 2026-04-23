@@ -1,12 +1,17 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageHero } from "@/components/PageHero";
 
 export default function PrivacyPolicy() {
   useDocumentTitle("Privacy Policy | FintechPressHub");
 
   return (
-    <div className="min-h-screen bg-background py-24">
-      <div className="container mx-auto px-4 max-w-3xl">
-        <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
+    <div className="min-h-screen bg-background">
+      <PageHero
+        eyebrow="Legal"
+        title={<>Privacy Policy</>}
+        description="How FintechPressHub collects, uses, and protects the personal data of visitors, prospects, and clients."
+      />
+      <div className="container mx-auto px-4 max-w-3xl py-20">
         <div className="prose prose-lg dark:prose-invert max-w-none">
           <p className="text-muted-foreground mb-8">Last updated: October 1, 2023</p>
           

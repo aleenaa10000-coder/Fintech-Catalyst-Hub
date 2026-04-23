@@ -5,6 +5,7 @@ import { CheckCircle2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { PageHero } from "@/components/PageHero";
 
 export default function Services() {
   useDocumentTitle("Services | FintechPressHub", "Comprehensive fintech SEO, link building, and content marketing services.");
@@ -12,20 +13,11 @@ export default function Services() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="pt-24 pb-16 bg-secondary/30 border-b">
-        <div className="container mx-auto px-4 text-center max-w-4xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">Growth Engines for Fintech</h1>
-            <p className="text-xl text-muted-foreground">
-              Specialized digital marketing services designed to acquire high-value customers and build topical authority.
-            </p>
-          </motion.div>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Services"
+        title={<>Growth Engines for Fintech</>}
+        description="Specialized digital marketing services designed to acquire high-value customers, earn high-authority backlinks, and build topical authority inside your sub-vertical."
+      />
 
       <section className="py-24">
         <div className="container mx-auto px-4">
