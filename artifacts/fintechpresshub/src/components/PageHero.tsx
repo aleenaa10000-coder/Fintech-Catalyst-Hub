@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { type ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import { Mouse } from "lucide-react";
 
 interface PageHeroProps {
@@ -23,13 +23,22 @@ export function PageHero({
   descriptionClassName,
   showScrollIndicator = false,
 }: PageHeroProps) {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  const handleScrollDown = () => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const target = section.getBoundingClientRect().bottom + window.scrollY;
+    window.scrollTo({ top: target, behavior: "smooth" });
+  };
+
   const alignClasses =
     align === "center"
       ? "text-center mx-auto items-center"
       : "text-left mx-0 items-start";
 
   return (
-    <section className="relative overflow-hidden border-b border-border/60 bg-[hsl(var(--primary))] text-primary-foreground">
+    <section ref={sectionRef} className="relative overflow-hidden border-b border-border/60 bg-[hsl(var(--primary))] text-primary-foreground">
       {/* Layered gradient */}
       <div
         aria-hidden
@@ -125,17 +134,20 @@ export function PageHero({
       />
 
       {showScrollIndicator && (
-        <motion.div
+        <motion.button
+          type="button"
+          onClick={handleScrollDown}
+          aria-label="Scroll to next section"
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="absolute inset-x-0 bottom-6 z-10 flex flex-col items-center gap-1 text-white/70"
+          className="absolute inset-x-0 bottom-6 z-10 mx-auto flex w-max flex-col items-center gap-1 text-white/70 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-md p-2"
         >
           <Mouse className="h-6 w-6 animate-bounce" strokeWidth={1.75} />
           <span className="text-[10px] font-medium uppercase tracking-[0.2em]">
             Scroll
           </span>
-        </motion.div>
+        </motion.button>
       )}
     </section>
   );
