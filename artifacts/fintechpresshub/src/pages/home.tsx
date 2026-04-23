@@ -9,6 +9,7 @@ import { ArrowRight, CheckCircle2, TrendingUp, ShieldCheck, Globe } from "lucide
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { CountUp } from "@/components/CountUp";
+import { ParticleNetwork } from "@/components/ParticleNetwork";
 
 export default function Home() {
   useDocumentTitle("FintechPressHub | Fintech SEO & Content Marketing Agency", "Expert content marketing and off-page SEO for fintech companies.");
@@ -21,19 +22,24 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-gradient-to-br from-[#1e40af] via-[#1d4ed8] to-[#1e3a8a]">
+      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-gradient-to-br from-[#0b1e4d] via-[#102a6b] to-[#0a1633]">
         <div className="absolute inset-0 z-0">
-          <img src={heroBg} alt="Abstract Financial Data" className="w-full h-full object-cover opacity-10 mix-blend-overlay" />
           <div
-            className="absolute inset-0 opacity-20"
+            className="absolute inset-0 opacity-[0.18]"
             style={{
               backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)",
-              backgroundSize: "48px 48px",
+                "linear-gradient(rgba(125, 211, 252, 0.55) 1px, transparent 1px), linear-gradient(90deg, rgba(125, 211, 252, 0.55) 1px, transparent 1px)",
+              backgroundSize: "56px 56px",
+              maskImage:
+                "radial-gradient(ellipse at center, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 75%)",
+              WebkitMaskImage:
+                "radial-gradient(ellipse at center, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 75%)",
             }}
           />
-          <div className="absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full bg-blue-400/30 blur-3xl" />
-          <div className="absolute -bottom-24 -right-24 w-[28rem] h-[28rem] rounded-full bg-indigo-500/30 blur-3xl" />
+          <ParticleNetwork className="absolute inset-0 w-full h-full" />
+          <div className="absolute -top-32 -left-32 w-[32rem] h-[32rem] rounded-full bg-cyan-400/20 blur-3xl" />
+          <div className="absolute -bottom-32 -right-32 w-[32rem] h-[32rem] rounded-full bg-blue-500/25 blur-3xl" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a1633]/60" />
         </div>
 
         <div className="container mx-auto px-4 relative z-10">
@@ -43,10 +49,16 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-tight">
-                Optimized Fintech Content That <span className="text-blue-200">Ranks & Converts</span>
+              <h1
+                className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-tight"
+                style={{ textShadow: "0 2px 24px rgba(8, 18, 51, 0.55), 0 1px 2px rgba(0,0,0,0.3)" }}
+              >
+                Optimized Fintech Content That <span className="text-cyan-200">Ranks & Converts</span>
               </h1>
-              <p className="text-xl text-blue-100/90 mb-10 max-w-2xl mx-auto leading-relaxed">
+              <p
+                className="text-xl text-blue-100/95 mb-10 max-w-2xl mx-auto leading-relaxed"
+                style={{ textShadow: "0 1px 12px rgba(8, 18, 51, 0.5)" }}
+              >
                 We blend deep financial expertise with high-authority link building and technical SEO to scale organic growth for ambitious fintech companies.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
