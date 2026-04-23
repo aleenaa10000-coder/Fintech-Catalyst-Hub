@@ -253,13 +253,19 @@ export default function Home() {
                   className="group cursor-pointer"
                 >
                   <Link href={`/blog/${post.slug}`}>
-                    <div className="rounded-xl overflow-hidden mb-6 aspect-video">
+                    <div className="overflow-hidden mb-6 aspect-video" style={{ borderRadius: "12px" }}>
                       <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     </div>
-                    <div className="text-sm text-primary font-medium mb-3">{post.category}</div>
-                    <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors line-clamp-2">{post.title}</h3>
+                    <span className="inline-block text-xs font-medium uppercase tracking-wide mb-3 px-2.5 py-1 rounded-full bg-sky-100 text-sky-700">
+                      {post.category}
+                    </span>
+                    <h3 className="text-xl font-semibold mb-3 leading-snug group-hover:text-primary transition-colors line-clamp-2">{post.title}</h3>
                     <p className="text-muted-foreground line-clamp-2 mb-4">{post.excerpt}</p>
-                    <div className="text-sm text-muted-foreground">{new Date(post.publishedAt).toLocaleDateString()} · {post.readingMinutes} min read</div>
+                    <div className="text-sm text-muted-foreground mb-4">{new Date(post.publishedAt).toLocaleDateString()} · {post.readingMinutes} min read</div>
+                    <span className="inline-flex items-center text-sm font-medium text-primary">
+                      Read More
+                      <ArrowRight className="ml-1 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    </span>
                   </Link>
                 </motion.div>
               ))
