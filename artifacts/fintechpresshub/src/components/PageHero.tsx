@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { type ReactNode, useRef } from "react";
 import { Mouse } from "lucide-react";
 
@@ -25,6 +25,16 @@ export function PageHero({
 }: PageHeroProps) {
   const sectionRef = useRef<HTMLElement>(null);
 
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  });
+  const gradientY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const orbAY = useTransform(scrollYProgress, [0, 1], ["0%", "60%"]);
+  const orbBY = useTransform(scrollYProgress, [0, 1], ["0%", "-40%"]);
+  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.85], [1, 0.4]);
+
   const handleScrollDown = () => {
     const section = sectionRef.current;
     if (!section) return;
@@ -40,9 +50,10 @@ export function PageHero({
   return (
     <section ref={sectionRef} className="relative overflow-hidden border-b border-border/60 bg-[hsl(var(--primary))] text-primary-foreground">
       {/* Layered gradient */}
-      <div
+      <motion.div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--primary))] via-[hsl(221_83%_45%)] to-[hsl(222_47%_18%)]"
+        style={{ y: gradientY }}
+        className="absolute -inset-y-20 inset-x-0 bg-gradient-to-br from-[hsl(var(--primary))] via-[hsl(221_83%_45%)] to-[hsl(222_47%_18%)]"
       />
 
       {/* Subtle grid pattern */}
@@ -61,12 +72,14 @@ export function PageHero({
       />
 
       {/* Soft glowing orbs */}
-      <div
+      <motion.div
         aria-hidden
+        style={{ y: orbAY }}
         className="pointer-events-none absolute -top-32 -left-32 h-[28rem] w-[28rem] rounded-full bg-[hsl(210_100%_70%)] opacity-25 blur-3xl"
       />
-      <div
+      <motion.div
         aria-hidden
+        style={{ y: orbBY }}
         className="pointer-events-none absolute -bottom-40 -right-32 h-[32rem] w-[32rem] rounded-full bg-[hsl(265_85%_60%)] opacity-20 blur-3xl"
       />
 
@@ -76,7 +89,10 @@ export function PageHero({
         className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
       />
 
-      <div className="container relative mx-auto px-4 pt-32 pb-20 md:pt-40 md:pb-28">
+      <motion.div
+        style={{ y: contentY, opacity: contentOpacity }}
+        className="container relative mx-auto px-4 pt-32 pb-20 md:pt-40 md:pb-28"
+      >
         <div className={`flex max-w-4xl flex-col gap-6 ${alignClasses}`}>
           {eyebrow && (
             <motion.span
@@ -125,7 +141,7 @@ export function PageHero({
             </motion.div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Bottom curve fade into next section */}
       <div
