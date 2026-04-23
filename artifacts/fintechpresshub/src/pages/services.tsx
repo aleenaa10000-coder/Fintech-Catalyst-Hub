@@ -1,11 +1,18 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useListServices } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
+import { PenTool, Link2, Newspaper, Network, Sparkles, type LucideIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { PageHero } from "@/components/PageHero";
+
+const deliverableIconBySlug: Record<string, LucideIcon> = {
+  "fintech-content-writing": PenTool,
+  "off-page-seo": Link2,
+  "guest-posting": Newspaper,
+  "topical-authority": Network,
+};
 
 export default function Services() {
   useDocumentTitle("Services | FintechPressHub", "Comprehensive fintech SEO, link building, and content marketing services.");
@@ -30,7 +37,9 @@ export default function Services() {
                   <div className="flex-1"><Skeleton className="h-48 w-full" /></div>
                 </div>
               ))
-            ) : services?.map((service, index) => (
+            ) : services?.map((service, index) => {
+              const DeliverableIcon = deliverableIconBySlug[service.slug] ?? Sparkles;
+              return (
               <motion.div
                 key={service.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -53,11 +62,16 @@ export default function Services() {
                 </div>
                 <div className={`flex-1 w-full flex justify-center ${index % 2 !== 0 ? 'md:order-1' : ''}`}>
                   <div className="w-full max-w-md md:max-w-none bg-white dark:bg-card rounded-xl p-8 border border-slate-100 dark:border-border/60 shadow-sm hover:shadow-md transition-shadow duration-300">
-                    <h3 className="font-semibold text-lg mb-6 text-slate-900 dark:text-foreground">Key Deliverables:</h3>
+                    <div className="flex items-center gap-3 mb-6">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <DeliverableIcon className="w-5 h-5" />
+                      </span>
+                      <h3 className="font-semibold text-lg text-slate-900 dark:text-foreground">Key Deliverables:</h3>
+                    </div>
                     <ul className="space-y-4">
                       {service.deliverables.map((item, i) => (
                         <li key={i} className="flex items-start gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                          <DeliverableIcon className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                           <span className="text-slate-700 dark:text-foreground">{item}</span>
                         </li>
                       ))}
@@ -65,7 +79,8 @@ export default function Services() {
                   </div>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
