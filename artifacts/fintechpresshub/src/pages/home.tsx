@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { CountUp } from "@/components/CountUp";
 import { ParticleNetwork } from "@/components/ParticleNetwork";
+import { TrustedBy } from "@/components/TrustedBy";
 
 export default function Home() {
   useDocumentTitle("FintechPressHub | Fintech SEO & Content Marketing Agency", "Expert content marketing and off-page SEO for fintech companies.");
@@ -78,6 +79,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <TrustedBy />
 
       {/* Trust Stats */}
       <section className="py-12 bg-secondary/50 border-y">
