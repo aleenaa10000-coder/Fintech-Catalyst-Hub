@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useGetTrustStats, useListTestimonials, useListFeaturedPosts, useListServices } from "@workspace/api-client-react";
 import heroBg from "@/assets/hero-bg.png";
 import servicesGraph from "@/assets/services-graph.png";
-import { ArrowRight, CheckCircle2, TrendingUp, ShieldCheck, Globe } from "lucide-react";
+import { ArrowRight, CheckCircle2, TrendingUp, ShieldCheck, Globe, FileText, Link2, Cog } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { CountUp } from "@/components/CountUp";
@@ -128,48 +128,61 @@ export default function Home() {
       {/* Services Overview */}
       <section className="py-24 bg-background">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center gap-16">
-            <div className="flex-1">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center max-w-3xl mx-auto mb-16"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Expertise meets execution.</h2>
+            <p className="text-lg text-muted-foreground">
+              Generic content agencies don't understand Open Banking, DeFi, or payment gateways. We pair industry experts with SEO specialists to drive qualified traffic that actually converts to pipeline.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            {[
+              {
+                Icon: FileText,
+                title: "Authority-Led Content",
+                desc: "In-depth articles, ebooks, and thought leadership written by operators who have actually shipped fintech products. Every asset is engineered to rank, earn citations, and convert qualified buyers.",
+              },
+              {
+                Icon: Link2,
+                title: "High-Impact PR & Link Building",
+                desc: "Earn coverage and backlinks from the publications your prospects already read — Bloomberg, TechCrunch, Finextra, The Block, and more. We focus on relevance and Domain Rating, never spammy networks.",
+              },
+              {
+                Icon: Cog,
+                title: "Technical SEO Architecture",
+                desc: "From Core Web Vitals to schema, internal linking, and crawl efficiency, we engineer your site to compete in YMYL search. We fix the foundations so every new piece of content compounds in value.",
+              },
+            ].map(({ Icon, title, desc }, i) => (
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                key={title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
               >
-                <h2 className="text-3xl md:text-4xl font-bold mb-6">Expertise meets execution.</h2>
-                <p className="text-lg text-muted-foreground mb-8">
-                  Generic content agencies don't understand Open Banking, DeFi, or Payment gateways. We do. We pair industry experts with SEO specialists to drive qualified traffic that actually converts to pipeline.
-                </p>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-center gap-3 text-foreground">
-                    <CheckCircle2 className="w-5 h-5 text-primary" />
-                    <span>Authoritative long-form content</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-foreground">
-                    <CheckCircle2 className="w-5 h-5 text-primary" />
-                    <span>High-DR digital PR and link building</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-foreground">
-                    <CheckCircle2 className="w-5 h-5 text-primary" />
-                    <span>Technical SEO architecture</span>
-                  </li>
-                </ul>
-                <Link href="/services">
-                  <Button>Explore Solutions <ArrowRight className="ml-2 w-4 h-4" /></Button>
-                </Link>
+                <Card className="h-full border bg-card transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:border-primary/40">
+                  <CardContent className="p-8">
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
+                      <Icon className="w-6 h-6 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-3">{title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{desc}</p>
+                  </CardContent>
+                </Card>
               </motion.div>
-            </div>
-            <div className="flex-1">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
-                className="relative rounded-2xl overflow-hidden shadow-2xl border bg-card"
-              >
-                <img src={servicesGraph} alt="Growth Graph" className="w-full h-auto object-cover aspect-[4/3]" />
-              </motion.div>
-            </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link href="/services">
+              <Button size="lg">Explore Solutions <ArrowRight className="ml-2 w-4 h-4" /></Button>
+            </Link>
           </div>
         </div>
       </section>
