@@ -5,3 +5,4 @@ export * from "./testimonials";
 export * from "./contactSubmissions";
 export * from "./guestPostSubmissions";
 export * from "./siteStats";
+export * from "./auth";

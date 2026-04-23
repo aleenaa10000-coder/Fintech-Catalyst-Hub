@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Trash2, Plus, ShieldAlert } from "lucide-react";
+import { Trash2, Plus, Lock, LogOut } from "lucide-react";
+import { useAuth } from "@workspace/replit-auth-web";
 
 const emptyForm = {
   slug: "",
@@ -26,6 +27,7 @@ const emptyForm = {
 
 export default function AdminServices() {
   useDocumentTitle("Admin · Services | FintechPressHub", "Manage services.");
+  const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
   const qc = useQueryClient();
   const { data: services, isLoading } = useListServices();
   const createMut = useCreateService();
@@ -77,19 +79,52 @@ export default function AdminServices() {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-[#0052FF]/10 flex items-center justify-center mb-4">
+              <Lock className="w-6 h-6 text-[#0052FF]" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Admin sign in required</h1>
+            <p className="text-muted-foreground mb-6">
+              You need to sign in to manage services.
+            </p>
+            <Button size="lg" onClick={login} className="bg-[#0052FF] hover:bg-[#0040cc]">
+              Log in
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background py-16">
       <div className="container mx-auto px-4 max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Services Admin</h1>
-          <p className="text-muted-foreground">
-            Add or remove services. Changes appear on the public Services page immediately.
-          </p>
-          <div className="mt-4 flex items-start gap-3 rounded-lg border border-orange-300/40 bg-orange-50 dark:bg-orange-950/30 p-3 text-sm text-orange-900 dark:text-orange-200">
-            <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" />
-            <div>
-              <strong>This page has no authentication.</strong> Don't share the URL publicly until you add a login.
-            </div>
+        <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Services Admin</h1>
+            <p className="text-muted-foreground">
+              Add or remove services. Changes appear on the public Services page immediately.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <span className="text-muted-foreground">
+              Signed in as <strong className="text-foreground">{user?.firstName ?? user?.email ?? "Admin"}</strong>
+            </span>
+            <Button variant="outline" size="sm" onClick={logout}>
+              <LogOut className="w-4 h-4 mr-1.5" /> Log out
+            </Button>
           </div>
         </div>
 

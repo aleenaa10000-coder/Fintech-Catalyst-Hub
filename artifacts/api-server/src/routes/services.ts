@@ -21,6 +21,10 @@ router.get("/services", async (_req, res) => {
 });
 
 router.post("/services", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const parsed = CreateServiceBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input", issues: parsed.error.issues });
@@ -58,6 +62,10 @@ router.post("/services", async (req, res) => {
 });
 
 router.delete("/services/:slug", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const slug = req.params.slug;
   if (!slug) {
     res.status(400).json({ error: "Missing slug" });
