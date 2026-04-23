@@ -18,6 +18,7 @@ export default function Pricing() {
         eyebrow="Pricing"
         title={<>Invest in Sustainable Growth</>}
         description="Transparent, retainer-based pricing with clear deliverables. Scale your organic acquisition pipeline with predictable costs and senior fintech operators on every account."
+        showScrollIndicator
       />
 
       <section className="py-24">

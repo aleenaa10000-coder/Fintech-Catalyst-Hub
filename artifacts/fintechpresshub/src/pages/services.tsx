@@ -17,6 +17,7 @@ export default function Services() {
         eyebrow="Services"
         title={<>Growth Engines for Fintech</>}
         description="Specialized digital marketing services designed to acquire high-value customers, earn high-authority backlinks, and build topical authority inside your sub-vertical."
+        showScrollIndicator
       />
 
       <section className="py-24">
