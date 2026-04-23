@@ -13,6 +13,13 @@ interface CoreValue {
   body: string;
 }
 
+const methodologyData: string[] = [
+  "Data-Driven Topic Clusters",
+  "Subject Matter Expert (SME) Interviews",
+  "Technical SEO Optimization",
+  "High-Authority Digital PR",
+];
+
 const valuesData: CoreValue[] = [
   {
     icon: Target,
@@ -83,12 +90,7 @@ export default function About() {
                   Our approach is rooted in data and executed with editorial precision. We don't just chase volume; we chase qualified pipeline. Every piece of content we produce is designed to position your brand as an authority while capturing high-intent search queries.
                 </p>
                 <ol className="space-y-5 mt-8">
-                  {[
-                    "Data-Driven Topic Clusters",
-                    "Subject Matter Expert (SME) Interviews",
-                    "Technical SEO Optimization",
-                    "High-Authority Digital PR",
-                  ].map((item, i) => (
+                  {methodologyData.map((item, i) => (
                     <motion.li
                       key={i}
                       initial={{ opacity: 0, x: 30 }}
