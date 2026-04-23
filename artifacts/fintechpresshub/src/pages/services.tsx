@@ -29,6 +29,32 @@ export default function Services() {
 
       <section className="py-24">
         <div className="container mx-auto px-4">
+          {!isLoading && services && services.length > 0 && (
+            <div className="sticky top-20 z-30 mx-auto mb-12 w-fit max-w-full overflow-x-auto rounded-full border border-border/60 bg-background/80 backdrop-blur-md shadow-sm">
+              <div className="flex items-center gap-1 p-1.5">
+                {services.map((service) => {
+                  const Icon = deliverableIconBySlug[service.slug] ?? Sparkles;
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      onClick={() => {
+                        const el = document.getElementById(`service-${service.slug}`);
+                        if (!el) return;
+                        const top = el.getBoundingClientRect().top + window.scrollY - 96;
+                        window.scrollTo({ top, behavior: "smooth" });
+                      }}
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                      <Icon className="h-4 w-4" />
+                      {service.name.split(" ").slice(0, 3).join(" ")}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col gap-16">
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
@@ -42,6 +68,7 @@ export default function Services() {
               return (
               <motion.div
                 key={service.id}
+                id={`service-${service.slug}`}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
