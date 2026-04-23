@@ -53,6 +53,32 @@ export interface Service {
   icon: string;
 }
 
+export interface ServiceInput {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  slug: string;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  name: string;
+  /**
+   * @minLength 1
+   * @maxLength 240
+   */
+  tagline: string;
+  /**
+   * @minLength 1
+   * @maxLength 4000
+   */
+  description: string;
+  deliverables: string[];
+  /** @maxLength 60 */
+  icon: string;
+}
+
 export interface ContactSubmissionInput {
   /**
    * @minLength 2

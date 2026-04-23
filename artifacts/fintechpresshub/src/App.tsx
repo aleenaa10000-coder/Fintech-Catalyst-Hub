@@ -19,6 +19,7 @@ import PrivacyPolicy from "@/pages/privacy-policy";
 import RefundPolicy from "@/pages/refund-policy";
 import Terms from "@/pages/terms";
 import EditorialGuidelines from "@/pages/editorial-guidelines";
+import AdminServices from "@/pages/admin-services";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -57,6 +58,7 @@ function Router() {
           <Route path="/refund-policy" component={RefundPolicy} />
           <Route path="/terms" component={Terms} />
           <Route path="/editorial-guidelines" component={EditorialGuidelines} />
+          <Route path="/admin/services" component={AdminServices} />
           <Route component={NotFound} />
         </Switch>
       </main>

@@ -16,5 +16,6 @@ export * from "./healthStatus";
 export * from "./listBlogPostsParams";
 export * from "./pricingPlan";
 export * from "./service";
+export * from "./serviceInput";
 export * from "./testimonial";
 export * from "./trustStats";

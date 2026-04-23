@@ -27,6 +27,7 @@ import type {
   ListBlogPostsParams,
   PricingPlan,
   Service,
+  ServiceInput,
   Testimonial,
   TrustStats,
 } from "./api.schemas";
@@ -595,6 +596,176 @@ export function useListServices<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Create a new service (admin)
+ */
+export const getCreateServiceUrl = () => {
+  return `/api/services`;
+};
+
+export const createService = async (
+  serviceInput: ServiceInput,
+  options?: RequestInit,
+): Promise<Service> => {
+  return customFetch<Service>(getCreateServiceUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(serviceInput),
+  });
+};
+
+export const getCreateServiceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createService>>,
+    TError,
+    { data: BodyType<ServiceInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createService>>,
+  TError,
+  { data: BodyType<ServiceInput> },
+  TContext
+> => {
+  const mutationKey = ["createService"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createService>>,
+    { data: BodyType<ServiceInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createService(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateServiceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createService>>
+>;
+export type CreateServiceMutationBody = BodyType<ServiceInput>;
+export type CreateServiceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new service (admin)
+ */
+export const useCreateService = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createService>>,
+    TError,
+    { data: BodyType<ServiceInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createService>>,
+  TError,
+  { data: BodyType<ServiceInput> },
+  TContext
+> => {
+  return useMutation(getCreateServiceMutationOptions(options));
+};
+
+/**
+ * @summary Delete a service by slug (admin)
+ */
+export const getDeleteServiceUrl = (slug: string) => {
+  return `/api/services/${slug}`;
+};
+
+export const deleteService = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteServiceUrl(slug), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteServiceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteService>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteService>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  const mutationKey = ["deleteService"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteService>>,
+    { slug: string }
+  > = (props) => {
+    const { slug } = props ?? {};
+
+    return deleteService(slug, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteServiceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteService>>
+>;
+
+export type DeleteServiceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a service by slug (admin)
+ */
+export const useDeleteService = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteService>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteService>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  return useMutation(getDeleteServiceMutationOptions(options));
+};
 
 /**
  * @summary Submit a contact form message

@@ -144,6 +144,38 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Service"
+    post:
+      operationId: createService
+      tags: [services]
+      summary: Create a new service (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceInput"
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+
+  /services/{slug}:
+    delete:
+      operationId: deleteService
+      tags: [services]
+      summary: Delete a service by slug (admin)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
 
   /contact:
     post:
@@ -310,6 +342,34 @@ components:
         icon:
           type: string
       required: [id, slug, name, tagline, description, deliverables, icon]
+
+    ServiceInput:
+      type: object
+      properties:
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 80
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        tagline:
+          type: string
+          minLength: 1
+          maxLength: 240
+        description:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        deliverables:
+          type: array
+          items:
+            type: string
+        icon:
+          type: string
+          maxLength: 60
+      required: [slug, name, tagline, description, deliverables, icon]
 
     ContactSubmissionInput:
       type: object

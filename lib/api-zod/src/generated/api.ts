@@ -129,6 +129,45 @@ export const ListServicesResponseItem = zod.object({
 export const ListServicesResponse = zod.array(ListServicesResponseItem);
 
 /**
+ * @summary Create a new service (admin)
+ */
+export const createServiceBodySlugMax = 80;
+
+export const createServiceBodyNameMax = 120;
+
+export const createServiceBodyTaglineMax = 240;
+
+export const createServiceBodyDescriptionMax = 4000;
+
+export const createServiceBodyIconMax = 60;
+
+export const CreateServiceBody = zod.object({
+  slug: zod.string().min(1).max(createServiceBodySlugMax),
+  name: zod.string().min(1).max(createServiceBodyNameMax),
+  tagline: zod.string().min(1).max(createServiceBodyTaglineMax),
+  description: zod.string().min(1).max(createServiceBodyDescriptionMax),
+  deliverables: zod.array(zod.string()),
+  icon: zod.string().max(createServiceBodyIconMax),
+});
+
+export const CreateServiceResponse = zod.object({
+  id: zod.number(),
+  slug: zod.string(),
+  name: zod.string(),
+  tagline: zod.string(),
+  description: zod.string(),
+  deliverables: zod.array(zod.string()),
+  icon: zod.string(),
+});
+
+/**
+ * @summary Delete a service by slug (admin)
+ */
+export const DeleteServiceParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+/**
  * @summary Submit a contact form message
  */
 export const submitContactFormBodyNameMin = 2;
