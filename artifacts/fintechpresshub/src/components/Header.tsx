@@ -30,7 +30,7 @@ export function Header() {
       className={cn(
         "fixed top-0 w-full z-50 transition-all duration-200 border-b",
         scrolled
-          ? "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-border"
+          ? "backdrop-blur-md backdrop-saturate-150 bg-background/70 border-border/60 shadow-sm"
           : "bg-transparent border-transparent"
       )}
     >
@@ -59,7 +59,12 @@ export function Header() {
             </Link>
           ))}
           <Link href="/contact">
-            <Button size="sm">Contact Us</Button>
+            <Button
+              size="sm"
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold shadow-sm"
+            >
+              Contact Us
+            </Button>
           </Link>
         </nav>
 
@@ -90,7 +95,9 @@ export function Header() {
               ))}
               <div className="pt-4 mt-4 border-t border-border">
                 <Link href="/contact" onClick={() => setIsOpen(false)}>
-                  <Button className="w-full">Contact Us</Button>
+                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold">
+                    Contact Us
+                  </Button>
                 </Link>
               </div>
             </nav>

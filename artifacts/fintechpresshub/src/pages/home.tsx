@@ -284,7 +284,10 @@ export default function Home() {
           <h2 className="text-4xl font-bold mb-6">Ready to dominate search results?</h2>
           <p className="text-xl mb-10 opacity-90">Join top fintech companies scaling their organic revenue with our specialized SEO and content strategies.</p>
           <Link href="/contact">
-            <Button size="lg" variant="secondary" className="h-14 px-10 text-lg font-semibold">
+            <Button
+              size="lg"
+              className="h-14 px-10 text-lg font-semibold bg-orange-500 hover:bg-orange-600 text-white shadow-lg"
+            >
               Get Started Today
             </Button>
           </Link>
