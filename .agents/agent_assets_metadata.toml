@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "LgLPZOqyXeXfK5lp_sqad"
+uri = "file://artifacts/fintechpresshub/src/assets/hero-bg.png"
+type = "image"
+title = "Fintech data abstract background"
+
+[[generated]]
+id = "OywAoy0kL4-eaFtutIRQB"
+uri = "file://artifacts/fintechpresshub/src/assets/about-office.png"
+type = "image"
+title = "Modern professional office"
+
+[[generated]]
+id = "PDxAFd_TzR64jVMu-LsCO"
+uri = "file://artifacts/fintechpresshub/src/assets/services-graph.png"
+type = "image"
+title = "Financial growth chart"

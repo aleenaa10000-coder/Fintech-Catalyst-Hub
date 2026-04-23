@@ -3,20 +3,31 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: FintechPressHub API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: blog
+    description: Blog posts
+  - name: pricing
+    description: Pricing plans
+  - name: services
+    description: Agency services
+  - name: contact
+    description: Contact form submissions
+  - name: guestPost
+    description: Guest post submissions
+  - name: stats
+    description: Site statistics / trust signals
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +35,182 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /blog/posts:
+    get:
+      operationId: listBlogPosts
+      tags: [blog]
+      summary: List published blog posts
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+      responses:
+        "200":
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BlogPost"
+
+  /blog/posts/{slug}:
+    get:
+      operationId: getBlogPost
+      tags: [blog]
+      summary: Get a blog post by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPost"
+        "404":
+          description: Not found
+
+  /blog/featured:
+    get:
+      operationId: listFeaturedPosts
+      tags: [blog]
+      summary: Featured posts for the homepage
+      responses:
+        "200":
+          description: Featured posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BlogPost"
+
+  /blog/categories:
+    get:
+      operationId: listBlogCategories
+      tags: [blog]
+      summary: Distinct blog categories with post counts
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BlogCategory"
+
+  /pricing/plans:
+    get:
+      operationId: listPricingPlans
+      tags: [pricing]
+      summary: List agency pricing plans
+      responses:
+        "200":
+          description: Plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PricingPlan"
+
+  /services:
+    get:
+      operationId: listServices
+      tags: [services]
+      summary: List agency services
+      responses:
+        "200":
+          description: Services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Service"
+
+  /contact:
+    post:
+      operationId: submitContactForm
+      tags: [contact]
+      summary: Submit a contact form message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactSubmissionInput"
+      responses:
+        "200":
+          description: Submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactSubmission"
+
+  /guest-posts:
+    post:
+      operationId: submitGuestPost
+      tags: [guestPost]
+      summary: Submit a guest post pitch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuestPostSubmissionInput"
+      responses:
+        "200":
+          description: Submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuestPostSubmission"
+
+  /stats/trust:
+    get:
+      operationId: getTrustStats
+      tags: [stats]
+      summary: Trust signal stats for homepage
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrustStats"
+
+  /testimonials:
+    get:
+      operationId: listTestimonials
+      tags: [stats]
+      summary: Customer testimonials
+      responses:
+        "200":
+          description: Testimonials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Testimonial"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +218,216 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    BlogPost:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        content:
+          type: string
+        author:
+          type: string
+        authorRole:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        coverImage:
+          type: string
+        readingMinutes:
+          type: integer
+        featured:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+      required: [id, slug, title, excerpt, content, author, authorRole, category, tags, coverImage, readingMinutes, featured, publishedAt]
+
+    BlogCategory:
+      type: object
+      properties:
+        name:
+          type: string
+        count:
+          type: integer
+      required: [name, count]
+
+    PricingPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        tagline:
+          type: string
+        priceMonthly:
+          type: integer
+        priceUnit:
+          type: string
+        description:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        ctaLabel:
+          type: string
+        highlighted:
+          type: boolean
+        sortOrder:
+          type: integer
+      required: [id, name, tagline, priceMonthly, priceUnit, description, features, ctaLabel, highlighted, sortOrder]
+
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        name:
+          type: string
+        tagline:
+          type: string
+        description:
+          type: string
+        deliverables:
+          type: array
+          items:
+            type: string
+        icon:
+          type: string
+      required: [id, slug, name, tagline, description, deliverables, icon]
+
+    ContactSubmissionInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        company:
+          type: string
+          maxLength: 120
+        phone:
+          type: string
+          maxLength: 40
+        service:
+          type: string
+          maxLength: 80
+        budget:
+          type: string
+          maxLength: 80
+        message:
+          type: string
+          minLength: 10
+          maxLength: 4000
+      required: [name, email, message]
+
+    ContactSubmission:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, email, message, createdAt]
+
+    GuestPostSubmissionInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        website:
+          type: string
+          maxLength: 200
+        topic:
+          type: string
+          minLength: 4
+          maxLength: 200
+        category:
+          type: string
+          maxLength: 80
+        pitch:
+          type: string
+          minLength: 30
+          maxLength: 4000
+        sampleUrl:
+          type: string
+          maxLength: 300
+      required: [name, email, topic, pitch]
+
+    GuestPostSubmission:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        topic:
+          type: string
+        pitch:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, email, topic, pitch, createdAt]
+
+    TrustStats:
+      type: object
+      properties:
+        clientsServed:
+          type: integer
+        articlesPublished:
+          type: integer
+        backlinksAcquired:
+          type: integer
+        averageDomainRating:
+          type: integer
+      required: [clientsServed, articlesPublished, backlinksAcquired, averageDomainRating]
+
+    Testimonial:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+        company:
+          type: string
+        quote:
+          type: string
+        rating:
+          type: integer
+      required: [id, name, role, company, quote, rating]
