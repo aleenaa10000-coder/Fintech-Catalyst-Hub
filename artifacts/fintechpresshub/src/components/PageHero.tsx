@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { type ReactNode } from "react";
+import { Mouse } from "lucide-react";
 
 interface PageHeroProps {
   eyebrow?: string;
@@ -7,6 +8,9 @@ interface PageHeroProps {
   description: ReactNode;
   children?: ReactNode;
   align?: "center" | "left";
+  titleClassName?: string;
+  descriptionClassName?: string;
+  showScrollIndicator?: boolean;
 }
 
 export function PageHero({
@@ -15,6 +19,9 @@ export function PageHero({
   description,
   children,
   align = "center",
+  titleClassName,
+  descriptionClassName,
+  showScrollIndicator = false,
 }: PageHeroProps) {
   const alignClasses =
     align === "center"
@@ -78,7 +85,10 @@ export function PageHero({
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, delay: 0.05 }}
-            className="text-4xl font-bold leading-[1.1] tracking-tight text-white md:text-5xl lg:text-6xl"
+            className={
+              titleClassName ??
+              "text-4xl font-bold leading-[1.1] tracking-tight text-white md:text-5xl lg:text-6xl"
+            }
           >
             {title}
           </motion.h1>
@@ -87,7 +97,10 @@ export function PageHero({
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, delay: 0.15 }}
-            className="max-w-3xl text-lg leading-relaxed text-white/80 md:text-xl"
+            className={
+              descriptionClassName ??
+              "max-w-3xl text-lg leading-relaxed text-white/80 md:text-xl"
+            }
           >
             {description}
           </motion.div>
@@ -110,6 +123,20 @@ export function PageHero({
         aria-hidden
         className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-background/0"
       />
+
+      {showScrollIndicator && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="absolute inset-x-0 bottom-6 z-10 flex flex-col items-center gap-1 text-white/70"
+        >
+          <Mouse className="h-6 w-6 animate-bounce" strokeWidth={1.75} />
+          <span className="text-[10px] font-medium uppercase tracking-[0.2em]">
+            Scroll
+          </span>
+        </motion.div>
+      )}
     </section>
   );
 }

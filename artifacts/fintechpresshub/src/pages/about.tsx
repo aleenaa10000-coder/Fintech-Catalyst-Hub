@@ -13,7 +13,18 @@ export default function About() {
       <PageHero
         eyebrow="About FintechPressHub"
         title={<>Bridging Fintech Expertise & Search Visibility</>}
-        description="We started FintechPressHub because we saw a gap: generalist marketing agencies didn't understand the nuances of Open Banking, BaaS, or DeFi, while financial experts didn't know how to rank on Google. We built the team that does both."
+        titleClassName="text-4xl font-extrabold leading-[1.1] tracking-tight text-white md:text-5xl lg:text-6xl"
+        description={
+          <div className="max-w-3xl space-y-4 text-base leading-relaxed text-white/85 md:text-lg">
+            <p>
+              We started FintechPressHub because we saw a gap: generalist marketing agencies didn't understand the nuances of Open Banking, BaaS, or DeFi.
+            </p>
+            <p>
+              At the same time, the financial experts who lived and breathed those topics didn't know how to rank on Google. We built the team that does both.
+            </p>
+          </div>
+        }
+        showScrollIndicator
       />
 
       {/* Mission & Image */}
