@@ -1,11 +1,35 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { motion } from "framer-motion";
-import { Users, Target, ShieldCheck, ArrowRight } from "lucide-react";
+import { Users, Target, ShieldCheck, ArrowRight, type LucideIcon } from "lucide-react";
 import { Link } from "wouter";
 import aboutOffice from "@/assets/about-office.png";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/PageHero";
+
+interface CoreValue {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+}
+
+const valuesData: CoreValue[] = [
+  {
+    icon: Target,
+    title: "Precision",
+    body: "We measure twice and cut once. Our SEO strategies are backed by rigorous data analysis and competitor research.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Integrity",
+    body: "No black-hat tactics or empty promises. We build sustainable organic growth engines that withstand algorithm updates.",
+  },
+  {
+    icon: Users,
+    title: "Partnership",
+    body: "We act as an extension of your internal marketing team, aligning our KPIs directly with your revenue goals.",
+  },
+];
 
 export default function About() {
   useDocumentTitle("About FintechPressHub | Fintech SEO Agency", "Bridging the gap between deep fintech expertise and search visibility.");
@@ -95,23 +119,7 @@ export default function About() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                Icon: Target,
-                title: "Precision",
-                body: "We measure twice and cut once. Our SEO strategies are backed by rigorous data analysis and competitor research.",
-              },
-              {
-                Icon: ShieldCheck,
-                title: "Integrity",
-                body: "No black-hat tactics or empty promises. We build sustainable organic growth engines that withstand algorithm updates.",
-              },
-              {
-                Icon: Users,
-                title: "Partnership",
-                body: "We act as an extension of your internal marketing team, aligning our KPIs directly with your revenue goals.",
-              },
-            ].map(({ Icon, title, body }) => (
+            {valuesData.map(({ icon: Icon, title, body }) => (
               <Card
                 key={title}
                 className="group relative overflow-hidden bg-card border-border/60 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-[#0052FF]/15 hover:border-[#0052FF]/40 bg-gradient-to-br from-card to-card hover:from-[#0052FF]/5 hover:to-[#0052FF]/15"
