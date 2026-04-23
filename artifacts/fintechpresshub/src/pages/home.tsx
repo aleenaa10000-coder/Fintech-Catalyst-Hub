@@ -8,6 +8,7 @@ import servicesGraph from "@/assets/services-graph.png";
 import { ArrowRight, CheckCircle2, TrendingUp, ShieldCheck, Globe } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { CountUp } from "@/components/CountUp";
 
 export default function Home() {
   useDocumentTitle("FintechPressHub | Fintech SEO & Content Marketing Agency", "Expert content marketing and off-page SEO for fintech companies.");
@@ -73,19 +74,27 @@ export default function Home() {
             {stats ? (
               <>
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-primary mb-2">{stats.clientsServed}+</div>
+                  <div className="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-cyan-400 bg-clip-text text-transparent">
+                    <CountUp end={stats.clientsServed} suffix="+" />
+                  </div>
                   <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Clients Served</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-primary mb-2">{stats.articlesPublished.toLocaleString()}+</div>
+                  <div className="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-cyan-400 bg-clip-text text-transparent">
+                    <CountUp end={stats.articlesPublished} suffix="+" />
+                  </div>
                   <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Articles Published</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-primary mb-2">{stats.backlinksAcquired.toLocaleString()}+</div>
+                  <div className="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-cyan-400 bg-clip-text text-transparent">
+                    <CountUp end={stats.backlinksAcquired} suffix="+" />
+                  </div>
                   <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Backlinks Built</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-primary mb-2">{stats.averageDomainRating}+</div>
+                  <div className="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-cyan-400 bg-clip-text text-transparent">
+                    <CountUp end={stats.averageDomainRating} suffix="+" />
+                  </div>
                   <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Avg. Partner DR</div>
                 </div>
               </>
