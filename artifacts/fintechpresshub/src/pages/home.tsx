@@ -85,7 +85,13 @@ export default function Home() {
       {/* Trust Stats */}
       <section className="py-12 bg-secondary/50 border-y">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-8"
+          >
             {stats ? (
               <>
                 <div className="text-center">
@@ -121,7 +127,7 @@ export default function Home() {
                 </div>
               ))
             )}
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -190,7 +196,15 @@ export default function Home() {
       {/* Testimonials */}
       <section className="py-24 bg-secondary/30">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">Trusted by Fintech Leaders</h2>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5 }}
+            className="text-3xl md:text-4xl font-bold text-center mb-16"
+          >
+            Trusted by Fintech Leaders
+          </motion.h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials ? (
               testimonials.map((testimonial, i) => (
@@ -231,7 +245,13 @@ export default function Home() {
       {/* Featured Posts */}
       <section className="py-24 bg-background">
         <div className="container mx-auto px-4">
-          <div className="flex justify-between items-end mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5 }}
+            className="flex justify-between items-end mb-12"
+          >
             <div>
               <h2 className="text-3xl font-bold mb-4">Latest Insights</h2>
               <p className="text-muted-foreground text-lg">Actionable SEO and marketing strategies for fintech.</p>
@@ -239,7 +259,7 @@ export default function Home() {
             <Link href="/blog" className="hidden md:flex">
               <Button variant="ghost">View All Posts <ArrowRight className="ml-2 w-4 h-4" /></Button>
             </Link>
-          </div>
+          </motion.div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {featuredPosts ? (
@@ -280,7 +300,13 @@ export default function Home() {
 
       {/* CTA */}
       <section className="py-24 bg-primary text-primary-foreground text-center">
-        <div className="container mx-auto px-4 max-w-3xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6 }}
+          className="container mx-auto px-4 max-w-3xl"
+        >
           <h2 className="text-4xl font-bold mb-6">Ready to dominate search results?</h2>
           <p className="text-xl mb-10 opacity-90">Join top fintech companies scaling their organic revenue with our specialized SEO and content strategies.</p>
           <Link href="/contact">
@@ -291,7 +317,7 @@ export default function Home() {
               Get Started Today
             </Button>
           </Link>
-        </div>
+        </motion.div>
       </section>
     </div>
   );
