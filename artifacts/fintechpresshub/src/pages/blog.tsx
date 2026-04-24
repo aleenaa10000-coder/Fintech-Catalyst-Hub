@@ -5,7 +5,7 @@ import {
   useListFeaturedPosts,
 } from "@workspace/api-client-react";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -108,10 +108,10 @@ export default function Blog() {
             <button
               type="button"
               onClick={() => setActiveCategory(undefined)}
-              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
+              className={`px-4 py-2 rounded-full text-sm font-medium border-2 transition-all duration-200 ${
                 activeCategory === undefined
                   ? "bg-[#0052FF] text-white border-[#0052FF] shadow-sm"
-                  : "bg-white text-slate-700 border-slate-200 hover:border-[#0052FF] hover:text-[#0052FF]"
+                  : "bg-transparent text-[#0052FF] border-[#0052FF] hover:bg-[#0052FF]/5"
               }`}
             >
               All
@@ -123,15 +123,15 @@ export default function Blog() {
                   key={cat.name}
                   type="button"
                   onClick={() => setActiveCategory(cat.name)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium border-2 transition-all duration-200 ${
                     active
                       ? "bg-[#0052FF] text-white border-[#0052FF] shadow-sm"
-                      : "bg-white text-slate-700 border-slate-200 hover:border-[#0052FF] hover:text-[#0052FF]"
+                      : "bg-transparent text-[#0052FF] border-[#0052FF] hover:bg-[#0052FF]/5"
                   }`}
                 >
                   {cat.name}
                   <span
-                    className={`ml-2 text-xs ${active ? "text-white/80" : "text-slate-400"}`}
+                    className={`ml-2 text-xs ${active ? "text-white/80" : "text-[#0052FF]/60"}`}
                   >
                     {cat.count}
                   </span>
@@ -162,12 +162,15 @@ export default function Blog() {
                 No posts found for this category.
               </div>
             ) : (
-              gridPosts.map((post, i) => (
+              <AnimatePresence mode="popLayout">
+              {gridPosts.map((post, i) => (
                 <motion.div
                   key={post.id}
+                  layout
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: i * 0.05 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.97 }}
+                  transition={{ duration: 0.35, delay: i * 0.04 }}
                 >
                   <Link href={`/blog/${post.slug}`}>
                     <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer bg-card">
@@ -202,7 +205,8 @@ export default function Blog() {
                     </Card>
                   </Link>
                 </motion.div>
-              ))
+              ))}
+              </AnimatePresence>
             )}
           </div>
         </div>
