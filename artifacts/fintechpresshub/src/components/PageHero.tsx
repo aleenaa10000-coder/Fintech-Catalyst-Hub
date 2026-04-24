@@ -91,7 +91,7 @@ export function PageHero({
 
       <motion.div
         style={{ y: contentY, opacity: contentOpacity }}
-        className="container relative mx-auto px-4 pt-32 pb-20 md:pt-40 md:pb-28"
+        className="container relative mx-auto px-4 pt-24 pb-12 md:pt-28 md:pb-16"
       >
         <div className={`flex max-w-4xl flex-col gap-6 ${alignClasses}`}>
           {eyebrow && (
@@ -112,7 +112,7 @@ export function PageHero({
             transition={{ duration: 0.55, delay: 0.05 }}
             className={
               titleClassName ??
-              "text-4xl font-bold leading-[1.1] tracking-tight text-white md:text-5xl lg:text-6xl"
+              "text-3xl font-bold leading-[1.1] tracking-tight text-white md:text-4xl lg:text-5xl"
             }
           >
             {title}
