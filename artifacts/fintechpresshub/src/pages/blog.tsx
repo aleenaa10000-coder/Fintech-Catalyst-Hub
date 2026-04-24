@@ -146,7 +146,7 @@ export default function Blog() {
       />
 
       {/* Category Chips */}
-      <section className="py-10 border-b bg-background sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <section className="py-10 border-b bg-background">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap gap-2 justify-center">
             <button

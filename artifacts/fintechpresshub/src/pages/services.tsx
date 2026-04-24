@@ -30,7 +30,7 @@ export default function Services() {
       <section className="pt-12 pb-24">
         <div className="container mx-auto px-4">
           {!isLoading && services && services.length > 0 && (
-            <div className="sticky top-20 z-30 mx-auto mb-12 w-fit max-w-full overflow-x-auto rounded-full border border-border/60 bg-background/80 backdrop-blur-md shadow-sm">
+            <div className="mx-auto mb-12 w-fit max-w-full overflow-x-auto rounded-full border border-border/60 bg-background/80 shadow-sm">
               <div className="flex items-center gap-1 p-1.5">
                 {services.map((service) => {
                   const Icon = deliverableIconBySlug[service.slug] ?? Sparkles;
