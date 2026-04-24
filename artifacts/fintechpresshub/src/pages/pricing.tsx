@@ -60,10 +60,10 @@ export default function Pricing() {
                 className="h-full flex"
               >
                 <Card
-                  className={`w-full flex flex-col relative border-t-4 border-t-blue-600 transition-all duration-300 ease-out ${
+                  className={`w-full flex flex-col relative transition-all duration-300 ease-out ${
                     plan.highlighted
-                      ? 'border-primary shadow-[0_0_20px_rgba(0,82,255,0.1)] scale-105 z-10 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(0,82,255,0.35)]'
-                      : 'border-border hover:-translate-y-2 hover:shadow-xl hover:border-blue-200'
+                      ? 'border-2 border-[#0052FF] border-t-4 border-t-[#0052FF] shadow-[0_0_20px_rgba(0,82,255,0.15)] md:scale-105 z-10 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(0,82,255,0.35)]'
+                      : 'border border-border hover:-translate-y-2 hover:shadow-xl hover:border-blue-200'
                   }`}
                 >
                   {plan.highlighted && (

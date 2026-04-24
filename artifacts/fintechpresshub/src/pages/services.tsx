@@ -15,6 +15,14 @@ const deliverableIconBySlug: Record<string, LucideIcon> = {
   "fintech-seo-audit": Search,
 };
 
+const shortLabelBySlug: Record<string, string> = {
+  "fintech-content-writing": "Content Writing",
+  "off-page-seo": "Off-Page SEO",
+  "guest-posting": "Guest Posting",
+  "topical-authority": "Topical Authority",
+  "fintech-seo-audit": "SEO Audits",
+};
+
 export default function Services() {
   const { data: services, isLoading } = useListServices();
 
@@ -47,7 +55,7 @@ export default function Services() {
                       className="inline-flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
                       <Icon className="h-4 w-4" />
-                      {service.name.split(" ").slice(0, 3).join(" ")}
+                      {shortLabelBySlug[service.slug] ?? service.name}
                     </button>
                   );
                 })}
