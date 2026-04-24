@@ -35,6 +35,7 @@ import type {
   NewsletterSubscription,
   NewsletterSubscriptionInput,
   PricingPlan,
+  PublishBlogPostInput,
   Service,
   ServiceInput,
   Testimonial,
@@ -742,6 +743,95 @@ export function useListBlogPosts<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Inserts a new blog post and notifies search engines. Requires an
+authenticated session.
+
+ * @summary Publish a new blog post (admin)
+ */
+export const getPublishBlogPostUrl = () => {
+  return `/api/blog/posts`;
+};
+
+export const publishBlogPost = async (
+  publishBlogPostInput: PublishBlogPostInput,
+  options?: RequestInit,
+): Promise<BlogPost> => {
+  return customFetch<BlogPost>(getPublishBlogPostUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(publishBlogPostInput),
+  });
+};
+
+export const getPublishBlogPostMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishBlogPost>>,
+    TError,
+    { data: BodyType<PublishBlogPostInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof publishBlogPost>>,
+  TError,
+  { data: BodyType<PublishBlogPostInput> },
+  TContext
+> => {
+  const mutationKey = ["publishBlogPost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof publishBlogPost>>,
+    { data: BodyType<PublishBlogPostInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return publishBlogPost(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PublishBlogPostMutationResult = NonNullable<
+  Awaited<ReturnType<typeof publishBlogPost>>
+>;
+export type PublishBlogPostMutationBody = BodyType<PublishBlogPostInput>;
+export type PublishBlogPostMutationError = ErrorType<void>;
+
+/**
+ * @summary Publish a new blog post (admin)
+ */
+export const usePublishBlogPost = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishBlogPost>>,
+    TError,
+    { data: BodyType<PublishBlogPostInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof publishBlogPost>>,
+  TError,
+  { data: BodyType<PublishBlogPostInput> },
+  TContext
+> => {
+  return useMutation(getPublishBlogPostMutationOptions(options));
+};
 
 /**
  * @summary Get a blog post by slug

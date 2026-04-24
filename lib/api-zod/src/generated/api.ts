@@ -121,6 +121,34 @@ export const ListBlogPostsResponseItem = zod.object({
 export const ListBlogPostsResponse = zod.array(ListBlogPostsResponseItem);
 
 /**
+ * Inserts a new blog post and notifies search engines. Requires an
+authenticated session.
+
+ * @summary Publish a new blog post (admin)
+ */
+export const publishBlogPostBodySlugRegExp = new RegExp(
+  "^[a-z0-9][a-z0-9-]\*$",
+);
+
+export const PublishBlogPostBody = zod.object({
+  slug: zod
+    .string()
+    .regex(publishBlogPostBodySlugRegExp)
+    .describe("Lowercase, hyphenated URL slug."),
+  title: zod.string().min(1),
+  excerpt: zod.string().min(1),
+  content: zod.string().min(1),
+  author: zod.string().min(1),
+  authorRole: zod.string().min(1),
+  category: zod.string().min(1),
+  tags: zod.array(zod.string()).optional(),
+  coverImage: zod.string().url(),
+  readingMinutes: zod.number().min(1),
+  featured: zod.boolean().optional(),
+  publishedAt: zod.coerce.date().optional(),
+});
+
+/**
  * @summary Get a blog post by slug
  */
 export const GetBlogPostParams = zod.object({

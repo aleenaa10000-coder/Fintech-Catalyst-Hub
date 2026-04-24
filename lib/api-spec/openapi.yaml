@@ -183,6 +183,30 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/BlogPost"
+    post:
+      operationId: publishBlogPost
+      tags: [blog]
+      summary: Publish a new blog post (admin)
+      description: |
+        Inserts a new blog post and notifies search engines. Requires an
+        authenticated session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishBlogPostInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPost"
+        "401":
+          description: Unauthorized
+        "409":
+          description: A post with this slug already exists
 
   /blog/posts/{slug}:
     get:
@@ -510,6 +534,57 @@ components:
         count:
           type: integer
       required: [name, count]
+
+    PublishBlogPostInput:
+      type: object
+      properties:
+        slug:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*$"
+          description: Lowercase, hyphenated URL slug.
+        title:
+          type: string
+          minLength: 1
+        excerpt:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+        author:
+          type: string
+          minLength: 1
+        authorRole:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          minLength: 1
+        tags:
+          type: array
+          items:
+            type: string
+        coverImage:
+          type: string
+          format: uri
+        readingMinutes:
+          type: integer
+          minimum: 1
+        featured:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+      required:
+        - slug
+        - title
+        - excerpt
+        - content
+        - author
+        - authorRole
+        - category
+        - coverImage
+        - readingMinutes
 
     PricingPlan:
       type: object

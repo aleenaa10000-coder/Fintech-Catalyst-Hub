@@ -21,6 +21,7 @@ import CookiePolicy from "@/pages/cookie-policy";
 import Terms from "@/pages/terms";
 import EditorialGuidelines from "@/pages/editorial-guidelines";
 import AdminServices from "@/pages/admin-services";
+import AdminBlog from "@/pages/admin-blog";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -61,6 +62,7 @@ function Router() {
           <Route path="/terms" component={Terms} />
           <Route path="/editorial-guidelines" component={EditorialGuidelines} />
           <Route path="/admin/services" component={AdminServices} />
+          <Route path="/admin/blog" component={AdminBlog} />
           <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
         </Switch>

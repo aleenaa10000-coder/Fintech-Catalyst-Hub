@@ -26,6 +26,7 @@ export * from "./mobileTokenExchangeSuccess";
 export * from "./newsletterSubscription";
 export * from "./newsletterSubscriptionInput";
 export * from "./pricingPlan";
+export * from "./publishBlogPostInput";
 export * from "./service";
 export * from "./serviceInput";
 export * from "./testimonial";

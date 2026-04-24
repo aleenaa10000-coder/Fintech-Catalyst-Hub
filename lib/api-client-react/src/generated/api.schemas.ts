@@ -72,6 +72,32 @@ export interface BlogCategory {
   count: number;
 }
 
+export interface PublishBlogPostInput {
+  /**
+   * Lowercase, hyphenated URL slug.
+   * @pattern ^[a-z0-9][a-z0-9-]*$
+   */
+  slug: string;
+  /** @minLength 1 */
+  title: string;
+  /** @minLength 1 */
+  excerpt: string;
+  /** @minLength 1 */
+  content: string;
+  /** @minLength 1 */
+  author: string;
+  /** @minLength 1 */
+  authorRole: string;
+  /** @minLength 1 */
+  category: string;
+  tags?: string[];
+  coverImage: string;
+  /** @minimum 1 */
+  readingMinutes: number;
+  featured?: boolean;
+  publishedAt?: string;
+}
+
 export interface PricingPlan {
   id: number;
   name: string;

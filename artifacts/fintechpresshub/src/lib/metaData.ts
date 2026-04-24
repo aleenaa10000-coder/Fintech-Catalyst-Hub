@@ -104,6 +104,10 @@ export const PAGE_META = {
     title: "Admin · Services | FintechPressHub",
     description: "Manage services.",
   },
+  adminBlog: {
+    title: "Admin · Blog | FintechPressHub",
+    description: "Publish new blog posts.",
+  },
   notFound: {
     title: "Page Not Found | FintechPressHub",
     description: "The page you are looking for could not be found.",
