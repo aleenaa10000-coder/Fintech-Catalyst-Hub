@@ -206,7 +206,7 @@ export default function Home() {
             Trusted by Fintech Leaders
           </motion.h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials ? (
+            {Array.isArray(testimonials) && testimonials.length > 0 ? (
               testimonials.map((testimonial, i) => (
                 <motion.div
                   key={testimonial.id}
@@ -262,7 +262,7 @@ export default function Home() {
           </motion.div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredPosts ? (
+            {Array.isArray(featuredPosts) && featuredPosts.length > 0 ? (
               featuredPosts.map((post, i) => (
                 <motion.div
                   key={post.id}
