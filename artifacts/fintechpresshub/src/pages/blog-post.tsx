@@ -1,4 +1,5 @@
 import { PageMeta } from "@/components/PageMeta";
+import { SITE_URL } from "@/lib/metaData";
 import { useParams, Link, Redirect } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -164,7 +165,9 @@ export default function BlogPost() {
         article={{
           title: post.title,
           description: post.excerpt ?? undefined,
-          image: post.image,
+          image: `${SITE_URL}/api/og?title=${encodeURIComponent(
+            post.title,
+          )}&category=${encodeURIComponent(post.category ?? "Insights")}`,
           datePublished: post.date,
           author: post.author,
           section: post.category,
