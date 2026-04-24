@@ -9,8 +9,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/PageHero";
-import { Calendar, Clock, ArrowRight } from "lucide-react";
+import { Calendar, Clock, ArrowRight, Mail, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", {
@@ -37,6 +40,70 @@ export default function Blog() {
   );
 
   const gridPosts = posts?.filter((p) => p.id !== featured?.id) ?? [];
+
+  const NEWSLETTER_AFTER = 6;
+  const firstBatch = gridPosts.slice(0, NEWSLETTER_AFTER);
+  const restBatch = gridPosts.slice(NEWSLETTER_AFTER);
+  const showNewsletter = gridPosts.length >= 3;
+
+  const [email, setEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    setSubscribed(true);
+    setEmail("");
+    toast.success("You're in. Watch your inbox for the next issue.");
+  };
+
+  const renderPostCard = (post: (typeof gridPosts)[number], i: number) => (
+    <motion.div
+      key={post.id}
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10, scale: 0.97 }}
+      transition={{ duration: 0.35, delay: i * 0.04 }}
+    >
+      <Link href={`/blog/${post.slug}`}>
+        <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer bg-card">
+          <div className="aspect-[16/9] overflow-hidden">
+            <img
+              src={post.coverImage}
+              alt={post.title}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
+          <CardContent className="p-6 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider">
+                {post.category}
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3.5 h-3.5" />
+                {post.readingMinutes} min
+              </span>
+            </div>
+            <h2 className="text-lg font-bold mb-3 text-slate-900 group-hover:text-[#0052FF] transition-colors line-clamp-2">
+              {post.title}
+            </h2>
+            <p className="text-muted-foreground text-sm line-clamp-3 mb-6 flex-1">
+              {post.excerpt}
+            </p>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-4 border-t border-slate-100">
+              <Calendar className="w-3.5 h-3.5" />
+              {formatDate(post.publishedAt)}
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    </motion.div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -163,49 +230,96 @@ export default function Blog() {
               </div>
             ) : (
               <AnimatePresence mode="popLayout">
-              {gridPosts.map((post, i) => (
-                <motion.div
-                  key={post.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.97 }}
-                  transition={{ duration: 0.35, delay: i * 0.04 }}
-                >
-                  <Link href={`/blog/${post.slug}`}>
-                    <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer bg-card">
-                      <div className="aspect-[16/9] overflow-hidden">
-                        <img
-                          src={post.coverImage}
-                          alt={post.title}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
+                {firstBatch.map((post, i) => renderPostCard(post, i))}
+
+                {showNewsletter && (
+                  <motion.div
+                    key="newsletter-row"
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, delay: 0.05 }}
+                    className="col-span-full"
+                  >
+                    <div className="relative overflow-hidden rounded-2xl bg-[#0A1628] text-white shadow-xl">
+                      <div
+                        className="absolute inset-0 opacity-[0.07] pointer-events-none"
+                        style={{
+                          backgroundImage:
+                            "radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)",
+                          backgroundSize: "24px 24px",
+                        }}
+                      />
+                      <div
+                        className="absolute -top-24 -right-24 w-72 h-72 rounded-full pointer-events-none"
+                        style={{
+                          background:
+                            "radial-gradient(circle, rgba(0,82,255,0.35) 0%, transparent 70%)",
+                        }}
+                      />
+                      <div className="relative grid md:grid-cols-2 gap-10 items-center px-8 md:px-12 py-12 md:py-14">
+                        <div>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-semibold uppercase tracking-wider mb-4">
+                            <Mail className="w-3.5 h-3.5" />
+                            Newsletter
+                          </span>
+                          <h3 className="text-3xl md:text-4xl font-extrabold leading-tight mb-3">
+                            Get Fintech SEO Secrets in Your Inbox
+                          </h3>
+                          <p className="text-white/70 text-base md:text-lg leading-relaxed max-w-md">
+                            One short, actionable email each week on SEO, digital
+                            PR, and content for fintech operators. No spam, unsubscribe anytime.
+                          </p>
+                        </div>
+                        <div>
+                          {subscribed ? (
+                            <div className="flex items-start gap-3 p-5 rounded-xl bg-white/5 border border-white/10">
+                              <CheckCircle2 className="w-6 h-6 text-[#3DE0A0] shrink-0 mt-0.5" />
+                              <div>
+                                <div className="font-semibold text-base">
+                                  You're subscribed.
+                                </div>
+                                <div className="text-sm text-white/60">
+                                  We'll send the next issue straight to your inbox.
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <form
+                              onSubmit={handleSubscribe}
+                              className="flex flex-col sm:flex-row gap-3"
+                            >
+                              <Input
+                                type="email"
+                                required
+                                placeholder="you@yourcompany.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="h-12 bg-white/5 border-white/15 text-white placeholder:text-white/40 focus-visible:ring-[#0052FF] focus-visible:border-[#0052FF]"
+                              />
+                              <Button
+                                type="submit"
+                                className="h-12 px-6 bg-[#0052FF] hover:bg-[#0046d6] text-white font-semibold shadow-lg shadow-[#0052FF]/30"
+                              >
+                                Subscribe
+                                <ArrowRight className="w-4 h-4 ml-1.5" />
+                              </Button>
+                            </form>
+                          )}
+                          <p className="text-xs text-white/40 mt-3">
+                            Trusted by fintech marketers at growth-stage and
+                            public companies.
+                          </p>
+                        </div>
                       </div>
-                      <CardContent className="p-6 flex flex-col">
-                        <div className="flex items-center justify-between mb-4">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider">
-                            {post.category}
-                          </span>
-                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="w-3.5 h-3.5" />
-                            {post.readingMinutes} min
-                          </span>
-                        </div>
-                        <h2 className="text-lg font-bold mb-3 text-slate-900 group-hover:text-[#0052FF] transition-colors line-clamp-2">
-                          {post.title}
-                        </h2>
-                        <p className="text-muted-foreground text-sm line-clamp-3 mb-6 flex-1">
-                          {post.excerpt}
-                        </p>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-4 border-t border-slate-100">
-                          <Calendar className="w-3.5 h-3.5" />
-                          {formatDate(post.publishedAt)}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </motion.div>
-              ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {restBatch.map((post, i) =>
+                  renderPostCard(post, i + firstBatch.length),
+                )}
               </AnimatePresence>
             )}
           </div>
