@@ -15,6 +15,48 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function buildJsonLd(post, siteUrl, image, url) {
+  const node = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt ?? "",
+    image: [image],
+    datePublished: post.date ?? undefined,
+    dateModified: post.dateModified ?? post.date ?? undefined,
+    author: post.author
+      ? {
+          "@type": "Person",
+          name: post.author,
+          ...(post.authorRole ? { jobTitle: post.authorRole } : {}),
+        }
+      : undefined,
+    publisher: {
+      "@type": "Organization",
+      name: "FintechPressHub",
+      url: siteUrl,
+      logo: {
+        "@type": "ImageObject",
+        url: `${siteUrl}/apple-touch-icon.png`,
+        width: 512,
+        height: 512,
+      },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": url,
+    },
+    articleSection: post.category ?? undefined,
+    keywords: Array.isArray(post.tags) && post.tags.length
+      ? post.tags.join(", ")
+      : undefined,
+    url,
+    inLanguage: "en",
+  };
+
+  return JSON.stringify(node, (_k, v) => (v === undefined ? undefined : v));
+}
+
 function injectMeta(html, post, siteUrl) {
   const url = `${siteUrl}/blog/${post.slug}`;
   const title = `${post.title} | FintechPressHub`;
@@ -60,6 +102,13 @@ function injectMeta(html, post, siteUrl) {
     /<meta\s+name="twitter:image:alt"[^>]*>/,
     (m) => `${m}\n${articleTags}`,
   );
+
+  const jsonLd = buildJsonLd(post, siteUrl, image, url)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+  const ldScript = `<script type="application/ld+json" data-bot-og="article">${jsonLd}</script>`;
+  html = html.replace(/<\/head>/i, `    ${ldScript}\n  </head>`);
 
   return html;
 }
