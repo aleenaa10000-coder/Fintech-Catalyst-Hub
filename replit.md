@@ -15,7 +15,13 @@ Professional fintech digital marketing & content agency website. React + Vite + 
 
 ## Pages
 
-Home, About, Services, Pricing, Blog (+ post detail), Write For Us, Contact, Privacy Policy, Refund Policy, Terms, Editorial Guidelines, 404.
+Home, About, Services, Pricing, Blog (+ post detail), Author profile (`/authors/:slug`), Write For Us, Contact, Privacy Policy, Refund Policy, Terms, Editorial Guidelines, 404.
+
+## Author profiles
+
+- Static dataset at `artifacts/fintechpresshub/src/data/authors.ts` for the 4 writers (Marcus Webb, Priya Nair, James Okafor, Sarah Chen): name, slug, role, short + full bio, expertise tags, credentials, location, years of experience, and social links.
+- Page: `artifacts/fintechpresshub/src/pages/author.tsx` mounted at `/authors/:slug`. Renders hero, bio, expertise, credentials sidebar, and a grid of all articles by that author (filtered from `data/posts.js` by author name → slug).
+- Author name + avatar in the blog post hero and the bottom author bio card both link to `/authors/:slug`. Helper `authorSlugFromName` keeps slug derivation consistent.
 
 ## Key Commands
 

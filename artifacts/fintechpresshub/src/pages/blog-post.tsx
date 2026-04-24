@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import posts from "@/data/posts.js";
+import { authorSlugFromName, getAuthorByName } from "@/data/authors";
 
 const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
@@ -307,19 +308,23 @@ export default function BlogPost() {
           </p>
 
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full bg-[#0052FF] text-white flex items-center justify-center font-bold text-sm shadow-sm">
+            <Link
+              href={`/authors/${authorSlugFromName(post.author)}`}
+              className="flex items-center gap-3 group"
+              data-testid={`link-author-${authorSlugFromName(post.author)}`}
+            >
+              <div className="w-11 h-11 rounded-full bg-[#0052FF] text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
                 {authorInitials(post.author)}
               </div>
               <div className="flex flex-col leading-tight">
-                <span className="text-sm font-semibold text-slate-900">
+                <span className="text-sm font-semibold text-slate-900 group-hover:text-[#0052FF] transition-colors">
                   {post.author}
                 </span>
                 <span className="text-xs text-slate-500">
                   {post.authorRole}
                 </span>
               </div>
-            </div>
+            </Link>
             <span className="hidden sm:block w-px h-8 bg-slate-200" />
             <div className="flex items-center gap-5 text-sm text-slate-500">
               <span className="inline-flex items-center gap-1.5">
@@ -505,30 +510,56 @@ export default function BlogPost() {
               </div>
 
             {/* Author Bio */}
-            <Card className="mt-12 border-slate-200 bg-gradient-to-br from-blue-50/40 to-white">
-              <CardContent className="p-8 flex flex-col sm:flex-row items-start gap-6">
-                <div className="w-16 h-16 shrink-0 rounded-full bg-[#0052FF] text-white flex items-center justify-center font-bold text-xl shadow-md">
-                  {authorInitials(post.author)}
-                </div>
-                <div className="flex-1">
-                  <div className="text-xs uppercase tracking-wider text-[#0052FF] font-semibold mb-1">
-                    Written by
-                  </div>
-                  <div className="text-xl font-bold text-slate-900">
-                    {post.author}
-                  </div>
-                  <div className="text-sm text-muted-foreground mb-3">
-                    {post.authorRole}
-                  </div>
-                  <p className="text-sm text-slate-700 leading-relaxed">
-                    {post.author} writes about {post.category.toLowerCase()} for
-                    fintech operators at FintechPressHub, drawing on hands-on
-                    experience running SEO and content programs for venture-backed
-                    finance brands.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {(() => {
+              const authorProfile = getAuthorByName(post.author);
+              const authorSlug = authorSlugFromName(post.author);
+              const bioText = authorProfile
+                ? authorProfile.shortBio
+                : `${post.author} writes about ${post.category.toLowerCase()} for fintech operators at FintechPressHub, drawing on hands-on experience running SEO and content programs for venture-backed finance brands.`;
+              return (
+                <Card className="mt-12 border-slate-200 bg-gradient-to-br from-blue-50/40 to-white">
+                  <CardContent className="p-8 flex flex-col sm:flex-row items-start gap-6">
+                    <Link
+                      href={`/authors/${authorSlug}`}
+                      className="shrink-0"
+                      aria-label={`View ${post.author}'s profile`}
+                    >
+                      <div className="w-16 h-16 rounded-full bg-[#0052FF] text-white flex items-center justify-center font-bold text-xl shadow-md hover:scale-105 transition-transform">
+                        {authorInitials(post.author)}
+                      </div>
+                    </Link>
+                    <div className="flex-1">
+                      <div className="text-xs uppercase tracking-wider text-[#0052FF] font-semibold mb-1">
+                        Written by
+                      </div>
+                      <Link
+                        href={`/authors/${authorSlug}`}
+                        className="text-xl font-bold text-slate-900 hover:text-[#0052FF] transition-colors"
+                      >
+                        {post.author}
+                      </Link>
+                      <div className="text-sm text-muted-foreground mb-3">
+                        {post.authorRole}
+                      </div>
+                      <p className="text-sm text-slate-700 leading-relaxed mb-4">
+                        {bioText}
+                      </p>
+                      <Link href={`/authors/${authorSlug}`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-[#0052FF]/30 text-[#0052FF] hover:bg-[#0052FF] hover:text-white"
+                          data-testid={`button-view-author-${authorSlug}`}
+                        >
+                          View full profile
+                          <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
             </div>
           </div>
         </div>
