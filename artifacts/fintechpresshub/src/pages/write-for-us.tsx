@@ -79,7 +79,7 @@ export default function WriteForUs() {
 
       <section className="py-24">
         <div className="container mx-auto px-4 max-w-6xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
             
             {/* Guidelines */}
             <div className="lg:col-span-5 space-y-8">
@@ -91,8 +91,11 @@ export default function WriteForUs() {
               </div>
 
               <Card className="bg-card">
-                <CardContent className="pt-6 space-y-6">
-                  <div className="flex gap-4">
+                <CardContent className="pt-6 space-y-3">
+                  <div
+                    className="flex gap-4 p-3 -m-1 rounded-xl hover:bg-blue-50/60 transition-colors duration-200"
+                    data-testid="guideline-depth"
+                  >
                     <div className="bg-primary/10 p-3 rounded-xl h-fit">
                       <FileText className="w-6 h-6 text-primary" />
                     </div>
@@ -101,7 +104,10 @@ export default function WriteForUs() {
                       <p className="text-sm text-muted-foreground">1,200+ words. No fluff. Must include unique data, personal experience, or case studies. AI-generated content will be rejected immediately.</p>
                     </div>
                   </div>
-                  <div className="flex gap-4">
+                  <div
+                    className="flex gap-4 p-3 -m-1 rounded-xl hover:bg-blue-50/60 transition-colors duration-200"
+                    data-testid="guideline-fintech"
+                  >
                     <div className="bg-primary/10 p-3 rounded-xl h-fit">
                       <Globe className="w-6 h-6 text-primary" />
                     </div>
@@ -110,7 +116,10 @@ export default function WriteForUs() {
                       <p className="text-sm text-muted-foreground">Topics must cover B2B/B2C fintech marketing, SEO, compliance marketing, Open Banking, or payments infrastructure.</p>
                     </div>
                   </div>
-                  <div className="flex gap-4">
+                  <div
+                    className="flex gap-4 p-3 -m-1 rounded-xl hover:bg-blue-50/60 transition-colors duration-200"
+                    data-testid="guideline-link"
+                  >
                     <div className="bg-primary/10 p-3 rounded-xl h-fit">
                       <LinkIcon className="w-6 h-6 text-primary" />
                     </div>
@@ -122,13 +131,13 @@ export default function WriteForUs() {
                 </CardContent>
               </Card>
 
-              <div className="bg-secondary/50 rounded-2xl p-6 border">
+              <div className="bg-red-50 border border-red-100 rounded-2xl p-6 text-red-900">
                 <h3 className="font-bold mb-4">What we do NOT accept:</h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-center gap-2"><span className="text-destructive font-bold">×</span> Generic marketing advice</li>
-                  <li className="flex items-center gap-2"><span className="text-destructive font-bold">×</span> Promotional press releases</li>
-                  <li className="flex items-center gap-2"><span className="text-destructive font-bold">×</span> Casino, CBD, or payday loan links</li>
-                  <li className="flex items-center gap-2"><span className="text-destructive font-bold">×</span> Plagiarized or spun content</li>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2"><span className="text-red-600 font-bold">×</span> Generic marketing advice</li>
+                  <li className="flex items-center gap-2"><span className="text-red-600 font-bold">×</span> Promotional press releases</li>
+                  <li className="flex items-center gap-2"><span className="text-red-600 font-bold">×</span> Casino, CBD, or payday loan links</li>
+                  <li className="flex items-center gap-2"><span className="text-red-600 font-bold">×</span> Plagiarized or spun content</li>
                 </ul>
               </div>
             </div>
