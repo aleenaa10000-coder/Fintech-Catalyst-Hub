@@ -4,21 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle2, FileText, Globe, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Check, FileText, Globe, Link as LinkIcon, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHero } from "@/components/PageHero";
 
@@ -48,8 +41,7 @@ export default function WriteForUs() {
     },
   });
 
-  const [successOpen, setSuccessOpen] = useState(false);
-  const [emailDelivered, setEmailDelivered] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
 
   const submitPost = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
@@ -80,16 +72,9 @@ export default function WriteForUs() {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     submitPost.mutate(values, {
-      onSuccess: ({ status, data }) => {
-        if (status === 200) {
-          setEmailDelivered(Boolean(data?.emailed));
-          setSuccessOpen(true);
-          form.reset();
-        } else {
-          setEmailDelivered(false);
-          setSuccessOpen(true);
-          form.reset();
-        }
+      onSuccess: () => {
+        setSubmitted(true);
+        form.reset();
       },
       onError: (err: unknown) => {
         const message = err instanceof Error ? err.message : "Please try again later.";
@@ -173,7 +158,75 @@ export default function WriteForUs() {
 
             {/* Pitch Form */}
             <div className="lg:col-span-7">
-              <div className="bg-card border rounded-2xl p-8 shadow-sm">
+              <div className="relative bg-card border rounded-2xl p-8 shadow-sm overflow-hidden">
+                <AnimatePresence mode="wait" initial={false}>
+                {submitted ? (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex flex-col items-center text-center py-12 px-2"
+                    data-testid="pitch-success-card"
+                  >
+                    <motion.div
+                      initial={{ scale: 0.6, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.15, duration: 0.5, type: "spring", stiffness: 220, damping: 16 }}
+                      className="relative mb-6"
+                    >
+                      <span className="absolute inset-0 rounded-full bg-green-500/15 blur-xl" aria-hidden />
+                      <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-green-100 ring-4 ring-green-50">
+                        <motion.span
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ delay: 0.4, duration: 0.4, ease: "easeOut" }}
+                        >
+                          <Check className="h-10 w-10 text-green-600" strokeWidth={3} />
+                        </motion.span>
+                      </div>
+                    </motion.div>
+                    <motion.h2
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.35, duration: 0.35 }}
+                      className="text-3xl font-bold tracking-tight mb-3"
+                    >
+                      Pitch Received
+                    </motion.h2>
+                    <motion.p
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.45, duration: 0.35 }}
+                      className="text-muted-foreground max-w-md"
+                    >
+                      Our editorial team will review your pitch and get back to you via your work email within 3–5 business days.
+                    </motion.p>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.6, duration: 0.3 }}
+                      className="mt-8"
+                    >
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setSubmitted(false)}
+                        data-testid="button-submit-another"
+                      >
+                        Submit another pitch
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="form"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  >
                 <h2 className="text-2xl font-bold mb-6">Submit Your Pitch</h2>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -346,37 +399,15 @@ export default function WriteForUs() {
                     )}
                   </form>
                 </Form>
+                  </motion.div>
+                )}
+                </AnimatePresence>
               </div>
             </div>
 
           </div>
         </div>
       </section>
-
-      <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
-        <DialogContent className="sm:max-w-md" data-testid="dialog-pitch-success">
-          <DialogHeader>
-            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
-            </div>
-            <DialogTitle className="text-center text-2xl">Thank you for your pitch!</DialogTitle>
-            <DialogDescription className="text-center">
-              {emailDelivered
-                ? "We've received your submission and forwarded it to our editorial team. Expect a reply within 3–5 business days."
-                : "We've received your submission. Our editorial team will review it and reach out within 3–5 business days."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-center">
-            <Button
-              type="button"
-              onClick={() => setSuccessOpen(false)}
-              data-testid="button-close-success"
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
