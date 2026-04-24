@@ -28,6 +28,21 @@ Home, About, Services, Pricing, Blog (+ post detail), Write For Us, Contact, Pri
 
 User intends to host the final site on Hostinger Business plan. Frontend builds to a static bundle (`pnpm --filter @workspace/fintechpresshub run build` → `dist/public`) suitable for Hostinger's static hosting; the Node Express API can be hosted via Hostinger's Node.js app feature or any Node host pointed to from the same domain.
 
+## Email (contact form)
+
+- `artifacts/api-server/src/lib/mailer.ts` — nodemailer transporter (cached, secure mode auto-picked for port 465; no-ops with warning if SMTP creds missing).
+- `POST /api/contact` sends two emails async (non-blocking on the response):
+  1. Notification to `CONTACT_NOTIFY_TO` with `replyTo` set to the submitter.
+  2. Branded auto-reply confirmation to the submitter.
+- Secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `CONTACT_NOTIFY_TO`.
+
+## Daily digest
+
+- `GET /api/contact/digest?hours=24&dryRun=0` — emails a summary of contact submissions in the last N hours (default 24, max 720) to `CONTACT_NOTIFY_TO`.
+- Auth: `Authorization: Bearer <DIGEST_TOKEN>` header (or `?token=` query). Returns 401 on mismatch, 503 if `DIGEST_TOKEN` / SMTP recipient unset.
+- `?dryRun=1` returns the JSON payload (count, since, subject, text preview) without sending — useful for cron testing.
+- Designed to be triggered by a Replit Scheduled Deployment or external cron once per day.
+
 ## Object Storage (cover image uploads)
 
 - Bucket integrated via `@google-cloud/storage` + Replit sidecar credentials (env: `DEFAULT_OBJECT_STORAGE_BUCKET_ID`, `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR`).
