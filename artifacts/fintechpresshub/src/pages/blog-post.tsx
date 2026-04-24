@@ -12,6 +12,8 @@ import {
   ListOrdered,
   Linkedin,
   Link2,
+  ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
@@ -90,6 +92,39 @@ export default function BlogPost() {
     return { contentHtml: processed.html, headings: processed.headings };
   }, [post?.content]);
 
+  // Split article content roughly in half (at the closest </p> after midpoint)
+  // so we can insert an inline Lead Magnet CTA between the two halves.
+  const { firstHalfHtml, secondHalfHtml } = useMemo(() => {
+    if (!contentHtml) return { firstHalfHtml: "", secondHalfHtml: "" };
+    const mid = Math.floor(contentHtml.length / 2);
+    const splitAt = contentHtml.indexOf("</p>", mid);
+    if (splitAt === -1)
+      return { firstHalfHtml: contentHtml, secondHalfHtml: "" };
+    const cut = splitAt + 4;
+    return {
+      firstHalfHtml: contentHtml.slice(0, cut),
+      secondHalfHtml: contentHtml.slice(cut),
+    };
+  }, [contentHtml]);
+
+  // Reading progress bar
+  const [readProgress, setReadProgress] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const doc = document.documentElement;
+      const scrolled = doc.scrollTop || document.body.scrollTop;
+      const max = (doc.scrollHeight || 0) - (doc.clientHeight || 0);
+      setReadProgress(max > 0 ? Math.min(100, (scrolled / max) * 100) : 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [slug]);
+
   const relatedPosts = useMemo(
     () =>
       posts
@@ -159,6 +194,21 @@ export default function BlogPost() {
 
   return (
     <article className="min-h-screen bg-background pb-24">
+      {/* Fixed reading-progress bar */}
+      <div
+        className="fixed top-0 left-0 right-0 h-1 bg-slate-100 z-[60]"
+        aria-hidden="true"
+      >
+        <div
+          className="h-full bg-[#0052FF] transition-[width] duration-100 ease-out"
+          style={{ width: `${readProgress}%` }}
+          role="progressbar"
+          aria-valuenow={Math.round(readProgress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Reading progress"
+        />
+      </div>
       <PageMeta
         title={`${post.title} | FintechPressHub`}
         description={post.excerpt ?? undefined}
@@ -224,13 +274,26 @@ export default function BlogPost() {
           }}
         />
         <div className="relative container mx-auto px-4 max-w-4xl pt-20 pb-16">
-          <Link
-            href="/blog"
-            className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-[#0052FF] mb-10 transition-colors"
+          {/* Breadcrumbs */}
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground mb-10"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Blog
-          </Link>
+            <Link
+              href="/blog"
+              className="inline-flex items-center font-medium text-slate-600 hover:text-[#0052FF] transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1.5" />
+              Back to Blog
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+            <span
+              className="text-slate-500 truncate max-w-[260px] sm:max-w-md"
+              aria-current="page"
+            >
+              {post.title}
+            </span>
+          </nav>
 
           <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider mb-6">
             {post.category}
@@ -243,29 +306,29 @@ export default function BlogPost() {
             {post.excerpt}
           </p>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-full bg-[#0052FF] text-white flex items-center justify-center font-bold text-sm shadow-sm">
                 {authorInitials(post.author)}
               </div>
-              <div className="leading-tight">
-                <div className="font-semibold text-slate-900">
+              <div className="flex flex-col leading-tight">
+                <span className="text-sm font-semibold text-slate-900">
                   {post.author}
-                </div>
-                <div className="text-xs text-muted-foreground">
+                </span>
+                <span className="text-xs text-slate-500">
                   {post.authorRole}
-                </div>
+                </span>
               </div>
             </div>
             <span className="hidden sm:block w-px h-8 bg-slate-200" />
-            <div className="flex items-center gap-5 text-sm text-muted-foreground">
+            <div className="flex items-center gap-5 text-sm text-slate-500">
               <span className="inline-flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                {formatDate(post.date)}
+                <Calendar className="w-4 h-4 text-slate-400" />
+                <span>{formatDate(post.date)}</span>
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                {post.readTime}
+                <Clock className="w-4 h-4 text-slate-400" />
+                <span>{post.readTime}</span>
               </span>
             </div>
           </div>
@@ -360,34 +423,86 @@ export default function BlogPost() {
 
           {/* Main article column — 3/4 width */}
           <div className="lg:col-span-3 min-w-0">
-            <div
-              className="prose prose-lg dark:prose-invert max-w-none
-                         prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-900
-                         prose-h2:scroll-mt-24 prose-h3:scroll-mt-24
-                         prose-a:text-[#0052FF] prose-a:no-underline hover:prose-a:underline
-                         prose-img:rounded-xl prose-img:shadow-sm
-                         prose-blockquote:border-l-4 prose-blockquote:border-[#0052FF] prose-blockquote:bg-blue-50/40 prose-blockquote:py-1 prose-blockquote:not-italic
-                         prose-code:before:content-none prose-code:after:content-none prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded"
-              dangerouslySetInnerHTML={{ __html: contentHtml }}
-            />
+            <div className="max-w-3xl mx-auto">
+              {(() => {
+                const proseClass =
+                  "prose prose-lg dark:prose-invert max-w-none leading-relaxed " +
+                  "prose-headings:font-bold prose-headings:tracking-tight " +
+                  "prose-h2:text-[#0a2540] prose-h3:text-[#0052FF] " +
+                  "prose-h2:scroll-mt-24 prose-h3:scroll-mt-24 " +
+                  "prose-p:text-slate-700 " +
+                  "prose-a:text-[#0052FF] prose-a:no-underline hover:prose-a:underline " +
+                  "prose-img:rounded-xl prose-img:shadow-sm " +
+                  "prose-blockquote:border-l-4 prose-blockquote:border-[#0052FF] prose-blockquote:bg-blue-50/40 prose-blockquote:py-1 prose-blockquote:not-italic " +
+                  "prose-code:before:content-none prose-code:after:content-none prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded";
+                return (
+                  <>
+                    <div
+                      className={proseClass}
+                      dangerouslySetInnerHTML={{ __html: firstHalfHtml }}
+                    />
 
-            {/* Tags */}
-            <div className="mt-16 pt-8 border-t border-slate-200">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">
-                Tags
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {post.tags.map((tag: string) => (
-                  <Badge
-                    key={tag}
-                    variant="secondary"
-                    className="font-normal text-xs"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
+                    {/* Inline Lead Magnet CTA */}
+                    {secondHalfHtml ? (
+                      <aside
+                        className="my-12 rounded-2xl border border-blue-200 bg-blue-50/70 p-6 sm:p-8 shadow-sm"
+                        aria-label="Lead magnet call to action"
+                      >
+                        <div className="flex items-start gap-4 flex-col sm:flex-row sm:items-center">
+                          <div className="shrink-0 w-12 h-12 rounded-xl bg-[#0052FF] text-white flex items-center justify-center shadow-md">
+                            <Sparkles className="w-6 h-6" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-xs font-semibold uppercase tracking-wider text-[#0052FF] mb-1">
+                              Free Strategy Session
+                            </div>
+                            <h4 className="text-lg sm:text-xl font-bold text-slate-900 mb-1">
+                              Want a custom plan for your fintech brand?
+                            </h4>
+                            <p className="text-sm text-slate-600">
+                              Get a complimentary audit of your current SEO,
+                              content, and link profile from our team.
+                            </p>
+                          </div>
+                          <Link href="/contact" className="w-full sm:w-auto">
+                            <Button
+                              size="lg"
+                              className="w-full sm:w-auto bg-[#0052FF] hover:bg-[#0040CC] text-white"
+                              data-testid="cta-lead-magnet"
+                            >
+                              Schedule Your SEO Audit
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          </Link>
+                        </div>
+                      </aside>
+                    ) : null}
+
+                    <div
+                      className={proseClass}
+                      dangerouslySetInnerHTML={{ __html: secondHalfHtml }}
+                    />
+                  </>
+                );
+              })()}
+
+              {/* Tags */}
+              <div className="mt-16 pt-8 border-t border-slate-200">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">
+                  Tags
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {post.tags.map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-medium text-[#0052FF] hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF] transition-colors duration-200 cursor-default"
+                      data-testid={`tag-${tag.toLowerCase().replace(/\s+/g, "-")}`}
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
 
             {/* Author Bio */}
             <Card className="mt-12 border-slate-200 bg-gradient-to-br from-blue-50/40 to-white">
@@ -414,6 +529,7 @@ export default function BlogPost() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           </div>
         </div>
 
