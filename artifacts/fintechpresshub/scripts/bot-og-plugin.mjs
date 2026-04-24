@@ -108,7 +108,14 @@ function injectMeta(html, post, siteUrl) {
     .replace(/>/g, "\\u003e")
     .replace(/&/g, "\\u0026");
   const ldScript = `<script type="application/ld+json" data-bot-og="article">${jsonLd}</script>`;
-  html = html.replace(/<\/head>/i, `    ${ldScript}\n  </head>`);
+  const canonicalTag = `<link rel="canonical" href="${escapeHtml(url)}" data-bot-og="canonical" />`;
+
+  // Strip any pre-existing canonical link, then inject the per-post canonical
+  html = html.replace(/<link\s+rel="canonical"[^>]*>\s*/gi, "");
+  html = html.replace(
+    /<\/head>/i,
+    `    ${canonicalTag}\n    ${ldScript}\n  </head>`,
+  );
 
   return html;
 }

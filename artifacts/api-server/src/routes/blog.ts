@@ -1,9 +1,30 @@
 import { Router, type IRouter } from "express";
+import { z } from "zod";
 import { db, blogPostsTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import { ListBlogPostsQueryParams, GetBlogPostParams } from "@workspace/api-zod";
+import { logger } from "../lib/logger";
+import { getSiteUrl, notifySearchEnginesOfPublish } from "../lib/seo";
 
 const router: IRouter = Router();
+
+const PublishBlogPostBody = z.object({
+  slug: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9][a-z0-9-]*$/, "slug must be lowercase, hyphenated"),
+  title: z.string().min(1),
+  excerpt: z.string().min(1),
+  content: z.string().min(1),
+  author: z.string().min(1),
+  authorRole: z.string().min(1),
+  category: z.string().min(1),
+  tags: z.array(z.string()).default([]),
+  coverImage: z.string().url(),
+  readingMinutes: z.number().int().positive(),
+  featured: z.boolean().default(false),
+  publishedAt: z.string().datetime().optional(),
+});
 
 function serialize(row: typeof blogPostsTable.$inferSelect) {
   return {
@@ -73,6 +94,77 @@ router.get("/blog/posts/:slug", async (req, res) => {
     return;
   }
   res.json(serialize(row));
+});
+
+/**
+ * Publish a new blog post. Requires an authenticated session.
+ *
+ * On success this fires the publish hook: the new post appears in the
+ * dynamic /sitemap.xml on the next request (always fresh from the DB), and
+ * we issue background pings to IndexNow (Bing/Yandex/Seznam/Naver) and
+ * Google so they can re-crawl quickly.
+ */
+router.post("/blog/posts", async (req, res, next) => {
+  try {
+    if (!req.isAuthenticated()) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const body = PublishBlogPostBody.parse(req.body);
+
+    const [row] = await db
+      .insert(blogPostsTable)
+      .values({
+        slug: body.slug,
+        title: body.title,
+        excerpt: body.excerpt,
+        content: body.content,
+        author: body.author,
+        authorRole: body.authorRole,
+        category: body.category,
+        tags: body.tags,
+        coverImage: body.coverImage,
+        readingMinutes: body.readingMinutes,
+        featured: body.featured,
+        publishedAt: body.publishedAt ? new Date(body.publishedAt) : new Date(),
+      })
+      .returning();
+
+    if (!row) {
+      res.status(500).json({ error: "Failed to insert blog post" });
+      return;
+    }
+
+    // Publish hook: fire-and-forget search-engine pings. The dynamic
+    // /sitemap.xml route already reflects the new row.
+    const siteUrl = getSiteUrl();
+    const urls = [
+      `${siteUrl}/blog/${row.slug}`,
+      `${siteUrl}/blog`,
+      `${siteUrl}/sitemap.xml`,
+    ];
+    void notifySearchEnginesOfPublish(urls).catch((err) => {
+      logger.error({ err }, "Search-engine notification hook failed");
+    });
+
+    res.status(201).json(serialize(row));
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: "Invalid body", issues: err.issues });
+      return;
+    }
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code?: string }).code === "23505"
+    ) {
+      res.status(409).json({ error: "A post with this slug already exists" });
+      return;
+    }
+    next(err);
+  }
 });
 
 export default router;
