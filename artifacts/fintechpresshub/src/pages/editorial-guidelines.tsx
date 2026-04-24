@@ -2,6 +2,88 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { PageHero } from "@/components/PageHero";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Check, X } from "lucide-react";
+
+type ComparisonItem = { label: string; detail?: string };
+
+function ComparisonGrid({
+  standard,
+  forbidden,
+  testIdPrefix,
+}: {
+  standard: ComparisonItem[];
+  forbidden: ComparisonItem[];
+  testIdPrefix: string;
+}) {
+  return (
+    <div
+      className="not-prose my-8 grid grid-cols-1 md:grid-cols-2 gap-6"
+      data-testid={`${testIdPrefix}-comparison`}
+    >
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-900/50 p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white">
+            <Check className="h-4 w-4" strokeWidth={3} />
+          </span>
+          <h3 className="text-lg font-semibold text-emerald-900 dark:text-emerald-200 m-0">
+            Standard
+          </h3>
+        </div>
+        <ul className="space-y-3 list-none p-0 m-0">
+          {standard.map((item, i) => (
+            <li
+              key={i}
+              className="flex items-start gap-3"
+              data-testid={`${testIdPrefix}-standard-${i}`}
+            >
+              <Check
+                className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"
+                strokeWidth={2.5}
+              />
+              <div className="text-sm leading-relaxed text-foreground">
+                <span className="font-semibold">{item.label}</span>
+                {item.detail ? (
+                  <span className="text-muted-foreground"> — {item.detail}</span>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="rounded-2xl border border-red-200 bg-red-50/60 dark:bg-red-950/20 dark:border-red-900/50 p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white">
+            <X className="h-4 w-4" strokeWidth={3} />
+          </span>
+          <h3 className="text-lg font-semibold text-red-900 dark:text-red-200 m-0">
+            Forbidden
+          </h3>
+        </div>
+        <ul className="space-y-3 list-none p-0 m-0">
+          {forbidden.map((item, i) => (
+            <li
+              key={i}
+              className="flex items-start gap-3"
+              data-testid={`${testIdPrefix}-forbidden-${i}`}
+            >
+              <X
+                className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5"
+                strokeWidth={2.5}
+              />
+              <div className="text-sm leading-relaxed text-foreground">
+                <span className="font-semibold">{item.label}</span>
+                {item.detail ? (
+                  <span className="text-muted-foreground"> — {item.detail}</span>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 type Section = { id: string; label: string };
 
@@ -124,20 +206,56 @@ export default function EditorialGuidelines() {
               <h2 id="accuracy">1. Accuracy &amp; Fact-Checking</h2>
               <p>
                 The financial industry is highly regulated. All content must prioritize accuracy
-                above all else.
+                above all else. Use the comparison below to vet every statistic, claim, and citation
+                before submission.
               </p>
-              <ul>
-                <li>
-                  All statistics, claims, and data points must be linked to a credible, primary
-                  source (e.g., McKinsey, Plaid, SEC filings, recognized industry reports).
-                </li>
-                <li>Do not cite competitors as primary sources unless necessary for context.</li>
-                <li>
-                  Ensure that descriptions of financial products (e.g., credit cards, loans, crypto
-                  assets) comply with standard marketing regulations (e.g., avoiding absolute
-                  guarantees of returns).
-                </li>
-              </ul>
+              <ComparisonGrid
+                testIdPrefix="accuracy"
+                standard={[
+                  {
+                    label: "SEC, FINRA & central bank filings",
+                    detail: "10-K/10-Q, EDGAR data, FOMC minutes, official rulings",
+                  },
+                  {
+                    label: "Primary research & first-party data",
+                    detail: "Original surveys, internal product data, named SME interviews",
+                  },
+                  {
+                    label: "Tier-1 industry reports",
+                    detail: "McKinsey, BCG, Plaid, Stripe, CB Insights, Statista",
+                  },
+                  {
+                    label: "Peer-reviewed academic sources",
+                    detail: "Journals, NBER working papers, university research centers",
+                  },
+                  {
+                    label: "Compliant product claims",
+                    detail: "Hedged language, disclosures, no guaranteed returns",
+                  },
+                ]}
+                forbidden={[
+                  {
+                    label: "Unverified blogs & content farms",
+                    detail: "Anonymous Medium posts, AI content mills, unsourced listicles",
+                  },
+                  {
+                    label: "Competitor marketing pages as primary source",
+                    detail: "Vendor landing pages cited as neutral evidence",
+                  },
+                  {
+                    label: "Stat-laundering through secondary sources",
+                    detail: "Citing a blog that cited the original — always link the source",
+                  },
+                  {
+                    label: "Absolute financial guarantees",
+                    detail: "“Guaranteed 12% APY”, “risk-free”, “certain returns”",
+                  },
+                  {
+                    label: "Outdated data without context",
+                    detail: "Pre-2020 stats presented as current market conditions",
+                  },
+                ]}
+              />
 
               <h2 id="ai-policy">2. AI Policy</h2>
               <p>
@@ -173,18 +291,58 @@ export default function EditorialGuidelines() {
               </p>
 
               <h2 id="outbound-linking">5. Outbound Linking</h2>
-              <p>We encourage linking to high-quality external resources to provide context.</p>
-              <ul>
-                <li>Links must naturally fit the context of the sentence.</li>
-                <li>
-                  We do not accept links to low-quality sites, essay writing services, gambling,
-                  adult content, or predatory lending sites.
-                </li>
-                <li>
-                  Any undisclosed sponsored links will result in the immediate removal of the
-                  article and a ban on the contributor.
-                </li>
-              </ul>
+              <p>
+                We encourage linking to high-quality external resources to provide context, evidence,
+                and further reading. Every outbound link must clear the bar below — no exceptions.
+              </p>
+              <ComparisonGrid
+                testIdPrefix="outbound-linking"
+                standard={[
+                  {
+                    label: "SEC filings & regulator publications",
+                    detail: "EDGAR, FCA, ESMA, MAS, OCC handbooks and rulings",
+                  },
+                  {
+                    label: "Primary data & original research",
+                    detail: "Federal Reserve datasets, World Bank, BIS, OECD statistics",
+                  },
+                  {
+                    label: "Tier-1 financial press",
+                    detail: "Bloomberg, Reuters, FT, WSJ, The Economist, Finextra",
+                  },
+                  {
+                    label: "Authoritative product & API docs",
+                    detail: "Stripe, Plaid, Visa Direct, Mastercard, official SDK references",
+                  },
+                  {
+                    label: "Contextually-relevant placements",
+                    detail: "Anchor text matches the destination; link earns the click",
+                  },
+                ]}
+                forbidden={[
+                  {
+                    label: "Unverified blogs & content farms",
+                    detail: "Anonymous authorship, no citations, AI-generated thin content",
+                  },
+                  {
+                    label: "Gambling, adult & predatory lending sites",
+                    detail: "Casinos, sportsbooks, payday lenders, adult content of any kind",
+                  },
+                  {
+                    label: "Essay mills & link-selling networks",
+                    detail: "Academic cheating services, PBNs, paid link marketplaces",
+                  },
+                  {
+                    label: "Undisclosed sponsored or affiliate links",
+                    detail:
+                      "Results in immediate article removal and a permanent contributor ban",
+                  },
+                  {
+                    label: "Low-DR or de-indexed domains",
+                    detail: "Sites under DR 30, expired domains, or pages dropped from Google",
+                  },
+                ]}
+              />
             </div>
           </article>
         </div>
