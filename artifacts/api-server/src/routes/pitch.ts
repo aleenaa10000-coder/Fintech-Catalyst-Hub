@@ -4,6 +4,7 @@ import nodemailer, { type Transporter } from "nodemailer";
 import validator from "validator";
 import { db, guestPostSubmissionsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { formRateLimiter } from "../lib/rateLimiter";
 
 const PitchBody = z.object({
   name: z.string().trim().min(2).max(100),
@@ -150,7 +151,7 @@ function buildConfirmationText(s: SanitizedPitch): string {
 
 const router: IRouter = Router();
 
-router.post("/pitch", async (req, res) => {
+router.post("/pitch", formRateLimiter, async (req, res) => {
   const parsed = PitchBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input", issues: parsed.error.issues });

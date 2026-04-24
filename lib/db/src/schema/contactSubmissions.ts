@@ -6,6 +6,7 @@ export const contactSubmissionsTable = pgTable("contact_submissions", {
   email: text("email").notNull(),
   company: text("company"),
   phone: text("phone"),
+  website: text("website"),
   service: text("service"),
   budget: text("budget"),
   message: text("message").notNull(),
