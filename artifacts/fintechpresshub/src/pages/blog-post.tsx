@@ -313,11 +313,13 @@ export default function BlogPost() {
 
       {/* Cover image overflowing into content */}
       <div className="container mx-auto px-4 max-w-4xl -mt-8 md:-mt-12 mb-16 relative z-10">
-        <img
-          src={post.image}
-          alt={post.title}
-          className="w-full aspect-[2/1] object-cover rounded-2xl shadow-xl border border-slate-100"
-        />
+        <div className="aspect-[2/1] w-full overflow-hidden rounded-2xl shadow-xl border border-slate-100 bg-slate-100">
+          <img
+            src={post.image}
+            alt={post.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
       </div>
 
       {/* Content + sticky TOC grid */}
@@ -437,10 +439,11 @@ export default function BlogPost() {
               {relatedPosts.map((rp: any) => (
                 <Link key={rp.id} href={`/blog/${rp.slug}`}>
                   <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer bg-card">
-                    <div className="aspect-[16/9] overflow-hidden">
+                    <div className="aspect-[16/9] overflow-hidden bg-slate-100">
                       <img
                         src={rp.image}
                         alt={rp.title}
+                        loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>

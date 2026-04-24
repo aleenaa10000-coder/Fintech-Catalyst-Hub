@@ -273,8 +273,8 @@ export default function Home() {
                   className="group cursor-pointer"
                 >
                   <Link href={`/blog/${post.slug}`}>
-                    <div className="overflow-hidden mb-6 aspect-video" style={{ borderRadius: "12px" }}>
-                      <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <div className="overflow-hidden mb-6 aspect-video bg-slate-100" style={{ borderRadius: "12px" }}>
+                      <img src={post.coverImage} alt={post.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     </div>
                     <span className="inline-block text-xs font-medium uppercase tracking-wide mb-3 px-2.5 py-1 rounded-full bg-sky-100 text-sky-700">
                       {post.category}

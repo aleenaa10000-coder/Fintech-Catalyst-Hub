@@ -145,7 +145,7 @@ export function LegalPageLayout({
           </aside>
 
           <article className="lg:col-span-9 min-w-0">
-            <div className="prose prose-lg dark:prose-invert mx-auto max-w-prose scroll-mt-24 prose-headings:scroll-mt-24">
+            <div className="prose prose-lg dark:prose-invert mx-auto max-w-3xl leading-relaxed scroll-mt-24 prose-headings:scroll-mt-24 prose-p:leading-relaxed prose-li:leading-relaxed">
               <p className="text-muted-foreground mb-8">Last updated: {lastUpdated}</p>
               {children}
             </div>

@@ -102,10 +102,11 @@ export default function Blog() {
     >
       <Link href={`/blog/${post.slug}`} data-testid={`link-post-${post.slug}`}>
         <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer bg-card">
-          <div className="aspect-[16/9] overflow-hidden">
+          <div className="aspect-[16/9] overflow-hidden bg-slate-100">
             <img
               src={post.image}
               alt={post.title}
+              loading="lazy"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </div>

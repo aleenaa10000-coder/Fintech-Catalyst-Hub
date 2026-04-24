@@ -52,10 +52,11 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
+              aria-current={location === link.href ? "page" : undefined}
               className={cn(
                 "text-sm font-medium transition-colors hover:text-primary",
                 location === link.href
-                  ? "text-primary"
+                  ? "text-blue-600 underline underline-offset-4 decoration-2"
                   : "text-muted-foreground"
               )}
             >
@@ -87,10 +88,11 @@ export function Header() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setIsOpen(false)}
+                  aria-current={location === link.href ? "page" : undefined}
                   className={cn(
                     "text-lg font-medium transition-colors hover:text-primary",
                     location === link.href
-                      ? "text-primary"
+                      ? "text-blue-600 underline underline-offset-4 decoration-2"
                       : "text-muted-foreground"
                   )}
                 >
