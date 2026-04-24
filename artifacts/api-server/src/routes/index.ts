@@ -9,6 +9,7 @@ import statsRouter from "./stats";
 import contactRouter from "./contact";
 import guestPostsRouter from "./guestPosts";
 import newsletterRouter from "./newsletter";
+import pitchRouter from "./pitch";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(statsRouter);
 router.use(contactRouter);
 router.use(guestPostsRouter);
 router.use(newsletterRouter);
+router.use(pitchRouter);
 
 export default router;

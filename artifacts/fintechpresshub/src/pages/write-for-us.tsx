@@ -2,12 +2,21 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useSubmitGuestPost } from "@workspace/api-client-react";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CheckCircle2, FileText, Globe, Link as LinkIcon, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,7 +48,26 @@ export default function WriteForUs() {
     },
   });
 
-  const submitPost = useSubmitGuestPost();
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [emailDelivered, setEmailDelivered] = useState(true);
+
+  const submitPost = useMutation({
+    mutationFn: async (values: z.infer<typeof formSchema>) => {
+      const res = await fetch("/api/pitch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          (data && typeof data.error === "string" ? data.error : null) ||
+            `Submission failed (${res.status})`,
+        );
+      }
+      return { status: res.status, data } as { status: number; data: { ok?: boolean; emailed?: boolean } | null };
+    },
+  });
 
   const watchedName = form.watch("name");
   const watchedEmail = form.watch("email");
@@ -51,22 +79,23 @@ export default function WriteForUs() {
   const isSubmitDisabled = !requiredFilled || submitPost.isPending;
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    submitPost.mutate(
-      { data: values },
-      {
-        onSuccess: () => {
-          toast.success("Pitch submitted successfully!", {
-            description: "We'll review your idea and get back to you within 3-5 business days.",
-          });
+    submitPost.mutate(values, {
+      onSuccess: ({ status, data }) => {
+        if (status === 200) {
+          setEmailDelivered(Boolean(data?.emailed));
+          setSuccessOpen(true);
           form.reset();
-        },
-        onError: () => {
-          toast.error("Failed to submit pitch.", {
-            description: "Please try again later or contact us directly.",
-          });
+        } else {
+          setEmailDelivered(false);
+          setSuccessOpen(true);
+          form.reset();
         }
-      }
-    );
+      },
+      onError: (err: unknown) => {
+        const message = err instanceof Error ? err.message : "Please try again later.";
+        toast.error("Failed to submit pitch.", { description: message });
+      },
+    });
   }
 
   return (
@@ -323,6 +352,31 @@ export default function WriteForUs() {
           </div>
         </div>
       </section>
+
+      <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-pitch-success">
+          <DialogHeader>
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+              <CheckCircle2 className="h-8 w-8 text-green-600" />
+            </div>
+            <DialogTitle className="text-center text-2xl">Thank you for your pitch!</DialogTitle>
+            <DialogDescription className="text-center">
+              {emailDelivered
+                ? "We've received your submission and forwarded it to our editorial team. Expect a reply within 3–5 business days."
+                : "We've received your submission. Our editorial team will review it and reach out within 3–5 business days."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center">
+            <Button
+              type="button"
+              onClick={() => setSuccessOpen(false)}
+              data-testid="button-close-success"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
