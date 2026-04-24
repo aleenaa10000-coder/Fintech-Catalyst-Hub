@@ -313,9 +313,22 @@ export default function BlogPost() {
               className="flex items-center gap-3 group"
               data-testid={`link-author-${authorSlugFromName(post.author)}`}
             >
-              <div className="w-11 h-11 rounded-full bg-[#0052FF] text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
-                {authorInitials(post.author)}
-              </div>
+              {(() => {
+                const ap = getAuthorByName(post.author);
+                return (
+                  <div className="relative w-11 h-11 rounded-full overflow-hidden bg-[#0052FF] text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
+                    {ap?.photo ? (
+                      <img
+                        src={ap.photo}
+                        alt={`${post.author} headshot`}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      authorInitials(post.author)
+                    )}
+                  </div>
+                );
+              })()}
               <div className="flex flex-col leading-tight">
                 <span className="text-sm font-semibold text-slate-900 group-hover:text-[#0052FF] transition-colors">
                   {post.author}
@@ -524,8 +537,16 @@ export default function BlogPost() {
                       className="shrink-0"
                       aria-label={`View ${post.author}'s profile`}
                     >
-                      <div className="w-16 h-16 rounded-full bg-[#0052FF] text-white flex items-center justify-center font-bold text-xl shadow-md hover:scale-105 transition-transform">
-                        {authorInitials(post.author)}
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden bg-[#0052FF] text-white flex items-center justify-center font-bold text-xl shadow-md hover:scale-105 transition-transform">
+                        {authorProfile?.photo ? (
+                          <img
+                            src={authorProfile.photo}
+                            alt={`${post.author} headshot`}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : (
+                          authorInitials(post.author)
+                        )}
                       </div>
                     </Link>
                     <div className="flex-1">

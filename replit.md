@@ -19,7 +19,8 @@ Home, About, Services, Pricing, Blog (+ post detail), Author profile (`/authors/
 
 ## Author profiles
 
-- Static dataset at `artifacts/fintechpresshub/src/data/authors.ts` for the 4 writers (Marcus Webb, Priya Nair, James Okafor, Sarah Chen): name, slug, role, short + full bio, expertise tags, credentials, location, years of experience, and social links.
+- Static dataset at `artifacts/fintechpresshub/src/data/authors.ts` for the 4 writers (Marcus Webb, Priya Nair, James Okafor, Sarah Chen): name, slug, role, photo path, short + full bio, expertise tags, credentials, location, years of experience, and social links.
+- AI-generated portrait headshots live in `artifacts/fintechpresshub/public/author-photos/<slug>.png` and are referenced via `/author-photos/<slug>.png` (Vite serves the public folder at the site root). Each `Author` has a required `photo` field; the avatar components fall back to initials if the photo is missing.
 - Page: `artifacts/fintechpresshub/src/pages/author.tsx` mounted at `/authors/:slug`. Renders hero, bio, expertise, credentials sidebar, and a grid of all articles by that author (filtered from `data/posts.js` by author name → slug).
 - Author name + avatar in the blog post hero and the bottom author bio card both link to `/authors/:slug`. Helper `authorSlugFromName` keeps slug derivation consistent.
 

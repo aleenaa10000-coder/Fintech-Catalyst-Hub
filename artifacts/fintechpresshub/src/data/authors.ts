@@ -2,6 +2,7 @@ export type Author = {
   slug: string;
   name: string;
   role: string;
+  photo: string;
   shortBio: string;
   fullBio: string[];
   expertise: string[];
@@ -21,6 +22,7 @@ export const authors: Author[] = [
     slug: "marcus-webb",
     name: "Marcus Webb",
     role: "Head of SEO Strategy",
+    photo: "/author-photos/marcus-webb.png",
     shortBio:
       "Senior SEO operator who has led organic growth programs for challenger banks, lending platforms, and B2B payments companies across the US and UK.",
     fullBio: [
@@ -53,6 +55,7 @@ export const authors: Author[] = [
     slug: "priya-nair",
     name: "Priya Nair",
     role: "Director of Content Strategy",
+    photo: "/author-photos/priya-nair.png",
     shortBio:
       "Content strategist with a decade inside fintech marketing teams. Builds topical authority programs that turn category-defining brands into the canonical organic answer.",
     fullBio: [
@@ -85,6 +88,7 @@ export const authors: Author[] = [
     slug: "james-okafor",
     name: "James Okafor",
     role: "Head of Digital PR & Link Building",
+    photo: "/author-photos/james-okafor.png",
     shortBio:
       "Digital PR lead who has placed fintech bylines and data studies on Bloomberg, the FT, TechCrunch, and the entire tier-one finance press circuit.",
     fullBio: [
@@ -117,6 +121,7 @@ export const authors: Author[] = [
     slug: "sarah-chen",
     name: "Sarah Chen",
     role: "Senior Fintech Content Analyst",
+    photo: "/author-photos/sarah-chen.png",
     shortBio:
       "Former equity research analyst turned fintech writer. Specializes in long-form analysis on payments, lending, and the infrastructure powering modern finance.",
     fullBio: [

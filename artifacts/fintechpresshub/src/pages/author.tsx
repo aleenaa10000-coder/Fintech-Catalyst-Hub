@@ -105,9 +105,18 @@ export default function AuthorPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
-              className="w-28 h-28 md:w-32 md:h-32 shrink-0 rounded-full bg-white/15 border-2 border-white/30 backdrop-blur text-white flex items-center justify-center font-bold text-3xl md:text-4xl shadow-lg"
+              className="relative w-28 h-28 md:w-32 md:h-32 shrink-0 rounded-full overflow-hidden bg-white/15 border-2 border-white/30 backdrop-blur text-white flex items-center justify-center font-bold text-3xl md:text-4xl shadow-lg"
             >
-              {authorInitials(author.name)}
+              {author.photo ? (
+                <img
+                  src={author.photo}
+                  alt={`${author.name} headshot`}
+                  loading="eager"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                authorInitials(author.name)
+              )}
             </motion.div>
 
             <div className="flex-1 min-w-0">
@@ -321,8 +330,17 @@ export default function AuthorPage() {
                 <Link key={a.slug} href={`/authors/${a.slug}`}>
                   <Card className="border border-slate-100 hover:border-[#0052FF]/40 hover:shadow-md transition-all cursor-pointer group">
                     <CardContent className="p-4 flex items-center gap-4">
-                      <div className="w-12 h-12 shrink-0 rounded-full bg-[#0052FF] text-white flex items-center justify-center font-bold text-sm">
-                        {authorInitials(a.name)}
+                      <div className="relative w-12 h-12 shrink-0 rounded-full overflow-hidden bg-[#0052FF] text-white flex items-center justify-center font-bold text-sm">
+                        {a.photo ? (
+                          <img
+                            src={a.photo}
+                            alt={`${a.name} headshot`}
+                            loading="lazy"
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : (
+                          authorInitials(a.name)
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-slate-900 group-hover:text-[#0052FF] transition-colors truncate">
