@@ -17,6 +17,7 @@ import WriteForUs from "@/pages/write-for-us";
 import Contact from "@/pages/contact";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import RefundPolicy from "@/pages/refund-policy";
+import CookiePolicy from "@/pages/cookie-policy";
 import Terms from "@/pages/terms";
 import EditorialGuidelines from "@/pages/editorial-guidelines";
 import AdminServices from "@/pages/admin-services";
@@ -56,6 +57,7 @@ function Router() {
           <Route path="/contact" component={Contact} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/refund-policy" component={RefundPolicy} />
+          <Route path="/cookie-policy" component={CookiePolicy} />
           <Route path="/terms" component={Terms} />
           <Route path="/editorial-guidelines" component={EditorialGuidelines} />
           <Route path="/admin/services" component={AdminServices} />
