@@ -5,6 +5,26 @@ export type PageMeta = {
 
 export const SITE_NAME = "FintechPressHub";
 
+export const SITE_URL =
+  (typeof import.meta !== "undefined" &&
+    (import.meta as { env?: { VITE_SITE_URL?: string } }).env
+      ?.VITE_SITE_URL) ||
+  "https://www.fintechpresshub.com";
+
+export const ORGANIZATION_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: SITE_URL,
+  logo: `${SITE_URL}/favicon.svg`,
+  description:
+    "Specialized content marketing and SEO agency for fintech companies.",
+  sameAs: [
+    "https://twitter.com/fintechpresshub",
+    "https://www.linkedin.com/company/fintechpresshub",
+  ],
+} as const;
+
 export const PAGE_META = {
   home: {
     title: "FintechPressHub | Fintech SEO & Content Marketing Agency",

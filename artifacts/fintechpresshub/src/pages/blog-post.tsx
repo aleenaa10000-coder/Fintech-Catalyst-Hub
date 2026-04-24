@@ -161,6 +161,15 @@ export default function BlogPost() {
       <PageMeta
         title={`${post.title} | FintechPressHub`}
         description={post.excerpt ?? undefined}
+        article={{
+          title: post.title,
+          description: post.excerpt ?? undefined,
+          image: post.image,
+          datePublished: post.date,
+          author: post.author,
+          section: post.category,
+          tags: post.tags,
+        }}
       />
       {/* Floating vertical share bar (xl+) */}
       <aside
