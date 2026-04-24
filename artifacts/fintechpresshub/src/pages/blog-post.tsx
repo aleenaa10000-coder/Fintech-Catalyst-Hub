@@ -232,10 +232,10 @@ export default function BlogPost() {
       </div>
 
       {/* Content + sticky TOC grid */}
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-10 lg:gap-12">
-          {/* Sticky TOC (desktop only) */}
-          <aside className="hidden lg:block">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 lg:gap-12">
+          {/* Sticky TOC (desktop only) — 1/4 width */}
+          <aside className="hidden lg:block lg:col-span-1">
             {headings.length > 0 ? (
               <nav className="sticky top-24">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4">
@@ -267,8 +267,8 @@ export default function BlogPost() {
             ) : null}
           </aside>
 
-          {/* Main article column */}
-          <div className="max-w-4xl">
+          {/* Main article column — 3/4 width */}
+          <div className="lg:col-span-3 min-w-0">
             <div
               className="prose prose-lg dark:prose-invert max-w-none
                          prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-900
