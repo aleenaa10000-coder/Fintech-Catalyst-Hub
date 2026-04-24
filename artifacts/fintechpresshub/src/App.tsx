@@ -14,6 +14,7 @@ import Pricing from "@/pages/pricing";
 import Blog from "@/pages/blog";
 import BlogPost from "@/pages/blog-post";
 import AuthorPage from "@/pages/author";
+import AuthorsIndex from "@/pages/authors";
 import WriteForUs from "@/pages/write-for-us";
 import Contact from "@/pages/contact";
 import PrivacyPolicy from "@/pages/privacy-policy";
@@ -55,6 +56,7 @@ function Router() {
           <Route path="/pricing" component={Pricing} />
           <Route path="/blog" component={Blog} />
           <Route path="/blog/:slug" component={BlogPost} />
+          <Route path="/authors" component={AuthorsIndex} />
           <Route path="/authors/:slug" component={AuthorPage} />
           <Route path="/write-for-us" component={WriteForUs} />
           <Route path="/contact" component={Contact} />

@@ -15,14 +15,16 @@ Professional fintech digital marketing & content agency website. React + Vite + 
 
 ## Pages
 
-Home, About, Services, Pricing, Blog (+ post detail), Author profile (`/authors/:slug`), Write For Us, Contact, Privacy Policy, Refund Policy, Terms, Editorial Guidelines, 404.
+Home, About, Services, Pricing, Blog (+ post detail), Authors index (`/authors`) + author profile (`/authors/:slug`), Write For Us, Contact, Privacy Policy, Refund Policy, Terms, Editorial Guidelines, 404.
 
 ## Author profiles
 
 - Static dataset at `artifacts/fintechpresshub/src/data/authors.ts` for the 4 writers (Marcus Webb, Priya Nair, James Okafor, Sarah Chen): name, slug, role, photo path, short + full bio, expertise tags, credentials, location, years of experience, and social links.
 - AI-generated portrait headshots live in `artifacts/fintechpresshub/public/author-photos/<slug>.png` and are referenced via `/author-photos/<slug>.png` (Vite serves the public folder at the site root). Each `Author` has a required `photo` field; the avatar components fall back to initials if the photo is missing.
-- Page: `artifacts/fintechpresshub/src/pages/author.tsx` mounted at `/authors/:slug`. Renders hero, bio, expertise, credentials sidebar, and a grid of all articles by that author (filtered from `data/posts.js` by author name → slug).
-- Author name + avatar in the blog post hero and the bottom author bio card both link to `/authors/:slug`. Helper `authorSlugFromName` keeps slug derivation consistent.
+- Pages:
+  - `/authors` (`artifacts/fintechpresshub/src/pages/authors.tsx`) — "Meet the Team" index that lists all writers in a 2-column grid with photo, role, short bio, location, years of experience, live article count, and social links.
+  - `/authors/:slug` (`artifacts/fintechpresshub/src/pages/author.tsx`) — full profile with hero, multi-paragraph bio, expertise tags, credentials sidebar, full article list, and "other writers" cross-links.
+- Entry points: blog post hero + bottom bio card link to `/authors/:slug` (helper `authorSlugFromName` keeps slug derivation consistent); blog index has a "Meet the team" strip with stacked avatars; footer Company column has a "Meet the Team" link.
 
 ## Key Commands
 

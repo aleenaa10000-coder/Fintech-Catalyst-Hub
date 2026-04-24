@@ -7,9 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/PageHero";
-import { Calendar, Clock, ArrowRight, Mail, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, ArrowRight, Mail, CheckCircle2, Users } from "lucide-react";
 import { toast } from "sonner";
 import posts from "@/data/posts.js";
+import { authors } from "@/data/authors";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", {
@@ -144,6 +145,54 @@ export default function Blog() {
         title={<>Insights From the Front Lines of Fintech SEO</>}
         description="Actionable strategy on SEO, off-page authority, digital PR, and content marketing — written by the operators running these programs for fintech brands every day."
       />
+
+      {/* Meet the team strip */}
+      <section className="py-6 border-b bg-slate-50/60">
+        <div className="container mx-auto px-4">
+          <Link href="/authors" data-testid="link-meet-the-team">
+            <div className="flex items-center justify-between gap-4 flex-wrap group cursor-pointer">
+              <div className="flex items-center gap-4">
+                <div className="flex -space-x-2">
+                  {authors.slice(0, 4).map((a) => (
+                    <div
+                      key={a.slug}
+                      className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-white bg-[#0052FF] text-white flex items-center justify-center text-[11px] font-bold shadow-sm"
+                    >
+                      {a.photo ? (
+                        <img
+                          src={a.photo}
+                          alt={`${a.name} headshot`}
+                          loading="lazy"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        a.name
+                          .split(" ")
+                          .map((p) => p[0])
+                          .join("")
+                          .slice(0, 2)
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="text-sm">
+                  <span className="font-semibold text-slate-900">
+                    Written by {authors.length} senior fintech operators.
+                  </span>{" "}
+                  <span className="text-muted-foreground">
+                    Meet the team behind every article.
+                  </span>
+                </div>
+              </div>
+              <span className="inline-flex items-center text-sm font-semibold text-[#0052FF] group-hover:translate-x-1 transition-transform">
+                <Users className="w-4 h-4 mr-1.5" />
+                Meet the team
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </span>
+            </div>
+          </Link>
+        </div>
+      </section>
 
       {/* Category Chips */}
       <section className="py-10 border-b bg-background">
