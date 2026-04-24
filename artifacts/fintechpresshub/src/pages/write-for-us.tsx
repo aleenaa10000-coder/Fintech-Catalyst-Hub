@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Check, FileText, Globe, Link as LinkIcon, Loader2 } from "lucide-react";
+import { ArrowRight, BookOpen, Check, FileText, Globe, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHero } from "@/components/PageHero";
 
@@ -154,6 +155,30 @@ export default function WriteForUs() {
                   <li className="flex items-center gap-2"><span className="text-red-600 font-bold">×</span> Plagiarized or spun content</li>
                 </ul>
               </div>
+
+              <Link
+                href="/editorial-guidelines"
+                data-testid="link-editorial-standards"
+                className="group block rounded-2xl border border-primary/20 bg-primary/5 p-5 transition-colors hover:border-primary/40 hover:bg-primary/10"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary/10 p-3 rounded-xl h-fit">
+                    <BookOpen className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs uppercase tracking-wide text-primary/80 font-semibold mb-1">
+                      Before you pitch
+                    </p>
+                    <p className="font-semibold text-foreground inline-flex items-center gap-1.5 group-hover:text-primary transition-colors">
+                      Read our full Editorial Standards here
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      The complete style guide, sourcing rules, and review process used by our editors.
+                    </p>
+                  </div>
+                </div>
+              </Link>
             </div>
 
             {/* Pitch Form */}
