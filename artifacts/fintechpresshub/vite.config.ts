@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import botOgPlugin from "./scripts/bot-og-plugin.mjs";
 
 const rawPort = process.env.PORT;
 
@@ -32,6 +33,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+    botOgPlugin({
+      root: path.resolve(import.meta.dirname),
+      siteUrl:
+        process.env.SITE_URL ?? "https://www.fintechpresshub.com",
+    }),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
