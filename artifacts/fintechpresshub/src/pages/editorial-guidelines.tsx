@@ -150,7 +150,7 @@ export default function EditorialGuidelines() {
         description="The standards we hold our internal writers, guest contributors, and client deliverables to — covering accuracy, sourcing, AI usage, tone, and compliance."
       />
 
-      <div className="container mx-auto px-4 max-w-6xl py-20">
+      <div className="container mx-auto px-6 sm:px-8 max-w-6xl py-16 sm:py-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
           {/* Sticky Navigation Sidebar */}
           <aside className="lg:col-span-3">
@@ -193,7 +193,7 @@ export default function EditorialGuidelines() {
 
           {/* Main Content */}
           <article className="lg:col-span-9 min-w-0">
-            <div className="prose prose-lg dark:prose-invert max-w-none scroll-mt-24 prose-headings:scroll-mt-24">
+            <div className="prose prose-lg dark:prose-invert mx-auto max-w-prose scroll-mt-24 prose-headings:scroll-mt-24">
               <p className="text-muted-foreground mb-8">Last updated: October 1, 2023</p>
 
               <p>

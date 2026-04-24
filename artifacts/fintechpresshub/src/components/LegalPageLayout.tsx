@@ -77,7 +77,7 @@ export function LegalPageLayout({
     <div className="min-h-screen bg-background scroll-smooth">
       <PageHero eyebrow={eyebrow} title={title} description={description} />
 
-      <div className="container mx-auto px-4 max-w-6xl py-20">
+      <div className="container mx-auto px-6 sm:px-8 max-w-6xl py-16 sm:py-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
           <aside className="lg:col-span-3">
             <nav
@@ -145,7 +145,7 @@ export function LegalPageLayout({
           </aside>
 
           <article className="lg:col-span-9 min-w-0">
-            <div className="prose prose-lg dark:prose-invert max-w-none scroll-mt-24 prose-headings:scroll-mt-24">
+            <div className="prose prose-lg dark:prose-invert mx-auto max-w-prose scroll-mt-24 prose-headings:scroll-mt-24">
               <p className="text-muted-foreground mb-8">Last updated: {lastUpdated}</p>
               {children}
             </div>
