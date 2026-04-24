@@ -173,7 +173,7 @@ export default function Blog() {
                   transition={{ duration: 0.35, delay: i * 0.04 }}
                 >
                   <Link href={`/blog/${post.slug}`}>
-                    <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer bg-card">
+                    <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer bg-card">
                       <div className="aspect-[16/9] overflow-hidden">
                         <img
                           src={post.coverImage}
