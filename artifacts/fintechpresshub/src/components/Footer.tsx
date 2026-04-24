@@ -1,5 +1,6 @@
 import { Link } from "wouter";
-import { BarChart2, Twitter, Linkedin, Github } from "lucide-react";
+import { Twitter, Linkedin, Github } from "lucide-react";
+import { BrandLogo } from "./BrandLogo";
 
 export function Footer() {
   return (
@@ -8,7 +9,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="flex items-center gap-2 text-primary mb-4">
-              <BarChart2 className="w-6 h-6" />
+              <BrandLogo size={28} />
               <span className="font-bold text-xl tracking-tight text-foreground">
                 FintechPressHub
               </span>

@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { Menu, X, BarChart2 } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { BrandLogo } from "./BrandLogo";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -36,7 +37,7 @@ export function Header() {
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-primary">
-          <BarChart2 className="w-6 h-6" />
+          <BrandLogo size={28} />
           <span className="font-bold text-xl tracking-tight text-foreground">
             FintechPressHub
           </span>
