@@ -73,6 +73,57 @@ router.post("/contact", async (req, res) => {
     );
   }
 
+  // Auto-reply confirmation to the person who submitted the form
+  const replyFromAddr = process.env["SMTP_FROM"] ?? process.env["SMTP_USER"];
+  const ackSubject = "Thanks for reaching out to FintechPressHub";
+  const ackText = `Hi ${body.name},
+
+Thanks for getting in touch with FintechPressHub — we've received your message and a member of our team will follow up within one business day.
+
+For your records, here's a copy of what you sent:
+
+${body.message}
+
+In the meantime, feel free to browse our latest insights on the blog: https://fintechpresshub.com/blog
+
+Best regards,
+The FintechPressHub Team${replyFromAddr ? `\n${replyFromAddr}` : ""}`;
+  const ackHtml = `
+    <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#0a2540">
+      <div style="background:linear-gradient(135deg,#0052FF 0%,#0040CC 100%);color:#fff;padding:28px 32px;border-radius:12px 12px 0 0">
+        <div style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;margin-bottom:6px">FintechPressHub</div>
+        <h1 style="margin:0;font-size:24px;font-weight:700">Thanks for reaching out, ${escapeHtml(body.name.split(" ")[0] ?? body.name)}!</h1>
+      </div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-top:0;padding:28px 32px;border-radius:0 0 12px 12px">
+        <p style="font-size:15px;line-height:1.6;color:#334155;margin:0 0 16px">
+          We've received your message and a member of our team will follow up within <b>one business day</b>.
+        </p>
+        <p style="font-size:13px;color:#64748b;margin:24px 0 8px;text-transform:uppercase;letter-spacing:0.08em;font-weight:600">For your records</p>
+        <div style="border-left:3px solid #0052FF;background:#f1f5ff;padding:14px 16px;border-radius:6px;font-size:14px;line-height:1.6;color:#334155;white-space:pre-wrap">${escapeHtml(body.message)}</div>
+        <p style="font-size:14px;line-height:1.6;color:#334155;margin:24px 0 0">
+          In the meantime, browse our latest insights on
+          <a href="https://fintechpresshub.com/blog" style="color:#0052FF;text-decoration:none;font-weight:600">the blog</a>.
+        </p>
+        <p style="font-size:14px;color:#334155;margin-top:28px;margin-bottom:0">
+          Best regards,<br/>
+          <b>The FintechPressHub Team</b>
+        </p>
+      </div>
+      <p style="font-size:11px;color:#94a3b8;text-align:center;margin-top:16px">
+        This is an automated confirmation. Please reply directly if you need to add to your message.
+      </p>
+    </div>
+  `;
+  void sendMail({
+    to: body.email,
+    subject: ackSubject,
+    text: ackText,
+    html: ackHtml,
+    ...(replyFromAddr ? { replyTo: replyFromAddr } : {}),
+  }).catch((err) =>
+    logger.error({ err }, "Contact auto-reply email failed"),
+  );
+
   res.json({
     id: row.id,
     name: row.name,
