@@ -26,8 +26,34 @@ import {
   Trash2,
   X,
   Save,
+  Upload,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
+import { ObjectUploader } from "@/components/ObjectUploader";
+
+async function presignAndUpload(file: {
+  name: string;
+  size: number;
+  type: string;
+}) {
+  const res = await fetch("/api/uploads/request-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(file),
+  });
+  if (!res.ok) throw new Error("Failed to get upload URL");
+  return (await res.json()) as { uploadURL: string; objectPath: string };
+}
+
+async function finalizeUpload(uploadURL: string) {
+  const res = await fetch("/api/uploads/finalize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ uploadURL }),
+  });
+  if (!res.ok) throw new Error("Failed to finalize upload");
+  return (await res.json()) as { objectPath: string };
+}
 
 const emptyForm = {
   slug: "",
@@ -184,16 +210,55 @@ function PostEditor({
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor={`coverImage-${post.id}`}>Cover image URL</Label>
-          <Input
-            id={`coverImage-${post.id}`}
-            type="url"
-            value={draft.coverImage}
-            onChange={(e) =>
-              setDraft({ ...draft, coverImage: e.target.value })
-            }
-            required
-          />
+          <Label htmlFor={`coverImage-${post.id}`}>Cover image</Label>
+          <div className="flex gap-2">
+            <Input
+              id={`coverImage-${post.id}`}
+              type="url"
+              value={draft.coverImage}
+              onChange={(e) =>
+                setDraft({ ...draft, coverImage: e.target.value })
+              }
+              required
+            />
+            <ObjectUploader
+              maxNumberOfFiles={1}
+              maxFileSize={10 * 1024 * 1024}
+              onGetUploadParameters={async (file) => {
+                const { uploadURL } = await presignAndUpload({
+                  name: file.name ?? "upload",
+                  size: file.size ?? 0,
+                  type: file.type ?? "application/octet-stream",
+                });
+                return {
+                  method: "PUT",
+                  url: uploadURL,
+                  headers: {
+                    "Content-Type":
+                      file.type ?? "application/octet-stream",
+                  },
+                };
+              }}
+              onComplete={async (result) => {
+                const uploaded = result.successful?.[0];
+                const uploadURL = uploaded?.uploadURL;
+                if (!uploadURL) {
+                  toast.error("Upload did not return a URL");
+                  return;
+                }
+                try {
+                  const { objectPath } = await finalizeUpload(uploadURL);
+                  setDraft((d) => ({ ...d, coverImage: objectPath }));
+                  toast.success("Cover image uploaded");
+                } catch {
+                  toast.error("Could not finalize upload");
+                }
+              }}
+              buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
+            >
+              <Upload className="w-4 h-4" />
+            </ObjectUploader>
+          </div>
         </div>
         <div>
           <Label htmlFor={`readingMinutes-${post.id}`}>Reading minutes</Label>
@@ -494,17 +559,60 @@ export default function AdminBlog() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="coverImage">Cover image URL</Label>
-                  <Input
-                    id="coverImage"
-                    type="url"
-                    placeholder="https://…"
-                    value={form.coverImage}
-                    onChange={(e) =>
-                      setForm({ ...form, coverImage: e.target.value })
-                    }
-                    required
-                  />
+                  <Label htmlFor="coverImage">Cover image</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="coverImage"
+                      type="url"
+                      placeholder="https://… or upload"
+                      value={form.coverImage}
+                      onChange={(e) =>
+                        setForm({ ...form, coverImage: e.target.value })
+                      }
+                      required
+                    />
+                    <ObjectUploader
+                      maxNumberOfFiles={1}
+                      maxFileSize={10 * 1024 * 1024}
+                      onGetUploadParameters={async (file) => {
+                        const { uploadURL } = await presignAndUpload({
+                          name: file.name ?? "upload",
+                          size: file.size ?? 0,
+                          type: file.type ?? "application/octet-stream",
+                        });
+                        return {
+                          method: "PUT",
+                          url: uploadURL,
+                          headers: {
+                            "Content-Type":
+                              file.type ?? "application/octet-stream",
+                          },
+                        };
+                      }}
+                      onComplete={async (result) => {
+                        const uploaded = result.successful?.[0];
+                        const uploadURL = uploaded?.uploadURL;
+                        if (!uploadURL) {
+                          toast.error("Upload did not return a URL");
+                          return;
+                        }
+                        try {
+                          const { objectPath } =
+                            await finalizeUpload(uploadURL);
+                          setForm((f) => ({ ...f, coverImage: objectPath }));
+                          toast.success("Cover image uploaded");
+                        } catch {
+                          toast.error("Could not finalize upload");
+                        }
+                      }}
+                      buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
+                    >
+                      <Upload className="w-4 h-4" />
+                    </ObjectUploader>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Paste an external URL or upload a file (≤10 MB).
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="readingMinutes">Reading minutes</Label>

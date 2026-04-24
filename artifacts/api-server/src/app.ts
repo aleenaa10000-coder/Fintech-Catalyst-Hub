@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import sitemapRouter from "./routes/sitemap";
+import uploadsRouter from "./routes/uploads";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
 
@@ -37,6 +38,11 @@ app.use(authMiddleware);
 // Public, dynamic sitemap mounted at the root so /sitemap.xml resolves
 // directly without needing an /api prefix.
 app.use(sitemapRouter);
+
+// Upload presign + finalize endpoints (under /api/uploads) and public
+// /objects/:path file serving (under root). Mounted here instead of inside
+// the /api subrouter so /objects URLs work as cover image src on the public site.
+app.use(uploadsRouter);
 
 app.use("/api", router);
 
