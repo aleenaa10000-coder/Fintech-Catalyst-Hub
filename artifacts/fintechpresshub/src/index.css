@@ -209,3 +209,36 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@keyframes btn-shine {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  20%, 100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 100%
+  );
+  transform: translateX(-150%) skewX(-20deg);
+  animation: btn-shine 5s ease-in-out infinite;
+  pointer-events: none;
+}

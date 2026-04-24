@@ -94,7 +94,14 @@ export default function Pricing() {
                   </CardContent>
                   <CardFooter className="pt-6 pb-8 px-6">
                     <Link href="/contact" className="w-full">
-                      <Button className="w-full" variant={plan.highlighted ? "default" : "outline"} size="lg">
+                      <Button
+                        className={
+                          plan.highlighted
+                            ? "w-full btn-shine bg-[#0052FF] hover:bg-[#0040cc] text-white border-0 shadow-md"
+                            : "w-full bg-transparent border-2 border-[#0052FF] text-[#0052FF] hover:bg-[#0052FF] hover:text-white"
+                        }
+                        size="lg"
+                      >
                         {plan.ctaLabel}
                       </Button>
                     </Link>
