@@ -1,12 +1,33 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useListPricingPlans } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Link } from "wouter";
 import { PageHero } from "@/components/PageHero";
+
+const faqs = [
+  {
+    q: "Do you require long-term contracts?",
+    a: "We typically operate on 6-month minimum engagements because SEO is a long-term play. It takes time to audit, produce high-quality content, and build the authority needed to see significant ROI.",
+  },
+  {
+    q: "Are the backlinks dofollow?",
+    a: "Yes. We secure permanent, dofollow backlinks from high Domain Rating (DR 60+) sites relevant to the financial industry. No PBNs, no spam.",
+  },
+  {
+    q: "Can we upgrade or downgrade our plan?",
+    a: "Absolutely. You can adjust your retainer at the end of any billing cycle to match your current growth priorities and budget.",
+  },
+];
 
 export default function Pricing() {
   useDocumentTitle("Pricing | FintechPressHub", "Transparent pricing for fintech SEO and content marketing.");
@@ -89,20 +110,31 @@ export default function Pricing() {
       <section className="py-24 bg-secondary/30">
         <div className="container mx-auto px-4 max-w-3xl">
           <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Do you require long-term contracts?</h3>
-              <p className="text-muted-foreground">We typically operate on 6-month minimum engagements because SEO is a long-term play. It takes time to audit, produce high-quality content, and build the authority needed to see significant ROI.</p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Are the backlinks dofollow?</h3>
-              <p className="text-muted-foreground">Yes. We secure permanent, dofollow backlinks from high Domain Rating (DR 60+) sites relevant to the financial industry. No PBNs, no spam.</p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Can we upgrade or downgrade our plan?</h3>
-              <p className="text-muted-foreground">Absolutely. You can adjust your retainer at the end of any billing cycle to match your current growth priorities and budget.</p>
-            </div>
-          </div>
+          <Accordion
+            type="single"
+            collapsible
+            className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
+          >
+            {faqs.map((item, i) => (
+              <AccordionItem
+                key={i}
+                value={`item-${i}`}
+                className="border-b-0 group"
+              >
+                <AccordionTrigger
+                  className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden"
+                >
+                  <span className="flex-1 pr-4">{item.q}</span>
+                  <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
+                    <Plus className="w-5 h-5" />
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
+                  {item.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </section>
     </div>
