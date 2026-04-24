@@ -1,19 +1,42 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
-import { useListBlogPosts, useListBlogCategories } from "@workspace/api-client-react";
+import {
+  useListBlogPosts,
+  useListBlogCategories,
+  useListFeaturedPosts,
+} from "@workspace/api-client-react";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHero } from "@/components/PageHero";
+import { Calendar, Clock, ArrowRight } from "lucide-react";
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
 export default function Blog() {
-  useDocumentTitle("Blog | FintechPressHub", "Insights, strategies, and guides on fintech marketing and SEO.");
-  const [activeCategory, setActiveCategory] = useState<string | undefined>(undefined);
+  useDocumentTitle(
+    "Blog | FintechPressHub",
+    "Insights, strategies, and guides on fintech marketing and SEO.",
+  );
+  const [activeCategory, setActiveCategory] = useState<string | undefined>(
+    undefined,
+  );
 
   const { data: categories } = useListBlogCategories();
-  const { data: posts, isLoading } = useListBlogPosts(activeCategory ? { category: activeCategory } : undefined);
+  const { data: featuredPosts } = useListFeaturedPosts();
+  const featured = featuredPosts?.[0];
+
+  const { data: posts, isLoading } = useListBlogPosts(
+    activeCategory ? { category: activeCategory } : undefined,
+  );
+
+  const gridPosts = posts?.filter((p) => p.id !== featured?.id) ?? [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -23,30 +46,103 @@ export default function Blog() {
         description="Actionable strategy on SEO, off-page authority, digital PR, and content marketing — written by the operators running these programs for fintech brands every day."
       />
 
-      <section className="py-12 border-b bg-card">
+      {/* Featured Post — 60/40 split */}
+      {featured && (
+        <section className="py-16 bg-card border-b">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs uppercase tracking-[0.2em] font-semibold text-[#0052FF]">
+                Featured
+              </span>
+              <span className="h-px flex-1 bg-slate-200" />
+            </div>
+            <Link href={`/blog/${featured.slug}`}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="grid grid-cols-1 md:grid-cols-5 gap-8 group cursor-pointer items-center"
+              >
+                <div className="md:col-span-3 aspect-[16/10] overflow-hidden rounded-2xl shadow-md">
+                  <img
+                    src={featured.coverImage}
+                    alt={featured.title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                </div>
+                <div className="md:col-span-2 flex flex-col">
+                  <span className="inline-flex w-fit items-center px-3 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider mb-4">
+                    {featured.category}
+                  </span>
+                  <h2 className="text-3xl md:text-4xl font-extrabold leading-tight mb-4 text-slate-900 group-hover:text-[#0052FF] transition-colors">
+                    {featured.title}
+                  </h2>
+                  <p className="text-muted-foreground text-base md:text-lg mb-6 line-clamp-4">
+                    {featured.excerpt}
+                  </p>
+                  <div className="flex items-center gap-5 text-sm text-muted-foreground mb-6">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4" />
+                      {formatDate(featured.publishedAt)}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock className="w-4 h-4" />
+                      {featured.readingMinutes} min read
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center gap-2 font-semibold text-[#0052FF] group-hover:gap-3 transition-all">
+                    Read article <ArrowRight className="w-4 h-4" />
+                  </span>
+                </div>
+              </motion.div>
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Category Chips */}
+      <section className="py-10 border-b bg-background sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap gap-2 justify-center">
-            <Badge 
-              variant={activeCategory === undefined ? "default" : "secondary"}
-              className="cursor-pointer text-sm px-4 py-1.5"
+            <button
+              type="button"
               onClick={() => setActiveCategory(undefined)}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
+                activeCategory === undefined
+                  ? "bg-[#0052FF] text-white border-[#0052FF] shadow-sm"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-[#0052FF] hover:text-[#0052FF]"
+              }`}
             >
-              All Posts
-            </Badge>
-            {categories?.map((cat) => (
-              <Badge
-                key={cat.name}
-                variant={activeCategory === cat.name ? "default" : "secondary"}
-                className="cursor-pointer text-sm px-4 py-1.5"
-                onClick={() => setActiveCategory(cat.name)}
-              >
-                {cat.name} ({cat.count})
-              </Badge>
-            ))}
+              All
+            </button>
+            {categories?.map((cat) => {
+              const active = activeCategory === cat.name;
+              return (
+                <button
+                  key={cat.name}
+                  type="button"
+                  onClick={() => setActiveCategory(cat.name)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
+                    active
+                      ? "bg-[#0052FF] text-white border-[#0052FF] shadow-sm"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-[#0052FF] hover:text-[#0052FF]"
+                  }`}
+                >
+                  {cat.name}
+                  <span
+                    className={`ml-2 text-xs ${active ? "text-white/80" : "text-slate-400"}`}
+                  >
+                    {cat.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>
 
+      {/* 3-column responsive grid */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -61,34 +157,46 @@ export default function Blog() {
                   </CardContent>
                 </Card>
               ))
-            ) : posts?.length === 0 ? (
+            ) : gridPosts.length === 0 ? (
               <div className="col-span-full text-center py-20 text-muted-foreground">
                 No posts found for this category.
               </div>
             ) : (
-              posts?.map((post, i) => (
+              gridPosts.map((post, i) => (
                 <motion.div
                   key={post.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: i * 0.05 }}
+                  transition={{ duration: 0.4, delay: i * 0.05 }}
                 >
                   <Link href={`/blog/${post.slug}`}>
-                    <Card className="overflow-hidden h-full hover:shadow-md transition-shadow border-border group cursor-pointer bg-card">
+                    <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer bg-card">
                       <div className="aspect-[16/9] overflow-hidden">
-                        <img 
-                          src={post.coverImage} 
-                          alt={post.title} 
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                        <img
+                          src={post.coverImage}
+                          alt={post.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                       </div>
                       <CardContent className="p-6 flex flex-col">
-                        <div className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">{post.category}</div>
-                        <h2 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors line-clamp-2">{post.title}</h2>
-                        <p className="text-muted-foreground line-clamp-3 mb-6 flex-1">{post.excerpt}</p>
-                        <div className="flex justify-between items-center text-sm text-muted-foreground pt-4 border-t border-border">
-                          <span>{new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-                          <span>{post.readingMinutes} min read</span>
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider">
+                            {post.category}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="w-3.5 h-3.5" />
+                            {post.readingMinutes} min
+                          </span>
+                        </div>
+                        <h2 className="text-lg font-bold mb-3 text-slate-900 group-hover:text-[#0052FF] transition-colors line-clamp-2">
+                          {post.title}
+                        </h2>
+                        <p className="text-muted-foreground text-sm line-clamp-3 mb-6 flex-1">
+                          {post.excerpt}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-4 border-t border-slate-100">
+                          <Calendar className="w-3.5 h-3.5" />
+                          {formatDate(post.publishedAt)}
                         </div>
                       </CardContent>
                     </Card>
