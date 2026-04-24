@@ -9,10 +9,22 @@ import {
   Calendar,
   User,
   ListOrdered,
+  Linkedin,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import posts from "@/data/posts.js";
+
+const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+const shareBtnClass =
+  "flex items-center justify-center w-10 h-10 rounded-full text-slate-500 bg-slate-100/70 hover:bg-[#0052FF] hover:text-white transition-colors";
 
 type Heading = { id: string; text: string; level: number };
 
@@ -91,6 +103,30 @@ export default function BlogPost() {
 
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
 
+  const [shareUrl, setShareUrl] = useState("");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setShareUrl(window.location.href);
+    }
+  }, [slug]);
+
+  const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+    shareUrl,
+  )}`;
+  const xShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(
+    shareUrl,
+  )}&text=${encodeURIComponent(post?.title || "")}`;
+
+  const handleCopyLink = async () => {
+    const url = shareUrl || (typeof window !== "undefined" ? window.location.href : "");
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied to clipboard");
+    } catch {
+      toast.error("Could not copy link");
+    }
+  };
+
   useEffect(() => {
     if (!contentHtml || headings.length === 0) return;
     const elements = headings
@@ -136,6 +172,45 @@ export default function BlogPost() {
 
   return (
     <article className="min-h-screen bg-background pb-24">
+      {/* Floating vertical share bar (xl+) */}
+      <aside
+        className="hidden xl:flex flex-col items-center gap-2 fixed left-4 top-1/2 -translate-y-1/2 z-30 bg-white/90 backdrop-blur border border-slate-200 rounded-full px-2 py-3 shadow-sm"
+        aria-label="Share this article"
+      >
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 pb-1">
+          Share
+        </span>
+        <a
+          href={linkedinShareUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={shareBtnClass}
+          aria-label="Share on LinkedIn"
+          data-testid="share-linkedin"
+        >
+          <Linkedin className="w-4 h-4" />
+        </a>
+        <a
+          href={xShareUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={shareBtnClass}
+          aria-label="Share on X"
+          data-testid="share-x"
+        >
+          <XIcon className="w-4 h-4" />
+        </a>
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className={shareBtnClass}
+          aria-label="Copy link"
+          data-testid="share-copy"
+        >
+          <Link2 className="w-4 h-4" />
+        </button>
+      </aside>
+
       {/* Hero */}
       <header className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/40 border-b border-slate-200">
         <div
@@ -191,6 +266,45 @@ export default function BlogPost() {
                 {post.readTime}
               </span>
             </div>
+          </div>
+
+          {/* Horizontal share bar (below xl) */}
+          <div
+            className="flex xl:hidden items-center gap-2 mt-8 pt-6 border-t border-slate-200/70"
+            aria-label="Share this article"
+          >
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mr-2">
+              Share
+            </span>
+            <a
+              href={linkedinShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={shareBtnClass}
+              aria-label="Share on LinkedIn"
+              data-testid="share-linkedin-mobile"
+            >
+              <Linkedin className="w-4 h-4" />
+            </a>
+            <a
+              href={xShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={shareBtnClass}
+              aria-label="Share on X"
+              data-testid="share-x-mobile"
+            >
+              <XIcon className="w-4 h-4" />
+            </a>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className={shareBtnClass}
+              aria-label="Copy link"
+              data-testid="share-copy-mobile"
+            >
+              <Link2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
