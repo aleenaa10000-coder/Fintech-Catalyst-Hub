@@ -26,6 +26,23 @@ const PublishBlogPostBody = z.object({
   publishedAt: z.string().datetime().optional(),
 });
 
+const UpdateBlogPostBody = z
+  .object({
+    title: z.string().min(1).optional(),
+    excerpt: z.string().min(1).optional(),
+    content: z.string().min(1).optional(),
+    author: z.string().min(1).optional(),
+    authorRole: z.string().min(1).optional(),
+    category: z.string().min(1).optional(),
+    tags: z.array(z.string()).optional(),
+    coverImage: z.string().url().optional(),
+    readingMinutes: z.number().int().positive().optional(),
+    featured: z.boolean().optional(),
+  })
+  .refine((obj) => Object.keys(obj).length > 0, {
+    message: "At least one field is required",
+  });
+
 function serialize(row: typeof blogPostsTable.$inferSelect) {
   return {
     id: row.id,
@@ -161,6 +178,83 @@ router.post("/blog/posts", async (req, res, next) => {
       (err as { code?: string }).code === "23505"
     ) {
       res.status(409).json({ error: "A post with this slug already exists" });
+      return;
+    }
+    next(err);
+  }
+});
+
+/**
+ * Update a blog post by slug. Requires an authenticated session.
+ * Re-pings search engines so the updated URL is recrawled.
+ */
+router.patch("/blog/posts/:slug", async (req, res, next) => {
+  try {
+    if (!req.isAuthenticated()) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const { slug } = GetBlogPostParams.parse({ slug: req.params.slug });
+    const body = UpdateBlogPostBody.parse(req.body);
+
+    const [row] = await db
+      .update(blogPostsTable)
+      .set(body)
+      .where(eq(blogPostsTable.slug, slug))
+      .returning();
+
+    if (!row) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    const siteUrl = getSiteUrl();
+    void notifySearchEnginesOfPublish([
+      `${siteUrl}/blog/${row.slug}`,
+      `${siteUrl}/blog`,
+      `${siteUrl}/sitemap.xml`,
+    ]).catch((err) => {
+      logger.error({ err }, "Search-engine notification hook failed");
+    });
+
+    res.json(serialize(row));
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: "Invalid body", issues: err.issues });
+      return;
+    }
+    next(err);
+  }
+});
+
+/**
+ * Delete (unpublish) a blog post by slug. Requires an authenticated session.
+ * The deleted URL stays out of the next /sitemap.xml render automatically.
+ */
+router.delete("/blog/posts/:slug", async (req, res, next) => {
+  try {
+    if (!req.isAuthenticated()) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const { slug } = GetBlogPostParams.parse({ slug: req.params.slug });
+
+    const [row] = await db
+      .delete(blogPostsTable)
+      .where(eq(blogPostsTable.slug, slug))
+      .returning();
+
+    if (!row) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    res.status(204).end();
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: "Invalid slug", issues: err.issues });
       return;
     }
     next(err);

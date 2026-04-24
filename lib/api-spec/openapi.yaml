@@ -228,6 +228,50 @@ paths:
                 $ref: "#/components/schemas/BlogPost"
         "404":
           description: Not found
+    patch:
+      operationId: updateBlogPost
+      tags: [blog]
+      summary: Update a blog post by slug (admin)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBlogPostInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPost"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteBlogPost
+      tags: [blog]
+      summary: Delete (unpublish) a blog post by slug (admin)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
 
   /blog/featured:
     get:
@@ -534,6 +578,41 @@ components:
         count:
           type: integer
       required: [name, count]
+
+    UpdateBlogPostInput:
+      type: object
+      description: Partial update — only included fields are changed.
+      properties:
+        title:
+          type: string
+          minLength: 1
+        excerpt:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+        author:
+          type: string
+          minLength: 1
+        authorRole:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          minLength: 1
+        tags:
+          type: array
+          items:
+            type: string
+        coverImage:
+          type: string
+          format: uri
+        readingMinutes:
+          type: integer
+          minimum: 1
+        featured:
+          type: boolean
 
     PublishBlogPostInput:
       type: object

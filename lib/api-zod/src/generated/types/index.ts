@@ -31,3 +31,4 @@ export * from "./service";
 export * from "./serviceInput";
 export * from "./testimonial";
 export * from "./trustStats";
+export * from "./updateBlogPostInput";

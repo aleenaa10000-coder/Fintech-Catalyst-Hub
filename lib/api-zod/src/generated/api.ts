@@ -172,6 +172,51 @@ export const GetBlogPostResponse = zod.object({
 });
 
 /**
+ * @summary Update a blog post by slug (admin)
+ */
+export const UpdateBlogPostParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const UpdateBlogPostBody = zod
+  .object({
+    title: zod.string().min(1).optional(),
+    excerpt: zod.string().min(1).optional(),
+    content: zod.string().min(1).optional(),
+    author: zod.string().min(1).optional(),
+    authorRole: zod.string().min(1).optional(),
+    category: zod.string().min(1).optional(),
+    tags: zod.array(zod.string()).optional(),
+    coverImage: zod.string().url().optional(),
+    readingMinutes: zod.number().min(1).optional(),
+    featured: zod.boolean().optional(),
+  })
+  .describe("Partial update — only included fields are changed.");
+
+export const UpdateBlogPostResponse = zod.object({
+  id: zod.number(),
+  slug: zod.string(),
+  title: zod.string(),
+  excerpt: zod.string(),
+  content: zod.string(),
+  author: zod.string(),
+  authorRole: zod.string(),
+  category: zod.string(),
+  tags: zod.array(zod.string()),
+  coverImage: zod.string(),
+  readingMinutes: zod.number(),
+  featured: zod.boolean(),
+  publishedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete (unpublish) a blog post by slug (admin)
+ */
+export const DeleteBlogPostParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+/**
  * @summary Featured posts for the homepage
  */
 export const ListFeaturedPostsResponseItem = zod.object({

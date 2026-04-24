@@ -40,6 +40,7 @@ import type {
   ServiceInput,
   Testimonial,
   TrustStats,
+  UpdateBlogPostInput,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -919,6 +920,177 @@ export function useGetBlogPost<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Update a blog post by slug (admin)
+ */
+export const getUpdateBlogPostUrl = (slug: string) => {
+  return `/api/blog/posts/${slug}`;
+};
+
+export const updateBlogPost = async (
+  slug: string,
+  updateBlogPostInput: UpdateBlogPostInput,
+  options?: RequestInit,
+): Promise<BlogPost> => {
+  return customFetch<BlogPost>(getUpdateBlogPostUrl(slug), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateBlogPostInput),
+  });
+};
+
+export const getUpdateBlogPostMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBlogPost>>,
+    TError,
+    { slug: string; data: BodyType<UpdateBlogPostInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateBlogPost>>,
+  TError,
+  { slug: string; data: BodyType<UpdateBlogPostInput> },
+  TContext
+> => {
+  const mutationKey = ["updateBlogPost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateBlogPost>>,
+    { slug: string; data: BodyType<UpdateBlogPostInput> }
+  > = (props) => {
+    const { slug, data } = props ?? {};
+
+    return updateBlogPost(slug, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateBlogPostMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateBlogPost>>
+>;
+export type UpdateBlogPostMutationBody = BodyType<UpdateBlogPostInput>;
+export type UpdateBlogPostMutationError = ErrorType<void>;
+
+/**
+ * @summary Update a blog post by slug (admin)
+ */
+export const useUpdateBlogPost = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBlogPost>>,
+    TError,
+    { slug: string; data: BodyType<UpdateBlogPostInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateBlogPost>>,
+  TError,
+  { slug: string; data: BodyType<UpdateBlogPostInput> },
+  TContext
+> => {
+  return useMutation(getUpdateBlogPostMutationOptions(options));
+};
+
+/**
+ * @summary Delete (unpublish) a blog post by slug (admin)
+ */
+export const getDeleteBlogPostUrl = (slug: string) => {
+  return `/api/blog/posts/${slug}`;
+};
+
+export const deleteBlogPost = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteBlogPostUrl(slug), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteBlogPostMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBlogPost>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteBlogPost>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  const mutationKey = ["deleteBlogPost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteBlogPost>>,
+    { slug: string }
+  > = (props) => {
+    const { slug } = props ?? {};
+
+    return deleteBlogPost(slug, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteBlogPostMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteBlogPost>>
+>;
+
+export type DeleteBlogPostMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete (unpublish) a blog post by slug (admin)
+ */
+export const useDeleteBlogPost = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBlogPost>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteBlogPost>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  return useMutation(getDeleteBlogPostMutationOptions(options));
+};
 
 /**
  * @summary Featured posts for the homepage

@@ -3,7 +3,10 @@ import { PageMeta } from "@/components/PageMeta";
 import {
   useListBlogPosts,
   usePublishBlogPost,
+  useUpdateBlogPost,
+  useDeleteBlogPost,
   getListBlogPostsQueryKey,
+  type BlogPost,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -13,7 +16,17 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Lock, LogOut, Send, ExternalLink } from "lucide-react";
+import {
+  Plus,
+  Lock,
+  LogOut,
+  Send,
+  ExternalLink,
+  Pencil,
+  Trash2,
+  X,
+  Save,
+} from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 
 const emptyForm = {
@@ -39,14 +52,202 @@ function slugify(input: string) {
     .replace(/-+/g, "-");
 }
 
+function PostEditor({
+  post,
+  onCancel,
+  onSaved,
+}: {
+  post: BlogPost;
+  onCancel: () => void;
+  onSaved: () => void;
+}) {
+  const [draft, setDraft] = useState({
+    title: post.title,
+    excerpt: post.excerpt,
+    content: post.content,
+    author: post.author,
+    authorRole: post.authorRole,
+    category: post.category,
+    tags: (post.tags ?? []).join(", "),
+    coverImage: post.coverImage,
+    readingMinutes: String(post.readingMinutes),
+    featured: post.featured,
+  });
+  const updateMut = useUpdateBlogPost();
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const readingMinutes = Number(draft.readingMinutes);
+    if (!Number.isFinite(readingMinutes) || readingMinutes < 1) {
+      toast.error("Reading minutes must be a positive number.");
+      return;
+    }
+    try {
+      await updateMut.mutateAsync({
+        slug: post.slug,
+        data: {
+          title: draft.title.trim(),
+          excerpt: draft.excerpt.trim(),
+          content: draft.content.trim(),
+          author: draft.author.trim(),
+          authorRole: draft.authorRole.trim(),
+          category: draft.category.trim(),
+          tags: draft.tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean),
+          coverImage: draft.coverImage.trim(),
+          readingMinutes,
+          featured: draft.featured,
+        },
+      });
+      toast.success(`Saved "${draft.title}"`, {
+        description: "Search engines have been re-notified.",
+      });
+      onSaved();
+    } catch {
+      toast.error("Could not save changes.");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSave} className="space-y-4 mt-4">
+      <div>
+        <Label htmlFor={`title-${post.id}`}>Title</Label>
+        <Input
+          id={`title-${post.id}`}
+          value={draft.title}
+          onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor={`excerpt-${post.id}`}>Excerpt</Label>
+        <Textarea
+          id={`excerpt-${post.id}`}
+          rows={2}
+          value={draft.excerpt}
+          onChange={(e) => setDraft({ ...draft, excerpt: e.target.value })}
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor={`content-${post.id}`}>Content</Label>
+        <Textarea
+          id={`content-${post.id}`}
+          rows={8}
+          value={draft.content}
+          onChange={(e) => setDraft({ ...draft, content: e.target.value })}
+          required
+        />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor={`author-${post.id}`}>Author</Label>
+          <Input
+            id={`author-${post.id}`}
+            value={draft.author}
+            onChange={(e) => setDraft({ ...draft, author: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor={`authorRole-${post.id}`}>Author role</Label>
+          <Input
+            id={`authorRole-${post.id}`}
+            value={draft.authorRole}
+            onChange={(e) =>
+              setDraft({ ...draft, authorRole: e.target.value })
+            }
+            required
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor={`category-${post.id}`}>Category</Label>
+          <Input
+            id={`category-${post.id}`}
+            value={draft.category}
+            onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor={`tags-${post.id}`}>Tags (comma-separated)</Label>
+          <Input
+            id={`tags-${post.id}`}
+            value={draft.tags}
+            onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor={`coverImage-${post.id}`}>Cover image URL</Label>
+          <Input
+            id={`coverImage-${post.id}`}
+            type="url"
+            value={draft.coverImage}
+            onChange={(e) =>
+              setDraft({ ...draft, coverImage: e.target.value })
+            }
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor={`readingMinutes-${post.id}`}>Reading minutes</Label>
+          <Input
+            id={`readingMinutes-${post.id}`}
+            type="number"
+            min={1}
+            value={draft.readingMinutes}
+            onChange={(e) =>
+              setDraft({ ...draft, readingMinutes: e.target.value })
+            }
+            required
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id={`featured-${post.id}`}
+          checked={draft.featured}
+          onCheckedChange={(v) =>
+            setDraft({ ...draft, featured: v === true })
+          }
+        />
+        <Label htmlFor={`featured-${post.id}`} className="cursor-pointer">
+          Feature on the homepage
+        </Label>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          type="submit"
+          disabled={updateMut.isPending}
+          className="bg-[#0052FF] hover:bg-[#0040cc]"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {updateMut.isPending ? "Saving…" : "Save changes"}
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          <X className="w-4 h-4 mr-2" /> Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export default function AdminBlog() {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } =
     useAuth();
   const qc = useQueryClient();
   const { data: posts, isLoading } = useListBlogPosts();
   const publishMut = usePublishBlogPost();
+  const deleteMut = useDeleteBlogPost();
   const [form, setForm] = useState(emptyForm);
   const [autoSlug, setAutoSlug] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: getListBlogPostsQueryKey() });
@@ -99,6 +300,24 @@ export default function AdminBlog() {
     }
   };
 
+  const handleDelete = async (post: BlogPost) => {
+    if (
+      !confirm(
+        `Unpublish "${post.title}"? This permanently removes it from the blog and the sitemap.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await deleteMut.mutateAsync({ slug: post.slug });
+      toast.success(`Unpublished "${post.title}"`);
+      if (editingId === post.id) setEditingId(null);
+      invalidate();
+    } catch {
+      toast.error("Could not unpublish post.");
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -140,7 +359,7 @@ export default function AdminBlog() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Blog Admin</h1>
             <p className="text-muted-foreground">
-              Publish a new post. It appears on the public blog and in
+              Publish, edit, or unpublish posts. Changes reflect in
               <code className="mx-1 px-1.5 py-0.5 rounded bg-muted text-foreground">
                 /sitemap.xml
               </code>
@@ -331,37 +550,80 @@ export default function AdminBlog() {
           <p className="text-muted-foreground">Loading…</p>
         ) : (
           <div className="space-y-3">
-            {posts?.map((p) => (
-              <Card key={p.id}>
-                <CardContent className="pt-6 flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate">{p.title}</div>
-                    <div className="text-sm text-muted-foreground truncate">
-                      {p.excerpt}
+            {posts?.map((p) => {
+              const isEditing = editingId === p.id;
+              return (
+                <Card key={p.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold truncate">{p.title}</div>
+                        <div className="text-sm text-muted-foreground truncate">
+                          {p.excerpt}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          slug: <code>{p.slug}</code> · {p.category} ·{" "}
+                          {new Date(p.publishedAt).toLocaleDateString()}
+                          {p.featured ? " · ★ featured" : ""}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`View ${p.title}`}
+                        >
+                          <a
+                            href={`/blog/${p.slug}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            setEditingId(isEditing ? null : p.id)
+                          }
+                          aria-label={
+                            isEditing ? `Close editor` : `Edit ${p.title}`
+                          }
+                        >
+                          {isEditing ? (
+                            <X className="w-4 h-4" />
+                          ) : (
+                            <Pencil className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(p)}
+                          disabled={deleteMut.isPending}
+                          aria-label={`Unpublish ${p.title}`}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      slug: <code>{p.slug}</code> · {p.category} ·{" "}
-                      {new Date(p.publishedAt).toLocaleDateString()}
-                      {p.featured ? " · ★ featured" : ""}
-                    </div>
-                  </div>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`View ${p.title}`}
-                  >
-                    <a
-                      href={`/blog/${p.slug}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                    {isEditing && (
+                      <PostEditor
+                        post={p}
+                        onCancel={() => setEditingId(null)}
+                        onSaved={() => {
+                          setEditingId(null);
+                          invalidate();
+                        }}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
