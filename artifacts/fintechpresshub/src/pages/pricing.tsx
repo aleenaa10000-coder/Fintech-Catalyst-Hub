@@ -39,7 +39,13 @@ export default function Pricing() {
                 transition={{ duration: 0.5, delay: i * 0.1 }}
                 className="h-full flex"
               >
-                <Card className={`w-full flex flex-col relative ${plan.highlighted ? 'border-primary shadow-lg scale-105 z-10' : 'border-border'}`}>
+                <Card
+                  className={`w-full flex flex-col relative border-t-4 border-t-blue-600 ${
+                    plan.highlighted
+                      ? 'border-primary shadow-[0_0_20px_rgba(0,82,255,0.1)] scale-105 z-10'
+                      : 'border-border'
+                  }`}
+                >
                   {plan.highlighted && (
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-bold shadow-sm">
                       Recommended
@@ -51,7 +57,8 @@ export default function Pricing() {
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col">
                     <div className="text-center mb-8">
-                      <span className="text-4xl font-extrabold">${plan.priceMonthly.toLocaleString()}</span>
+                      <span className="text-2xl font-semibold align-top text-muted-foreground mr-0.5">$</span>
+                      <span className="text-5xl font-extrabold tracking-tight">{plan.priceMonthly.toLocaleString()}</span>
                       <span className="text-muted-foreground">/{plan.priceUnit}</span>
                     </div>
                     <p className="text-sm text-center text-muted-foreground mb-6">{plan.description}</p>
