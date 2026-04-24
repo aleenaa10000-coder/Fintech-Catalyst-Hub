@@ -17,7 +17,7 @@ import {
   ListOrdered,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Heading = { id: string; text: string; level: number };
 
@@ -99,6 +99,37 @@ export default function BlogPost() {
       (relatedRaw ?? []).filter((p) => p.id !== post?.id).slice(0, 3),
     [relatedRaw, post?.id],
   );
+
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!contentHtml || headings.length === 0) return;
+    const elements = headings
+      .map((h) => document.getElementById(h.id))
+      .filter((el): el is HTMLElement => !!el);
+    if (elements.length === 0) return;
+
+    const visible = new Map<string, number>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            visible.set(entry.target.id, entry.intersectionRatio);
+          } else {
+            visible.delete(entry.target.id);
+          }
+        }
+        if (visible.size > 0) {
+          const topId = headings.find((h) => visible.has(h.id))?.id;
+          if (topId) setActiveHeadingId(topId);
+        }
+      },
+      { rootMargin: "-96px 0px -65% 0px", threshold: [0, 1] },
+    );
+
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [contentHtml, headings]);
 
   if (isLoading) {
     return (
@@ -212,18 +243,25 @@ export default function BlogPost() {
                   On this page
                 </div>
                 <ul className="space-y-2 border-l border-slate-200">
-                  {headings.map((h) => (
-                    <li key={h.id}>
-                      <a
-                        href={`#${h.id}`}
-                        className={`block text-sm text-slate-600 hover:text-[#0052FF] hover:border-[#0052FF] border-l-2 border-transparent -ml-px pl-4 py-1 transition-colors ${
-                          h.level === 3 ? "pl-7 text-[13px]" : "font-medium"
-                        }`}
-                      >
-                        {h.text}
-                      </a>
-                    </li>
-                  ))}
+                  {headings.map((h) => {
+                    const active = activeHeadingId === h.id;
+                    return (
+                      <li key={h.id}>
+                        <a
+                          href={`#${h.id}`}
+                          className={`block text-sm border-l-2 -ml-px pl-4 py-1 transition-all ${
+                            h.level === 3 ? "pl-7 text-[13px]" : "font-medium"
+                          } ${
+                            active
+                              ? "text-[#0052FF] border-[#0052FF] font-semibold"
+                              : "text-slate-600 border-transparent hover:text-[#0052FF] hover:border-[#0052FF]"
+                          }`}
+                        >
+                          {h.text}
+                        </a>
+                      </li>
+                    );
+                  })}
                 </ul>
               </nav>
             ) : null}
