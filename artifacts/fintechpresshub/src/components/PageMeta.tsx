@@ -1,12 +1,40 @@
 import { Helmet } from "react-helmet-async";
 import { useLocation } from "wouter";
 import {
+  BREADCRUMB_LABELS,
   ORGANIZATION_SCHEMA,
   PAGE_META,
   SITE_NAME,
   SITE_URL,
   type PageKey,
 } from "@/lib/metaData";
+
+function buildBreadcrumbs(
+  pathname: string,
+  leafTitle: string,
+): { name: string; item: string }[] {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 0) return [];
+
+  const crumbs: { name: string; item: string }[] = [
+    { name: "Home", item: SITE_URL },
+  ];
+
+  let acc = "";
+  segments.forEach((seg, i) => {
+    acc += `/${seg}`;
+    const isLeaf = i === segments.length - 1;
+    const known = BREADCRUMB_LABELS[seg];
+    const fallback = seg
+      .split("-")
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(" ");
+    const name = isLeaf ? leafTitle || known || fallback : known || fallback;
+    crumbs.push({ name, item: `${SITE_URL}${acc}` });
+  });
+
+  return crumbs;
+}
 
 export type ArticleSchema = {
   title: string;
@@ -38,6 +66,24 @@ export function PageMeta(props: PageMetaProps) {
 
   const canonical =
     props.canonical ?? `${SITE_URL}${location === "/" ? "" : location}`;
+
+  const leafTitle = (props.title ?? base?.title ?? "")
+    .split("|")[0]
+    .trim();
+  const breadcrumbs = buildBreadcrumbs(location, leafTitle);
+  const breadcrumbJsonLd =
+    breadcrumbs.length > 1
+      ? {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: breadcrumbs.map((c, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            name: c.name,
+            item: c.item,
+          })),
+        }
+      : null;
 
   const articleJsonLd = props.article
     ? {
@@ -104,6 +150,11 @@ export function PageMeta(props: PageMetaProps) {
       <script type="application/ld+json">
         {JSON.stringify(ORGANIZATION_SCHEMA)}
       </script>
+      {breadcrumbJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(breadcrumbJsonLd)}
+        </script>
+      ) : null}
       {articleJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(articleJsonLd)}

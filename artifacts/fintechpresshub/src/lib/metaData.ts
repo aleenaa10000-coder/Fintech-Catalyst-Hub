@@ -11,6 +11,21 @@ export const SITE_URL =
       ?.VITE_SITE_URL) ||
   "https://www.fintechpresshub.com";
 
+export const BREADCRUMB_LABELS: Record<string, string> = {
+  about: "About",
+  services: "Services",
+  pricing: "Pricing",
+  blog: "Blog",
+  "write-for-us": "Write For Us",
+  contact: "Contact",
+  "privacy-policy": "Privacy Policy",
+  "refund-policy": "Refund Policy",
+  "cookie-policy": "Cookie Policy",
+  terms: "Terms",
+  "editorial-guidelines": "Editorial Guidelines",
+  admin: "Admin",
+};
+
 export const ORGANIZATION_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "Organization",
