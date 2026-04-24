@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CheckCircle2, FileText, Globe, Link as LinkIcon } from "lucide-react";
+import { CheckCircle2, FileText, Globe, Link as LinkIcon, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHero } from "@/components/PageHero";
 
@@ -40,6 +40,15 @@ export default function WriteForUs() {
   });
 
   const submitPost = useSubmitGuestPost();
+
+  const watchedName = form.watch("name");
+  const watchedEmail = form.watch("email");
+  const watchedPitch = form.watch("pitch");
+  const requiredFilled =
+    watchedName.trim().length > 0 &&
+    watchedEmail.trim().length > 0 &&
+    watchedPitch.trim().length > 0;
+  const isSubmitDisabled = !requiredFilled || submitPost.isPending;
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     submitPost.mutate(
@@ -247,9 +256,27 @@ export default function WriteForUs() {
                       )}
                     />
 
-                    <Button type="submit" size="lg" className="w-full" disabled={submitPost.isPending}>
-                      {submitPost.isPending ? "Submitting..." : "Submit Pitch"}
+                    <Button
+                      type="submit"
+                      size="lg"
+                      className="w-full"
+                      disabled={isSubmitDisabled}
+                      data-testid="button-submit-pitch"
+                    >
+                      {submitPost.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        "Submit Pitch"
+                      )}
                     </Button>
+                    {!requiredFilled && !submitPost.isPending && (
+                      <p className="text-xs text-muted-foreground text-center -mt-2">
+                        Fill in your name, email, and pitch to submit.
+                      </p>
+                    )}
                   </form>
                 </Form>
               </div>
