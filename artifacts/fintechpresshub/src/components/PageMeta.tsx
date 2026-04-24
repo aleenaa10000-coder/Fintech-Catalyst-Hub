@@ -74,6 +74,12 @@ export function PageMeta(props: PageMetaProps) {
       {title ? <title>{title}</title> : null}
       {description ? <meta name="description" content={description} /> : null}
       <link rel="canonical" href={canonical} />
+      <link
+        rel="alternate"
+        type="application/rss+xml"
+        title={`${SITE_NAME} Blog`}
+        href={`${SITE_URL}/rss.xml`}
+      />
       {title ? <meta property="og:title" content={title} /> : null}
       {description ? (
         <meta property="og:description" content={description} />
