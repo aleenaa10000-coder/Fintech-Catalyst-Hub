@@ -1,5 +1,5 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
-import { useParams, Link } from "wouter";
+import { useParams, Link, Redirect } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -157,17 +157,7 @@ export default function BlogPost() {
   }, [contentHtml, headings]);
 
   if (!post) {
-    return (
-      <div className="container mx-auto px-4 py-32 text-center max-w-md">
-        <h1 className="text-3xl font-bold mb-4">Post Not Found</h1>
-        <p className="text-muted-foreground mb-8">
-          The article you are looking for does not exist or has been removed.
-        </p>
-        <Link href="/blog">
-          <Button>Back to Blog</Button>
-        </Link>
-      </div>
-    );
+    return <Redirect to="/404" />;
   }
 
   return (

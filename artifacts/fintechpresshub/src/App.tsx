@@ -59,6 +59,7 @@ function Router() {
           <Route path="/terms" component={Terms} />
           <Route path="/editorial-guidelines" component={EditorialGuidelines} />
           <Route path="/admin/services" component={AdminServices} />
+          <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
         </Switch>
       </main>
