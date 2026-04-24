@@ -83,6 +83,9 @@ export default function botOgPlugin({ root, siteUrl }) {
   function makeMiddleware(getIndexHtml) {
     return async (req, res, next) => {
       try {
+        if (req.method && req.method !== "GET" && req.method !== "HEAD") {
+          return next();
+        }
         const ua = String(req.headers["user-agent"] || "");
         if (!BOT_REGEX.test(ua)) return next();
 
@@ -92,7 +95,8 @@ export default function botOgPlugin({ root, siteUrl }) {
         if (!match) return next();
 
         const posts = await loadPosts();
-        const post = posts.find((p) => p.slug === match[1]);
+        if (!Array.isArray(posts)) return next();
+        const post = posts.find((p) => p && p.slug === match[1]);
         if (!post) return next();
 
         const indexHtml = await getIndexHtml(req);
