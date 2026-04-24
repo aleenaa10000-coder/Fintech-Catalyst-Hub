@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { LegalPageLayout, type LegalSection } from "@/components/LegalPageLayout";
 
 const SECTIONS: LegalSection[] = [
@@ -41,10 +41,10 @@ const SECTIONS: LegalSection[] = [
 ];
 
 export default function Terms() {
-  useDocumentTitle("Terms of Service | FintechPressHub");
-
   return (
-    <LegalPageLayout
+    <>
+      <PageMeta page="terms" />
+      <LegalPageLayout
       title={<>Terms of Service</>}
       description="The agreement that governs your use of FintechPressHub's website, services, and engagements."
       lastUpdated="October 1, 2023"
@@ -101,6 +101,7 @@ export default function Terms() {
         State of New York, and you irrevocably submit to the exclusive jurisdiction of the courts
         in that State or location.
       </p>
-    </LegalPageLayout>
+      </LegalPageLayout>
+    </>
   );
 }

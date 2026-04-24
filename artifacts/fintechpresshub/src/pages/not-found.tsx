@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,6 @@ const formatDate = (iso: string) =>
   });
 
 export default function NotFound() {
-  useDocumentTitle("Page Not Found | FintechPressHub");
 
   const popular = [...posts]
     .sort(
@@ -24,6 +23,7 @@ export default function NotFound() {
 
   return (
     <div className="min-h-[80vh] w-full bg-background py-20 px-4">
+      <PageMeta page="notFound" />
       <div className="container mx-auto max-w-5xl">
         {/* 404 message */}
         <div className="text-center max-w-2xl mx-auto mb-16">

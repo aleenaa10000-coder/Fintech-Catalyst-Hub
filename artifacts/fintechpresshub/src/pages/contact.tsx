@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,7 +23,6 @@ const formSchema = z.object({
 });
 
 export default function Contact() {
-  useDocumentTitle("Contact Us | FintechPressHub", "Get in touch for a free SEO audit and strategy consultation.");
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -61,6 +60,7 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageMeta page="contact" />
       <PageHero
         eyebrow="Contact Us"
         title={<>Let's Scale Your Organic Growth</>}

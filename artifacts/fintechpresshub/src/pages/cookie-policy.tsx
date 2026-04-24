@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { LegalPageLayout, type LegalSection } from "@/components/LegalPageLayout";
 
 const SECTIONS: LegalSection[] = [
@@ -35,10 +35,10 @@ const SECTIONS: LegalSection[] = [
 ];
 
 export default function CookiePolicy() {
-  useDocumentTitle("Cookie Policy | FintechPressHub");
-
   return (
-    <LegalPageLayout
+    <>
+      <PageMeta page="cookiePolicy" />
+      <LegalPageLayout
       title={<>Cookie Policy</>}
       description="How and why FintechPressHub uses cookies and similar tracking technologies on our website."
       lastUpdated="April 24, 2026"
@@ -149,6 +149,7 @@ export default function CookiePolicy() {
         "Last updated" date at the top of the page reflects the most recent version. For questions
         about our use of cookies or this policy, please email privacy@fintechpresshub.com.
       </p>
-    </LegalPageLayout>
+      </LegalPageLayout>
+    </>
   );
 }

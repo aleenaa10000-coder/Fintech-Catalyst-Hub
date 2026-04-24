@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -27,7 +27,6 @@ const formSchema = z.object({
 });
 
 export default function WriteForUs() {
-  useDocumentTitle("Write For Us | FintechPressHub", "Submit a guest post pitch to FintechPressHub.");
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -86,6 +85,7 @@ export default function WriteForUs() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageMeta page="writeForUs" />
       <PageHero
         eyebrow="Write For Us"
         title={<>Write for FintechPressHub</>}

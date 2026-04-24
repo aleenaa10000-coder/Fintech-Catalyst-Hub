@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { useSubscribeToNewsletter } from "@workspace/api-client-react";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,11 +29,6 @@ type Post = {
 };
 
 export default function Blog() {
-  useDocumentTitle(
-    "Blog | FintechPressHub",
-    "Insights, strategies, and guides on fintech marketing and SEO.",
-  );
-
   const allPosts = posts as Post[];
 
   const categories = useMemo(() => {
@@ -142,6 +137,7 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageMeta page="blog" />
       <PageHero
         eyebrow="The Fintech Growth Hub"
         title={<>Insights From the Front Lines of Fintech SEO</>}

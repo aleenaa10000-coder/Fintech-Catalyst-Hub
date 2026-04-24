@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { useListPricingPlans } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Plus } from "lucide-react";
@@ -30,11 +30,11 @@ const faqs = [
 ];
 
 export default function Pricing() {
-  useDocumentTitle("Pricing | FintechPressHub", "Transparent pricing for fintech SEO and content marketing.");
   const { data: plans, isLoading } = useListPricingPlans();
 
   return (
     <div className="min-h-screen bg-background">
+      <PageMeta page="pricing" />
       <PageHero
         eyebrow="Pricing"
         title={<>Invest in Sustainable Growth</>}

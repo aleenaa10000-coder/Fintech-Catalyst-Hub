@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -105,7 +105,6 @@ function scrollToSection(id: string) {
 }
 
 export default function EditorialGuidelines() {
-  useDocumentTitle("Editorial Guidelines | FintechPressHub");
   const [activeId, setActiveId] = useState<string>(SECTIONS[0]!.id);
 
   useEffect(() => {
@@ -144,6 +143,7 @@ export default function EditorialGuidelines() {
 
   return (
     <div className="min-h-screen bg-background scroll-smooth">
+      <PageMeta page="editorialGuidelines" />
       <PageHero
         eyebrow="Editorial"
         title={<>Editorial Guidelines</>}

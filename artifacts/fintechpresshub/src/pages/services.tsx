@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { useListServices } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
 import { PenTool, Link2, Newspaper, Network, Search, Sparkles, type LucideIcon } from "lucide-react";
@@ -16,11 +16,11 @@ const deliverableIconBySlug: Record<string, LucideIcon> = {
 };
 
 export default function Services() {
-  useDocumentTitle("Services | FintechPressHub", "Comprehensive fintech SEO, link building, and content marketing services.");
   const { data: services, isLoading } = useListServices();
 
   return (
     <div className="min-h-screen bg-background">
+      <PageMeta page="services" />
       <PageHero
         eyebrow="Services"
         title={<>Growth Engines for Fintech</>}

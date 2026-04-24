@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import {
   useListServices,
   useCreateService,
@@ -26,7 +26,6 @@ const emptyForm = {
 };
 
 export default function AdminServices() {
-  useDocumentTitle("Admin · Services | FintechPressHub", "Manage services.");
   const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
   const qc = useQueryClient();
   const { data: services, isLoading } = useListServices();
@@ -110,6 +109,7 @@ export default function AdminServices() {
 
   return (
     <div className="min-h-screen bg-background py-16">
+      <PageMeta page="adminServices" />
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
           <div>

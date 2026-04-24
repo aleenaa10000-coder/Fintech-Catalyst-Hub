@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
@@ -13,7 +13,6 @@ import { ParticleNetwork } from "@/components/ParticleNetwork";
 import { TrustedBy } from "@/components/TrustedBy";
 
 export default function Home() {
-  useDocumentTitle("FintechPressHub | Fintech SEO & Content Marketing Agency", "Expert content marketing and off-page SEO for fintech companies.");
   
   const { data: stats } = useGetTrustStats();
   const { data: testimonials } = useListTestimonials();
@@ -22,6 +21,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
+      <PageMeta page="home" />
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-gradient-to-br from-[#0b1e4d] via-[#102a6b] to-[#0a1633]">
         <div className="absolute inset-0 z-0">

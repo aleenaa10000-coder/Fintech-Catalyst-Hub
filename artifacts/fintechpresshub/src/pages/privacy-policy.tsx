@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { LegalPageLayout, type LegalSection } from "@/components/LegalPageLayout";
 
 const SECTIONS: LegalSection[] = [
@@ -35,10 +35,10 @@ const SECTIONS: LegalSection[] = [
 ];
 
 export default function PrivacyPolicy() {
-  useDocumentTitle("Privacy Policy | FintechPressHub");
-
   return (
-    <LegalPageLayout
+    <>
+      <PageMeta page="privacyPolicy" />
+      <LegalPageLayout
       title={<>Privacy Policy</>}
       description="How FintechPressHub collects, uses, and protects the personal data of visitors, prospects, and clients."
       lastUpdated="October 1, 2023"
@@ -107,6 +107,7 @@ export default function PrivacyPolicy() {
         If you have any questions about this privacy policy or our privacy practices, please
         contact us at privacy@fintechpresshub.com.
       </p>
-    </LegalPageLayout>
+      </LegalPageLayout>
+    </>
   );
 }

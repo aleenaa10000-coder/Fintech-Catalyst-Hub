@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { LegalPageLayout, type LegalSection } from "@/components/LegalPageLayout";
 
 const SECTIONS: LegalSection[] = [
@@ -35,10 +35,10 @@ const SECTIONS: LegalSection[] = [
 ];
 
 export default function RefundPolicy() {
-  useDocumentTitle("Refund Policy | FintechPressHub");
-
   return (
-    <LegalPageLayout
+    <>
+      <PageMeta page="refundPolicy" />
+      <LegalPageLayout
       title={<>Refund Policy</>}
       description="Our approach to refunds, retainer cancellations, content revisions, and link replacement guarantees."
       lastUpdated="October 1, 2023"
@@ -90,6 +90,7 @@ export default function RefundPolicy() {
       <p>
         To discuss billing or request an exception, please contact billing@fintechpresshub.com.
       </p>
-    </LegalPageLayout>
+      </LegalPageLayout>
+    </>
   );
 }

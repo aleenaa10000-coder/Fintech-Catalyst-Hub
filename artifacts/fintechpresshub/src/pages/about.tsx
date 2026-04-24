@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { motion } from "framer-motion";
 import { Users, Target, ShieldCheck, ArrowRight, type LucideIcon } from "lucide-react";
 import { Link } from "wouter";
@@ -39,10 +39,10 @@ const valuesData: CoreValue[] = [
 ];
 
 export default function About() {
-  useDocumentTitle("About FintechPressHub | Fintech SEO Agency", "Bridging the gap between deep fintech expertise and search visibility.");
 
   return (
     <div className="min-h-screen bg-background">
+      <PageMeta page="about" />
       <PageHero
         eyebrow="About FintechPressHub"
         title={<>Bridging Fintech Expertise & Search Visibility</>}

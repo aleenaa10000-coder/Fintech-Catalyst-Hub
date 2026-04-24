@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PageMeta } from "@/components/PageMeta";
 import { useParams, Link, Redirect } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -83,10 +83,6 @@ export default function BlogPost() {
     [slug],
   );
 
-  useDocumentTitle(
-    post ? `${post.title} | FintechPressHub` : "Blog | FintechPressHub",
-  );
-
   const { contentHtml, headings } = useMemo(() => {
     if (!post?.content) return { contentHtml: "", headings: [] as Heading[] };
     const processed = processContent(post.content);
@@ -162,6 +158,10 @@ export default function BlogPost() {
 
   return (
     <article className="min-h-screen bg-background pb-24">
+      <PageMeta
+        title={`${post.title} | FintechPressHub`}
+        description={post.excerpt ?? undefined}
+      />
       {/* Floating vertical share bar (xl+) */}
       <aside
         className="hidden xl:flex flex-col items-center gap-2 fixed left-4 top-1/2 -translate-y-1/2 z-30 bg-white/90 backdrop-blur border border-slate-200 rounded-full px-2 py-3 shadow-sm"
