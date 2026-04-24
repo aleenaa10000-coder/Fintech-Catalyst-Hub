@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "LgLPZOqyXeXfK5lp_sqad"
@@ -18,3 +17,45 @@ id = "PDxAFd_TzR64jVMu-LsCO"
 uri = "file://artifacts/fintechpresshub/src/assets/services-graph.png"
 type = "image"
 title = "Financial growth chart"
+
+[[outputs]]
+id = "oXFKrf_XTmgUw1M-KGhRm"
+uri = "file://attached_assets/logo/fintechpresshub-logo.png"
+type = "image"
+title = "FintechPressHub logo (transparent PNG, 1440×320)"
+
+[[outputs]]
+id = "Zo9wilv4pdXynlh9PMa-K"
+uri = "file://attached_assets/logo/fintechpresshub-logo.svg"
+type = "image"
+title = "FintechPressHub logo (vector SVG)"
+
+[[outputs]]
+id = "W19HPfRkvdnuXjNidLSgR"
+uri = "file://attached_assets/logo/fintechpresshub-favicon-512.png"
+type = "image"
+title = "FintechPressHub favicon 512×512"
+
+[[outputs]]
+id = "71YnaNFD94ijuUZmkN_ir"
+uri = "file://attached_assets/logo/fintechpresshub-favicon-256.png"
+type = "image"
+title = "FintechPressHub favicon 256×256"
+
+[[outputs]]
+id = "4SjrpEIMhloq9JzhQr8Cu"
+uri = "file://attached_assets/logo/fintechpresshub-favicon-64.png"
+type = "image"
+title = "FintechPressHub favicon 64×64"
+
+[[outputs]]
+id = "F67VKf-77jVwkXS-Qrzfs"
+uri = "file://attached_assets/logo/fintechpresshub-favicon.ico"
+type = "unspecified"
+title = "FintechPressHub favicon.ico (32×32)"
+
+[[outputs]]
+id = "Nhx2Q1R-ZW6jYFxw59L7X"
+uri = "file://attached_assets/logo/fintechpresshub-favicon.svg"
+type = "image"
+title = "FintechPressHub favicon (vector SVG)"
