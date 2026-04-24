@@ -234,20 +234,49 @@ export default function WriteForUs() {
                     <FormField
                       control={form.control}
                       name="pitch"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>The Pitch</FormLabel>
-                          <FormDescription>Outline your thesis, key takeaways, and why you are the right person to write this.</FormDescription>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Briefly outline your article structure..." 
-                              className="min-h-[150px] resize-y" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const length = field.value?.length ?? 0;
+                        const min = 30;
+                        const max = 4000;
+                        const underMin = length > 0 && length < min;
+                        const nearMax = length >= max - 200;
+                        const overMax = length > max;
+                        const counterColor = overMax
+                          ? "text-red-600"
+                          : underMin
+                          ? "text-amber-600"
+                          : nearMax
+                          ? "text-amber-600"
+                          : "text-muted-foreground";
+                        const counterText = underMin
+                          ? `${min - length} more character${
+                              min - length === 1 ? "" : "s"
+                            } needed · ${length} / ${max}`
+                          : `${length.toLocaleString()} / ${max.toLocaleString()}`;
+                        return (
+                          <FormItem>
+                            <FormLabel>The Pitch</FormLabel>
+                            <FormDescription>Outline your thesis, key takeaways, and why you are the right person to write this.</FormDescription>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Briefly outline your article structure..." 
+                                className="min-h-[150px] resize-y" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <div className="flex items-center justify-between gap-3 mt-1.5">
+                              <FormMessage className="m-0" />
+                              <span
+                                className={`text-xs tabular-nums ml-auto ${counterColor}`}
+                                data-testid="pitch-char-counter"
+                                aria-live="polite"
+                              >
+                                {counterText}
+                              </span>
+                            </div>
+                          </FormItem>
+                        );
+                      }}
                     />
 
                     <FormField
