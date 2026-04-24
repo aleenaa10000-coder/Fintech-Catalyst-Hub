@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /404
+
+Sitemap: https://www.fintechpresshub.com/sitemap.xml
