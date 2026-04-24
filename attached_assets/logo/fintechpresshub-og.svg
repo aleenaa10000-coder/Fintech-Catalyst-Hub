@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#001F3F"/>
+      <stop offset="1" stop-color="#0A2B5C"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.85" cy="0.15" r="0.7">
+      <stop offset="0" stop-color="#0074D9" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#0074D9" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#FFFFFF" stroke-width="0.6" opacity="0.05"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- Top brand bar -->
+  <rect x="0" y="0" width="1200" height="6" fill="#0074D9"/>
+
+  <!-- Icon (growth chart) -->
+  <g transform="translate(80, 110)">
+    <rect x="0" y="0" width="140" height="140" rx="26" ry="26"
+          fill="#FFFFFF" opacity="0.06"/>
+    <rect x="0" y="0" width="140" height="140" rx="26" ry="26"
+          fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.18"/>
+    <rect x="26" y="90" width="22" height="36" rx="4" fill="#0074D9"/>
+    <rect x="60" y="68" width="22" height="58" rx="4" fill="#0074D9"/>
+    <rect x="94" y="40" width="22" height="86" rx="4" fill="#0074D9"/>
+    <line x1="37" y1="82" x2="71" y2="60" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+    <line x1="71" y1="60" x2="105" y2="34" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+    <circle cx="37" cy="82" r="7" fill="#FFFFFF"/>
+    <circle cx="71" cy="60" r="7" fill="#FFFFFF"/>
+    <circle cx="105" cy="34" r="9" fill="#2ECC71"/>
+    <circle cx="105" cy="34" r="3.5" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g transform="translate(250, 130)">
+    <text x="0" y="68"
+          font-family="DejaVu Sans, Inter, 'Helvetica Neue', Arial, sans-serif"
+          font-weight="700"
+          font-size="68"
+          letter-spacing="-1.5"
+          fill="#FFFFFF">FintechPress<tspan fill="#4FA8FF">Hub</tspan></text>
+    <text x="3" y="108"
+          font-family="DejaVu Sans, Inter, 'Helvetica Neue', Arial, sans-serif"
+          font-weight="500"
+          font-size="20"
+          letter-spacing="4"
+          fill="#FFFFFF"
+          opacity="0.7">FINTECH SEO &amp; CONTENT MARKETING</text>
+  </g>
+
+  <!-- Headline -->
+  <g transform="translate(80, 330)">
+    <text x="0" y="0"
+          font-family="DejaVu Sans, Inter, 'Helvetica Neue', Arial, sans-serif"
+          font-weight="700"
+          font-size="64"
+          letter-spacing="-1.5"
+          fill="#FFFFFF">Optimized Fintech Content</text>
+    <text x="0" y="78"
+          font-family="DejaVu Sans, Inter, 'Helvetica Neue', Arial, sans-serif"
+          font-weight="700"
+          font-size="64"
+          letter-spacing="-1.5"
+          fill="#7FE5D8">That Ranks &amp; Converts</text>
+  </g>
+
+  <!-- Tagline pill -->
+  <g transform="translate(80, 500)">
+    <rect x="0" y="0" width="430" height="56" rx="28" ry="28"
+          fill="#FFFFFF" opacity="0.08"/>
+    <rect x="0" y="0" width="430" height="56" rx="28" ry="28"
+          fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.25"/>
+    <circle cx="28" cy="28" r="6" fill="#2ECC71"/>
+    <text x="50" y="36"
+          font-family="DejaVu Sans, Inter, 'Helvetica Neue', Arial, sans-serif"
+          font-weight="600"
+          font-size="20"
+          letter-spacing="1.5"
+          fill="#FFFFFF">SEO · LINK BUILDING · CONTENT</text>
+  </g>
+
+  <!-- Domain -->
+  <text x="1120" y="588"
+        font-family="DejaVu Sans, Inter, 'Helvetica Neue', Arial, sans-serif"
+        font-weight="600"
+        font-size="22"
+        letter-spacing="2"
+        fill="#FFFFFF"
+        opacity="0.6"
+        text-anchor="end">fintechpresshub.com</text>
+</svg>

@@ -136,17 +136,21 @@ export function PageMeta(props: PageMetaProps) {
         content={articleJsonLd ? "article" : "website"}
       />
       <meta property="og:site_name" content={SITE_NAME} />
-      {props.article?.image ? (
-        <meta property="og:image" content={props.article.image} />
-      ) : null}
+      <meta
+        property="og:image"
+        content={props.article?.image ?? `${SITE_URL}/opengraph.jpg`}
+      />
+      <meta property="og:image:alt" content="FintechPressHub - Fintech SEO Agency" />
       <meta name="twitter:card" content="summary_large_image" />
       {title ? <meta name="twitter:title" content={title} /> : null}
       {description ? (
         <meta name="twitter:description" content={description} />
       ) : null}
-      {props.article?.image ? (
-        <meta name="twitter:image" content={props.article.image} />
-      ) : null}
+      <meta
+        name="twitter:image"
+        content={props.article?.image ?? `${SITE_URL}/opengraph.jpg`}
+      />
+      <meta name="twitter:image:alt" content="FintechPressHub - Fintech SEO Agency" />
       <script type="application/ld+json">
         {JSON.stringify(ORGANIZATION_SCHEMA)}
       </script>
