@@ -2,6 +2,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useSubscribeToNewsletter } from "@workspace/api-client-react";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -104,36 +105,38 @@ export default function Blog() {
       exit={{ opacity: 0, y: -10, scale: 0.97 }}
       transition={{ duration: 0.35, delay: i * 0.04 }}
     >
-      <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer bg-card">
-        <div className="aspect-[16/9] overflow-hidden">
-          <img
-            src={post.image}
-            alt={post.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        </div>
-        <CardContent className="p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider">
-              {post.category}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3.5 h-3.5" />
-              {post.readTime}
-            </span>
+      <Link href={`/blog/${post.slug}`} data-testid={`link-post-${post.slug}`}>
+        <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer bg-card">
+          <div className="aspect-[16/9] overflow-hidden">
+            <img
+              src={post.image}
+              alt={post.title}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
           </div>
-          <h2 className="text-lg font-bold mb-3 text-slate-900 group-hover:text-[#0052FF] transition-colors line-clamp-2">
-            {post.title}
-          </h2>
-          <p className="text-muted-foreground text-sm line-clamp-3 mb-6 flex-1">
-            {post.excerpt}
-          </p>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-4 border-t border-slate-100">
-            <Calendar className="w-3.5 h-3.5" />
-            {formatDate(post.date)}
-          </div>
-        </CardContent>
-      </Card>
+          <CardContent className="p-6 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider">
+                {post.category}
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3.5 h-3.5" />
+                {post.readTime}
+              </span>
+            </div>
+            <h2 className="text-lg font-bold mb-3 text-slate-900 group-hover:text-[#0052FF] transition-colors line-clamp-2">
+              {post.title}
+            </h2>
+            <p className="text-muted-foreground text-sm line-clamp-3 mb-6 flex-1">
+              {post.excerpt}
+            </p>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-4 border-t border-slate-100">
+              <Calendar className="w-3.5 h-3.5" />
+              {formatDate(post.date)}
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
     </motion.div>
   );
 

@@ -1,6 +1,7 @@
 const posts = [
   {
     id: 1,
+    slug: "fintech-seo-different",
     title: "Why Fintech SEO Is Different From Everything Else",
     excerpt:
       "Compliance copy, YMYL scrutiny, and regulated keywords change the rules. Here is how to build a fintech SEO program that actually ranks.",
@@ -9,9 +10,33 @@ const posts = [
       "https://images.unsplash.com/photo-1553729459-efe14ef6055d?auto=format&fit=crop&w=1200&q=80",
     date: "2026-04-18",
     readTime: "8 min read",
+    author: "Elena Marsh",
+    authorRole: "Head of SEO Strategy",
+    tags: ["SEO", "Fintech", "YMYL", "Strategy"],
+    content: `<p>Fintech is one of the most competitive verticals in organic search. You're competing with publishers, incumbent banks, and venture-backed challengers — all bidding on the same intent. This playbook walks through the four pillars we use with every client to take regulated finance brands from page four to page one.</p>
+<h2>Why Fintech SEO Is Different</h2>
+<p>Search engines apply <em>Your Money or Your Life</em> (YMYL) scrutiny to anything that touches a user's finances. That means Google holds fintech pages to a higher standard for E-E-A-T (Experience, Expertise, Authoritativeness, Trust) than almost any other vertical.</p>
+<h3>The compliance tax</h3>
+<p>Every claim has to be reviewed. Every promotion has to be disclosed. That slows your content velocity unless you build a workflow that bakes legal review into the editorial calendar from day one.</p>
+<h3>The keyword overlap problem</h3>
+<p>Half your target queries are also targeted by Forbes, NerdWallet, and Investopedia — sites with decades of authority and full-time editorial teams. You cannot out-content them with thin posts. You have to out-specialize them.</p>
+<h2>Pillar 1: Topical Authority</h2>
+<p>Pick a sub-vertical narrow enough that you can credibly own it: B2B payouts, embedded lending, RIA tech, crypto custody. Then build a content cluster that covers <strong>every</strong> meaningful query in that sub-vertical.</p>
+<blockquote>The brands that win fintech SEO in 2026 aren't the ones that publish the most — they're the ones that publish the most about a single, defensible topic.</blockquote>
+<h2>Pillar 2: Editorial-Grade Content</h2>
+<p>Hire writers with actual operating experience. A former credit analyst writing about underwriting will out-rank a generalist freelancer every single time, because the depth shows up in the entities, the examples, and the structured data Google extracts from the page.</p>
+<h3>Process matters more than volume</h3>
+<p>Brief, draft, expert review, legal review, on-page SEO, internal linking, publish, monitor. Skip a step and you'll feel it in either rankings, conversion rate, or your next compliance audit.</p>
+<h2>Pillar 3: Off-Page Signal Velocity</h2>
+<p>Authority isn't just a number — it's a rate. Google watches how quickly relevant, high-quality domains start citing you after you publish. A steady drip of DR 60+ finance and tech links beats a one-time PR splash every quarter.</p>
+<h2>Pillar 4: Entity Optimization</h2>
+<p>Wrap your content in structured data. Make sure your brand is on Wikidata, Crunchbase, and the major fintech databases. Get your founders quoted in tier-one finance publications. These are the entity signals that turn a website into a known brand inside Google's knowledge graph.</p>
+<h2>Putting It Into Practice</h2>
+<p>Take this playbook back to your team. Audit your current program against the four pillars. Wherever you're weakest is where you should invest first — and the order matters less than the consistency you bring to executing it over the next 12 months.</p>`,
   },
   {
     id: 2,
+    slug: "digital-pr-series-b-fintech",
     title: "Digital PR Playbook for Series B Fintech Brands",
     excerpt:
       "How growth-stage fintechs are earning links from Forbes, TechCrunch, and Bloomberg without paying placement fees.",
@@ -20,9 +45,20 @@ const posts = [
       "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
     date: "2026-04-11",
     readTime: "11 min read",
+    author: "Jordan Pierce",
+    authorRole: "Head of Digital PR",
+    tags: ["Digital PR", "Link Building", "Fintech"],
+    content: `<p>Once a fintech crosses Series B, the press strategy has to change. Product launches alone won't earn the kind of authority links that move organic rankings. You need a pipeline.</p>
+<h2>Lead With Data, Not Announcements</h2>
+<p>Journalists at tier-one finance publications get hundreds of pitches a week. The ones that get read have a chart, a survey, or a counterintuitive number in the subject line.</p>
+<h2>Build a Repeatable Story Engine</h2>
+<p>Pick three story angles per quarter that match your data and your brand position. Pre-build the assets, then pitch each angle to five outlets. Track which combinations land and double down.</p>
+<h2>Treat Earned Links as a Product</h2>
+<p>Assign an owner. Track velocity. Report on it monthly to the same committee that reviews paid acquisition. Earned media compounds — and what gets measured gets funded.</p>`,
   },
   {
     id: 3,
+    slug: "compliance-friendly-content-calendar",
     title: "The Compliance-Friendly Content Calendar",
     excerpt:
       "Ship 12 articles a month without scaring your legal team. A repeatable workflow built with fintech operators in mind.",
@@ -31,9 +67,20 @@ const posts = [
       "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80",
     date: "2026-04-04",
     readTime: "6 min read",
+    author: "Priya Shah",
+    authorRole: "Editorial Director",
+    tags: ["Content", "Compliance", "Workflow"],
+    content: `<p>Most fintech content programs stall because legal review becomes the bottleneck. The fix isn't fewer reviews — it's better inputs.</p>
+<h2>Pre-Approved Building Blocks</h2>
+<p>Maintain a library of pre-approved disclosures, product descriptions, and risk language. Writers assemble from the library; reviewers only check the new connective tissue.</p>
+<h2>Tiered Review by Risk</h2>
+<p>Educational explainers don't need the same review as rate comparisons or eligibility claims. Map every content type to a review tier and route accordingly.</p>
+<h2>Async by Default</h2>
+<p>Replace status meetings with a single shared queue. Review SLAs, not calendar invites, are what make a 12-article month possible.</p>`,
   },
   {
     id: 4,
+    slug: "topical-authority-lending-credit",
     title: "Topical Authority for Lending and Credit Brands",
     excerpt:
       "A semantic content map that helps lenders dominate long-tail credit queries before competitors notice.",
@@ -42,9 +89,20 @@ const posts = [
       "https://images.unsplash.com/photo-1565514020179-026b92b84bb6?auto=format&fit=crop&w=1200&q=80",
     date: "2026-03-27",
     readTime: "9 min read",
+    author: "Elena Marsh",
+    authorRole: "Head of SEO Strategy",
+    tags: ["SEO", "Lending", "Topical Authority"],
+    content: `<p>Lenders that win organic search don't have more pages — they have a more complete map. Topical authority is about <em>coverage</em>, not volume.</p>
+<h2>Map the Borrower Journey</h2>
+<p>Awareness, eligibility, comparison, application, repayment. Every stage has a query cluster. Most lender sites cover one or two and leave the rest to aggregators.</p>
+<h2>Cluster, Don't Carpet-Bomb</h2>
+<p>Group queries into pillar topics with five to twelve supporting articles each. Internal linking inside the cluster is what compounds authority.</p>
+<h2>Refresh on a Cadence</h2>
+<p>Rates change. Programs change. Set a refresh schedule per pillar — quarterly for high-intent pages, semi-annually for educational content.</p>`,
   },
   {
     id: 5,
+    slug: "link-building-bank-product",
     title: "Link Building When Your Product Is a Bank",
     excerpt:
       "Off-page strategies for neobanks and BaaS providers, including HARO replacements, data studies, and partner co-marketing.",
@@ -53,9 +111,20 @@ const posts = [
       "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=80",
     date: "2026-03-19",
     readTime: "10 min read",
+    author: "Marcus Chen",
+    authorRole: "Head of Link Building",
+    tags: ["Link Building", "Banking", "BaaS"],
+    content: `<p>Banks and BaaS providers have unique link-building advantages — and unique risks. Sloppy outreach can land you in front of a regulator instead of a backlink.</p>
+<h2>Use Your Data Moat</h2>
+<p>You sit on transaction patterns nobody else can publish. Aggregate, anonymize, and share. Original data earns citations from outlets that wouldn't otherwise cover you.</p>
+<h2>Co-Market With Partners</h2>
+<p>Your platform partners — payroll providers, ERP integrations, accounting tools — all have audiences. Trade authoritative co-branded content for co-promoted distribution.</p>
+<h2>Skip the PBNs</h2>
+<p>Anything that even smells like a paid-link network is an existential risk for a regulated brand. The downside isn't a ranking penalty — it's a compliance review.</p>`,
   },
   {
     id: 6,
+    slug: "pitch-fintech-stories-journalists",
     title: "How to Pitch Fintech Stories Journalists Actually Cover",
     excerpt:
       "What we learned analyzing 412 successful fintech pitches across tier-one finance and tech publications.",
@@ -64,9 +133,20 @@ const posts = [
       "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=1200&q=80",
     date: "2026-03-12",
     readTime: "7 min read",
+    author: "Jordan Pierce",
+    authorRole: "Head of Digital PR",
+    tags: ["Digital PR", "Pitching", "Media Relations"],
+    content: `<p>We pulled 412 fintech pitches that landed coverage in 2025 and looked for patterns. Three things showed up over and over.</p>
+<h2>A Number In the Subject Line</h2>
+<p>Subject lines with a specific stat had a 3.4x higher open rate than narrative subject lines. Journalists are scanning for verifiable hooks.</p>
+<h2>An Exclusive Window</h2>
+<p>Offering a 24- to 48-hour exclusive doubled the response rate vs. broadcast pitches. Tier-one outlets care about being first.</p>
+<h2>A Real Source, Not a Spokesperson</h2>
+<p>Operators, founders, and customers outperformed PR-coached executives every time. Pitch the person who actually built or used the thing.</p>`,
   },
   {
     id: 7,
+    slug: "programmatic-seo-crypto-wallets",
     title: "Programmatic SEO for Crypto and Wallet Brands",
     excerpt:
       "How leading wallets generate thousands of indexable, useful pages without tripping spam filters or losing brand trust.",
@@ -75,9 +155,20 @@ const posts = [
       "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1200&q=80",
     date: "2026-03-05",
     readTime: "12 min read",
+    author: "Elena Marsh",
+    authorRole: "Head of SEO Strategy",
+    tags: ["SEO", "Programmatic", "Crypto"],
+    content: `<p>Programmatic SEO is the easiest way to launch thousands of pages — and the easiest way to get hit with a Helpful Content update if you do it wrong.</p>
+<h2>Start With a Real Dataset</h2>
+<p>The best programmatic pages are powered by data users actually search for: token addresses, exchange comparisons, fee tables. If you're inventing the dataset, you're already in trouble.</p>
+<h2>Layer Original Insight</h2>
+<p>Templated layout is fine. Templated <em>insight</em> is not. Each page needs at least one section that couldn't have been generated for a different keyword.</p>
+<h2>Crawl-Budget Hygiene</h2>
+<p>Use sitemaps, internal linking, and noindex aggressively. Helping Google find your best pages matters more than publishing more pages.</p>`,
   },
   {
     id: 8,
+    slug: "fintech-newsletter-growth-stack",
     title: "The Fintech Newsletter Growth Stack",
     excerpt:
       "From referral loops to embedded data widgets, these are the tactics powering the fastest-growing fintech newsletters of 2026.",
@@ -86,6 +177,16 @@ const posts = [
       "https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=1200&q=80",
     date: "2026-02-26",
     readTime: "5 min read",
+    author: "Priya Shah",
+    authorRole: "Editorial Director",
+    tags: ["Newsletter", "Growth", "Content"],
+    content: `<p>Fintech newsletters are the most efficient owned channel a finance brand can build. The growth stack has changed a lot in the last 18 months.</p>
+<h2>Referral Loops, Built In</h2>
+<p>Every issue should make sharing the default action. The newsletters growing fastest right now have the referral CTA above the fold, not in the footer.</p>
+<h2>Embedded Data Widgets</h2>
+<p>A live rate, a market chart, an index — anything that updates between sends — gives readers a reason to open every issue.</p>
+<h2>Cross-Promotion Networks</h2>
+<p>Trade subscriber recommendations with adjacent newsletters. The matched intent of a peer newsletter beats almost any paid acquisition channel for fintech.</p>`,
   },
 ];
 

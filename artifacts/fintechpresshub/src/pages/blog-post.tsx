@@ -1,11 +1,5 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
-import {
-  useGetBlogPost,
-  useListBlogPosts,
-  getGetBlogPostQueryKey,
-} from "@workspace/api-client-react";
 import { useParams, Link } from "wouter";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -18,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
+import posts from "@/data/posts.js";
 
 type Heading = { id: string; text: string; level: number };
 
@@ -71,21 +66,13 @@ export default function BlogPost() {
   const params = useParams();
   const slug = params.slug || "";
 
-  const {
-    data: post,
-    isLoading,
-    error,
-  } = useGetBlogPost(slug, {
-    query: { enabled: !!slug, queryKey: getGetBlogPostQueryKey(slug) },
-  });
+  const post = useMemo(
+    () => posts.find((p: any) => p.slug === slug),
+    [slug],
+  );
 
   useDocumentTitle(
     post ? `${post.title} | FintechPressHub` : "Blog | FintechPressHub",
-  );
-
-  const { data: relatedRaw } = useListBlogPosts(
-    post ? { category: post.category } : undefined,
-    { query: { enabled: !!post } },
   );
 
   const { contentHtml, headings } = useMemo(() => {
@@ -96,8 +83,10 @@ export default function BlogPost() {
 
   const relatedPosts = useMemo(
     () =>
-      (relatedRaw ?? []).filter((p) => p.id !== post?.id).slice(0, 3),
-    [relatedRaw, post?.id],
+      posts
+        .filter((p: any) => p.category === post?.category && p.id !== post?.id)
+        .slice(0, 3),
+    [post?.id, post?.category],
   );
 
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
@@ -131,23 +120,7 @@ export default function BlogPost() {
     return () => observer.disconnect();
   }, [contentHtml, headings]);
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-24 max-w-4xl">
-        <Skeleton className="h-8 w-24 mb-6" />
-        <Skeleton className="h-12 w-full mb-6" />
-        <Skeleton className="h-6 w-1/2 mb-12" />
-        <Skeleton className="aspect-video w-full mb-12 rounded-xl" />
-        <div className="space-y-4">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !post) {
+  if (!post) {
     return (
       <div className="container mx-auto px-4 py-32 text-center max-w-md">
         <h1 className="text-3xl font-bold mb-4">Post Not Found</h1>
@@ -211,11 +184,11 @@ export default function BlogPost() {
             <div className="flex items-center gap-5 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
-                {formatDate(post.publishedAt)}
+                {formatDate(post.date)}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="w-4 h-4" />
-                {post.readingMinutes} min read
+                {post.readTime}
               </span>
             </div>
           </div>
@@ -225,7 +198,7 @@ export default function BlogPost() {
       {/* Cover image overflowing into content */}
       <div className="container mx-auto px-4 max-w-4xl -mt-8 md:-mt-12 mb-16 relative z-10">
         <img
-          src={post.coverImage}
+          src={post.image}
           alt={post.title}
           className="w-full aspect-[2/1] object-cover rounded-2xl shadow-xl border border-slate-100"
         />
@@ -286,7 +259,7 @@ export default function BlogPost() {
                 Tags
               </h3>
               <div className="flex flex-wrap gap-2">
-                {post.tags.map((tag) => (
+                {post.tags.map((tag: string) => (
                   <Badge
                     key={tag}
                     variant="secondary"
@@ -345,12 +318,12 @@ export default function BlogPost() {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {relatedPosts.map((rp) => (
+              {relatedPosts.map((rp: any) => (
                 <Link key={rp.id} href={`/blog/${rp.slug}`}>
                   <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer bg-card">
                     <div className="aspect-[16/9] overflow-hidden">
                       <img
-                        src={rp.coverImage}
+                        src={rp.image}
                         alt={rp.title}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
@@ -362,7 +335,7 @@ export default function BlogPost() {
                         </span>
                         <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                           <Clock className="w-3 h-3" />
-                          {rp.readingMinutes} min
+                          {rp.readTime}
                         </span>
                       </div>
                       <h3 className="text-base font-bold text-slate-900 group-hover:text-[#0052FF] transition-colors line-clamp-2 leading-snug">
