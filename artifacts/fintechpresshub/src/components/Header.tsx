@@ -1,10 +1,10 @@
 import { Link, useLocation } from "wouter";
-import { Menu, X } from "lucide-react";
-import { BrandLogo } from "./BrandLogo";
+import { Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -36,11 +36,14 @@ export function Header() {
       )}
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-primary">
-          <BrandLogo size={28} />
-          <span className="font-bold text-xl tracking-tight text-foreground">
-            FintechPressHub
-          </span>
+        <Link href="/" className="flex items-center" aria-label="FintechPressHub - Home">
+          <img
+            src={logoSvg}
+            alt="FintechPressHub - Fintech SEO Agency"
+            className="h-8 w-auto"
+            width={180}
+            height={40}
+          />
         </Link>
 
         {/* Desktop Nav */}
