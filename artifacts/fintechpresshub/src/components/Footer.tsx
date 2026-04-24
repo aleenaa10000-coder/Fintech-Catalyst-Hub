@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Twitter, Linkedin, Github } from "lucide-react";
-import { BrandLogo } from "./BrandLogo";
+import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
 
 export function Footer() {
   return (
@@ -8,11 +8,14 @@ export function Footer() {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="col-span-1 md:col-span-2">
-            <Link href="/" className="flex items-center gap-2 text-primary mb-4">
-              <BrandLogo size={28} />
-              <span className="font-bold text-xl tracking-tight text-foreground">
-                FintechPressHub
-              </span>
+            <Link href="/" className="inline-flex items-center mb-4" aria-label="FintechPressHub - Home">
+              <img
+                src={logoSvg}
+                alt="FintechPressHub - Fintech SEO Agency"
+                className="h-9 w-auto"
+                width={205}
+                height={40}
+              />
             </Link>
             <p className="text-muted-foreground max-w-sm mb-6 leading-relaxed">
               We are a specialized content marketing agency bridging the gap between deep fintech expertise and search visibility. We help financial technology companies scale their organic growth.
