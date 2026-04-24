@@ -32,6 +32,8 @@ import type {
   LogoutSuccess,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
+  NewsletterSubscription,
+  NewsletterSubscriptionInput,
   PricingPlan,
   Service,
   ServiceInput,
@@ -1382,6 +1384,93 @@ export const useSubmitContactForm = <
   TContext
 > => {
   return useMutation(getSubmitContactFormMutationOptions(options));
+};
+
+/**
+ * @summary Subscribe an email address to the newsletter
+ */
+export const getSubscribeToNewsletterUrl = () => {
+  return `/api/newsletter/subscribe`;
+};
+
+export const subscribeToNewsletter = async (
+  newsletterSubscriptionInput: NewsletterSubscriptionInput,
+  options?: RequestInit,
+): Promise<NewsletterSubscription> => {
+  return customFetch<NewsletterSubscription>(getSubscribeToNewsletterUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(newsletterSubscriptionInput),
+  });
+};
+
+export const getSubscribeToNewsletterMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeToNewsletter>>,
+    TError,
+    { data: BodyType<NewsletterSubscriptionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof subscribeToNewsletter>>,
+  TError,
+  { data: BodyType<NewsletterSubscriptionInput> },
+  TContext
+> => {
+  const mutationKey = ["subscribeToNewsletter"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof subscribeToNewsletter>>,
+    { data: BodyType<NewsletterSubscriptionInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return subscribeToNewsletter(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubscribeToNewsletterMutationResult = NonNullable<
+  Awaited<ReturnType<typeof subscribeToNewsletter>>
+>;
+export type SubscribeToNewsletterMutationBody =
+  BodyType<NewsletterSubscriptionInput>;
+export type SubscribeToNewsletterMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Subscribe an email address to the newsletter
+ */
+export const useSubscribeToNewsletter = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeToNewsletter>>,
+    TError,
+    { data: BodyType<NewsletterSubscriptionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof subscribeToNewsletter>>,
+  TError,
+  { data: BodyType<NewsletterSubscriptionInput> },
+  TContext
+> => {
+  return useMutation(getSubscribeToNewsletterMutationOptions(options));
 };
 
 /**

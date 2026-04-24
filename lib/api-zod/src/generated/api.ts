@@ -288,6 +288,24 @@ export const SubmitContactFormResponse = zod.object({
 });
 
 /**
+ * @summary Subscribe an email address to the newsletter
+ */
+export const subscribeToNewsletterBodySourceMax = 80;
+
+export const SubscribeToNewsletterBody = zod.object({
+  email: zod.string().email(),
+  source: zod.string().max(subscribeToNewsletterBodySourceMax).optional(),
+});
+
+export const SubscribeToNewsletterResponse = zod.object({
+  id: zod.number(),
+  email: zod.string(),
+  source: zod.string().nullish(),
+  alreadySubscribed: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
  * @summary Submit a guest post pitch
  */
 export const submitGuestPostBodyNameMin = 2;

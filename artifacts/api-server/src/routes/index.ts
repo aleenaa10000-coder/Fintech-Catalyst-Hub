@@ -8,6 +8,7 @@ import testimonialsRouter from "./testimonials";
 import statsRouter from "./stats";
 import contactRouter from "./contact";
 import guestPostsRouter from "./guestPosts";
+import newsletterRouter from "./newsletter";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(testimonialsRouter);
 router.use(statsRouter);
 router.use(contactRouter);
 router.use(guestPostsRouter);
+router.use(newsletterRouter);
 
 export default router;

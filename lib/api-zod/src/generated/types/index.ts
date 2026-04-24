@@ -23,6 +23,8 @@ export * from "./listBlogPostsParams";
 export * from "./logoutSuccess";
 export * from "./mobileTokenExchangeRequest";
 export * from "./mobileTokenExchangeSuccess";
+export * from "./newsletterSubscription";
+export * from "./newsletterSubscriptionInput";
 export * from "./pricingPlan";
 export * from "./service";
 export * from "./serviceInput";

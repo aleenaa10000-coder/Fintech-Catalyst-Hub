@@ -3,6 +3,7 @@ import {
   useListBlogPosts,
   useListBlogCategories,
   useListFeaturedPosts,
+  useSubscribeToNewsletter,
 } from "@workspace/api-client-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -49,6 +50,23 @@ export default function Blog() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
 
+  const subscribeMutation = useSubscribeToNewsletter({
+    mutation: {
+      onSuccess: (data) => {
+        setSubscribed(true);
+        setEmail("");
+        toast.success(
+          data.alreadySubscribed
+            ? "You're already on the list — thanks!"
+            : "You're in. Watch your inbox for the next issue.",
+        );
+      },
+      onError: () => {
+        toast.error("Something went wrong. Please try again.");
+      },
+    },
+  });
+
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = email.trim();
@@ -56,9 +74,9 @@ export default function Blog() {
       toast.error("Please enter a valid email address.");
       return;
     }
-    setSubscribed(true);
-    setEmail("");
-    toast.success("You're in. Watch your inbox for the next issue.");
+    subscribeMutation.mutate({
+      data: { email: trimmed, source: "blog" },
+    });
   };
 
   const renderPostCard = (post: (typeof gridPosts)[number], i: number) => (
@@ -300,10 +318,15 @@ export default function Blog() {
                               />
                               <Button
                                 type="submit"
-                                className="h-12 px-6 bg-[#0052FF] hover:bg-[#0046d6] text-white font-semibold shadow-lg shadow-[#0052FF]/30"
+                                disabled={subscribeMutation.isPending}
+                                className="h-12 px-6 bg-[#0052FF] hover:bg-[#0046d6] text-white font-semibold shadow-lg shadow-[#0052FF]/30 disabled:opacity-70"
                               >
-                                Subscribe
-                                <ArrowRight className="w-4 h-4 ml-1.5" />
+                                {subscribeMutation.isPending
+                                  ? "Subscribing…"
+                                  : "Subscribe"}
+                                {!subscribeMutation.isPending && (
+                                  <ArrowRight className="w-4 h-4 ml-1.5" />
+                                )}
                               </Button>
                             </form>
                           )}

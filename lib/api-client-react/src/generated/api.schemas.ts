@@ -151,6 +151,20 @@ export interface ContactSubmission {
   createdAt: string;
 }
 
+export interface NewsletterSubscriptionInput {
+  email: string;
+  /** @maxLength 80 */
+  source?: string;
+}
+
+export interface NewsletterSubscription {
+  id: number;
+  email: string;
+  source?: string | null;
+  alreadySubscribed: boolean;
+  createdAt: string;
+}
+
 export interface GuestPostSubmissionInput {
   /**
    * @minLength 2

@@ -22,6 +22,8 @@ tags:
     description: Guest post submissions
   - name: stats
     description: Site statistics / trust signals
+  - name: newsletter
+    description: Newsletter subscriptions
   - name: Auth
     description: Browser and mobile authentication endpoints.
 paths:
@@ -313,6 +315,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ContactSubmission"
+
+  /newsletter/subscribe:
+    post:
+      operationId: subscribeToNewsletter
+      tags: [newsletter]
+      summary: Subscribe an email address to the newsletter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewsletterSubscriptionInput"
+      responses:
+        "200":
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsletterSubscription"
 
   /guest-posts:
     post:
@@ -609,6 +630,34 @@ components:
           type: string
           format: date-time
       required: [id, name, email, message, createdAt]
+
+    NewsletterSubscriptionInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        source:
+          type: string
+          maxLength: 80
+      required: [email]
+
+    NewsletterSubscription:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        source:
+          type: string
+          nullable: true
+        alreadySubscribed:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, email, alreadySubscribed, createdAt]
 
     GuestPostSubmissionInput:
       type: object
