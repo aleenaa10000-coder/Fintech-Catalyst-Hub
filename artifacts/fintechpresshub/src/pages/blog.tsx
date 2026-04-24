@@ -1,20 +1,14 @@
 import { useDocumentTitle } from "@/hooks/use-document-title";
-import {
-  useListBlogPosts,
-  useListBlogCategories,
-  useListFeaturedPosts,
-  useSubscribeToNewsletter,
-} from "@workspace/api-client-react";
-import { useState } from "react";
+import { useSubscribeToNewsletter } from "@workspace/api-client-react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/PageHero";
 import { Calendar, Clock, ArrowRight, Mail, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import posts from "@/data/posts.js";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", {
@@ -23,29 +17,51 @@ const formatDate = (iso: string) =>
     year: "numeric",
   });
 
+type Post = {
+  id: number;
+  title: string;
+  excerpt: string;
+  category: string;
+  image: string;
+  date: string;
+  readTime: string;
+};
+
 export default function Blog() {
   useDocumentTitle(
     "Blog | FintechPressHub",
     "Insights, strategies, and guides on fintech marketing and SEO.",
   );
+
+  const allPosts = posts as Post[];
+
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of allPosts) {
+      counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).map(([name, count]) => ({
+      name,
+      count,
+    }));
+  }, [allPosts]);
+
   const [activeCategory, setActiveCategory] = useState<string | undefined>(
     undefined,
   );
 
-  const { data: categories } = useListBlogCategories();
-  const { data: featuredPosts } = useListFeaturedPosts();
-  const featured = featuredPosts?.[0];
-
-  const { data: posts, isLoading } = useListBlogPosts(
-    activeCategory ? { category: activeCategory } : undefined,
+  const visiblePosts = useMemo(
+    () =>
+      activeCategory
+        ? allPosts.filter((p) => p.category === activeCategory)
+        : allPosts,
+    [allPosts, activeCategory],
   );
 
-  const gridPosts = posts?.filter((p) => p.id !== featured?.id) ?? [];
-
   const NEWSLETTER_AFTER = 6;
-  const firstBatch = gridPosts.slice(0, NEWSLETTER_AFTER);
-  const restBatch = gridPosts.slice(NEWSLETTER_AFTER);
-  const showNewsletter = gridPosts.length >= 3;
+  const firstBatch = visiblePosts.slice(0, NEWSLETTER_AFTER);
+  const restBatch = visiblePosts.slice(NEWSLETTER_AFTER);
+  const showNewsletter = visiblePosts.length >= 3;
 
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
@@ -79,7 +95,7 @@ export default function Blog() {
     });
   };
 
-  const renderPostCard = (post: (typeof gridPosts)[number], i: number) => (
+  const renderPostCard = (post: Post, i: number) => (
     <motion.div
       key={post.id}
       layout
@@ -88,38 +104,36 @@ export default function Blog() {
       exit={{ opacity: 0, y: -10, scale: 0.97 }}
       transition={{ duration: 0.35, delay: i * 0.04 }}
     >
-      <Link href={`/blog/${post.slug}`}>
-        <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer bg-card">
-          <div className="aspect-[16/9] overflow-hidden">
-            <img
-              src={post.coverImage}
-              alt={post.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
+      <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer bg-card">
+        <div className="aspect-[16/9] overflow-hidden">
+          <img
+            src={post.image}
+            alt={post.title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        </div>
+        <CardContent className="p-6 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider">
+              {post.category}
+            </span>
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="w-3.5 h-3.5" />
+              {post.readTime}
+            </span>
           </div>
-          <CardContent className="p-6 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider">
-                {post.category}
-              </span>
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="w-3.5 h-3.5" />
-                {post.readingMinutes} min
-              </span>
-            </div>
-            <h2 className="text-lg font-bold mb-3 text-slate-900 group-hover:text-[#0052FF] transition-colors line-clamp-2">
-              {post.title}
-            </h2>
-            <p className="text-muted-foreground text-sm line-clamp-3 mb-6 flex-1">
-              {post.excerpt}
-            </p>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-4 border-t border-slate-100">
-              <Calendar className="w-3.5 h-3.5" />
-              {formatDate(post.publishedAt)}
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
+          <h2 className="text-lg font-bold mb-3 text-slate-900 group-hover:text-[#0052FF] transition-colors line-clamp-2">
+            {post.title}
+          </h2>
+          <p className="text-muted-foreground text-sm line-clamp-3 mb-6 flex-1">
+            {post.excerpt}
+          </p>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-4 border-t border-slate-100">
+            <Calendar className="w-3.5 h-3.5" />
+            {formatDate(post.date)}
+          </div>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 
@@ -130,61 +144,6 @@ export default function Blog() {
         title={<>Insights From the Front Lines of Fintech SEO</>}
         description="Actionable strategy on SEO, off-page authority, digital PR, and content marketing — written by the operators running these programs for fintech brands every day."
       />
-
-      {/* Featured Post — 60/40 split */}
-      {featured && (
-        <section className="py-16 bg-card border-b">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center gap-3 mb-6">
-              <span className="h-px flex-1 bg-slate-200" />
-              <span className="text-xs uppercase tracking-[0.2em] font-semibold text-[#0052FF]">
-                Featured
-              </span>
-              <span className="h-px flex-1 bg-slate-200" />
-            </div>
-            <Link href={`/blog/${featured.slug}`}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="grid grid-cols-1 md:grid-cols-5 gap-8 group cursor-pointer items-center"
-              >
-                <div className="md:col-span-3 aspect-[16/10] overflow-hidden rounded-2xl shadow-md">
-                  <img
-                    src={featured.coverImage}
-                    alt={featured.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
-                <div className="md:col-span-2 flex flex-col">
-                  <span className="inline-flex w-fit items-center px-3 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider mb-4">
-                    {featured.category}
-                  </span>
-                  <h2 className="text-3xl md:text-4xl font-extrabold leading-tight mb-4 text-slate-900 group-hover:text-[#0052FF] transition-colors">
-                    {featured.title}
-                  </h2>
-                  <p className="text-muted-foreground text-base md:text-lg mb-6 line-clamp-4">
-                    {featured.excerpt}
-                  </p>
-                  <div className="flex items-center gap-5 text-sm text-muted-foreground mb-6">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4" />
-                      {formatDate(featured.publishedAt)}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <Clock className="w-4 h-4" />
-                      {featured.readingMinutes} min read
-                    </span>
-                  </div>
-                  <span className="inline-flex items-center gap-2 font-semibold text-[#0052FF] group-hover:gap-3 transition-all">
-                    Read article <ArrowRight className="w-4 h-4" />
-                  </span>
-                </div>
-              </motion.div>
-            </Link>
-          </div>
-        </section>
-      )}
 
       {/* Category Chips */}
       <section className="py-10 border-b bg-background sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -200,8 +159,13 @@ export default function Blog() {
               }`}
             >
               All
+              <span
+                className={`ml-2 text-xs ${activeCategory === undefined ? "text-white/80" : "text-[#0052FF]/60"}`}
+              >
+                {allPosts.length}
+              </span>
             </button>
-            {categories?.map((cat) => {
+            {categories.map((cat) => {
               const active = activeCategory === cat.name;
               return (
                 <button
@@ -231,18 +195,7 @@ export default function Blog() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {isLoading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i} className="overflow-hidden border-border h-full">
-                  <Skeleton className="h-48 w-full" />
-                  <CardContent className="p-6">
-                    <Skeleton className="h-4 w-24 mb-4" />
-                    <Skeleton className="h-6 w-full mb-4" />
-                    <Skeleton className="h-20 w-full" />
-                  </CardContent>
-                </Card>
-              ))
-            ) : gridPosts.length === 0 ? (
+            {visiblePosts.length === 0 ? (
               <div className="col-span-full text-center py-20 text-muted-foreground">
                 No posts found for this category.
               </div>
