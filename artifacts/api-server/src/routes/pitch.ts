@@ -188,9 +188,14 @@ router.post("/pitch", formRateLimiter, async (req, res) => {
     return;
   }
 
+  // Hostinger requires the envelope From to match the authenticated SMTP_USER.
+  const smtpUser = process.env.SMTP_USER ?? "";
+  const fromPitches = `"FintechPressHub Pitches" <${smtpUser}>`;
+  const fromEditorial = `"FintechPressHub Editorial" <${smtpUser}>`;
+
   try {
     await transporter.sendMail({
-      from: `"FintechPressHub Pitches" <${process.env.SMTP_USER}>`,
+      from: fromPitches,
       to: recipient,
       replyTo: safe.email,
       subject: `New pitch: ${safe.topic} — ${safe.name}`,
@@ -208,7 +213,7 @@ router.post("/pitch", formRateLimiter, async (req, res) => {
   let confirmationEmailed = true;
   try {
     await transporter.sendMail({
-      from: `"FintechPressHub Editorial" <${process.env.SMTP_USER}>`,
+      from: fromEditorial,
       to: safe.email,
       replyTo: recipient,
       subject: "We received your pitch — FintechPressHub",

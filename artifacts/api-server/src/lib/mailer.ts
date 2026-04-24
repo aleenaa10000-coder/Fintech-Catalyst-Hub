@@ -55,11 +55,19 @@ export async function sendMail(opts: SendMailOptions): Promise<boolean> {
   const transporter = getTransporter();
   if (!transporter) return false;
 
-  const from = process.env["SMTP_FROM"] ?? process.env["SMTP_USER"];
-  if (!from) {
-    logger.error("SMTP_FROM / SMTP_USER not set — cannot send mail");
+  const smtpUser = process.env["SMTP_USER"];
+  if (!smtpUser) {
+    logger.error("SMTP_USER not set — cannot send mail");
     return false;
   }
+  // Hostinger (and most SMTP servers) require the envelope From to match the
+  // authenticated login address. If SMTP_FROM is a friendly display name
+  // (e.g. "FintechPressHub <hello@...>"), extract just the display name and
+  // pair it with SMTP_USER so the address is always the authenticated one.
+  const rawFrom = process.env["SMTP_FROM"] ?? "";
+  const displayNameMatch = rawFrom.match(/^"?([^"<]+)"?\s*</);
+  const displayName = displayNameMatch ? displayNameMatch[1].trim() : "FintechPressHub";
+  const from = `"${displayName}" <${smtpUser}>`;
 
   try {
     const info = await transporter.sendMail({
