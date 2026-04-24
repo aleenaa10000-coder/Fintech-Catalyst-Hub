@@ -47,3 +47,11 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Environment / secrets — never commit local secrets.
+# .env.example is allowed and acts as the template for new clones.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
