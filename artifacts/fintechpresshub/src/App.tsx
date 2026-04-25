@@ -10,6 +10,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
 import About from "@/pages/about";
 import Services from "@/pages/services";
+import ServiceDetail from "@/pages/service-detail";
 import Pricing from "@/pages/pricing";
 import Blog from "@/pages/blog";
 import BlogPost from "@/pages/blog-post";
@@ -53,6 +54,7 @@ function Router() {
           <Route path="/" component={Home} />
           <Route path="/about" component={About} />
           <Route path="/services" component={Services} />
+          <Route path="/services/:slug" component={ServiceDetail} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/blog" component={Blog} />
           <Route path="/blog/:slug" component={BlogPost} />

@@ -1,27 +1,15 @@
 import { PageMeta } from "@/components/PageMeta";
 import { useListServices } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
-import { PenTool, Link2, Newspaper, Network, Search, Sparkles, type LucideIcon } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { PageHero } from "@/components/PageHero";
-
-const deliverableIconBySlug: Record<string, LucideIcon> = {
-  "fintech-content-writing": PenTool,
-  "off-page-seo": Link2,
-  "guest-posting": Newspaper,
-  "topical-authority": Network,
-  "fintech-seo-audit": Search,
-};
-
-const shortLabelBySlug: Record<string, string> = {
-  "fintech-content-writing": "Content Writing",
-  "off-page-seo": "Off-Page SEO",
-  "guest-posting": "Guest Posting",
-  "topical-authority": "Topical Authority",
-  "fintech-seo-audit": "SEO Audits",
-};
+import {
+  getServiceIcon,
+  serviceShortLabelBySlug as shortLabelBySlug,
+} from "@/lib/serviceIcons";
 
 export default function Services() {
   const { data: services, isLoading } = useListServices();
@@ -41,7 +29,7 @@ export default function Services() {
             <div className="mx-auto mb-12 w-fit max-w-full overflow-x-auto rounded-full border border-border/60 bg-background/80 shadow-sm">
               <div className="flex items-center gap-1 p-1.5">
                 {services.map((service) => {
-                  const Icon = deliverableIconBySlug[service.slug] ?? Sparkles;
+                  const Icon = getServiceIcon(service.slug);
                   return (
                     <button
                       key={service.id}
@@ -72,7 +60,7 @@ export default function Services() {
                 </div>
               ))
             ) : services?.map((service, index) => {
-              const DeliverableIcon = deliverableIconBySlug[service.slug] ?? Sparkles;
+              const DeliverableIcon = getServiceIcon(service.slug);
               return (
               <motion.div
                 key={service.id}
@@ -91,9 +79,17 @@ export default function Services() {
                   <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
                     {service.description}
                   </p>
-                  <Link href="/contact">
-                    <Button variant="outline" size="lg">Discuss Your Project</Button>
-                  </Link>
+                  <div className="flex flex-wrap gap-3">
+                    <Link href={`/services/${service.slug}`}>
+                      <Button size="lg" data-testid={`button-learn-more-${service.slug}`}>
+                        Learn more
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href="/contact">
+                      <Button variant="outline" size="lg">Discuss Your Project</Button>
+                    </Link>
+                  </div>
                 </div>
                 <div className={`flex-1 w-full flex justify-center ${index % 2 !== 0 ? 'md:order-1' : ''}`}>
                   <div className="w-full max-w-md md:max-w-none bg-white dark:bg-card rounded-xl p-8 border border-slate-100 dark:border-border/60 shadow-sm hover:shadow-md transition-shadow duration-300">

@@ -38,6 +38,13 @@ const authors = Array.from(
   authorsSource.matchAll(/slug:\s*["']([a-z0-9-]+)["']/g),
 ).map((m) => ({ slug: m[1] }));
 
+// Service slugs come from the canonical seed-data JSON used by the API server.
+const servicesJson = await readFile(
+  resolve(projectRoot, "..", "..", "lib", "db", "src", "seed-data", "services.json"),
+  "utf8",
+);
+const services = JSON.parse(servicesJson);
+
 const today = new Date().toISOString().slice(0, 10);
 
 const urlEntries = [
@@ -46,6 +53,12 @@ const urlEntries = [
     lastmod: today,
     changefreq: r.changefreq,
     priority: r.priority,
+  })),
+  ...services.map((s) => ({
+    loc: `${SITE_URL}/services/${s.slug}`,
+    lastmod: today,
+    changefreq: "monthly",
+    priority: "0.8",
   })),
   ...posts.map((p) => ({
     loc: `${SITE_URL}/blog/${p.slug}`,
