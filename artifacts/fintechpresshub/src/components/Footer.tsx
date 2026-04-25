@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { Twitter, Linkedin, Github } from "lucide-react";
 import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
-import logoIconSvg from "@assets/logo/fintechpresshub-icon.svg";
 
 export function Footer() {
   return (
@@ -11,16 +10,9 @@ export function Footer() {
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="inline-flex items-center mb-4" aria-label="FintechPressHub - Home">
               <img
-                src={logoIconSvg}
-                alt="FintechPressHub"
-                className="h-10 w-auto sm:hidden"
-                width={40}
-                height={40}
-              />
-              <img
                 src={logoSvg}
                 alt="FintechPressHub - Fintech SEO Agency"
-                className="hidden sm:block h-12 w-auto"
+                className="h-10 sm:h-12 w-auto"
                 width={260}
                 height={48}
               />
