@@ -1,10 +1,9 @@
-import { writeFile, access } from "node:fs/promises";
-import { constants } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const projectRoot = resolve(__dirname, "..");
+// Manual one-off submission of every URL in the live sitemap to IndexNow.
+//
+// Day-to-day, newly published blog posts are pinged automatically by the
+// daily job in artifacts/api-server/src/jobs/indexNowDaily.ts. This script
+// is for backfills, fresh launches, or after large content migrations
+// where you want to nudge Bing/Yandex/Seznam/Naver to re-crawl everything.
 
 const SITE_URL = process.env.VITE_SITE_URL || "https://www.fintechpresshub.com";
 const SITEMAP_URL =
@@ -28,17 +27,28 @@ if (!/^[a-zA-Z0-9-]{8,128}$/.test(INDEXNOW_KEY)) {
 }
 
 const host = new URL(SITE_URL).host;
-const keyFilePath = resolve(projectRoot, `public/${INDEXNOW_KEY}.txt`);
-const keyLocation = `${SITE_URL.replace(/\/+$/, "")}/${INDEXNOW_KEY}.txt`;
+const keyLocation = `${SITE_URL.replace(/\/+$/, "")}/indexnow-key.txt`;
 
-try {
-  await access(keyFilePath, constants.F_OK);
-} catch {
-  await writeFile(keyFilePath, INDEXNOW_KEY, "utf8");
-  console.log(`Created verification key file at public/${INDEXNOW_KEY}.txt`);
+// Sanity-check that the API is serving the verification key file. Without
+// it, IndexNow rejects the submission with HTTP 403.
+console.log(`Verifying ${keyLocation}...`);
+const verifyRes = await fetch(keyLocation);
+if (!verifyRes.ok) {
+  console.error(
+    `Error: ${keyLocation} returned HTTP ${verifyRes.status}. ` +
+      `Make sure the API server is running and INDEXNOW_KEY is set in its environment.`,
+  );
+  process.exit(1);
+}
+const verifyBody = (await verifyRes.text()).trim();
+if (verifyBody !== INDEXNOW_KEY) {
+  console.error(
+    `Error: ${keyLocation} body does not match the local INDEXNOW_KEY value. ` +
+      `Make sure both this script and the API server use the same key.`,
+  );
+  process.exit(1);
 }
 
-// Fetch the live sitemap (served by the API server) — single source of truth.
 console.log(`Fetching sitemap from ${SITEMAP_URL}...`);
 const sitemapRes = await fetch(SITEMAP_URL, {
   headers: { accept: "application/xml" },

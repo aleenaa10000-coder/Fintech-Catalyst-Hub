@@ -17,7 +17,7 @@ Professional fintech digital marketing & content agency website. React + Vite + 
 
 Home, About, Services (+ per-service detail at `/services/:slug` for the 5 seeded services — fintech-content-writing, off-page-seo, guest-posting, topical-authority, fintech-seo-audit), Pricing, Blog (+ post detail), Authors index (`/authors`) + author profile (`/authors/:slug`), Write For Us, Contact, Privacy Policy, Refund Policy, Terms, Editorial Guidelines, 404.
 
-The service detail page (`artifacts/fintechpresshub/src/pages/service-detail.tsx`) reuses the cached `useListServices` query and finds the service by slug client-side — no extra API roundtrip. Icons + short labels are shared via `src/lib/serviceIcons.ts`, and per-service FAQs (rendered as a shadcn Accordion section + emitted as FAQPage JSON-LD via `<PageMeta faq={...} />`) live in `src/lib/serviceFaqs.ts`. Each detail page also emits `Service` JSON-LD (provider Organization, areaServed Worldwide, deliverables → OfferCatalog) and an explicit canonical. The build-time sitemap (`scripts/generate-sitemap.mjs`) reads the canonical service slugs from `lib/db/src/seed-data/services.json` so new services added to seed data flow into the sitemap automatically.
+The service detail page (`artifacts/fintechpresshub/src/pages/service-detail.tsx`) reuses the cached `useListServices` query and finds the service by slug client-side — no extra API roundtrip. Icons + short labels are shared via `src/lib/serviceIcons.ts`, and per-service FAQs (rendered as a shadcn Accordion section + emitted as FAQPage JSON-LD via `<PageMeta faq={...} />`) live in `src/lib/serviceFaqs.ts`. Each detail page also emits `Service` JSON-LD (provider Organization, areaServed Worldwide, deliverables → OfferCatalog) and an explicit canonical. The sitemap is now served live by the API (`artifacts/api-server/src/routes/sitemap.ts` → `/sitemap.xml`) — it reads static routes + author slugs from a small in-file list and dynamic blog post URLs from Postgres, so new posts appear in the sitemap immediately. The static `scripts/generate-sitemap.mjs` was removed.
 
 FAQ sections + FAQPage JSON-LD are also rendered on `/` (5 top-of-funnel FAQs inlined in `home.tsx`), `/pricing` (6 FAQs inlined in `pricing.tsx`), and `/contact` (6 sales-discovery FAQs inlined in `contact.tsx`), all via the same `<PageMeta faq={...} />` path.
 
@@ -38,6 +38,16 @@ The `/about` page renders a "The team behind the work" section that maps over th
 - `pnpm --filter @workspace/api-spec run codegen` — regen client + zod from OpenAPI
 - `pnpm --filter @workspace/db run push` — push DB schema (dev)
 - `pnpm --filter @workspace/scripts run seed` — seed demo content
+
+## SEO automation (IndexNow daily)
+
+The API server schedules a daily IndexNow submission (`artifacts/api-server/src/jobs/indexNowDaily.ts`) that pings Bing, Yandex, Seznam, and Naver about blog posts published since the last successful run. State (`indexnow:lastRunAt`) is persisted in the new `kv_store` Postgres table so restarts don't cause re-submissions. A 1h overlap window prevents missed posts at the boundary, capped at 36h on first run / after long downtime.
+
+- Required secret: `INDEXNOW_KEY` (8–128 chars, `[a-zA-Z0-9-]`). Generate one at https://www.bing.com/indexnow. Without it, the scheduler logs once and stays disabled.
+- Verification key file is served dynamically at the fixed path `/indexnow-key.txt` (see `artifacts/api-server/src/routes/indexNowKey.ts`). The IndexNow API call passes this URL as `keyLocation` so search engines look there instead of `/<key>.txt`. The path is exposed in `artifacts/api-server/.replit-artifact/artifact.toml` and proxied in `artifacts/fintechpresshub/vite.config.ts`. No file needs to be committed.
+- Initial run fires 30 s after boot; subsequent runs every 24 h.
+- Manual one-off submission of all sitemap URLs is still available via `pnpm --filter @workspace/fintechpresshub run ping-search-engines` (now fetches the live sitemap instead of a static file).
+- Google does not participate in IndexNow — submit the sitemap once in Search Console; Google then re-crawls it on its own schedule.
 
 ## Hosting
 

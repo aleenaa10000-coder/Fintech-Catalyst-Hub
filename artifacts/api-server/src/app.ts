@@ -5,6 +5,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import sitemapRouter from "./routes/sitemap";
 import uploadsRouter from "./routes/uploads";
+import indexNowKeyRouter from "./routes/indexNowKey";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
 
@@ -38,6 +39,10 @@ app.use(authMiddleware);
 // Public, dynamic sitemap mounted at the root so /sitemap.xml resolves
 // directly without needing an /api prefix.
 app.use(sitemapRouter);
+
+// Serves the IndexNow ownership-verification key file at /<key>.txt when
+// INDEXNOW_KEY is configured. Mounted at root for the same reason.
+app.use(indexNowKeyRouter);
 
 // Upload presign + finalize endpoints (under /api/uploads) and public
 // /objects/:path file serving (under root). Mounted here instead of inside

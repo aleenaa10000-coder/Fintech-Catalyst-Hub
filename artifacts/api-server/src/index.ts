@@ -1,6 +1,7 @@
 import app from "./app";
 import { db, runSeed } from "@workspace/db";
 import { logger } from "./lib/logger";
+import { scheduleIndexNowDaily } from "./jobs/indexNowDaily";
 
 const rawPort = process.env["PORT"];
 
@@ -40,6 +41,7 @@ async function bootstrap() {
     }
 
     logger.info({ port }, "Server listening");
+    scheduleIndexNowDaily();
   });
 }
 
