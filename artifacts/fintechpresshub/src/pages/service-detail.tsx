@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
 import { useListServices } from "@workspace/api-client-react";
 
 import { PageMeta } from "@/components/PageMeta";
+import { SITE_URL } from "@/lib/metaData";
 import { PageHero } from "@/components/PageHero";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,10 +49,24 @@ export default function ServiceDetail() {
 
   const seoTitle = `${service.name} | FintechPressHub`;
   const seoDescription = service.tagline;
+  const canonical = `${SITE_URL}/services/${service.slug}`;
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta title={seoTitle} description={seoDescription} />
+      <PageMeta
+        title={seoTitle}
+        description={seoDescription}
+        canonical={canonical}
+        service={{
+          name: service.name,
+          description: service.description,
+          serviceType: shortLabel,
+          category: "Fintech Marketing",
+          areaServed: "Worldwide",
+          url: canonical,
+          deliverables: service.deliverables,
+        }}
+      />
 
       <PageHero
         eyebrow="Services"

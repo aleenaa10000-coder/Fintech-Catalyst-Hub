@@ -61,12 +61,23 @@ export type PersonSchema = {
   worksFor?: string;
 };
 
+export type ServiceSchema = {
+  name: string;
+  description: string;
+  serviceType?: string;
+  category?: string;
+  areaServed?: string;
+  url?: string;
+  deliverables?: string[];
+};
+
 type Common = {
   title?: string;
   description?: string;
   canonical?: string;
   article?: ArticleSchema;
   person?: PersonSchema;
+  service?: ServiceSchema;
   faq?: FaqItem[];
 };
 
@@ -135,6 +146,40 @@ export function PageMeta(props: PageMetaProps) {
             ? { "@type": "Organization", name: props.person.worksFor }
             : { "@type": "Organization", name: SITE_NAME },
         },
+      }
+    : null;
+
+  const serviceJsonLd = props.service
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        name: props.service.name,
+        description: props.service.description,
+        serviceType: props.service.serviceType ?? props.service.name,
+        category: props.service.category,
+        areaServed: props.service.areaServed ?? "Worldwide",
+        url: props.service.url ?? canonical,
+        provider: {
+          "@type": "Organization",
+          name: SITE_NAME,
+          url: SITE_URL,
+          logo: `${SITE_URL}/favicon.svg`,
+        },
+        ...(props.service.deliverables && props.service.deliverables.length > 0
+          ? {
+              hasOfferCatalog: {
+                "@type": "OfferCatalog",
+                name: `${props.service.name} — what's included`,
+                itemListElement: props.service.deliverables.map((d) => ({
+                  "@type": "Offer",
+                  itemOffered: {
+                    "@type": "Service",
+                    name: d,
+                  },
+                })),
+              },
+            }
+          : {}),
       }
     : null;
 
@@ -220,6 +265,11 @@ export function PageMeta(props: PageMetaProps) {
       {personJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(personJsonLd)}
+        </script>
+      ) : null}
+      {serviceJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(serviceJsonLd)}
         </script>
       ) : null}
       {faqJsonLd ? (
