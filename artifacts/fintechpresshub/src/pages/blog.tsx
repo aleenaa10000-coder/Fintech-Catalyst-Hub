@@ -29,6 +29,22 @@ type Post = {
   readTime: string;
 };
 
+const TOPIC_CATEGORIES: string[] = [
+  "Embedded Finance",
+  "Open Banking",
+  "Payments Infrastructure",
+  "BNPL",
+  "Neobanking",
+  "Lending",
+  "Wealthtech",
+  "Regtech",
+  "Compliance Marketing",
+  "Crypto & Stablecoins",
+  "Treasury & CFO",
+  "Card Issuing",
+  "Conversion Optimization",
+];
+
 export default function Blog() {
   const allPosts = posts as Post[];
 
@@ -37,10 +53,18 @@ export default function Blog() {
     for (const p of allPosts) {
       counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
     }
-    return Array.from(counts.entries()).map(([name, count]) => ({
-      name,
-      count,
-    }));
+    for (const name of TOPIC_CATEGORIES) {
+      if (!counts.has(name)) counts.set(name, 0);
+    }
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => {
+        if ((b.count > 0 ? 1 : 0) !== (a.count > 0 ? 1 : 0)) {
+          return (b.count > 0 ? 1 : 0) - (a.count > 0 ? 1 : 0);
+        }
+        if (a.count !== b.count) return b.count - a.count;
+        return a.name.localeCompare(b.name);
+      });
   }, [allPosts]);
 
   const [activeCategory, setActiveCategory] = useState<string | undefined>(
@@ -216,21 +240,27 @@ export default function Blog() {
             </button>
             {categories.map((cat) => {
               const active = activeCategory === cat.name;
+              const empty = cat.count === 0;
+              const baseStyle = active
+                ? "bg-[#0052FF] text-white border-[#0052FF] shadow-sm"
+                : empty
+                ? "bg-transparent text-slate-500 border-slate-300 hover:bg-slate-50 hover:text-[#0052FF] hover:border-[#0052FF]/40"
+                : "bg-transparent text-[#0052FF] border-[#0052FF] hover:bg-[#0052FF]/5";
+              const countStyle = active
+                ? "text-white/80"
+                : empty
+                ? "text-slate-400"
+                : "text-[#0052FF]/60";
               return (
                 <button
                   key={cat.name}
                   type="button"
                   onClick={() => setActiveCategory(cat.name)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium border-2 transition-all duration-200 ${
-                    active
-                      ? "bg-[#0052FF] text-white border-[#0052FF] shadow-sm"
-                      : "bg-transparent text-[#0052FF] border-[#0052FF] hover:bg-[#0052FF]/5"
-                  }`}
+                  data-testid={`category-chip-${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium border-2 transition-all duration-200 ${baseStyle}`}
                 >
                   {cat.name}
-                  <span
-                    className={`ml-2 text-xs ${active ? "text-white/80" : "text-[#0052FF]/60"}`}
-                  >
+                  <span className={`ml-2 text-xs ${countStyle}`}>
                     {cat.count}
                   </span>
                 </button>
@@ -245,8 +275,37 @@ export default function Blog() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {visiblePosts.length === 0 ? (
-              <div className="col-span-full text-center py-20 text-muted-foreground">
-                No posts found for this category.
+              <div className="col-span-full">
+                <div className="mx-auto max-w-2xl text-center py-16 px-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60">
+                  <div className="text-sm font-semibold uppercase tracking-wider text-[#0052FF] mb-3">
+                    {activeCategory}
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                    Coverage on {activeCategory} is in progress.
+                  </h3>
+                  <p className="text-muted-foreground mb-6">
+                    We're commissioning expert-led pieces on {activeCategory} from
+                    operators in this space. If you've shipped real work in this
+                    category, pitch us — accepted contributors get a dofollow
+                    contextual backlink and an author bio link from a topically
+                    relevant fintech domain.
+                  </p>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    <Link href="/write-for-us" data-testid="link-pitch-empty-category">
+                      <Button className="bg-[#0052FF] hover:bg-[#0046d6] text-white">
+                        Pitch a {activeCategory} article
+                        <ArrowRight className="w-4 h-4 ml-1.5" />
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      onClick={() => setActiveCategory(undefined)}
+                      data-testid="button-show-all-posts"
+                    >
+                      Show all posts
+                    </Button>
+                  </div>
+                </div>
               </div>
             ) : (
               <AnimatePresence mode="popLayout">
