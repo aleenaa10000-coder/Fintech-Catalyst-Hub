@@ -85,7 +85,64 @@ export default function WriteForUs() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="writeForUs" />
+      <PageMeta
+        page="writeForUs"
+        article={{
+          title: "Write For Us — Fintech Guest Post Guidelines | FintechPressHub",
+          description:
+            "Submit a fintech guest post to FintechPressHub. Read our editorial standards, topical scope, and dofollow link policy — then pitch your idea to our editors.",
+          datePublished: "2023-10-01",
+          dateModified: "2026-04-25",
+          section: "Contributor Guidelines",
+          tags: [
+            "fintech write for us",
+            "fintech guest post",
+            "fintech guest blogging",
+            "submit a fintech article",
+            "dofollow guest post",
+            "fintech contributor guidelines",
+          ],
+          about: [
+            "Fintech Guest Posting",
+            "Write For Us Fintech",
+            "Fintech Contributor Guidelines",
+            "Dofollow Guest Post",
+            "Fintech Link Building",
+          ],
+          mentions: [
+            "B2B Fintech Marketing",
+            "B2C Fintech Marketing",
+            "SaaS Fintech SEO",
+            "Embedded Finance",
+            "Open Banking",
+            "PSD2",
+            "PSD3",
+            "Payments Infrastructure",
+            "Payment Orchestration",
+            "Card Issuing",
+            "Buy Now Pay Later",
+            "Neobanking",
+            "Digital Banking",
+            "Lending",
+            "Credit Underwriting",
+            "Wealthtech",
+            "Robo-Advisors",
+            "Regtech",
+            "KYC",
+            "AML",
+            "Compliance Marketing",
+            "Cryptocurrency Payments",
+            "Stablecoin Payments",
+            "Treasury Management",
+            "CFO Tooling",
+            "Conversion Rate Optimization",
+            "Topical Authority",
+            "Link Building",
+            "Author Bio Backlink",
+            "Contextual Backlink",
+          ],
+        }}
+      />
       <PageHero
         eyebrow="Write For Us"
         title={<>Write for FintechPressHub</>}
