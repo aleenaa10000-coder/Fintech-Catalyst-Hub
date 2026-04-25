@@ -1,6 +1,6 @@
 import { Link, useParams } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, HelpCircle, Sparkles } from "lucide-react";
 import { useListServices } from "@workspace/api-client-react";
 
 import { PageMeta } from "@/components/PageMeta";
@@ -8,11 +8,18 @@ import { SITE_URL } from "@/lib/metaData";
 import { PageHero } from "@/components/PageHero";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import NotFound from "@/pages/not-found";
 import {
   getServiceIcon,
   serviceShortLabelBySlug,
 } from "@/lib/serviceIcons";
+import { getServiceFaqs } from "@/lib/serviceFaqs";
 
 export default function ServiceDetail() {
   const params = useParams<{ slug: string }>();
@@ -50,6 +57,7 @@ export default function ServiceDetail() {
   const seoTitle = `${service.name} | FintechPressHub`;
   const seoDescription = service.tagline;
   const canonical = `${SITE_URL}/services/${service.slug}`;
+  const faqs = getServiceFaqs(service.slug);
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,6 +74,7 @@ export default function ServiceDetail() {
           url: canonical,
           deliverables: service.deliverables,
         }}
+        faq={faqs.length > 0 ? faqs : undefined}
       />
 
       <PageHero
@@ -200,6 +209,39 @@ export default function ServiceDetail() {
                 );
               })}
             </div>
+          </div>
+        </section>
+      )}
+
+      {faqs.length > 0 && (
+        <section className="py-16 border-t" data-testid={`section-faq-${service.slug}`}>
+          <div className="container mx-auto px-4 max-w-3xl">
+            <div className="text-center mb-10">
+              <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" />
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">
+                Frequently asked questions
+              </h2>
+              <p className="text-muted-foreground">
+                The questions fintech marketers ask us most about{" "}
+                {shortLabel.toLowerCase()}.
+              </p>
+            </div>
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, idx) => (
+                <AccordionItem
+                  key={faq.question}
+                  value={`faq-${idx}`}
+                  data-testid={`accordion-faq-${idx}`}
+                >
+                  <AccordionTrigger className="text-base md:text-lg font-medium">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground text-base leading-relaxed">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         </section>
       )}
