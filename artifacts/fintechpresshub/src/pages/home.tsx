@@ -5,12 +5,46 @@ import { motion } from "framer-motion";
 import { useGetTrustStats, useListTestimonials, useListFeaturedPosts, useListServices } from "@workspace/api-client-react";
 import heroBg from "@/assets/hero-bg.png";
 import servicesGraph from "@/assets/services-graph.png";
-import { ArrowRight, CheckCircle2, TrendingUp, ShieldCheck, Globe, FileText, Link2, Cog } from "lucide-react";
+import { ArrowRight, CheckCircle2, TrendingUp, ShieldCheck, Globe, FileText, Link2, Cog, HelpCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { CountUp } from "@/components/CountUp";
 import { ParticleNetwork } from "@/components/ParticleNetwork";
 import { TrustedBy } from "@/components/TrustedBy";
+
+const homeFaqs = [
+  {
+    question: "What makes fintech SEO different from regular SEO?",
+    answer:
+      "Fintech sits inside Google's YMYL (Your Money or Your Life) category, which means Google holds it to a far higher E-E-A-T bar than most verticals. Generic SEO playbooks — thin content, low-authority guest posts, AI-spun copy — actively hurt fintech rankings. Winning here requires writers who understand payments, lending, banking, and regulation; placements on publications your buyers and Google both trust; and a topical architecture that signals true subject-matter depth.",
+  },
+  {
+    question: "How is FintechPressHub different from a generalist SEO agency?",
+    answer:
+      "We work exclusively with fintech, payments, lending, wealth, banking infrastructure, and crypto-adjacent companies. Every writer, editor, and outreach lead has direct fintech experience — no generalists ramping up on your account. That focus is also why our publication relationships skew toward Finextra, The Fintech Times, Tearsheet, Finovate, and similar tier-1 trade press your buyers actually read.",
+  },
+  {
+    question: "What kinds of fintech companies do you typically work with?",
+    answer:
+      "Series A through Series D fintechs, public fintechs, and infrastructure providers across payments, lending, embedded finance, neobanking, wealth tech, RegTech, and B2B SaaS for financial services. Most clients are post-product-market-fit teams investing in organic as a durable, compounding acquisition channel alongside paid.",
+  },
+  {
+    question: "How long until we see real results?",
+    answer:
+      "Bottom-of-funnel and long-tail content typically lands in the top 20 within 30-60 days. Competitive head terms generally take 4-6 months of consistent publishing plus supporting links. Topical authority — the point where you start ranking for queries you didn't explicitly target — usually compounds around month 6-9 of a focused program.",
+  },
+  {
+    question: "Do you offer one-time projects, or only ongoing retainers?",
+    answer:
+      "Both. The Fintech SEO Audit is a one-time, 30-day engagement with a prioritized 90-day roadmap your team can execute or hand back to us. Content writing, link building, guest posting, and topical authority programs run as ongoing retainers, typically on 6-month minimum engagements because authority compounds over time.",
+  },
+];
 
 export default function Home() {
   
@@ -21,7 +55,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      <PageMeta page="home" />
+      <PageMeta page="home" faq={homeFaqs} />
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-gradient-to-br from-[#0b1e4d] via-[#102a6b] to-[#0a1633]">
         <div className="absolute inset-0 z-0">
@@ -295,6 +329,44 @@ export default function Home() {
               ))
             )}
           </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-20 border-t bg-muted/20" data-testid="section-home-faq">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12"
+          >
+            <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" />
+            <h2 className="text-3xl md:text-4xl font-bold mb-3">
+              Fintech SEO, answered
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              The questions fintech founders, CMOs, and growth leads ask us
+              before they pick up the phone.
+            </p>
+          </motion.div>
+          <Accordion type="single" collapsible className="w-full">
+            {homeFaqs.map((faq, idx) => (
+              <AccordionItem
+                key={faq.question}
+                value={`home-faq-${idx}`}
+                data-testid={`accordion-home-faq-${idx}`}
+              >
+                <AccordionTrigger className="text-base md:text-lg font-medium text-left">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-base leading-relaxed">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </section>
 
