@@ -12,9 +12,9 @@ export function Footer() {
               <img
                 src={logoSvg}
                 alt="FintechPressHub - Fintech SEO Agency"
-                className="h-9 w-auto"
-                width={205}
-                height={40}
+                className="h-12 w-auto"
+                width={260}
+                height={48}
               />
             </Link>
             <p className="text-muted-foreground max-w-sm mb-6 leading-relaxed">
