@@ -1,7 +1,14 @@
 User-agent: *
 Allow: /
+
+# Internal API — never index
+Disallow: /api/
+
+# Admin dashboard — never index
 Disallow: /admin
 Disallow: /admin/
-Disallow: /api/
+
+# Error page — no SEO value
+Disallow: /404
 
 Sitemap: https://www.fintechpresshub.com/sitemap.xml
