@@ -1,4 +1,4 @@
-import { readFile, writeFile, access } from "node:fs/promises";
+import { writeFile, access } from "node:fs/promises";
 import { constants } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, "..");
 
 const SITE_URL = process.env.VITE_SITE_URL || "https://www.fintechpresshub.com";
+const SITEMAP_URL =
+  process.env.SITEMAP_URL || `${SITE_URL.replace(/\/+$/, "")}/sitemap.xml`;
 const INDEXNOW_KEY = process.env.INDEXNOW_KEY;
 
 if (!INDEXNOW_KEY) {
@@ -27,7 +29,7 @@ if (!/^[a-zA-Z0-9-]{8,128}$/.test(INDEXNOW_KEY)) {
 
 const host = new URL(SITE_URL).host;
 const keyFilePath = resolve(projectRoot, `public/${INDEXNOW_KEY}.txt`);
-const keyLocation = `${SITE_URL}/${INDEXNOW_KEY}.txt`;
+const keyLocation = `${SITE_URL.replace(/\/+$/, "")}/${INDEXNOW_KEY}.txt`;
 
 try {
   await access(keyFilePath, constants.F_OK);
@@ -36,14 +38,26 @@ try {
   console.log(`Created verification key file at public/${INDEXNOW_KEY}.txt`);
 }
 
-const sitemapPath = resolve(projectRoot, "public/sitemap.xml");
-const sitemap = await readFile(sitemapPath, "utf8");
+// Fetch the live sitemap (served by the API server) — single source of truth.
+console.log(`Fetching sitemap from ${SITEMAP_URL}...`);
+const sitemapRes = await fetch(SITEMAP_URL, {
+  headers: { accept: "application/xml" },
+});
+if (!sitemapRes.ok) {
+  console.error(
+    `Error: failed to fetch sitemap (HTTP ${sitemapRes.status}). ` +
+      `Set SITEMAP_URL to override the default of ${SITE_URL}/sitemap.xml.`,
+  );
+  process.exit(1);
+}
+const sitemap = await sitemapRes.text();
+
 const urlList = Array.from(sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)).map(
   (m) => m[1],
 );
 
 if (urlList.length === 0) {
-  console.error("No URLs found in public/sitemap.xml. Run generate-sitemap first.");
+  console.error(`No URLs found in sitemap at ${SITEMAP_URL}.`);
   process.exit(1);
 }
 

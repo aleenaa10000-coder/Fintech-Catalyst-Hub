@@ -58,7 +58,10 @@ async function buildSitemapXml(): Promise<string> {
 
   const entries = [
     ...STATIC_ROUTES.map((r) => ({
-      loc: `${siteUrl}${r.path === "/" ? "" : r.path}`,
+      // Always include the path, including the root "/", so the homepage
+      // <loc> matches the canonical URL emitted in index.html and avoids
+      // sitemap-validator warnings about a missing trailing slash on root.
+      loc: `${siteUrl}${r.path}`,
       lastmod: today,
       changefreq: r.changefreq,
       priority: r.priority,

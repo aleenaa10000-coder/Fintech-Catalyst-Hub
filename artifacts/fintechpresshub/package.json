@@ -5,10 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "generate-sitemap": "node scripts/generate-sitemap.mjs",
     "generate-rss": "node scripts/generate-rss.mjs",
     "ping-search-engines": "node scripts/ping-search-engines.mjs",
-    "prebuild": "node scripts/generate-rss.mjs && node scripts/generate-sitemap.mjs",
+    "prebuild": "node scripts/generate-rss.mjs",
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit"

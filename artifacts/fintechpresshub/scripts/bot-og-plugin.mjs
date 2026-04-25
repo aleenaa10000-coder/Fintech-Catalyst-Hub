@@ -405,8 +405,12 @@ function ogImageForBlog(siteUrl, post) {
 }
 
 async function buildMeta(pathname, siteUrl, apiBase) {
-  const url = (suffix = "") =>
-    `${siteUrl}${suffix === "/" ? "" : suffix}`.replace(/\/+$/, "") || siteUrl;
+  // Always include the path. For the root ("/") we keep the trailing slash so
+  // the canonical here matches what index.html and the sitemap emit.
+  const url = (suffix = "") => {
+    if (suffix === "" || suffix === "/") return `${siteUrl}/`;
+    return `${siteUrl}${suffix.replace(/\/+$/, "")}`;
+  };
 
   // Static pages (path → page-meta key)
   const staticByPath = Object.fromEntries(

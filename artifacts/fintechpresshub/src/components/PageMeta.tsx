@@ -113,8 +113,9 @@ export function PageMeta(props: PageMetaProps) {
   const title = props.title ?? base?.title ?? "";
   const description = props.description ?? base?.description;
 
+  // Keep the trailing slash on the root URL to match index.html + sitemap.
   const canonical =
-    props.canonical ?? `${SITE_URL}${location === "/" ? "" : location}`;
+    props.canonical ?? `${SITE_URL}${location === "/" ? "/" : location}`;
 
   const leafTitle = (props.title ?? base?.title ?? "")
     .split("|")[0]
