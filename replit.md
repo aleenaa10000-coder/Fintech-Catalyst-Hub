@@ -51,6 +51,13 @@ User intends to host the final site on Hostinger Business plan. Frontend builds 
   2. Branded auto-reply confirmation to the submitter.
 - Secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `CONTACT_NOTIFY_TO`.
 
+## Email reports (Resend)
+
+- `POST /api/tools/financial-health-score/email-report` — accepts the Financial Health Score result + visitor email, subscribes them to the newsletter (source `financial-health-tool`), and sends an HTML report via Resend's HTTP API.
+- Backend: `artifacts/api-server/src/routes/tools.ts` — uses generated `EmailFinancialHealthScoreReportBody` Zod schema; gracefully degrades when `RESEND_API_KEY` is missing (still subscribes; returns `deliveryStatus: "skipped_no_provider"`).
+- Frontend: `EmailReportCard` inside `artifacts/fintechpresshub/src/pages/tools/financial-health-score-calculator.tsx` — uses generated `useEmailFinancialHealthScoreReport` mutation hook; renders different UI for `sent` / `skipped_no_provider` / `failed`.
+- Secrets: `RESEND_API_KEY` (required for delivery), `REPORT_FROM_EMAIL` (defaults to `FintechPressHub <reports@fintechpresshub.com>`; currently set to `FintechPressHub <onboarding@resend.dev>` so emails work before the fintechpresshub.com sending domain is verified in Resend → swap once DNS is configured at Resend → Settings → Domains).
+
 ## Daily digest
 
 - `GET /api/contact/digest?hours=24&dryRun=0` — emails a summary of contact submissions in the last N hours (default 24, max 720) to `CONTACT_NOTIFY_TO`.
