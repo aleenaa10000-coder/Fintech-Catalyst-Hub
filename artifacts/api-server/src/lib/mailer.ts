@@ -1,6 +1,17 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { logger } from "./logger";
 
+/**
+ * Strip common formatting artifacts that can end up in env-var email addresses:
+ * surrounding parentheses, angle brackets, quotes, and extra whitespace.
+ * e.g. "(hello@example.com)" → "hello@example.com"
+ *      "<hello@example.com>" → "hello@example.com"
+ */
+export function cleanEmail(raw: string | undefined): string {
+  if (!raw) return "";
+  return raw.trim().replace(/^[('"<]+|[)'">\s]+$/g, "").trim();
+}
+
 export interface SendMailOptions {
   to: string;
   subject: string;

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { gte, desc } from "drizzle-orm";
 import { db, contactSubmissionsTable } from "@workspace/db";
 import { SubmitContactFormBody } from "@workspace/api-zod";
-import { sendMail } from "../lib/mailer";
+import { sendMail, cleanEmail } from "../lib/mailer";
 import { logger } from "../lib/logger";
 import { formRateLimiter } from "../lib/rateLimiter";
 
@@ -56,8 +56,9 @@ router.post("/contact", formRateLimiter, async (req, res) => {
     return;
   }
 
-  const notifyTo =
-    process.env["CONTACT_NOTIFY_TO"] ?? process.env["SMTP_USER"];
+  const notifyTo = cleanEmail(
+    process.env["CONTACT_NOTIFY_TO"] ?? process.env["SMTP_USER"],
+  );
   if (notifyTo) {
     const companyPart = body.company ? body.company : body.name;
     const budgetPart = body.budget ? ` - ${body.budget}` : "";
@@ -202,8 +203,9 @@ router.get("/contact/digest", async (req, res) => {
     .where(gte(contactSubmissionsTable.createdAt, since))
     .orderBy(desc(contactSubmissionsTable.createdAt));
 
-  const notifyTo =
-    process.env["CONTACT_NOTIFY_TO"] ?? process.env["SMTP_USER"];
+  const notifyTo = cleanEmail(
+    process.env["CONTACT_NOTIFY_TO"] ?? process.env["SMTP_USER"],
+  );
   if (!notifyTo) {
     res.status(503).json({
       error:

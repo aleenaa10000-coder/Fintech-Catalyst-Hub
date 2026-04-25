@@ -4,7 +4,7 @@ import validator from "validator";
 import { db, guestPostSubmissionsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { formRateLimiter } from "../lib/rateLimiter";
-import { sendMail } from "../lib/mailer";
+import { sendMail, cleanEmail } from "../lib/mailer";
 
 const PitchBody = z.object({
   name: z.string().trim().min(2).max(100),
@@ -141,7 +141,7 @@ router.post("/pitch", formRateLimiter, async (req, res) => {
   }
 
   const safe = sanitize(parsed.data);
-  const recipient = process.env["PITCH_RECIPIENT_EMAIL"];
+  const recipient = cleanEmail(process.env["PITCH_RECIPIENT_EMAIL"]);
 
   try {
     await db.insert(guestPostSubmissionsTable).values({

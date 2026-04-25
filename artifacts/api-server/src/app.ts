@@ -11,6 +11,10 @@ import { authMiddleware } from "./middlewares/authMiddleware";
 
 const app: Express = express();
 
+// Trust the reverse proxy (Replit / Vite dev proxy) so that rate-limiters
+// and other middleware can read the real client IP from X-Forwarded-For.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
