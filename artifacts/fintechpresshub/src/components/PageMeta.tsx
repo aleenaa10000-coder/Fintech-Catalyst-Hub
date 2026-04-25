@@ -71,6 +71,22 @@ export type ServiceSchema = {
   deliverables?: string[];
 };
 
+export type EmployeePerson = {
+  name: string;
+  jobTitle?: string;
+  url?: string;
+  image?: string;
+  sameAs?: string[];
+  knowsAbout?: string[];
+};
+
+export type AboutPageSchema = {
+  description: string;
+  slogan?: string;
+  knowsAbout?: string[];
+  employees?: EmployeePerson[];
+};
+
 type Common = {
   title?: string;
   description?: string;
@@ -78,6 +94,7 @@ type Common = {
   article?: ArticleSchema;
   person?: PersonSchema;
   service?: ServiceSchema;
+  aboutPage?: AboutPageSchema;
   faq?: FaqItem[];
 };
 
@@ -183,6 +200,46 @@ export function PageMeta(props: PageMetaProps) {
       }
     : null;
 
+  const aboutPageJsonLd = props.aboutPage
+    ? {
+        "@context": "https://schema.org",
+        "@type": "AboutPage",
+        url: canonical,
+        name: title || `About ${SITE_NAME}`,
+        description: props.aboutPage.description,
+        mainEntity: {
+          "@type": "Organization",
+          "@id": `${SITE_URL}#organization`,
+          name: SITE_NAME,
+          url: SITE_URL,
+          logo: `${SITE_URL}/favicon.svg`,
+          description: props.aboutPage.description,
+          ...(props.aboutPage.slogan ? { slogan: props.aboutPage.slogan } : {}),
+          ...(props.aboutPage.knowsAbout && props.aboutPage.knowsAbout.length > 0
+            ? { knowsAbout: props.aboutPage.knowsAbout }
+            : {}),
+          ...(props.aboutPage.employees && props.aboutPage.employees.length > 0
+            ? {
+                numberOfEmployees: {
+                  "@type": "QuantitativeValue",
+                  value: props.aboutPage.employees.length,
+                },
+                employee: props.aboutPage.employees.map((e) => ({
+                  "@type": "Person",
+                  name: e.name,
+                  jobTitle: e.jobTitle,
+                  url: e.url,
+                  image: e.image,
+                  knowsAbout: e.knowsAbout,
+                  sameAs: e.sameAs?.filter(Boolean),
+                  worksFor: { "@type": "Organization", name: SITE_NAME },
+                })),
+              }
+            : {}),
+        },
+      }
+    : null;
+
   const articleJsonLd = props.article
     ? {
         "@context": "https://schema.org",
@@ -270,6 +327,11 @@ export function PageMeta(props: PageMetaProps) {
       {serviceJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(serviceJsonLd)}
+        </script>
+      ) : null}
+      {aboutPageJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(aboutPageJsonLd)}
         </script>
       ) : null}
       {faqJsonLd ? (

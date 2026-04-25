@@ -21,6 +21,8 @@ The service detail page (`artifacts/fintechpresshub/src/pages/service-detail.tsx
 
 FAQ sections + FAQPage JSON-LD are also rendered on `/` (5 top-of-funnel FAQs inlined in `home.tsx`), `/pricing` (6 FAQs inlined in `pricing.tsx`), and `/contact` (6 sales-discovery FAQs inlined in `contact.tsx`), all via the same `<PageMeta faq={...} />` path.
 
+The `/about` page renders a "The team behind the work" section that maps over the 4 authors from `data/authors.ts` (each card links to `/authors/:slug`) and emits `AboutPage` JSON-LD via `<PageMeta aboutPage={...} />`. The schema's `mainEntity` is an enriched `Organization` with `slogan`, `knowsAbout` (fintech sub-verticals + capabilities), `numberOfEmployees`, and an `employee` array of `Person` nodes — visible team + matching schema is the E-E-A-T pattern Google rewards in YMYL verticals.
+
 ## Author profiles
 
 - Static dataset at `artifacts/fintechpresshub/src/data/authors.ts` for the 4 writers (Marcus Webb, Priya Nair, James Okafor, Sarah Chen): name, slug, role, photo path, short + full bio, expertise tags, credentials, location, years of experience, and social links.
