@@ -6,7 +6,7 @@ export function Footer() {
   return (
     <footer className="bg-secondary text-secondary-foreground pt-16 pb-8 border-t">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 mb-12">
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="inline-flex items-center mb-4" aria-label="FintechPressHub - Home">
               <img
@@ -68,6 +68,36 @@ export function Footer() {
           </div>
 
           <div>
+            <h3 className="font-semibold text-lg mb-4 text-foreground">Resources</h3>
+            <ul className="space-y-3">
+              <li>
+                <Link href="/blog" className="text-muted-foreground hover:text-primary transition-colors">
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/tools/financial-health-score-calculator"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                  data-testid="link-footer-tool-financial-health"
+                >
+                  Financial Health Score
+                </Link>
+              </li>
+              <li>
+                <Link href="/write-for-us" className="text-muted-foreground hover:text-primary transition-colors">
+                  Write For Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/editorial-guidelines" className="text-muted-foreground hover:text-primary transition-colors">
+                  Editorial Guidelines
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
             <h3 className="font-semibold text-lg mb-4 text-foreground">Legal</h3>
             <ul className="space-y-3">
               <li>
@@ -88,11 +118,6 @@ export function Footer() {
               <li>
                 <Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
                   Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link href="/editorial-guidelines" className="text-muted-foreground hover:text-primary transition-colors">
-                  Editorial Guidelines
                 </Link>
               </li>
             </ul>
