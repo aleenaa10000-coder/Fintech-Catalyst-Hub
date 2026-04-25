@@ -1,10 +1,10 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import nodemailer, { type Transporter } from "nodemailer";
 import validator from "validator";
 import { db, guestPostSubmissionsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { formRateLimiter } from "../lib/rateLimiter";
+import { sendMail } from "../lib/mailer";
 
 const PitchBody = z.object({
   name: z.string().trim().min(2).max(100),
@@ -39,24 +39,6 @@ function sanitize(input: PitchInput): SanitizedPitch {
     pitch: safe(input.pitch),
     sampleUrl: safe(input.sampleUrl),
   };
-}
-
-let cachedTransporter: Transporter | null = null;
-
-function getTransporter(): Transporter | null {
-  if (cachedTransporter) return cachedTransporter;
-  const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!host || !port || !user || !pass) return null;
-  cachedTransporter = nodemailer.createTransport({
-    host,
-    port: Number(port),
-    secure: Number(port) === 465,
-    auth: { user, pass },
-  });
-  return cachedTransporter;
 }
 
 function buildHtml(s: SanitizedPitch): string {
@@ -159,7 +141,7 @@ router.post("/pitch", formRateLimiter, async (req, res) => {
   }
 
   const safe = sanitize(parsed.data);
-  const recipient = process.env.PITCH_RECIPIENT_EMAIL;
+  const recipient = process.env["PITCH_RECIPIENT_EMAIL"];
 
   try {
     await db.insert(guestPostSubmissionsTable).values({
@@ -175,11 +157,8 @@ router.post("/pitch", formRateLimiter, async (req, res) => {
     logger.error({ err }, "pitch: failed to persist submission");
   }
 
-  const transporter = getTransporter();
-  if (!transporter || !recipient) {
-    logger.warn(
-      "pitch: SMTP credentials or PITCH_RECIPIENT_EMAIL not configured; submission accepted but email not sent",
-    );
+  if (!recipient) {
+    logger.warn("pitch: PITCH_RECIPIENT_EMAIL not configured; submission saved but email not sent");
     res.status(202).json({
       ok: true,
       emailed: false,
@@ -188,41 +167,30 @@ router.post("/pitch", formRateLimiter, async (req, res) => {
     return;
   }
 
-  // Hostinger requires the envelope From to match the authenticated SMTP_USER.
-  const smtpUser = process.env.SMTP_USER ?? "";
-  const fromPitches = `"FintechPressHub Pitches" <${smtpUser}>`;
-  const fromEditorial = `"FintechPressHub Editorial" <${smtpUser}>`;
+  const notified = await sendMail({
+    to: recipient,
+    subject: `New pitch: ${safe.topic} — ${safe.name}`,
+    text: buildText(safe),
+    html: buildHtml(safe),
+    replyTo: safe.email,
+  });
 
-  try {
-    await transporter.sendMail({
-      from: fromPitches,
-      to: recipient,
-      replyTo: safe.email,
-      subject: `New pitch: ${safe.topic} — ${safe.name}`,
-      text: buildText(safe),
-      html: buildHtml(safe),
-    });
-  } catch (err) {
-    logger.error({ err }, "pitch: failed to send editorial notification");
-    res
-      .status(502)
-      .json({ ok: false, error: "Failed to send email. Please try again later." });
+  if (!notified) {
+    logger.error({ topic: safe.topic }, "pitch: failed to send editorial notification");
+    res.status(502).json({ ok: false, error: "Failed to send email. Please try again later." });
     return;
   }
 
-  let confirmationEmailed = true;
-  try {
-    await transporter.sendMail({
-      from: fromEditorial,
-      to: safe.email,
-      replyTo: recipient,
-      subject: "We received your pitch — FintechPressHub",
-      text: buildConfirmationText(safe),
-      html: buildConfirmationHtml(safe),
-    });
-  } catch (err) {
-    confirmationEmailed = false;
-    logger.warn({ err }, "pitch: failed to send confirmation to contributor");
+  const confirmationEmailed = await sendMail({
+    to: safe.email,
+    subject: "We received your pitch — FintechPressHub",
+    text: buildConfirmationText(safe),
+    html: buildConfirmationHtml(safe),
+    replyTo: recipient,
+  });
+
+  if (!confirmationEmailed) {
+    logger.warn({ email: safe.email }, "pitch: failed to send confirmation to contributor");
   }
 
   res.status(200).json({ ok: true, emailed: true, confirmationEmailed });

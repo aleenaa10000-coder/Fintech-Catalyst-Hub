@@ -1,6 +1,19 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { logger } from "./logger";
 
+export interface SendMailOptions {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  replyTo?: string;
+  from?: string;
+}
+
+// ---------------------------------------------------------------------------
+// SMTP transport (Nodemailer)
+// ---------------------------------------------------------------------------
+
 let cachedTransporter: Transporter | null | undefined;
 
 function buildTransporter(): Transporter | null {
@@ -10,21 +23,12 @@ function buildTransporter(): Transporter | null {
   const pass = process.env["SMTP_PASS"];
 
   if (!host || !port || !user || !pass) {
-    logger.warn(
-      {
-        hasHost: !!host,
-        hasPort: !!port,
-        hasUser: !!user,
-        hasPass: !!pass,
-      },
-      "SMTP credentials missing — outbound email is disabled",
-    );
     return null;
   }
 
   const portNum = Number(port);
   if (Number.isNaN(portNum) || portNum <= 0) {
-    logger.error({ port }, "Invalid SMTP_PORT — outbound email is disabled");
+    logger.error({ port }, "Invalid SMTP_PORT — SMTP transport disabled");
     return null;
   }
 
@@ -36,55 +40,105 @@ function buildTransporter(): Transporter | null {
   });
 }
 
-export function getTransporter(): Transporter | null {
+function getTransporter(): Transporter | null {
   if (cachedTransporter === undefined) {
     cachedTransporter = buildTransporter();
   }
   return cachedTransporter;
 }
 
-export interface SendMailOptions {
-  to: string;
-  subject: string;
-  text: string;
-  html?: string;
-  replyTo?: string;
+function smtpFromAddress(display: string): string {
+  const smtpUser = process.env["SMTP_USER"] ?? "";
+  const rawFrom = process.env["SMTP_FROM"] ?? "";
+  const match = rawFrom.match(/^"?([^"<]+)"?\s*</);
+  const name = match ? match[1].trim() : display;
+  return `"${name}" <${smtpUser}>`;
 }
 
-export async function sendMail(opts: SendMailOptions): Promise<boolean> {
+async function sendViaSMTP(opts: SendMailOptions & { from: string }): Promise<boolean> {
   const transporter = getTransporter();
   if (!transporter) return false;
 
-  const smtpUser = process.env["SMTP_USER"];
-  if (!smtpUser) {
-    logger.error("SMTP_USER not set — cannot send mail");
-    return false;
-  }
-  // Hostinger (and most SMTP servers) require the envelope From to match the
-  // authenticated login address. If SMTP_FROM is a friendly display name
-  // (e.g. "FintechPressHub <hello@...>"), extract just the display name and
-  // pair it with SMTP_USER so the address is always the authenticated one.
-  const rawFrom = process.env["SMTP_FROM"] ?? "";
-  const displayNameMatch = rawFrom.match(/^"?([^"<]+)"?\s*</);
-  const displayName = displayNameMatch ? displayNameMatch[1].trim() : "FintechPressHub";
-  const from = `"${displayName}" <${smtpUser}>`;
-
   try {
     const info = await transporter.sendMail({
-      from,
+      from: opts.from,
       to: opts.to,
       subject: opts.subject,
       text: opts.text,
       ...(opts.html ? { html: opts.html } : {}),
       ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
     });
-    logger.info(
-      { messageId: info.messageId, to: opts.to },
-      "Outbound email sent",
-    );
+    logger.info({ messageId: info.messageId, to: opts.to }, "Outbound email sent via SMTP");
     return true;
   } catch (err) {
-    logger.error({ err, to: opts.to }, "Failed to send outbound email");
+    logger.error({ err, to: opts.to }, "Failed to send email via SMTP");
     return false;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Resend transport (REST API)
+// ---------------------------------------------------------------------------
+
+const RESEND_API_KEY = process.env["RESEND_API_KEY"];
+const DEFAULT_FROM_EMAIL =
+  process.env["REPORT_FROM_EMAIL"] ?? "FintechPressHub <onboarding@resend.dev>";
+
+async function sendViaResend(opts: SendMailOptions): Promise<boolean> {
+  if (!RESEND_API_KEY) return false;
+
+  const from = opts.from ?? DEFAULT_FROM_EMAIL;
+
+  try {
+    const resp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [opts.to],
+        subject: opts.subject,
+        text: opts.text,
+        ...(opts.html ? { html: opts.html } : {}),
+        ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
+      }),
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      logger.error({ status: resp.status, body: text.slice(0, 200), to: opts.to }, "Resend API error");
+      return false;
+    }
+
+    logger.info({ to: opts.to }, "Outbound email sent via Resend");
+    return true;
+  } catch (err) {
+    logger.error({ err, to: opts.to }, "Failed to send email via Resend");
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Unified sendMail — tries SMTP first, falls back to Resend
+// ---------------------------------------------------------------------------
+
+export async function sendMail(opts: SendMailOptions): Promise<boolean> {
+  const transporter = getTransporter();
+
+  if (transporter) {
+    const smtpFrom = smtpFromAddress(opts.from ?? "FintechPressHub");
+    return sendViaSMTP({ ...opts, from: smtpFrom });
+  }
+
+  if (RESEND_API_KEY) {
+    return sendViaResend(opts);
+  }
+
+  logger.warn(
+    { to: opts.to },
+    "No email transport configured (SMTP credentials and RESEND_API_KEY both missing)",
+  );
+  return false;
 }
