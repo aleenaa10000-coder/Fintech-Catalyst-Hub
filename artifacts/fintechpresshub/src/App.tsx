@@ -23,6 +23,7 @@ import RefundPolicy from "@/pages/refund-policy";
 import CookiePolicy from "@/pages/cookie-policy";
 import Terms from "@/pages/terms";
 import EditorialGuidelines from "@/pages/editorial-guidelines";
+import FinancialHealthScoreCalculator from "@/pages/tools/financial-health-score-calculator";
 import AdminServices from "@/pages/admin-services";
 import AdminBlog from "@/pages/admin-blog";
 import NotFound from "@/pages/not-found";
@@ -67,6 +68,10 @@ function Router() {
           <Route path="/cookie-policy" component={CookiePolicy} />
           <Route path="/terms" component={Terms} />
           <Route path="/editorial-guidelines" component={EditorialGuidelines} />
+          <Route
+            path="/tools/financial-health-score-calculator"
+            component={FinancialHealthScoreCalculator}
+          />
           <Route path="/admin/services" component={AdminServices} />
           <Route path="/admin/blog" component={AdminBlog} />
           <Route path="/404" component={NotFound} />

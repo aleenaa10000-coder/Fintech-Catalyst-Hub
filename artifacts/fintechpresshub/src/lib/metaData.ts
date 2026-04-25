@@ -100,6 +100,11 @@ export const PAGE_META = {
     description:
       "The standards we hold our writers, guest contributors, and client deliverables to — accuracy, sourcing, AI usage, tone, and compliance.",
   },
+  financialHealthCalculator: {
+    title: "Financial Health Score Calculator | Debt-to-Income Checker",
+    description:
+      "Free Financial Health Score Calculator. Get your 0–100 score instantly with a debt-to-income ratio check, savings rate, emergency fund coverage, and personalized tips.",
+  },
   adminServices: {
     title: "Admin · Services | FintechPressHub",
     description: "Manage services.",

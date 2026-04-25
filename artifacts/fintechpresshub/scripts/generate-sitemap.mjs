@@ -16,6 +16,11 @@ const STATIC_ROUTES = [
   { path: "/authors", changefreq: "monthly", priority: "0.7" },
   { path: "/write-for-us", changefreq: "monthly", priority: "0.6" },
   { path: "/editorial-guidelines", changefreq: "yearly", priority: "0.4" },
+  {
+    path: "/tools/financial-health-score-calculator",
+    changefreq: "monthly",
+    priority: "0.7",
+  },
   { path: "/contact", changefreq: "yearly", priority: "0.5" },
   { path: "/privacy-policy", changefreq: "yearly", priority: "0.3" },
   { path: "/refund-policy", changefreq: "yearly", priority: "0.3" },
