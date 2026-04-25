@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
+import logoIconSvg from "@assets/logo/fintechpresshub-icon.svg";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -38,9 +39,16 @@ export function Header() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center" aria-label="FintechPressHub - Home">
           <img
+            src={logoIconSvg}
+            alt="FintechPressHub"
+            className="h-9 w-auto sm:hidden"
+            width={36}
+            height={36}
+          />
+          <img
             src={logoSvg}
             alt="FintechPressHub - Fintech SEO Agency"
-            className="h-11 w-auto"
+            className="hidden sm:block h-11 w-auto"
             width={220}
             height={44}
           />
