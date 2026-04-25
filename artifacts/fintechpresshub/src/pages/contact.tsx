@@ -8,9 +8,48 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { toast } from "sonner";
-import { MapPin, Mail, Phone, Clock } from "lucide-react";
+import { MapPin, Mail, Phone, Clock, HelpCircle } from "lucide-react";
 import { PageHero } from "@/components/PageHero";
+
+const contactFaqs = [
+  {
+    question: "What happens after I submit this form?",
+    answer:
+      "A senior strategist reviews your submission within one business day, then emails you 2-3 time slots for a 30-minute discovery call. There is no automated funnel and no junior SDR — you go straight to someone who will scope and price your engagement.",
+  },
+  {
+    question: "Is the discovery call free, and is there any pressure to commit?",
+    answer:
+      "The 30-minute call is free and consultative. We'll review your funnel, surface 2-3 quick wins you can act on regardless of whether we work together, and only propose an engagement if there's a clear fit. No obligation, no aggressive follow-up sequences.",
+  },
+  {
+    question: "How fast can we kick off if we decide to move forward?",
+    answer:
+      "Typical kickoff is 7-10 business days from signed agreement. That covers contract, access provisioning (GA4, GSC, CMS), kickoff workshop, and the first sprint plan. For audits we can sometimes start within 3-5 days if your data access is ready.",
+  },
+  {
+    question: "What's the smallest engagement you take on?",
+    answer:
+      "Our minimum is the SEO audit (one-time, 30-day delivery). For ongoing retainers we typically work with fintech companies investing $5k+/month so we can resource a senior strategist plus a fintech writer or outreach lead — anything smaller doesn't move the needle in this vertical.",
+  },
+  {
+    question: "Do you sign NDAs before the discovery call?",
+    answer:
+      "Yes. If you're discussing pre-launch products, regulatory positioning, or sensitive funnel data, send your NDA with the form submission and we'll have it countersigned before the call.",
+  },
+  {
+    question: "Can you work with our in-house SEO or content team?",
+    answer:
+      "Absolutely — about 40% of our retainers run alongside an in-house team. We slot in as the fintech-specialist layer (writers, link builders, technical SEO) and report into your head of growth or content lead. We're comfortable with shared GSC, shared editorial calendars, and joint sprint reviews.",
+  },
+];
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
@@ -60,7 +99,7 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="contact" />
+      <PageMeta page="contact" faq={contactFaqs} />
       <PageHero
         eyebrow="Contact Us"
         title={<>Let's Scale Your Organic Growth</>}
@@ -252,6 +291,37 @@ export default function Contact() {
             </div>
 
           </div>
+        </div>
+      </section>
+
+      <section className="py-16 border-t bg-muted/20" data-testid="section-contact-faq">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <div className="text-center mb-10">
+            <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" />
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">
+              Before you reach out
+            </h2>
+            <p className="text-muted-foreground">
+              The most common questions we get from fintech teams considering a
+              first conversation with us.
+            </p>
+          </div>
+          <Accordion type="single" collapsible className="w-full">
+            {contactFaqs.map((faq, idx) => (
+              <AccordionItem
+                key={faq.question}
+                value={`contact-faq-${idx}`}
+                data-testid={`accordion-contact-faq-${idx}`}
+              >
+                <AccordionTrigger className="text-base md:text-lg font-medium text-left">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-base leading-relaxed">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </section>
     </div>

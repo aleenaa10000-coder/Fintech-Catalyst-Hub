@@ -19,6 +19,8 @@ Home, About, Services (+ per-service detail at `/services/:slug` for the 5 seede
 
 The service detail page (`artifacts/fintechpresshub/src/pages/service-detail.tsx`) reuses the cached `useListServices` query and finds the service by slug client-side — no extra API roundtrip. Icons + short labels are shared via `src/lib/serviceIcons.ts`, and per-service FAQs (rendered as a shadcn Accordion section + emitted as FAQPage JSON-LD via `<PageMeta faq={...} />`) live in `src/lib/serviceFaqs.ts`. Each detail page also emits `Service` JSON-LD (provider Organization, areaServed Worldwide, deliverables → OfferCatalog) and an explicit canonical. The build-time sitemap (`scripts/generate-sitemap.mjs`) reads the canonical service slugs from `lib/db/src/seed-data/services.json` so new services added to seed data flow into the sitemap automatically.
 
+FAQ sections + FAQPage JSON-LD are also rendered on `/pricing` (6 FAQs, inlined in `pricing.tsx`) and `/contact` (6 sales-discovery FAQs, inlined in `contact.tsx`), all via the same `<PageMeta faq={...} />` path.
+
 ## Author profiles
 
 - Static dataset at `artifacts/fintechpresshub/src/data/authors.ts` for the 4 writers (Marcus Webb, Priya Nair, James Okafor, Sarah Chen): name, slug, role, photo path, short + full bio, expertise tags, credentials, location, years of experience, and social links.
