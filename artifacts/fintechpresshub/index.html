@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>FintechPressHub</title>
     <meta name="description" content="Expert content marketing and off-page SEO for fintech companies." />
-    
+    <link rel="canonical" href="https://www.fintechpresshub.com/" />
+    <link rel="alternate" type="application/rss+xml" title="FintechPressHub Blog" href="https://www.fintechpresshub.com/rss.xml" />
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="FintechPressHub" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://www.fintechpresshub.com/" />
     <meta property="og:title" content="FintechPressHub | Fintech SEO & Content Marketing Agency" />
     <meta property="og:description" content="We blend deep financial expertise with high-authority link building and technical SEO to scale organic growth for ambitious fintech companies." />
@@ -41,7 +44,42 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
+
+    <!-- Site-wide JSON-LD baked into the HTML shell so non-JS crawlers (social, AI) see the entity on every URL. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://www.fintechpresshub.com#organization",
+      "name": "FintechPressHub",
+      "url": "https://www.fintechpresshub.com",
+      "logo": "https://www.fintechpresshub.com/favicon.svg",
+      "description": "Specialized content marketing and SEO agency for fintech companies.",
+      "sameAs": [
+        "https://twitter.com/fintechpresshub",
+        "https://www.linkedin.com/company/fintechpresshub"
+      ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://www.fintechpresshub.com#website",
+      "name": "FintechPressHub",
+      "url": "https://www.fintechpresshub.com",
+      "publisher": { "@id": "https://www.fintechpresshub.com#organization" },
+      "inLanguage": "en",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://www.fintechpresshub.com/blog?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
