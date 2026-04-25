@@ -24,6 +24,8 @@ import type {
   ContactSubmission,
   ContactSubmissionInput,
   ErrorEnvelope,
+  FinancialHealthReportEmailInput,
+  FinancialHealthReportEmailResult,
   GuestPostSubmission,
   GuestPostSubmissionInput,
   HandleBrowserLoginCallbackParams,
@@ -1733,6 +1735,103 @@ export const useSubscribeToNewsletter = <
   TContext
 > => {
   return useMutation(getSubscribeToNewsletterMutationOptions(options));
+};
+
+/**
+ * Accepts a calculated Financial Health Score plus the visitor's email,
+subscribes them to the newsletter, and (when an email provider is
+configured) sends them an HTML summary of their score and personalized
+tips.
+
+ * @summary Email a Financial Health Score Calculator report and subscribe to the newsletter
+ */
+export const getEmailFinancialHealthScoreReportUrl = () => {
+  return `/api/tools/financial-health-score/email-report`;
+};
+
+export const emailFinancialHealthScoreReport = async (
+  financialHealthReportEmailInput: FinancialHealthReportEmailInput,
+  options?: RequestInit,
+): Promise<FinancialHealthReportEmailResult> => {
+  return customFetch<FinancialHealthReportEmailResult>(
+    getEmailFinancialHealthScoreReportUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(financialHealthReportEmailInput),
+    },
+  );
+};
+
+export const getEmailFinancialHealthScoreReportMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof emailFinancialHealthScoreReport>>,
+    TError,
+    { data: BodyType<FinancialHealthReportEmailInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof emailFinancialHealthScoreReport>>,
+  TError,
+  { data: BodyType<FinancialHealthReportEmailInput> },
+  TContext
+> => {
+  const mutationKey = ["emailFinancialHealthScoreReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof emailFinancialHealthScoreReport>>,
+    { data: BodyType<FinancialHealthReportEmailInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return emailFinancialHealthScoreReport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EmailFinancialHealthScoreReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof emailFinancialHealthScoreReport>>
+>;
+export type EmailFinancialHealthScoreReportMutationBody =
+  BodyType<FinancialHealthReportEmailInput>;
+export type EmailFinancialHealthScoreReportMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Email a Financial Health Score Calculator report and subscribe to the newsletter
+ */
+export const useEmailFinancialHealthScoreReport = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof emailFinancialHealthScoreReport>>,
+    TError,
+    { data: BodyType<FinancialHealthReportEmailInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof emailFinancialHealthScoreReport>>,
+  TError,
+  { data: BodyType<FinancialHealthReportEmailInput> },
+  TContext
+> => {
+  return useMutation(
+    getEmailFinancialHealthScoreReportMutationOptions(options),
+  );
 };
 
 /**

@@ -24,6 +24,8 @@ tags:
     description: Site statistics / trust signals
   - name: newsletter
     description: Newsletter subscriptions
+  - name: tools
+    description: Free interactive tools (calculators, etc.)
   - name: Auth
     description: Browser and mobile authentication endpoints.
 paths:
@@ -402,6 +404,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NewsletterSubscription"
+
+  /tools/financial-health-score/email-report:
+    post:
+      operationId: emailFinancialHealthScoreReport
+      tags: [tools]
+      summary: Email a Financial Health Score Calculator report and subscribe to the newsletter
+      description: |
+        Accepts a calculated Financial Health Score plus the visitor's email,
+        subscribes them to the newsletter, and (when an email provider is
+        configured) sends them an HTML summary of their score and personalized
+        tips.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinancialHealthReportEmailInput"
+      responses:
+        "200":
+          description: Report processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialHealthReportEmailResult"
 
   /guest-posts:
     post:
@@ -812,6 +838,74 @@ components:
           type: string
           format: date-time
       required: [id, email, alreadySubscribed, createdAt]
+
+    FinancialHealthReportMetric:
+      type: object
+      properties:
+        dti:
+          type: number
+        savingsRate:
+          type: number
+        emergencyFundMonths:
+          type: number
+        expenseRatio:
+          type: number
+      required: [dti, savingsRate, emergencyFundMonths, expenseRatio]
+
+    FinancialHealthReportTip:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      required: [title, body]
+
+    FinancialHealthReportEmailInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        label:
+          type: string
+          minLength: 1
+          maxLength: 60
+        metrics:
+          $ref: "#/components/schemas/FinancialHealthReportMetric"
+        tips:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/FinancialHealthReportTip"
+        marketingOptIn:
+          type: boolean
+          default: true
+      required: [email, score, label, metrics, tips]
+
+    FinancialHealthReportEmailResult:
+      type: object
+      properties:
+        delivered:
+          type: boolean
+          description: True if the report email was actually sent.
+        deliveryStatus:
+          type: string
+          enum: [sent, queued, skipped_no_provider, failed]
+        alreadySubscribed:
+          type: boolean
+        message:
+          type: string
+      required: [delivered, deliveryStatus, alreadySubscribed, message]
 
     GuestPostSubmissionInput:
       type: object

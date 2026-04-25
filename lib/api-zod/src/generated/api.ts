@@ -379,6 +379,69 @@ export const SubscribeToNewsletterResponse = zod.object({
 });
 
 /**
+ * Accepts a calculated Financial Health Score plus the visitor's email,
+subscribes them to the newsletter, and (when an email provider is
+configured) sends them an HTML summary of their score and personalized
+tips.
+
+ * @summary Email a Financial Health Score Calculator report and subscribe to the newsletter
+ */
+export const emailFinancialHealthScoreReportBodyScoreMin = 0;
+export const emailFinancialHealthScoreReportBodyScoreMax = 100;
+
+export const emailFinancialHealthScoreReportBodyLabelMax = 60;
+
+export const emailFinancialHealthScoreReportBodyTipsItemTitleMax = 200;
+
+export const emailFinancialHealthScoreReportBodyTipsItemBodyMax = 2000;
+
+export const emailFinancialHealthScoreReportBodyTipsMax = 10;
+
+export const emailFinancialHealthScoreReportBodyMarketingOptInDefault = true;
+
+export const EmailFinancialHealthScoreReportBody = zod.object({
+  email: zod.string().email(),
+  score: zod
+    .number()
+    .min(emailFinancialHealthScoreReportBodyScoreMin)
+    .max(emailFinancialHealthScoreReportBodyScoreMax),
+  label: zod.string().min(1).max(emailFinancialHealthScoreReportBodyLabelMax),
+  metrics: zod.object({
+    dti: zod.number(),
+    savingsRate: zod.number(),
+    emergencyFundMonths: zod.number(),
+    expenseRatio: zod.number(),
+  }),
+  tips: zod
+    .array(
+      zod.object({
+        title: zod
+          .string()
+          .min(1)
+          .max(emailFinancialHealthScoreReportBodyTipsItemTitleMax),
+        body: zod
+          .string()
+          .min(1)
+          .max(emailFinancialHealthScoreReportBodyTipsItemBodyMax),
+      }),
+    )
+    .min(1)
+    .max(emailFinancialHealthScoreReportBodyTipsMax),
+  marketingOptIn: zod
+    .boolean()
+    .default(emailFinancialHealthScoreReportBodyMarketingOptInDefault),
+});
+
+export const EmailFinancialHealthScoreReportResponse = zod.object({
+  delivered: zod
+    .boolean()
+    .describe("True if the report email was actually sent."),
+  deliveryStatus: zod.enum(["sent", "queued", "skipped_no_provider", "failed"]),
+  alreadySubscribed: zod.boolean(),
+  message: zod.string(),
+});
+
+/**
  * @summary Submit a guest post pitch
  */
 export const submitGuestPostBodyNameMin = 2;

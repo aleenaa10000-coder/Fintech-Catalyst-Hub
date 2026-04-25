@@ -29,8 +29,12 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Mail,
+  Loader2,
+  Send,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/metaData";
+import { useEmailFinancialHealthScoreReport } from "@workspace/api-client-react";
 
 type Inputs = {
   monthlyIncome: string;
@@ -673,6 +677,26 @@ export default function FinancialHealthScoreCalculator() {
         </div>
       </section>
 
+      {/* Email report */}
+      <section className="pb-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <EmailReportCard
+              showResults={showResults}
+              score={metrics.score}
+              label={band.label}
+              metrics={{
+                dti: metrics.dti,
+                savingsRate: metrics.savingsRate,
+                emergencyFundMonths: metrics.efMonths,
+                expenseRatio: metrics.expenseRatio,
+              }}
+              tips={tips}
+            />
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="pb-16">
         <div className="container mx-auto px-4">
@@ -746,6 +770,245 @@ export default function FinancialHealthScoreCalculator() {
         </div>
       </section>
     </div>
+  );
+}
+
+function EmailReportCard({
+  showResults,
+  score,
+  label,
+  metrics,
+  tips,
+}: {
+  showResults: boolean;
+  score: number;
+  label: string;
+  metrics: {
+    dti: number;
+    savingsRate: number;
+    emergencyFundMonths: number;
+    expenseRatio: number;
+  };
+  tips: { title: string; body: string }[];
+}) {
+  const [email, setEmail] = useState("");
+  const [optIn, setOptIn] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [statusKind, setStatusKind] = useState<
+    "success" | "info" | "error" | null
+  >(null);
+
+  const mutation = useEmailFinancialHealthScoreReport({
+    mutation: {
+      onSuccess: (result) => {
+        setSubmitted(true);
+        if (result.delivered) {
+          setStatusKind("success");
+        } else if (result.deliveryStatus === "skipped_no_provider") {
+          setStatusKind("info");
+        } else {
+          setStatusKind("error");
+        }
+        setStatusMsg(result.message);
+      },
+      onError: () => {
+        setSubmitted(true);
+        setStatusKind("error");
+        setStatusMsg(
+          "Something went wrong. Please double-check your email and try again.",
+        );
+      },
+    },
+  });
+
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const disabled = !showResults || !isValidEmail || mutation.isPending;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (disabled) return;
+    setStatusMsg(null);
+    setStatusKind(null);
+    mutation.mutate({
+      data: {
+        email: email.trim(),
+        score,
+        label,
+        metrics,
+        tips: tips.map((t) => ({ title: t.title, body: t.body })),
+        marketingOptIn: optIn,
+      },
+    });
+  };
+
+  return (
+    <Card
+      className="border border-slate-200 shadow-sm overflow-hidden"
+      data-testid="card-email-report"
+    >
+      <CardContent className="p-0">
+        <div className="grid md:grid-cols-5">
+          <div className="md:col-span-2 bg-gradient-to-br from-[#0A1628] to-[#0B2A4A] text-white p-8 md:p-10 flex flex-col justify-center">
+            <div className="w-11 h-11 rounded-lg bg-white/10 flex items-center justify-center mb-4">
+              <Mail className="w-5 h-5" />
+            </div>
+            <h2 className="text-2xl font-extrabold leading-tight mb-2">
+              Email me this report
+            </h2>
+            <p className="text-sm text-white/70 leading-relaxed">
+              Get a polished PDF-style summary of your score, key ratios, and
+              personalized tips delivered straight to your inbox — handy for
+              tracking progress month over month.
+            </p>
+            <ul className="mt-5 space-y-2 text-sm text-white/80">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-[#22C55E] shrink-0" />
+                Your full score breakdown
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-[#22C55E] shrink-0" />
+                All four key ratios with targets
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-[#22C55E] shrink-0" />
+                Personalized improvement tips
+              </li>
+            </ul>
+          </div>
+
+          <div className="md:col-span-3 p-8 md:p-10">
+            {submitted && statusKind === "success" ? (
+              <div
+                className="rounded-xl border border-emerald-200 bg-emerald-50 p-6"
+                data-testid="email-report-success"
+              >
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600 mt-0.5 shrink-0" />
+                  <div>
+                    <h3 className="text-base font-bold text-emerald-900 mb-1">
+                      Report on its way
+                    </h3>
+                    <p className="text-sm text-emerald-800 leading-relaxed">
+                      {statusMsg}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubmitted(false);
+                        setStatusMsg(null);
+                        setStatusKind(null);
+                        setEmail("");
+                      }}
+                      className="mt-3 text-xs font-semibold text-emerald-900 underline underline-offset-2 hover:text-emerald-700"
+                    >
+                      Send to another email
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label
+                    htmlFor="email-report-input"
+                    className="text-sm font-semibold text-slate-900"
+                  >
+                    Your email address
+                  </Label>
+                  <Input
+                    id="email-report-input"
+                    type="email"
+                    inputMode="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={!showResults || mutation.isPending}
+                    className="mt-1.5 h-11"
+                    data-testid="input-email-report"
+                  />
+                  {!showResults && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      Enter your monthly income above to enable this.
+                    </p>
+                  )}
+                </div>
+
+                <label className="flex items-start gap-2.5 text-sm text-slate-600 leading-relaxed cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={optIn}
+                    onChange={(e) => setOptIn(e.target.checked)}
+                    disabled={!showResults || mutation.isPending}
+                    className="mt-0.5 w-4 h-4 rounded border-slate-300 text-[#0052FF] focus:ring-[#0052FF]"
+                    data-testid="checkbox-email-optin"
+                  />
+                  <span>
+                    Also send me the FintechPressHub newsletter — new fintech
+                    SEO tactics, calculators, and case studies. Unsubscribe
+                    anytime.
+                  </span>
+                </label>
+
+                <Button
+                  type="submit"
+                  disabled={disabled}
+                  className="w-full h-11 bg-[#0052FF] hover:bg-[#0046d6] text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="button-send-email-report"
+                >
+                  {mutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Send my report
+                    </>
+                  )}
+                </Button>
+
+                {statusKind === "info" && statusMsg && (
+                  <div
+                    className="rounded-lg border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-900"
+                    data-testid="email-report-info"
+                  >
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                      <span>{statusMsg}</span>
+                    </div>
+                  </div>
+                )}
+                {statusKind === "error" && statusMsg && (
+                  <div
+                    className="rounded-lg border border-red-200 bg-red-50 p-3.5 text-sm text-red-900"
+                    data-testid="email-report-error"
+                  >
+                    <div className="flex items-start gap-2">
+                      <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                      <span>{statusMsg}</span>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  We don't sell your data. By submitting, you agree to receive a
+                  one-time report email and, if checked, the newsletter. See our{" "}
+                  <Link
+                    href="/privacy"
+                    className="underline underline-offset-2 hover:text-slate-900"
+                  >
+                    privacy policy
+                  </Link>
+                  .
+                </p>
+              </form>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -214,6 +214,65 @@ export interface NewsletterSubscription {
   createdAt: string;
 }
 
+export interface FinancialHealthReportMetric {
+  dti: number;
+  savingsRate: number;
+  emergencyFundMonths: number;
+  expenseRatio: number;
+}
+
+export interface FinancialHealthReportTip {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  title: string;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  body: string;
+}
+
+export interface FinancialHealthReportEmailInput {
+  email: string;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  score: number;
+  /**
+   * @minLength 1
+   * @maxLength 60
+   */
+  label: string;
+  metrics: FinancialHealthReportMetric;
+  /**
+   * @minItems 1
+   * @maxItems 10
+   */
+  tips: FinancialHealthReportTip[];
+  marketingOptIn?: boolean;
+}
+
+export type FinancialHealthReportEmailResultDeliveryStatus =
+  (typeof FinancialHealthReportEmailResultDeliveryStatus)[keyof typeof FinancialHealthReportEmailResultDeliveryStatus];
+
+export const FinancialHealthReportEmailResultDeliveryStatus = {
+  sent: "sent",
+  queued: "queued",
+  skipped_no_provider: "skipped_no_provider",
+  failed: "failed",
+} as const;
+
+export interface FinancialHealthReportEmailResult {
+  /** True if the report email was actually sent. */
+  delivered: boolean;
+  deliveryStatus: FinancialHealthReportEmailResultDeliveryStatus;
+  alreadySubscribed: boolean;
+  message: string;
+}
+
 export interface GuestPostSubmissionInput {
   /**
    * @minLength 2

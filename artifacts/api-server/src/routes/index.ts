@@ -11,6 +11,7 @@ import guestPostsRouter from "./guestPosts";
 import newsletterRouter from "./newsletter";
 import pitchRouter from "./pitch";
 import ogRouter from "./og";
+import toolsRouter from "./tools";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(guestPostsRouter);
 router.use(newsletterRouter);
 router.use(pitchRouter);
 router.use(ogRouter);
+router.use(toolsRouter);
 
 export default router;
