@@ -285,6 +285,7 @@ function shellInject(html, meta) {
     ogImageAlt,
     schemas,
     extraMeta,
+    bodyContent,
   } = meta;
 
   const setContent = (regex, value) => {
@@ -337,7 +338,62 @@ function shellInject(html, meta) {
     `    ${canonicalTag}${extra ? "\n    " + extra : ""}${ldScripts ? "\n    " + ldScripts : ""}\n  </head>`,
   );
 
+  // Inject a per-route H1 + intro inside <div id="root"> so non-JS crawlers
+  // see the page's primary heading and lede. The app uses createRoot().render()
+  // (not hydrateRoot), so React simply replaces this content for real users —
+  // no hydration mismatch warnings.
+  if (bodyContent) {
+    html = html.replace(
+      /<div\s+id="root"\s*>\s*<\/div>/i,
+      `<div id="root"><div data-bot-og="body">${bodyContent}</div></div>`,
+    );
+  }
+
   return html;
+}
+
+// ---------- body builders (visible H1 + intro for non-JS crawlers) ----------
+
+function buildBodyHtml({ heading, lede, sections = [] }) {
+  const parts = [`<h1>${escapeHtml(heading)}</h1>`];
+  if (lede) parts.push(`<p>${escapeHtml(lede)}</p>`);
+  for (const section of sections) {
+    if (!section) continue;
+    if (section.heading) {
+      parts.push(`<h2>${escapeHtml(section.heading)}</h2>`);
+    }
+    if (section.paragraph) {
+      parts.push(`<p>${escapeHtml(section.paragraph)}</p>`);
+    }
+    if (section.list && section.list.length) {
+      parts.push("<ul>");
+      for (const item of section.list) {
+        const label = escapeHtml(item.name);
+        const href = escapeHtml(item.url);
+        const tail = item.note ? ` — ${escapeHtml(item.note)}` : "";
+        parts.push(`<li><a href="${href}">${label}</a>${tail}</li>`);
+      }
+      parts.push("</ul>");
+    }
+  }
+  return parts.join("\n      ");
+}
+
+function stripHtmlToText(html, maxChars = 600) {
+  const text = String(html ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (text.length <= maxChars) return text;
+  const cut = text.slice(0, maxChars);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > 200 ? cut.slice(0, lastSpace) : cut) + "…";
 }
 
 // ---------- data loaders ----------
@@ -422,6 +478,25 @@ async function buildMeta(pathname, siteUrl, apiBase) {
     const m = PAGE_META[key];
     const canonical = url(m.path);
 
+    // Headings shown to non-JS crawlers. We intentionally use the page-level
+    // hero copy (not the meta title) so the H1 reads naturally as a heading.
+    const HEADINGS = {
+      home: "Fintech SEO & Content Marketing That Compounds",
+      about: "Bridging Fintech Expertise & Search Visibility",
+      services: "Growth Engines for Fintech",
+      pricing: "Invest in Sustainable Growth",
+      blog: "Insights From the Front Lines of Fintech SEO",
+      authors: "Meet the Team",
+      writeForUs: "Write for FintechPressHub",
+      contact: "Let's Scale Your Organic Growth",
+      privacyPolicy: "Privacy Policy",
+      refundPolicy: "Refund Policy",
+      cookiePolicy: "Cookie Policy",
+      terms: "Terms of Service",
+      editorialGuidelines: "Editorial Guidelines",
+    };
+    const heading = HEADINGS[key] ?? m.title.split("|")[0].trim();
+
     // FAQ-bearing pages
     let faqs = null;
     if (key === "home") faqs = HOME_FAQS;
@@ -429,12 +504,17 @@ async function buildMeta(pathname, siteUrl, apiBase) {
     else if (key === "contact") faqs = CONTACT_FAQS;
 
     let extraSchema = null;
+    const bodySections = [];
+
     if (key === "about") {
       extraSchema = aboutPageSchema({
         url: canonical,
         siteUrl,
         employees: AUTHORS,
       });
+      if (ABOUT_PAGE?.description) {
+        bodySections.push({ paragraph: ABOUT_PAGE.description });
+      }
     } else if (key === "services") {
       const services = await loadServices();
       extraSchema = itemListSchema({
@@ -444,12 +524,28 @@ async function buildMeta(pathname, siteUrl, apiBase) {
           url: `${siteUrl}/services/${s.slug}`,
         })),
       });
+      bodySections.push({
+        heading: "Services",
+        list: services.map((s) => ({
+          name: s.name,
+          url: `${siteUrl}/services/${s.slug}`,
+          note: s.tagline,
+        })),
+      });
     } else if (key === "authors") {
       extraSchema = itemListSchema({
         name: "FintechPressHub team",
         items: AUTHORS.map((a) => ({
           name: a.name,
           url: `${siteUrl}/authors/${a.slug}`,
+        })),
+      });
+      bodySections.push({
+        heading: "Team",
+        list: AUTHORS.map((a) => ({
+          name: a.name,
+          url: `${siteUrl}/authors/${a.slug}`,
+          note: a.role,
         })),
       });
     } else if (key === "blog") {
@@ -461,7 +557,36 @@ async function buildMeta(pathname, siteUrl, apiBase) {
           url: `${siteUrl}/blog/${p.slug}`,
         })),
       });
+      bodySections.push({
+        heading: "Latest Articles",
+        list: posts.slice(0, 20).map((p) => ({
+          name: p.title,
+          url: `${siteUrl}/blog/${p.slug}`,
+        })),
+      });
+    } else if (key === "pricing") {
+      bodySections.push({
+        heading: "Frequently Asked Questions",
+        list: PRICING_FAQS.map((f) => ({
+          name: f.question,
+          url: `${canonical}#faq`,
+        })),
+      });
+    } else if (key === "home") {
+      bodySections.push({
+        heading: "Frequently Asked Questions",
+        list: HOME_FAQS.map((f) => ({
+          name: f.question,
+          url: `${canonical}#faq`,
+        })),
+      });
     }
+
+    const bodyContent = buildBodyHtml({
+      heading,
+      lede: m.description,
+      sections: bodySections,
+    });
 
     return {
       title: m.title,
@@ -477,6 +602,7 @@ async function buildMeta(pathname, siteUrl, apiBase) {
         extraSchema,
         faqSchema(faqs),
       ],
+      bodyContent,
     };
   }
 
@@ -490,6 +616,26 @@ async function buildMeta(pathname, siteUrl, apiBase) {
     const canonical = `${siteUrl}/services/${service.slug}`;
     const title = `${service.name} | FintechPressHub`;
     const description = service.tagline || service.description?.slice(0, 200);
+
+    const sections = [];
+    if (service.description && service.description !== description) {
+      sections.push({ paragraph: stripHtmlToText(service.description, 600) });
+    }
+    if (Array.isArray(service.deliverables) && service.deliverables.length) {
+      sections.push({
+        heading: "What's included",
+        list: service.deliverables.slice(0, 12).map((d) => ({
+          name: typeof d === "string" ? d : d.name ?? String(d),
+          url: canonical,
+        })),
+      });
+    }
+    const bodyContent = buildBodyHtml({
+      heading: service.name,
+      lede: service.tagline || description,
+      sections,
+    });
+
     return {
       title,
       description,
@@ -504,6 +650,7 @@ async function buildMeta(pathname, siteUrl, apiBase) {
         serviceSchema({ service, url: canonical, siteUrl }),
         faqSchema(SERVICE_FAQS[slug]),
       ],
+      bodyContent,
     };
   }
 
@@ -516,6 +663,23 @@ async function buildMeta(pathname, siteUrl, apiBase) {
     const canonical = `${siteUrl}/authors/${author.slug}`;
     const title = `${author.name} — ${author.role} | FintechPressHub`;
     const description = author.shortBio;
+
+    const sections = [{ paragraph: author.role }];
+    if (Array.isArray(author.expertise) && author.expertise.length) {
+      sections.push({
+        heading: "Areas of expertise",
+        list: author.expertise.slice(0, 10).map((e) => ({
+          name: e,
+          url: canonical,
+        })),
+      });
+    }
+    const bodyContent = buildBodyHtml({
+      heading: author.name,
+      lede: author.shortBio,
+      sections,
+    });
+
     return {
       title,
       description,
@@ -532,6 +696,7 @@ async function buildMeta(pathname, siteUrl, apiBase) {
       extraMeta: [
         `<meta property="article:author" content="${escapeHtml(author.name)}" />`,
       ],
+      bodyContent,
     };
   }
 
@@ -546,6 +711,36 @@ async function buildMeta(pathname, siteUrl, apiBase) {
     const title = `${post.title} | FintechPressHub`;
     const description = post.excerpt ?? "";
     const image = ogImageForBlog(siteUrl, post);
+
+    const metaBits = [];
+    const dateRaw = post.date ?? post.publishedAt;
+    if (dateRaw) {
+      const d = new Date(dateRaw);
+      if (!isNaN(d.getTime())) {
+        metaBits.push(
+          d.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }),
+        );
+      }
+    }
+    if (post.author) metaBits.push(`By ${post.author}`);
+    if (post.category) metaBits.push(post.category);
+
+    const sections = [];
+    if (metaBits.length) sections.push({ paragraph: metaBits.join(" · ") });
+    if (post.content) {
+      sections.push({ paragraph: stripHtmlToText(post.content, 800) });
+    }
+
+    const bodyContent = buildBodyHtml({
+      heading: post.title,
+      lede: post.excerpt,
+      sections,
+    });
+
     return {
       title,
       description,
@@ -564,6 +759,7 @@ async function buildMeta(pathname, siteUrl, apiBase) {
         `<meta property="article:section" content="${escapeHtml(post.category ?? "Insights")}" />`,
         `<meta property="article:author" content="${escapeHtml(post.author ?? "")}" />`,
       ],
+      bodyContent,
     };
   }
 
