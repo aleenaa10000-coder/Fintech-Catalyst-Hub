@@ -146,7 +146,65 @@ export default function EditorialGuidelines() {
 
   return (
     <div className="min-h-screen bg-background scroll-smooth">
-      <PageMeta page="editorialGuidelines" />
+      <PageMeta
+        page="editorialGuidelines"
+        article={{
+          title: "Editorial Guidelines | FintechPressHub",
+          description:
+            "The standards FintechPressHub holds internal writers, guest contributors, and client deliverables to — covering accuracy, sourcing, AI usage, tone, topical scope, outbound linking, and the contributor dofollow link policy.",
+          datePublished: "2023-10-01",
+          dateModified: "2026-04-25",
+          section: "Editorial Standards",
+          tags: [
+            "editorial guidelines",
+            "fintech content standards",
+            "guest post guidelines",
+            "dofollow link policy",
+            "fintech SEO editorial policy",
+            "AI content policy",
+          ],
+          about: [
+            "Fintech Marketing",
+            "Fintech SEO",
+            "Editorial Standards",
+            "Guest Posting Guidelines",
+            "Dofollow Link Policy",
+          ],
+          mentions: [
+            "B2B Fintech Marketing",
+            "B2C Fintech Marketing",
+            "SaaS Fintech SEO",
+            "Embedded Finance",
+            "Open Banking",
+            "PSD2",
+            "PSD3",
+            "Payments Infrastructure",
+            "Payment Orchestration",
+            "Card Issuing",
+            "Buy Now Pay Later",
+            "Neobanking",
+            "Digital Banking",
+            "Lending",
+            "Credit Underwriting",
+            "Wealthtech",
+            "Robo-Advisors",
+            "Regtech",
+            "KYC",
+            "AML",
+            "Compliance Marketing",
+            "Cryptocurrency Payments",
+            "Stablecoin Payments",
+            "Treasury Management",
+            "CFO Tooling",
+            "Conversion Rate Optimization",
+            "E-E-A-T",
+            "YMYL Content",
+            "Programmatic SEO",
+            "Topical Authority",
+            "Link Building",
+          ],
+        }}
+      />
       <PageHero
         eyebrow="Editorial"
         title={<>Editorial Guidelines</>}

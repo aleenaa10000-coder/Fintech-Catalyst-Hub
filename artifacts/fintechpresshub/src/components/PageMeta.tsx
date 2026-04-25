@@ -45,6 +45,8 @@ export type ArticleSchema = {
   author?: string;
   section?: string;
   tags?: string[];
+  about?: string[];
+  mentions?: string[];
 };
 
 export type FaqItem = { question: string; answer: string };
@@ -292,6 +294,22 @@ export function PageMeta(props: PageMetaProps) {
         },
         articleSection: props.article.section,
         keywords: props.article.tags?.join(", "),
+        ...(props.article.about && props.article.about.length > 0
+          ? {
+              about: props.article.about.map((name) => ({
+                "@type": "Thing",
+                name,
+              })),
+            }
+          : {}),
+        ...(props.article.mentions && props.article.mentions.length > 0
+          ? {
+              mentions: props.article.mentions.map((name) => ({
+                "@type": "Thing",
+                name,
+              })),
+            }
+          : {}),
       }
     : null;
 
