@@ -11,7 +11,7 @@ Professional fintech digital marketing & content agency website. React + Vite + 
 - **Backend**: Express 5 (in `artifacts/api-server`) — routes for blog, services, pricing, testimonials, trust stats, contact form, guest post submissions
 - **Database**: PostgreSQL + Drizzle ORM (schemas in `lib/db/src/schema`)
 - **API contract**: OpenAPI in `lib/api-spec/openapi.yaml` — codegen produces React Query hooks (`@workspace/api-client-react`) and Zod schemas (`@workspace/api-zod`)
-- **Seed**: `pnpm --filter @workspace/scripts run seed`
+- **Seed**: auto-runs on API server startup via `runSeed(db)` from `@workspace/db` — idempotent, only inserts when tables are empty (pricing_plans, services, testimonials, site_stats, blog_posts). Source data lives in `lib/db/src/seed-data/*.json`. The CLI alternative `pnpm --filter @workspace/scripts run seed` is destructive (clears + re-inserts) and meant for manual resets.
 
 ## Pages
 

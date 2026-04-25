@@ -28,11 +28,9 @@ When you import this repo into Replit (or fork it from another Replit account), 
    ```bash
    pnpm --filter @workspace/db run push
    ```
-5. **(Optional) Seed demo content** — services, pricing plans, testimonials, etc.:
-   ```bash
-   pnpm --filter @workspace/scripts run seed
-   ```
-6. **Click Run.** The `Project` workflow starts both the API Server and the frontend in parallel.
+5. **Click Run.** The `Project` workflow starts both the API Server and the frontend in parallel. The API server pushes the schema, then auto-seeds demo content (services, pricing plans, testimonials, blog posts, site stats) on first start when the tables are empty — so the preview pane shows a fully populated site straight away.
+
+> Want to wipe and re-seed? Run `pnpm --filter @workspace/scripts run seed` (destructive — deletes existing rows first).
 
 That's it — the preview pane will show the home page.
 
@@ -54,15 +52,14 @@ pnpm install
 cp .env.example .env
 # edit .env
 
-# 4. Push the database schema
-pnpm --filter @workspace/db run push
-
-# 5. (Optional) seed demo content
-pnpm --filter @workspace/scripts run seed
-
-# 6. Run the API and the frontend in two terminals
+# 4. Run the API and the frontend in two terminals.
+#    The API server pushes the schema and auto-seeds demo content
+#    on first start (idempotent — only inserts when tables are empty).
 PORT=8080 pnpm --filter @workspace/api-server run dev
 PORT=5173 BASE_PATH=/ pnpm --filter @workspace/fintechpresshub run dev
+
+# Optional: wipe and re-seed (destructive)
+# pnpm --filter @workspace/scripts run seed
 ```
 
 The frontend is served on the port you set, and `/api/*` requests are proxied to the API server (see `artifacts/fintechpresshub/vite.config.ts`).

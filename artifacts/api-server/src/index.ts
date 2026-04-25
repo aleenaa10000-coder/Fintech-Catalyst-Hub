@@ -1,4 +1,5 @@
 import app from "./app";
+import { db, runSeed } from "@workspace/db";
 import { logger } from "./lib/logger";
 
 const rawPort = process.env["PORT"];
@@ -15,11 +16,31 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
+async function bootstrap() {
+  try {
+    const report = await runSeed(db);
+    const inserted = Object.entries(report).filter(([, n]) => n > 0);
+    if (inserted.length > 0) {
+      logger.info(
+        { seeded: Object.fromEntries(inserted) },
+        "Seeded empty tables on startup",
+      );
+    }
+  } catch (err) {
+    logger.error(
+      { err },
+      "Database seeding failed — continuing to start server",
+    );
   }
 
-  logger.info({ port }, "Server listening");
-});
+  app.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
+
+    logger.info({ port }, "Server listening");
+  });
+}
+
+void bootstrap();
