@@ -9,6 +9,7 @@ const STATIC_ROUTES: Array<{
   path: string;
   changefreq: string;
   priority: string;
+  lastmod?: string;
 }> = [
   { path: "/", changefreq: "weekly", priority: "1.0" },
   { path: "/about", changefreq: "monthly", priority: "0.7" },
@@ -17,12 +18,12 @@ const STATIC_ROUTES: Array<{
   { path: "/blog", changefreq: "daily", priority: "0.9" },
   { path: "/authors", changefreq: "monthly", priority: "0.7" },
   { path: "/write-for-us", changefreq: "monthly", priority: "0.6" },
-  { path: "/editorial-guidelines", changefreq: "yearly", priority: "0.4" },
+  { path: "/editorial-guidelines", changefreq: "yearly", priority: "0.4", lastmod: "2026-04-28" },
   { path: "/contact", changefreq: "yearly", priority: "0.5" },
-  { path: "/privacy-policy", changefreq: "yearly", priority: "0.3" },
-  { path: "/refund-policy", changefreq: "yearly", priority: "0.3" },
-  { path: "/cookie-policy", changefreq: "yearly", priority: "0.3" },
-  { path: "/terms", changefreq: "yearly", priority: "0.3" },
+  { path: "/privacy-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
+  { path: "/refund-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
+  { path: "/cookie-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
+  { path: "/terms", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
 ];
 
 // Author profile slugs are sourced from the static frontend data file
@@ -62,7 +63,7 @@ async function buildSitemapXml(): Promise<string> {
       // <loc> matches the canonical URL emitted in index.html and avoids
       // sitemap-validator warnings about a missing trailing slash on root.
       loc: `${siteUrl}${r.path}`,
-      lastmod: today,
+      lastmod: r.lastmod ?? today,
       changefreq: r.changefreq,
       priority: r.priority,
     })),
