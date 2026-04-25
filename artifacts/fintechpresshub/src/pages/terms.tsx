@@ -43,7 +43,7 @@ const SECTIONS: LegalSection[] = [
 export default function Terms() {
   return (
     <>
-      <PageMeta page="terms" />
+      <PageMeta page="terms" webPage={{ datePublished: "2023-10-01", dateModified: "2026-04-28" }} />
       <LegalPageLayout
       title={<>Terms of Service</>}
       description="The agreement that governs your use of FintechPressHub's website, services, and engagements."

@@ -153,7 +153,7 @@ export default function EditorialGuidelines() {
           description:
             "The standards FintechPressHub holds internal writers, guest contributors, and client deliverables to — covering accuracy, sourcing, AI usage, tone, topical scope, outbound linking, and the contributor dofollow link policy.",
           datePublished: "2023-10-01",
-          dateModified: "2026-04-25",
+          dateModified: "2026-04-28",
           section: "Editorial Standards",
           tags: [
             "editorial guidelines",

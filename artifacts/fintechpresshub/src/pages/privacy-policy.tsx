@@ -37,7 +37,7 @@ const SECTIONS: LegalSection[] = [
 export default function PrivacyPolicy() {
   return (
     <>
-      <PageMeta page="privacyPolicy" />
+      <PageMeta page="privacyPolicy" webPage={{ datePublished: "2023-10-01", dateModified: "2026-04-28" }} />
       <LegalPageLayout
       title={<>Privacy Policy</>}
       description="How FintechPressHub collects, uses, and protects the personal data of visitors, prospects, and clients."

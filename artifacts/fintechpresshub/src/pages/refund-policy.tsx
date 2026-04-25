@@ -37,7 +37,7 @@ const SECTIONS: LegalSection[] = [
 export default function RefundPolicy() {
   return (
     <>
-      <PageMeta page="refundPolicy" />
+      <PageMeta page="refundPolicy" webPage={{ datePublished: "2023-10-01", dateModified: "2026-04-28" }} />
       <LegalPageLayout
       title={<>Refund Policy</>}
       description="Our approach to refunds, retainer cancellations, content revisions, and link replacement guarantees."

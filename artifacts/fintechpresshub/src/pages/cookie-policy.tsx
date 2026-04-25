@@ -37,7 +37,7 @@ const SECTIONS: LegalSection[] = [
 export default function CookiePolicy() {
   return (
     <>
-      <PageMeta page="cookiePolicy" />
+      <PageMeta page="cookiePolicy" webPage={{ datePublished: "2023-10-01", dateModified: "2026-04-28" }} />
       <LegalPageLayout
       title={<>Cookie Policy</>}
       description="How and why FintechPressHub uses cookies and similar tracking technologies on our website."

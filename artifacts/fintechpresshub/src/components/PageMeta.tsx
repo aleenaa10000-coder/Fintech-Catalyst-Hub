@@ -92,6 +92,11 @@ export type AboutPageSchema = {
   employees?: EmployeePerson[];
 };
 
+export type WebPageSchema = {
+  dateModified: string;
+  datePublished?: string;
+};
+
 type Common = {
   title?: string;
   description?: string;
@@ -100,6 +105,7 @@ type Common = {
   person?: PersonSchema;
   service?: ServiceSchema;
   aboutPage?: AboutPageSchema;
+  webPage?: WebPageSchema;
   faq?: FaqItem[];
 };
 
@@ -268,6 +274,32 @@ export function PageMeta(props: PageMetaProps) {
       }
     : null;
 
+  const webPageJsonLd = props.webPage
+    ? {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "@id": canonical,
+        url: canonical,
+        name: title || undefined,
+        description: description || undefined,
+        dateModified: props.webPage.dateModified,
+        ...(props.webPage.datePublished
+          ? { datePublished: props.webPage.datePublished }
+          : {}),
+        isPartOf: {
+          "@type": "WebSite",
+          "@id": `${SITE_URL}#website`,
+          url: SITE_URL,
+          name: SITE_NAME,
+        },
+        publisher: {
+          "@type": "Organization",
+          "@id": `${SITE_URL}#organization`,
+          name: SITE_NAME,
+        },
+      }
+    : null;
+
   const articleJsonLd = props.article
     ? {
         "@context": "https://schema.org",
@@ -376,6 +408,11 @@ export function PageMeta(props: PageMetaProps) {
       {aboutPageJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(aboutPageJsonLd)}
+        </script>
+      ) : null}
+      {webPageJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(webPageJsonLd)}
         </script>
       ) : null}
       {faqJsonLd ? (
