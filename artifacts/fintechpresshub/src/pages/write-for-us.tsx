@@ -116,7 +116,7 @@ export default function WriteForUs() {
                     </div>
                     <div>
                       <h3 className="font-bold text-foreground mb-1">Depth & Originality</h3>
-                      <p className="text-sm text-muted-foreground">1,200+ words. No fluff. Must include unique data, personal experience, or case studies. AI-generated content will be rejected immediately.</p>
+                      <p className="text-sm text-muted-foreground">800–1,500 words. No fluff. Must include unique data, personal experience, or case studies. AI-generated content will be rejected immediately.</p>
                     </div>
                   </div>
                   <div

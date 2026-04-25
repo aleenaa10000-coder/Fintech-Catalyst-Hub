@@ -91,6 +91,7 @@ const SECTIONS: Section[] = [
   { id: "accuracy", label: "Accuracy" },
   { id: "ai-policy", label: "AI Policy" },
   { id: "voice-tone", label: "Voice/Tone" },
+  { id: "article-length", label: "Article Length" },
   { id: "originality", label: "Originality" },
   { id: "outbound-linking", label: "Outbound Linking" },
 ];
@@ -329,14 +330,36 @@ export default function EditorialGuidelines() {
                 </li>
               </ul>
 
-              <h2 id="originality">4. Originality</h2>
+              <h2 id="article-length">4. Article Length</h2>
+              <p>
+                Every article should land between <strong>800 and 1,500 words</strong>. This range
+                is long enough to cover a fintech topic with genuine depth — including data,
+                examples, and a clear point of view — without padding the piece for word count.
+              </p>
+              <ul>
+                <li>
+                  <strong>Minimum 800 words:</strong> Pieces shorter than this rarely demonstrate
+                  the expertise required to rank for competitive fintech queries.
+                </li>
+                <li>
+                  <strong>Maximum 1,500 words:</strong> Submissions over the limit will be sent
+                  back for tightening. Cut filler, merge overlapping sections, and prioritize
+                  insight over volume.
+                </li>
+                <li>
+                  <strong>Quality over quantity:</strong> A focused 900-word piece backed by primary
+                  sources beats a 2,500-word piece padded with generic background.
+                </li>
+              </ul>
+
+              <h2 id="originality">5. Originality</h2>
               <p>
                 All content must be 100% original. We run all submissions through plagiarism
                 checkers. We do not accept syndicated content or articles that have been published
                 elsewhere.
               </p>
 
-              <h2 id="outbound-linking">5. Outbound Linking</h2>
+              <h2 id="outbound-linking">6. Outbound Linking</h2>
               <p>
                 We encourage linking to high-quality external resources to provide context, evidence,
                 and further reading. Every outbound link must clear the bar below — no exceptions.
