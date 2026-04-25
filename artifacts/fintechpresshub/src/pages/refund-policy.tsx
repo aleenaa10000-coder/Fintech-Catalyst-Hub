@@ -41,7 +41,7 @@ export default function RefundPolicy() {
       <LegalPageLayout
       title={<>Refund Policy</>}
       description="Our approach to refunds, retainer cancellations, content revisions, and link replacement guarantees."
-      lastUpdated="October 1, 2023"
+      lastUpdated="April 28, 2026"
       sections={SECTIONS}
       testIdPrefix="refund"
     >

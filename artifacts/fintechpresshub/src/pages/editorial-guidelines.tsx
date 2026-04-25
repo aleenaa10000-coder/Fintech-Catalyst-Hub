@@ -255,7 +255,7 @@ export default function EditorialGuidelines() {
           {/* Main Content */}
           <article className="lg:col-span-9 min-w-0">
             <div className="prose prose-lg dark:prose-invert mx-auto max-w-prose scroll-mt-24 prose-headings:scroll-mt-24">
-              <p className="text-muted-foreground mb-8">Last updated: October 1, 2023</p>
+              <p className="text-muted-foreground mb-8">Last updated: April 28, 2026</p>
 
               <p>
                 FintechPressHub is committed to publishing accurate, authoritative, and actionable

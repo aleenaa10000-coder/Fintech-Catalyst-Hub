@@ -41,7 +41,7 @@ export default function PrivacyPolicy() {
       <LegalPageLayout
       title={<>Privacy Policy</>}
       description="How FintechPressHub collects, uses, and protects the personal data of visitors, prospects, and clients."
-      lastUpdated="October 1, 2023"
+      lastUpdated="April 28, 2026"
       sections={SECTIONS}
       testIdPrefix="privacy"
     >

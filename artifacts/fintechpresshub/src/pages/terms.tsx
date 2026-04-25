@@ -47,7 +47,7 @@ export default function Terms() {
       <LegalPageLayout
       title={<>Terms of Service</>}
       description="The agreement that governs your use of FintechPressHub's website, services, and engagements."
-      lastUpdated="October 1, 2023"
+      lastUpdated="April 28, 2026"
       sections={SECTIONS}
       testIdPrefix="terms"
     >

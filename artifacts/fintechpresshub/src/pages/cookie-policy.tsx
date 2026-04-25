@@ -41,7 +41,7 @@ export default function CookiePolicy() {
       <LegalPageLayout
       title={<>Cookie Policy</>}
       description="How and why FintechPressHub uses cookies and similar tracking technologies on our website."
-      lastUpdated="April 24, 2026"
+      lastUpdated="April 28, 2026"
       sections={SECTIONS}
       testIdPrefix="cookies"
     >
