@@ -59,6 +59,9 @@ export type PersonSchema = {
   sameAs?: string[];
   knowsAbout?: string[];
   worksFor?: string;
+  award?: string[];
+  addressLocality?: string;
+  addressCountry?: string;
 };
 
 export type ServiceSchema = {
@@ -151,6 +154,7 @@ export function PageMeta(props: PageMetaProps) {
         "@type": "ProfilePage",
         mainEntity: {
           "@type": "Person",
+          "@id": `${props.person.url ?? canonical}#person`,
           name: props.person.name,
           jobTitle: props.person.jobTitle,
           description: props.person.description,
@@ -159,9 +163,30 @@ export function PageMeta(props: PageMetaProps) {
           email: props.person.email,
           sameAs: props.person.sameAs?.filter(Boolean),
           knowsAbout: props.person.knowsAbout,
+          ...(props.person.award && props.person.award.length > 0
+            ? { award: props.person.award }
+            : {}),
+          ...(props.person.addressLocality || props.person.addressCountry
+            ? {
+                address: {
+                  "@type": "PostalAddress",
+                  ...(props.person.addressLocality
+                    ? { addressLocality: props.person.addressLocality }
+                    : {}),
+                  ...(props.person.addressCountry
+                    ? { addressCountry: props.person.addressCountry }
+                    : {}),
+                },
+              }
+            : {}),
           worksFor: props.person.worksFor
             ? { "@type": "Organization", name: props.person.worksFor }
-            : { "@type": "Organization", name: SITE_NAME },
+            : {
+                "@type": "Organization",
+                "@id": `${SITE_URL}#organization`,
+                name: SITE_NAME,
+                url: SITE_URL,
+              },
         },
       }
     : null;

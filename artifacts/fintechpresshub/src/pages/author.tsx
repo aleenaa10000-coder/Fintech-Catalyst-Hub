@@ -73,7 +73,12 @@ export default function AuthorPage() {
           image: author.photo
             ? `https://www.fintechpresshub.com${author.photo}`
             : undefined,
+          email: author.social?.email,
           knowsAbout: author.expertise,
+          award: author.credentials,
+          addressLocality: author.location?.split(",")[0]?.trim() || undefined,
+          addressCountry:
+            author.location?.split(",").slice(1).join(",").trim() || undefined,
           sameAs: [
             author.social?.linkedin,
             author.social?.twitter,
