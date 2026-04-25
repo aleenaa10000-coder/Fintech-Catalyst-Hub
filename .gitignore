@@ -44,9 +44,17 @@ Thumbs.db
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
-# Replit
+# Replit — agent + workspace artifacts that shouldn't be pushed to GitHub
 .cache/
 .local/
+.agents/
+.replit_integration_files/
+replit.md
+
+# Replit — debug screenshots (logos in attached_assets/logo/ remain tracked)
+screenshots/
+attached_assets/screenshots/
+attached_assets/Screenshot_*.png
 
 # Environment / secrets — never commit local secrets.
 # .env.example is allowed and acts as the template for new clones.
