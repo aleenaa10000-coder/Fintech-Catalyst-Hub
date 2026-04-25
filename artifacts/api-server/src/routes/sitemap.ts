@@ -15,6 +15,7 @@ const STATIC_ROUTES: Array<{
   { path: "/services", changefreq: "monthly", priority: "0.9" },
   { path: "/pricing", changefreq: "monthly", priority: "0.9" },
   { path: "/blog", changefreq: "daily", priority: "0.9" },
+  { path: "/authors", changefreq: "monthly", priority: "0.7" },
   { path: "/write-for-us", changefreq: "monthly", priority: "0.6" },
   { path: "/editorial-guidelines", changefreq: "yearly", priority: "0.4" },
   { path: "/contact", changefreq: "yearly", priority: "0.5" },
@@ -22,6 +23,16 @@ const STATIC_ROUTES: Array<{
   { path: "/refund-policy", changefreq: "yearly", priority: "0.3" },
   { path: "/cookie-policy", changefreq: "yearly", priority: "0.3" },
   { path: "/terms", changefreq: "yearly", priority: "0.3" },
+];
+
+// Author profile slugs are sourced from the static frontend data file
+// (`artifacts/fintechpresshub/src/data/authors.ts`). Keep this in sync when
+// adding or removing team members.
+const AUTHOR_SLUGS: string[] = [
+  "marcus-webb",
+  "priya-nair",
+  "james-okafor",
+  "sarah-chen",
 ];
 
 function escapeXml(value: string): string {
@@ -57,6 +68,12 @@ async function buildSitemapXml(): Promise<string> {
       lastmod: p.publishedAt.toISOString().slice(0, 10),
       changefreq: "monthly",
       priority: "0.7",
+    })),
+    ...AUTHOR_SLUGS.map((slug) => ({
+      loc: `${siteUrl}/authors/${slug}`,
+      lastmod: today,
+      changefreq: "monthly",
+      priority: "0.6",
     })),
   ];
 

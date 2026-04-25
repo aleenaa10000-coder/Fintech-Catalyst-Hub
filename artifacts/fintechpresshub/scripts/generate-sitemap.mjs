@@ -1,4 +1,4 @@
-import { writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -13,6 +13,7 @@ const STATIC_ROUTES = [
   { path: "/services", changefreq: "monthly", priority: "0.9" },
   { path: "/pricing", changefreq: "monthly", priority: "0.9" },
   { path: "/blog", changefreq: "daily", priority: "0.9" },
+  { path: "/authors", changefreq: "monthly", priority: "0.7" },
   { path: "/write-for-us", changefreq: "monthly", priority: "0.6" },
   { path: "/editorial-guidelines", changefreq: "yearly", priority: "0.4" },
   { path: "/contact", changefreq: "yearly", priority: "0.5" },
@@ -26,6 +27,16 @@ const postsModule = await import(
   pathToFileURL(resolve(projectRoot, "src/data/posts.js")).href
 );
 const posts = postsModule.default ?? [];
+
+// authors.ts is TypeScript and can't be dynamically imported in plain Node.
+// The data file is a flat array of object literals — extract slugs with a regex.
+const authorsSource = await readFile(
+  resolve(projectRoot, "src/data/authors.ts"),
+  "utf8",
+);
+const authors = Array.from(
+  authorsSource.matchAll(/slug:\s*["']([a-z0-9-]+)["']/g),
+).map((m) => ({ slug: m[1] }));
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -41,6 +52,12 @@ const urlEntries = [
     lastmod: p.date || today,
     changefreq: "monthly",
     priority: "0.7",
+  })),
+  ...authors.map((a) => ({
+    loc: `${SITE_URL}/authors/${a.slug}`,
+    lastmod: today,
+    changefreq: "monthly",
+    priority: "0.6",
   })),
 ];
 
@@ -65,5 +82,5 @@ await mkdir(dirname(outPath), { recursive: true });
 await writeFile(outPath, xml, "utf8");
 
 console.log(
-  `Wrote ${urlEntries.length} URLs (${STATIC_ROUTES.length} static + ${posts.length} posts) to ${outPath}`,
+  `Wrote ${urlEntries.length} URLs (${STATIC_ROUTES.length} static + ${posts.length} posts + ${authors.length} authors) to ${outPath}`,
 );
