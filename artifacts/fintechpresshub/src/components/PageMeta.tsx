@@ -47,11 +47,24 @@ export type ArticleSchema = {
   tags?: string[];
 };
 
+export type PersonSchema = {
+  name: string;
+  jobTitle?: string;
+  description?: string;
+  image?: string;
+  url?: string;
+  email?: string;
+  sameAs?: string[];
+  knowsAbout?: string[];
+  worksFor?: string;
+};
+
 type Common = {
   title?: string;
   description?: string;
   canonical?: string;
   article?: ArticleSchema;
+  person?: PersonSchema;
 };
 
 type PageMetaProps =
@@ -84,6 +97,27 @@ export function PageMeta(props: PageMetaProps) {
           })),
         }
       : null;
+
+  const personJsonLd = props.person
+    ? {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        mainEntity: {
+          "@type": "Person",
+          name: props.person.name,
+          jobTitle: props.person.jobTitle,
+          description: props.person.description,
+          image: props.person.image,
+          url: props.person.url ?? canonical,
+          email: props.person.email,
+          sameAs: props.person.sameAs?.filter(Boolean),
+          knowsAbout: props.person.knowsAbout,
+          worksFor: props.person.worksFor
+            ? { "@type": "Organization", name: props.person.worksFor }
+            : { "@type": "Organization", name: SITE_NAME },
+        },
+      }
+    : null;
 
   const articleJsonLd = props.article
     ? {
@@ -162,6 +196,11 @@ export function PageMeta(props: PageMetaProps) {
       {articleJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(articleJsonLd)}
+        </script>
+      ) : null}
+      {personJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(personJsonLd)}
         </script>
       ) : null}
     </Helmet>

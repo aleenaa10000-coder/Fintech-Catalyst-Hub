@@ -65,6 +65,21 @@ export default function AuthorPage() {
       <PageMeta
         title={`${author.name} — ${author.role} | FintechPressHub`}
         description={author.shortBio}
+        person={{
+          name: author.name,
+          jobTitle: author.role,
+          description:
+            author.fullBio?.join(" ") ?? author.shortBio,
+          image: author.photo
+            ? `https://www.fintechpresshub.com${author.photo}`
+            : undefined,
+          knowsAbout: author.expertise,
+          sameAs: [
+            author.social?.linkedin,
+            author.social?.twitter,
+            author.social?.website,
+          ].filter((u): u is string => Boolean(u)),
+        }}
       />
 
       {/* Header */}
