@@ -40,9 +40,9 @@ export function Header() {
           <img
             src={logoSvg}
             alt="FintechPressHub - Fintech SEO Agency"
-            className="h-8 w-auto"
-            width={180}
-            height={40}
+            className="h-11 w-auto"
+            width={220}
+            height={44}
           />
         </Link>
 
