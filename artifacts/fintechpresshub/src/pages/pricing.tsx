@@ -27,6 +27,18 @@ const faqs = [
     q: "Can we upgrade or downgrade our plan?",
     a: "Absolutely. You can adjust your retainer at the end of any billing cycle to match your current growth priorities and budget.",
   },
+  {
+    q: "How long until we see results from fintech SEO?",
+    a: "Most clients see meaningful ranking improvements in 3-4 months and significant organic traffic growth by month 6. Fintech is a competitive, regulated vertical, so authority and topical depth take time to compound — but the traffic we build is durable.",
+  },
+  {
+    q: "Do you only work with fintech companies?",
+    a: "Yes. We work exclusively with fintech, payments, lending, wealth, banking infrastructure, and crypto-adjacent companies. That focus is what lets our writers and link builders deliver work that meets compliance, accuracy, and E-E-A-T standards Google rewards in YMYL verticals.",
+  },
+  {
+    q: "What is included in a content piece?",
+    a: "Every article includes topic research, SEO brief with target keywords and SERP analysis, original writing by a fintech-experienced editor, internal linking, on-page optimization, and unlimited revisions before publish. We also handle CMS upload if requested.",
+  },
 ];
 
 export default function Pricing() {
@@ -34,7 +46,10 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="pricing" />
+      <PageMeta
+        page="pricing"
+        faq={faqs.map((f) => ({ question: f.q, answer: f.a }))}
+      />
       <PageHero
         eyebrow="Pricing"
         title={<>Invest in Sustainable Growth</>}

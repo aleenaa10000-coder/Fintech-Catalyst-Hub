@@ -47,6 +47,8 @@ export type ArticleSchema = {
   tags?: string[];
 };
 
+export type FaqItem = { question: string; answer: string };
+
 export type PersonSchema = {
   name: string;
   jobTitle?: string;
@@ -65,6 +67,7 @@ type Common = {
   canonical?: string;
   article?: ArticleSchema;
   person?: PersonSchema;
+  faq?: FaqItem[];
 };
 
 type PageMetaProps =
@@ -94,6 +97,22 @@ export function PageMeta(props: PageMetaProps) {
             position: i + 1,
             name: c.name,
             item: c.item,
+          })),
+        }
+      : null;
+
+  const faqJsonLd =
+    props.faq && props.faq.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: props.faq.map((item) => ({
+            "@type": "Question",
+            name: item.question,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: item.answer,
+            },
           })),
         }
       : null;
@@ -201,6 +220,11 @@ export function PageMeta(props: PageMetaProps) {
       {personJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(personJsonLd)}
+        </script>
+      ) : null}
+      {faqJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(faqJsonLd)}
         </script>
       ) : null}
     </Helmet>
