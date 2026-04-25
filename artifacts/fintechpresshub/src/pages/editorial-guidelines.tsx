@@ -88,12 +88,14 @@ function ComparisonGrid({
 type Section = { id: string; label: string };
 
 const SECTIONS: Section[] = [
+  { id: "topical-scope", label: "Topical Scope" },
   { id: "accuracy", label: "Accuracy" },
   { id: "ai-policy", label: "AI Policy" },
   { id: "voice-tone", label: "Voice/Tone" },
   { id: "article-length", label: "Article Length" },
   { id: "originality", label: "Originality" },
   { id: "outbound-linking", label: "Outbound Linking" },
+  { id: "contributor-links", label: "Contributor Link Policy" },
 ];
 
 function scrollToSection(id: string) {
@@ -204,7 +206,52 @@ export default function EditorialGuidelines() {
                 standards.
               </p>
 
-              <h2 id="accuracy">1. Accuracy &amp; Fact-Checking</h2>
+              <h2 id="topical-scope">1. Topical Scope</h2>
+              <p>
+                Every piece we publish has to serve a working fintech operator — a founder, growth
+                lead, product manager, compliance officer, or CFO. Our editorial calendar is built
+                around the verticals and disciplines below. Pitches that fall outside this scope are
+                returned regardless of writing quality.
+              </p>
+              <ul>
+                <li>
+                  <strong>Fintech marketing &amp; growth:</strong> B2B and B2C fintech demand
+                  generation, lifecycle, conversion-rate optimization for financial products,
+                  paid acquisition, and brand positioning.
+                </li>
+                <li>
+                  <strong>SEO &amp; content for financial services:</strong> SaaS fintech SEO,
+                  programmatic SEO, topical authority, technical SEO audits, link building, and
+                  YMYL content strategy.
+                </li>
+                <li>
+                  <strong>Payments &amp; banking infrastructure:</strong> Payments rails, payment
+                  orchestration, card issuing, acquiring, treasury and CFO tooling, banking-as-a-service,
+                  and embedded finance.
+                </li>
+                <li>
+                  <strong>Open Banking &amp; data:</strong> Open Banking, PSD2 / PSD3, account
+                  aggregation, data-sharing standards, and consent UX.
+                </li>
+                <li>
+                  <strong>Lending, BNPL &amp; credit:</strong> Underwriting models, alternative
+                  data, BNPL economics, SMB lending, and consumer credit.
+                </li>
+                <li>
+                  <strong>Wealthtech &amp; crypto:</strong> Robo-advisors, brokerage UX, stablecoin
+                  payments, on-ramps/off-ramps, and tokenized assets.
+                </li>
+                <li>
+                  <strong>Regtech &amp; compliance marketing:</strong> KYC/AML, sanctions screening,
+                  fraud, and how compliant fintechs position regulated products without overclaiming.
+                </li>
+                <li>
+                  <strong>Neobanking &amp; digital banking:</strong> Challenger bank growth,
+                  deposit acquisition, primary-account strategy, and unit economics.
+                </li>
+              </ul>
+
+              <h2 id="accuracy">2. Accuracy &amp; Fact-Checking</h2>
               <p>
                 The financial industry is highly regulated. All content must prioritize accuracy
                 above all else. Use the comparison below to vet every statistic, claim, and citation
@@ -258,7 +305,7 @@ export default function EditorialGuidelines() {
                 ]}
               />
 
-              <h2 id="ai-policy">2. AI Policy</h2>
+              <h2 id="ai-policy">3. AI Policy</h2>
               <p>
                 AI tools can accelerate research and ideation, but the final voice, analysis, and
                 expertise on the page must come from a human operator. Use the comparison below to
@@ -312,7 +359,7 @@ export default function EditorialGuidelines() {
                 ]}
               />
 
-              <h2 id="voice-tone">3. Voice and Tone</h2>
+              <h2 id="voice-tone">4. Voice and Tone</h2>
               <p>
                 Our brand voice is <strong>Expert, Confident, and Precise</strong>.
               </p>
@@ -330,7 +377,7 @@ export default function EditorialGuidelines() {
                 </li>
               </ul>
 
-              <h2 id="article-length">4. Article Length</h2>
+              <h2 id="article-length">5. Article Length</h2>
               <p>
                 Every article should land between <strong>800 and 1,500 words</strong>. This range
                 is long enough to cover a fintech topic with genuine depth — including data,
@@ -352,14 +399,14 @@ export default function EditorialGuidelines() {
                 </li>
               </ul>
 
-              <h2 id="originality">5. Originality</h2>
+              <h2 id="originality">6. Originality</h2>
               <p>
                 All content must be 100% original. We run all submissions through plagiarism
                 checkers. We do not accept syndicated content or articles that have been published
                 elsewhere.
               </p>
 
-              <h2 id="outbound-linking">6. Outbound Linking</h2>
+              <h2 id="outbound-linking">7. Outbound Linking</h2>
               <p>
                 We encourage linking to high-quality external resources to provide context, evidence,
                 and further reading. Every outbound link must clear the bar below — no exceptions.
@@ -412,6 +459,52 @@ export default function EditorialGuidelines() {
                   },
                 ]}
               />
+
+              <h2 id="contributor-links">8. Contributor Link Policy</h2>
+              <p>
+                Guest contributors and sponsored partners receive a fixed, transparent backlink
+                allowance from FintechPressHub. Because we publish on a topically-focused fintech
+                domain, every approved link passes contextual link equity from a niche-relevant
+                page — exactly what fintech SEO teams are after.
+              </p>
+              <ul>
+                <li>
+                  <strong>One (1) dofollow contextual backlink:</strong> placed in-body, surrounded
+                  by relevant copy, and pointing to a real fintech product page, study, data set,
+                  blog post, or tool — never a thin landing page or affiliate redirect.
+                </li>
+                <li>
+                  <strong>One (1) dofollow author-bio link:</strong> to your company homepage,
+                  personal site, or LinkedIn. Author bios are reused across all your articles, so
+                  this link compounds with each new contribution.
+                </li>
+                <li>
+                  <strong>Natural anchor text only:</strong> branded, partial-match, or descriptive
+                  phrases. Exact-match commercial anchors (e.g., “best fintech SEO agency”) are
+                  rewritten by editors to protect both sites from over-optimization penalties.
+                </li>
+                <li>
+                  <strong>Niche-aligned destinations only:</strong> your link target must serve the
+                  same fintech reader the article is written for. We strip links to gambling,
+                  adult, payday, CBD, and other off-niche or YMYL-risky categories during edit.
+                </li>
+                <li>
+                  <strong>Editor-granted citations:</strong> additional dofollow references may be
+                  added when they cite primary data, regulator filings, original research, or
+                  first-party customer stories that materially strengthen the article.
+                </li>
+                <li>
+                  <strong>Permanence:</strong> approved links remain live and dofollow for the
+                  lifetime of the article. We do not run silent link audits that quietly remove
+                  contributor backlinks after publication.
+                </li>
+                <li>
+                  <strong>What voids the allowance:</strong> undisclosed paid placements inserted
+                  after publication, link swaps with low-quality networks, and any attempt to
+                  redirect the agreed URL to a different destination — all result in immediate
+                  link removal and a permanent contributor ban.
+                </li>
+              </ul>
             </div>
           </article>
         </div>

@@ -128,7 +128,15 @@ export default function WriteForUs() {
                     </div>
                     <div>
                       <h3 className="font-bold text-foreground mb-1">Strict Fintech Focus</h3>
-                      <p className="text-sm text-muted-foreground">Topics must cover B2B/B2C fintech marketing, SEO, compliance marketing, Open Banking, or payments infrastructure.</p>
+                      <p className="text-sm text-muted-foreground">
+                        Pitches must serve a fintech operator audience. We publish on B2B and B2C
+                        fintech marketing, SaaS fintech SEO, embedded finance, Open Banking and PSD2
+                        / PSD3, payments infrastructure, BNPL, neobanking and digital banking,
+                        lending and credit underwriting, wealthtech and robo-advisors, regtech,
+                        KYC/AML and compliance marketing, crypto and stablecoin payments, treasury
+                        and CFO tooling, card issuing, payment orchestration, and conversion-rate
+                        optimization for financial products. Off-niche pitches are auto-rejected.
+                      </p>
                     </div>
                   </div>
                   <div
@@ -140,7 +148,16 @@ export default function WriteForUs() {
                     </div>
                     <div>
                       <h3 className="font-bold text-foreground mb-1">Dofollow Link Policy</h3>
-                      <p className="text-sm text-muted-foreground">You receive one (1) dofollow contextual link to your site and one in the author bio. Links must add value to the article.</p>
+                      <p className="text-sm text-muted-foreground">
+                        Every approved guest post earns one (1) dofollow contextual backlink to your
+                        fintech product, study, or blog page, plus one dofollow link in the author
+                        bio — both passing full link equity from a topically-relevant, niche-aligned
+                        domain. Anchor text must read naturally (no exact-match money keywords) and
+                        the destination page must genuinely help a fintech reader. Off-topic,
+                        affiliate, casino, CBD, payday, and thin landing-page links are stripped or
+                        rejected. Additional dofollow citations may be granted at editor discretion
+                        when they reference primary data, regulator filings, or original research.
+                      </p>
                     </div>
                   </div>
                 </CardContent>
