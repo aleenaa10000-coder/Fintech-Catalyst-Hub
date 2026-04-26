@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   Clock,
   Calendar,
   User,
@@ -100,6 +101,32 @@ export default function BlogPost() {
     const processed = processContent(post.content);
     return { contentHtml: processed.html, headings: processed.headings };
   }, [post?.content]);
+
+  // Word count + ISO 8601 reading time. Both are emitted to BlogPosting JSON-LD
+  // (`wordCount`, `timeRequired`) and the word count also appears in the hero
+  // stat row as a quick credibility / depth signal for readers.
+  const { wordCount, readingMinutes, timeRequiredIso } = useMemo(() => {
+    if (!contentHtml) {
+      return { wordCount: 0, readingMinutes: 0, timeRequiredIso: undefined };
+    }
+    const plain = contentHtml.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const words = plain ? plain.split(" ").length : 0;
+    // 225 wpm is the conservative reading-speed midpoint used by Medium/Blinkist.
+    const minutes = Math.max(1, Math.round(words / 225));
+    return {
+      wordCount: words,
+      readingMinutes: minutes,
+      timeRequiredIso: `PT${minutes}M`,
+    };
+  }, [contentHtml]);
+
+  // Pull the first 3–5 H2 headings as a "Key Takeaways" / what's-in-this-guide
+  // panel above the content. Skim-friendly for readers, BLUF-friendly for AI
+  // Overviews and featured snippets, and aligns with the seo-auditor playbook.
+  const keyTakeaways = useMemo(
+    () => headings.filter((h) => h.level === 2).slice(0, 5),
+    [headings],
+  );
 
   // Split article content roughly in half (at the closest </p> after midpoint)
   // so we can insert an inline Lead Magnet CTA between the two halves.
@@ -239,8 +266,13 @@ export default function BlogPost() {
           )}&category=${encodeURIComponent(post.category ?? "Insights")}`,
           datePublished: post.date,
           author: post.author,
+          authorUrl: `${SITE_URL}/authors/${authorSlugFromName(post.author)}`,
+          authorJobTitle: post.authorRole,
           section: post.category,
           tags: post.tags,
+          wordCount: wordCount > 0 ? wordCount : undefined,
+          timeRequired: timeRequiredIso,
+          inLanguage: "en",
         }}
       />
       {/* Floating vertical share bar (xl+) */}
@@ -378,8 +410,19 @@ export default function BlogPost() {
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-slate-400" />
-                <span>{post.readTime}</span>
+                <span>
+                  {readingMinutes > 0 ? `${readingMinutes} min read` : post.readTime}
+                </span>
               </span>
+              {wordCount > 0 ? (
+                <span
+                  className="hidden sm:inline-flex items-center gap-1.5"
+                  aria-label={`${wordCount.toLocaleString()} words`}
+                >
+                  <BookOpen className="w-4 h-4 text-slate-400" />
+                  <span>{wordCount.toLocaleString()} words</span>
+                </span>
+              ) : null}
             </div>
           </div>
 
@@ -424,16 +467,77 @@ export default function BlogPost() {
         </div>
       </header>
 
-      {/* Cover image overflowing into content */}
-      <div className="container mx-auto px-4 max-w-4xl -mt-8 md:-mt-12 mb-16 relative z-10">
-        <div className="aspect-[2/1] w-full overflow-hidden rounded-2xl shadow-xl border border-slate-100 bg-slate-100">
+      {/* Cover image overflowing into content.
+          - Explicit width/height locks the aspect ratio and prevents CLS.
+          - fetchPriority="high" + eager loading boosts LCP (this is the
+            largest above-the-fold element on the page).
+          - Richer alt text combines title + category for descriptive SEO. */}
+      <div className="container mx-auto px-4 max-w-4xl -mt-8 md:-mt-12 mb-12 relative z-10">
+        <figure className="aspect-[2/1] w-full overflow-hidden rounded-2xl shadow-xl border border-slate-100 bg-slate-100">
           <img
             src={post.image}
-            alt={post.title}
+            alt={`${post.title} — ${post.category} guide cover image`}
+            width={1200}
+            height={600}
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             className="w-full h-full object-cover"
           />
-        </div>
+        </figure>
       </div>
+
+      {/* Key Takeaways panel — auto-built from H2 headings. Skim-friendly
+          summary above the fold; helps featured-snippet eligibility and
+          gives AI Overviews a clean BLUF (Bottom Line Up Front) to cite. */}
+      {keyTakeaways.length >= 3 ? (
+        <div className="container mx-auto px-4 max-w-4xl mb-12">
+          <aside
+            aria-labelledby="key-takeaways-heading"
+            className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/80 via-white to-white p-6 sm:p-8 shadow-sm"
+          >
+            <div
+              aria-hidden="true"
+              className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-[#0052FF]/10 blur-2xl pointer-events-none"
+            />
+            <div className="relative flex items-start gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-[#0052FF] text-white flex items-center justify-center shadow-md">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0052FF] mb-1">
+                  In this guide
+                </div>
+                <h2
+                  id="key-takeaways-heading"
+                  className="text-lg sm:text-xl font-bold text-slate-900 mb-4"
+                >
+                  Key takeaways
+                </h2>
+                <ol className="space-y-2.5">
+                  {keyTakeaways.map((h, idx) => (
+                    <li key={h.id} className="flex items-start gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="shrink-0 mt-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-blue-200 text-[#0052FF] text-xs font-bold"
+                      >
+                        {idx + 1}
+                      </span>
+                      <a
+                        href={`#${h.id}`}
+                        className="text-sm sm:text-base text-slate-700 hover:text-[#0052FF] hover:underline underline-offset-4 decoration-2 transition-colors"
+                        data-testid={`key-takeaway-${h.id}`}
+                      >
+                        {h.text}
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
 
       {/* Content + sticky TOC grid */}
       <div className="container mx-auto px-4 max-w-7xl">

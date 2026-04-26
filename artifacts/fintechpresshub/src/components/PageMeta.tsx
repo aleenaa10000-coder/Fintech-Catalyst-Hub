@@ -43,10 +43,20 @@ export type ArticleSchema = {
   datePublished?: string;
   dateModified?: string;
   author?: string;
+  /** Canonical URL of the author's profile page — surfaces author entity to Google. */
+  authorUrl?: string;
+  /** Author job title — strengthens E-E-A-T signal in BlogPosting schema. */
+  authorJobTitle?: string;
   section?: string;
   tags?: string[];
   about?: string[];
   mentions?: string[];
+  /** Plain-text word count for the article body. Emitted on BlogPosting JSON-LD. */
+  wordCount?: number;
+  /** Reading time as an ISO 8601 duration (e.g. "PT8M") for `timeRequired`. */
+  timeRequired?: string;
+  /** BCP-47 language tag — defaults to "en" when omitted. */
+  inLanguage?: string;
 };
 
 export type FaqItem = { question: string; answer: string };
@@ -306,18 +316,34 @@ export function PageMeta(props: PageMetaProps) {
   const articleJsonLd = props.article
     ? {
         "@context": "https://schema.org",
-        "@type": "Article",
+        // BlogPosting is a more specific subtype of Article — it tells Google
+        // this is editorial blog content (vs. news, scholarly, etc.) and is
+        // the recommended type for the Article rich result for blog posts.
+        "@type": "BlogPosting",
+        "@id": `${canonical}#article`,
         headline: props.article.title,
         description: props.article.description,
-        image: props.article.image,
+        // Image as an array allows multiple aspect ratios — Google picks the
+        // best one for the SERP placement (1:1, 4:3, 16:9 are all valid).
+        image: props.article.image ? [props.article.image] : undefined,
         datePublished: props.article.datePublished,
         dateModified:
           props.article.dateModified ?? props.article.datePublished,
         author: props.article.author
-          ? { "@type": "Person", name: props.article.author }
+          ? {
+              "@type": "Person",
+              name: props.article.author,
+              ...(props.article.authorUrl
+                ? { url: props.article.authorUrl }
+                : {}),
+              ...(props.article.authorJobTitle
+                ? { jobTitle: props.article.authorJobTitle }
+                : {}),
+            }
           : undefined,
         publisher: {
           "@type": "Organization",
+          "@id": `${SITE_URL}#organization`,
           name: SITE_NAME,
           logo: {
             "@type": "ImageObject",
@@ -328,8 +354,21 @@ export function PageMeta(props: PageMetaProps) {
           "@type": "WebPage",
           "@id": canonical,
         },
+        isPartOf: {
+          "@type": "Blog",
+          "@id": `${SITE_URL}/blog#blog`,
+          name: `${SITE_NAME} Blog`,
+          url: `${SITE_URL}/blog`,
+        },
         articleSection: props.article.section,
         keywords: props.article.tags?.join(", "),
+        inLanguage: props.article.inLanguage ?? "en",
+        ...(typeof props.article.wordCount === "number"
+          ? { wordCount: props.article.wordCount }
+          : {}),
+        ...(props.article.timeRequired
+          ? { timeRequired: props.article.timeRequired }
+          : {}),
         ...(props.article.about && props.article.about.length > 0
           ? {
               about: props.article.about.map((name) => ({
@@ -375,6 +414,30 @@ export function PageMeta(props: PageMetaProps) {
         content={props.article?.image ?? `${SITE_URL}/opengraph.jpg`}
       />
       <meta property="og:image:alt" content="FintechPressHub - Fintech SEO Agency" />
+      {/* Article-specific OG tags help LinkedIn/Facebook show "Published by" + author byline. */}
+      {props.article?.datePublished ? (
+        <meta
+          property="article:published_time"
+          content={props.article.datePublished}
+        />
+      ) : null}
+      {props.article?.dateModified ?? props.article?.datePublished ? (
+        <meta
+          property="article:modified_time"
+          content={
+            props.article?.dateModified ?? props.article?.datePublished ?? ""
+          }
+        />
+      ) : null}
+      {props.article?.author ? (
+        <meta property="article:author" content={props.article.author} />
+      ) : null}
+      {props.article?.section ? (
+        <meta property="article:section" content={props.article.section} />
+      ) : null}
+      {props.article?.tags?.map((tag) => (
+        <meta key={`og-tag-${tag}`} property="article:tag" content={tag} />
+      ))}
       <meta name="twitter:card" content="summary_large_image" />
       {title ? <meta name="twitter:title" content={title} /> : null}
       {description ? (
