@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Plus,
   Mail,
   Loader2,
   Send,
@@ -750,17 +751,25 @@ export default function FinancialHealthScoreCalculator() {
                 Common questions about financial health scoring
               </h2>
             </div>
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion
+              type="single"
+              collapsible
+              className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
+            >
               {FAQS.map((faq, i) => (
                 <AccordionItem
                   key={faq.question}
                   value={`faq-${i}`}
                   data-testid={`faq-item-${i}`}
+                  className="border-b-0 group"
                 >
-                  <AccordionTrigger className="text-left text-base font-semibold text-slate-900 hover:text-[#0052FF]">
-                    {faq.question}
+                  <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
+                    <span className="flex-1 pr-4">{faq.question}</span>
+                    <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
+                      <Plus className="w-5 h-5" />
+                    </span>
                   </AccordionTrigger>
-                  <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
+                  <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
                     {faq.answer}
                   </AccordionContent>
                 </AccordionItem>
