@@ -350,6 +350,43 @@ export default function WriteForUs() {
     watchedPitch.trim().length > 0;
   const isSubmitDisabled = !requiredFilled || submitPost.isPending;
 
+  /**
+   * Click handler for the topic cards: pre-fills the "Proposed Working Title"
+   * with the card title, smooth-scrolls to the pitch form, then focuses the
+   * topic input so the contributor can start typing their angle immediately.
+   * `shouldDirty` ensures the value sticks; `shouldValidate` defers the error
+   * UI until the user leaves the field.
+   */
+  function handleTopicCardClick(title: string) {
+    form.setValue("topic", title, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: false,
+    });
+
+    const formEl = document.getElementById("pitch-form");
+    if (formEl) {
+      formEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // Focus the topic input after the smooth-scroll animation kicks in,
+    // and place the caret at the end so the user can append their angle.
+    window.setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>(
+        'input[name="topic"]',
+      );
+      if (input) {
+        input.focus({ preventScroll: true });
+        const len = input.value.length;
+        try {
+          input.setSelectionRange(len, len);
+        } catch {
+          /* setSelectionRange unsupported on some input types — safe to ignore */
+        }
+      }
+    }, 450);
+  }
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     submitPost.mutate(values, {
       onSuccess: () => {
@@ -517,14 +554,23 @@ export default function WriteForUs() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {topicCategories.map((cat) => (
-              <div
+              <button
                 key={cat.title}
+                type="button"
+                onClick={() => handleTopicCardClick(cat.title)}
+                aria-label={`Pitch a ${cat.title} article — pre-fill the form below`}
                 data-testid={`topic-${cat.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
-                className="group rounded-2xl bg-card border border-border/70 p-6 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 transition-all"
+                className="group text-left rounded-2xl bg-card border border-border/70 p-6 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
-                <h3 className="font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
-                  {cat.title}
-                </h3>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                    {cat.title}
+                  </h3>
+                  <ArrowRight
+                    aria-hidden="true"
+                    className="w-4 h-4 mt-1 shrink-0 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all"
+                  />
+                </div>
                 <ul className="space-y-2">
                   {cat.items.map((it) => (
                     <li
@@ -536,7 +582,11 @@ export default function WriteForUs() {
                     </li>
                   ))}
                 </ul>
-              </div>
+                <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                  Pitch this topic
+                  <ArrowRight aria-hidden="true" className="w-3 h-3" />
+                </span>
+              </button>
             ))}
           </div>
         </div>
