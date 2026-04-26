@@ -12,7 +12,7 @@ import {
   Sparkles,
   Twitter,
 } from "lucide-react";
-import posts from "@/data/posts.js";
+import { usePublicPosts } from "@/data/usePublicPosts";
 import { authors, authorSlugFromName } from "@/data/authors";
 
 function authorInitials(name: string): string {
@@ -26,14 +26,14 @@ function authorInitials(name: string): string {
 }
 
 export default function AuthorsIndex() {
-  const articleCounts = (posts as any[]).reduce<Record<string, number>>(
-    (acc, p) => {
-      const slug = authorSlugFromName(p.author);
-      acc[slug] = (acc[slug] ?? 0) + 1;
-      return acc;
-    },
-    {},
-  );
+  // Counts include API-published posts, so per-author article totals stay
+  // accurate as new pieces ship through /admin/blog.
+  const { posts: allPosts } = usePublicPosts();
+  const articleCounts = allPosts.reduce<Record<string, number>>((acc, p) => {
+    const slug = authorSlugFromName(p.author);
+    acc[slug] = (acc[slug] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-background">

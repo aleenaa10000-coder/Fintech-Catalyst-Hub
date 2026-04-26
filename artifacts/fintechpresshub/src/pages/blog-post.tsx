@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import posts from "@/data/posts.js";
+import { usePublicPosts, usePublicPostBySlug } from "@/data/usePublicPosts";
 import { authorSlugFromName, getAuthorByName } from "@/data/authors";
 import { useAuth } from "@workspace/replit-auth-web";
 
@@ -89,10 +89,11 @@ export default function BlogPost() {
   const { user } = useAuth();
   const isAdmin = Boolean(user?.isAdmin);
 
-  const post = useMemo(
-    () => posts.find((p: any) => p.slug === slug),
-    [slug],
-  );
+  // Pulls from the merged feed (static seed posts + API-published posts).
+  // Slug collisions resolve in favour of the API version, so an admin can
+  // republish a seed post in the dashboard to "edit" it.
+  const { post, isLoading: postsLoading } = usePublicPostBySlug(slug);
+  const { posts: allPosts } = usePublicPosts();
 
   const { contentHtml, headings } = useMemo(() => {
     if (!post?.content) return { contentHtml: "", headings: [] as Heading[] };
@@ -135,10 +136,10 @@ export default function BlogPost() {
 
   const relatedPosts = useMemo(
     () =>
-      posts
-        .filter((p: any) => p.category === post?.category && p.id !== post?.id)
+      allPosts
+        .filter((p) => p.category === post?.category && p.id !== post?.id)
         .slice(0, 3),
-    [post?.id, post?.category],
+    [allPosts, post?.id, post?.category],
   );
 
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
@@ -196,7 +197,17 @@ export default function BlogPost() {
     return () => observer.disconnect();
   }, [contentHtml, headings]);
 
+  // Don't redirect to /404 while the API list is still loading — otherwise
+  // direct hits on a post that only exists in the database would briefly
+  // 404 before the data resolves. Show a quiet placeholder instead.
   if (!post) {
+    if (postsLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <p className="text-muted-foreground">Loading…</p>
+        </div>
+      );
+    }
     return <Redirect to="/404" />;
   }
 

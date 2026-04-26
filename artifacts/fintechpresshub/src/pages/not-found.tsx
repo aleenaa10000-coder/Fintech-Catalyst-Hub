@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BarChart2, Home, ArrowRight, Clock, Calendar } from "lucide-react";
-import posts from "@/data/posts.js";
+import { usePublicPosts } from "@/data/usePublicPosts";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", {
@@ -13,11 +13,12 @@ const formatDate = (iso: string) =>
   });
 
 export default function NotFound() {
-
-  const popular = [...posts]
+  // Pull the merged feed so the "popular reads" section can surface fresh
+  // API-published posts, not just the seed file.
+  const { posts: allPosts } = usePublicPosts();
+  const popular = [...allPosts]
     .sort(
-      (a: any, b: any) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime(),
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     )
     .slice(0, 4);
 

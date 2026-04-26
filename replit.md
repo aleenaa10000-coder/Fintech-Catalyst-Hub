@@ -87,6 +87,10 @@ User intends to host the final site on Hostinger Business plan. Frontend builds 
 - Routes mounted at root in `app.ts`; `artifact.toml` exposes `/objects` (and `/sitemap.xml`) on the API service.
 - Client uses Uppy v5 `DashboardModal` via `artifacts/fintechpresshub/src/components/ObjectUploader.tsx`. `/admin/blog` shows an upload button next to the cover image URL field in both the create form and the inline `PostEditor`; on success the field is auto-filled with `/objects/<id>`. Vite dev proxy forwards `/objects` to the API server.
 
+## Public blog: merged feed (static seed + API posts)
+
+The public-facing blog (`/blog`, `/blog/:slug`, `/authors`, `/authors/:slug`, `/404`) reads through `src/data/usePublicPosts.ts` instead of importing the static `src/data/posts.js` array directly. The hook calls `useListBlogPosts()` for API posts, maps the API `BlogPost` shape (`coverImage` → `image`, `publishedAt` → `date`, `readingMinutes` → `readTime`, id namespaced as `api-<n>`) into the unified `PublicPost` shape used by the UI, then merges with the static seed array — **API posts overlay seed posts on slug collision**, so re-publishing a seed post through `/admin/blog` is the documented way to "edit" it. Sort order is newest-first by `date`. Static posts render instantly so the page never blocks on the API; API posts fold in on resolve. `usePublicPostBySlug(slug)` is a convenience wrapper used by `blog-post.tsx` (which now also gates the 404 redirect on `!isLoading` so direct hits to API-only posts don't briefly 404 before the data lands).
+
 ## Admin auth & gate
 
 The `/admin/blog` route is protected via Replit OIDC (`@workspace/replit-auth-web` → `useAuth()`). Sign-in flow: `/api/login` → Replit OIDC → `/api/callback` → cookie-backed session row in `sessions` table; `/api/logout` clears it. The admin page renders three states: loading, "Admin sign in required" (signed out), and "Not authorized" (signed in but not on the allowlist), before rendering the publish/edit/delete UI.

@@ -17,7 +17,7 @@ import {
   Sparkles,
   Twitter,
 } from "lucide-react";
-import posts from "@/data/posts.js";
+import { usePublicPosts } from "@/data/usePublicPosts";
 import {
   authors,
   authorSlugFromName,
@@ -46,15 +46,19 @@ export default function AuthorPage() {
   const slug = params.slug || "";
 
   const author = useMemo(() => getAuthorBySlug(slug), [slug]);
+  // Merged feed picks up newly published API posts so an author's profile
+  // automatically reflects everything they've published — including posts
+  // created in /admin/blog after the static seed file was generated.
+  const { posts: allPosts } = usePublicPosts();
 
   const authorPosts = useMemo(() => {
-    if (!author) return [] as any[];
-    return (posts as any[])
+    if (!author) return [];
+    return allPosts
       .filter((p) => authorSlugFromName(p.author) === author.slug)
       .sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       );
-  }, [author]);
+  }, [author, allPosts]);
 
   if (!author) {
     return <Redirect to="/404" />;

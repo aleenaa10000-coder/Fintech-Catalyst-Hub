@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/PageHero";
 import { Calendar, Clock, ArrowRight, Mail, CheckCircle2, Users } from "lucide-react";
 import { toast } from "sonner";
-import posts from "@/data/posts.js";
+import { usePublicPosts, type PublicPost } from "@/data/usePublicPosts";
 import { authors } from "@/data/authors";
 
 const formatDate = (iso: string) =>
@@ -19,15 +19,7 @@ const formatDate = (iso: string) =>
     year: "numeric",
   });
 
-type Post = {
-  id: number;
-  title: string;
-  excerpt: string;
-  category: string;
-  image: string;
-  date: string;
-  readTime: string;
-};
+type Post = PublicPost;
 
 const TOPIC_CATEGORIES: string[] = [
   "Embedded Finance",
@@ -46,7 +38,10 @@ const TOPIC_CATEGORIES: string[] = [
 ];
 
 export default function Blog() {
-  const allPosts = posts as Post[];
+  // Merged feed: static seed posts + anything published through /admin/blog.
+  // API posts overlay seed posts on slug collision, so re-publishing a seed
+  // post in the dashboard cleanly "edits" it for public visitors.
+  const { posts: allPosts } = usePublicPosts();
 
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
