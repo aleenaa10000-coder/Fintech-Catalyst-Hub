@@ -41,7 +41,7 @@ const wfuFaqs = [
   {
     question: "What word count do you require?",
     answer:
-      "Articles must be between 1,000 and 3,000 words. Pieces backed by original data, proprietary research, or detailed how-to guides routinely reach 2,000+ words and perform best in search. Thin 800-word fillers are rejected at pitch stage.",
+      "Articles must be between 800 and 1,500 words. Every word must earn its place — tightly scoped, deeply researched pieces consistently outperform padded long-form in our niche. Thin or AI-generated content is rejected at pitch stage.",
   },
   {
     question: "Do I keep copyright on my article?",
