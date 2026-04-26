@@ -16,4 +16,6 @@ export interface AuthUser {
   lastName: string | null;
   /** @nullable */
   profileImageUrl: string | null;
+  /** True when the signed-in user's email is in the ADMIN_EMAILS allowlist. */
+  isAdmin: boolean;
 }

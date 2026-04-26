@@ -13,6 +13,7 @@ import {
   getSessionId,
   createSession,
   deleteSession,
+  isAdminEmail,
   SESSION_COOKIE,
   SESSION_TTL,
   ISSUER_URL,
@@ -82,10 +83,32 @@ async function upsertUser(claims: Record<string, unknown>) {
   return user;
 }
 
+/**
+ * Build the AuthUser payload sent to the client. We compute `isAdmin` at
+ * read-time from the env-var allowlist so admin status updates immediately
+ * when ADMIN_EMAILS changes — no need to log out / back in.
+ */
+function toAuthUser(user: {
+  id: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  profileImageUrl: string | null;
+}) {
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    profileImageUrl: user.profileImageUrl,
+    isAdmin: isAdminEmail(user.email),
+  };
+}
+
 router.get("/auth/user", (req: Request, res: Response) => {
   res.json(
     GetCurrentAuthUserResponse.parse({
-      user: req.isAuthenticated() ? req.user : null,
+      user: req.isAuthenticated() ? toAuthUser(req.user) : null,
     }),
   );
 });
@@ -170,13 +193,7 @@ router.get("/callback", async (req: Request, res: Response) => {
 
   const now = Math.floor(Date.now() / 1000);
   const sessionData: SessionData = {
-    user: {
-      id: dbUser.id,
-      email: dbUser.email,
-      firstName: dbUser.firstName,
-      lastName: dbUser.lastName,
-      profileImageUrl: dbUser.profileImageUrl,
-    },
+    user: toAuthUser(dbUser),
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
     expires_at: tokens.expiresIn() ? now + tokens.expiresIn()! : claims.exp,
@@ -240,13 +257,7 @@ router.post(
 
       const now = Math.floor(Date.now() / 1000);
       const sessionData: SessionData = {
-        user: {
-          id: dbUser.id,
-          email: dbUser.email,
-          firstName: dbUser.firstName,
-          lastName: dbUser.lastName,
-          profileImageUrl: dbUser.profileImageUrl,
-        },
+        user: toAuthUser(dbUser),
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         expires_at: tokens.expiresIn() ? now + tokens.expiresIn()! : claims.exp,

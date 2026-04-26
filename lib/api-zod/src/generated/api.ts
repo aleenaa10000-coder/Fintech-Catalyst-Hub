@@ -25,6 +25,11 @@ export const GetCurrentAuthUserResponse = zod.object({
       firstName: zod.string().nullable(),
       lastName: zod.string().nullable(),
       profileImageUrl: zod.string().nullable(),
+      isAdmin: zod
+        .boolean()
+        .describe(
+          "True when the signed-in user's email is in the ADMIN_EMAILS allowlist.",
+        ),
     }),
     zod.null(),
   ]),

@@ -9,6 +9,26 @@ export const ISSUER_URL = process.env.ISSUER_URL ?? "https://replit.com/oidc";
 export const SESSION_COOKIE = "sid";
 export const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
 
+/**
+ * Returns true when the supplied email is in the ADMIN_EMAILS allowlist.
+ *
+ * ADMIN_EMAILS is a comma-separated, case-insensitive list of emails that
+ * are allowed to publish/edit/delete blog posts via /admin/blog. When the
+ * env var is unset OR empty, no user is treated as admin — write endpoints
+ * will return 403. Set it to your own Replit account's email to unlock the
+ * admin UI.
+ */
+export function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const raw = process.env.ADMIN_EMAILS?.trim();
+  if (!raw) return false;
+  const allowed = raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowed.includes(email.trim().toLowerCase());
+}
+
 export interface SessionData {
   user: AuthUser;
   access_token: string;

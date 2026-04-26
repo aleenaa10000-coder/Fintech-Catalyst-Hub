@@ -495,7 +495,7 @@ components:
   schemas:
     AuthUser:
       type: object
-      required: [id, email, firstName, lastName, profileImageUrl]
+      required: [id, email, firstName, lastName, profileImageUrl, isAdmin]
       properties:
         id:
           type: string
@@ -508,6 +508,9 @@ components:
           type: [string, 'null']
         profileImageUrl:
           type: [string, 'null']
+        isAdmin:
+          type: boolean
+          description: True when the signed-in user's email is in the ADMIN_EMAILS allowlist.
     AuthUserEnvelope:
       type: object
       required: [user]

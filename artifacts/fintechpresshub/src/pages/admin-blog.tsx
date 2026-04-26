@@ -511,7 +511,39 @@ export default function AdminBlog() {
               onClick={login}
               className="bg-[#0052FF] hover:bg-[#0040cc]"
             >
-              Log in
+              Log in with Replit
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!user?.isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <Lock className="w-6 h-6 text-destructive" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Not authorized</h1>
+            <p className="text-muted-foreground mb-2">
+              You're signed in as{" "}
+              <strong className="text-foreground">
+                {user?.email ?? user?.firstName ?? "this account"}
+              </strong>
+              , but this account is not on the admin allowlist.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Add this email to the{" "}
+              <code className="px-1.5 py-0.5 rounded bg-muted text-foreground">
+                ADMIN_EMAILS
+              </code>{" "}
+              env var on the API server, then sign out and back in.
+            </p>
+            <Button variant="outline" size="sm" onClick={logout}>
+              <LogOut className="w-4 h-4 mr-1.5" /> Log out
             </Button>
           </CardContent>
         </Card>

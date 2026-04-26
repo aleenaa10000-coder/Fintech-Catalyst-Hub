@@ -1,10 +1,28 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
 import { db, blogPostsTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import { ListBlogPostsQueryParams, GetBlogPostParams } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
+import { isAdminEmail } from "../lib/auth";
 import { getSiteUrl, notifySearchEnginesOfPublish } from "../lib/seo";
+
+/**
+ * Gate write endpoints behind the ADMIN_EMAILS allowlist. Returns 401 when
+ * the request has no session and 403 when the signed-in user isn't on the
+ * allowlist — distinct so the client can show "log in" vs. "not authorized".
+ */
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (!isAdminEmail(req.user.email)) {
+    res.status(403).json({ error: "Forbidden — admin access required" });
+    return;
+  }
+  next();
+}
 
 const router: IRouter = Router();
 
@@ -121,13 +139,8 @@ router.get("/blog/posts/:slug", async (req, res) => {
  * we issue background pings to IndexNow (Bing/Yandex/Seznam/Naver) and
  * Google so they can re-crawl quickly.
  */
-router.post("/blog/posts", async (req, res, next) => {
+router.post("/blog/posts", requireAdmin, async (req, res, next) => {
   try {
-    if (!req.isAuthenticated()) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-
     const body = PublishBlogPostBody.parse(req.body);
 
     const [row] = await db
@@ -188,13 +201,8 @@ router.post("/blog/posts", async (req, res, next) => {
  * Update a blog post by slug. Requires an authenticated session.
  * Re-pings search engines so the updated URL is recrawled.
  */
-router.patch("/blog/posts/:slug", async (req, res, next) => {
+router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
   try {
-    if (!req.isAuthenticated()) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-
     const { slug } = GetBlogPostParams.parse({ slug: req.params.slug });
     const body = UpdateBlogPostBody.parse(req.body);
 
@@ -232,13 +240,8 @@ router.patch("/blog/posts/:slug", async (req, res, next) => {
  * Delete (unpublish) a blog post by slug. Requires an authenticated session.
  * The deleted URL stays out of the next /sitemap.xml render automatically.
  */
-router.delete("/blog/posts/:slug", async (req, res, next) => {
+router.delete("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
   try {
-    if (!req.isAuthenticated()) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-
     const { slug } = GetBlogPostParams.parse({ slug: req.params.slug });
 
     const [row] = await db

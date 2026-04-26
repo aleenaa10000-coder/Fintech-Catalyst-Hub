@@ -87,6 +87,14 @@ User intends to host the final site on Hostinger Business plan. Frontend builds 
 - Routes mounted at root in `app.ts`; `artifact.toml` exposes `/objects` (and `/sitemap.xml`) on the API service.
 - Client uses Uppy v5 `DashboardModal` via `artifacts/fintechpresshub/src/components/ObjectUploader.tsx`. `/admin/blog` shows an upload button next to the cover image URL field in both the create form and the inline `PostEditor`; on success the field is auto-filled with `/objects/<id>`. Vite dev proxy forwards `/objects` to the API server.
 
+## Admin auth & gate
+
+The `/admin/blog` route is protected via Replit OIDC (`@workspace/replit-auth-web` → `useAuth()`). Sign-in flow: `/api/login` → Replit OIDC → `/api/callback` → cookie-backed session row in `sessions` table; `/api/logout` clears it. The admin page renders three states: loading, "Admin sign in required" (signed out), and "Not authorized" (signed in but not on the allowlist), before rendering the publish/edit/delete UI.
+
+The allowlist is the comma-separated env var `ADMIN_EMAILS` (case-insensitive). `isAdminEmail(email)` lives in `artifacts/api-server/src/lib/auth.ts` and is computed at read-time, so updating `ADMIN_EMAILS` takes effect on the next `/api/auth/user` call without forcing users to log out. The current user's `isAdmin` flag is part of the `AuthUser` schema (`lib/api-spec/openapi.yaml`) and is regenerated through `pnpm --filter @workspace/api-spec run codegen`.
+
+Server-side, `requireAdmin` middleware (in `artifacts/api-server/src/routes/blog.ts`) gates `POST/PATCH/DELETE /api/blog/posts*`: returns 401 when no session, 403 when the session's email isn't on the allowlist. Without `ADMIN_EMAILS` set, no user is admin — the page is effectively locked.
+
 ## Admin author selector
 
 - `/admin/blog` exposes a "Team member" shadcn `<Select>` above the Author / Author role inputs in both the new-post form and the inline `PostEditor`. Options are sourced from `src/data/authors.ts` (Marcus, Priya, James, Sarah) and a "Guest author" sentinel.
