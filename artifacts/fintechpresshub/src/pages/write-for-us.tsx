@@ -11,7 +11,32 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowRight, BookOpen, Check, FileText, Globe, Link as LinkIcon, Loader2, Plus } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  FileText,
+  Globe,
+  Link as LinkIcon,
+  Loader2,
+  Plus,
+  TrendingUp,
+  Users,
+  Award,
+  Target,
+  Send,
+  Sparkles,
+  PenLine,
+  Layers,
+  Image as ImageIcon,
+  Quote,
+  Shield,
+  Clock,
+  UserCheck,
+  Rocket,
+  Lightbulb,
+} from "lucide-react";
+import aboutOfficeImg from "@/assets/about-office.png";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHero } from "@/components/PageHero";
@@ -21,6 +46,227 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+
+const benefits = [
+  {
+    icon: Award,
+    title: "Authority in a YMYL niche",
+    description:
+      "Get your byline in front of fintech decision-makers on a domain that Google already trusts for regulated finance topics.",
+  },
+  {
+    icon: Users,
+    title: "50k+ targeted monthly readers",
+    description:
+      "Reach payments leads, growth marketers, compliance officers, and founders actively researching tooling and strategy.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Two permanent dofollow links",
+    description:
+      "Earn one in-body contextual dofollow link plus one author-bio dofollow link from a niche-aligned, topically relevant domain.",
+  },
+  {
+    icon: Target,
+    title: "Sustained referral traffic",
+    description:
+      "Approved posts are kept evergreen, internally linked, and refreshed — driving qualified visitors long after publication.",
+  },
+];
+
+const topicCategories = [
+  {
+    title: "Payments Infrastructure",
+    items: [
+      "Card issuing & processing",
+      "Payment orchestration",
+      "Cross-border rails",
+    ],
+  },
+  {
+    title: "Embedded Finance",
+    items: [
+      "BaaS architecture",
+      "Embedded lending playbooks",
+      "Vertical SaaS payments",
+    ],
+  },
+  {
+    title: "Open Banking & PSD3",
+    items: [
+      "Account-to-account payments",
+      "Variable recurring payments",
+      "Data-sharing compliance",
+    ],
+  },
+  {
+    title: "Neobanking & Digital Banks",
+    items: [
+      "Activation & retention",
+      "Fee economics",
+      "Regulatory sandboxing",
+    ],
+  },
+  {
+    title: "BNPL & Consumer Lending",
+    items: [
+      "Underwriting models",
+      "Affordability checks",
+      "Merchant integrations",
+    ],
+  },
+  {
+    title: "B2B & SME Lending",
+    items: [
+      "Cash-flow underwriting",
+      "Embedded SME credit",
+      "Receivables financing",
+    ],
+  },
+  {
+    title: "Wealthtech & Robo-advisors",
+    items: [
+      "Portfolio construction",
+      "Advisor SaaS marketing",
+      "Self-directed investing",
+    ],
+  },
+  {
+    title: "Regtech & Compliance",
+    items: [
+      "Transaction monitoring",
+      "Reg reporting tooling",
+      "Sanctions screening",
+    ],
+  },
+  {
+    title: "KYC, AML & Fraud",
+    items: [
+      "Identity verification",
+      "Fraud orchestration",
+      "Synthetic ID detection",
+    ],
+  },
+  {
+    title: "Crypto & Stablecoin Payments",
+    items: [
+      "On/off-ramp UX",
+      "Stablecoin treasury",
+      "MiCA & GENIUS Act",
+    ],
+  },
+  {
+    title: "Fintech SEO & Content",
+    items: [
+      "Topical authority builds",
+      "Programmatic SEO",
+      "Editorial workflows",
+    ],
+  },
+  {
+    title: "Fintech CRO & Growth",
+    items: [
+      "Onboarding funnels",
+      "Pricing experiments",
+      "Lifecycle messaging",
+    ],
+  },
+  {
+    title: "Treasury & CFO Tooling",
+    items: [
+      "AP/AR automation",
+      "Spend management",
+      "Multi-entity treasury",
+    ],
+  },
+  {
+    title: "Insurtech",
+    items: [
+      "Embedded insurance",
+      "Underwriting AI",
+      "Claims automation",
+    ],
+  },
+  {
+    title: "Wealth & Robo Marketing",
+    items: [
+      "Compliant ad creative",
+      "Disclosures & disclaimers",
+      "RIA referral programs",
+    ],
+  },
+  {
+    title: "AI in Financial Services",
+    items: [
+      "LLM risk frameworks",
+      "Agentic finance UX",
+      "Model governance",
+    ],
+  },
+];
+
+const guidelines = [
+  {
+    icon: Sparkles,
+    title: "100% Original",
+    description: "Unpublished, no AI boilerplate, no spun rewrites.",
+  },
+  {
+    icon: PenLine,
+    title: "Compelling Headlines",
+    description: "Specific, benefit-led, ≤ 65 characters where possible.",
+  },
+  {
+    icon: Lightbulb,
+    title: "Strong Hook",
+    description: "Open with a stat, contrarian take, or fresh insight.",
+  },
+  {
+    icon: Layers,
+    title: "Clear Structure",
+    description: "H2 / H3 hierarchy, scannable lists, summary takeaways.",
+  },
+  {
+    icon: Clock,
+    title: "Timely Angles",
+    description: "Tie to a regulation, product launch, or 2026 trend.",
+  },
+  {
+    icon: ImageIcon,
+    title: "Quality Visuals",
+    description: "Original charts, diagrams, or licensed imagery only.",
+  },
+  {
+    icon: Quote,
+    title: "Cite Primary Sources",
+    description: "Regulator filings, peer-reviewed studies, first-party data.",
+  },
+  {
+    icon: Shield,
+    title: "Brand-safe Voice",
+    description: "Expert, neutral tone — no aggressive product pitches.",
+  },
+  {
+    icon: FileText,
+    title: "Word Count Discipline",
+    description: "800–1,500 words. Tight beats long. No padding.",
+  },
+  {
+    icon: UserCheck,
+    title: "Real Author Bio",
+    description: "Two-line bio, headshot URL, LinkedIn for credibility checks.",
+  },
+  {
+    icon: Rocket,
+    title: "Editor Review",
+    description: "Expect light copy edits and fact-check questions — reply within 48h.",
+  },
+  {
+    icon: LinkIcon,
+    title: "Submission Format",
+    description: "Google Doc with comment access, or pasted Markdown.",
+  },
+];
 
 const wfuFaqs = [
   {
@@ -184,111 +430,196 @@ export default function WriteForUs() {
         description="We accept high-quality guest contributions from established fintech operators, marketers, and founders. Read the editorial guidelines below, then send us your pitch."
       />
 
-      <section className="py-24">
+      {/* Benefits */}
+      <section className="py-24" id="benefits">
         <div className="container mx-auto px-4 max-w-6xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
-            
-            {/* Guidelines */}
-            <div className="lg:col-span-5 space-y-8">
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Editorial Guidelines</h2>
-                <p className="text-muted-foreground mb-6">
-                  We maintain strict editorial standards to ensure our audience receives actionable, expert-led insights. Please read carefully before pitching.
-                </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-primary font-semibold mb-3">
+                Welcome to FintechPressHub
+              </p>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+                Explore the Benefits of Guest Posting With Us
+              </h2>
+              <p className="text-muted-foreground mb-8 max-w-xl">
+                A placement on FintechPressHub is more than a backlink — it&rsquo;s
+                positioning in front of the buyers, builders, and operators
+                shaping the next decade of financial services.
+              </p>
+              <div className="space-y-5">
+                {benefits.map((b) => (
+                  <div
+                    key={b.title}
+                    className="flex gap-4"
+                    data-testid={`benefit-${b.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                  >
+                    <div className="shrink-0 bg-primary/10 p-3 rounded-xl h-fit">
+                      <b.icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-foreground mb-1">{b.title}</h3>
+                      <p className="text-sm text-muted-foreground">{b.description}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
+            </div>
+            <div className="relative">
+              <div className="relative rounded-3xl overflow-hidden shadow-xl border border-border/60">
+                <img
+                  src={aboutOfficeImg}
+                  alt="Editorial team reviewing a fintech guest pitch"
+                  className="w-full h-auto object-cover"
+                  loading="lazy"
+                />
+                <div
+                  aria-hidden
+                  className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--primary))]/40 via-transparent to-transparent"
+                />
+              </div>
+              <a
+                href="#pitch-form"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById("pitch-form")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                data-testid="link-jump-to-form"
+                className="absolute -bottom-6 right-6 md:-bottom-8 md:right-10 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm md:text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all hover:shadow-xl hover:-translate-y-0.5"
+              >
+                <Send className="w-4 h-4" />
+                Submit Your Guest Post
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
 
-              <Card className="bg-card">
-                <CardContent className="pt-6 space-y-3">
-                  <div
-                    className="flex gap-4 p-3 -m-1 rounded-xl hover:bg-blue-50/60 transition-colors duration-200"
-                    data-testid="guideline-depth"
-                  >
-                    <div className="bg-primary/10 p-3 rounded-xl h-fit">
-                      <FileText className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-foreground mb-1">Depth & Originality</h3>
-                      <p className="text-sm text-muted-foreground">800–1,500 words. No fluff. Must include unique data, personal experience, or case studies. AI-generated content will be rejected immediately.</p>
-                    </div>
-                  </div>
-                  <div
-                    className="flex gap-4 p-3 -m-1 rounded-xl hover:bg-blue-50/60 transition-colors duration-200"
-                    data-testid="guideline-fintech"
-                  >
-                    <div className="bg-primary/10 p-3 rounded-xl h-fit">
-                      <Globe className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-foreground mb-1">Strict Fintech Focus</h3>
-                      <p className="text-sm text-muted-foreground">
-                        We only publish for fintech operators and decision-makers. Accepted topics:
-                        payments infrastructure, embedded finance, Open Banking &amp; PSD2/PSD3,
-                        neobanking, BNPL, lending &amp; credit, regtech, KYC/AML compliance,
-                        wealthtech, crypto payments, SaaS fintech SEO, and CRO for financial
-                        products. Off-niche pitches are rejected without review.
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    className="flex gap-4 p-3 -m-1 rounded-xl hover:bg-blue-50/60 transition-colors duration-200"
-                    data-testid="guideline-link"
-                  >
-                    <div className="bg-primary/10 p-3 rounded-xl h-fit">
-                      <LinkIcon className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-foreground mb-1">Dofollow Link Policy</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Every approved post earns one dofollow contextual link to your fintech
-                        product or content, plus one dofollow link in your author bio — both
-                        carrying full link equity from our niche-aligned domain. Anchor text must be
-                        natural; no exact-match money keywords. Affiliate, casino, CBD, payday, and
-                        thin landing-page links are stripped or rejected. Extra citations may be
-                        approved at editorial discretion for original data or regulatory sources.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="bg-red-50 border border-red-100 rounded-2xl p-6 text-red-900">
-                <h3 className="font-bold mb-4">What we do NOT accept:</h3>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2"><span className="text-red-600 font-bold">×</span> Generic marketing advice</li>
-                  <li className="flex items-center gap-2"><span className="text-red-600 font-bold">×</span> Promotional press releases</li>
-                  <li className="flex items-center gap-2"><span className="text-red-600 font-bold">×</span> Casino, CBD, or payday loan links</li>
-                  <li className="flex items-center gap-2"><span className="text-red-600 font-bold">×</span> Plagiarized or spun content</li>
+      {/* Topics grid */}
+      <section className="py-24 bg-secondary/30 border-y border-border/60" id="topics">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+            <div className="lg:col-span-2">
+              <p className="text-xs uppercase tracking-[0.18em] text-primary font-semibold mb-3">
+                What we publish
+              </p>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+                Contribute to FintechPressHub: Guest Post Topics We&rsquo;re
+                Looking For
+              </h2>
+            </div>
+            <p className="text-muted-foreground self-end">
+              Pick a category, then pitch a sharp, data-backed angle. Off-niche
+              submissions (general marketing, crypto trading tips, generic
+              business advice) are auto-rejected.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {topicCategories.map((cat) => (
+              <div
+                key={cat.title}
+                data-testid={`topic-${cat.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                className="group rounded-2xl bg-card border border-border/70 p-6 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 transition-all"
+              >
+                <h3 className="font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
+                  {cat.title}
+                </h3>
+                <ul className="space-y-2">
+                  {cat.items.map((it) => (
+                    <li
+                      key={it}
+                      className="flex items-start gap-2 text-sm text-muted-foreground"
+                    >
+                      <Check className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary" />
+                      <span>{it}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
+      {/* Guidelines grid */}
+      <section className="py-24" id="guidelines">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <p className="text-xs uppercase tracking-[0.18em] text-primary font-semibold mb-3">
+              Before you submit
+            </p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+              Guidelines for Submitting Guest Blog Posts With Us
+            </h2>
+            <p className="text-muted-foreground">
+              Pitches that hit every line below get prioritised review. The full
+              style guide is in our{" "}
               <Link
                 href="/editorial-guidelines"
-                data-testid="link-editorial-standards"
-                className="group block rounded-2xl border border-primary/20 bg-primary/5 p-5 transition-colors hover:border-primary/40 hover:bg-primary/10"
+                className="text-primary font-semibold hover:underline"
               >
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-xl h-fit">
-                    <BookOpen className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs uppercase tracking-wide text-primary/80 font-semibold mb-1">
-                      Before you pitch
-                    </p>
-                    <p className="font-semibold text-foreground inline-flex items-center gap-1.5 group-hover:text-primary transition-colors">
-                      Read our full Editorial Standards here
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      The complete style guide, sourcing rules, and review process used by our editors.
-                    </p>
-                  </div>
-                </div>
+                Editorial Standards
               </Link>
-            </div>
+              .
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {guidelines.map((g) => (
+              <div
+                key={g.title}
+                data-testid={`guideline-${g.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                className="rounded-2xl bg-card border border-border/70 p-6 hover:border-primary/40 hover:shadow-md transition-all"
+              >
+                <div className="bg-primary/10 p-2.5 rounded-xl w-fit mb-4">
+                  <g.icon className="w-5 h-5 text-primary" />
+                </div>
+                <h3 className="font-bold text-foreground mb-1.5">{g.title}</h3>
+                <p className="text-sm text-muted-foreground">{g.description}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 rounded-2xl bg-red-50 border border-red-100 p-6 text-red-900 max-w-3xl mx-auto">
+            <h3 className="font-bold mb-3 flex items-center gap-2">
+              <Shield className="w-4 h-4" /> What we do NOT accept
+            </h3>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+              <li className="flex items-center gap-2">
+                <span className="text-red-600 font-bold">×</span> Generic
+                marketing advice
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-red-600 font-bold">×</span> Promotional
+                press releases
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-red-600 font-bold">×</span> Casino, CBD or
+                payday loan links
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-red-600 font-bold">×</span> Plagiarised or
+                AI-spun content
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
-            {/* Pitch Form */}
-            <div className="lg:col-span-7">
-              <div className="relative bg-card border rounded-2xl p-8 shadow-sm overflow-hidden">
+      {/* Pitch form */}
+      <section className="py-24 bg-secondary/30 border-t border-border/60" id="pitch-form">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <div className="text-center mb-10">
+            <p className="text-xs uppercase tracking-[0.18em] text-primary font-semibold mb-3">
+              Pitch us
+            </p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+              Send your guest post idea
+            </h2>
+            <p className="text-muted-foreground">
+              Editors review every pitch within 5–7 business days.
+            </p>
+          </div>
+          <div className="relative bg-card border rounded-2xl p-8 shadow-sm overflow-hidden">
                 <AnimatePresence mode="wait" initial={false}>
                 {submitted ? (
                   <motion.div
@@ -532,9 +863,6 @@ export default function WriteForUs() {
                   </motion.div>
                 )}
                 </AnimatePresence>
-              </div>
-            </div>
-
           </div>
         </div>
       </section>

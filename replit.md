@@ -23,6 +23,8 @@ FAQ sections + FAQPage JSON-LD are also rendered on `/` (5 top-of-funnel FAQs in
 
 The `/about` page renders a "The team behind the work" section that maps over the 4 authors from `data/authors.ts` (each card links to `/authors/:slug`) and emits `AboutPage` JSON-LD via `<PageMeta aboutPage={...} />`. The schema's `mainEntity` is an enriched `Organization` with `slogan`, `knowsAbout` (fintech sub-verticals + capabilities), `numberOfEmployees`, and an `employee` array of `Person` nodes — visible team + matching schema is the E-E-A-T pattern Google rewards in YMYL verticals.
 
+The `/write-for-us` page (`src/pages/write-for-us.tsx`) is laid out as: PageHero → **Benefits** (4 icon items + image with floating "Submit Your Guest Post" anchor that smooth-scrolls to the form) → **Topics grid** (16 fintech category cards in a 4-col grid, each with 3 bullet sub-topics) → **Guidelines grid** (12 mini icon cards + a "what we do NOT accept" callout) → **Pitch form** (centred, `max-w-3xl`, with the existing Zod-validated submission flow + success animation untouched) → **FAQ accordion**. Color palette stays on the FintechPressHub primary blue (`hsl(var(--primary))` = `#0052FF`); the topic data array and guideline data array live at the top of the file and drive both sections via `.map()`.
+
 ## Author profiles
 
 - Static dataset at `artifacts/fintechpresshub/src/data/authors.ts` for the 4 writers (Marcus Webb, Priya Nair, James Okafor, Sarah Chen): name, slug, role, photo path, short + full bio, expertise tags, credentials, location, years of experience, and social links.
