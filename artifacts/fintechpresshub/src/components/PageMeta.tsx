@@ -146,12 +146,15 @@ export function PageMeta(props: PageMetaProps) {
       ? {
           "@context": "https://schema.org",
           "@type": "FAQPage",
+          "@id": `${canonical}#faq`,
+          url: canonical,
           mainEntity: props.faq.map((item) => ({
             "@type": "Question",
             name: item.question,
             acceptedAnswer: {
               "@type": "Answer",
-              text: item.answer,
+              // Strip any residual HTML tags so Google always receives plain text.
+              text: item.answer.replace(/<[^>]*>/g, "").trim(),
             },
           })),
         }
