@@ -11,10 +11,44 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowRight, BookOpen, Check, FileText, Globe, Link as LinkIcon, Loader2 } from "lucide-react";
+import { ArrowRight, BookOpen, Check, FileText, Globe, Link as LinkIcon, Loader2, Plus } from "lucide-react";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHero } from "@/components/PageHero";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+const wfuFaqs = [
+  {
+    question: "How long does it take to hear back on a pitch?",
+    answer:
+      "We review all pitches within 5–7 business days. If your topic is a strong fit you'll receive an acceptance email with a brief scope doc and a suggested deadline. Off-niche or under-specified pitches are declined with a short note.",
+  },
+  {
+    question: "Can I include more than one dofollow link?",
+    answer:
+      "Every approved post earns one in-body dofollow contextual link and one dofollow author-bio link. Additional citations may be approved at editorial discretion when they reference primary data, regulator filings, or original research that materially strengthens the piece.",
+  },
+  {
+    question: "Is payment available for guest posts?",
+    answer:
+      "We do not pay contributors. The compensation is two permanent dofollow backlinks from a topically-aligned fintech domain with a targeted readership — the same audience your product serves. Contributors consistently report measurable referral traffic and ranking lift from the placement.",
+  },
+  {
+    question: "What word count do you require?",
+    answer:
+      "Articles must be between 1,000 and 3,000 words. Pieces backed by original data, proprietary research, or detailed how-to guides routinely reach 2,000+ words and perform best in search. Thin 800-word fillers are rejected at pitch stage.",
+  },
+  {
+    question: "Do I keep copyright on my article?",
+    answer:
+      "FintechPressHub publishes under an exclusive licence. You retain full authorship credit and may cite the published piece in your portfolio or press mentions, but may not republish the full text — including on Medium, LinkedIn Articles, or your own blog — without written editor approval.",
+  },
+];
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
@@ -142,6 +176,7 @@ export default function WriteForUs() {
             "Contextual Backlink",
           ],
         }}
+        faq={wfuFaqs}
       />
       <PageHero
         eyebrow="Write For Us"
@@ -501,6 +536,32 @@ export default function WriteForUs() {
             </div>
 
           </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-24 bg-secondary/30">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
+          <Accordion
+            type="single"
+            collapsible
+            className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
+          >
+            {wfuFaqs.map((faq, i) => (
+              <AccordionItem key={i} value={`wfu-faq-${i}`} className="border-b-0 group">
+                <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
+                  <span className="flex-1 pr-4">{faq.question}</span>
+                  <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
+                    <Plus className="w-5 h-5" />
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </section>
     </div>

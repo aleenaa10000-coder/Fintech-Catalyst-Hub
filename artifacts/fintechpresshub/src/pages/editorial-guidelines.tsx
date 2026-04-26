@@ -2,7 +2,41 @@ import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Check, X } from "lucide-react";
+import { Check, X, Plus } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+const egFaqs = [
+  {
+    question: "What is your policy on AI-generated content?",
+    answer:
+      "We do not publish AI-first drafts. AI tools may assist with research, outlines, or light copyediting, but every paragraph must be written by a named human expert who can stand behind the claims made. Pieces that read as predominantly AI-generated are rejected without revision, and repeat offenders are permanently banned from contributing.",
+  },
+  {
+    question: "How many revision rounds do you allow?",
+    answer:
+      "We allow up to two editorial rounds. After our first-pass edit we return the article with tracked changes and inline comments; your job is to resolve them. If major structural problems remain after round two the article is either reassigned or returned for a full rewrite before re-submission.",
+  },
+  {
+    question: "How do you verify factual claims?",
+    answer:
+      "All statistics, product claims, and regulatory references are verified against primary sources — central bank filings, FCA, SEC, or EBA publications, peer-reviewed research, or direct company data. Secondary press coverage is not accepted as a primary source. Unverified claims are either removed or flagged for the contributor to source correctly.",
+  },
+  {
+    question: "What happens if a published article becomes outdated?",
+    answer:
+      "Editors run a quarterly accuracy review against our live inventory. When key facts, regulations, or product details change materially we update the article, add a visible 'Last updated' datestamp, refresh the lastmod in the sitemap, and notify the original contributor if practical.",
+  },
+  {
+    question: "Can I republish my article on my own blog?",
+    answer:
+      "No. We require exclusive publication. You may quote up to two paragraphs with a canonical link back to the FintechPressHub version — for example in a newsletter or a LinkedIn post — but full republication on any other domain, including Medium, LinkedIn Articles, or Substack, violates the contributor agreement and results in immediate article removal.",
+  },
+];
 
 type ComparisonItem = { label: string; detail?: string };
 
@@ -204,6 +238,7 @@ export default function EditorialGuidelines() {
             "Link Building",
           ],
         }}
+        faq={egFaqs}
       />
       <PageHero
         eyebrow="Editorial"
@@ -567,6 +602,32 @@ export default function EditorialGuidelines() {
           </article>
         </div>
       </div>
+
+      {/* FAQ */}
+      <section className="py-24 bg-secondary/30">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
+          <Accordion
+            type="single"
+            collapsible
+            className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
+          >
+            {egFaqs.map((faq, i) => (
+              <AccordionItem key={i} value={`eg-faq-${i}`} className="border-b-0 group">
+                <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
+                  <span className="flex-1 pr-4">{faq.question}</span>
+                  <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
+                    <Plus className="w-5 h-5" />
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </section>
     </div>
   );
 }
