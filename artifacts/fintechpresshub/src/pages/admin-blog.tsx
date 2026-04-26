@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageMeta } from "@/components/PageMeta";
 import {
   useListBlogPosts,
@@ -416,9 +416,57 @@ export default function AdminBlog() {
   const [form, setForm] = useState(emptyForm);
   const [autoSlug, setAutoSlug] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
+  // Whether we've already consumed the `?slug=` deep-link query param. We
+  // only auto-open once per visit so re-opening the editor doesn't re-trigger
+  // when the user later navigates away and back.
+  const deepLinkConsumed = useRef(false);
 
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: getListBlogPostsQueryKey() });
+
+  /**
+   * Deep-link handler: when an admin lands here from a public post via the
+   * "Edit" pencil button (`/admin/blog?slug=<slug>`), auto-open that post in
+   * the inline editor and scroll it into view. If the slug doesn't match any
+   * API-managed post (e.g., the public post is one of the legacy seed posts
+   * shipped in `posts.js`), we surface a friendly toast instead of silently
+   * doing nothing. The query param is stripped after handling so a refresh
+   * doesn't re-trigger the behaviour.
+   */
+  useEffect(() => {
+    if (deepLinkConsumed.current) return;
+    if (!posts) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const targetSlug = params.get("slug");
+    if (!targetSlug) {
+      deepLinkConsumed.current = true;
+      return;
+    }
+
+    const match = posts.find((p) => p.slug === targetSlug);
+    if (match) {
+      setEditingId(match.id);
+      // Wait one tick so the editor card has rendered before scrolling.
+      window.setTimeout(() => {
+        const card = document.getElementById(`admin-post-${match.id}`);
+        if (card) {
+          card.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 50);
+    } else {
+      toast.error(`No editable post found for "${targetSlug}".`, {
+        description:
+          "This post may be a legacy seed post served from static data. Publish it through this dashboard to make it editable here.",
+      });
+    }
+
+    // Strip the query param without triggering a navigation.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("slug");
+    window.history.replaceState({}, "", url.toString());
+    deepLinkConsumed.current = true;
+  }, [posts]);
 
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -829,7 +877,7 @@ export default function AdminBlog() {
             {posts?.map((p) => {
               const isEditing = editingId === p.id;
               return (
-                <Card key={p.id}>
+                <Card key={p.id} id={`admin-post-${p.id}`}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">

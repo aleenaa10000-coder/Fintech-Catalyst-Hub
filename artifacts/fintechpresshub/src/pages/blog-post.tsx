@@ -14,12 +14,14 @@ import {
   Link2,
   ChevronRight,
   Sparkles,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import posts from "@/data/posts.js";
 import { authorSlugFromName, getAuthorByName } from "@/data/authors";
+import { useAuth } from "@workspace/replit-auth-web";
 
 const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
@@ -81,6 +83,11 @@ const formatDate = (iso: string) =>
 export default function BlogPost() {
   const params = useParams();
   const slug = params.slug || "";
+  // Admin-only "Edit on /admin/blog" affordance. `user.isAdmin` is computed
+  // server-side from the ADMIN_EMAILS allowlist on every /api/auth/user call,
+  // so non-admins (and signed-out visitors) never see the button.
+  const { user } = useAuth();
+  const isAdmin = Boolean(user?.isAdmin);
 
   const post = useMemo(
     () => posts.find((p: any) => p.slug === slug),
@@ -276,25 +283,39 @@ export default function BlogPost() {
         />
         <div className="relative container mx-auto px-4 max-w-4xl pt-20 pb-16">
           {/* Breadcrumbs */}
-          <nav
-            aria-label="Breadcrumb"
-            className="flex items-center gap-1.5 text-sm text-muted-foreground mb-10"
-          >
-            <Link
-              href="/blog"
-              className="inline-flex items-center font-medium text-slate-600 hover:text-[#0052FF] transition-colors"
+          <div className="flex items-center justify-between gap-4 mb-10">
+            <nav
+              aria-label="Breadcrumb"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0"
             >
-              <ArrowLeft className="w-4 h-4 mr-1.5" />
-              Back to Blog
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            <span
-              className="text-slate-500 truncate max-w-[260px] sm:max-w-md"
-              aria-current="page"
-            >
-              {post.title}
-            </span>
-          </nav>
+              <Link
+                href="/blog"
+                className="inline-flex items-center font-medium text-slate-600 hover:text-[#0052FF] transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1.5" />
+                Back to Blog
+              </Link>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span
+                className="text-slate-500 truncate max-w-[260px] sm:max-w-md"
+                aria-current="page"
+              >
+                {post.title}
+              </span>
+            </nav>
+            {isAdmin && (
+              <Link
+                href={`/admin/blog?slug=${encodeURIComponent(slug)}`}
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-[#0052FF]/30 bg-[#0052FF]/5 px-3 py-1.5 text-xs font-semibold text-[#0052FF] hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF] transition-colors"
+                aria-label={`Edit "${post.title}" in the admin dashboard`}
+                data-testid="link-admin-edit-post"
+                title="Edit on /admin/blog"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Edit</span>
+              </Link>
+            )}
+          </div>
 
           <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider mb-6">
             {post.category}
