@@ -87,5 +87,6 @@ User intends to host the final site on Hostinger Business plan. Frontend builds 
 
 ## Admin author selector
 
-- `/admin/blog` exposes a "Team member" shadcn `<Select>` above the Author / Author role inputs in both the new-post form and the inline `PostEditor`. Options are sourced from `src/data/authors.ts` (Marcus, Priya, James, Sarah) and a "Guest author (type below)" sentinel.
+- `/admin/blog` exposes a "Team member" shadcn `<Select>` above the Author / Author role inputs in both the new-post form and the inline `PostEditor`. Options are sourced from `src/data/authors.ts` (Marcus, Priya, James, Sarah) and a "Guest author" sentinel.
+- Each option is a rich row built with `@radix-ui/react-select` primitives directly (the shadcn `SelectItem` wrapper would mirror children into the trigger): a 36px shadcn `Avatar` (photo + initials fallback) on the left, name in `SelectPrimitive.ItemText`, and the role as a muted subtitle. The guest option uses a `UserPlus` glyph in place of the avatar.
 - Selecting a team member auto-fills both the `author` and `authorRole` text fields (still editable). Selecting "Guest author" clears them so they can be typed freehand. The current selection is derived from the form state so editing a post with a known team member auto-selects them in the dropdown.

@@ -33,11 +33,13 @@ import { ObjectUploader } from "@/components/ObjectUploader";
 import {
   Select,
   SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { authors } from "@/data/authors";
+import * as SelectPrimitive from "@radix-ui/react-select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Check, UserPlus } from "lucide-react";
+import { authors, type Author } from "@/data/authors";
 
 const GUEST_AUTHOR_VALUE = "__guest__";
 
@@ -46,6 +48,66 @@ function authorSelectValue(name: string, role: string) {
     (a) => a.name === name && a.role === role,
   );
   return match ? match.slug : name || role ? GUEST_AUTHOR_VALUE : "";
+}
+
+function authorInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function AuthorOption({ author }: { author: Author }) {
+  return (
+    <SelectPrimitive.Item
+      value={author.slug}
+      className="relative flex w-full cursor-default select-none items-center gap-3 rounded-sm py-2 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+    >
+      <Avatar className="h-9 w-9">
+        <AvatarImage src={author.photo} alt={author.name} />
+        <AvatarFallback className="text-xs bg-[#0052FF]/10 text-[#0052FF]">
+          {authorInitials(author.name)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <SelectPrimitive.ItemText>{author.name}</SelectPrimitive.ItemText>
+        <div className="text-xs text-muted-foreground truncate">
+          {author.role}
+        </div>
+      </div>
+      <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+        <SelectPrimitive.ItemIndicator>
+          <Check className="h-4 w-4" />
+        </SelectPrimitive.ItemIndicator>
+      </span>
+    </SelectPrimitive.Item>
+  );
+}
+
+function GuestAuthorOption() {
+  return (
+    <SelectPrimitive.Item
+      value={GUEST_AUTHOR_VALUE}
+      className="relative flex w-full cursor-default select-none items-center gap-3 rounded-sm py-2 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+    >
+      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground shrink-0">
+        <UserPlus className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <SelectPrimitive.ItemText>Guest author</SelectPrimitive.ItemText>
+        <div className="text-xs text-muted-foreground truncate">
+          Type a custom name and role below
+        </div>
+      </div>
+      <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+        <SelectPrimitive.ItemIndicator>
+          <Check className="h-4 w-4" />
+        </SelectPrimitive.ItemIndicator>
+      </span>
+    </SelectPrimitive.Item>
+  );
 }
 
 async function presignAndUpload(file: {
@@ -202,13 +264,9 @@ function PostEditor({
           </SelectTrigger>
           <SelectContent>
             {authors.map((a) => (
-              <SelectItem key={a.slug} value={a.slug}>
-                {a.name} — {a.role}
-              </SelectItem>
+              <AuthorOption key={a.slug} author={a} />
             ))}
-            <SelectItem value={GUEST_AUTHOR_VALUE}>
-              Guest author (type below)
-            </SelectItem>
+            <GuestAuthorOption />
           </SelectContent>
         </Select>
       </div>
@@ -575,13 +633,9 @@ export default function AdminBlog() {
                   </SelectTrigger>
                   <SelectContent>
                     {authors.map((a) => (
-                      <SelectItem key={a.slug} value={a.slug}>
-                        {a.name} — {a.role}
-                      </SelectItem>
+                      <AuthorOption key={a.slug} author={a} />
                     ))}
-                    <SelectItem value={GUEST_AUTHOR_VALUE}>
-                      Guest author (type below)
-                    </SelectItem>
+                    <GuestAuthorOption />
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
