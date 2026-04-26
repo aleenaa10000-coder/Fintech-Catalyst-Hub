@@ -30,6 +30,23 @@ import {
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { authors } from "@/data/authors";
+
+const GUEST_AUTHOR_VALUE = "__guest__";
+
+function authorSelectValue(name: string, role: string) {
+  const match = authors.find(
+    (a) => a.name === name && a.role === role,
+  );
+  return match ? match.slug : name || role ? GUEST_AUTHOR_VALUE : "";
+}
 
 async function presignAndUpload(file: {
   name: string;
@@ -166,6 +183,34 @@ function PostEditor({
           onChange={(e) => setDraft({ ...draft, content: e.target.value })}
           required
         />
+      </div>
+      <div>
+        <Label htmlFor={`authorSelect-${post.id}`}>Team member</Label>
+        <Select
+          value={authorSelectValue(draft.author, draft.authorRole)}
+          onValueChange={(v) => {
+            if (v === GUEST_AUTHOR_VALUE) {
+              setDraft({ ...draft, author: "", authorRole: "" });
+              return;
+            }
+            const a = authors.find((x) => x.slug === v);
+            if (a) setDraft({ ...draft, author: a.name, authorRole: a.role });
+          }}
+        >
+          <SelectTrigger id={`authorSelect-${post.id}`}>
+            <SelectValue placeholder="Select a team member…" />
+          </SelectTrigger>
+          <SelectContent>
+            {authors.map((a) => (
+              <SelectItem key={a.slug} value={a.slug}>
+                {a.name} — {a.role}
+              </SelectItem>
+            ))}
+            <SelectItem value={GUEST_AUTHOR_VALUE}>
+              Guest author (type below)
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -506,6 +551,43 @@ export default function AdminBlog() {
                   }
                   required
                 />
+              </div>
+              <div>
+                <Label htmlFor="authorSelect">Team member</Label>
+                <Select
+                  value={authorSelectValue(form.author, form.authorRole)}
+                  onValueChange={(v) => {
+                    if (v === GUEST_AUTHOR_VALUE) {
+                      setForm({ ...form, author: "", authorRole: "" });
+                      return;
+                    }
+                    const a = authors.find((x) => x.slug === v);
+                    if (a)
+                      setForm({
+                        ...form,
+                        author: a.name,
+                        authorRole: a.role,
+                      });
+                  }}
+                >
+                  <SelectTrigger id="authorSelect">
+                    <SelectValue placeholder="Select a team member…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {authors.map((a) => (
+                      <SelectItem key={a.slug} value={a.slug}>
+                        {a.name} — {a.role}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={GUEST_AUTHOR_VALUE}>
+                      Guest author (type below)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Picks the right name + role and links the post to the
+                  author profile page.
+                </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

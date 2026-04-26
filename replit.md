@@ -84,3 +84,8 @@ User intends to host the final site on Hostinger Business plan. Frontend builds 
   - `GET /objects/*objectPath` (public) — streams the file
 - Routes mounted at root in `app.ts`; `artifact.toml` exposes `/objects` (and `/sitemap.xml`) on the API service.
 - Client uses Uppy v5 `DashboardModal` via `artifacts/fintechpresshub/src/components/ObjectUploader.tsx`. `/admin/blog` shows an upload button next to the cover image URL field in both the create form and the inline `PostEditor`; on success the field is auto-filled with `/objects/<id>`. Vite dev proxy forwards `/objects` to the API server.
+
+## Admin author selector
+
+- `/admin/blog` exposes a "Team member" shadcn `<Select>` above the Author / Author role inputs in both the new-post form and the inline `PostEditor`. Options are sourced from `src/data/authors.ts` (Marcus, Priya, James, Sarah) and a "Guest author (type below)" sentinel.
+- Selecting a team member auto-fills both the `author` and `authorRole` text fields (still editable). Selecting "Guest author" clears them so they can be typed freehand. The current selection is derived from the form state so editing a post with a known team member auto-selects them in the dropdown.
