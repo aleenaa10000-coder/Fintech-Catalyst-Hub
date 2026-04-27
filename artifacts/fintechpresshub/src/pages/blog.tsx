@@ -7,7 +7,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/PageHero";
-import { Calendar, Clock, ArrowRight, Mail, CheckCircle2, Users } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  ArrowRight,
+  Mail,
+  CheckCircle2,
+  Users,
+  Search,
+  X,
+  Tag as TagIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { usePublicPosts, type PublicPost } from "@/data/usePublicPosts";
 import { authors } from "@/data/authors";
@@ -65,14 +75,62 @@ export default function Blog() {
   const [activeCategory, setActiveCategory] = useState<string | undefined>(
     undefined,
   );
+  const [activeTag, setActiveTag] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAllTags, setShowAllTags] = useState(false);
 
-  const visiblePosts = useMemo(
-    () =>
-      activeCategory
-        ? allPosts.filter((p) => p.category === activeCategory)
-        : allPosts,
-    [allPosts, activeCategory],
+  // Distinct tags across the merged feed, with usage counts. Sorted by count
+  // desc then alphabetically so the most-used tags surface first.
+  const tags = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of allPosts) {
+      if (!p.tags) continue;
+      for (const t of p.tags) {
+        counts.set(t, (counts.get(t) ?? 0) + 1);
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) =>
+        a.count !== b.count ? b.count - a.count : a.name.localeCompare(b.name),
+      );
+  }, [allPosts]);
+
+  // Combined filter: category AND tag AND search (title + excerpt + tags),
+  // case-insensitive. Search trims whitespace and ignores empty queries so
+  // the input doesn't accidentally hide posts mid-typing.
+  const visiblePosts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return allPosts.filter((p) => {
+      if (activeCategory && p.category !== activeCategory) return false;
+      if (activeTag && !(p.tags ?? []).includes(activeTag)) return false;
+      if (q) {
+        const haystack = [
+          p.title,
+          p.excerpt,
+          p.category,
+          ...(p.tags ?? []),
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [allPosts, activeCategory, activeTag, searchQuery]);
+
+  const filtersActive = Boolean(
+    activeCategory || activeTag || searchQuery.trim(),
   );
+
+  const clearFilters = () => {
+    setActiveCategory(undefined);
+    setActiveTag(undefined);
+    setSearchQuery("");
+  };
+
+  const TAG_PREVIEW_COUNT = 12;
+  const visibleTags = showAllTags ? tags : tags.slice(0, TAG_PREVIEW_COUNT);
 
   const NEWSLETTER_AFTER = 6;
   const firstBatch = visiblePosts.slice(0, NEWSLETTER_AFTER);
@@ -213,9 +271,61 @@ export default function Blog() {
         </div>
       </section>
 
-      {/* Category Chips */}
+      {/* Search + Category Chips + Tag Filter */}
       <section className="py-10 border-b bg-background">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 space-y-8">
+          {/* Search input row */}
+          <div className="max-w-2xl mx-auto">
+            <label htmlFor="blog-search" className="sr-only">
+              Search articles
+            </label>
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+                aria-hidden="true"
+              />
+              <Input
+                id="blog-search"
+                type="search"
+                inputMode="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search articles by keyword, topic, or tag…"
+                className="h-12 pl-11 pr-12 text-base bg-white border-slate-200 focus-visible:ring-[#0052FF] focus-visible:border-[#0052FF]"
+                data-testid="input-blog-search"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                  data-testid="button-clear-search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-7 h-7 rounded-full text-slate-400 hover:text-[#0052FF] hover:bg-slate-100 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {filtersActive && (
+              <div className="mt-3 flex items-center justify-center gap-3 text-sm text-slate-600">
+                <span data-testid="text-results-count">
+                  Showing <strong>{visiblePosts.length}</strong> of{" "}
+                  {allPosts.length} articles
+                </span>
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="inline-flex items-center gap-1 text-[#0052FF] font-medium hover:underline"
+                  data-testid="button-clear-filters"
+                >
+                  Clear filters
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Category chips */}
           <div className="flex flex-wrap gap-2 justify-center">
             <button
               type="button"
@@ -262,6 +372,59 @@ export default function Blog() {
               );
             })}
           </div>
+
+          {/* Tag chips — derived from the merged feed. Combined with the
+              category chip + search query as an AND filter. */}
+          {tags.length > 0 && (
+            <div className="max-w-5xl mx-auto">
+              <div className="flex items-center justify-center gap-2 mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <TagIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                Filter by tag
+              </div>
+              <div className="flex flex-wrap gap-1.5 justify-center">
+                {visibleTags.map((t) => {
+                  const active = activeTag === t.name;
+                  return (
+                    <button
+                      key={t.name}
+                      type="button"
+                      onClick={() =>
+                        setActiveTag(active ? undefined : t.name)
+                      }
+                      data-testid={`tag-chip-${t.name.toLowerCase().replace(/\s+/g, "-")}`}
+                      aria-pressed={active}
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors duration-200 ${
+                        active
+                          ? "bg-[#0052FF] text-white border-[#0052FF]"
+                          : "bg-blue-50/60 text-[#0052FF] border-blue-100 hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF]"
+                      }`}
+                    >
+                      #{t.name}
+                      <span
+                        className={`ml-1.5 text-[10px] ${
+                          active ? "text-white/80" : "text-[#0052FF]/60"
+                        }`}
+                      >
+                        {t.count}
+                      </span>
+                    </button>
+                  );
+                })}
+                {tags.length > TAG_PREVIEW_COUNT && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllTags((v) => !v)}
+                    data-testid="button-toggle-tags"
+                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border border-dashed border-slate-300 text-slate-500 hover:text-[#0052FF] hover:border-[#0052FF] transition-colors"
+                  >
+                    {showAllTags
+                      ? "Show fewer tags"
+                      : `+${tags.length - TAG_PREVIEW_COUNT} more`}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -271,36 +434,72 @@ export default function Blog() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {visiblePosts.length === 0 ? (
               <div className="col-span-full">
-                <div className="mx-auto max-w-2xl text-center py-16 px-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60">
-                  <div className="text-sm font-semibold uppercase tracking-wider text-[#0052FF] mb-3">
-                    {activeCategory}
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-3">
-                    Coverage on {activeCategory} is in progress.
-                  </h3>
-                  <p className="text-muted-foreground mb-6">
-                    We're commissioning expert-led pieces on {activeCategory} from
-                    operators in this space. If you've shipped real work in this
-                    category, pitch us — accepted contributors get a dofollow
-                    contextual backlink and an author bio link from a topically
-                    relevant fintech domain.
-                  </p>
-                  <div className="flex flex-wrap gap-3 justify-center">
-                    <Link href="/write-for-us" data-testid="link-pitch-empty-category">
-                      <Button className="bg-[#0052FF] hover:bg-[#0046d6] text-white">
-                        Pitch a {activeCategory} article
-                        <ArrowRight className="w-4 h-4 ml-1.5" />
+                {searchQuery.trim() || activeTag ? (
+                  <div
+                    className="mx-auto max-w-2xl text-center py-16 px-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60"
+                    data-testid="empty-state-no-results"
+                  >
+                    <div className="mx-auto w-12 h-12 rounded-full bg-[#0052FF]/10 text-[#0052FF] flex items-center justify-center mb-4">
+                      <Search className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                      No articles match your filters.
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      Try a different keyword, remove a filter, or browse all
+                      articles below.
+                    </p>
+                    <div className="flex flex-wrap gap-3 justify-center">
+                      <Button
+                        onClick={clearFilters}
+                        className="bg-[#0052FF] hover:bg-[#0046d6] text-white"
+                        data-testid="button-reset-filters"
+                      >
+                        Reset filters
                       </Button>
-                    </Link>
-                    <Button
-                      variant="outline"
-                      onClick={() => setActiveCategory(undefined)}
-                      data-testid="button-show-all-posts"
-                    >
-                      Show all posts
-                    </Button>
+                      <Link href="/write-for-us">
+                        <Button variant="outline">
+                          Pitch an article
+                          <ArrowRight className="w-4 h-4 ml-1.5" />
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="mx-auto max-w-2xl text-center py-16 px-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60">
+                    <div className="text-sm font-semibold uppercase tracking-wider text-[#0052FF] mb-3">
+                      {activeCategory}
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                      Coverage on {activeCategory} is in progress.
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      We're commissioning expert-led pieces on {activeCategory}{" "}
+                      from operators in this space. If you've shipped real work
+                      in this category, pitch us — accepted contributors get a
+                      dofollow contextual backlink and an author bio link from
+                      a topically relevant fintech domain.
+                    </p>
+                    <div className="flex flex-wrap gap-3 justify-center">
+                      <Link
+                        href="/write-for-us"
+                        data-testid="link-pitch-empty-category"
+                      >
+                        <Button className="bg-[#0052FF] hover:bg-[#0046d6] text-white">
+                          Pitch a {activeCategory} article
+                          <ArrowRight className="w-4 h-4 ml-1.5" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        onClick={() => setActiveCategory(undefined)}
+                        data-testid="button-show-all-posts"
+                      >
+                        Show all posts
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <AnimatePresence mode="popLayout">
