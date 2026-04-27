@@ -532,46 +532,60 @@ const posts = [
   },
   {
     id: 13,
-    slug: "stablecoin-reserves-explained-read-an-attestation",
-    title: "Stablecoin Reserves Explained: How to Read an Attestation Like a Treasury Officer",
+    slug: "fintech-saas-pricing-models-2026",
+    title: "Fintech SaaS Pricing in 2026: How Vertical Finance Platforms Are Repricing Around AI Workflows",
     excerpt:
-      "Most stablecoin reserve coverage is either marketing fluff or technical noise. Here is how a corporate treasurer actually reads a stablecoin attestation — and the four red flags that separate a credible reserve from a structurally fragile one.",
-    category: "Crypto & Stablecoins",
+      "Pure seat-based pricing is collapsing across vertical fintech SaaS as AI agents do the work seats used to. Here is how the leading treasury, FP&A, AP/AR, and spend-management platforms are repackaging — and the four pricing-model traps to avoid.",
+    category: "Fintech SaaS",
     image:
       "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
     date: "2026-04-01",
     readTime: "10 min read",
     author: "Mei Tanaka",
-    authorRole: "Crypto & Stablecoins Correspondent",
-    tags: ["Stablecoins", "Crypto Regulation", "Tokenization", "Reserves", "Treasury"],
+    authorRole: "Fintech SaaS Correspondent",
+    tags: ["Fintech SaaS", "Vertical SaaS", "Pricing", "CFO Tooling", "Embedded Finance"],
     content: `
-<p>The single most important document in the stablecoin industry is the monthly reserve attestation. It is the only public artefact that lets external observers verify whether a stablecoin issuer is actually solvent on a given date. And yet most coverage of these documents — both in crypto-native media and in traditional finance press — treats them as marketing announcements rather than financial statements that need to be read with the same discipline a corporate treasurer applies to a money-market fund prospectus.</p>
-<p>This article is the framework I use, drawing on a treasury and digital-assets background, to read a stablecoin attestation. It walks through what an attestation actually is, what it is not, the four reserve-composition red flags that should change your view of a stablecoin's risk profile, and how the new MiCA and US stablecoin disclosure requirements have changed what good looks like in 2026.</p>
+<p>The most important shift in vertical fintech SaaS in 2026 is not a feature — it is a pricing-model reset. Across treasury, FP&A, AP/AR, spend management, and billing platforms, the seat-based pricing that defined the 2018–2024 wave is being replaced, hybridised, or quietly deprecated. The reason is simple: when an AI workflow does the job a seat used to do, charging per seat is charging for a unit that no longer correlates with value delivered.</p>
+<p>This article is the framework we use, drawing on a fintech SaaS coverage practice, to read what is happening in vertical finance SaaS pricing right now. It walks through the four pricing models gaining share in 2026, the four traps that look modern but quietly destroy gross margin, and the metrics CFOs and RevOps teams should be watching to know whether a pricing change is working.</p>
 
-<h2>What Is a Stablecoin Reserve Attestation?</h2>
-<p>A stablecoin reserve attestation is a report issued by an independent accounting firm confirming that, as of a specific date, the stablecoin issuer holds reserves of at least the dollar value of stablecoins in circulation. An attestation is not an audit. It is a point-in-time verification of asset balances against liability balances, conducted under attestation standards (AT-C 105 and AT-C 205 in the US), with materially less assurance than a full financial-statement audit conducted under generally accepted auditing standards.</p>
-<p>The practical implication is that an attestation tells you what was in the reserve account on the day the snapshot was taken. It does not tell you what was in the account the day before, or the day after, or whether the same dollars were also reported as reserves for another purpose. The reading discipline below is designed to extract every signal an attestation can legitimately give and to surface the questions it cannot answer.</p>
+<h2>Why Seat-Based Pricing Is Collapsing in Finance SaaS</h2>
+<p>A seat made sense as a unit of value when one human at a desk produced one stream of finance work. In treasury, FP&A, AP/AR, and spend, that mapping has broken. Modern AP automation platforms now process invoices end-to-end without a clerk ever touching them; FP&A platforms generate the variance commentary that an analyst used to draft; treasury systems propose intraday cash moves the operator only confirms. The seat is no longer the value-generating unit — the workflow is.</p>
+<p>The practical implication is that buyers are increasingly resistant to seat caps that grow when their team shrinks. Vendors that hold the line on per-seat pricing without packaging usage rights are watching expansion revenue stall and contraction events accelerate at renewal. The vendors winning expansion in 2026 have rebuilt pricing around what their software actually does, not how many people log into it.</p>
 
-<h2>The Four Reserve-Composition Red Flags</h2>
+<h2>The Four Fintech SaaS Pricing Models Gaining Share in 2026</h2>
 
-<h3>1. Commercial Paper or Corporate Bonds in the Reserve</h3>
-<p>The strongest stablecoin reserves in 2026 are composed almost entirely of overnight repo collateralised by US Treasuries, T-bills with maturities under 90 days, and cash held at insured deposit institutions. Commercial paper, corporate bonds, and unsecured deposits at non-G-SIB banks introduce credit risk and liquidity risk that a fiat-backed stablecoin is structurally not supposed to carry. When you see commercial paper as a meaningful line in a reserve, ask why — the legitimate answers in 2026 are short and rare.</p>
+<h3>1. Workflow- or Outcome-Based Pricing</h3>
+<p>The clearest winner of the repricing cycle is outcome-based pricing — charging per processed invoice, per reconciled transaction, per closed period, per dollar of spend under management. It maps directly to the value the platform delivers and grows with the customer's underlying business activity rather than headcount. The two largest AP automation platforms now lead with per-invoice pricing in their published rate cards; the leading spend-management vendors price as a percentage of spend under management with a declining take-rate at scale.</p>
 
-<h3>2. Maturity Concentration Beyond 90 Days</h3>
-<p>A stablecoin is a demand liability — it must be redeemable at par, on demand, in cash. Reserves with weighted-average maturities beyond 90 days introduce duration risk: in a rising-rate environment, the mark-to-market value of those reserves falls below the par value of the stablecoins they back. A weighted-average maturity disclosure of more than 90 days is a yellow flag. Beyond 180 days is a red flag for a large-circulation stablecoin.</p>
+<h3>2. Hybrid Platform Fee + Usage Tier</h3>
+<p>For platforms where outcome metering is operationally complex (multi-currency treasury, FP&A planning), the dominant pattern in 2026 is a fixed platform fee covering core capability plus a usage-tier overlay for high-volume modules — bank connections, scenarios run, AI commentary generated, or model versions stored. This insulates revenue from seat compression while letting expansion track adoption depth rather than logins.</p>
 
-<h3>3. Custody Concentration in a Single Counterparty</h3>
-<p>Read the custody section carefully. A reserve held entirely with a single custodian — even a globally systemic bank — is a single-point-of-failure exposure that the 2023 banking events made painfully concrete. The healthier reserve disclosures in 2026 show custody distributed across multiple G-SIBs, with a clearly stated minimum allocation per counterparty and a triggering event that mandates rebalancing.</p>
+<h3>3. Module-Plus-Consumption Bundles</h3>
+<p>Vertical finance suites that sell across treasury, AP, AR, FP&A, and spend are converging on a packaged-module structure with a consumption overlay on the AI-heavy modules. Buyers pick the workflow modules they need; the AI agents inside those modules meter on usage. The structure preserves a clean ARR floor while exposing upside to AI-led expansion — and it sidesteps the common buyer objection that "AI features should be free if I am already paying for the seat."</p>
 
-<h3>4. Geographic and Regulatory Mismatch</h3>
-<p>Look for whether the legal entity issuing the stablecoin sits in the same jurisdiction as the bulk of its reserve assets and the bulk of its end-user redemptions. A stablecoin issued by a Caribbean entity, holding reserves in US banks, with the majority of its end-users redeeming through European exchanges, is exposed to a multi-jurisdictional bankruptcy waterfall that almost no end user has actually modelled. The MiCA-licensed issuers are increasingly resolving this by issuing through onshore EU entities; the US-onshore issuers under the new stablecoin framework are doing the same.</p>
+<h3>4. Embedded-Finance Take-Rate Pricing</h3>
+<p>Fintech SaaS platforms with an embedded-finance layer — virtual cards, embedded payments, FX, lending — are increasingly cross-subsidising the SaaS subscription with payments and interchange revenue. Several of the leading spend-management platforms now offer aggressive SaaS pricing (or zero subscription on entry tiers) when customers route a defined volume through the platform's card or payments rails. The economic profile becomes a fintech P&L, not a pure SaaS P&L — which has implications for both customer LTV modelling and vendor capital structure.</p>
 
-<h2>How to Read the Numbers Section in Five Minutes</h2>
-<p>A disciplined five-minute read of an attestation goes in this order. First, confirm the snapshot date and check it against the most recent disclosure date — gaps longer than 35 days suggest a delay that itself is a signal. Second, compare reserves to liabilities and confirm the surplus is at least 1% — a coverage ratio of exactly 100% leaves no margin for valuation movement. Third, scan the asset-composition table for the four red flags above. Fourth, read the footnotes for any qualifying language about subsequent events, legal proceedings, or restricted assets. Fifth, cross-check the issuer's reported stablecoin supply against the on-chain circulating supply on the chains the stablecoin is issued on — material differences are themselves a red flag.</p>
+<h2>The Four Pricing-Model Traps to Avoid</h2>
 
-<h2>What Has Changed Under MiCA and the US Framework</h2>
-<p>The 2024–2025 implementation of MiCA in the EU and the parallel US stablecoin legislation have raised the floor on what a credible reserve attestation looks like. EU-licensed e-money tokens (EMTs) and asset-referenced tokens (ARTs) must now publish quarterly attestations with prescribed asset-composition disclosure, weekly redemption-volume reporting, and a defined liquidity-buffer requirement. The US framework, finalised through the bipartisan stablecoin legislation passed in 2025, requires monthly attestations, an annual full audit, and explicit segregation of reserve assets from issuer operating capital.</p>
-<p>The practical effect is that the gap between the strongest and weakest stablecoin reserves is narrowing in regulated jurisdictions and widening relative to issuers that operate outside any of these frameworks. A treasurer holding a meaningful position in a stablecoin in 2026 should be reading the attestations every month, not every quarter — and should be reading them with the four red flags above in front of them, not the press release the issuer published alongside the document.</p>
+<h3>1. Repackaging the Seat as the AI Agent</h3>
+<p>Pricing AI agents per agent at seat-equivalent rates looks like progress and is the most common 2026 pricing mistake. It re-imports the same headcount-decoupling problem you were trying to solve. If the agent is autonomous, charge for what it produces, not for the agent's existence.</p>
+
+<h3>2. Outcome Pricing Without a Floor</h3>
+<p>Pure usage pricing with no platform fee delivers great unit economics in good quarters and destroys forecastability in bad ones. The vendors holding their valuation multiples in 2026 carry a meaningful platform-fee floor — typically 50–70% of expected ARR per account — with usage on top. Pure consumption pricing is reserved for platforms with extremely sticky workflows and high switching costs.</p>
+
+<h3>3. Take-Rate Pricing Above the Embedded-Finance Margin</h3>
+<p>A take-rate that exceeds the underlying interchange or FX margin compresses the unit economics for the customer faster than they realise — and triggers either renegotiation at renewal or a quiet rebuild on top of a competing payments rail. The vendors getting embedded-finance take-rate pricing right in 2026 are pricing inside the underlying margin and growing through volume, not pricing on top of it.</p>
+
+<h3>4. Hidden AI Surcharges Layered on Legacy Contracts</h3>
+<p>Adding AI surcharges to existing seat-based contracts mid-term is the single most common driver of accelerated churn we have observed in the 2025–2026 dataset. Customers experience the surcharge as a price increase without a packaging reset and it disproportionately damages NPS in the segment most likely to expand. Repackaging is acceptable; surcharging is not.</p>
+
+<h2>How to Read a Fintech SaaS Pricing Page in Five Minutes</h2>
+<p>A disciplined five-minute read of a vertical fintech SaaS pricing page goes in this order. First, identify the unit of value being charged for — seat, workflow, transaction, dollar of activity, embedded-finance volume — and ask whether it correlates with what the platform actually does. Second, look for a platform-fee floor: any vendor pitching pure usage pricing without one carries forecast risk that should be priced into the deal. Third, locate the AI module pricing — packaged into the module fee, metered on consumption, or surcharged separately — and weight the deal toward the first two. Fourth, check whether embedded-finance economics are integrated into the SaaS pricing or kept separate; integrated structures can deliver meaningful price reductions but lock you into the vendor's payments rail. Fifth, read the renewal language for caps on usage-tier pricing changes — vendors winning long-term renewals are publishing 12–24 month price caps inside outcome-based contracts.</p>
+
+<h2>What This Means for CFOs and RevOps Teams in 2026</h2>
+<p>The fintech SaaS vendors repricing well in 2026 are growing net revenue retention into the 120–135% range while their seat-based peers settle in the 95–105% range. The pricing model is doing the work that net-new sales used to do. For CFOs, that means treating pricing reviews as a quarterly capability — not a triannual exercise — and benchmarking your vendor base on the dimensions above at every renewal.</p>
+<p>For RevOps and procurement, the practical move is to build a vendor-pricing scorecard that captures the unit of value, the platform-fee floor, the AI packaging structure, and the embedded-finance overlay for every fintech SaaS contract over a defined ARR threshold. The exercise pays for itself in the first renewal cycle and tends to surface a meaningful list of contracts to either restructure with the incumbent or competitively re-bid.</p>
     `,
   },
 ];

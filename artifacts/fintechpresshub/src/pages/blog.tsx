@@ -41,7 +41,7 @@ const TOPIC_CATEGORIES: string[] = [
   "Wealthtech",
   "Regtech",
   "Compliance Marketing",
-  "Crypto & Stablecoins",
+  "Fintech SaaS",
   "Treasury & CFO",
   "Card Issuing",
   "Conversion Optimization",

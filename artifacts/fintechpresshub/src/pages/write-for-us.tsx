@@ -15,6 +15,7 @@ import {
   ArrowRight,
   BookOpen,
   Check,
+  X,
   FileText,
   Globe,
   Link as LinkIcon,
@@ -148,11 +149,11 @@ const topicCategories = [
     ],
   },
   {
-    title: "Crypto & Stablecoin Payments",
+    title: "Fintech SaaS",
     items: [
-      "On/off-ramp UX",
-      "Stablecoin treasury",
-      "MiCA & GENIUS Act",
+      "Treasury & FP&A platforms",
+      "AP/AR & spend management",
+      "Embedded-finance SaaS",
     ],
   },
   {
@@ -448,8 +449,8 @@ export default function WriteForUs() {
             "KYC",
             "AML",
             "Compliance Marketing",
-            "Cryptocurrency Payments",
-            "Stablecoin Payments",
+            "Fintech SaaS",
+            "SaaS Fintech",
             "Treasury Management",
             "CFO Tooling",
             "Conversion Rate Optimization",
@@ -588,6 +589,70 @@ export default function WriteForUs() {
                 </span>
               </button>
             ))}
+          </div>
+
+          {/* What we don't accept */}
+          <div
+            className="mt-12 rounded-2xl border border-red-200 bg-red-50/60 dark:bg-red-950/20 dark:border-red-900/50 p-6 sm:p-8 shadow-sm"
+            data-testid="not-accepted-callout"
+          >
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-600 text-white">
+                <X className="h-5 w-5" strokeWidth={3} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-xl font-bold text-red-900 dark:text-red-200 mb-2">
+                  Topics We Don&rsquo;t Accept
+                </h3>
+                <p className="text-sm sm:text-base text-foreground/90 mb-4">
+                  Our editorial scope was tightened in 2026. The categories
+                  below are auto-rejected regardless of writing quality or
+                  backlink offer — please do not pitch them.
+                </p>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <X
+                      className="h-4 w-4 mt-0.5 shrink-0 text-red-600 dark:text-red-400"
+                      strokeWidth={2.5}
+                    />
+                    <span>
+                      <strong>Cryptocurrency</strong> — token launches,
+                      exchanges, on-chain trading, DeFi yield, NFT marketing
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <X
+                      className="h-4 w-4 mt-0.5 shrink-0 text-red-600 dark:text-red-400"
+                      strokeWidth={2.5}
+                    />
+                    <span>
+                      <strong>Stablecoins</strong> — issuer marketing, reserve
+                      attestations, on/off-ramp UX, tokenized treasuries
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <X
+                      className="h-4 w-4 mt-0.5 shrink-0 text-red-600 dark:text-red-400"
+                      strokeWidth={2.5}
+                    />
+                    <span>
+                      <strong>Crypto-adjacent</strong> — Web3 marketing, wallet
+                      UX, custody platforms, MiCA / GENIUS Act takes
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <X
+                      className="h-4 w-4 mt-0.5 shrink-0 text-red-600 dark:text-red-400"
+                      strokeWidth={2.5}
+                    />
+                    <span>
+                      <strong>General off-niche</strong> — generic marketing,
+                      gambling, adult, payday, CBD, and other YMYL-risky verticals
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </section>

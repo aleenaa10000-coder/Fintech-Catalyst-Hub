@@ -123,6 +123,7 @@ type Section = { id: string; label: string };
 
 const SECTIONS: Section[] = [
   { id: "topical-scope", label: "Topical Scope" },
+  { id: "out-of-scope", label: "What We Don't Accept" },
   { id: "accuracy", label: "Accuracy" },
   { id: "ai-policy", label: "AI Policy" },
   { id: "voice-tone", label: "Voice/Tone" },
@@ -226,8 +227,8 @@ export default function EditorialGuidelines() {
             "KYC",
             "AML",
             "Compliance Marketing",
-            "Cryptocurrency Payments",
-            "Stablecoin Payments",
+            "Fintech SaaS",
+            "SaaS Fintech",
             "Treasury Management",
             "CFO Tooling",
             "Conversion Rate Optimization",
@@ -331,8 +332,8 @@ export default function EditorialGuidelines() {
                   data, BNPL economics, SMB lending, and consumer credit.
                 </li>
                 <li>
-                  <strong>Wealthtech &amp; crypto:</strong> Robo-advisors, brokerage UX, stablecoin
-                  payments, on-ramps/off-ramps, and tokenized assets.
+                  <strong>Wealthtech:</strong> Robo-advisors, brokerage UX, retirement and
+                  self-directed investing platforms, and advisor-tech.
                 </li>
                 <li>
                   <strong>Regtech &amp; compliance marketing:</strong> KYC/AML, sanctions screening,
@@ -342,9 +343,68 @@ export default function EditorialGuidelines() {
                   <strong>Neobanking &amp; digital banking:</strong> Challenger bank growth,
                   deposit acquisition, primary-account strategy, and unit economics.
                 </li>
+                <li>
+                  <strong>Fintech SaaS:</strong> Vertical fintech SaaS — treasury management
+                  systems, FP&amp;A, AP/AR automation, spend management, billing platforms, and
+                  the embedded-finance SaaS layer that powers them.
+                </li>
               </ul>
 
-              <h2 id="accuracy">2. Accuracy &amp; Fact-Checking</h2>
+              <h2 id="out-of-scope">2. What We Don&rsquo;t Accept</h2>
+              <p>
+                Pitches in the categories below are auto-rejected regardless of writing quality
+                or backlink offer. We maintain a tight topical scope so the domain stays
+                relevant to the fintech operators our readership is built on, and so our YMYL
+                E-E-A-T posture is not diluted by adjacent verticals we have no editorial depth
+                in.
+              </p>
+              <ComparisonGrid
+                testIdPrefix="out-of-scope"
+                standard={[
+                  {
+                    label: "Operator-facing fintech",
+                    detail: "Payments, lending, wealthtech, regtech, neobanking, fintech SaaS",
+                  },
+                  {
+                    label: "Fintech SEO, content, growth",
+                    detail: "Topical authority, programmatic SEO, link building, CRO",
+                  },
+                  {
+                    label: "Compliance &amp; regulatory marketing",
+                    detail: "KYC/AML positioning, regulator-cited content, YMYL frameworks",
+                  },
+                ]}
+                forbidden={[
+                  {
+                    label: "Cryptocurrency",
+                    detail:
+                      "Token launches, exchange reviews, on-chain trading, DeFi yield, NFT marketing — all auto-rejected",
+                  },
+                  {
+                    label: "Stablecoins",
+                    detail:
+                      "Stablecoin issuer marketing, reserve attestations, on/off-ramp UX, tokenized treasuries — all auto-rejected",
+                  },
+                  {
+                    label: "Crypto-adjacent verticals",
+                    detail:
+                      "Web3 marketing, wallet UX, custody platforms, MiCA/GENIUS Act takes — all auto-rejected",
+                  },
+                  {
+                    label: "General off-niche",
+                    detail:
+                      "Generic marketing, gambling, adult, payday, CBD, and other YMYL-risky categories",
+                  },
+                ]}
+              />
+              <p>
+                If you previously pitched crypto or stablecoin coverage and were accepted, note
+                that our scope was tightened in 2026 — those categories are no longer in the
+                editorial calendar. Pitches that materially overlap with cryptocurrency or
+                stablecoin topics will be returned without revision.
+              </p>
+
+              <h2 id="accuracy">3. Accuracy &amp; Fact-Checking</h2>
               <p>
                 The financial industry is highly regulated. All content must prioritize accuracy
                 above all else. Use the comparison below to vet every statistic, claim, and citation
@@ -398,7 +458,7 @@ export default function EditorialGuidelines() {
                 ]}
               />
 
-              <h2 id="ai-policy">3. AI Policy</h2>
+              <h2 id="ai-policy">4. AI Policy</h2>
               <p>
                 AI tools can accelerate research and ideation, but the final voice, analysis, and
                 expertise on the page must come from a human operator. Use the comparison below to
@@ -452,7 +512,7 @@ export default function EditorialGuidelines() {
                 ]}
               />
 
-              <h2 id="voice-tone">4. Voice and Tone</h2>
+              <h2 id="voice-tone">5. Voice and Tone</h2>
               <p>
                 Our brand voice is <strong>Expert, Confident, and Precise</strong>.
               </p>
@@ -470,7 +530,7 @@ export default function EditorialGuidelines() {
                 </li>
               </ul>
 
-              <h2 id="article-length">5. Article Length</h2>
+              <h2 id="article-length">6. Article Length</h2>
               <p>
                 Every article should land between <strong>800 and 1,500 words</strong>. This range
                 is long enough to cover a fintech topic with genuine depth — including data,
@@ -492,14 +552,14 @@ export default function EditorialGuidelines() {
                 </li>
               </ul>
 
-              <h2 id="originality">6. Originality</h2>
+              <h2 id="originality">7. Originality</h2>
               <p>
                 All content must be 100% original. We run all submissions through plagiarism
                 checkers. We do not accept syndicated content or articles that have been published
                 elsewhere.
               </p>
 
-              <h2 id="outbound-linking">7. Outbound Linking</h2>
+              <h2 id="outbound-linking">8. Outbound Linking</h2>
               <p>
                 We encourage linking to high-quality external resources to provide context, evidence,
                 and further reading. Every outbound link must clear the bar below — no exceptions.
@@ -553,7 +613,7 @@ export default function EditorialGuidelines() {
                 ]}
               />
 
-              <h2 id="contributor-links">8. Contributor Link Policy</h2>
+              <h2 id="contributor-links">9. Contributor Link Policy</h2>
               <p>
                 Guest contributors and sponsored partners receive a fixed, transparent backlink
                 allowance from FintechPressHub. Because we publish on a topically-focused fintech
