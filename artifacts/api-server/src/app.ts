@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import sitemapRouter from "./routes/sitemap";
+import authorRssRouter from "./routes/authorRss";
 import uploadsRouter from "./routes/uploads";
 import indexNowKeyRouter from "./routes/indexNowKey";
 import { logger } from "./lib/logger";
@@ -43,6 +44,10 @@ app.use(authMiddleware);
 // Public, dynamic sitemap mounted at the root so /sitemap.xml resolves
 // directly without needing an /api prefix.
 app.use(sitemapRouter);
+
+// Per-author RSS feeds at /authors/<slug>/rss.xml. Mounted at root so the
+// feed URL mirrors the public author-profile URL pattern.
+app.use(authorRssRouter);
 
 // Serves the IndexNow ownership-verification key file at /<key>.txt when
 // INDEXNOW_KEY is configured. Mounted at root for the same reason.

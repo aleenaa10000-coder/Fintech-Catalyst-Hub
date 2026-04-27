@@ -2,10 +2,13 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
     "types": ["node"]
   },
-  "include": ["src"],
+  "include": [
+    "src",
+    "../fintechpresshub/src/data/authors.ts",
+    "../fintechpresshub/src/data/posts.d.ts"
+  ],
   "references": [
     {
       "path": "../../lib/db"

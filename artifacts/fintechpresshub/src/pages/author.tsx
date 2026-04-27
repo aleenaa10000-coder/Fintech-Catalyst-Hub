@@ -14,9 +14,11 @@ import {
   Linkedin,
   Mail,
   MapPin,
+  Rss,
   Sparkles,
   Twitter,
 } from "lucide-react";
+import { SITE_URL } from "@/lib/metaData";
 import { usePublicPosts } from "@/data/usePublicPosts";
 import {
   authors,
@@ -69,6 +71,12 @@ export default function AuthorPage() {
       <PageMeta
         title={`${author.name} — ${author.role} | FintechPressHub`}
         description={author.shortBio}
+        rssFeeds={[
+          {
+            href: `${SITE_URL}/authors/${author.slug}/rss.xml`,
+            title: `${author.name} on FintechPressHub`,
+          },
+        ]}
         person={{
           name: author.name,
           jobTitle: author.role,
@@ -209,6 +217,15 @@ export default function AuthorPage() {
                       <Mail className="w-4 h-4" />
                     </a>
                   )}
+                  <a
+                    href={`/authors/${author.slug}/rss.xml`}
+                    aria-label={`Subscribe to ${author.name}'s RSS feed`}
+                    title={`Subscribe to ${author.name}'s RSS feed`}
+                    data-testid={`link-author-rss-${author.slug}`}
+                    className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
+                  >
+                    <Rss className="w-4 h-4" />
+                  </a>
                 </div>
               )}
             </div>

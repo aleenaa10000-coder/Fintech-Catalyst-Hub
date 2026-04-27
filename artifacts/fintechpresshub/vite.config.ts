@@ -81,6 +81,14 @@ export default defineConfig({
         target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
         changeOrigin: true,
       },
+      // Per-author RSS feeds (e.g. /authors/mei-tanaka/rss.xml) are served
+      // dynamically by the API. The regex limits the proxy to URLs that end
+      // in `/rss.xml`, so the SPA still handles plain `/authors/<slug>` and
+      // `/authors` index requests.
+      "^/authors/[^/]+/rss\\.xml$": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
       // IndexNow verification key file (served by the API at a fixed path
       // — the IndexNow `keyLocation` field is what tells search engines
       // where to look, so we don't need a per-key URL).

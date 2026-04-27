@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, blogPostsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
+import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
 
 const router: IRouter = Router();
 
@@ -27,15 +28,11 @@ const STATIC_ROUTES: Array<{
   { path: "/terms", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
 ];
 
-// Author profile slugs are sourced from the static frontend data file
-// (`artifacts/fintechpresshub/src/data/authors.ts`). Keep this in sync when
-// adding or removing team members.
-const AUTHOR_SLUGS: string[] = [
-  "marcus-webb",
-  "priya-nair",
-  "james-okafor",
-  "sarah-chen",
-];
+// Author profile slugs come straight from the canonical frontend data file
+// (`artifacts/fintechpresshub/src/data/authors.ts`) via the per-author RSS
+// route — adding a new author there now flows into both the sitemap and the
+// per-author feed without a second list to maintain.
+const AUTHOR_SLUGS: string[] = KNOWN_AUTHOR_SLUGS;
 
 function escapeXml(value: string): string {
   return value
@@ -79,6 +76,14 @@ async function buildSitemapXml(): Promise<string> {
       lastmod: today,
       changefreq: "monthly",
       priority: "0.6",
+    })),
+    // Per-author RSS feeds — listed so search engines and feed-discovery
+    // crawlers can find them without parsing the HTML autodiscovery link.
+    ...AUTHOR_SLUGS.map((slug) => ({
+      loc: `${siteUrl}/authors/${slug}/rss.xml`,
+      lastmod: today,
+      changefreq: "daily",
+      priority: "0.4",
     })),
   ];
 

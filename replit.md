@@ -41,6 +41,18 @@ The `/write-for-us` page (`src/pages/write-for-us.tsx`) is laid out as: PageHero
 - `pnpm --filter @workspace/db run push` — push DB schema (dev)
 - `pnpm --filter @workspace/scripts run seed` — seed demo content
 
+## Per-author RSS feeds
+
+Each contributor on `/authors/<slug>` has their own dynamic RSS 2.0 feed at `/authors/<slug>/rss.xml`, served by the API server (`artifacts/api-server/src/routes/authorRss.ts`). The route imports the canonical authors list and static seed posts directly from the frontend (`artifacts/fintechpresshub/src/data/{authors.ts,posts.js}`) and merges them with API-published `blog_posts` rows using the same overlay rule as `usePublicPosts` (API row wins on slug collision). Format mirrors the sitewide `scripts/generate-rss.mjs` output, including `dc:creator`, `category`, `description`, and `content:encoded`. Unknown slugs → 404.
+
+- Mounted at root in `artifacts/api-server/src/app.ts` so the feed URL mirrors the public profile URL.
+- Vite dev proxy: `^/authors/[^/]+/rss\.xml$` in `artifacts/fintechpresshub/vite.config.ts` (regex limits proxy to `.xml` only — SPA still owns `/authors/<slug>`).
+- Sitemap (`artifacts/api-server/src/routes/sitemap.ts`) consumes `KNOWN_AUTHOR_SLUGS` exported from `authorRss.ts` so adding a new author in `authors.ts` automatically extends both the sitemap (profile + RSS entries) and the feed registry — no second list to maintain.
+- Autodiscovery: `PageMeta` accepts an optional `rssFeeds: { href, title }[]` prop and emits one extra `<link rel="alternate" type="application/rss+xml">` per entry. Author profile page passes its per-author feed so feed readers detect it on visit.
+- Visible affordance: a Subscribe-via-RSS icon button sits in the author-profile social row (`artifacts/fintechpresshub/src/pages/author.tsx`).
+- Cache: `Cache-Control: public, max-age=300, s-maxage=3600, stale-while-revalidate=86400`.
+- Cross-package import note: api-server `tsconfig.json` drops `rootDir` and includes `../fintechpresshub/src/data/{authors.ts,posts.d.ts}` so `tsc --noEmit` resolves the imports; esbuild bundles the actual JS at build time.
+
 ## SEO automation (IndexNow daily)
 
 The API server schedules a daily IndexNow submission (`artifacts/api-server/src/jobs/indexNowDaily.ts`) that pings Bing, Yandex, Seznam, and Naver about blog posts published since the last successful run. State (`indexnow:lastRunAt`) is persisted in the new `kv_store` Postgres table so restarts don't cause re-submissions. A 1h overlap window prevents missed posts at the boundary, capped at 36h on first run / after long downtime.

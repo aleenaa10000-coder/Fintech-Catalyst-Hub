@@ -107,6 +107,11 @@ export type WebPageSchema = {
   datePublished?: string;
 };
 
+export type RssFeedLink = {
+  href: string;
+  title: string;
+};
+
 type Common = {
   title?: string;
   description?: string;
@@ -117,6 +122,12 @@ type Common = {
   aboutPage?: AboutPageSchema;
   webPage?: WebPageSchema;
   faq?: FaqItem[];
+  /**
+   * Extra `<link rel="alternate" type="application/rss+xml">` tags emitted in
+   * addition to the sitewide blog feed. Used by author-profile pages to
+   * advertise their per-author RSS feed for autodiscovery in feed readers.
+   */
+  rssFeeds?: RssFeedLink[];
 };
 
 type PageMetaProps =
@@ -399,6 +410,15 @@ export function PageMeta(props: PageMetaProps) {
         title={`${SITE_NAME} Blog`}
         href={`${SITE_URL}/rss.xml`}
       />
+      {props.rssFeeds?.map((feed) => (
+        <link
+          key={`rss-${feed.href}`}
+          rel="alternate"
+          type="application/rss+xml"
+          title={feed.title}
+          href={feed.href}
+        />
+      ))}
       {title ? <meta property="og:title" content={title} /> : null}
       {description ? (
         <meta property="og:description" content={description} />
