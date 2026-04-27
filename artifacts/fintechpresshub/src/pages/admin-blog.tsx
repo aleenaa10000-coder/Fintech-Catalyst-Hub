@@ -318,6 +318,7 @@ const emptyForm = {
   seoTitle: "",
   seoDescription: "",
   seoOgImage: "",
+  noIndex: false,
 };
 
 function slugify(input: string) {
@@ -352,6 +353,7 @@ function PostEditor({
     seoTitle: post.seoTitle ?? "",
     seoDescription: post.seoDescription ?? "",
     seoOgImage: post.seoOgImage ?? "",
+    noIndex: post.noIndex ?? false,
   });
   const updateMut = useUpdateBlogPost();
 
@@ -379,6 +381,7 @@ function PostEditor({
           coverImage: draft.coverImage.trim(),
           readingMinutes,
           featured: draft.featured,
+          noIndex: draft.noIndex,
           seoTitle: draft.seoTitle.trim() || null,
           seoDescription: draft.seoDescription.trim() || null,
           seoOgImage: draft.seoOgImage.trim() || null,
@@ -569,6 +572,27 @@ function PostEditor({
         <Label htmlFor={`featured-${post.id}`} className="cursor-pointer">
           Feature on the homepage
         </Label>
+      </div>
+
+      <div className="flex items-start gap-2">
+        <Checkbox
+          id={`noIndex-${post.id}`}
+          checked={draft.noIndex}
+          onCheckedChange={(v) =>
+            setDraft({ ...draft, noIndex: v === true })
+          }
+          data-testid={`edit-post-${post.id}-noindex`}
+        />
+        <div className="grid gap-1 leading-tight">
+          <Label htmlFor={`noIndex-${post.id}`} className="cursor-pointer">
+            No-index (hide from search engines)
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Emits{" "}
+            <code>&lt;meta name="robots" content="noindex,nofollow"&gt;</code>{" "}
+            on the post detail page.
+          </p>
+        </div>
       </div>
 
       {/* SEO overrides — leave blank to use the post title/excerpt/cover.
@@ -895,6 +919,7 @@ export default function AdminBlog() {
           coverImage: form.coverImage.trim(),
           readingMinutes,
           featured: form.featured,
+          noIndex: form.noIndex,
           seoTitle: form.seoTitle.trim() || null,
           seoDescription: form.seoDescription.trim() || null,
           seoOgImage: form.seoOgImage.trim() || null,
@@ -959,13 +984,26 @@ export default function AdminBlog() {
             <p className="text-muted-foreground mb-6">
               You need to sign in to publish blog posts.
             </p>
-            <Button
-              size="lg"
-              onClick={login}
-              className="bg-[#0052FF] hover:bg-[#0040cc]"
-            >
-              Log in with Replit
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                size="lg"
+                onClick={() => {
+                  window.location.href = "/admin/login";
+                }}
+                className="bg-[#0052FF] hover:bg-[#0040cc]"
+                data-testid="admin-blog-go-to-login"
+              >
+                Sign in with email & password
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={login}
+                className="text-muted-foreground"
+              >
+                Or sign in with Replit
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -1260,6 +1298,25 @@ export default function AdminBlog() {
                 <Label htmlFor="featured" className="cursor-pointer">
                   Feature on the homepage
                 </Label>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="noIndex"
+                  checked={form.noIndex}
+                  onCheckedChange={(v) =>
+                    setForm({ ...form, noIndex: v === true })
+                  }
+                  data-testid="new-post-noindex"
+                />
+                <div className="grid gap-1 leading-tight">
+                  <Label htmlFor="noIndex" className="cursor-pointer">
+                    No-index this post (hide from search engines)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Adds <code>&lt;meta name="robots" content="noindex,nofollow"&gt;</code> to the post page. The URL stays publicly accessible.
+                  </p>
+                </div>
               </div>
 
               <details className="border rounded-md p-3">

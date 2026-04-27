@@ -17,6 +17,8 @@ import {
 import { CountUp } from "@/components/CountUp";
 import { ParticleNetwork } from "@/components/ParticleNetwork";
 import { TrustedBy } from "@/components/TrustedBy";
+import { QuickPublishSheet } from "@/components/QuickPublishSheet";
+import { useAuth } from "@workspace/replit-auth-web";
 
 const homeFaqs = [
   {
@@ -27,7 +29,7 @@ const homeFaqs = [
   {
     question: "How is FintechPressHub different from a generalist SEO agency?",
     answer:
-      "We work exclusively with fintech, payments, lending, wealth, banking infrastructure, and crypto-adjacent companies. Every writer, editor, and outreach lead has direct fintech experience — no generalists ramping up on your account. That focus is also why our publication relationships skew toward Finextra, The Fintech Times, Tearsheet, Finovate, and similar tier-1 trade press your buyers actually read.",
+      "We work exclusively with fintech, payments, lending, wealth, banking infrastructure, and adjacent regulated-finance categories. Every writer, editor, and outreach lead has direct fintech experience — no generalists ramping up on your account. That focus is also why our publication relationships skew toward Finextra, The Fintech Times, Tearsheet, Finovate, and similar tier-1 trade press your buyers actually read.",
   },
   {
     question: "What kinds of fintech companies do you typically work with?",
@@ -47,7 +49,9 @@ const homeFaqs = [
 ];
 
 export default function Home() {
-  
+  const { user } = useAuth();
+  const isAdmin = user?.isAdmin === true;
+
   const { data: stats } = useGetTrustStats();
   const { data: testimonials } = useListTestimonials();
   const { data: featuredPosts } = useListFeaturedPosts();
@@ -377,6 +381,8 @@ export default function Home() {
           </Accordion>
         </div>
       </section>
+
+      {isAdmin ? <QuickPublishSheet /> : null}
 
       {/* CTA */}
       <section className="py-24 bg-primary text-primary-foreground text-center">

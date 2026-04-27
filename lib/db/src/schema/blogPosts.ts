@@ -40,6 +40,13 @@ export const blogPostsTable = pgTable("blog_posts", {
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
   seoOgImage: text("seo_og_image"),
+  // When true, the public post detail page emits
+  // `<meta name="robots" content="noindex,nofollow">` so this post is
+  // excluded from search engines (still publicly accessible by URL).
+  // Useful for sponsored posts that legally require non-indexing,
+  // outdated articles being phased out, or work-in-progress drafts the
+  // admin wants visible for stakeholder review.
+  noIndex: boolean("no_index").notNull().default(false),
 });
 
 export type BlogPostRow = typeof blogPostsTable.$inferSelect;

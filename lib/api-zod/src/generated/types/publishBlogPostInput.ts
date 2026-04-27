@@ -39,4 +39,7 @@ export interface PublishBlogPostInput {
   /** Optional override for `og:image` / `twitter:image`. Falls back to `coverImage` when omitted or null.
    */
   seoOgImage?: string | null;
+  /** When true, the public post detail page will emit `<meta name="robots" content="noindex,nofollow">`, hiding the post from search engines while keeping it accessible by URL. Defaults to false.
+   */
+  noIndex?: boolean;
 }

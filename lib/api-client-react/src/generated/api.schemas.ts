@@ -23,6 +23,13 @@ export interface AuthUserEnvelope {
   user: AuthUser | null;
 }
 
+export interface AdminLoginRequest {
+  /** @minLength 1 */
+  email: string;
+  /** @minLength 1 */
+  password: string;
+}
+
 export interface MobileTokenExchangeRequest {
   /** @minLength 1 */
   code: string;
@@ -91,6 +98,9 @@ export interface BlogPost {
   /** Optional override for `og:image` / `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).
    */
   seoOgImage?: string | null;
+  /** When true, the public post detail page emits `<meta name="robots" content="noindex,nofollow">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.
+   */
+  noIndex: boolean;
 }
 
 export interface BlogCategory {
@@ -137,6 +147,9 @@ export interface UpdateBlogPostInput {
   /** Override `og:image` / `twitter:image` for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `coverImage`.
    */
   seoOgImage?: string | null;
+  /** When true, the public post detail page will emit `<meta name="robots" content="noindex,nofollow">`, hiding the post from search engines while keeping it accessible by URL.
+   */
+  noIndex?: boolean;
 }
 
 export type SeoNotificationIndexNowStatus =
@@ -229,6 +242,9 @@ export interface PublishBlogPostInput {
   /** Optional override for `og:image` / `twitter:image`. Falls back to `coverImage` when omitted or null.
    */
   seoOgImage?: string | null;
+  /** When true, the public post detail page will emit `<meta name="robots" content="noindex,nofollow">`, hiding the post from search engines while keeping it accessible by URL. Defaults to false.
+   */
+  noIndex?: boolean;
 }
 
 /**

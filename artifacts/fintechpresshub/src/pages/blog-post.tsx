@@ -296,6 +296,7 @@ export default function BlogPost() {
         description={
           (post.seoDescription?.trim() || post.excerpt) ?? undefined
         }
+        noindex={post.noIndex === true}
         article={{
           title: post.seoTitle?.trim() || post.title,
           description:

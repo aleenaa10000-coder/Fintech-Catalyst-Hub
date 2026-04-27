@@ -19,6 +19,10 @@ export const usersTable = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  // Bcrypt hash for the email-and-password admin login flow used in
+  // self-hosted environments (e.g. Hostinger) where Replit OIDC is not
+  // available. Null for users created via OIDC-only flows.
+  passwordHash: varchar("password_hash"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

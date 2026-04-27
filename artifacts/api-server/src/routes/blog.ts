@@ -89,6 +89,7 @@ const PublishBlogPostBody = z.object({
   seoTitle: seoTitleField,
   seoDescription: seoDescriptionField,
   seoOgImage: seoOgImageField,
+  noIndex: z.boolean().optional(),
 });
 
 const UpdateBlogPostBody = z
@@ -106,6 +107,7 @@ const UpdateBlogPostBody = z
     seoTitle: seoTitleField,
     seoDescription: seoDescriptionField,
     seoOgImage: seoOgImageField,
+    noIndex: z.boolean().optional(),
   })
   .refine((obj) => Object.keys(obj).length > 0, {
     message: "At least one field is required",
@@ -133,6 +135,7 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
     seoTitle: row.seoTitle ?? null,
     seoDescription: row.seoDescription ?? null,
     seoOgImage: row.seoOgImage ?? null,
+    noIndex: row.noIndex,
   };
 }
 
@@ -286,6 +289,7 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
         ...(body.seoOgImage !== undefined
           ? { seoOgImage: body.seoOgImage }
           : {}),
+        ...(body.noIndex !== undefined ? { noIndex: body.noIndex } : {}),
       })
       .returning();
 

@@ -30,6 +30,9 @@ async function refreshIfExpired(
   sid: string,
   session: SessionData,
 ): Promise<SessionData | null> {
+  // Password-based admin sessions have neither `expires_at` nor an OIDC
+  // refresh token — they live until SESSION_TTL elapses (enforced by
+  // the row in `sessions`). Treat them as always-fresh.
   const now = Math.floor(Date.now() / 1000);
   if (!session.expires_at || now <= session.expires_at) return session;
 

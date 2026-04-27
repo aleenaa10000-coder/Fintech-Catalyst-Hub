@@ -24,6 +24,7 @@ import CookiePolicy from "@/pages/cookie-policy";
 import Terms from "@/pages/terms";
 import EditorialGuidelines from "@/pages/editorial-guidelines";
 import FinancialHealthScoreCalculator from "@/pages/tools/financial-health-score-calculator";
+import AdminLogin from "@/pages/admin-login";
 import AdminServices from "@/pages/admin-services";
 import AdminBlog from "@/pages/admin-blog";
 import AdminAuthorsSubscribers from "@/pages/admin-authors-subscribers";
@@ -75,6 +76,7 @@ function Router() {
             path="/tools/financial-health-score-calculator"
             component={FinancialHealthScoreCalculator}
           />
+          <Route path="/admin/login" component={AdminLogin} />
           <Route path="/admin/services" component={AdminServices} />
           <Route path="/admin/blog" component={AdminBlog} />
           <Route

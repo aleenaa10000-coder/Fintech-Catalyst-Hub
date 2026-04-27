@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdminLoginRequest,
   AuthUserEnvelope,
   AuthorSubscriberDetail,
   AuthorSubscriberSummary,
@@ -585,6 +586,181 @@ export const useLogoutMobileSession = <
   TContext
 > => {
   return useMutation(getLogoutMobileSessionMutationOptions(options));
+};
+
+/**
+ * Email-and-password admin login for self-hosted deployments
+(e.g. Hostinger) where Replit OIDC is not available. The user's
+email must be on the `ADMIN_EMAILS` allowlist; the password is
+compared against the bcrypt hash on `users.password_hash` (seeded
+from the `ADMIN_PASSWORD` env var on first start).
+On success, sets the `sid` session cookie and returns the
+authenticated admin user.
+
+ * @summary Sign an admin in with email and password
+ */
+export const getLoginAdminWithPasswordUrl = () => {
+  return `/api/admin-auth/login`;
+};
+
+export const loginAdminWithPassword = async (
+  adminLoginRequest: AdminLoginRequest,
+  options?: RequestInit,
+): Promise<AuthUserEnvelope> => {
+  return customFetch<AuthUserEnvelope>(getLoginAdminWithPasswordUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminLoginRequest),
+  });
+};
+
+export const getLoginAdminWithPasswordMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof loginAdminWithPassword>>,
+    TError,
+    { data: BodyType<AdminLoginRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof loginAdminWithPassword>>,
+  TError,
+  { data: BodyType<AdminLoginRequest> },
+  TContext
+> => {
+  const mutationKey = ["loginAdminWithPassword"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof loginAdminWithPassword>>,
+    { data: BodyType<AdminLoginRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return loginAdminWithPassword(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LoginAdminWithPasswordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof loginAdminWithPassword>>
+>;
+export type LoginAdminWithPasswordMutationBody = BodyType<AdminLoginRequest>;
+export type LoginAdminWithPasswordMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Sign an admin in with email and password
+ */
+export const useLoginAdminWithPassword = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof loginAdminWithPassword>>,
+    TError,
+    { data: BodyType<AdminLoginRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof loginAdminWithPassword>>,
+  TError,
+  { data: BodyType<AdminLoginRequest> },
+  TContext
+> => {
+  return useMutation(getLoginAdminWithPasswordMutationOptions(options));
+};
+
+/**
+ * @summary Clear the admin session cookie
+ */
+export const getLogoutAdminSessionUrl = () => {
+  return `/api/admin-auth/logout`;
+};
+
+export const logoutAdminSession = async (
+  options?: RequestInit,
+): Promise<LogoutSuccess> => {
+  return customFetch<LogoutSuccess>(getLogoutAdminSessionUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getLogoutAdminSessionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof logoutAdminSession>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof logoutAdminSession>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["logoutAdminSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof logoutAdminSession>>,
+    void
+  > = () => {
+    return logoutAdminSession(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LogoutAdminSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof logoutAdminSession>>
+>;
+
+export type LogoutAdminSessionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Clear the admin session cookie
+ */
+export const useLogoutAdminSession = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof logoutAdminSession>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof logoutAdminSession>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getLogoutAdminSessionMutationOptions(options));
 };
 
 /**

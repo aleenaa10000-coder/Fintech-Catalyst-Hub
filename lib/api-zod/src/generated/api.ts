@@ -92,6 +92,48 @@ export const LogoutMobileSessionResponse = zod.object({
 });
 
 /**
+ * Email-and-password admin login for self-hosted deployments
+(e.g. Hostinger) where Replit OIDC is not available. The user's
+email must be on the `ADMIN_EMAILS` allowlist; the password is
+compared against the bcrypt hash on `users.password_hash` (seeded
+from the `ADMIN_PASSWORD` env var on first start).
+On success, sets the `sid` session cookie and returns the
+authenticated admin user.
+
+ * @summary Sign an admin in with email and password
+ */
+
+export const LoginAdminWithPasswordBody = zod.object({
+  email: zod.string().email().min(1),
+  password: zod.string().min(1),
+});
+
+export const LoginAdminWithPasswordResponse = zod.object({
+  user: zod.union([
+    zod.object({
+      id: zod.string(),
+      email: zod.string().email().nullable(),
+      firstName: zod.string().nullable(),
+      lastName: zod.string().nullable(),
+      profileImageUrl: zod.string().nullable(),
+      isAdmin: zod
+        .boolean()
+        .describe(
+          "True when the signed-in user's email is in the ADMIN_EMAILS allowlist.",
+        ),
+    }),
+    zod.null(),
+  ]),
+});
+
+/**
+ * @summary Clear the admin session cookie
+ */
+export const LogoutAdminSessionResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -165,6 +207,11 @@ export const ListBlogPostsResponseItem = zod.object({
     .describe(
       "Optional override for `og:image` \/ `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n",
     ),
+  noIndex: zod
+    .boolean()
+    .describe(
+      'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
+    ),
 });
 export const ListBlogPostsResponse = zod.array(ListBlogPostsResponseItem);
 
@@ -214,6 +261,12 @@ export const PublishBlogPostBody = zod.object({
     .nullish()
     .describe(
       "Optional override for `og:image` \/ `twitter:image`. Falls back to `coverImage` when omitted or null.\n",
+    ),
+  noIndex: zod
+    .boolean()
+    .optional()
+    .describe(
+      'When true, the public post detail page will emit `<meta name=\"robots\" content=\"noindex,nofollow\">`, hiding the post from search engines while keeping it accessible by URL. Defaults to false.\n',
     ),
 });
 
@@ -281,6 +334,11 @@ export const GetBlogPostResponse = zod.object({
     .describe(
       "Optional override for `og:image` \/ `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n",
     ),
+  noIndex: zod
+    .boolean()
+    .describe(
+      'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
+    ),
 });
 
 /**
@@ -323,6 +381,12 @@ export const UpdateBlogPostBody = zod
       .nullish()
       .describe(
         "Override `og:image` \/ `twitter:image` for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `coverImage`.\n",
+      ),
+    noIndex: zod
+      .boolean()
+      .optional()
+      .describe(
+        'When true, the public post detail page will emit `<meta name=\"robots\" content=\"noindex,nofollow\">`, hiding the post from search engines while keeping it accessible by URL.\n',
       ),
   })
   .describe("Partial update — only included fields are changed.");
@@ -388,6 +452,11 @@ export const UpdateBlogPostResponse = zod
       .nullish()
       .describe(
         "Optional override for `og:image` \/ `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n",
+      ),
+    noIndex: zod
+      .boolean()
+      .describe(
+        'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
       ),
   })
   .and(
@@ -512,6 +581,11 @@ export const RepingBlogPostIndexNowResponse = zod
       .nullish()
       .describe(
         "Optional override for `og:image` \/ `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n",
+      ),
+    noIndex: zod
+      .boolean()
+      .describe(
+        'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
       ),
   })
   .and(
@@ -748,6 +822,11 @@ export const ListFeaturedPostsResponseItem = zod.object({
     .nullish()
     .describe(
       "Optional override for `og:image` \/ `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n",
+    ),
+  noIndex: zod
+    .boolean()
+    .describe(
+      'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
     ),
 });
 export const ListFeaturedPostsResponse = zod.array(

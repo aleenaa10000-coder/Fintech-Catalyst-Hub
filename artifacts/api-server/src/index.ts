@@ -1,6 +1,7 @@
 import app from "./app";
 import { db, runSeed } from "@workspace/db";
 import { logger } from "./lib/logger";
+import { bootstrapAdminFromEnv } from "./lib/bootstrapAdmin";
 import { scheduleIndexNowDaily } from "./jobs/indexNowDaily";
 import { scheduleLinkCheckDaily } from "./jobs/linkCheckDaily";
 
@@ -32,6 +33,15 @@ async function bootstrap() {
     logger.error(
       { err },
       "Database seeding failed — continuing to start server",
+    );
+  }
+
+  try {
+    await bootstrapAdminFromEnv();
+  } catch (err) {
+    logger.error(
+      { err },
+      "Admin bootstrap from ADMIN_EMAILS/ADMIN_PASSWORD failed",
     );
   }
 

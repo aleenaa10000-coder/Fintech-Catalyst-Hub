@@ -49,6 +49,13 @@ export type PublicPost = {
   seoTitle?: string | null;
   seoDescription?: string | null;
   seoOgImage?: string | null;
+  /**
+   * When true, the post detail page emits
+   * `<meta name="robots" content="noindex,nofollow">` so search engines
+   * skip it. Static seed posts default to `false`. Toggled per-post in
+   * the admin dashboard.
+   */
+  noIndex?: boolean;
 };
 
 type StaticPost = PublicPost;
@@ -83,6 +90,7 @@ function fromApi(post: ApiBlogPost): PublicPost {
     seoTitle: post.seoTitle ?? null,
     seoDescription: post.seoDescription ?? null,
     seoOgImage: post.seoOgImage ?? null,
+    noIndex: post.noIndex,
   };
 }
 

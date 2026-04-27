@@ -147,6 +147,66 @@ paths:
               schema:
                 $ref: '#/components/schemas/LogoutSuccess'
 
+  /admin-auth/login:
+    post:
+      tags: [Auth]
+      operationId: loginAdminWithPassword
+      summary: Sign an admin in with email and password
+      description: |
+        Email-and-password admin login for self-hosted deployments
+        (e.g. Hostinger) where Replit OIDC is not available. The user's
+        email must be on the `ADMIN_EMAILS` allowlist; the password is
+        compared against the bcrypt hash on `users.password_hash` (seeded
+        from the `ADMIN_PASSWORD` env var on first start).
+        On success, sets the `sid` session cookie and returns the
+        authenticated admin user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+      responses:
+        '200':
+          description: Logged in successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserEnvelope'
+        '400':
+          description: Missing or invalid input.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Email or password is incorrect.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Email is not on the admin allowlist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /admin-auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logoutAdminSession
+      summary: Clear the admin session cookie
+      parameters:
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '200':
+          description: Logout processed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutSuccess'
+
   /healthz:
     get:
       operationId: healthCheck
@@ -818,6 +878,17 @@ components:
           oneOf:
             - $ref: '#/components/schemas/AuthUser'
             - type: 'null'
+    AdminLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
     MobileTokenExchangeRequest:
       type: object
       required: [code, code_verifier, redirect_uri, state]
@@ -950,7 +1021,14 @@ components:
             post's detail page. When `null` the social card falls back to
             the post's `coverImage`. Must be an absolute URL pointing to a
             hosted image (1200×630 recommended).
-      required: [id, slug, title, excerpt, content, author, authorRole, category, tags, coverImage, readingMinutes, featured, publishedAt, updatedAt, viewCount]
+        noIndex:
+          type: boolean
+          description: >
+            When true, the public post detail page emits
+            `<meta name="robots" content="noindex,nofollow">` so this post
+            is excluded from search engines (still publicly accessible by
+            URL). Useful for sponsored, outdated, or work-in-progress posts.
+      required: [id, slug, title, excerpt, content, author, authorRole, category, tags, coverImage, readingMinutes, featured, publishedAt, updatedAt, viewCount, noIndex]
 
     BlogCategory:
       type: object
@@ -1027,6 +1105,12 @@ components:
             Override `og:image` / `twitter:image` for this post. Pass an
             empty string or `null` to clear an existing override and fall
             back to the post's `coverImage`.
+        noIndex:
+          type: boolean
+          description: >
+            When true, the public post detail page will emit
+            `<meta name="robots" content="noindex,nofollow">`, hiding the
+            post from search engines while keeping it accessible by URL.
 
     SeoNotification:
       type: object
@@ -1145,6 +1229,13 @@ components:
           description: >
             Optional override for `og:image` / `twitter:image`. Falls back
             to `coverImage` when omitted or null.
+        noIndex:
+          type: boolean
+          description: >
+            When true, the public post detail page will emit
+            `<meta name="robots" content="noindex,nofollow">`, hiding the
+            post from search engines while keeping it accessible by URL.
+            Defaults to false.
       required:
         - slug
         - title

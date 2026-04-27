@@ -36,4 +36,7 @@ export interface UpdateBlogPostInput {
   /** Override `og:image` / `twitter:image` for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `coverImage`.
    */
   seoOgImage?: string | null;
+  /** When true, the public post detail page will emit `<meta name="robots" content="noindex,nofollow">`, hiding the post from search engines while keeping it accessible by URL.
+   */
+  noIndex?: boolean;
 }

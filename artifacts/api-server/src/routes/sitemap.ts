@@ -67,13 +67,18 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
   const siteUrl = getSiteUrl();
   const today = new Date().toISOString().slice(0, 10);
 
-  const posts = await db
-    .select({
-      slug: blogPostsTable.slug,
-      publishedAt: blogPostsTable.publishedAt,
-    })
-    .from(blogPostsTable)
-    .orderBy(desc(blogPostsTable.publishedAt));
+  // Skip posts the admin marked as no-index — they shouldn't be advertised
+  // in the sitemap even though their URL stays publicly reachable.
+  const posts = (
+    await db
+      .select({
+        slug: blogPostsTable.slug,
+        publishedAt: blogPostsTable.publishedAt,
+        noIndex: blogPostsTable.noIndex,
+      })
+      .from(blogPostsTable)
+      .orderBy(desc(blogPostsTable.publishedAt))
+  ).filter((p) => !p.noIndex);
 
   return [
     ...STATIC_ROUTES.map((r) => ({

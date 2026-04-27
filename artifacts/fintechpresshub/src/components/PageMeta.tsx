@@ -128,6 +128,12 @@ type Common = {
    * advertise their per-author RSS feed for autodiscovery in feed readers.
    */
   rssFeeds?: RssFeedLink[];
+  /**
+   * When true, emits `<meta name="robots" content="noindex,nofollow">` to
+   * exclude the page from search engines. Used by per-post noIndex toggles
+   * and by admin-only pages (e.g. /admin/login).
+   */
+  noindex?: boolean;
 };
 
 type PageMetaProps =
@@ -403,6 +409,9 @@ export function PageMeta(props: PageMetaProps) {
     <Helmet>
       {title ? <title>{title}</title> : null}
       {description ? <meta name="description" content={description} /> : null}
+      {props.noindex ? (
+        <meta name="robots" content="noindex,nofollow" />
+      ) : null}
       <link rel="canonical" href={canonical} />
       <link
         rel="alternate"

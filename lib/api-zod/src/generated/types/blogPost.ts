@@ -44,4 +44,7 @@ export interface BlogPost {
   /** Optional override for `og:image` / `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).
    */
   seoOgImage?: string | null;
+  /** When true, the public post detail page emits `<meta name="robots" content="noindex,nofollow">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.
+   */
+  noIndex: boolean;
 }
