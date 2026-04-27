@@ -429,54 +429,6 @@ export default function Blog() {
             )}
           </div>
 
-          {/* Category chips */}
-          <div className="flex flex-wrap gap-2 justify-center">
-            <button
-              type="button"
-              onClick={() => setActiveCategory(undefined)}
-              className={`px-4 py-2 rounded-full text-sm font-medium border-2 transition-all duration-200 ${
-                activeCategory === undefined
-                  ? "bg-[#0052FF] text-white border-[#0052FF] shadow-sm"
-                  : "bg-transparent text-[#0052FF] border-[#0052FF] hover:bg-[#0052FF]/5"
-              }`}
-            >
-              All
-              <span
-                className={`ml-2 text-xs ${activeCategory === undefined ? "text-white/80" : "text-[#0052FF]/60"}`}
-              >
-                {allPosts.length}
-              </span>
-            </button>
-            {categories.map((cat) => {
-              const active = activeCategory === cat.name;
-              const empty = cat.count === 0;
-              const baseStyle = active
-                ? "bg-[#0052FF] text-white border-[#0052FF] shadow-sm"
-                : empty
-                ? "bg-transparent text-slate-500 border-slate-300 hover:bg-slate-50 hover:text-[#0052FF] hover:border-[#0052FF]/40"
-                : "bg-transparent text-[#0052FF] border-[#0052FF] hover:bg-[#0052FF]/5";
-              const countStyle = active
-                ? "text-white/80"
-                : empty
-                ? "text-slate-400"
-                : "text-[#0052FF]/60";
-              return (
-                <button
-                  key={cat.name}
-                  type="button"
-                  onClick={() => setActiveCategory(cat.name)}
-                  data-testid={`category-chip-${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
-                  className={`px-4 py-2 rounded-full text-sm font-medium border-2 transition-all duration-200 ${baseStyle}`}
-                >
-                  {cat.name}
-                  <span className={`ml-2 text-xs ${countStyle}`}>
-                    {cat.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
           {/* Tag chips — derived from the merged feed. Combined with the
               category chip + search query as an AND filter. */}
           {tags.length > 0 && (
@@ -600,10 +552,71 @@ export default function Blog() {
         </div>
       </section>
 
-      {/* 3-column responsive grid */}
+      {/* Sidebar (categories) + responsive post grid */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 lg:gap-10">
+            {/* Categories sidebar */}
+            <aside className="lg:sticky lg:top-24 lg:self-start">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="flex items-center gap-2 mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Categories
+                </div>
+                <nav
+                  aria-label="Filter posts by category"
+                  className="flex flex-row flex-wrap lg:flex-col gap-2"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setActiveCategory(undefined)}
+                    data-testid="category-chip-all"
+                    className={`flex items-center justify-between gap-3 px-4 py-2 rounded-full lg:rounded-lg text-sm font-medium border-2 transition-all duration-200 lg:w-full ${
+                      activeCategory === undefined
+                        ? "bg-[#0052FF] text-white border-[#0052FF] shadow-sm"
+                        : "bg-transparent text-[#0052FF] border-[#0052FF] hover:bg-[#0052FF]/5"
+                    }`}
+                  >
+                    <span>All</span>
+                    <span
+                      className={`text-xs ${activeCategory === undefined ? "text-white/80" : "text-[#0052FF]/60"}`}
+                    >
+                      {allPosts.length}
+                    </span>
+                  </button>
+                  {categories.map((cat) => {
+                    const active = activeCategory === cat.name;
+                    const empty = cat.count === 0;
+                    const baseStyle = active
+                      ? "bg-[#0052FF] text-white border-[#0052FF] shadow-sm"
+                      : empty
+                        ? "bg-transparent text-slate-500 border-slate-300 hover:bg-slate-50 hover:text-[#0052FF] hover:border-[#0052FF]/40"
+                        : "bg-transparent text-[#0052FF] border-[#0052FF] hover:bg-[#0052FF]/5";
+                    const countStyle = active
+                      ? "text-white/80"
+                      : empty
+                        ? "text-slate-400"
+                        : "text-[#0052FF]/60";
+                    return (
+                      <button
+                        key={cat.name}
+                        type="button"
+                        onClick={() => setActiveCategory(cat.name)}
+                        data-testid={`category-chip-${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
+                        className={`flex items-center justify-between gap-3 px-4 py-2 rounded-full lg:rounded-lg text-sm font-medium border-2 transition-all duration-200 lg:w-full ${baseStyle}`}
+                      >
+                        <span className="text-left">{cat.name}</span>
+                        <span className={`text-xs ${countStyle}`}>
+                          {cat.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            </aside>
+
+            {/* Post grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
             {visiblePosts.length === 0 ? (
               <div className="col-span-full">
                 {searchQuery.trim() || activeTag || activeAuthor ? (
@@ -772,6 +785,7 @@ export default function Blog() {
                 )}
               </AnimatePresence>
             )}
+            </div>
           </div>
         </div>
       </section>
