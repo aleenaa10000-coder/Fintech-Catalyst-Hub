@@ -104,7 +104,9 @@ export default function Blog() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [showAllTags, setShowAllTags] = useState(false);
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title">("newest");
+  const [sortBy, setSortBy] = useState<
+    "newest" | "oldest" | "title" | "popular"
+  >("newest");
 
   // Keep state in sync if the URL params change after mount (e.g. user
   // clicks a different tag/author link from another page or uses
@@ -232,7 +234,10 @@ export default function Blog() {
   }, [allPosts, activeCategory, activeTag, activeAuthor, searchQuery]);
 
   // Sort the filtered posts. Newest is the default; "oldest" reverses by
-  // date; "title" is alphabetical (A→Z) by title.
+  // date; "title" is alphabetical (A→Z) by title; "popular" sorts by
+  // lifetime view count (descending), with newest as the tiebreaker so
+  // freshly-published-but-untracked seed posts don't all collapse into
+  // the same arbitrary order.
   const visiblePosts = useMemo(() => {
     const list = filteredPosts.slice();
     if (sortBy === "oldest") {
@@ -243,6 +248,13 @@ export default function Blog() {
       list.sort((a, b) =>
         a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),
       );
+    } else if (sortBy === "popular") {
+      list.sort((a, b) => {
+        const va = a.viewCount ?? 0;
+        const vb = b.viewCount ?? 0;
+        if (vb !== va) return vb - va;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
     } else {
       list.sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
@@ -681,7 +693,9 @@ export default function Blog() {
                   <Select
                     value={sortBy}
                     onValueChange={(v) =>
-                      setSortBy(v as "newest" | "oldest" | "title")
+                      setSortBy(
+                        v as "newest" | "oldest" | "title" | "popular",
+                      )
                     }
                   >
                     <SelectTrigger
@@ -694,6 +708,7 @@ export default function Blog() {
                     <SelectContent>
                       <SelectItem value="newest">Newest</SelectItem>
                       <SelectItem value="oldest">Oldest</SelectItem>
+                      <SelectItem value="popular">Most read</SelectItem>
                       <SelectItem value="title">Title (A–Z)</SelectItem>
                     </SelectContent>
                   </Select>

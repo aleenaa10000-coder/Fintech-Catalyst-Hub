@@ -284,6 +284,34 @@ paths:
         "404":
           description: Not found
 
+  /blog/posts/{slug}/view:
+    post:
+      operationId: incrementBlogPostView
+      tags: [blog]
+      summary: Increment a post's lifetime view counter
+      description: |
+        Atomically bumps `view_count` by 1 for the post with this slug and
+        returns the new total. Pinged from the public-facing post detail
+        page on mount. Unauthenticated by design — anyone visiting a post
+        registers a view. The endpoint is idempotent only at the database
+        level (each call increments once); the client is expected to fire
+        it exactly once per page load.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: New view count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPostViewCount"
+        "404":
+          description: Not found
+
   /blog/featured:
     get:
       operationId: listFeaturedPosts
@@ -823,7 +851,14 @@ components:
             unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`,
             `skipped_malformed_key`, `error`. `null` for posts that have
             never been pinged.
-      required: [id, slug, title, excerpt, content, author, authorRole, category, tags, coverImage, readingMinutes, featured, publishedAt, updatedAt]
+        viewCount:
+          type: integer
+          minimum: 0
+          description: >
+            Lifetime view count, incremented by the public-facing post
+            detail page on mount via `POST /blog/posts/{slug}/view`. Used
+            to power the "Most read" sort option on the blog index.
+      required: [id, slug, title, excerpt, content, author, authorRole, category, tags, coverImage, readingMinutes, featured, publishedAt, updatedAt, viewCount]
 
     BlogCategory:
       type: object
@@ -833,6 +868,17 @@ components:
         count:
           type: integer
       required: [name, count]
+
+    BlogPostViewCount:
+      type: object
+      description: Result of incrementing a post's lifetime view counter.
+      properties:
+        slug:
+          type: string
+        viewCount:
+          type: integer
+          minimum: 0
+      required: [slug, viewCount]
 
     UpdateBlogPostInput:
       type: object

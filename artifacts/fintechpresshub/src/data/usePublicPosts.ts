@@ -34,6 +34,11 @@ export type PublicPost = {
   content: string;
   tags?: string[];
   featured?: boolean;
+  /**
+   * Lifetime view count, only present for API-managed posts (static seed
+   * posts have no view tracking and fall back to 0 in the "Most read" sort).
+   */
+  viewCount?: number;
 };
 
 type StaticPost = PublicPost;
@@ -64,6 +69,7 @@ function fromApi(post: ApiBlogPost): PublicPost {
     content: post.content,
     tags: post.tags,
     featured: post.featured,
+    viewCount: post.viewCount,
   };
 }
 

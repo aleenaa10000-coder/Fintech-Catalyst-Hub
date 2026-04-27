@@ -27,6 +27,11 @@ export const blogPostsTable = pgTable("blog_posts", {
   // badge and surface stale posts that need a manual re-ping.
   lastSeoPingAt: timestamp("last_seo_ping_at", { withTimezone: true }),
   lastSeoPingStatus: text("last_seo_ping_status"),
+  // Lifetime view count, incremented by the public-facing post detail page
+  // on mount via POST /api/blog/posts/:slug/view. Used to power the
+  // "Most read" sort option on the blog index. Defaults to 0 for both
+  // existing rows (DB default) and newly inserted rows (insert default).
+  viewCount: integer("view_count").notNull().default(0),
 });
 
 export type BlogPostRow = typeof blogPostsTable.$inferSelect;

@@ -18,6 +18,7 @@ export * from "./authUserEnvelope";
 export * from "./beginBrowserLoginParams";
 export * from "./blogCategory";
 export * from "./blogPost";
+export * from "./blogPostViewCount";
 export * from "./commissioningTopic";
 export * from "./commissioningTopicInput";
 export * from "./contactSubmission";

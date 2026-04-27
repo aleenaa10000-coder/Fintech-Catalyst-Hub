@@ -25,6 +25,7 @@ import type {
   BeginBrowserLoginParams,
   BlogCategory,
   BlogPost,
+  BlogPostViewCount,
   CommissioningTopic,
   CommissioningTopicInput,
   ContactSubmission,
@@ -1106,6 +1107,97 @@ export const useDeleteBlogPost = <
   TContext
 > => {
   return useMutation(getDeleteBlogPostMutationOptions(options));
+};
+
+/**
+ * Atomically bumps `view_count` by 1 for the post with this slug and
+returns the new total. Pinged from the public-facing post detail
+page on mount. Unauthenticated by design — anyone visiting a post
+registers a view. The endpoint is idempotent only at the database
+level (each call increments once); the client is expected to fire
+it exactly once per page load.
+
+ * @summary Increment a post's lifetime view counter
+ */
+export const getIncrementBlogPostViewUrl = (slug: string) => {
+  return `/api/blog/posts/${slug}/view`;
+};
+
+export const incrementBlogPostView = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<BlogPostViewCount> => {
+  return customFetch<BlogPostViewCount>(getIncrementBlogPostViewUrl(slug), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getIncrementBlogPostViewMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof incrementBlogPostView>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof incrementBlogPostView>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  const mutationKey = ["incrementBlogPostView"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof incrementBlogPostView>>,
+    { slug: string }
+  > = (props) => {
+    const { slug } = props ?? {};
+
+    return incrementBlogPostView(slug, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type IncrementBlogPostViewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof incrementBlogPostView>>
+>;
+
+export type IncrementBlogPostViewMutationError = ErrorType<void>;
+
+/**
+ * @summary Increment a post's lifetime view counter
+ */
+export const useIncrementBlogPostView = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof incrementBlogPostView>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof incrementBlogPostView>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  return useMutation(getIncrementBlogPostViewMutationOptions(options));
 };
 
 /**

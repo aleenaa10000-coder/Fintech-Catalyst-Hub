@@ -89,6 +89,7 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
     updatedAt: row.updatedAt.toISOString(),
     lastSeoPingAt: row.lastSeoPingAt ? row.lastSeoPingAt.toISOString() : null,
     lastSeoPingStatus: row.lastSeoPingStatus ?? null,
+    viewCount: row.viewCount,
   };
 }
 
@@ -181,6 +182,28 @@ router.get("/blog/posts/:slug", async (req, res) => {
     return;
   }
   res.json(serialize(row));
+});
+
+/**
+ * Atomically increment the lifetime view counter for a post. Pinged
+ * from the public-facing post detail page on mount. Unauthenticated by
+ * design — anyone visiting a post registers a view.
+ *
+ * Uses a single UPDATE ... RETURNING so we never have to read-modify-write
+ * (which would race under concurrent loads).
+ */
+router.post("/blog/posts/:slug/view", async (req, res) => {
+  const params = GetBlogPostParams.parse({ slug: req.params.slug });
+  const [row] = await db
+    .update(blogPostsTable)
+    .set({ viewCount: sql`${blogPostsTable.viewCount} + 1` })
+    .where(eq(blogPostsTable.slug, params.slug))
+    .returning({ slug: blogPostsTable.slug, viewCount: blogPostsTable.viewCount });
+  if (!row) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  res.json({ slug: row.slug, viewCount: row.viewCount });
 });
 
 /**

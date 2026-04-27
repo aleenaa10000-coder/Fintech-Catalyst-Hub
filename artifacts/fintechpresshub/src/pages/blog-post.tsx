@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { usePublicPosts, usePublicPostBySlug } from "@/data/usePublicPosts";
 import { authorSlugFromName, getAuthorByName } from "@/data/authors";
 import { useAuth } from "@workspace/replit-auth-web";
+import { useIncrementBlogPostView } from "@workspace/api-client-react";
 
 const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
@@ -112,6 +113,20 @@ export default function BlogPost() {
   // republish a seed post in the dashboard to "edit" it.
   const { post, isLoading: postsLoading } = usePublicPostBySlug(slug);
   const { posts: allPosts } = usePublicPosts();
+
+  // Lifetime view tracking. We fire one increment per page load, only for
+  // API-managed posts (static seed posts have no DB row to update). Errors
+  // are swallowed — view counts are nice-to-have, not critical-path.
+  const incrementView = useIncrementBlogPostView();
+  const isApiPost = typeof post?.id === "string" && post.id.startsWith("api-");
+  useEffect(() => {
+    if (!slug || !isApiPost) return;
+    incrementView.mutate({ slug });
+    // We deliberately exclude `incrementView` from deps — the mutation hook
+    // is stable and including it would re-fire on every render. Pinging
+    // exactly once per slug change is the desired semantic.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, isApiPost]);
 
   const { contentHtml, headings } = useMemo(() => {
     if (!post?.content) return { contentHtml: "", headings: [] as Heading[] };

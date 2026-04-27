@@ -76,11 +76,26 @@ export interface BlogPost {
   /** Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.
    */
   lastSeoPingStatus?: string | null;
+  /**
+   * Lifetime view count, incremented by the public-facing post detail page on mount via `POST /blog/posts/{slug}/view`. Used to power the "Most read" sort option on the blog index.
+
+   * @minimum 0
+   */
+  viewCount: number;
 }
 
 export interface BlogCategory {
   name: string;
   count: number;
+}
+
+/**
+ * Result of incrementing a post's lifetime view counter.
+ */
+export interface BlogPostViewCount {
+  slug: string;
+  /** @minimum 0 */
+  viewCount: number;
 }
 
 /**

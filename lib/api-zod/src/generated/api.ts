@@ -108,6 +108,8 @@ export const ListBlogPostsQueryParams = zod.object({
   limit: zod.coerce.number().min(1).max(listBlogPostsQueryLimitMax).optional(),
 });
 
+export const listBlogPostsResponseViewCountMin = 0;
+
 export const ListBlogPostsResponseItem = zod.object({
   id: zod.number(),
   slug: zod.string(),
@@ -138,6 +140,12 @@ export const ListBlogPostsResponseItem = zod.object({
     .nullish()
     .describe(
       "Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.\n",
+    ),
+  viewCount: zod
+    .number()
+    .min(listBlogPostsResponseViewCountMin)
+    .describe(
+      'Lifetime view count, incremented by the public-facing post detail page on mount via `POST \/blog\/posts\/{slug}\/view`. Used to power the \"Most read\" sort option on the blog index.\n',
     ),
 });
 export const ListBlogPostsResponse = zod.array(ListBlogPostsResponseItem);
@@ -180,6 +188,8 @@ export const GetBlogPostParams = zod.object({
   slug: zod.coerce.string(),
 });
 
+export const getBlogPostResponseViewCountMin = 0;
+
 export const GetBlogPostResponse = zod.object({
   id: zod.number(),
   slug: zod.string(),
@@ -211,6 +221,12 @@ export const GetBlogPostResponse = zod.object({
     .describe(
       "Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.\n",
     ),
+  viewCount: zod
+    .number()
+    .min(getBlogPostResponseViewCountMin)
+    .describe(
+      'Lifetime view count, incremented by the public-facing post detail page on mount via `POST \/blog\/posts\/{slug}\/view`. Used to power the \"Most read\" sort option on the blog index.\n',
+    ),
 });
 
 /**
@@ -238,6 +254,8 @@ export const UpdateBlogPostBody = zod
     featured: zod.boolean().optional(),
   })
   .describe("Partial update — only included fields are changed.");
+
+export const updateBlogPostResponseOneViewCountMin = 0;
 
 export const updateBlogPostResponseTwoSeoNotificationIndexNowUrlsSubmittedMin = 0;
 
@@ -274,6 +292,12 @@ export const UpdateBlogPostResponse = zod
       .nullish()
       .describe(
         "Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.\n",
+      ),
+    viewCount: zod
+      .number()
+      .min(updateBlogPostResponseOneViewCountMin)
+      .describe(
+        'Lifetime view count, incremented by the public-facing post detail page on mount via `POST \/blog\/posts\/{slug}\/view`. Used to power the \"Most read\" sort option on the blog index.\n',
       ),
   })
   .and(
@@ -323,8 +347,33 @@ export const DeleteBlogPostParams = zod.object({
 });
 
 /**
+ * Atomically bumps `view_count` by 1 for the post with this slug and
+returns the new total. Pinged from the public-facing post detail
+page on mount. Unauthenticated by design — anyone visiting a post
+registers a view. The endpoint is idempotent only at the database
+level (each call increments once); the client is expected to fire
+it exactly once per page load.
+
+ * @summary Increment a post's lifetime view counter
+ */
+export const IncrementBlogPostViewParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const incrementBlogPostViewResponseViewCountMin = 0;
+
+export const IncrementBlogPostViewResponse = zod
+  .object({
+    slug: zod.string(),
+    viewCount: zod.number().min(incrementBlogPostViewResponseViewCountMin),
+  })
+  .describe("Result of incrementing a post's lifetime view counter.");
+
+/**
  * @summary Featured posts for the homepage
  */
+export const listFeaturedPostsResponseViewCountMin = 0;
+
 export const ListFeaturedPostsResponseItem = zod.object({
   id: zod.number(),
   slug: zod.string(),
@@ -355,6 +404,12 @@ export const ListFeaturedPostsResponseItem = zod.object({
     .nullish()
     .describe(
       "Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.\n",
+    ),
+  viewCount: zod
+    .number()
+    .min(listFeaturedPostsResponseViewCountMin)
+    .describe(
+      'Lifetime view count, incremented by the public-facing post detail page on mount via `POST \/blog\/posts\/{slug}\/view`. Used to power the \"Most read\" sort option on the blog index.\n',
     ),
 });
 export const ListFeaturedPostsResponse = zod.array(
