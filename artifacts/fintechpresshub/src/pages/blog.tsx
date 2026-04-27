@@ -17,6 +17,7 @@ import {
   Search,
   X,
   Tag as TagIcon,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePublicPosts, type PublicPost } from "@/data/usePublicPosts";
@@ -429,126 +430,6 @@ export default function Blog() {
             )}
           </div>
 
-          {/* Tag chips — derived from the merged feed. Combined with the
-              category chip + search query as an AND filter. */}
-          {tags.length > 0 && (
-            <div className="max-w-5xl mx-auto">
-              <div className="flex items-center justify-center gap-2 mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                <TagIcon className="w-3.5 h-3.5" aria-hidden="true" />
-                Filter by tag
-              </div>
-              <div className="flex flex-wrap gap-1.5 justify-center">
-                {visibleTags.map((t) => {
-                  const active = activeTag === t.name;
-                  return (
-                    <button
-                      key={t.name}
-                      type="button"
-                      onClick={() =>
-                        setActiveTag(active ? undefined : t.name)
-                      }
-                      data-testid={`tag-chip-${t.name.toLowerCase().replace(/\s+/g, "-")}`}
-                      aria-pressed={active}
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors duration-200 ${
-                        active
-                          ? "bg-[#0052FF] text-white border-[#0052FF]"
-                          : "bg-blue-50/60 text-[#0052FF] border-blue-100 hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF]"
-                      }`}
-                    >
-                      #{t.name}
-                      <span
-                        className={`ml-1.5 text-[10px] ${
-                          active ? "text-white/80" : "text-[#0052FF]/60"
-                        }`}
-                      >
-                        {t.count}
-                      </span>
-                    </button>
-                  );
-                })}
-                {tags.length > TAG_PREVIEW_COUNT && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllTags((v) => !v)}
-                    data-testid="button-toggle-tags"
-                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border border-dashed border-slate-300 text-slate-500 hover:text-[#0052FF] hover:border-[#0052FF] transition-colors"
-                  >
-                    {showAllTags
-                      ? "Show fewer tags"
-                      : `+${tags.length - TAG_PREVIEW_COUNT} more`}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Author chips — derived from the merged feed. Combined with the
-              other filters as an AND. Each chip shows the author's headshot
-              alongside their name and post count. */}
-          {authorOptions.length > 0 && (
-            <div className="max-w-5xl mx-auto">
-              <div className="flex items-center justify-center gap-2 mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                <Users className="w-3.5 h-3.5" aria-hidden="true" />
-                Filter by author
-              </div>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {authorOptions.map((a) => {
-                  const active = activeAuthor === a.slug;
-                  const initials = a.name
-                    .split(" ")
-                    .map((p) => p[0])
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .join("")
-                    .toUpperCase();
-                  return (
-                    <button
-                      key={a.slug}
-                      type="button"
-                      onClick={() =>
-                        setActiveAuthor(active ? undefined : a.slug)
-                      }
-                      data-testid={`author-chip-${a.slug}`}
-                      aria-pressed={active}
-                      className={`inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full text-xs font-medium border transition-colors duration-200 ${
-                        active
-                          ? "bg-[#0052FF] text-white border-[#0052FF]"
-                          : "bg-white text-slate-700 border-slate-200 hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF]"
-                      }`}
-                    >
-                      <span
-                        className={`relative w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                          active
-                            ? "bg-white/20 text-white"
-                            : "bg-[#0052FF]/10 text-[#0052FF]"
-                        }`}
-                        aria-hidden="true"
-                      >
-                        {a.photo ? (
-                          <img
-                            src={a.photo}
-                            alt=""
-                            loading="lazy"
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                        ) : (
-                          initials
-                        )}
-                      </span>
-                      <span>{a.name}</span>
-                      <span
-                        className={`text-[10px] ${
-                          active ? "text-white/80" : "text-slate-400"
-                        }`}
-                      >
-                        {a.count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
@@ -613,6 +494,142 @@ export default function Blog() {
                   })}
                 </nav>
               </div>
+
+              {/* Tags panel */}
+              {tags.length > 0 && (
+                <details
+                  open
+                  className="group mt-4 rounded-2xl border border-slate-200 bg-white p-5 [&[open]_.chev]:rotate-180"
+                >
+                  <summary className="flex items-center justify-between gap-2 cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 hover:text-[#0052FF]">
+                    <span className="inline-flex items-center gap-2">
+                      <TagIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                      Filter by tag
+                    </span>
+                    <ChevronDown
+                      className="chev w-4 h-4 transition-transform duration-200"
+                      aria-hidden="true"
+                    />
+                  </summary>
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {visibleTags.map((t) => {
+                      const active = activeTag === t.name;
+                      return (
+                        <button
+                          key={t.name}
+                          type="button"
+                          onClick={() =>
+                            setActiveTag(active ? undefined : t.name)
+                          }
+                          data-testid={`tag-chip-${t.name.toLowerCase().replace(/\s+/g, "-")}`}
+                          aria-pressed={active}
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors duration-200 ${
+                            active
+                              ? "bg-[#0052FF] text-white border-[#0052FF]"
+                              : "bg-blue-50/60 text-[#0052FF] border-blue-100 hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF]"
+                          }`}
+                        >
+                          #{t.name}
+                          <span
+                            className={`ml-1.5 text-[10px] ${
+                              active ? "text-white/80" : "text-[#0052FF]/60"
+                            }`}
+                          >
+                            {t.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {tags.length > TAG_PREVIEW_COUNT && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllTags((v) => !v)}
+                        data-testid="button-toggle-tags"
+                        className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border border-dashed border-slate-300 text-slate-500 hover:text-[#0052FF] hover:border-[#0052FF] transition-colors"
+                      >
+                        {showAllTags
+                          ? "Show fewer"
+                          : `+${tags.length - TAG_PREVIEW_COUNT} more`}
+                      </button>
+                    )}
+                  </div>
+                </details>
+              )}
+
+              {/* Authors panel */}
+              {authorOptions.length > 0 && (
+                <details
+                  open
+                  className="group mt-4 rounded-2xl border border-slate-200 bg-white p-5 [&[open]_.chev]:rotate-180"
+                >
+                  <summary className="flex items-center justify-between gap-2 cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 hover:text-[#0052FF]">
+                    <span className="inline-flex items-center gap-2">
+                      <Users className="w-3.5 h-3.5" aria-hidden="true" />
+                      Filter by author
+                    </span>
+                    <ChevronDown
+                      className="chev w-4 h-4 transition-transform duration-200"
+                      aria-hidden="true"
+                    />
+                  </summary>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {authorOptions.map((a) => {
+                      const active = activeAuthor === a.slug;
+                      const initials = a.name
+                        .split(" ")
+                        .map((p) => p[0])
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase();
+                      return (
+                        <button
+                          key={a.slug}
+                          type="button"
+                          onClick={() =>
+                            setActiveAuthor(active ? undefined : a.slug)
+                          }
+                          data-testid={`author-chip-${a.slug}`}
+                          aria-pressed={active}
+                          className={`inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full text-xs font-medium border transition-colors duration-200 ${
+                            active
+                              ? "bg-[#0052FF] text-white border-[#0052FF]"
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF]"
+                          }`}
+                        >
+                          <span
+                            className={`relative w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                              active
+                                ? "bg-white/20 text-white"
+                                : "bg-[#0052FF]/10 text-[#0052FF]"
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {a.photo ? (
+                              <img
+                                src={a.photo}
+                                alt=""
+                                loading="lazy"
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
+                            ) : (
+                              initials
+                            )}
+                          </span>
+                          <span>{a.name}</span>
+                          <span
+                            className={`text-[10px] ${
+                              active ? "text-white/80" : "text-slate-400"
+                            }`}
+                          >
+                            {a.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </details>
+              )}
             </aside>
 
             {/* Post grid */}
