@@ -236,6 +236,41 @@ export interface AuthorSubscription {
   createdAt: string;
 }
 
+export interface AuthorSubscriberSummary {
+  authorSlug: string;
+  authorName: string;
+  authorRole: string;
+  /** Public path to the author's portrait (e.g. `/author-photos/<slug>.png`). */
+  authorPhoto: string;
+  /** Total active subscribers linked to this author. */
+  subscriberCount: number;
+  /** Subscribers added in the last 30 days (rolling window). */
+  last30DayCount: number;
+  /** @nullable */
+  latestSubscribedAt?: string | null;
+}
+
+export interface AuthorSubscriberRow {
+  id: number;
+  email: string;
+  createdAt: string;
+  /** @nullable */
+  source?: string | null;
+}
+
+export interface AuthorSubscriberDailyBucket {
+  /** ISO calendar date (UTC) — `YYYY-MM-DD`. */
+  date: string;
+  count: number;
+}
+
+export interface AuthorSubscriberDetail {
+  author: AuthorSubscriberSummary;
+  subscribers: AuthorSubscriberRow[];
+  /** Per-day signup buckets for the last 90 days, oldest first, zero-filled. */
+  dailySignups: AuthorSubscriberDailyBucket[];
+}
+
 export interface FinancialHealthReportMetric {
   dti: number;
   savingsRate: number;

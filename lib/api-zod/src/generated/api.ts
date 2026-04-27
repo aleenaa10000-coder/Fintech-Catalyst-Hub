@@ -434,6 +434,83 @@ export const SubscribeToAuthorResponse = zod.object({
 });
 
 /**
+ * Returns one row per author from the canonical author registry with the
+current count of email subscribers. Used as the index page of the
+subscriber admin dashboard. Requires an authenticated admin session.
+
+ * @summary Per-author subscriber count summary (admin)
+ */
+export const ListAuthorSubscriberSummaryResponseItem = zod.object({
+  authorSlug: zod.string(),
+  authorName: zod.string(),
+  authorRole: zod.string(),
+  authorPhoto: zod
+    .string()
+    .describe(
+      "Public path to the author's portrait (e.g. `\/author-photos\/<slug>.png`).",
+    ),
+  subscriberCount: zod
+    .number()
+    .describe("Total active subscribers linked to this author."),
+  last30DayCount: zod
+    .number()
+    .describe("Subscribers added in the last 30 days (rolling window)."),
+  latestSubscribedAt: zod.coerce.date().nullish(),
+});
+export const ListAuthorSubscriberSummaryResponse = zod.array(
+  ListAuthorSubscriberSummaryResponseItem,
+);
+
+/**
+ * Returns the full subscriber list for one author plus a per-day signup
+time series (last 90 days, zero-filled) for charting. Requires an
+authenticated admin session.
+
+ * @summary Subscribers for a single author with daily signup buckets (admin)
+ */
+export const GetAuthorSubscriberDetailParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const GetAuthorSubscriberDetailResponse = zod.object({
+  author: zod.object({
+    authorSlug: zod.string(),
+    authorName: zod.string(),
+    authorRole: zod.string(),
+    authorPhoto: zod
+      .string()
+      .describe(
+        "Public path to the author's portrait (e.g. `\/author-photos\/<slug>.png`).",
+      ),
+    subscriberCount: zod
+      .number()
+      .describe("Total active subscribers linked to this author."),
+    last30DayCount: zod
+      .number()
+      .describe("Subscribers added in the last 30 days (rolling window)."),
+    latestSubscribedAt: zod.coerce.date().nullish(),
+  }),
+  subscribers: zod.array(
+    zod.object({
+      id: zod.number(),
+      email: zod.string(),
+      createdAt: zod.coerce.date(),
+      source: zod.string().nullish(),
+    }),
+  ),
+  dailySignups: zod
+    .array(
+      zod.object({
+        date: zod.string().describe("ISO calendar date (UTC) — `YYYY-MM-DD`."),
+        count: zod.number(),
+      }),
+    )
+    .describe(
+      "Per-day signup buckets for the last 90 days, oldest first, zero-filled.",
+    ),
+});
+
+/**
  * Accepts a calculated Financial Health Score plus the visitor's email,
 subscribes them to the newsletter, and (when an email provider is
 configured) sends them an HTML summary of their score and personalized

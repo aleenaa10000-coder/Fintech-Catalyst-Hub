@@ -7,6 +7,10 @@
  */
 
 export * from "./authorizationSessionHeaderParameter";
+export * from "./authorSubscriberDailyBucket";
+export * from "./authorSubscriberDetail";
+export * from "./authorSubscriberRow";
+export * from "./authorSubscriberSummary";
 export * from "./authorSubscription";
 export * from "./authorSubscriptionInput";
 export * from "./authUser";

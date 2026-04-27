@@ -437,6 +437,58 @@ paths:
         "404":
           description: Unknown author slug
 
+  /admin/authors/subscribers/summary:
+    get:
+      operationId: listAuthorSubscriberSummary
+      tags: [newsletter]
+      summary: Per-author subscriber count summary (admin)
+      description: |
+        Returns one row per author from the canonical author registry with the
+        current count of email subscribers. Used as the index page of the
+        subscriber admin dashboard. Requires an authenticated admin session.
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuthorSubscriberSummary"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+
+  /admin/authors/{slug}/subscribers:
+    get:
+      operationId: getAuthorSubscriberDetail
+      tags: [newsletter]
+      summary: Subscribers for a single author with daily signup buckets (admin)
+      description: |
+        Returns the full subscriber list for one author plus a per-day signup
+        time series (last 90 days, zero-filled) for charting. Requires an
+        authenticated admin session.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorSubscriberDetail"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+        "404":
+          description: Unknown author slug
+
   /tools/financial-health-score/email-report:
     post:
       operationId: emailFinancialHealthScoreReport
@@ -911,6 +963,75 @@ components:
           type: string
           format: date-time
       required: [id, subscriberId, email, authorSlug, authorName, alreadySubscribed, createdAt]
+
+    AuthorSubscriberSummary:
+      type: object
+      properties:
+        authorSlug:
+          type: string
+        authorName:
+          type: string
+        authorRole:
+          type: string
+        authorPhoto:
+          type: string
+          description: Public path to the author's portrait (e.g. `/author-photos/<slug>.png`).
+        subscriberCount:
+          type: integer
+          description: Total active subscribers linked to this author.
+        last30DayCount:
+          type: integer
+          description: Subscribers added in the last 30 days (rolling window).
+        latestSubscribedAt:
+          type: [string, "null"]
+          format: date-time
+      required:
+        - authorSlug
+        - authorName
+        - authorRole
+        - authorPhoto
+        - subscriberCount
+        - last30DayCount
+
+    AuthorSubscriberRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        source:
+          type: [string, "null"]
+      required: [id, email, createdAt]
+
+    AuthorSubscriberDailyBucket:
+      type: object
+      properties:
+        date:
+          type: string
+          description: ISO calendar date (UTC) — `YYYY-MM-DD`.
+        count:
+          type: integer
+      required: [date, count]
+
+    AuthorSubscriberDetail:
+      type: object
+      properties:
+        author:
+          $ref: "#/components/schemas/AuthorSubscriberSummary"
+        subscribers:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuthorSubscriberRow"
+        dailySignups:
+          type: array
+          description: Per-day signup buckets for the last 90 days, oldest first, zero-filled.
+          items:
+            $ref: "#/components/schemas/AuthorSubscriberDailyBucket"
+      required: [author, subscribers, dailySignups]
 
     FinancialHealthReportMetric:
       type: object

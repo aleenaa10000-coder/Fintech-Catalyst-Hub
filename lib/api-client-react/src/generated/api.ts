@@ -18,6 +18,8 @@ import type {
 
 import type {
   AuthUserEnvelope,
+  AuthorSubscriberDetail,
+  AuthorSubscriberSummary,
   AuthorSubscription,
   AuthorSubscriptionInput,
   BeginBrowserLoginParams,
@@ -1830,6 +1832,186 @@ export const useSubscribeToAuthor = <
 > => {
   return useMutation(getSubscribeToAuthorMutationOptions(options));
 };
+
+/**
+ * Returns one row per author from the canonical author registry with the
+current count of email subscribers. Used as the index page of the
+subscriber admin dashboard. Requires an authenticated admin session.
+
+ * @summary Per-author subscriber count summary (admin)
+ */
+export const getListAuthorSubscriberSummaryUrl = () => {
+  return `/api/admin/authors/subscribers/summary`;
+};
+
+export const listAuthorSubscriberSummary = async (
+  options?: RequestInit,
+): Promise<AuthorSubscriberSummary[]> => {
+  return customFetch<AuthorSubscriberSummary[]>(
+    getListAuthorSubscriberSummaryUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListAuthorSubscriberSummaryQueryKey = () => {
+  return [`/api/admin/authors/subscribers/summary`] as const;
+};
+
+export const getListAuthorSubscriberSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAuthorSubscriberSummary>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAuthorSubscriberSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAuthorSubscriberSummaryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAuthorSubscriberSummary>>
+  > = ({ signal }) =>
+    listAuthorSubscriberSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAuthorSubscriberSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAuthorSubscriberSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAuthorSubscriberSummary>>
+>;
+export type ListAuthorSubscriberSummaryQueryError = ErrorType<void>;
+
+/**
+ * @summary Per-author subscriber count summary (admin)
+ */
+
+export function useListAuthorSubscriberSummary<
+  TData = Awaited<ReturnType<typeof listAuthorSubscriberSummary>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAuthorSubscriberSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAuthorSubscriberSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns the full subscriber list for one author plus a per-day signup
+time series (last 90 days, zero-filled) for charting. Requires an
+authenticated admin session.
+
+ * @summary Subscribers for a single author with daily signup buckets (admin)
+ */
+export const getGetAuthorSubscriberDetailUrl = (slug: string) => {
+  return `/api/admin/authors/${slug}/subscribers`;
+};
+
+export const getAuthorSubscriberDetail = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<AuthorSubscriberDetail> => {
+  return customFetch<AuthorSubscriberDetail>(
+    getGetAuthorSubscriberDetailUrl(slug),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetAuthorSubscriberDetailQueryKey = (slug: string) => {
+  return [`/api/admin/authors/${slug}/subscribers`] as const;
+};
+
+export const getGetAuthorSubscriberDetailQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAuthorSubscriberDetail>>,
+  TError = ErrorType<void>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAuthorSubscriberDetail>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAuthorSubscriberDetailQueryKey(slug);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAuthorSubscriberDetail>>
+  > = ({ signal }) =>
+    getAuthorSubscriberDetail(slug, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!slug,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAuthorSubscriberDetail>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAuthorSubscriberDetailQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAuthorSubscriberDetail>>
+>;
+export type GetAuthorSubscriberDetailQueryError = ErrorType<void>;
+
+/**
+ * @summary Subscribers for a single author with daily signup buckets (admin)
+ */
+
+export function useGetAuthorSubscriberDetail<
+  TData = Awaited<ReturnType<typeof getAuthorSubscriberDetail>>,
+  TError = ErrorType<void>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAuthorSubscriberDetail>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAuthorSubscriberDetailQueryOptions(slug, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Accepts a calculated Financial Health Score plus the visitor's email,

@@ -26,6 +26,8 @@ import EditorialGuidelines from "@/pages/editorial-guidelines";
 import FinancialHealthScoreCalculator from "@/pages/tools/financial-health-score-calculator";
 import AdminServices from "@/pages/admin-services";
 import AdminBlog from "@/pages/admin-blog";
+import AdminAuthorsSubscribers from "@/pages/admin-authors-subscribers";
+import AdminAuthorSubscribers from "@/pages/admin-author-subscribers";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -74,6 +76,14 @@ function Router() {
           />
           <Route path="/admin/services" component={AdminServices} />
           <Route path="/admin/blog" component={AdminBlog} />
+          <Route
+            path="/admin/authors/subscribers"
+            component={AdminAuthorsSubscribers}
+          />
+          <Route
+            path="/admin/authors/:slug/subscribers"
+            component={AdminAuthorSubscribers}
+          />
           <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
         </Switch>
