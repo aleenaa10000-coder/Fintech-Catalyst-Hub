@@ -6,6 +6,13 @@ import { Link, useSearch } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHero } from "@/components/PageHero";
 import {
   Calendar,
@@ -97,6 +104,7 @@ export default function Blog() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [showAllTags, setShowAllTags] = useState(false);
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title">("newest");
 
   // Keep state in sync if the URL params change after mount (e.g. user
   // clicks a different tag/author link from another page or uses
@@ -200,7 +208,7 @@ export default function Blog() {
   // (title + excerpt + tags + category), case-insensitive. Search trims
   // whitespace and ignores empty queries so the input doesn't accidentally
   // hide posts mid-typing.
-  const visiblePosts = useMemo(() => {
+  const filteredPosts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return allPosts.filter((p) => {
       if (activeCategory && p.category !== activeCategory) return false;
@@ -222,6 +230,26 @@ export default function Blog() {
       return true;
     });
   }, [allPosts, activeCategory, activeTag, activeAuthor, searchQuery]);
+
+  // Sort the filtered posts. Newest is the default; "oldest" reverses by
+  // date; "title" is alphabetical (A→Z) by title.
+  const visiblePosts = useMemo(() => {
+    const list = filteredPosts.slice();
+    if (sortBy === "oldest") {
+      list.sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
+    } else if (sortBy === "title") {
+      list.sort((a, b) =>
+        a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),
+      );
+    } else {
+      list.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      );
+    }
+    return list;
+  }, [filteredPosts, sortBy]);
 
   const filtersActive = Boolean(
     activeCategory || activeTag || activeAuthor || searchQuery.trim(),
@@ -633,6 +661,44 @@ export default function Blog() {
             </aside>
 
             {/* Post grid */}
+            <div>
+              {/* Sort + result count bar */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-200">
+                <p className="text-sm text-slate-600" data-testid="text-post-count">
+                  Showing <strong>{visiblePosts.length}</strong>
+                  {visiblePosts.length !== allPosts.length && (
+                    <> of {allPosts.length}</>
+                  )}{" "}
+                  {visiblePosts.length === 1 ? "article" : "articles"}
+                </p>
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="sort-select"
+                    className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+                  >
+                    Sort by
+                  </label>
+                  <Select
+                    value={sortBy}
+                    onValueChange={(v) =>
+                      setSortBy(v as "newest" | "oldest" | "title")
+                    }
+                  >
+                    <SelectTrigger
+                      id="sort-select"
+                      className="h-9 w-[160px] text-sm"
+                      data-testid="select-sort"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="newest">Newest</SelectItem>
+                      <SelectItem value="oldest">Oldest</SelectItem>
+                      <SelectItem value="title">Title (A–Z)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
             {visiblePosts.length === 0 ? (
               <div className="col-span-full">
@@ -802,6 +868,7 @@ export default function Blog() {
                 )}
               </AnimatePresence>
             )}
+            </div>
             </div>
           </div>
         </div>
