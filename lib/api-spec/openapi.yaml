@@ -193,7 +193,10 @@ paths:
       summary: Publish a new blog post (admin)
       description: |
         Inserts a new blog post and notifies search engines. Requires an
-        authenticated session.
+        authenticated session. The response includes a `seoNotification`
+        object describing the immediate IndexNow + Google sitemap ping
+        result so the admin UI can show real success/failure feedback
+        instead of a fire-and-forget toast.
       requestBody:
         required: true
         content:
@@ -206,7 +209,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BlogPost"
+                $ref: "#/components/schemas/PublishedBlogPost"
         "401":
           description: Unauthorized
         "409":
@@ -236,6 +239,10 @@ paths:
       operationId: updateBlogPost
       tags: [blog]
       summary: Update a blog post by slug (admin)
+      description: |
+        Updates a blog post and re-notifies search engines. The response
+        includes a `seoNotification` object describing the immediate
+        IndexNow + Google sitemap ping result.
       parameters:
         - name: slug
           in: path
@@ -254,7 +261,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BlogPost"
+                $ref: "#/components/schemas/PublishedBlogPost"
         "401":
           description: Unauthorized
         "404":
@@ -843,6 +850,65 @@ components:
           minimum: 1
         featured:
           type: boolean
+
+    SeoNotification:
+      type: object
+      description: |
+        Result of the immediate search-engine notification triggered when
+        a post is published or updated. The IndexNow ping is awaited (with
+        a short timeout) so the admin UI can show real success/failure
+        feedback. The Google sitemap ping is best-effort and informational.
+      properties:
+        indexNow:
+          type: object
+          properties:
+            status:
+              type: string
+              enum:
+                - accepted
+                - rejected
+                - skipped_no_key
+                - skipped_malformed_key
+                - error
+            httpStatus:
+              type: integer
+            message:
+              type: string
+            urlsSubmitted:
+              type: integer
+              minimum: 0
+          required: [status, message, urlsSubmitted]
+        google:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [attempted, error]
+            httpStatus:
+              type: integer
+            message:
+              type: string
+          required: [status, message]
+        urls:
+          type: array
+          items:
+            type: string
+        durationMs:
+          type: integer
+          minimum: 0
+      required: [indexNow, google, urls, durationMs]
+
+    PublishedBlogPost:
+      description: |
+        A `BlogPost` plus the result of the immediate search-engine
+        notification fired by the publish/update endpoint.
+      allOf:
+        - $ref: "#/components/schemas/BlogPost"
+        - type: object
+          properties:
+            seoNotification:
+              $ref: "#/components/schemas/SeoNotification"
+          required: [seoNotification]
 
     PublishBlogPostInput:
       type: object

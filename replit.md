@@ -53,9 +53,13 @@ Each contributor on `/authors/<slug>` has their own dynamic RSS 2.0 feed at `/au
 - Cache: `Cache-Control: public, max-age=300, s-maxage=3600, stale-while-revalidate=86400`.
 - Cross-package import note: api-server `tsconfig.json` drops `rootDir` and includes `../fintechpresshub/src/data/{authors.ts,posts.d.ts}` so `tsc --noEmit` resolves the imports; esbuild bundles the actual JS at build time.
 
-## SEO automation (IndexNow daily)
+## SEO automation (IndexNow on publish + daily)
 
-The API server schedules a daily IndexNow submission (`artifacts/api-server/src/jobs/indexNowDaily.ts`) that pings Bing, Yandex, Seznam, and Naver about blog posts published since the last successful run. State (`indexnow:lastRunAt`) is persisted in the new `kv_store` Postgres table so restarts don't cause re-submissions. A 1h overlap window prevents missed posts at the boundary, capped at 36h on first run / after long downtime.
+When an admin publishes or updates a post via `POST /api/blog/posts` or `PATCH /api/blog/posts/:slug`, the server now **awaits** the IndexNow ping (with a 4s timeout) and returns the result inline as `seoNotification` on the response (`PublishedBlogPost = BlogPost & { seoNotification: SeoNotification }`). The admin UI (`artifacts/fintechpresshub/src/pages/admin-blog.tsx`) reads this and shows a real status toast — `"IndexNow accepted N URLs for Bing, Yandex, Seznam & Naver"` on success, or a warning toast surfacing the actual failure mode (`skipped_no_key`, `skipped_malformed_key`, `rejected`, `error`) instead of the previous fire-and-forget "Search engines have been notified" lie.
+
+The `keyLocation` URL in `artifacts/api-server/src/lib/seo.ts` was also fixed — it previously sent `${SITE_URL}/${INDEXNOW_KEY}.txt` (the legacy convention) but the API only serves the verification key at the fixed path `/indexnow-key.txt`, which would have caused IndexNow to reject the ping with a verification failure. The daily job already used the correct path; both code paths now agree.
+
+In addition, the API server schedules a daily IndexNow submission (`artifacts/api-server/src/jobs/indexNowDaily.ts`) that pings Bing, Yandex, Seznam, and Naver about blog posts published since the last successful run. State (`indexnow:lastRunAt`) is persisted in the `kv_store` Postgres table so restarts don't cause re-submissions. A 1h overlap window prevents missed posts at the boundary, capped at 36h on first run / after long downtime.
 
 - Required secret: `INDEXNOW_KEY` (8–128 chars, `[a-zA-Z0-9-]`). Generate one at https://www.bing.com/indexnow. Without it, the scheduler logs once and stays disabled.
 - Verification key file is served dynamically at the fixed path `/indexnow-key.txt` (see `artifacts/api-server/src/routes/indexNowKey.ts`). The IndexNow API call passes this URL as `keyLocation` so search engines look there instead of `/<key>.txt`. The path is exposed in `artifacts/api-server/.replit-artifact/artifact.toml` and proxied in `artifacts/fintechpresshub/vite.config.ts`. No file needs to be committed.

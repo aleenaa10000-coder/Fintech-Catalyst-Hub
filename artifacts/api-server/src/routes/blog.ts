@@ -5,7 +5,17 @@ import { eq, desc, sql } from "drizzle-orm";
 import { ListBlogPostsQueryParams, GetBlogPostParams } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { isAdminEmail } from "../lib/auth";
-import { getSiteUrl, notifySearchEnginesOfPublish } from "../lib/seo";
+import {
+  getSiteUrl,
+  notifySearchEnginesOfPublishWithTimeout,
+  type SeoNotificationResult,
+} from "../lib/seo";
+
+// Bound on how long the publish/update response will wait for the
+// IndexNow ping before returning a "still in progress" placeholder.
+// 4s is well under typical browser timeouts but enough for a healthy
+// IndexNow round-trip (which usually completes in <500ms).
+const SEO_NOTIFY_TIMEOUT_MS = 4000;
 
 /**
  * Gate write endpoints behind the ADMIN_EMAILS allowlist. Returns 401 when
@@ -78,6 +88,13 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
     publishedAt: row.publishedAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+function serializeWithSeo(
+  row: typeof blogPostsTable.$inferSelect,
+  seoNotification: SeoNotificationResult,
+) {
+  return { ...serialize(row), seoNotification };
 }
 
 router.get("/blog/posts", async (req, res) => {
@@ -167,7 +184,8 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
       return;
     }
 
-    // Publish hook: fire-and-forget search-engine pings. The dynamic
+    // Publish hook: ping search engines and wait briefly so the admin
+    // UI can show real success/failure feedback. The dynamic
     // /sitemap.xml route already reflects the new row.
     const siteUrl = getSiteUrl();
     const urls = [
@@ -175,11 +193,30 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
       `${siteUrl}/blog`,
       `${siteUrl}/sitemap.xml`,
     ];
-    void notifySearchEnginesOfPublish(urls).catch((err) => {
+    let seoNotification: SeoNotificationResult;
+    try {
+      seoNotification = await notifySearchEnginesOfPublishWithTimeout(
+        urls,
+        SEO_NOTIFY_TIMEOUT_MS,
+      );
+    } catch (err) {
       logger.error({ err }, "Search-engine notification hook failed");
-    });
+      seoNotification = {
+        indexNow: {
+          status: "error",
+          message: `IndexNow ping threw: ${err instanceof Error ? err.message : String(err)}`,
+          urlsSubmitted: 0,
+        },
+        google: {
+          status: "error",
+          message: "Google sitemap ping was not attempted because the IndexNow hook threw.",
+        },
+        urls,
+        durationMs: 0,
+      };
+    }
 
-    res.status(201).json(serialize(row));
+    res.status(201).json(serializeWithSeo(row, seoNotification));
   } catch (err) {
     if (err instanceof z.ZodError) {
       res.status(400).json({ error: "Invalid body", issues: err.issues });
@@ -219,15 +256,35 @@ router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     }
 
     const siteUrl = getSiteUrl();
-    void notifySearchEnginesOfPublish([
+    const urls = [
       `${siteUrl}/blog/${row.slug}`,
       `${siteUrl}/blog`,
       `${siteUrl}/sitemap.xml`,
-    ]).catch((err) => {
+    ];
+    let seoNotification: SeoNotificationResult;
+    try {
+      seoNotification = await notifySearchEnginesOfPublishWithTimeout(
+        urls,
+        SEO_NOTIFY_TIMEOUT_MS,
+      );
+    } catch (err) {
       logger.error({ err }, "Search-engine notification hook failed");
-    });
+      seoNotification = {
+        indexNow: {
+          status: "error",
+          message: `IndexNow ping threw: ${err instanceof Error ? err.message : String(err)}`,
+          urlsSubmitted: 0,
+        },
+        google: {
+          status: "error",
+          message: "Google sitemap ping was not attempted because the IndexNow hook threw.",
+        },
+        urls,
+        durationMs: 0,
+      };
+    }
 
-    res.json(serialize(row));
+    res.json(serializeWithSeo(row, seoNotification));
   } catch (err) {
     if (err instanceof z.ZodError) {
       res.status(400).json({ error: "Invalid body", issues: err.issues });

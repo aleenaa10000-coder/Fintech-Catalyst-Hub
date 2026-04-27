@@ -100,6 +100,63 @@ export interface UpdateBlogPostInput {
   featured?: boolean;
 }
 
+export type SeoNotificationIndexNowStatus =
+  (typeof SeoNotificationIndexNowStatus)[keyof typeof SeoNotificationIndexNowStatus];
+
+export const SeoNotificationIndexNowStatus = {
+  accepted: "accepted",
+  rejected: "rejected",
+  skipped_no_key: "skipped_no_key",
+  skipped_malformed_key: "skipped_malformed_key",
+  error: "error",
+} as const;
+
+export type SeoNotificationIndexNow = {
+  status: SeoNotificationIndexNowStatus;
+  httpStatus?: number;
+  message: string;
+  /** @minimum 0 */
+  urlsSubmitted: number;
+};
+
+export type SeoNotificationGoogleStatus =
+  (typeof SeoNotificationGoogleStatus)[keyof typeof SeoNotificationGoogleStatus];
+
+export const SeoNotificationGoogleStatus = {
+  attempted: "attempted",
+  error: "error",
+} as const;
+
+export type SeoNotificationGoogle = {
+  status: SeoNotificationGoogleStatus;
+  httpStatus?: number;
+  message: string;
+};
+
+/**
+ * Result of the immediate search-engine notification triggered when
+a post is published or updated. The IndexNow ping is awaited (with
+a short timeout) so the admin UI can show real success/failure
+feedback. The Google sitemap ping is best-effort and informational.
+
+ */
+export interface SeoNotification {
+  indexNow: SeoNotificationIndexNow;
+  google: SeoNotificationGoogle;
+  urls: string[];
+  /** @minimum 0 */
+  durationMs: number;
+}
+
+/**
+ * A `BlogPost` plus the result of the immediate search-engine
+notification fired by the publish/update endpoint.
+
+ */
+export type PublishedBlogPost = BlogPost & {
+  seoNotification: SeoNotification;
+};
+
 export interface PublishBlogPostInput {
   /**
    * Lowercase, hyphenated URL slug.

@@ -132,7 +132,10 @@ export const ListBlogPostsResponse = zod.array(ListBlogPostsResponseItem);
 
 /**
  * Inserts a new blog post and notifies search engines. Requires an
-authenticated session.
+authenticated session. The response includes a `seoNotification`
+object describing the immediate IndexNow + Google sitemap ping
+result so the admin UI can show real success/failure feedback
+instead of a fire-and-forget toast.
 
  * @summary Publish a new blog post (admin)
  */
@@ -187,6 +190,10 @@ export const GetBlogPostResponse = zod.object({
 });
 
 /**
+ * Updates a blog post and re-notifies search engines. The response
+includes a `seoNotification` object describing the immediate
+IndexNow + Google sitemap ping result.
+
  * @summary Update a blog post by slug (admin)
  */
 export const UpdateBlogPostParams = zod.object({
@@ -208,26 +215,69 @@ export const UpdateBlogPostBody = zod
   })
   .describe("Partial update — only included fields are changed.");
 
-export const UpdateBlogPostResponse = zod.object({
-  id: zod.number(),
-  slug: zod.string(),
-  title: zod.string(),
-  excerpt: zod.string(),
-  content: zod.string(),
-  author: zod.string(),
-  authorRole: zod.string(),
-  category: zod.string(),
-  tags: zod.array(zod.string()),
-  coverImage: zod.string(),
-  readingMinutes: zod.number(),
-  featured: zod.boolean(),
-  publishedAt: zod.coerce.date(),
-  updatedAt: zod.coerce
-    .date()
-    .describe(
-      'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
-    ),
-});
+export const updateBlogPostResponseTwoSeoNotificationIndexNowUrlsSubmittedMin = 0;
+
+export const updateBlogPostResponseTwoSeoNotificationDurationMsMin = 0;
+
+export const UpdateBlogPostResponse = zod
+  .object({
+    id: zod.number(),
+    slug: zod.string(),
+    title: zod.string(),
+    excerpt: zod.string(),
+    content: zod.string(),
+    author: zod.string(),
+    authorRole: zod.string(),
+    category: zod.string(),
+    tags: zod.array(zod.string()),
+    coverImage: zod.string(),
+    readingMinutes: zod.number(),
+    featured: zod.boolean(),
+    publishedAt: zod.coerce.date(),
+    updatedAt: zod.coerce
+      .date()
+      .describe(
+        'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
+      ),
+  })
+  .and(
+    zod.object({
+      seoNotification: zod
+        .object({
+          indexNow: zod.object({
+            status: zod.enum([
+              "accepted",
+              "rejected",
+              "skipped_no_key",
+              "skipped_malformed_key",
+              "error",
+            ]),
+            httpStatus: zod.number().optional(),
+            message: zod.string(),
+            urlsSubmitted: zod
+              .number()
+              .min(
+                updateBlogPostResponseTwoSeoNotificationIndexNowUrlsSubmittedMin,
+              ),
+          }),
+          google: zod.object({
+            status: zod.enum(["attempted", "error"]),
+            httpStatus: zod.number().optional(),
+            message: zod.string(),
+          }),
+          urls: zod.array(zod.string()),
+          durationMs: zod
+            .number()
+            .min(updateBlogPostResponseTwoSeoNotificationDurationMsMin),
+        })
+        .describe(
+          "Result of the immediate search-engine notification triggered when\na post is published or updated. The IndexNow ping is awaited (with\na short timeout) so the admin UI can show real success\/failure\nfeedback. The Google sitemap ping is best-effort and informational.\n",
+        ),
+    }),
+  )
+  .describe(
+    "A `BlogPost` plus the result of the immediate search-engine\nnotification fired by the publish\/update endpoint.\n",
+  );
 
 /**
  * @summary Delete (unpublish) a blog post by slug (admin)

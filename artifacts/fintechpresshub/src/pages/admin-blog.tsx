@@ -7,6 +7,7 @@ import {
   useDeleteBlogPost,
   getListBlogPostsQueryKey,
   type BlogPost,
+  type SeoNotification,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,36 @@ function GuestAuthorOption() {
   );
 }
 
+/**
+ * Convert the structured `seoNotification` from the publish/update API
+ * response into a human-readable line for the success toast. Surfaces
+ * real failure modes (missing key, IndexNow rejection, timeout) instead
+ * of a generic "Search engines have been notified" message.
+ */
+function describeSeoNotification(seo: SeoNotification): string {
+  const idx = seo.indexNow;
+  switch (idx.status) {
+    case "accepted":
+      return idx.urlsSubmitted > 0
+        ? `IndexNow accepted ${idx.urlsSubmitted} URL${idx.urlsSubmitted === 1 ? "" : "s"} for Bing, Yandex, Seznam & Naver.`
+        : "IndexNow accepted (no new URLs to submit).";
+    case "rejected":
+      return `IndexNow rejected the ping (HTTP ${idx.httpStatus ?? "?"}). Search engines were not notified.`;
+    case "skipped_no_key":
+      return "INDEXNOW_KEY is not set on the API server, so Bing/Yandex/Seznam/Naver were not notified.";
+    case "skipped_malformed_key":
+      return "INDEXNOW_KEY is malformed (must be 8–128 chars, [a-zA-Z0-9-]). Search engines were not notified.";
+    case "error":
+      return idx.message;
+    default:
+      return idx.message;
+  }
+}
+
+function seoNotificationIsSuccess(seo: SeoNotification): boolean {
+  return seo.indexNow.status === "accepted";
+}
+
 async function presignAndUpload(file: {
   name: string;
   size: number;
@@ -188,7 +219,7 @@ function PostEditor({
       return;
     }
     try {
-      await updateMut.mutateAsync({
+      const updated = await updateMut.mutateAsync({
         slug: post.slug,
         data: {
           title: draft.title.trim(),
@@ -206,9 +237,12 @@ function PostEditor({
           featured: draft.featured,
         },
       });
-      toast.success(`Saved "${draft.title}"`, {
-        description: "Search engines have been re-notified.",
-      });
+      const description = describeSeoNotification(updated.seoNotification);
+      if (seoNotificationIsSuccess(updated.seoNotification)) {
+        toast.success(`Saved "${draft.title}"`, { description });
+      } else {
+        toast.warning(`Saved "${draft.title}"`, { description });
+      }
       onSaved();
     } catch {
       toast.error("Could not save changes.");
@@ -498,9 +532,12 @@ export default function AdminBlog() {
           featured: form.featured,
         },
       });
-      toast.success(`Published "${post.title}"`, {
-        description: "Search engines have been notified.",
-      });
+      const description = describeSeoNotification(post.seoNotification);
+      if (seoNotificationIsSuccess(post.seoNotification)) {
+        toast.success(`Published "${post.title}"`, { description });
+      } else {
+        toast.warning(`Published "${post.title}"`, { description });
+      }
       setForm(emptyForm);
       setAutoSlug(true);
       invalidate();

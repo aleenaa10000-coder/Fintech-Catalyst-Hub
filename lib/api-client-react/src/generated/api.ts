@@ -44,6 +44,7 @@ import type {
   NewsletterSubscriptionInput,
   PricingPlan,
   PublishBlogPostInput,
+  PublishedBlogPost,
   Service,
   ServiceInput,
   Testimonial,
@@ -755,7 +756,10 @@ export function useListBlogPosts<
 
 /**
  * Inserts a new blog post and notifies search engines. Requires an
-authenticated session.
+authenticated session. The response includes a `seoNotification`
+object describing the immediate IndexNow + Google sitemap ping
+result so the admin UI can show real success/failure feedback
+instead of a fire-and-forget toast.
 
  * @summary Publish a new blog post (admin)
  */
@@ -766,8 +770,8 @@ export const getPublishBlogPostUrl = () => {
 export const publishBlogPost = async (
   publishBlogPostInput: PublishBlogPostInput,
   options?: RequestInit,
-): Promise<BlogPost> => {
-  return customFetch<BlogPost>(getPublishBlogPostUrl(), {
+): Promise<PublishedBlogPost> => {
+  return customFetch<PublishedBlogPost>(getPublishBlogPostUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -930,6 +934,10 @@ export function useGetBlogPost<
 }
 
 /**
+ * Updates a blog post and re-notifies search engines. The response
+includes a `seoNotification` object describing the immediate
+IndexNow + Google sitemap ping result.
+
  * @summary Update a blog post by slug (admin)
  */
 export const getUpdateBlogPostUrl = (slug: string) => {
@@ -940,8 +948,8 @@ export const updateBlogPost = async (
   slug: string,
   updateBlogPostInput: UpdateBlogPostInput,
   options?: RequestInit,
-): Promise<BlogPost> => {
-  return customFetch<BlogPost>(getUpdateBlogPostUrl(slug), {
+): Promise<PublishedBlogPost> => {
+  return customFetch<PublishedBlogPost>(getUpdateBlogPostUrl(slug), {
     ...options,
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
