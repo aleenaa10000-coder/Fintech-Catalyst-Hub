@@ -713,22 +713,24 @@ export default function BlogPost() {
               })()}
 
               {/* Tags */}
-              <div className="mt-16 pt-8 border-t border-slate-200">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">
-                  Tags
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {post.tags.map((tag: string) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-medium text-[#0052FF] hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF] transition-colors duration-200 cursor-default"
-                      data-testid={`tag-${tag.toLowerCase().replace(/\s+/g, "-")}`}
-                    >
-                      #{tag}
-                    </span>
-                  ))}
+              {post.tags && post.tags.length > 0 ? (
+                <div className="mt-16 pt-8 border-t border-slate-200">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">
+                    Tags
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {post.tags.map((tag: string) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-medium text-[#0052FF] hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF] transition-colors duration-200 cursor-default"
+                        data-testid={`tag-${tag.toLowerCase().replace(/\s+/g, "-")}`}
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : null}
 
             {/* Author Bio */}
             {(() => {
