@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AuthorSubscribeCard } from "@/components/AuthorSubscribeCard";
 import {
   ArrowLeft,
   ArrowRight,
@@ -266,24 +267,27 @@ export default function AuthorPage() {
             </section>
           </div>
 
-          {/* Credentials sidebar */}
+          {/* Sidebar: per-author subscribe + credentials */}
           <aside className="lg:col-span-1">
-            <Card className="border-slate-200 bg-gradient-to-br from-blue-50/40 to-white sticky top-24">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#0052FF] mb-4">
-                  <Award className="w-4 h-4" />
-                  Credentials
-                </div>
-                <ul className="space-y-3">
-                  {author.credentials.map((c, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700">
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#0052FF] shrink-0" />
-                      <span>{c}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+            <div className="sticky top-24 space-y-6">
+              <AuthorSubscribeCard author={author} />
+              <Card className="border-slate-200 bg-gradient-to-br from-blue-50/40 to-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#0052FF] mb-4">
+                    <Award className="w-4 h-4" />
+                    Credentials
+                  </div>
+                  <ul className="space-y-3">
+                    {author.credentials.map((c, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700">
+                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#0052FF] shrink-0" />
+                        <span>{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
           </aside>
         </div>
 

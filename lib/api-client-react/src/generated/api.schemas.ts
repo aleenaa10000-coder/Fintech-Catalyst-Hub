@@ -219,6 +219,23 @@ export interface NewsletterSubscription {
   createdAt: string;
 }
 
+export interface AuthorSubscriptionInput {
+  email: string;
+}
+
+export interface AuthorSubscription {
+  /** ID of the author_subscriptions row. */
+  id: number;
+  /** ID of the global newsletter_subscribers row. */
+  subscriberId: number;
+  email: string;
+  authorSlug: string;
+  authorName: string;
+  /** True when the email was already linked to this author. */
+  alreadySubscribed: boolean;
+  createdAt: string;
+}
+
 export interface FinancialHealthReportMetric {
   dti: number;
   savingsRate: number;

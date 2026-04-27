@@ -405,6 +405,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/NewsletterSubscription"
 
+  /authors/{slug}/subscribe:
+    post:
+      operationId: subscribeToAuthor
+      tags: [newsletter]
+      summary: Subscribe an email to a specific author's mailing list segment
+      description: |
+        Adds the email to the global newsletter subscriber list (idempotent on
+        email) and links it to the requested author slug. The same email can
+        subscribe to multiple authors. Returns `alreadySubscribed: true` when
+        the visitor was already subscribed to *this* author.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorSubscriptionInput"
+      responses:
+        "200":
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorSubscription"
+        "404":
+          description: Unknown author slug
+
   /tools/financial-health-score/email-report:
     post:
       operationId: emailFinancialHealthScoreReport
@@ -848,6 +880,37 @@ components:
           type: string
           format: date-time
       required: [id, email, alreadySubscribed, createdAt]
+
+    AuthorSubscriptionInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required: [email]
+
+    AuthorSubscription:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID of the author_subscriptions row.
+        subscriberId:
+          type: integer
+          description: ID of the global newsletter_subscribers row.
+        email:
+          type: string
+        authorSlug:
+          type: string
+        authorName:
+          type: string
+        alreadySubscribed:
+          type: boolean
+          description: True when the email was already linked to this author.
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, subscriberId, email, authorSlug, authorName, alreadySubscribed, createdAt]
 
     FinancialHealthReportMetric:
       type: object

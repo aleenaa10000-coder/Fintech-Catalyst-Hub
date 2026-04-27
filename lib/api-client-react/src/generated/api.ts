@@ -18,6 +18,8 @@ import type {
 
 import type {
   AuthUserEnvelope,
+  AuthorSubscription,
+  AuthorSubscriptionInput,
   BeginBrowserLoginParams,
   BlogCategory,
   BlogPost,
@@ -1735,6 +1737,98 @@ export const useSubscribeToNewsletter = <
   TContext
 > => {
   return useMutation(getSubscribeToNewsletterMutationOptions(options));
+};
+
+/**
+ * Adds the email to the global newsletter subscriber list (idempotent on
+email) and links it to the requested author slug. The same email can
+subscribe to multiple authors. Returns `alreadySubscribed: true` when
+the visitor was already subscribed to *this* author.
+
+ * @summary Subscribe an email to a specific author's mailing list segment
+ */
+export const getSubscribeToAuthorUrl = (slug: string) => {
+  return `/api/authors/${slug}/subscribe`;
+};
+
+export const subscribeToAuthor = async (
+  slug: string,
+  authorSubscriptionInput: AuthorSubscriptionInput,
+  options?: RequestInit,
+): Promise<AuthorSubscription> => {
+  return customFetch<AuthorSubscription>(getSubscribeToAuthorUrl(slug), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(authorSubscriptionInput),
+  });
+};
+
+export const getSubscribeToAuthorMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeToAuthor>>,
+    TError,
+    { slug: string; data: BodyType<AuthorSubscriptionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof subscribeToAuthor>>,
+  TError,
+  { slug: string; data: BodyType<AuthorSubscriptionInput> },
+  TContext
+> => {
+  const mutationKey = ["subscribeToAuthor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof subscribeToAuthor>>,
+    { slug: string; data: BodyType<AuthorSubscriptionInput> }
+  > = (props) => {
+    const { slug, data } = props ?? {};
+
+    return subscribeToAuthor(slug, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubscribeToAuthorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof subscribeToAuthor>>
+>;
+export type SubscribeToAuthorMutationBody = BodyType<AuthorSubscriptionInput>;
+export type SubscribeToAuthorMutationError = ErrorType<void>;
+
+/**
+ * @summary Subscribe an email to a specific author's mailing list segment
+ */
+export const useSubscribeToAuthor = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeToAuthor>>,
+    TError,
+    { slug: string; data: BodyType<AuthorSubscriptionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof subscribeToAuthor>>,
+  TError,
+  { slug: string; data: BodyType<AuthorSubscriptionInput> },
+  TContext
+> => {
+  return useMutation(getSubscribeToAuthorMutationOptions(options));
 };
 
 /**

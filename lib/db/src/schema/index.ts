@@ -7,4 +7,5 @@ export * from "./guestPostSubmissions";
 export * from "./siteStats";
 export * from "./auth";
 export * from "./newsletterSubscribers";
+export * from "./authorSubscriptions";
 export * from "./kvStore";

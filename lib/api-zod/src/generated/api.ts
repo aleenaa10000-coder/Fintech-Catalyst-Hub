@@ -404,6 +404,36 @@ export const SubscribeToNewsletterResponse = zod.object({
 });
 
 /**
+ * Adds the email to the global newsletter subscriber list (idempotent on
+email) and links it to the requested author slug. The same email can
+subscribe to multiple authors. Returns `alreadySubscribed: true` when
+the visitor was already subscribed to *this* author.
+
+ * @summary Subscribe an email to a specific author's mailing list segment
+ */
+export const SubscribeToAuthorParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const SubscribeToAuthorBody = zod.object({
+  email: zod.string().email(),
+});
+
+export const SubscribeToAuthorResponse = zod.object({
+  id: zod.number().describe("ID of the author_subscriptions row."),
+  subscriberId: zod
+    .number()
+    .describe("ID of the global newsletter_subscribers row."),
+  email: zod.string(),
+  authorSlug: zod.string(),
+  authorName: zod.string(),
+  alreadySubscribed: zod
+    .boolean()
+    .describe("True when the email was already linked to this author."),
+  createdAt: zod.coerce.date(),
+});
+
+/**
  * Accepts a calculated Financial Health Score plus the visitor's email,
 subscribes them to the newsletter, and (when an email provider is
 configured) sends them an HTML summary of their score and personalized

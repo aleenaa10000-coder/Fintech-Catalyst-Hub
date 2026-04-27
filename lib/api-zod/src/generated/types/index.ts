@@ -7,6 +7,8 @@
  */
 
 export * from "./authorizationSessionHeaderParameter";
+export * from "./authorSubscription";
+export * from "./authorSubscriptionInput";
 export * from "./authUser";
 export * from "./authUserEnvelope";
 export * from "./beginBrowserLoginParams";
