@@ -25,6 +25,7 @@ import {
   X,
   Tag as TagIcon,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePublicPosts, type PublicPost } from "@/data/usePublicPosts";
@@ -36,6 +37,22 @@ const formatDate = (iso: string) =>
     day: "numeric",
     year: "numeric",
   });
+
+/**
+ * Window in days that defines a "newly published" post. Anything whose
+ * `date` is within this many days of `Date.now()` gets the "New" badge
+ * on cards and is included when the "New this week" filter is active.
+ * Tunable in one place so admin docs and copy can stay consistent.
+ */
+const NEW_WINDOW_DAYS = 7;
+
+function isPublishedRecently(iso: string, days = NEW_WINDOW_DAYS): boolean {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return false;
+  const ageMs = Date.now() - t;
+  if (ageMs < 0) return true;
+  return ageMs <= days * 24 * 60 * 60 * 1000;
+}
 
 type Post = PublicPost;
 
@@ -104,9 +121,19 @@ export default function Blog() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [showAllTags, setShowAllTags] = useState(false);
+  const [onlyRecent, setOnlyRecent] = useState(false);
   const [sortBy, setSortBy] = useState<
     "newest" | "oldest" | "title" | "popular"
   >("newest");
+
+  // How many posts qualify for the "New this week" badge across the
+  // unfiltered feed. Drives the count rendered on the toggle chip and
+  // lets us hide the chip entirely when nothing recent has shipped (so
+  // the UI doesn't dangle a useless filter on a quiet week).
+  const recentCount = useMemo(
+    () => allPosts.filter((p) => isPublishedRecently(p.date)).length,
+    [allPosts],
+  );
 
   // Keep state in sync if the URL params change after mount (e.g. user
   // clicks a different tag/author link from another page or uses
@@ -217,6 +244,7 @@ export default function Blog() {
       if (activeTag && !(p.tags ?? []).includes(activeTag)) return false;
       if (activeAuthor && authorSlugFromName(p.author) !== activeAuthor)
         return false;
+      if (onlyRecent && !isPublishedRecently(p.date)) return false;
       if (q) {
         const haystack = [
           p.title,
@@ -231,7 +259,14 @@ export default function Blog() {
       }
       return true;
     });
-  }, [allPosts, activeCategory, activeTag, activeAuthor, searchQuery]);
+  }, [
+    allPosts,
+    activeCategory,
+    activeTag,
+    activeAuthor,
+    searchQuery,
+    onlyRecent,
+  ]);
 
   // Sort the filtered posts. Newest is the default; "oldest" reverses by
   // date; "title" is alphabetical (A→Z) by title; "popular" sorts by
@@ -264,7 +299,11 @@ export default function Blog() {
   }, [filteredPosts, sortBy]);
 
   const filtersActive = Boolean(
-    activeCategory || activeTag || activeAuthor || searchQuery.trim(),
+    activeCategory ||
+      activeTag ||
+      activeAuthor ||
+      searchQuery.trim() ||
+      onlyRecent,
   );
 
   const clearFilters = () => {
@@ -272,6 +311,7 @@ export default function Blog() {
     setActiveTag(undefined);
     setActiveAuthor(undefined);
     setSearchQuery("");
+    setOnlyRecent(false);
   };
 
   const TAG_PREVIEW_COUNT = 12;
@@ -334,11 +374,23 @@ export default function Blog() {
             />
           </div>
           <CardContent className="p-6 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider">
-                {post.category}
-              </span>
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between mb-4 gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider truncate">
+                  {post.category}
+                </span>
+                {isPublishedRecently(post.date) && (
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold uppercase tracking-wider shrink-0"
+                    title={`Published ${formatDate(post.date)} · within the last ${NEW_WINDOW_DAYS} days`}
+                    data-testid={`badge-new-${post.slug}`}
+                  >
+                    <Sparkles className="w-3 h-3" aria-hidden="true" />
+                    New
+                  </span>
+                )}
+              </div>
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                 <Clock className="w-3.5 h-3.5" />
                 {post.readTime}
               </span>
@@ -465,6 +517,38 @@ export default function Blog() {
                 >
                   Clear filters
                   <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+            {/* "New this week" toggle — only shown when at least one
+                post in the merged feed qualifies, so we don't strand
+                an empty filter on slow-publishing weeks. */}
+            {recentCount > 0 && (
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setOnlyRecent((v) => !v)}
+                  aria-pressed={onlyRecent}
+                  data-testid="button-filter-recent"
+                  className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border-2 transition-colors duration-200 ${
+                    onlyRecent
+                      ? "bg-emerald-600 text-white border-emerald-600"
+                      : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-600"
+                  }`}
+                  title={`Show only posts published in the last ${NEW_WINDOW_DAYS} days`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                  New this week
+                  <span
+                    className={`text-[10px] font-bold ${
+                      onlyRecent ? "text-white/80" : "text-emerald-700/80"
+                    }`}
+                  >
+                    {recentCount}
+                  </span>
+                  {onlyRecent && (
+                    <X className="w-3 h-3 ml-0.5" aria-hidden="true" />
+                  )}
                 </button>
               </div>
             )}

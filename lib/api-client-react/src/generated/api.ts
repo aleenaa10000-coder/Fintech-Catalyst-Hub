@@ -48,6 +48,7 @@ import type {
   PublishedBlogPost,
   Service,
   ServiceInput,
+  SitemapHealthReport,
   Testimonial,
   TrustStats,
   UpdateBlogPostInput,
@@ -1107,6 +1108,265 @@ export const useDeleteBlogPost = <
   TContext
 > => {
   return useMutation(getDeleteBlogPostMutationOptions(options));
+};
+
+/**
+ * Triggers an immediate IndexNow + Google sitemap ping for the post
+with this slug. Used by the admin posts table to manually re-submit
+a post (e.g. after a stale "indexed N days ago" badge or after the
+first publish missed because `INDEXNOW_KEY` was unset). Requires an
+authenticated admin session. The response mirrors the
+publish/update endpoints — a `PublishedBlogPost` with the live ping
+result attached so the UI can show real success/failure feedback.
+
+ * @summary Re-ping IndexNow for a single blog post (admin)
+ */
+export const getRepingBlogPostIndexNowUrl = (slug: string) => {
+  return `/api/blog/posts/${slug}/reping-indexnow`;
+};
+
+export const repingBlogPostIndexNow = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<PublishedBlogPost> => {
+  return customFetch<PublishedBlogPost>(getRepingBlogPostIndexNowUrl(slug), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRepingBlogPostIndexNowMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof repingBlogPostIndexNow>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof repingBlogPostIndexNow>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  const mutationKey = ["repingBlogPostIndexNow"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof repingBlogPostIndexNow>>,
+    { slug: string }
+  > = (props) => {
+    const { slug } = props ?? {};
+
+    return repingBlogPostIndexNow(slug, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RepingBlogPostIndexNowMutationResult = NonNullable<
+  Awaited<ReturnType<typeof repingBlogPostIndexNow>>
+>;
+
+export type RepingBlogPostIndexNowMutationError = ErrorType<void>;
+
+/**
+ * @summary Re-ping IndexNow for a single blog post (admin)
+ */
+export const useRepingBlogPostIndexNow = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof repingBlogPostIndexNow>>,
+    TError,
+    { slug: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof repingBlogPostIndexNow>>,
+  TError,
+  { slug: string },
+  TContext
+> => {
+  return useMutation(getRepingBlogPostIndexNowMutationOptions(options));
+};
+
+/**
+ * Returns the most recent persisted link-check results for every URL
+in the sitemap (blog posts, static routes, author profiles, RSS
+feeds). Read-only — does not trigger a fresh check. Pair with
+`POST /admin/sitemap-health/run` from the admin dashboard to
+refresh the data on demand.
+
+ * @summary Latest sitemap link-check report (admin)
+ */
+export const getGetSitemapHealthUrl = () => {
+  return `/api/admin/sitemap-health`;
+};
+
+export const getSitemapHealth = async (
+  options?: RequestInit,
+): Promise<SitemapHealthReport> => {
+  return customFetch<SitemapHealthReport>(getGetSitemapHealthUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSitemapHealthQueryKey = () => {
+  return [`/api/admin/sitemap-health`] as const;
+};
+
+export const getGetSitemapHealthQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSitemapHealth>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSitemapHealth>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSitemapHealthQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSitemapHealth>>
+  > = ({ signal }) => getSitemapHealth({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSitemapHealth>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSitemapHealthQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSitemapHealth>>
+>;
+export type GetSitemapHealthQueryError = ErrorType<void>;
+
+/**
+ * @summary Latest sitemap link-check report (admin)
+ */
+
+export function useGetSitemapHealth<
+  TData = Awaited<ReturnType<typeof getSitemapHealth>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSitemapHealth>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSitemapHealthQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Synchronously walks the sitemap, fetches every URL, persists the
+latest status code per URL, and returns the resulting report.
+Awaits all fetches with a per-URL timeout so the admin dashboard
+gets a live result instead of a "kicked off" toast.
+
+ * @summary Run a fresh sitemap link check (admin)
+ */
+export const getRunSitemapHealthUrl = () => {
+  return `/api/admin/sitemap-health`;
+};
+
+export const runSitemapHealth = async (
+  options?: RequestInit,
+): Promise<SitemapHealthReport> => {
+  return customFetch<SitemapHealthReport>(getRunSitemapHealthUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRunSitemapHealthMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runSitemapHealth>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof runSitemapHealth>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["runSitemapHealth"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof runSitemapHealth>>,
+    void
+  > = () => {
+    return runSitemapHealth(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RunSitemapHealthMutationResult = NonNullable<
+  Awaited<ReturnType<typeof runSitemapHealth>>
+>;
+
+export type RunSitemapHealthMutationError = ErrorType<void>;
+
+/**
+ * @summary Run a fresh sitemap link check (admin)
+ */
+export const useRunSitemapHealth = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runSitemapHealth>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof runSitemapHealth>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getRunSitemapHealthMutationOptions(options));
 };
 
 /**

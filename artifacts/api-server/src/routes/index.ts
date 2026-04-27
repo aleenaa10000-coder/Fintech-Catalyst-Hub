@@ -15,6 +15,7 @@ import pitchRouter from "./pitch";
 import ogRouter from "./og";
 import toolsRouter from "./tools";
 import commissioningTopicsRouter from "./commissioningTopics";
+import sitemapHealthRouter from "./sitemapHealth";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(pitchRouter);
 router.use(ogRouter);
 router.use(toolsRouter);
 router.use(commissioningTopicsRouter);
+router.use(sitemapHealthRouter);
 
 export default router;

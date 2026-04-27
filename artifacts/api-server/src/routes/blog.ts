@@ -36,6 +36,40 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
 const router: IRouter = Router();
 
+// SEO override fields are nullable on the wire so the admin UI can
+// explicitly clear an existing override (null/empty string -> fall back
+// to the post's title/excerpt/coverImage). We accept "" as a synonym for
+// null on the way in to keep the form code in admin-blog.tsx simple.
+const seoTitleField = z
+  .union([z.string(), z.null()])
+  .optional()
+  .transform((v) => {
+    if (v == null) return v;
+    const trimmed = v.trim();
+    return trimmed === "" ? null : trimmed;
+  });
+const seoDescriptionField = seoTitleField;
+const seoOgImageField = z
+  .union([z.string(), z.null()])
+  .optional()
+  .transform((v) => {
+    if (v == null) return v;
+    const trimmed = v.trim();
+    return trimmed === "" ? null : trimmed;
+  })
+  .refine(
+    (v) => {
+      if (v == null) return true;
+      try {
+        new URL(v);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: "seoOgImage must be a valid absolute URL" },
+  );
+
 const PublishBlogPostBody = z.object({
   slug: z
     .string()
@@ -52,6 +86,9 @@ const PublishBlogPostBody = z.object({
   readingMinutes: z.number().int().positive(),
   featured: z.boolean().default(false),
   publishedAt: z.string().datetime().optional(),
+  seoTitle: seoTitleField,
+  seoDescription: seoDescriptionField,
+  seoOgImage: seoOgImageField,
 });
 
 const UpdateBlogPostBody = z
@@ -66,6 +103,9 @@ const UpdateBlogPostBody = z
     coverImage: z.string().url().optional(),
     readingMinutes: z.number().int().positive().optional(),
     featured: z.boolean().optional(),
+    seoTitle: seoTitleField,
+    seoDescription: seoDescriptionField,
+    seoOgImage: seoOgImageField,
   })
   .refine((obj) => Object.keys(obj).length > 0, {
     message: "At least one field is required",
@@ -90,6 +130,9 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
     lastSeoPingAt: row.lastSeoPingAt ? row.lastSeoPingAt.toISOString() : null,
     lastSeoPingStatus: row.lastSeoPingStatus ?? null,
     viewCount: row.viewCount,
+    seoTitle: row.seoTitle ?? null,
+    seoDescription: row.seoDescription ?? null,
+    seoOgImage: row.seoOgImage ?? null,
   };
 }
 
@@ -233,6 +276,16 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
         readingMinutes: body.readingMinutes,
         featured: body.featured,
         publishedAt: body.publishedAt ? new Date(body.publishedAt) : new Date(),
+        // SEO overrides — undefined leaves the column at the DB default
+        // (null), null/empty-string explicitly clears it. The zod
+        // transformer above already normalized "" → null.
+        ...(body.seoTitle !== undefined ? { seoTitle: body.seoTitle } : {}),
+        ...(body.seoDescription !== undefined
+          ? { seoDescription: body.seoDescription }
+          : {}),
+        ...(body.seoOgImage !== undefined
+          ? { seoOgImage: body.seoOgImage }
+          : {}),
       })
       .returning();
 
@@ -302,6 +355,10 @@ router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     const { slug } = GetBlogPostParams.parse({ slug: req.params.slug });
     const body = UpdateBlogPostBody.parse(req.body);
 
+    // Pass the validated body straight to drizzle. The zod transformer
+    // already normalized empty SEO override strings to null, and
+    // undefined fields stay omitted so partial updates don't accidentally
+    // wipe other columns.
     const [row] = await db
       .update(blogPostsTable)
       .set(body)
@@ -352,6 +409,75 @@ router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     next(err);
   }
 });
+
+/**
+ * Manually re-ping IndexNow + Google for a single existing post. Pinned
+ * to the admin posts table so an admin can re-submit without making any
+ * content changes (useful when the original publish missed because
+ * `INDEXNOW_KEY` was unset, or when the SERP listing is stale).
+ *
+ * Mirrors the response shape of POST /blog/posts and PATCH /blog/posts/:slug
+ * so the UI can reuse the same SEO notification toast.
+ */
+router.post(
+  "/blog/posts/:slug/reping-indexnow",
+  requireAdmin,
+  async (req, res, next) => {
+    try {
+      const { slug } = GetBlogPostParams.parse({ slug: req.params.slug });
+
+      const [row] = await db
+        .select()
+        .from(blogPostsTable)
+        .where(eq(blogPostsTable.slug, slug))
+        .limit(1);
+
+      if (!row) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+
+      const siteUrl = getSiteUrl();
+      const urls = [
+        `${siteUrl}/blog/${row.slug}`,
+        `${siteUrl}/blog`,
+        `${siteUrl}/sitemap.xml`,
+      ];
+      let seoNotification: SeoNotificationResult;
+      try {
+        seoNotification = await notifySearchEnginesOfPublishWithTimeout(
+          urls,
+          SEO_NOTIFY_TIMEOUT_MS,
+        );
+      } catch (err) {
+        logger.error({ err }, "Manual re-ping hook failed");
+        seoNotification = {
+          indexNow: {
+            status: "error",
+            message: `IndexNow ping threw: ${err instanceof Error ? err.message : String(err)}`,
+            urlsSubmitted: 0,
+          },
+          google: {
+            status: "error",
+            message:
+              "Google sitemap ping was not attempted because the IndexNow hook threw.",
+          },
+          urls,
+          durationMs: 0,
+        };
+      }
+
+      const updatedRow = await recordSeoPing(row.slug, seoNotification);
+      res.json(serializeWithSeo(updatedRow ?? row, seoNotification));
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid slug", issues: err.issues });
+        return;
+      }
+      next(err);
+    }
+  },
+);
 
 /**
  * Delete (unpublish) a blog post by slug. Requires an authenticated session.

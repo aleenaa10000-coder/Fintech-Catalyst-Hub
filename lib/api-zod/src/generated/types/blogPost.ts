@@ -35,4 +35,13 @@ export interface BlogPost {
    * @minimum 0
    */
   viewCount: number;
+  /** Optional override for the `<title>` tag on this post's detail page. When `null` the title falls back to the post's `title` field. Used by the admin to hand-tune SERP appearance.
+   */
+  seoTitle?: string | null;
+  /** Optional override for `<meta name="description">` on this post's detail page. When `null` the description falls back to the post's `excerpt`.
+   */
+  seoDescription?: string | null;
+  /** Optional override for `og:image` / `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).
+   */
+  seoOgImage?: string | null;
 }

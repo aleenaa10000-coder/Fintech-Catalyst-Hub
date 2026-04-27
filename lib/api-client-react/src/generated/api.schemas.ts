@@ -82,6 +82,15 @@ export interface BlogPost {
    * @minimum 0
    */
   viewCount: number;
+  /** Optional override for the `<title>` tag on this post's detail page. When `null` the title falls back to the post's `title` field. Used by the admin to hand-tune SERP appearance.
+   */
+  seoTitle?: string | null;
+  /** Optional override for `<meta name="description">` on this post's detail page. When `null` the description falls back to the post's `excerpt`.
+   */
+  seoDescription?: string | null;
+  /** Optional override for `og:image` / `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).
+   */
+  seoOgImage?: string | null;
 }
 
 export interface BlogCategory {
@@ -119,6 +128,15 @@ export interface UpdateBlogPostInput {
   /** @minimum 1 */
   readingMinutes?: number;
   featured?: boolean;
+  /** Override the `<title>` tag for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `title`.
+   */
+  seoTitle?: string | null;
+  /** Override `<meta name="description">` for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `excerpt`.
+   */
+  seoDescription?: string | null;
+  /** Override `og:image` / `twitter:image` for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `coverImage`.
+   */
+  seoOgImage?: string | null;
 }
 
 export type SeoNotificationIndexNowStatus =
@@ -202,6 +220,55 @@ export interface PublishBlogPostInput {
   readingMinutes: number;
   featured?: boolean;
   publishedAt?: string;
+  /** Optional override for the `<title>` tag on this post's detail page. Falls back to `title` when omitted or null.
+   */
+  seoTitle?: string | null;
+  /** Optional override for `<meta name="description">`. Falls back to `excerpt` when omitted or null.
+   */
+  seoDescription?: string | null;
+  /** Optional override for `og:image` / `twitter:image`. Falls back to `coverImage` when omitted or null.
+   */
+  seoOgImage?: string | null;
+}
+
+/**
+ * Persistent state for one URL we monitor in the daily sitemap link
+checker. Updated in place per URL on every run.
+
+ */
+export interface LinkCheckResult {
+  url: string;
+  /** Where this URL came from on the most recent check. One of `static`, `blog`, `author`, `rss`, `manual`.
+   */
+  source: string;
+  /** HTTP status from the most recent check. `null` when the request never completed (DNS failure, network timeout) — see `lastError` in that case.
+   */
+  lastStatusCode?: number | null;
+  lastError?: string | null;
+  /** True when the most recent check returned 4xx/5xx OR the fetch threw.
+   */
+  isBroken: boolean;
+  brokenSince?: string | null;
+  lastOkAt?: string | null;
+  lastCheckedAt: string;
+  /** @minimum 0 */
+  consecutiveFailures: number;
+}
+
+/**
+ * Aggregate response from `GET /admin/sitemap-health` and
+`POST /admin/sitemap-health/run`. `generatedAt` is the time the
+underlying check ran (or the most recent `lastCheckedAt` for the
+read-only GET).
+
+ */
+export interface SitemapHealthReport {
+  generatedAt?: string | null;
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  brokenCount: number;
+  results: LinkCheckResult[];
 }
 
 export interface PricingPlan {

@@ -147,6 +147,24 @@ export const ListBlogPostsResponseItem = zod.object({
     .describe(
       'Lifetime view count, incremented by the public-facing post detail page on mount via `POST \/blog\/posts\/{slug}\/view`. Used to power the \"Most read\" sort option on the blog index.\n',
     ),
+  seoTitle: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional override for the `<title>` tag on this post's detail page. When `null` the title falls back to the post's `title` field. Used by the admin to hand-tune SERP appearance.\n",
+    ),
+  seoDescription: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional override for `<meta name=\"description\">` on this post's detail page. When `null` the description falls back to the post's `excerpt`.\n",
+    ),
+  seoOgImage: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional override for `og:image` \/ `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n",
+    ),
 });
 export const ListBlogPostsResponse = zod.array(ListBlogPostsResponseItem);
 
@@ -179,6 +197,24 @@ export const PublishBlogPostBody = zod.object({
   readingMinutes: zod.number().min(1),
   featured: zod.boolean().optional(),
   publishedAt: zod.coerce.date().optional(),
+  seoTitle: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional override for the `<title>` tag on this post's detail page. Falls back to `title` when omitted or null.\n",
+    ),
+  seoDescription: zod
+    .string()
+    .nullish()
+    .describe(
+      'Optional override for `<meta name=\"description\">`. Falls back to `excerpt` when omitted or null.\n',
+    ),
+  seoOgImage: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional override for `og:image` \/ `twitter:image`. Falls back to `coverImage` when omitted or null.\n",
+    ),
 });
 
 /**
@@ -227,6 +263,24 @@ export const GetBlogPostResponse = zod.object({
     .describe(
       'Lifetime view count, incremented by the public-facing post detail page on mount via `POST \/blog\/posts\/{slug}\/view`. Used to power the \"Most read\" sort option on the blog index.\n',
     ),
+  seoTitle: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional override for the `<title>` tag on this post's detail page. When `null` the title falls back to the post's `title` field. Used by the admin to hand-tune SERP appearance.\n",
+    ),
+  seoDescription: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional override for `<meta name=\"description\">` on this post's detail page. When `null` the description falls back to the post's `excerpt`.\n",
+    ),
+  seoOgImage: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional override for `og:image` \/ `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n",
+    ),
 });
 
 /**
@@ -252,6 +306,24 @@ export const UpdateBlogPostBody = zod
     coverImage: zod.string().url().optional(),
     readingMinutes: zod.number().min(1).optional(),
     featured: zod.boolean().optional(),
+    seoTitle: zod
+      .string()
+      .nullish()
+      .describe(
+        "Override the `<title>` tag for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `title`.\n",
+      ),
+    seoDescription: zod
+      .string()
+      .nullish()
+      .describe(
+        'Override `<meta name=\"description\">` for this post. Pass an empty string or `null` to clear an existing override and fall back to the post\'s `excerpt`.\n',
+      ),
+    seoOgImage: zod
+      .string()
+      .nullish()
+      .describe(
+        "Override `og:image` \/ `twitter:image` for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `coverImage`.\n",
+      ),
   })
   .describe("Partial update — only included fields are changed.");
 
@@ -299,6 +371,24 @@ export const UpdateBlogPostResponse = zod
       .describe(
         'Lifetime view count, incremented by the public-facing post detail page on mount via `POST \/blog\/posts\/{slug}\/view`. Used to power the \"Most read\" sort option on the blog index.\n',
       ),
+    seoTitle: zod
+      .string()
+      .nullish()
+      .describe(
+        "Optional override for the `<title>` tag on this post's detail page. When `null` the title falls back to the post's `title` field. Used by the admin to hand-tune SERP appearance.\n",
+      ),
+    seoDescription: zod
+      .string()
+      .nullish()
+      .describe(
+        "Optional override for `<meta name=\"description\">` on this post's detail page. When `null` the description falls back to the post's `excerpt`.\n",
+      ),
+    seoOgImage: zod
+      .string()
+      .nullish()
+      .describe(
+        "Optional override for `og:image` \/ `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n",
+      ),
   })
   .and(
     zod.object({
@@ -345,6 +435,236 @@ export const UpdateBlogPostResponse = zod
 export const DeleteBlogPostParams = zod.object({
   slug: zod.coerce.string(),
 });
+
+/**
+ * Triggers an immediate IndexNow + Google sitemap ping for the post
+with this slug. Used by the admin posts table to manually re-submit
+a post (e.g. after a stale "indexed N days ago" badge or after the
+first publish missed because `INDEXNOW_KEY` was unset). Requires an
+authenticated admin session. The response mirrors the
+publish/update endpoints — a `PublishedBlogPost` with the live ping
+result attached so the UI can show real success/failure feedback.
+
+ * @summary Re-ping IndexNow for a single blog post (admin)
+ */
+export const RepingBlogPostIndexNowParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const repingBlogPostIndexNowResponseOneViewCountMin = 0;
+
+export const repingBlogPostIndexNowResponseTwoSeoNotificationIndexNowUrlsSubmittedMin = 0;
+
+export const repingBlogPostIndexNowResponseTwoSeoNotificationDurationMsMin = 0;
+
+export const RepingBlogPostIndexNowResponse = zod
+  .object({
+    id: zod.number(),
+    slug: zod.string(),
+    title: zod.string(),
+    excerpt: zod.string(),
+    content: zod.string(),
+    author: zod.string(),
+    authorRole: zod.string(),
+    category: zod.string(),
+    tags: zod.array(zod.string()),
+    coverImage: zod.string(),
+    readingMinutes: zod.number(),
+    featured: zod.boolean(),
+    publishedAt: zod.coerce.date(),
+    updatedAt: zod.coerce
+      .date()
+      .describe(
+        'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
+      ),
+    lastSeoPingAt: zod.coerce
+      .date()
+      .nullish()
+      .describe(
+        'Timestamp of the most recent successful IndexNow ping for this post (Bing\/Yandex\/Seznam\/Naver). `null` when the post has never been successfully pinged (e.g. INDEXNOW_KEY was unset or the post predates this feature). Surface in the admin posts list as an \"indexed N ago\" badge.\n',
+      ),
+    lastSeoPingStatus: zod
+      .string()
+      .nullish()
+      .describe(
+        "Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.\n",
+      ),
+    viewCount: zod
+      .number()
+      .min(repingBlogPostIndexNowResponseOneViewCountMin)
+      .describe(
+        'Lifetime view count, incremented by the public-facing post detail page on mount via `POST \/blog\/posts\/{slug}\/view`. Used to power the \"Most read\" sort option on the blog index.\n',
+      ),
+    seoTitle: zod
+      .string()
+      .nullish()
+      .describe(
+        "Optional override for the `<title>` tag on this post's detail page. When `null` the title falls back to the post's `title` field. Used by the admin to hand-tune SERP appearance.\n",
+      ),
+    seoDescription: zod
+      .string()
+      .nullish()
+      .describe(
+        "Optional override for `<meta name=\"description\">` on this post's detail page. When `null` the description falls back to the post's `excerpt`.\n",
+      ),
+    seoOgImage: zod
+      .string()
+      .nullish()
+      .describe(
+        "Optional override for `og:image` \/ `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n",
+      ),
+  })
+  .and(
+    zod.object({
+      seoNotification: zod
+        .object({
+          indexNow: zod.object({
+            status: zod.enum([
+              "accepted",
+              "rejected",
+              "skipped_no_key",
+              "skipped_malformed_key",
+              "error",
+            ]),
+            httpStatus: zod.number().optional(),
+            message: zod.string(),
+            urlsSubmitted: zod
+              .number()
+              .min(
+                repingBlogPostIndexNowResponseTwoSeoNotificationIndexNowUrlsSubmittedMin,
+              ),
+          }),
+          google: zod.object({
+            status: zod.enum(["attempted", "error"]),
+            httpStatus: zod.number().optional(),
+            message: zod.string(),
+          }),
+          urls: zod.array(zod.string()),
+          durationMs: zod
+            .number()
+            .min(repingBlogPostIndexNowResponseTwoSeoNotificationDurationMsMin),
+        })
+        .describe(
+          "Result of the immediate search-engine notification triggered when\na post is published or updated. The IndexNow ping is awaited (with\na short timeout) so the admin UI can show real success\/failure\nfeedback. The Google sitemap ping is best-effort and informational.\n",
+        ),
+    }),
+  )
+  .describe(
+    "A `BlogPost` plus the result of the immediate search-engine\nnotification fired by the publish\/update endpoint.\n",
+  );
+
+/**
+ * Returns the most recent persisted link-check results for every URL
+in the sitemap (blog posts, static routes, author profiles, RSS
+feeds). Read-only — does not trigger a fresh check. Pair with
+`POST /admin/sitemap-health/run` from the admin dashboard to
+refresh the data on demand.
+
+ * @summary Latest sitemap link-check report (admin)
+ */
+export const getSitemapHealthResponseTotalMin = 0;
+
+export const getSitemapHealthResponseBrokenCountMin = 0;
+
+export const getSitemapHealthResponseResultsItemConsecutiveFailuresMin = 0;
+
+export const GetSitemapHealthResponse = zod
+  .object({
+    generatedAt: zod.coerce.date().nullish(),
+    total: zod.number().min(getSitemapHealthResponseTotalMin),
+    brokenCount: zod.number().min(getSitemapHealthResponseBrokenCountMin),
+    results: zod.array(
+      zod
+        .object({
+          url: zod.string().url(),
+          source: zod
+            .string()
+            .describe(
+              "Where this URL came from on the most recent check. One of `static`, `blog`, `author`, `rss`, `manual`.\n",
+            ),
+          lastStatusCode: zod
+            .number()
+            .nullish()
+            .describe(
+              "HTTP status from the most recent check. `null` when the request never completed (DNS failure, network timeout) — see `lastError` in that case.\n",
+            ),
+          lastError: zod.string().nullish(),
+          isBroken: zod
+            .boolean()
+            .describe(
+              "True when the most recent check returned 4xx\/5xx OR the fetch threw.\n",
+            ),
+          brokenSince: zod.coerce.date().nullish(),
+          lastOkAt: zod.coerce.date().nullish(),
+          lastCheckedAt: zod.coerce.date(),
+          consecutiveFailures: zod
+            .number()
+            .min(getSitemapHealthResponseResultsItemConsecutiveFailuresMin),
+        })
+        .describe(
+          "Persistent state for one URL we monitor in the daily sitemap link\nchecker. Updated in place per URL on every run.\n",
+        ),
+    ),
+  })
+  .describe(
+    "Aggregate response from `GET \/admin\/sitemap-health` and\n`POST \/admin\/sitemap-health\/run`. `generatedAt` is the time the\nunderlying check ran (or the most recent `lastCheckedAt` for the\nread-only GET).\n",
+  );
+
+/**
+ * Synchronously walks the sitemap, fetches every URL, persists the
+latest status code per URL, and returns the resulting report.
+Awaits all fetches with a per-URL timeout so the admin dashboard
+gets a live result instead of a "kicked off" toast.
+
+ * @summary Run a fresh sitemap link check (admin)
+ */
+export const runSitemapHealthResponseTotalMin = 0;
+
+export const runSitemapHealthResponseBrokenCountMin = 0;
+
+export const runSitemapHealthResponseResultsItemConsecutiveFailuresMin = 0;
+
+export const RunSitemapHealthResponse = zod
+  .object({
+    generatedAt: zod.coerce.date().nullish(),
+    total: zod.number().min(runSitemapHealthResponseTotalMin),
+    brokenCount: zod.number().min(runSitemapHealthResponseBrokenCountMin),
+    results: zod.array(
+      zod
+        .object({
+          url: zod.string().url(),
+          source: zod
+            .string()
+            .describe(
+              "Where this URL came from on the most recent check. One of `static`, `blog`, `author`, `rss`, `manual`.\n",
+            ),
+          lastStatusCode: zod
+            .number()
+            .nullish()
+            .describe(
+              "HTTP status from the most recent check. `null` when the request never completed (DNS failure, network timeout) — see `lastError` in that case.\n",
+            ),
+          lastError: zod.string().nullish(),
+          isBroken: zod
+            .boolean()
+            .describe(
+              "True when the most recent check returned 4xx\/5xx OR the fetch threw.\n",
+            ),
+          brokenSince: zod.coerce.date().nullish(),
+          lastOkAt: zod.coerce.date().nullish(),
+          lastCheckedAt: zod.coerce.date(),
+          consecutiveFailures: zod
+            .number()
+            .min(runSitemapHealthResponseResultsItemConsecutiveFailuresMin),
+        })
+        .describe(
+          "Persistent state for one URL we monitor in the daily sitemap link\nchecker. Updated in place per URL on every run.\n",
+        ),
+    ),
+  })
+  .describe(
+    "Aggregate response from `GET \/admin\/sitemap-health` and\n`POST \/admin\/sitemap-health\/run`. `generatedAt` is the time the\nunderlying check ran (or the most recent `lastCheckedAt` for the\nread-only GET).\n",
+  );
 
 /**
  * Atomically bumps `view_count` by 1 for the post with this slug and
@@ -410,6 +730,24 @@ export const ListFeaturedPostsResponseItem = zod.object({
     .min(listFeaturedPostsResponseViewCountMin)
     .describe(
       'Lifetime view count, incremented by the public-facing post detail page on mount via `POST \/blog\/posts\/{slug}\/view`. Used to power the \"Most read\" sort option on the blog index.\n',
+    ),
+  seoTitle: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional override for the `<title>` tag on this post's detail page. When `null` the title falls back to the post's `title` field. Used by the admin to hand-tune SERP appearance.\n",
+    ),
+  seoDescription: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional override for `<meta name=\"description\">` on this post's detail page. When `null` the description falls back to the post's `excerpt`.\n",
+    ),
+  seoOgImage: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional override for `og:image` \/ `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n",
     ),
 });
 export const ListFeaturedPostsResponse = zod.array(

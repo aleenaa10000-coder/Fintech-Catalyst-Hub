@@ -30,4 +30,13 @@ export interface PublishBlogPostInput {
   readingMinutes: number;
   featured?: boolean;
   publishedAt?: Date;
+  /** Optional override for the `<title>` tag on this post's detail page. Falls back to `title` when omitted or null.
+   */
+  seoTitle?: string | null;
+  /** Optional override for `<meta name="description">`. Falls back to `excerpt` when omitted or null.
+   */
+  seoDescription?: string | null;
+  /** Optional override for `og:image` / `twitter:image`. Falls back to `coverImage` when omitted or null.
+   */
+  seoOgImage?: string | null;
 }

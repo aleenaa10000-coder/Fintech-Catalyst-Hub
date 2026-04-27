@@ -284,6 +284,76 @@ paths:
         "404":
           description: Not found
 
+  /blog/posts/{slug}/reping-indexnow:
+    post:
+      operationId: repingBlogPostIndexNow
+      tags: [blog]
+      summary: Re-ping IndexNow for a single blog post (admin)
+      description: |
+        Triggers an immediate IndexNow + Google sitemap ping for the post
+        with this slug. Used by the admin posts table to manually re-submit
+        a post (e.g. after a stale "indexed N days ago" badge or after the
+        first publish missed because `INDEXNOW_KEY` was unset). Requires an
+        authenticated admin session. The response mirrors the
+        publish/update endpoints — a `PublishedBlogPost` with the live ping
+        result attached so the UI can show real success/failure feedback.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Re-pinged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishedBlogPost"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
+  /admin/sitemap-health:
+    get:
+      operationId: getSitemapHealth
+      tags: [admin]
+      summary: Latest sitemap link-check report (admin)
+      description: |
+        Returns the most recent persisted link-check results for every URL
+        in the sitemap (blog posts, static routes, author profiles, RSS
+        feeds). Read-only — does not trigger a fresh check. Pair with
+        `POST /admin/sitemap-health/run` from the admin dashboard to
+        refresh the data on demand.
+      responses:
+        "200":
+          description: Sitemap health report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SitemapHealthReport"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: runSitemapHealth
+      tags: [admin]
+      summary: Run a fresh sitemap link check (admin)
+      description: |
+        Synchronously walks the sitemap, fetches every URL, persists the
+        latest status code per URL, and returns the resulting report.
+        Awaits all fetches with a per-URL timeout so the admin dashboard
+        gets a live result instead of a "kicked off" toast.
+      responses:
+        "200":
+          description: Sitemap health report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SitemapHealthReport"
+        "401":
+          description: Unauthorized
+
   /blog/posts/{slug}/view:
     post:
       operationId: incrementBlogPostView
@@ -858,6 +928,28 @@ components:
             Lifetime view count, incremented by the public-facing post
             detail page on mount via `POST /blog/posts/{slug}/view`. Used
             to power the "Most read" sort option on the blog index.
+        seoTitle:
+          type: string
+          nullable: true
+          description: >
+            Optional override for the `<title>` tag on this post's detail
+            page. When `null` the title falls back to the post's `title`
+            field. Used by the admin to hand-tune SERP appearance.
+        seoDescription:
+          type: string
+          nullable: true
+          description: >
+            Optional override for `<meta name="description">` on this
+            post's detail page. When `null` the description falls back to
+            the post's `excerpt`.
+        seoOgImage:
+          type: string
+          nullable: true
+          description: >
+            Optional override for `og:image` / `twitter:image` on this
+            post's detail page. When `null` the social card falls back to
+            the post's `coverImage`. Must be an absolute URL pointing to a
+            hosted image (1200×630 recommended).
       required: [id, slug, title, excerpt, content, author, authorRole, category, tags, coverImage, readingMinutes, featured, publishedAt, updatedAt, viewCount]
 
     BlogCategory:
@@ -914,6 +1006,27 @@ components:
           minimum: 1
         featured:
           type: boolean
+        seoTitle:
+          type: string
+          nullable: true
+          description: >
+            Override the `<title>` tag for this post. Pass an empty string
+            or `null` to clear an existing override and fall back to the
+            post's `title`.
+        seoDescription:
+          type: string
+          nullable: true
+          description: >
+            Override `<meta name="description">` for this post. Pass an
+            empty string or `null` to clear an existing override and fall
+            back to the post's `excerpt`.
+        seoOgImage:
+          type: string
+          nullable: true
+          description: >
+            Override `og:image` / `twitter:image` for this post. Pass an
+            empty string or `null` to clear an existing override and fall
+            back to the post's `coverImage`.
 
     SeoNotification:
       type: object
@@ -1014,6 +1127,24 @@ components:
         publishedAt:
           type: string
           format: date-time
+        seoTitle:
+          type: string
+          nullable: true
+          description: >
+            Optional override for the `<title>` tag on this post's detail
+            page. Falls back to `title` when omitted or null.
+        seoDescription:
+          type: string
+          nullable: true
+          description: >
+            Optional override for `<meta name="description">`. Falls back
+            to `excerpt` when omitted or null.
+        seoOgImage:
+          type: string
+          nullable: true
+          description: >
+            Optional override for `og:image` / `twitter:image`. Falls back
+            to `coverImage` when omitted or null.
       required:
         - slug
         - title
@@ -1024,6 +1155,80 @@ components:
         - category
         - coverImage
         - readingMinutes
+
+    LinkCheckResult:
+      type: object
+      description: |
+        Persistent state for one URL we monitor in the daily sitemap link
+        checker. Updated in place per URL on every run.
+      properties:
+        url:
+          type: string
+          format: uri
+        source:
+          type: string
+          description: >
+            Where this URL came from on the most recent check.
+            One of `static`, `blog`, `author`, `rss`, `manual`.
+        lastStatusCode:
+          type: integer
+          nullable: true
+          description: >
+            HTTP status from the most recent check. `null` when the request
+            never completed (DNS failure, network timeout) — see
+            `lastError` in that case.
+        lastError:
+          type: string
+          nullable: true
+        isBroken:
+          type: boolean
+          description: >
+            True when the most recent check returned 4xx/5xx OR the fetch
+            threw.
+        brokenSince:
+          type: string
+          format: date-time
+          nullable: true
+        lastOkAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastCheckedAt:
+          type: string
+          format: date-time
+        consecutiveFailures:
+          type: integer
+          minimum: 0
+      required:
+        - url
+        - source
+        - isBroken
+        - lastCheckedAt
+        - consecutiveFailures
+
+    SitemapHealthReport:
+      type: object
+      description: |
+        Aggregate response from `GET /admin/sitemap-health` and
+        `POST /admin/sitemap-health/run`. `generatedAt` is the time the
+        underlying check ran (or the most recent `lastCheckedAt` for the
+        read-only GET).
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        total:
+          type: integer
+          minimum: 0
+        brokenCount:
+          type: integer
+          minimum: 0
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/LinkCheckResult"
+      required: [total, brokenCount, results]
 
     PricingPlan:
       type: object

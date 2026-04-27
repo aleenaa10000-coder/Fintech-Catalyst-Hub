@@ -288,14 +288,23 @@ export default function BlogPost() {
         />
       </div>
       <PageMeta
-        title={`${post.title} | FintechPressHub`}
-        description={post.excerpt ?? undefined}
+        title={
+          post.seoTitle?.trim()
+            ? `${post.seoTitle.trim()} | FintechPressHub`
+            : `${post.title} | FintechPressHub`
+        }
+        description={
+          (post.seoDescription?.trim() || post.excerpt) ?? undefined
+        }
         article={{
-          title: post.title,
-          description: post.excerpt ?? undefined,
-          image: `${SITE_URL}/api/og?title=${encodeURIComponent(
-            post.title,
-          )}&category=${encodeURIComponent(post.category ?? "Insights")}`,
+          title: post.seoTitle?.trim() || post.title,
+          description:
+            (post.seoDescription?.trim() || post.excerpt) ?? undefined,
+          image:
+            post.seoOgImage?.trim() ||
+            `${SITE_URL}/api/og?title=${encodeURIComponent(
+              post.title,
+            )}&category=${encodeURIComponent(post.category ?? "Insights")}`,
           datePublished: post.date,
           // Only emit `dateModified` when the post was actually edited after
           // publish. If we always emit it, Google's BlogPosting validator

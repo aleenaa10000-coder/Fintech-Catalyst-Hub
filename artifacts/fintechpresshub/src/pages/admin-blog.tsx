@@ -5,9 +5,14 @@ import {
   usePublishBlogPost,
   useUpdateBlogPost,
   useDeleteBlogPost,
+  useRepingBlogPostIndexNow,
+  useGetSitemapHealth,
+  useRunSitemapHealth,
   getListBlogPostsQueryKey,
+  getGetSitemapHealthQueryKey,
   type BlogPost,
   type SeoNotification,
+  type SitemapHealthReport,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -28,6 +33,10 @@ import {
   X,
   Save,
   Upload,
+  RefreshCw,
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -223,6 +232,53 @@ function SeoStatusBadge({
   );
 }
 
+/**
+ * Per-row "Re-ping IndexNow" button. Mirrors the publish notification
+ * flow without changing any post fields, so admins can resubmit a stale
+ * post (or one that missed its original ping due to missing
+ * INDEXNOW_KEY) in one click. On success, invalidates the posts list so
+ * the SeoStatusBadge refreshes.
+ */
+function RepingButton({ post }: { post: BlogPost }) {
+  const qc = useQueryClient();
+  const repingMut = useRepingBlogPostIndexNow();
+  const onClick = async () => {
+    try {
+      const updated = await repingMut.mutateAsync({ slug: post.slug });
+      const description = describeSeoNotification(updated.seoNotification);
+      if (seoNotificationIsSuccess(updated.seoNotification)) {
+        toast.success(`Re-pinged "${post.title}"`, { description });
+      } else {
+        toast.warning(`Re-ping attempted for "${post.title}"`, {
+          description,
+        });
+      }
+      qc.invalidateQueries({ queryKey: getListBlogPostsQueryKey() });
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      if (status === 404) {
+        toast.error("Post not found.");
+      } else {
+        toast.error("Could not re-ping search engines.");
+      }
+    }
+  };
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={onClick}
+      disabled={repingMut.isPending}
+      aria-label={`Re-ping IndexNow for ${post.title}`}
+      title="Re-submit this URL to IndexNow + Google"
+    >
+      <RefreshCw
+        className={`w-4 h-4 ${repingMut.isPending ? "animate-spin" : ""}`}
+      />
+    </Button>
+  );
+}
+
 async function presignAndUpload(file: {
   name: string;
   size: number;
@@ -259,6 +315,9 @@ const emptyForm = {
   coverImage: "",
   readingMinutes: "5",
   featured: false,
+  seoTitle: "",
+  seoDescription: "",
+  seoOgImage: "",
 };
 
 function slugify(input: string) {
@@ -290,6 +349,9 @@ function PostEditor({
     coverImage: post.coverImage,
     readingMinutes: String(post.readingMinutes),
     featured: post.featured,
+    seoTitle: post.seoTitle ?? "",
+    seoDescription: post.seoDescription ?? "",
+    seoOgImage: post.seoOgImage ?? "",
   });
   const updateMut = useUpdateBlogPost();
 
@@ -317,6 +379,9 @@ function PostEditor({
           coverImage: draft.coverImage.trim(),
           readingMinutes,
           featured: draft.featured,
+          seoTitle: draft.seoTitle.trim() || null,
+          seoDescription: draft.seoDescription.trim() || null,
+          seoOgImage: draft.seoOgImage.trim() || null,
         },
       });
       const description = describeSeoNotification(updated.seoNotification);
@@ -505,6 +570,66 @@ function PostEditor({
           Feature on the homepage
         </Label>
       </div>
+
+      {/* SEO overrides — leave blank to use the post title/excerpt/cover.
+          Filled values take precedence in <title>, meta description,
+          and Open Graph / Twitter image tags. */}
+      <details className="border rounded-md p-3">
+        <summary className="cursor-pointer text-sm font-medium select-none">
+          SEO overrides (optional)
+        </summary>
+        <div className="space-y-4 mt-3">
+          <div>
+            <Label htmlFor={`seoTitle-${post.id}`}>SEO title</Label>
+            <Input
+              id={`seoTitle-${post.id}`}
+              value={draft.seoTitle}
+              maxLength={70}
+              placeholder={`Defaults to: ${post.title}`}
+              onChange={(e) =>
+                setDraft({ ...draft, seoTitle: e.target.value })
+              }
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Recommended ≤ 60 chars. Used in browser tab + Google SERP.
+            </p>
+          </div>
+          <div>
+            <Label htmlFor={`seoDescription-${post.id}`}>
+              SEO description
+            </Label>
+            <Textarea
+              id={`seoDescription-${post.id}`}
+              rows={2}
+              maxLength={300}
+              value={draft.seoDescription}
+              placeholder={`Defaults to the excerpt: ${post.excerpt.slice(0, 80)}…`}
+              onChange={(e) =>
+                setDraft({ ...draft, seoDescription: e.target.value })
+              }
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Recommended ≤ 160 chars. Shown as the snippet in Google.
+            </p>
+          </div>
+          <div>
+            <Label htmlFor={`seoOgImage-${post.id}`}>OG / social image</Label>
+            <Input
+              id={`seoOgImage-${post.id}`}
+              type="url"
+              value={draft.seoOgImage}
+              placeholder="Defaults to the cover image"
+              onChange={(e) =>
+                setDraft({ ...draft, seoOgImage: e.target.value })
+              }
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              1200×630 PNG/JPG works best for LinkedIn, X, Slack & Facebook.
+            </p>
+          </div>
+        </div>
+      </details>
+
       <div className="flex gap-2">
         <Button
           type="submit"
@@ -519,6 +644,164 @@ function PostEditor({
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Inline panel showing the latest sitemap link-check report. The daily
+ * cron job runs in the background and emails admins on regressions, but
+ * this panel lets an admin trigger an on-demand recheck and see all
+ * currently-broken or recently-recovered URLs without leaving the
+ * dashboard.
+ */
+function SitemapHealthPanel() {
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useGetSitemapHealth();
+  const runMut = useRunSitemapHealth();
+
+  const runNow = async () => {
+    try {
+      const fresh = await runMut.mutateAsync();
+      qc.setQueryData(getGetSitemapHealthQueryKey(), fresh);
+      const broken = fresh.brokenCount;
+      const description = `Checked ${fresh.total} URL${fresh.total === 1 ? "" : "s"}.`;
+      if (broken === 0) {
+        toast.success("Sitemap is healthy", { description });
+      } else {
+        toast.warning(`${broken} broken URL${broken === 1 ? "" : "s"}`, {
+          description,
+        });
+      }
+    } catch {
+      toast.error("Could not run sitemap health check.");
+    }
+  };
+
+  return (
+    <Card className="mb-10">
+      <CardContent className="pt-6">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Activity className="w-5 h-5" /> Sitemap health
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Daily background job verifies every URL in{" "}
+              <code className="px-1 py-0.5 rounded bg-muted text-foreground">
+                /sitemap.xml
+              </code>
+              . Admins receive an email whenever new 4xx/5xx links appear.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={runNow}
+            disabled={runMut.isPending}
+          >
+            <RefreshCw
+              className={`w-4 h-4 mr-1.5 ${runMut.isPending ? "animate-spin" : ""}`}
+            />
+            {runMut.isPending ? "Checking…" : "Run check now"}
+          </Button>
+        </div>
+
+        {error ? (
+          <p className="text-sm text-destructive">
+            Could not load sitemap health report.
+          </p>
+        ) : isLoading || !data ? (
+          <p className="text-sm text-muted-foreground">Loading report…</p>
+        ) : (
+          <SitemapHealthBody report={data} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SitemapHealthBody({ report }: { report: SitemapHealthReport }) {
+  const broken = report.results.filter((r) => r.isBroken);
+  const lastRun = report.generatedAt
+    ? new Date(report.generatedAt as unknown as string).toLocaleString()
+    : "never";
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+        <Stat label="Last run" value={lastRun} />
+        <Stat label="URLs checked" value={String(report.total)} />
+        <Stat
+          label="Broken"
+          value={String(report.brokenCount)}
+          tone={report.brokenCount > 0 ? "bad" : "good"}
+        />
+      </div>
+      {broken.length === 0 ? (
+        <div className="flex items-center gap-2 text-sm text-green-700">
+          <CheckCircle2 className="w-4 h-4" />
+          All URLs in the sitemap are returning 2xx/3xx.
+        </div>
+      ) : (
+        <div>
+          <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600" /> Broken URLs
+          </h3>
+          <div className="border rounded-md divide-y">
+            {broken.map((row) => (
+              <div
+                key={row.url}
+                className="px-3 py-2 text-xs grid grid-cols-[1fr_auto_auto] gap-3 items-center"
+              >
+                <a
+                  href={row.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="truncate text-[#0052FF] hover:underline"
+                  title={row.url}
+                >
+                  {row.url}
+                </a>
+                <span className="font-mono text-amber-700">
+                  {row.lastStatusCode ?? row.lastError ?? "—"}
+                </span>
+                <span className="text-muted-foreground whitespace-nowrap">
+                  {row.lastCheckedAt
+                    ? formatRelativeTime(
+                        row.lastCheckedAt as unknown as string,
+                      )
+                    : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "good" | "bad";
+}) {
+  const valueColor =
+    tone === "bad"
+      ? "text-amber-700"
+      : tone === "good"
+        ? "text-green-700"
+        : "text-foreground";
+  return (
+    <div className="rounded-md border px-3 py-2">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className={`text-sm font-medium ${valueColor}`}>{value}</div>
+    </div>
   );
 }
 
@@ -612,6 +895,9 @@ export default function AdminBlog() {
           coverImage: form.coverImage.trim(),
           readingMinutes,
           featured: form.featured,
+          seoTitle: form.seoTitle.trim() || null,
+          seoDescription: form.seoDescription.trim() || null,
+          seoOgImage: form.seoOgImage.trim() || null,
         },
       });
       const description = describeSeoNotification(post.seoNotification);
@@ -975,6 +1261,67 @@ export default function AdminBlog() {
                   Feature on the homepage
                 </Label>
               </div>
+
+              <details className="border rounded-md p-3">
+                <summary className="cursor-pointer text-sm font-medium select-none">
+                  SEO overrides (optional)
+                </summary>
+                <div className="space-y-4 mt-3">
+                  <div>
+                    <Label htmlFor="seoTitle">SEO title</Label>
+                    <Input
+                      id="seoTitle"
+                      maxLength={70}
+                      placeholder="Defaults to the post title"
+                      value={form.seoTitle}
+                      onChange={(e) =>
+                        setForm({ ...form, seoTitle: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Recommended ≤ 60 chars. Used in browser tab + Google
+                      SERP.
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="seoDescription">SEO description</Label>
+                    <Textarea
+                      id="seoDescription"
+                      rows={2}
+                      maxLength={300}
+                      placeholder="Defaults to the excerpt"
+                      value={form.seoDescription}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          seoDescription: e.target.value,
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Recommended ≤ 160 chars. Shown as the snippet in
+                      Google.
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="seoOgImage">OG / social image</Label>
+                    <Input
+                      id="seoOgImage"
+                      type="url"
+                      placeholder="Defaults to the cover image"
+                      value={form.seoOgImage}
+                      onChange={(e) =>
+                        setForm({ ...form, seoOgImage: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      1200×630 PNG/JPG works best for LinkedIn, X, Slack &
+                      Facebook.
+                    </p>
+                  </div>
+                </div>
+              </details>
+
               <Button
                 type="submit"
                 disabled={publishMut.isPending}
@@ -987,6 +1334,8 @@ export default function AdminBlog() {
             </form>
           </CardContent>
         </Card>
+
+        <SitemapHealthPanel />
 
         <h2 className="text-xl font-bold mb-4">Recent posts</h2>
         {isLoading ? (
@@ -1031,6 +1380,7 @@ export default function AdminBlog() {
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         </Button>
+                        <RepingButton post={p} />
                         <Button
                           variant="ghost"
                           size="icon"

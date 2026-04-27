@@ -32,6 +32,14 @@ export const blogPostsTable = pgTable("blog_posts", {
   // "Most read" sort option on the blog index. Defaults to 0 for both
   // existing rows (DB default) and newly inserted rows (insert default).
   viewCount: integer("view_count").notNull().default(0),
+  // Per-post SEO meta overrides — when set, these win over the auto-derived
+  // title/description/OG image. Used by the admin to hand-tune how each post
+  // appears in Google SERPs, LinkedIn cards, and X cards. All three are
+  // independently overridable; null = "use the default derived from title/
+  // excerpt/coverImage".
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  seoOgImage: text("seo_og_image"),
 });
 
 export type BlogPostRow = typeof blogPostsTable.$inferSelect;

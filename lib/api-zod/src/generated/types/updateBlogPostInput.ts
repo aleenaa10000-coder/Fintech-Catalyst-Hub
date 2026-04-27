@@ -27,4 +27,13 @@ export interface UpdateBlogPostInput {
   /** @minimum 1 */
   readingMinutes?: number;
   featured?: boolean;
+  /** Override the `<title>` tag for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `title`.
+   */
+  seoTitle?: string | null;
+  /** Override `<meta name="description">` for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `excerpt`.
+   */
+  seoDescription?: string | null;
+  /** Override `og:image` / `twitter:image` for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `coverImage`.
+   */
+  seoOgImage?: string | null;
 }

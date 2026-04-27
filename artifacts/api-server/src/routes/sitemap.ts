@@ -43,7 +43,27 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-async function buildSitemapXml(): Promise<string> {
+/**
+ * Tag describing where a sitemap URL came from. Used by the link-checker
+ * so the admin dashboard can group results ("3 broken blog posts, 1 broken
+ * author RSS feed") without re-parsing the URL.
+ */
+export type SitemapEntrySource = "static" | "blog" | "author" | "rss";
+
+export interface SitemapEntry {
+  loc: string;
+  lastmod: string;
+  changefreq: string;
+  priority: string;
+  source: SitemapEntrySource;
+}
+
+/**
+ * Build the canonical list of URLs that belong in the sitemap. Shared
+ * between the XML renderer below and the link-checker job so the two
+ * never drift — adding a new static route or author updates both.
+ */
+export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
   const siteUrl = getSiteUrl();
   const today = new Date().toISOString().slice(0, 10);
 
@@ -55,7 +75,7 @@ async function buildSitemapXml(): Promise<string> {
     .from(blogPostsTable)
     .orderBy(desc(blogPostsTable.publishedAt));
 
-  const entries = [
+  return [
     ...STATIC_ROUTES.map((r) => ({
       // Always include the path, including the root "/", so the homepage
       // <loc> matches the canonical URL emitted in index.html and avoids
@@ -64,18 +84,21 @@ async function buildSitemapXml(): Promise<string> {
       lastmod: r.lastmod ?? today,
       changefreq: r.changefreq,
       priority: r.priority,
+      source: "static" as const,
     })),
     ...posts.map((p) => ({
       loc: `${siteUrl}/blog/${p.slug}`,
       lastmod: p.publishedAt.toISOString().slice(0, 10),
       changefreq: "monthly",
       priority: "0.7",
+      source: "blog" as const,
     })),
     ...AUTHOR_SLUGS.map((slug) => ({
       loc: `${siteUrl}/authors/${slug}`,
       lastmod: today,
       changefreq: "monthly",
       priority: "0.6",
+      source: "author" as const,
     })),
     // Per-author RSS feeds — listed so search engines and feed-discovery
     // crawlers can find them without parsing the HTML autodiscovery link.
@@ -84,8 +107,13 @@ async function buildSitemapXml(): Promise<string> {
       lastmod: today,
       changefreq: "daily",
       priority: "0.4",
+      source: "rss" as const,
     })),
   ];
+}
+
+async function buildSitemapXml(): Promise<string> {
+  const entries = await buildSitemapEntries();
 
   const body = entries
     .map(

@@ -39,6 +39,16 @@ export type PublicPost = {
    * posts have no view tracking and fall back to 0 in the "Most read" sort).
    */
   viewCount?: number;
+  /**
+   * Optional per-post SEO overrides set in the admin dashboard. When
+   * present these take precedence over the auto-derived defaults
+   * (title, excerpt, cover image) inside `<PageMeta>`. Static seed
+   * posts in `posts.js` never set these — they rely entirely on the
+   * defaults — so they're only ever populated from the API source.
+   */
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  seoOgImage?: string | null;
 };
 
 type StaticPost = PublicPost;
@@ -70,6 +80,9 @@ function fromApi(post: ApiBlogPost): PublicPost {
     tags: post.tags,
     featured: post.featured,
     viewCount: post.viewCount,
+    seoTitle: post.seoTitle ?? null,
+    seoDescription: post.seoDescription ?? null,
+    seoOgImage: post.seoOgImage ?? null,
   };
 }
 
