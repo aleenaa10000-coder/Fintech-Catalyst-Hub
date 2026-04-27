@@ -50,4 +50,4 @@ channel = "stable-25_05"
 
 [userenv.shared]
 REPORT_FROM_EMAIL = "FintechPressHub <onboarding@resend.dev>"
-ADMIN_EMAILS = "hello@fintechpresshub.com"
+ADMIN_EMAILS = "hello@fintechpresshub.com,jasmine.offpageseospecialist@hotmail.com"
