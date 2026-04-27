@@ -150,6 +150,138 @@ export const authors: Author[] = [
       twitter: "https://twitter.com/sarahchenfintech",
     },
   },
+  {
+    slug: "daniel-reyes",
+    name: "Daniel Reyes",
+    role: "Embedded Finance & Open Banking Lead",
+    photo: "/author-photos/daniel-reyes.png",
+    shortBio:
+      "Former product lead turned editor covering the BaaS, open-banking, and embedded-finance stack that powers every modern fintech go-to-market.",
+    fullBio: [
+      "Daniel covers embedded finance, Banking-as-a-Service, and open-banking infrastructure for FintechPressHub. Before joining the editorial team he spent six years as a product lead at a US-based BaaS provider, where he shipped the partner APIs that now sit underneath several Series B and C consumer fintechs.",
+      "His writing focuses on the unglamorous middle layer of modern finance — sponsor-bank relationships, ledger architecture, KYC orchestration, BIN sponsorship economics — translated into briefs that growth and SEO teams can actually use to plan content. He's particularly known for his teardowns of public pricing pages from Unit, Treasury Prime, Synctera, and Galileo.",
+      "Daniel mentors product managers transitioning into fintech through On Deck and writes a monthly newsletter on the regulatory perimeter shifts that move the BaaS market.",
+    ],
+    expertise: [
+      "Banking-as-a-Service product strategy",
+      "Open banking and PSD2/PSD3 readiness",
+      "Sponsor-bank and BIN-sponsor economics",
+      "Embedded-finance go-to-market content",
+      "API documentation as an SEO surface",
+    ],
+    credentials: [
+      "8 years across BaaS product and editorial",
+      "Former Senior PM at a US Banking-as-a-Service platform",
+      "Mentor: On Deck Fintech",
+      "Speaker: Money 20/20, Finovate, Fintech Meetup",
+      "Author of the FintechPressHub BaaS Pricing Index",
+    ],
+    yearsExperience: 8,
+    location: "San Francisco, CA",
+    social: {
+      linkedin: "https://www.linkedin.com/in/danielreyesfintech",
+      twitter: "https://twitter.com/danielreyesbaas",
+    },
+  },
+  {
+    slug: "aisha-mensah",
+    name: "Aisha Mensah",
+    role: "Compliance & Regtech Editor",
+    photo: "/author-photos/aisha-mensah.png",
+    shortBio:
+      "Lawyer-turned-content-strategist who makes KYC, AML, and regulatory marketing actually rank — without losing the legal nuance compliance teams demand.",
+    fullBio: [
+      "Aisha leads coverage of compliance, regtech, and regulatory marketing at FintechPressHub. She trained as a financial-services lawyer in Toronto and spent four years at a global law firm advising challenger banks, money-services businesses, and crypto-asset platforms before pivoting into content strategy for the regtech vendors she used to brief.",
+      "She specializes in the editorial problem most fintech marketing teams quietly fail at: producing content on KYC, AML, sanctions screening, and consumer-protection rules that satisfies both Google and a real compliance officer's red-pen review. Her review framework is now used by content leads at three publicly traded regtech vendors.",
+      "Aisha sits on the editorial board of a Canadian fintech association and runs a private Slack community for compliance marketers across the EU, UK, US, and Canada.",
+    ],
+    expertise: [
+      "KYC, AML, and sanctions-screening content",
+      "Compliance-officer-safe marketing copy",
+      "Regtech vendor positioning and SEO",
+      "Cross-jurisdictional regulatory explainers",
+      "Consumer-protection and disclosure compliance",
+    ],
+    credentials: [
+      "JD, Osgoode Hall Law School (Canada)",
+      "4 years as a financial-services regulatory lawyer",
+      "Member, Canadian Lenders Association",
+      "Quoted in: American Banker, Finextra, Law360",
+      "Built compliance review workflows for 3 public regtech vendors",
+    ],
+    yearsExperience: 7,
+    location: "Toronto, Canada",
+    social: {
+      linkedin: "https://www.linkedin.com/in/aishamensahcompliance",
+      twitter: "https://twitter.com/aishamensahreg",
+    },
+  },
+  {
+    slug: "tomas-lindqvist",
+    name: "Tomas Lindqvist",
+    role: "BNPL & Consumer Lending Analyst",
+    photo: "/author-photos/tomas-lindqvist.png",
+    shortBio:
+      "Former credit-risk analyst writing about BNPL, point-of-sale lending, and the unit economics that decide which consumer-credit brands survive a cycle.",
+    fullBio: [
+      "Tomas covers BNPL, point-of-sale lending, and consumer credit for FintechPressHub. He spent the first decade of his career as a credit-risk analyst inside a Nordic challenger bank and then at the European arm of a global BNPL provider, where he owned underwriting models for the merchant categories that drive most of the sector's loss volatility.",
+      "His writing strips the marketing language out of consumer-credit narratives and replaces it with the metrics that actually matter — vintage curves, charge-off rates by cohort, take-rate compression, merchant-fee economics, funding-cost sensitivity. His quarterly BNPL benchmark report is read inside risk teams at three of the largest US and European BNPL platforms.",
+      "Tomas holds a MSc in Quantitative Finance from the Stockholm School of Economics and continues to advise two early-stage consumer-lending startups on credit-risk infrastructure.",
+    ],
+    expertise: [
+      "BNPL underwriting and vintage analysis",
+      "Consumer-lending unit economics",
+      "Merchant-fee and take-rate modeling",
+      "Credit-risk infrastructure for early-stage lenders",
+      "Funding-stack and warehouse-line content",
+    ],
+    credentials: [
+      "MSc Quantitative Finance, Stockholm School of Economics",
+      "10 years in credit risk and underwriting",
+      "Former Senior Risk Analyst at a European BNPL provider",
+      "Author of the FintechPressHub BNPL Benchmark Report",
+      "Advisor: 2 early-stage consumer-lending startups",
+    ],
+    yearsExperience: 10,
+    location: "Stockholm, Sweden",
+    social: {
+      linkedin: "https://www.linkedin.com/in/tomaslindqvistcredit",
+      twitter: "https://twitter.com/tomaslindqvistx",
+    },
+  },
+  {
+    slug: "mei-tanaka",
+    name: "Mei Tanaka",
+    role: "Crypto & Stablecoins Correspondent",
+    photo: "/author-photos/mei-tanaka.png",
+    shortBio:
+      "On-chain finance reporter covering stablecoins, tokenized treasuries, and the regulatory perimeter where crypto rails meet the traditional banking stack.",
+    fullBio: [
+      "Mei covers stablecoins, tokenized real-world assets, and the regulated edge of crypto for FintechPressHub. Before joining the editorial team she was a markets reporter at a Tokyo-based digital-asset publication and, before that, an analyst on the digital-assets desk of a top-three Japanese bank — which is where she developed the bilingual coverage style that lets her work across US, EU, and Asian regulatory regimes.",
+      "She writes the kind of stablecoin and tokenization explainers that compliance-conscious fintech operators can actually share internally: source-cited, primary-document-led, and free of the price-action chatter that dominates most crypto coverage. Her stablecoin reserve-composition tracker is referenced by treasurers at three publicly listed payments companies.",
+      "Mei holds a CFA Level III pass and is a contributing reporter at two regional fintech publications across APAC. Her quarterly tokenization briefing reaches 14,000+ subscribers across treasury, payments, and asset-management teams.",
+    ],
+    expertise: [
+      "Stablecoin reserve and issuance analysis",
+      "Tokenized treasuries and real-world assets",
+      "Cross-jurisdictional crypto regulation (US, EU, JP)",
+      "On-chain payments infrastructure",
+      "Compliance-grade crypto explainers",
+    ],
+    credentials: [
+      "CFA Level III pass",
+      "7 years across digital-asset markets reporting and analysis",
+      "Former analyst, digital-assets desk, top-3 Japanese bank",
+      "Contributor: CoinDesk Japan, Sifted Asia",
+      "14,000+ subscribers to the FintechPressHub Tokenization Brief",
+    ],
+    yearsExperience: 7,
+    location: "Tokyo, Japan",
+    social: {
+      linkedin: "https://www.linkedin.com/in/meitanakacrypto",
+      twitter: "https://twitter.com/meitanakaonchain",
+    },
+  },
 ];
 
 export function authorSlugFromName(name: string): string {
