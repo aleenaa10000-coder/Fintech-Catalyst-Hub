@@ -1,8 +1,8 @@
 import { PageMeta } from "@/components/PageMeta";
 import { useSubscribeToNewsletter } from "@workspace/api-client-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -72,12 +72,51 @@ export default function Blog() {
       });
   }, [allPosts]);
 
+  // Initial filter state can come from the URL — e.g. tag chips on a blog
+  // post link here as `/blog?tag=<name>`. We read the query string with
+  // wouter's `useSearch` so it stays reactive across in-app navigations
+  // (Link clicks) without needing a full page reload.
+  const search = useSearch();
+  const initialTag = useMemo(() => {
+    const raw = new URLSearchParams(search).get("tag")?.trim();
+    return raw ? raw : undefined;
+  }, [search]);
+
   const [activeCategory, setActiveCategory] = useState<string | undefined>(
     undefined,
   );
-  const [activeTag, setActiveTag] = useState<string | undefined>(undefined);
+  const [activeTag, setActiveTag] = useState<string | undefined>(initialTag);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAllTags, setShowAllTags] = useState(false);
+
+  // Keep state in sync if the URL param changes after mount (e.g. user
+  // clicks a different tag link from another page or hits back/forward).
+  const lastSyncedTag = useRef<string | undefined>(initialTag);
+  useEffect(() => {
+    if (initialTag !== lastSyncedTag.current) {
+      lastSyncedTag.current = initialTag;
+      setActiveTag(initialTag);
+    }
+  }, [initialTag]);
+
+  // Mirror activeTag back to the URL so the filtered view is shareable and
+  // survives a refresh. Use replaceState so we don't pollute the history
+  // stack as users toggle chips.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const current = params.get("tag") ?? undefined;
+    if (current === activeTag) return;
+    if (activeTag) {
+      params.set("tag", activeTag);
+    } else {
+      params.delete("tag");
+    }
+    const qs = params.toString();
+    const next = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`;
+    window.history.replaceState(window.history.state, "", next);
+    lastSyncedTag.current = activeTag;
+  }, [activeTag]);
 
   // Distinct tags across the merged feed, with usage counts. Sorted by count
   // desc then alphabetically so the most-used tags surface first.
