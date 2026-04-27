@@ -314,19 +314,15 @@ export default function BlogPost() {
         </button>
       </aside>
 
-      {/* Hero */}
-      <header className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/40 border-b border-slate-200">
-        <div
-          className="absolute inset-0 opacity-[0.04] pointer-events-none"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, #0052FF 1px, transparent 0)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-        <div className="relative container mx-auto px-4 max-w-4xl pt-20 pb-16">
-          {/* Breadcrumbs */}
-          <div className="flex items-center justify-between gap-4 mb-10">
+      {/* Hero — Stripe-style title-first layout.
+          Two-column on lg+: a narrow author/meta sidebar on the left and a
+          wide title column on the right. On mobile the columns stack so the
+          author block sits above the title. The cover image follows below
+          as a "featured visual" instead of overlapping the hero. */}
+      <header className="relative bg-white border-b border-slate-200">
+        <div className="relative container mx-auto px-4 max-w-6xl pt-12 lg:pt-16 pb-10 lg:pb-14">
+          {/* Top breadcrumb row */}
+          <div className="flex items-center justify-between gap-4 mb-10 lg:mb-14">
             <nav
               aria-label="Breadcrumb"
               className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0"
@@ -360,75 +356,101 @@ export default function BlogPost() {
             )}
           </div>
 
-          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider mb-6">
-            {post.category}
-          </span>
+          {/* Title hero grid: narrow meta column + wide title column */}
+          <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-8 lg:gap-14 items-start">
+            {/* LEFT: author chip stacked above date / read time / word count */}
+            <aside className="lg:pt-3" aria-label="Article details">
+              <Link
+                href={`/authors/${authorSlugFromName(post.author)}`}
+                className="flex items-center gap-3 group"
+                data-testid={`link-author-${authorSlugFromName(post.author)}`}
+              >
+                {(() => {
+                  const ap = getAuthorByName(post.author);
+                  return (
+                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-[#0052FF] text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
+                      {ap?.photo ? (
+                        <img
+                          src={ap.photo}
+                          alt={`${post.author} headshot`}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        authorInitials(post.author)
+                      )}
+                    </div>
+                  );
+                })()}
+                <div className="flex flex-col leading-tight min-w-0">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                    Written by
+                  </span>
+                  <span className="text-sm font-semibold text-slate-900 group-hover:text-[#0052FF] transition-colors truncate">
+                    {post.author}
+                  </span>
+                  <span className="text-xs text-slate-500 truncate">
+                    {post.authorRole}
+                  </span>
+                </div>
+              </Link>
 
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 leading-tight tracking-tight text-slate-900">
-            {post.title}
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mb-10 leading-relaxed">
-            {post.excerpt}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <Link
-              href={`/authors/${authorSlugFromName(post.author)}`}
-              className="flex items-center gap-3 group"
-              data-testid={`link-author-${authorSlugFromName(post.author)}`}
-            >
-              {(() => {
-                const ap = getAuthorByName(post.author);
-                return (
-                  <div className="relative w-11 h-11 rounded-full overflow-hidden bg-[#0052FF] text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
-                    {ap?.photo ? (
-                      <img
-                        src={ap.photo}
-                        alt={`${post.author} headshot`}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    ) : (
-                      authorInitials(post.author)
-                    )}
+              <dl className="mt-6 pt-6 border-t border-slate-200 space-y-3 text-sm">
+                <div className="flex items-center gap-2 text-slate-500">
+                  <Calendar
+                    className="w-4 h-4 text-slate-400 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <dt className="sr-only">Published</dt>
+                  <dd className="text-slate-700">{formatDate(post.date)}</dd>
+                </div>
+                <div className="flex items-center gap-2 text-slate-500">
+                  <Clock
+                    className="w-4 h-4 text-slate-400 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <dt className="sr-only">Reading time</dt>
+                  <dd className="text-slate-700">
+                    {readingMinutes > 0
+                      ? `${readingMinutes} min read`
+                      : post.readTime}
+                  </dd>
+                </div>
+                {wordCount > 0 ? (
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <BookOpen
+                      className="w-4 h-4 text-slate-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <dt className="sr-only">Word count</dt>
+                    <dd className="text-slate-700">
+                      {wordCount.toLocaleString()} words
+                    </dd>
                   </div>
-                );
-              })()}
-              <div className="flex flex-col leading-tight">
-                <span className="text-sm font-semibold text-slate-900 group-hover:text-[#0052FF] transition-colors">
-                  {post.author}
-                </span>
-                <span className="text-xs text-slate-500">
-                  {post.authorRole}
-                </span>
-              </div>
-            </Link>
-            <span className="hidden sm:block w-px h-8 bg-slate-200" />
-            <div className="flex items-center gap-5 text-sm text-slate-500">
-              <span className="inline-flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-slate-400" />
-                <span>{formatDate(post.date)}</span>
+                ) : null}
+              </dl>
+            </aside>
+
+            {/* RIGHT: category badge → big bold title → excerpt */}
+            <div className="min-w-0">
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider mb-5">
+                {post.category}
               </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-slate-400" />
-                <span>
-                  {readingMinutes > 0 ? `${readingMinutes} min read` : post.readTime}
-                </span>
-              </span>
-              {wordCount > 0 ? (
-                <span
-                  className="hidden sm:inline-flex items-center gap-1.5"
-                  aria-label={`${wordCount.toLocaleString()} words`}
-                >
-                  <BookOpen className="w-4 h-4 text-slate-400" />
-                  <span>{wordCount.toLocaleString()} words</span>
-                </span>
-              ) : null}
+
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold leading-[1.05] tracking-tight text-slate-900 mb-6">
+                {post.title}
+              </h1>
+              <p className="text-lg sm:text-xl text-slate-600 max-w-3xl leading-relaxed">
+                {post.excerpt}
+              </p>
             </div>
           </div>
 
-          {/* Horizontal share bar (below xl) */}
+          {/* Horizontal share bar (below xl — the floating vertical bar
+              handles xl+ during scroll). Kept at the bottom of the hero so
+              first impressions encourage sharing without crowding the meta
+              sidebar on smaller screens. */}
           <div
-            className="flex xl:hidden items-center gap-2 mt-8 pt-6 border-t border-slate-200/70"
+            className="flex xl:hidden items-center gap-2 mt-10 pt-6 border-t border-slate-200/70"
             aria-label="Share this article"
           >
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mr-2">
@@ -467,12 +489,12 @@ export default function BlogPost() {
         </div>
       </header>
 
-      {/* Cover image overflowing into content.
+      {/* Cover image — featured visual right under the title hero.
           - Explicit width/height locks the aspect ratio and prevents CLS.
           - fetchPriority="high" + eager loading boosts LCP (this is the
             largest above-the-fold element on the page).
           - Richer alt text combines title + category for descriptive SEO. */}
-      <div className="container mx-auto px-4 max-w-4xl -mt-8 md:-mt-12 mb-12 relative z-10">
+      <div className="container mx-auto px-4 max-w-6xl mt-10 lg:mt-12 mb-12">
         <figure className="aspect-[2/1] w-full overflow-hidden rounded-2xl shadow-xl border border-slate-100 bg-slate-100">
           <img
             src={post.image}
