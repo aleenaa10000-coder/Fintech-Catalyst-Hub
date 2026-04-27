@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   PAGE_META,
   HOME_FAQS,
@@ -275,7 +275,13 @@ function itemListSchema({ name, items }) {
 
 // ---------- HTML injection ----------
 
-function shellInject(html, meta) {
+// Exported for the build-time prerender script (scripts/prerender.mjs) so it
+// can reuse the exact same meta-injection logic the dev plugin uses.
+export function shellInject(html, meta) {
+  return _shellInject(html, meta);
+}
+
+function _shellInject(html, meta) {
   const {
     title,
     description,
@@ -430,25 +436,61 @@ async function loadServices() {
   }
 }
 
+// Path to the bundled static seed posts. We use these as a fallback whenever
+// the API is unreachable (e.g. during `vite build` in CI, where no API server
+// is running). The static seed shape matches the API shape on every field
+// `articleSchema` and `buildMeta` look at — slug, title, excerpt, category,
+// date, author, authorRole, tags, content — so they're drop-in interchangeable.
+const STATIC_POSTS_PATH = path.resolve(
+  __pluginDir,
+  "../src/data/posts.js",
+);
+
+async function loadStaticPosts() {
+  try {
+    const mod = await import(pathToFileURL(STATIC_POSTS_PATH).href);
+    const items = mod.default ?? mod.posts ?? [];
+    return Array.isArray(items) ? items : [];
+  } catch (err) {
+    console.error("[bot-og-plugin] failed to load static posts.js:", err);
+    return [];
+  }
+}
+
 async function loadPosts(apiBase) {
   const now = Date.now();
   if (dataCache.posts && now - dataCache.postsAt < TTL_MS) {
     return dataCache.posts;
   }
+  let items = [];
   try {
     const res = await fetch(`${apiBase}/api/blog/posts`, {
       headers: { accept: "application/json" },
     });
     if (!res.ok) throw new Error(`status ${res.status}`);
     const json = await res.json();
-    const items = Array.isArray(json) ? json : json?.items ?? [];
-    dataCache.posts = items;
-    dataCache.postsAt = now;
-    return items;
+    items = Array.isArray(json) ? json : json?.items ?? [];
   } catch (err) {
-    console.error("[bot-og-plugin] failed to load posts:", err);
-    return [];
+    // Soft-fail: this is expected at build time when the API isn't running.
+    // We log at info level (not error) so build output stays clean.
+    console.warn(
+      `[bot-og-plugin] API posts unavailable (${err?.message ?? err}); falling back to static posts.js`,
+    );
   }
+
+  // Merge: API posts overlay static seed posts on slug collision (mirrors the
+  // runtime behaviour of `usePublicPosts` so prerender output matches what
+  // users would see in the SPA).
+  const staticPosts = await loadStaticPosts();
+  const apiSlugs = new Set(items.map((p) => p.slug).filter(Boolean));
+  const merged = [
+    ...items,
+    ...staticPosts.filter((p) => !apiSlugs.has(p.slug)),
+  ];
+
+  dataCache.posts = merged;
+  dataCache.postsAt = now;
+  return merged;
 }
 
 // ---------- per-route renderers ----------
@@ -460,7 +502,23 @@ function ogImageForBlog(siteUrl, post) {
   )}&category=${encodeURIComponent(category)}`;
 }
 
-async function buildMeta(pathname, siteUrl, apiBase) {
+// Exported for the build-time prerender script. Returns the same meta
+// payload the dev/preview crawler middleware uses.
+export async function buildMeta(pathname, siteUrl, apiBase) {
+  return _buildMeta(pathname, siteUrl, apiBase);
+}
+
+// Exported so prerender.mjs can enumerate every blog post slug at build time.
+export async function getAllPosts(apiBase) {
+  return loadPosts(apiBase);
+}
+
+// Exported so prerender.mjs can enumerate every service slug at build time.
+export async function getAllServices() {
+  return loadServices();
+}
+
+async function _buildMeta(pathname, siteUrl, apiBase) {
   // Always include the path. For the root ("/") we keep the trailing slash so
   // the canonical here matches what index.html and the sitemap emit.
   const url = (suffix = "") => {
