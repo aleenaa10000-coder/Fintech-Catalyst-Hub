@@ -854,29 +854,6 @@ export default function WriteForUs() {
               </div>
             ))}
           </div>
-          <div className="mt-10 rounded-2xl bg-red-50 border border-red-100 p-6 text-red-900 max-w-3xl mx-auto">
-            <h3 className="font-bold mb-3 flex items-center gap-2">
-              <Shield className="w-4 h-4" /> What we do NOT accept
-            </h3>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-              <li className="flex items-center gap-2">
-                <span className="text-red-600 font-bold">×</span> Generic
-                marketing advice
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-600 font-bold">×</span> Promotional
-                press releases
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-600 font-bold">×</span> Casino, CBD or
-                payday loan links
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-600 font-bold">×</span> Plagiarised or
-                AI-spun content
-              </li>
-            </ul>
-          </div>
         </div>
       </section>
 
