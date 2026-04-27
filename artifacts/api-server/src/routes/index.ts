@@ -14,6 +14,7 @@ import adminAuthorSubscribersRouter from "./adminAuthorSubscribers";
 import pitchRouter from "./pitch";
 import ogRouter from "./og";
 import toolsRouter from "./tools";
+import commissioningTopicsRouter from "./commissioningTopics";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(adminAuthorSubscribersRouter);
 router.use(pitchRouter);
 router.use(ogRouter);
 router.use(toolsRouter);
+router.use(commissioningTopicsRouter);
 
 export default router;

@@ -25,6 +25,8 @@ import type {
   BeginBrowserLoginParams,
   BlogCategory,
   BlogPost,
+  CommissioningTopic,
+  CommissioningTopicInput,
   ContactSubmission,
   ContactSubmissionInput,
   ErrorEnvelope,
@@ -2345,3 +2347,423 @@ export function useListTestimonials<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Returns the public-facing list of guest-post angles the editorial team
+is actively commissioning right now. Sorted by priority ascending
+(lower = higher priority), then most recent first. Inactive topics are
+excluded.
+
+ * @summary List active guest-post topics currently being commissioned
+ */
+export const getListCommissioningTopicsUrl = () => {
+  return `/api/commissioning-topics`;
+};
+
+export const listCommissioningTopics = async (
+  options?: RequestInit,
+): Promise<CommissioningTopic[]> => {
+  return customFetch<CommissioningTopic[]>(getListCommissioningTopicsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCommissioningTopicsQueryKey = () => {
+  return [`/api/commissioning-topics`] as const;
+};
+
+export const getListCommissioningTopicsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCommissioningTopics>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCommissioningTopics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCommissioningTopicsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCommissioningTopics>>
+  > = ({ signal }) => listCommissioningTopics({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCommissioningTopics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCommissioningTopicsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCommissioningTopics>>
+>;
+export type ListCommissioningTopicsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List active guest-post topics currently being commissioned
+ */
+
+export function useListCommissioningTopics<
+  TData = Awaited<ReturnType<typeof listCommissioningTopics>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCommissioningTopics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCommissioningTopicsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all commissioning topics including inactive (admin)
+ */
+export const getListAdminCommissioningTopicsUrl = () => {
+  return `/api/admin/commissioning-topics`;
+};
+
+export const listAdminCommissioningTopics = async (
+  options?: RequestInit,
+): Promise<CommissioningTopic[]> => {
+  return customFetch<CommissioningTopic[]>(
+    getListAdminCommissioningTopicsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListAdminCommissioningTopicsQueryKey = () => {
+  return [`/api/admin/commissioning-topics`] as const;
+};
+
+export const getListAdminCommissioningTopicsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminCommissioningTopics>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminCommissioningTopics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAdminCommissioningTopicsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdminCommissioningTopics>>
+  > = ({ signal }) =>
+    listAdminCommissioningTopics({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminCommissioningTopics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminCommissioningTopicsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminCommissioningTopics>>
+>;
+export type ListAdminCommissioningTopicsQueryError = ErrorType<void>;
+
+/**
+ * @summary List all commissioning topics including inactive (admin)
+ */
+
+export function useListAdminCommissioningTopics<
+  TData = Awaited<ReturnType<typeof listAdminCommissioningTopics>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminCommissioningTopics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminCommissioningTopicsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new commissioning topic (admin)
+ */
+export const getCreateCommissioningTopicUrl = () => {
+  return `/api/admin/commissioning-topics`;
+};
+
+export const createCommissioningTopic = async (
+  commissioningTopicInput: CommissioningTopicInput,
+  options?: RequestInit,
+): Promise<CommissioningTopic> => {
+  return customFetch<CommissioningTopic>(getCreateCommissioningTopicUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(commissioningTopicInput),
+  });
+};
+
+export const getCreateCommissioningTopicMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCommissioningTopic>>,
+    TError,
+    { data: BodyType<CommissioningTopicInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createCommissioningTopic>>,
+  TError,
+  { data: BodyType<CommissioningTopicInput> },
+  TContext
+> => {
+  const mutationKey = ["createCommissioningTopic"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createCommissioningTopic>>,
+    { data: BodyType<CommissioningTopicInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createCommissioningTopic(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateCommissioningTopicMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createCommissioningTopic>>
+>;
+export type CreateCommissioningTopicMutationBody =
+  BodyType<CommissioningTopicInput>;
+export type CreateCommissioningTopicMutationError = ErrorType<void>;
+
+/**
+ * @summary Create a new commissioning topic (admin)
+ */
+export const useCreateCommissioningTopic = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCommissioningTopic>>,
+    TError,
+    { data: BodyType<CommissioningTopicInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createCommissioningTopic>>,
+  TError,
+  { data: BodyType<CommissioningTopicInput> },
+  TContext
+> => {
+  return useMutation(getCreateCommissioningTopicMutationOptions(options));
+};
+
+/**
+ * @summary Update a commissioning topic (admin)
+ */
+export const getUpdateCommissioningTopicUrl = (id: number) => {
+  return `/api/admin/commissioning-topics/${id}`;
+};
+
+export const updateCommissioningTopic = async (
+  id: number,
+  commissioningTopicInput: CommissioningTopicInput,
+  options?: RequestInit,
+): Promise<CommissioningTopic> => {
+  return customFetch<CommissioningTopic>(getUpdateCommissioningTopicUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(commissioningTopicInput),
+  });
+};
+
+export const getUpdateCommissioningTopicMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCommissioningTopic>>,
+    TError,
+    { id: number; data: BodyType<CommissioningTopicInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCommissioningTopic>>,
+  TError,
+  { id: number; data: BodyType<CommissioningTopicInput> },
+  TContext
+> => {
+  const mutationKey = ["updateCommissioningTopic"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCommissioningTopic>>,
+    { id: number; data: BodyType<CommissioningTopicInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateCommissioningTopic(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCommissioningTopicMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCommissioningTopic>>
+>;
+export type UpdateCommissioningTopicMutationBody =
+  BodyType<CommissioningTopicInput>;
+export type UpdateCommissioningTopicMutationError = ErrorType<void>;
+
+/**
+ * @summary Update a commissioning topic (admin)
+ */
+export const useUpdateCommissioningTopic = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCommissioningTopic>>,
+    TError,
+    { id: number; data: BodyType<CommissioningTopicInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCommissioningTopic>>,
+  TError,
+  { id: number; data: BodyType<CommissioningTopicInput> },
+  TContext
+> => {
+  return useMutation(getUpdateCommissioningTopicMutationOptions(options));
+};
+
+/**
+ * @summary Delete a commissioning topic (admin)
+ */
+export const getDeleteCommissioningTopicUrl = (id: number) => {
+  return `/api/admin/commissioning-topics/${id}`;
+};
+
+export const deleteCommissioningTopic = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteCommissioningTopicUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteCommissioningTopicMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCommissioningTopic>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteCommissioningTopic>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteCommissioningTopic"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteCommissioningTopic>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteCommissioningTopic(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteCommissioningTopicMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteCommissioningTopic>>
+>;
+
+export type DeleteCommissioningTopicMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete a commissioning topic (admin)
+ */
+export const useDeleteCommissioningTopic = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCommissioningTopic>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteCommissioningTopic>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteCommissioningTopicMutationOptions(options));
+};

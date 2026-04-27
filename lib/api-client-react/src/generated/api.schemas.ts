@@ -380,6 +380,35 @@ export interface Testimonial {
   rating: number;
 }
 
+export interface CommissioningTopic {
+  id: number;
+  title: string;
+  angle: string;
+  category: string;
+  priority: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommissioningTopicInput {
+  /**
+   * @minLength 3
+   * @maxLength 160
+   */
+  title: string;
+  /** @maxLength 600 */
+  angle?: string;
+  /** @maxLength 80 */
+  category?: string;
+  /**
+   * @minimum 0
+   * @maximum 9999
+   */
+  priority?: number;
+  isActive?: boolean;
+}
+
 /**
  * Opaque session token — `Bearer <sid>`.
  */

@@ -641,3 +641,137 @@ export const ListTestimonialsResponseItem = zod.object({
   rating: zod.number(),
 });
 export const ListTestimonialsResponse = zod.array(ListTestimonialsResponseItem);
+
+/**
+ * Returns the public-facing list of guest-post angles the editorial team
+is actively commissioning right now. Sorted by priority ascending
+(lower = higher priority), then most recent first. Inactive topics are
+excluded.
+
+ * @summary List active guest-post topics currently being commissioned
+ */
+export const ListCommissioningTopicsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  angle: zod.string(),
+  category: zod.string(),
+  priority: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListCommissioningTopicsResponse = zod.array(
+  ListCommissioningTopicsResponseItem,
+);
+
+/**
+ * @summary List all commissioning topics including inactive (admin)
+ */
+export const ListAdminCommissioningTopicsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  angle: zod.string(),
+  category: zod.string(),
+  priority: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListAdminCommissioningTopicsResponse = zod.array(
+  ListAdminCommissioningTopicsResponseItem,
+);
+
+/**
+ * @summary Create a new commissioning topic (admin)
+ */
+export const createCommissioningTopicBodyTitleMin = 3;
+export const createCommissioningTopicBodyTitleMax = 160;
+
+export const createCommissioningTopicBodyAngleMax = 600;
+
+export const createCommissioningTopicBodyCategoryMax = 80;
+
+export const createCommissioningTopicBodyPriorityMin = 0;
+export const createCommissioningTopicBodyPriorityMax = 9999;
+
+export const CreateCommissioningTopicBody = zod.object({
+  title: zod
+    .string()
+    .min(createCommissioningTopicBodyTitleMin)
+    .max(createCommissioningTopicBodyTitleMax),
+  angle: zod.string().max(createCommissioningTopicBodyAngleMax).optional(),
+  category: zod
+    .string()
+    .max(createCommissioningTopicBodyCategoryMax)
+    .optional(),
+  priority: zod
+    .number()
+    .min(createCommissioningTopicBodyPriorityMin)
+    .max(createCommissioningTopicBodyPriorityMax)
+    .optional(),
+  isActive: zod.boolean().optional(),
+});
+
+export const CreateCommissioningTopicResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  angle: zod.string(),
+  category: zod.string(),
+  priority: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update a commissioning topic (admin)
+ */
+export const UpdateCommissioningTopicParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const updateCommissioningTopicBodyTitleMin = 3;
+export const updateCommissioningTopicBodyTitleMax = 160;
+
+export const updateCommissioningTopicBodyAngleMax = 600;
+
+export const updateCommissioningTopicBodyCategoryMax = 80;
+
+export const updateCommissioningTopicBodyPriorityMin = 0;
+export const updateCommissioningTopicBodyPriorityMax = 9999;
+
+export const UpdateCommissioningTopicBody = zod.object({
+  title: zod
+    .string()
+    .min(updateCommissioningTopicBodyTitleMin)
+    .max(updateCommissioningTopicBodyTitleMax),
+  angle: zod.string().max(updateCommissioningTopicBodyAngleMax).optional(),
+  category: zod
+    .string()
+    .max(updateCommissioningTopicBodyCategoryMax)
+    .optional(),
+  priority: zod
+    .number()
+    .min(updateCommissioningTopicBodyPriorityMin)
+    .max(updateCommissioningTopicBodyPriorityMax)
+    .optional(),
+  isActive: zod.boolean().optional(),
+});
+
+export const UpdateCommissioningTopicResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  angle: zod.string(),
+  category: zod.string(),
+  priority: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a commissioning topic (admin)
+ */
+export const DeleteCommissioningTopicParams = zod.object({
+  id: zod.coerce.number(),
+});

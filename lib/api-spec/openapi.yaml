@@ -26,6 +26,8 @@ tags:
     description: Newsletter subscriptions
   - name: tools
     description: Free interactive tools (calculators, etc.)
+  - name: commissioningTopics
+    description: Editor-curated guest post topics currently being commissioned
   - name: Auth
     description: Browser and mobile authentication endpoints.
 paths:
@@ -559,6 +561,114 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Testimonial"
+
+  /commissioning-topics:
+    get:
+      operationId: listCommissioningTopics
+      tags: [commissioningTopics]
+      summary: List active guest-post topics currently being commissioned
+      description: |
+        Returns the public-facing list of guest-post angles the editorial team
+        is actively commissioning right now. Sorted by priority ascending
+        (lower = higher priority), then most recent first. Inactive topics are
+        excluded.
+      responses:
+        "200":
+          description: Topics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommissioningTopic"
+
+  /admin/commissioning-topics:
+    get:
+      operationId: listAdminCommissioningTopics
+      tags: [commissioningTopics]
+      summary: List all commissioning topics including inactive (admin)
+      responses:
+        "200":
+          description: Topics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommissioningTopic"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+    post:
+      operationId: createCommissioningTopic
+      tags: [commissioningTopics]
+      summary: Create a new commissioning topic (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommissioningTopicInput"
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissioningTopic"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+
+  /admin/commissioning-topics/{id}:
+    patch:
+      operationId: updateCommissioningTopic
+      tags: [commissioningTopics]
+      summary: Update a commissioning topic (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommissioningTopicInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissioningTopic"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+        "404":
+          description: Topic not found
+    delete:
+      operationId: deleteCommissioningTopic
+      tags: [commissioningTopics]
+      summary: Delete a commissioning topic (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
 
 components:
   parameters:
@@ -1177,3 +1287,47 @@ components:
         rating:
           type: integer
       required: [id, name, role, company, quote, rating]
+
+    CommissioningTopic:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        angle:
+          type: string
+        category:
+          type: string
+        priority:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, title, angle, category, priority, isActive, createdAt, updatedAt]
+
+    CommissioningTopicInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 160
+        angle:
+          type: string
+          maxLength: 600
+        category:
+          type: string
+          maxLength: 80
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        isActive:
+          type: boolean
+      required: [title]

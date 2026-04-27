@@ -2,8 +2,9 @@ import { PageMeta } from "@/components/PageMeta";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useListCommissioningTopics } from "@workspace/api-client-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
@@ -36,6 +37,9 @@ import {
   UserCheck,
   Rocket,
   Lightbulb,
+  Megaphone,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import aboutOfficeImg from "@/assets/about-office.png";
 import { Link } from "wouter";
@@ -307,6 +311,161 @@ const formSchema = z.object({
   sampleUrl: z.string().url("Please enter a valid URL").optional().or(z.literal(""))
 });
 
+function CommissioningTopicsBoard({
+  onPick,
+}: {
+  onPick: (title: string, category: string) => void;
+}) {
+  const { data, isLoading, isError } = useListCommissioningTopics();
+  const topics = data ?? [];
+  const hasTopics = topics.length > 0;
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    if (topics.length <= 1) return;
+    const id = window.setInterval(() => {
+      setActive((i) => (i + 1) % topics.length);
+    }, 6000);
+    return () => window.clearInterval(id);
+  }, [topics.length]);
+
+  useEffect(() => {
+    if (active >= topics.length) setActive(0);
+  }, [active, topics.length]);
+
+  if (isLoading) {
+    return (
+      <div
+        className="mb-12 rounded-2xl border border-border/70 bg-card p-6 sm:p-8 animate-pulse"
+        aria-hidden="true"
+      >
+        <div className="h-4 w-40 bg-muted rounded mb-3" />
+        <div className="h-6 w-3/4 bg-muted rounded" />
+      </div>
+    );
+  }
+
+  if (isError || !hasTopics) {
+    return null;
+  }
+
+  const featured = topics[active] ?? topics[0]!;
+  const prev = () => setActive((i) => (i - 1 + topics.length) % topics.length);
+  const next = () => setActive((i) => (i + 1) % topics.length);
+
+  return (
+    <div
+      className="mb-12 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card p-6 sm:p-8 shadow-sm"
+      data-testid="commissioning-topics-board"
+    >
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3 sm:max-w-md">
+          <div className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <Megaphone className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-primary font-semibold mb-1">
+              Editor&rsquo;s desk
+            </p>
+            <h3 className="text-xl sm:text-2xl font-bold tracking-tight">
+              Pitch Topics We&rsquo;re Currently Commissioning
+            </h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              Pitches that match one of these get fast-tracked review and a
+              guaranteed editor reply within 5 business days.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex-1 sm:min-w-[280px]">
+          <div
+            key={featured.id}
+            className="rounded-xl border border-border/70 bg-background/80 p-5 transition-all"
+            data-testid={`featured-topic-${featured.id}`}
+          >
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              {featured.category ? (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
+                  {featured.category}
+                </span>
+              ) : null}
+              <span className="text-xs text-muted-foreground">
+                Topic {active + 1} of {topics.length}
+              </span>
+            </div>
+            <h4 className="font-bold text-foreground">{featured.title}</h4>
+            {featured.angle ? (
+              <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
+                {featured.angle}
+              </p>
+            ) : null}
+            <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => onPick(featured.title, featured.category)}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                data-testid={`pitch-featured-topic-${featured.id}`}
+              >
+                Pitch this topic
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+              {topics.length > 1 ? (
+                <div className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={prev}
+                    aria-label="Previous topic"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 hover:border-primary/50 hover:text-primary"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={next}
+                    aria-label="Next topic"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 hover:border-primary/50 hover:text-primary"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {topics.length > 1 ? (
+        <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {topics.map((t, i) => (
+            <li key={t.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  setActive(i);
+                  onPick(t.title, t.category);
+                }}
+                className={`w-full text-left text-sm rounded-lg border px-3 py-2 transition-colors ${
+                  i === active
+                    ? "border-primary/60 bg-primary/5 text-foreground"
+                    : "border-border/60 bg-background/60 hover:border-primary/40"
+                }`}
+                data-testid={`commissioning-topic-${t.id}`}
+              >
+                <span className="line-clamp-1 font-medium">{t.title}</span>
+                {t.category ? (
+                  <span className="text-xs text-muted-foreground">
+                    {t.category}
+                  </span>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 export default function WriteForUs() {
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -537,6 +696,7 @@ export default function WriteForUs() {
       {/* Topics grid */}
       <section className="py-24 bg-secondary/30 border-y border-border/60" id="topics">
         <div className="container mx-auto px-4 max-w-6xl">
+          <CommissioningTopicsBoard onPick={(title) => handleTopicCardClick(title)} />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
             <div className="lg:col-span-2">
               <p className="text-xs uppercase tracking-[0.18em] text-primary font-semibold mb-3">

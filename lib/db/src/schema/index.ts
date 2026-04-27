@@ -9,3 +9,4 @@ export * from "./auth";
 export * from "./newsletterSubscribers";
 export * from "./authorSubscriptions";
 export * from "./kvStore";
+export * from "./commissioningTopics";

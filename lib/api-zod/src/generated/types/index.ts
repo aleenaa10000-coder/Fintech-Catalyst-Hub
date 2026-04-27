@@ -18,6 +18,8 @@ export * from "./authUserEnvelope";
 export * from "./beginBrowserLoginParams";
 export * from "./blogCategory";
 export * from "./blogPost";
+export * from "./commissioningTopic";
+export * from "./commissioningTopicInput";
 export * from "./contactSubmission";
 export * from "./contactSubmissionInput";
 export * from "./errorEnvelope";
