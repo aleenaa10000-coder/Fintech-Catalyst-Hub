@@ -122,6 +122,11 @@ export const ListBlogPostsResponseItem = zod.object({
   readingMinutes: zod.number(),
   featured: zod.boolean(),
   publishedAt: zod.coerce.date(),
+  updatedAt: zod.coerce
+    .date()
+    .describe(
+      'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
+    ),
 });
 export const ListBlogPostsResponse = zod.array(ListBlogPostsResponseItem);
 
@@ -174,6 +179,11 @@ export const GetBlogPostResponse = zod.object({
   readingMinutes: zod.number(),
   featured: zod.boolean(),
   publishedAt: zod.coerce.date(),
+  updatedAt: zod.coerce
+    .date()
+    .describe(
+      'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
+    ),
 });
 
 /**
@@ -212,6 +222,11 @@ export const UpdateBlogPostResponse = zod.object({
   readingMinutes: zod.number(),
   featured: zod.boolean(),
   publishedAt: zod.coerce.date(),
+  updatedAt: zod.coerce
+    .date()
+    .describe(
+      'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
+    ),
 });
 
 /**
@@ -238,6 +253,11 @@ export const ListFeaturedPostsResponseItem = zod.object({
   readingMinutes: zod.number(),
   featured: zod.boolean(),
   publishedAt: zod.coerce.date(),
+  updatedAt: zod.coerce
+    .date()
+    .describe(
+      'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
+    ),
 });
 export const ListFeaturedPostsResponse = zod.array(
   ListFeaturedPostsResponseItem,

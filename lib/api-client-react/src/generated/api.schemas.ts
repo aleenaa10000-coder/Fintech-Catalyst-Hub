@@ -67,6 +67,9 @@ export interface BlogPost {
   readingMinutes: number;
   featured: boolean;
   publishedAt: string;
+  /** Auto-bumped on every edit via Drizzle's `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a "Last updated" indicator in the UI when materially newer than `publishedAt`.
+   */
+  updatedAt: string;
 }
 
 export interface BlogCategory {

@@ -597,7 +597,14 @@ components:
         publishedAt:
           type: string
           format: date-time
-      required: [id, slug, title, excerpt, content, author, authorRole, category, tags, coverImage, readingMinutes, featured, publishedAt]
+        updatedAt:
+          type: string
+          format: date-time
+          description: >
+            Auto-bumped on every edit via Drizzle's `$onUpdate` hook. Equal to
+            `publishedAt` for never-edited rows. Surface as a "Last updated"
+            indicator in the UI when materially newer than `publishedAt`.
+      required: [id, slug, title, excerpt, content, author, authorRole, category, tags, coverImage, readingMinutes, featured, publishedAt, updatedAt]
 
     BlogCategory:
       type: object

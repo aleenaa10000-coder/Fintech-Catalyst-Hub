@@ -76,6 +76,7 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
     readingMinutes: row.readingMinutes,
     featured: row.featured,
     publishedAt: row.publishedAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 

@@ -81,6 +81,23 @@ const formatDate = (iso: string) =>
     year: "numeric",
   });
 
+// "Materially newer" means edited at least one full day after publish. Any
+// gap smaller than that is almost certainly the post being edited within its
+// publish session (typo fix, image swap) — not worth surfacing to readers as
+// a freshness signal and not worth busting social-card caches for.
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+function isMeaningfullyUpdated(
+  publishedAt: string | undefined,
+  modifiedAt: string | undefined,
+): boolean {
+  if (!publishedAt || !modifiedAt) return false;
+  const pub = new Date(publishedAt).getTime();
+  const mod = new Date(modifiedAt).getTime();
+  if (!Number.isFinite(pub) || !Number.isFinite(mod)) return false;
+  return mod - pub >= ONE_DAY_MS;
+}
+
 export default function BlogPost() {
   const params = useParams();
   const slug = params.slug || "";
@@ -265,6 +282,15 @@ export default function BlogPost() {
             post.title,
           )}&category=${encodeURIComponent(post.category ?? "Insights")}`,
           datePublished: post.date,
+          // Only emit `dateModified` when the post was actually edited after
+          // publish. If we always emit it, Google's BlogPosting validator
+          // happily accepts equal values, but social caches (LinkedIn,
+          // Facebook) treat any change as a "fresh content" signal and may
+          // re-fetch unnecessarily. Gate on the same one-day threshold the
+          // visible "Updated" indicator uses to keep the two in sync.
+          dateModified: isMeaningfullyUpdated(post.date, post.dateModified)
+            ? post.dateModified
+            : undefined,
           author: post.author,
           authorUrl: `${SITE_URL}/authors/${authorSlugFromName(post.author)}`,
           authorJobTitle: post.authorRole,
@@ -403,6 +429,30 @@ export default function BlogPost() {
                   <dt className="sr-only">Published</dt>
                   <dd className="text-slate-700">{formatDate(post.date)}</dd>
                 </div>
+                {/* "Last updated" indicator — only shown when the post was
+                    edited at least a day after it was first published. Uses
+                    the same machine-readable ISO timestamp that powers the
+                    BlogPosting JSON-LD `dateModified` and the article
+                    `article:modified_time` OG tag, so visible text and
+                    crawler signals stay in sync. */}
+                {isMeaningfullyUpdated(post.date, post.dateModified) ? (
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <Pencil
+                      className="w-4 h-4 text-emerald-500 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <dt className="sr-only">Last updated</dt>
+                    <dd
+                      className="text-slate-700"
+                      data-testid="blog-post-updated-at"
+                    >
+                      Updated{" "}
+                      <time dateTime={post.dateModified}>
+                        {formatDate(post.dateModified!)}
+                      </time>
+                    </dd>
+                  </div>
+                ) : null}
                 <div className="flex items-center gap-2 text-slate-500">
                   <Clock
                     className="w-4 h-4 text-slate-400 shrink-0"

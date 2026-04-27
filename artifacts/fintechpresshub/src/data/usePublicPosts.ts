@@ -21,6 +21,13 @@ export type PublicPost = {
   category: string;
   image: string;
   date: string;
+  /**
+   * ISO timestamp of the most recent edit. Optional because static seed posts
+   * in `posts.js` don't track edits. For API posts this maps from the DB
+   * `updated_at` column (auto-bumped via Drizzle's `$onUpdate`). The UI shows
+   * a "Last updated" indicator only when this is materially newer than `date`.
+   */
+  dateModified?: string;
   readTime: string;
   author: string;
   authorRole: string;
@@ -50,6 +57,7 @@ function fromApi(post: ApiBlogPost): PublicPost {
     category: post.category,
     image: post.coverImage,
     date: post.publishedAt,
+    dateModified: post.updatedAt,
     readTime: `${Math.max(1, post.readingMinutes)} min read`,
     author: post.author,
     authorRole: post.authorRole,

@@ -14,6 +14,13 @@ export const blogPostsTable = pgTable("blog_posts", {
   readingMinutes: integer("reading_minutes").notNull(),
   featured: boolean("featured").notNull().default(false),
   publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
+  // Auto-bumped to NOW() on every UPDATE via Drizzle's `$onUpdate` hook. New
+  // rows default to the same instant as `publishedAt` so the public blog can
+  // tell "never edited" from "edited later" by comparing the two values.
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export type BlogPostRow = typeof blogPostsTable.$inferSelect;
