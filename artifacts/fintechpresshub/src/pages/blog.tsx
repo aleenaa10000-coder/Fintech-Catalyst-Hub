@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePublicPosts, type PublicPost } from "@/data/usePublicPosts";
-import { authors } from "@/data/authors";
+import { authors, authorSlugFromName, getAuthorBySlug } from "@/data/authors";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", {
@@ -73,12 +73,17 @@ export default function Blog() {
   }, [allPosts]);
 
   // Initial filter state can come from the URL — e.g. tag chips on a blog
-  // post link here as `/blog?tag=<name>`. We read the query string with
-  // wouter's `useSearch` so it stays reactive across in-app navigations
-  // (Link clicks) without needing a full page reload.
+  // post link here as `/blog?tag=<name>`, and author bylines link here as
+  // `/blog?author=<slug>`. We read the query string with wouter's
+  // `useSearch` so it stays reactive across in-app navigations (Link
+  // clicks) without needing a full page reload.
   const search = useSearch();
   const initialTag = useMemo(() => {
     const raw = new URLSearchParams(search).get("tag")?.trim();
+    return raw ? raw : undefined;
+  }, [search]);
+  const initialAuthor = useMemo(() => {
+    const raw = new URLSearchParams(search).get("author")?.trim();
     return raw ? raw : undefined;
   }, [search]);
 
@@ -86,11 +91,15 @@ export default function Blog() {
     undefined,
   );
   const [activeTag, setActiveTag] = useState<string | undefined>(initialTag);
+  const [activeAuthor, setActiveAuthor] = useState<string | undefined>(
+    initialAuthor,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [showAllTags, setShowAllTags] = useState(false);
 
-  // Keep state in sync if the URL param changes after mount (e.g. user
-  // clicks a different tag link from another page or hits back/forward).
+  // Keep state in sync if the URL params change after mount (e.g. user
+  // clicks a different tag/author link from another page or uses
+  // back/forward). One ref per filter so we can detect external changes.
   const lastSyncedTag = useRef<string | undefined>(initialTag);
   useEffect(() => {
     if (initialTag !== lastSyncedTag.current) {
@@ -99,9 +108,17 @@ export default function Blog() {
     }
   }, [initialTag]);
 
-  // Mirror activeTag back to the URL so the filtered view is shareable and
-  // survives a refresh. Use replaceState so we don't pollute the history
-  // stack as users toggle chips.
+  const lastSyncedAuthor = useRef<string | undefined>(initialAuthor);
+  useEffect(() => {
+    if (initialAuthor !== lastSyncedAuthor.current) {
+      lastSyncedAuthor.current = initialAuthor;
+      setActiveAuthor(initialAuthor);
+    }
+  }, [initialAuthor]);
+
+  // Mirror active filters back to the URL so the filtered view is
+  // shareable and survives a refresh. Use replaceState so we don't pollute
+  // the history stack as users toggle chips.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -117,6 +134,22 @@ export default function Blog() {
     window.history.replaceState(window.history.state, "", next);
     lastSyncedTag.current = activeTag;
   }, [activeTag]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const current = params.get("author") ?? undefined;
+    if (current === activeAuthor) return;
+    if (activeAuthor) {
+      params.set("author", activeAuthor);
+    } else {
+      params.delete("author");
+    }
+    const qs = params.toString();
+    const next = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`;
+    window.history.replaceState(window.history.state, "", next);
+    lastSyncedAuthor.current = activeAuthor;
+  }, [activeAuthor]);
 
   // Distinct tags across the merged feed, with usage counts. Sorted by count
   // desc then alphabetically so the most-used tags surface first.
@@ -135,19 +168,50 @@ export default function Blog() {
       );
   }, [allPosts]);
 
-  // Combined filter: category AND tag AND search (title + excerpt + tags),
-  // case-insensitive. Search trims whitespace and ignores empty queries so
-  // the input doesn't accidentally hide posts mid-typing.
+  // Distinct authors across the merged feed, with post counts. Looked up by
+  // slug so the chip set survives author renames and matches the bio page
+  // route at `/authors/<slug>`. Posts whose `author` string doesn't resolve
+  // to a known author profile (e.g. ad-hoc guest posts) still get a chip
+  // labeled with the raw author name.
+  const authorOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    const labels = new Map<string, string>();
+    for (const p of allPosts) {
+      const slug = authorSlugFromName(p.author);
+      counts.set(slug, (counts.get(slug) ?? 0) + 1);
+      if (!labels.has(slug)) {
+        labels.set(slug, getAuthorBySlug(slug)?.name ?? p.author);
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([slug, count]) => ({
+        slug,
+        name: labels.get(slug) ?? slug,
+        photo: getAuthorBySlug(slug)?.photo,
+        count,
+      }))
+      .sort((a, b) =>
+        a.count !== b.count ? b.count - a.count : a.name.localeCompare(b.name),
+      );
+  }, [allPosts]);
+
+  // Combined filter: category AND tag AND author AND search
+  // (title + excerpt + tags + category), case-insensitive. Search trims
+  // whitespace and ignores empty queries so the input doesn't accidentally
+  // hide posts mid-typing.
   const visiblePosts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return allPosts.filter((p) => {
       if (activeCategory && p.category !== activeCategory) return false;
       if (activeTag && !(p.tags ?? []).includes(activeTag)) return false;
+      if (activeAuthor && authorSlugFromName(p.author) !== activeAuthor)
+        return false;
       if (q) {
         const haystack = [
           p.title,
           p.excerpt,
           p.category,
+          p.author,
           ...(p.tags ?? []),
         ]
           .join(" ")
@@ -156,15 +220,16 @@ export default function Blog() {
       }
       return true;
     });
-  }, [allPosts, activeCategory, activeTag, searchQuery]);
+  }, [allPosts, activeCategory, activeTag, activeAuthor, searchQuery]);
 
   const filtersActive = Boolean(
-    activeCategory || activeTag || searchQuery.trim(),
+    activeCategory || activeTag || activeAuthor || searchQuery.trim(),
   );
 
   const clearFilters = () => {
     setActiveCategory(undefined);
     setActiveTag(undefined);
+    setActiveAuthor(undefined);
     setSearchQuery("");
   };
 
@@ -464,6 +529,74 @@ export default function Blog() {
               </div>
             </div>
           )}
+
+          {/* Author chips — derived from the merged feed. Combined with the
+              other filters as an AND. Each chip shows the author's headshot
+              alongside their name and post count. */}
+          {authorOptions.length > 0 && (
+            <div className="max-w-5xl mx-auto">
+              <div className="flex items-center justify-center gap-2 mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <Users className="w-3.5 h-3.5" aria-hidden="true" />
+                Filter by author
+              </div>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {authorOptions.map((a) => {
+                  const active = activeAuthor === a.slug;
+                  const initials = a.name
+                    .split(" ")
+                    .map((p) => p[0])
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase();
+                  return (
+                    <button
+                      key={a.slug}
+                      type="button"
+                      onClick={() =>
+                        setActiveAuthor(active ? undefined : a.slug)
+                      }
+                      data-testid={`author-chip-${a.slug}`}
+                      aria-pressed={active}
+                      className={`inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full text-xs font-medium border transition-colors duration-200 ${
+                        active
+                          ? "bg-[#0052FF] text-white border-[#0052FF]"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF]"
+                      }`}
+                    >
+                      <span
+                        className={`relative w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                          active
+                            ? "bg-white/20 text-white"
+                            : "bg-[#0052FF]/10 text-[#0052FF]"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {a.photo ? (
+                          <img
+                            src={a.photo}
+                            alt=""
+                            loading="lazy"
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : (
+                          initials
+                        )}
+                      </span>
+                      <span>{a.name}</span>
+                      <span
+                        className={`text-[10px] ${
+                          active ? "text-white/80" : "text-slate-400"
+                        }`}
+                      >
+                        {a.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -473,7 +606,7 @@ export default function Blog() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {visiblePosts.length === 0 ? (
               <div className="col-span-full">
-                {searchQuery.trim() || activeTag ? (
+                {searchQuery.trim() || activeTag || activeAuthor ? (
                   <div
                     className="mx-auto max-w-2xl text-center py-16 px-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60"
                     data-testid="empty-state-no-results"

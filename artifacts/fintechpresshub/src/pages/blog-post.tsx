@@ -419,6 +419,18 @@ export default function BlogPost() {
                   </span>
                 </div>
               </Link>
+              {/* Inline deep-link into the blog index pre-filtered to this
+                  author. The avatar/name above still goes to the dedicated
+                  bio page at /authors/<slug>. */}
+              <Link
+                href={`/blog?author=${encodeURIComponent(authorSlugFromName(post.author))}`}
+                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#0052FF] hover:underline"
+                data-testid={`link-more-from-${authorSlugFromName(post.author)}`}
+                aria-label={`Browse all articles by ${post.author}`}
+              >
+                More from {post.author.split(" ")[0]}
+                <ArrowRight className="w-3 h-3" />
+              </Link>
 
               <dl className="mt-6 pt-6 border-t border-slate-200 space-y-3 text-sm">
                 <div className="flex items-center gap-2 text-slate-500">
