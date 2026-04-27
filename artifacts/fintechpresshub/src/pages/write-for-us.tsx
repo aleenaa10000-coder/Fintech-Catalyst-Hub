@@ -5,6 +5,7 @@ import * as z from "zod";
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useListCommissioningTopics } from "@workspace/api-client-react";
+import { usePublicPosts } from "@/data/usePublicPosts";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
@@ -466,6 +467,108 @@ function CommissioningTopicsBoard({
   );
 }
 
+/**
+ * "Pitch examples" — surfaces the 3 most recently published posts so prospective
+ * contributors can calibrate the depth, angle, and headline style we actually
+ * commission. Reads from the same merged feed (`usePublicPosts`) the public
+ * blog uses, so newly published API posts appear here without a redeploy.
+ *
+ * Renders nothing until the feed has at least one post, so the page never
+ * shows an empty placeholder.
+ */
+function PitchExamplesSection() {
+  const { posts, isLoading } = usePublicPosts();
+
+  if (isLoading && posts.length === 0) {
+    return null;
+  }
+  const examples = posts.slice(0, 3);
+  if (examples.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      className="py-24 border-t border-border/60"
+      id="pitch-examples"
+      data-testid="pitch-examples-section"
+    >
+      <div className="container mx-auto px-4 max-w-6xl">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <p className="text-xs uppercase tracking-[0.18em] text-primary font-semibold mb-3">
+            What good looks like
+          </p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+            Pitch Examples From Recently Published Posts
+          </h2>
+          <p className="text-muted-foreground">
+            Each card below is a piece we&rsquo;ve recently published. Use them to
+            calibrate the angle, depth, and headline style that consistently
+            clears our editorial bar before sending your own pitch.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {examples.map((p) => (
+            <Link
+              key={p.slug}
+              href={`/blog/${p.slug}`}
+              data-testid={`pitch-example-${p.slug}`}
+              className="group flex flex-col rounded-2xl bg-card border border-border/70 overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
+            >
+              <div className="relative aspect-[16/9] bg-secondary/40 overflow-hidden">
+                {p.image ? (
+                  <img
+                    src={p.image}
+                    alt={`${p.title} — example of a published fintech pitch`}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                  />
+                ) : null}
+                <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary border border-border/60">
+                  <Lightbulb className="w-3 h-3" />
+                  {p.category}
+                </span>
+              </div>
+              <div className="flex flex-col flex-1 p-6">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground font-semibold mb-2">
+                  Headline
+                </p>
+                <h3 className="font-bold text-foreground text-lg leading-snug mb-3 group-hover:text-primary transition-colors">
+                  {p.title}
+                </h3>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground font-semibold mb-2">
+                  Angle
+                </p>
+                <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                  {p.excerpt}
+                </p>
+                <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border/60">
+                  <span className="truncate pr-3">By {p.author}</span>
+                  <span className="inline-flex items-center gap-1 text-primary font-semibold whitespace-nowrap">
+                    Read example
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+        <div className="text-center mt-10">
+          <Link
+            href="/blog"
+            className="text-sm font-semibold text-primary hover:underline inline-flex items-center gap-1.5"
+            data-testid="pitch-examples-browse-all"
+          >
+            Browse the full blog for more reference pieces
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function WriteForUs() {
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -816,6 +919,9 @@ export default function WriteForUs() {
           </div>
         </div>
       </section>
+
+      {/* Pitch examples — recently published posts to calibrate submissions */}
+      <PitchExamplesSection />
 
       {/* Guidelines grid */}
       <section className="py-24" id="guidelines">
