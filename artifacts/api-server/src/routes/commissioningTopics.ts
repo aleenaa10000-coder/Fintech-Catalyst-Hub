@@ -79,7 +79,7 @@ router.post("/admin/commissioning-topics", requireAdmin, async (req, res) => {
 });
 
 router.patch("/admin/commissioning-topics/:id", requireAdmin, async (req, res) => {
-  const id = Number.parseInt(req.params.id ?? "", 10);
+  const id = Number.parseInt(String(req.params.id ?? ""), 10);
   if (!Number.isFinite(id) || id <= 0) {
     res.status(400).json({ error: "Invalid id" });
     return;
@@ -109,7 +109,7 @@ router.patch("/admin/commissioning-topics/:id", requireAdmin, async (req, res) =
 });
 
 router.delete("/admin/commissioning-topics/:id", requireAdmin, async (req, res) => {
-  const id = Number.parseInt(req.params.id ?? "", 10);
+  const id = Number.parseInt(String(req.params.id ?? ""), 10);
   if (!Number.isFinite(id) || id <= 0) {
     res.status(400).json({ error: "Invalid id" });
     return;
