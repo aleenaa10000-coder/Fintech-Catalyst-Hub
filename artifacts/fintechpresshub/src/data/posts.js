@@ -365,6 +365,215 @@ const posts = [
 <p>Revisit your keyword research quarterly. Fintech search behaviour evolves rapidly — regulatory changes create new query categories overnight, new product launches by major players shift category vocabulary, and Google's understanding of search intent updates continuously. A fintech content strategy built on a static keyword list created 18 months ago is almost certainly missing the highest-value opportunities available today.</p>
     `,
   },
+  {
+    id: 10,
+    slug: "how-to-choose-a-banking-as-a-service-provider-2026",
+    title: "How to Choose a Banking-as-a-Service Provider in 2026: A 7-Point Framework",
+    excerpt:
+      "Most BaaS comparisons stop at pricing and API docs. Here is the seven-point framework experienced fintech operators actually use to pick a Banking-as-a-Service provider — and the questions that uncover the ones built to last.",
+    category: "Embedded Finance",
+    image:
+      "https://images.unsplash.com/photo-1518186285589-2f7649de83e0?auto=format&fit=crop&w=1200&q=80",
+    date: "2026-04-22",
+    readTime: "10 min read",
+    author: "Daniel Reyes",
+    authorRole: "Embedded Finance & Open Banking Lead",
+    tags: ["Banking-as-a-Service", "Embedded Finance", "Open Banking", "Sponsor Banks", "BaaS"],
+    content: `
+<p>Choosing a Banking-as-a-Service (BaaS) provider is the single most consequential infrastructure decision a consumer or B2B fintech will make in its first three years. The wrong provider locks you into a sponsor bank that cannot scale into your second product line, a ledger that cannot pass an audit at Series B, and migration costs that routinely exceed two engineering quarters. The right provider quietly disappears into your stack and stops being a topic of conversation.</p>
+<p>This article is the seven-point framework I used as a BaaS product lead and now use to evaluate providers on behalf of fintech founders. It deliberately ignores marketing pages and focuses on the questions that surface how a BaaS platform will actually behave under regulatory stress, scale, and a sponsor-bank exit.</p>
+
+<h2>What Is a Banking-as-a-Service Provider?</h2>
+<p>A Banking-as-a-Service provider is a middleware company that sits between your fintech application and a chartered sponsor bank. It abstracts the bank's core systems, KYC vendors, ledger, card-issuing rails, and compliance reporting into a single set of APIs your engineers can build against. The fintech owns the customer relationship and product surface; the BaaS provider owns the integration with the regulated bank that holds the money.</p>
+<p>Examples include Unit, Treasury Prime, Synctera, Galileo, Marqeta, Bond (acquired by Fis), and Column (which is itself a chartered bank). The market segments roughly into three layers: pure middleware (no bank charter), middleware-plus-sponsor-bank-network (multi-bank routing), and integrated bank-charters (one company holds both the technology and the licence).</p>
+
+<h2>The 7-Point BaaS Evaluation Framework</h2>
+<p>Each point below should produce a written answer from the provider, not a sales-deck slide. If the answer is verbal-only or "we are working on it," treat that as a flag.</p>
+
+<h3>1. Sponsor-Bank Concentration Risk</h3>
+<p>Ask which sponsor banks the provider currently routes through and what percentage of accounts sit at each. Single-sponsor BaaS platforms are fragile — when their bank receives a Consent Order from the OCC or FDIC, every fintech on the platform is forced to migrate, often within months. Multi-sponsor platforms (Synctera, Treasury Prime) are structurally more resilient but introduce per-bank policy variance you need to engineer around. Integrated bank-charters (Column, Lead Bank) eliminate concentration risk at the cost of less competitive pricing.</p>
+
+<h3>2. Compliance Operating Model</h3>
+<p>Who actually files SARs, runs sanctions screening, and owns the BSA/AML programme? In a properly structured BaaS relationship, the sponsor bank is legally the BSA officer, the BaaS provider operates the compliance technology, and the fintech runs front-line monitoring. Get this written down. Confused operating models are the single biggest reason BaaS partnerships unwind under regulatory scrutiny.</p>
+
+<h3>3. Ledger Architecture and Reconciliation</h3>
+<p>Ask to see a sample reconciliation report. The provider should be able to demonstrate three-way reconciliation between the fintech's internal ledger, the BaaS ledger, and the sponsor bank's core. Daily breaks should be under 0.01% of transaction volume. Anything higher signals a ledger that will become an audit problem at scale, and a forensic engagement at the next regulatory exam.</p>
+
+<h3>4. KYC and KYB Orchestration</h3>
+<p>Modern BaaS providers should let you configure your own KYC waterfall — primary IDV vendor, fallback vendor, manual review queue, document upload — without re-platforming. Single-vendor lock-in (e.g., a provider that only supports Persona, or only Alloy) becomes painful when your false-positive rate is hurting conversion and you need to A/B a second vendor in two weeks, not two quarters.</p>
+
+<h3>5. Card-Issuing Economics</h3>
+<p>Get a written interchange share quote, BIN sponsorship fee, per-card monthly fee, and per-transaction fee. Then ask for the same numbers at 100,000 active cards and at 1 million active cards. Many BaaS providers price aggressively at low volume and quietly compress your interchange share above a tier you will hit faster than the sales team admits. The pricing curve matters more than the entry price.</p>
+
+<h3>6. Migration and Exit Path</h3>
+<p>Ask the provider, in writing, what a customer-data and ledger migration looks like if you choose to leave. The healthy answer involves a documented data-export format, a defined timeline (90–180 days is reasonable), and a per-account migration fee that is disclosed upfront. The unhealthy answer is "we have not had to do that." Every BaaS provider will eventually need to run a migration, and the ones that have done it cleanly will tell you about it.</p>
+
+<h3>7. Public Regulatory History</h3>
+<p>Search the OCC, FDIC, and CFPB enforcement databases for both the BaaS provider and every sponsor bank it routes through. Consent Orders, Cease-and-Desist letters, and MOUs are public. A sponsor bank under an active enforcement action is a sponsor bank that cannot onboard new programmes — even if your BaaS sales rep does not mention it.</p>
+
+<h2>Quick-Reference Comparison Table</h2>
+<table>
+  <thead>
+    <tr><th>Provider Type</th><th>Sponsor-Bank Risk</th><th>Pricing Power</th><th>Best Fit</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Pure middleware (1 sponsor)</td><td>High</td><td>Most flexible</td><td>Pre-PMF consumer fintech</td></tr>
+    <tr><td>Multi-sponsor middleware</td><td>Medium</td><td>Flexible</td><td>Series A/B with concentration concerns</td></tr>
+    <tr><td>Integrated bank-charter</td><td>Low</td><td>Less flexible</td><td>Series B+ scaling toward IPO</td></tr>
+  </tbody>
+</table>
+
+<h2>The Question That Actually Decides It</h2>
+<p>After running every provider through the framework above, the deciding question is almost always the same: which of these companies will still be operating, in roughly its current shape, in 36 months? BaaS as a category is consolidating. Several well-capitalised providers have already exited or been absorbed. The infrastructure decision you are making is also a bet on which middleware companies will survive the next 18 months of sponsor-bank scrutiny — and that is a question worth more diligence than any pricing comparison.</p>
+    `,
+  },
+  {
+    id: 11,
+    slug: "kyc-content-that-ranks-without-breaking-compliance",
+    title: "KYC Content That Ranks Without Breaking Compliance: A Marketing Workflow",
+    excerpt:
+      "Most KYC and AML marketing content either gets killed by compliance review or is so cautious it never ranks. Here is the workflow that gets fintech marketing pages through both Google and a real compliance officer's red pen.",
+    category: "Compliance Marketing",
+    image:
+      "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80",
+    date: "2026-04-15",
+    readTime: "9 min read",
+    author: "Aisha Mensah",
+    authorRole: "Compliance & Regtech Editor",
+    tags: ["KYC", "AML", "Compliance Marketing", "Regtech", "Content Strategy"],
+    content: `
+<p>The single hardest editorial problem in fintech marketing is producing KYC, AML, and sanctions-screening content that ranks on Google and survives review by a real compliance officer. Most marketing teams pick one or the other. The pages that win in 2026 do both — and they do it by treating compliance review as a structural part of the content workflow rather than a final step that kills the work.</p>
+<p>This article is the four-stage workflow I built as a financial-services lawyer and now use with regtech vendors and challenger banks. It is the workflow that takes a "KYC verification" or "AML transaction monitoring" page from a draft brief to a published, indexable, ranking page without leaving the legal team in revolt.</p>
+
+<h2>Why Compliance Marketing Content Is So Hard to Rank</h2>
+<p>KYC and AML pages live under Google's YMYL ("Your Money or Your Life") guidelines, which means they are held to a higher E-E-A-T standard than almost any other content category on the internet. Google needs to see author expertise, regulatory citations, primary sources, and clear authorship. Compliance officers, in parallel, need to see no statements that promise outcomes ("eliminates fraud"), no comparisons that misrepresent regulatory regimes, and no language that creates a UDAAP exposure under US consumer-protection rules.</p>
+<p>The intersection of those two pressures is narrow. Most marketing teams collapse into one of two failure modes: (1) write the content the SEO team wants and watch it die in legal review, or (2) write the content legal will approve and watch it never break the top 30 results. The workflow below is designed to avoid both.</p>
+
+<h2>The Four-Stage Compliance-Safe Content Workflow</h2>
+
+<h3>Stage 1: Brief With the Compliance Officer in the Room</h3>
+<p>Run the keyword brief and the topic outline past compliance before a single sentence is drafted. This is the single highest-leverage change in the workflow. Compliance officers can flag entire angles as off-limits in 10 minutes — angles that, if discovered three weeks later in legal review, mean the content is rewritten from scratch. The brief should include the target keyword, the primary user intent, the proposed H2 structure, and three to five specific claims the page will make. Compliance signs off on the structure before any drafting begins.</p>
+
+<h3>Stage 2: Draft Against a Citation Map</h3>
+<p>Every factual claim about a regulation, a deadline, a fine amount, or a regulatory expectation must map to a primary source — the FinCEN Bank Secrecy Act, the EU's AMLR, the FCA's SYSC sourcebook, FATF Recommendations, OFAC SDN list publications, and so on. Build the citation map before you write. Drafts written without a pre-built citation map invariably contain phrasing that legal will flag as overbroad ("regulators require..." when only one specific regulator does) and that has to be rewritten line by line.</p>
+
+<h3>Stage 3: Apply the Compliance Language Filter</h3>
+<p>Before the draft goes to compliance, run it through a list of phrases compliance officers will reliably flag. The list is shorter than most marketers expect and is the single biggest predictor of whether a page survives review.</p>
+
+<ul>
+  <li>"Eliminates" → replace with "materially reduces"</li>
+  <li>"Guarantees" → replace with "is designed to"</li>
+  <li>"Fully compliant" → replace with "supports compliance with [specific regulation]"</li>
+  <li>"All [regulators / banks / fintechs] require" → replace with "the [specific named regulator] requires"</li>
+  <li>"Bank-level security" → replace with "controls aligned to [specific framework, e.g., SOC 2 Type II]"</li>
+  <li>"Real-time" without latency definition → add the actual latency SLA or remove the claim</li>
+</ul>
+
+<h3>Stage 4: Publish With Author E-E-A-T Signals</h3>
+<p>YMYL content with no visible author authority ranks poorly regardless of writing quality. Every compliance page should have a named author with a visible role (e.g., "Head of Compliance" or "Former AML Officer"), a credential line (JD, ACAMS, CRCM), a link to a full author bio page, and ideally an external citation in a recognised industry publication. These E-E-A-T signals are what allow Google to rank a YMYL page above identical content on a domain with no demonstrated expertise.</p>
+
+<h2>What Compliance Officers Will and Will Not Approve</h2>
+
+<h3>Will Approve</h3>
+<p>Specific, sourced descriptions of regulatory requirements with named regulators. Comparative tables of how the same requirement applies in different jurisdictions. Step-by-step explainers of compliant workflows (e.g., "The Five Steps of a CIP Programme Under 31 CFR 1020.220"). Author commentary that is clearly framed as opinion and labelled accordingly.</p>
+
+<h3>Will Reject</h3>
+<p>Performance promises ("our KYC catches 99% of fraud"). Comparative claims that disparage a specific competitor by name. Statements about regulatory intent or future enforcement priorities. Anything that could be construed as legal advice rather than information. Pricing or product claims that have not also been reviewed by the product and legal teams.</p>
+
+<h2>How to Measure Whether the Workflow Is Working</h2>
+<p>The two metrics that matter are time-to-publish and post-review rewrite rate. A healthy compliance-safe content workflow publishes a long-form KYC or AML page within 21 days of brief and requires fewer than 15% rewritten lines after compliance review. Workflows that exceed 45 days or 40% rewrite rates have a structural problem — almost always at Stage 1, where compliance is still being shown finished drafts instead of structural briefs. Fix Stage 1 and the rest of the workflow tightens by itself.</p>
+    `,
+  },
+  {
+    id: 12,
+    slug: "bnpl-unit-economics-2026-vintage-curves-public-numbers",
+    title: "BNPL Unit Economics in 2026: What the Public Numbers Tell Us About the Cycle",
+    excerpt:
+      "The public BNPL filings finally let us read the cycle clearly. Here is what take-rates, vintage curves, and funding-cost trends in the latest disclosures actually say about which BNPL business models survive 2026.",
+    category: "BNPL",
+    image:
+      "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1200&q=80",
+    date: "2026-04-08",
+    readTime: "11 min read",
+    author: "Tomas Lindqvist",
+    authorRole: "BNPL & Consumer Lending Analyst",
+    tags: ["BNPL", "Consumer Lending", "Unit Economics", "Vintage Analysis", "Credit Risk"],
+    content: `
+<p>For most of the last five years, BNPL unit economics were a black box. Loss rates were disclosed selectively, take-rates were buried inside aggregated revenue lines, and funding costs were reported on an as-of basis that obscured the curve. That has changed. The 2025 reporting cycle, the IPO disclosures from two of the major players, and the Basel-driven capital-stack disclosures from the European banks that warehouse BNPL receivables have given analysts a clearer read on the cycle than at any point in the category's history.</p>
+<p>This article walks through the four numbers that actually matter for BNPL unit economics in 2026 — take-rate, net charge-off vintage curves, funding cost, and merchant-mix dependency — and what the public disclosures tell us about which business models are likely to survive the cycle and which are mathematically pricing themselves into a wall.</p>
+
+<h2>What Are BNPL Unit Economics?</h2>
+<p>BNPL unit economics are the per-transaction profitability of a Buy Now, Pay Later loan, expressed as the spread between what the BNPL provider earns on the transaction (merchant discount fee plus any consumer fees plus interest, where applicable) and what it costs to fund and service the loan (cost of capital, credit losses, servicing cost, customer-acquisition cost amortised). A healthy BNPL unit economic profile in 2026 sits in a 1.5%–3.5% net contribution margin per transaction, depending on tenor and merchant mix. Anything below 1% per transaction at scale is a structurally challenged business model.</p>
+
+<h2>Number 1: Take-Rate and Why It Is Compressing</h2>
+<p>Take-rate — the merchant discount fee the BNPL provider charges as a percentage of transaction value — is the single largest revenue line for any pay-in-four BNPL business. The 2025 reporting cycle confirmed what risk teams have suspected since 2023: take-rates are compressing structurally, not cyclically.</p>
+<p>The compression has three drivers. First, large enterprise merchants (the categories that drive volume — apparel, electronics, home goods) have aggressively renegotiated take-rates downward as BNPL became a commoditised checkout option rather than a conversion lever. Second, the entry of card networks into instalment offers (Visa Instalments, Mastercard Instalment Solution) gave merchants a credible alternative they did not have in 2020. Third, regulatory disclosure requirements in the EU and UK have made merchant pricing more transparent, which mathematically pulls take-rates toward the low end of the published range.</p>
+
+<h2>Number 2: Vintage Curves and Reading Them Honestly</h2>
+<p>A vintage curve plots the cumulative net charge-off rate of all loans originated in a given month, as that cohort ages. It is the only honest way to read BNPL credit performance because the headline net-charge-off-to-receivables ratio is heavily distorted by the rapid growth of the receivables denominator.</p>
+
+<h3>What a Healthy Vintage Curve Looks Like</h3>
+<p>A healthy pay-in-four BNPL vintage curve peaks at a cumulative net charge-off rate between 1.5% and 3% of originated principal, reaches that peak between months 6 and 9 after origination, and then flattens. Curves that are still rising at month 12 are signalling either a deterioration in underwriting quality, an adverse merchant-mix shift, or a macroeconomic stress that is rolling through the consumer base.</p>
+
+<h3>What the 2025 Vintages Are Telling Us</h3>
+<p>The 2025 vintages disclosed across the public BNPL filings are showing two diverging patterns. The providers that aggressively expanded into longer-tenor (6-month and 12-month) instalment products are showing vintage curves that are 80–140 basis points above their pre-2024 baselines, with peak loss months pushing later. The providers that stayed disciplined on tenor mix are showing vintage curves broadly in line with their 2022 cohorts, despite the macro stress. The conclusion most risk analysts are drawing: tenor extension was a more aggressive credit-risk decision than the providers acknowledged at the time.</p>
+
+<h2>Number 3: Funding Cost and the Warehouse Spread</h2>
+<p>BNPL receivables are typically funded through a combination of equity, corporate debt, and warehouse facilities provided by commercial banks. The warehouse facility is the most important — it is the marginal funding source that scales with origination volume, and its cost is what actually moves unit economics quarter-to-quarter.</p>
+<p>In 2025 and into 2026, warehouse spreads for BNPL receivables widened by approximately 75–125 basis points relative to the 2022 baseline, despite the absolute risk-free rate falling. The wider spread reflects bank credit committees re-rating the asset class after the 2024 vintage stress, not a change in the underlying risk-free curve. For BNPL providers running thin contribution margins, a 100 bps widening on warehouse cost can be the difference between a profitable cohort and a loss-making one — which is exactly what we are seeing in the most recent disclosures.</p>
+
+<h2>Number 4: Merchant-Mix Concentration</h2>
+<p>The single most under-discussed risk in BNPL unit economics is merchant-mix concentration. A BNPL provider that derives more than 25% of origination volume from a single merchant category is structurally exposed to that category's consumer-stress profile. Apparel-heavy BNPL portfolios performed materially worse than electronics-heavy or travel-heavy portfolios through the 2024 stress because apparel consumers are disproportionately Gen Z and disproportionately income-stressed in a high-rate environment.</p>
+<p>The 2025 disclosures finally let analysts see merchant-category mix at a granular level for the listed BNPL providers. The two issuers with the most diversified merchant mix posted the cleanest vintage curves. The issuer with the most concentrated apparel and beauty exposure posted the worst. The pattern is too consistent to be coincidence and is the single most important data point for evaluating BNPL business-model durability into 2026.</p>
+
+<h2>What the Numbers Add Up To</h2>
+<p>The composite read across take-rate, vintage curves, funding cost, and merchant mix is that the BNPL business model works at scale only with three things: disciplined tenor mix, diversified merchant exposure, and a take-rate floor protected by either product differentiation (rewards, integrated banking) or scale advantages in underwriting data. Providers without all three are mathematically funding their growth with capital that the unit economics cannot pay back. The 2026 reporting cycle is likely to make that distinction visible to anyone willing to read the vintage tables instead of the press releases.</p>
+    `,
+  },
+  {
+    id: 13,
+    slug: "stablecoin-reserves-explained-read-an-attestation",
+    title: "Stablecoin Reserves Explained: How to Read an Attestation Like a Treasury Officer",
+    excerpt:
+      "Most stablecoin reserve coverage is either marketing fluff or technical noise. Here is how a corporate treasurer actually reads a stablecoin attestation — and the four red flags that separate a credible reserve from a structurally fragile one.",
+    category: "Crypto & Stablecoins",
+    image:
+      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
+    date: "2026-04-01",
+    readTime: "10 min read",
+    author: "Mei Tanaka",
+    authorRole: "Crypto & Stablecoins Correspondent",
+    tags: ["Stablecoins", "Crypto Regulation", "Tokenization", "Reserves", "Treasury"],
+    content: `
+<p>The single most important document in the stablecoin industry is the monthly reserve attestation. It is the only public artefact that lets external observers verify whether a stablecoin issuer is actually solvent on a given date. And yet most coverage of these documents — both in crypto-native media and in traditional finance press — treats them as marketing announcements rather than financial statements that need to be read with the same discipline a corporate treasurer applies to a money-market fund prospectus.</p>
+<p>This article is the framework I use, drawing on a treasury and digital-assets background, to read a stablecoin attestation. It walks through what an attestation actually is, what it is not, the four reserve-composition red flags that should change your view of a stablecoin's risk profile, and how the new MiCA and US stablecoin disclosure requirements have changed what good looks like in 2026.</p>
+
+<h2>What Is a Stablecoin Reserve Attestation?</h2>
+<p>A stablecoin reserve attestation is a report issued by an independent accounting firm confirming that, as of a specific date, the stablecoin issuer holds reserves of at least the dollar value of stablecoins in circulation. An attestation is not an audit. It is a point-in-time verification of asset balances against liability balances, conducted under attestation standards (AT-C 105 and AT-C 205 in the US), with materially less assurance than a full financial-statement audit conducted under generally accepted auditing standards.</p>
+<p>The practical implication is that an attestation tells you what was in the reserve account on the day the snapshot was taken. It does not tell you what was in the account the day before, or the day after, or whether the same dollars were also reported as reserves for another purpose. The reading discipline below is designed to extract every signal an attestation can legitimately give and to surface the questions it cannot answer.</p>
+
+<h2>The Four Reserve-Composition Red Flags</h2>
+
+<h3>1. Commercial Paper or Corporate Bonds in the Reserve</h3>
+<p>The strongest stablecoin reserves in 2026 are composed almost entirely of overnight repo collateralised by US Treasuries, T-bills with maturities under 90 days, and cash held at insured deposit institutions. Commercial paper, corporate bonds, and unsecured deposits at non-G-SIB banks introduce credit risk and liquidity risk that a fiat-backed stablecoin is structurally not supposed to carry. When you see commercial paper as a meaningful line in a reserve, ask why — the legitimate answers in 2026 are short and rare.</p>
+
+<h3>2. Maturity Concentration Beyond 90 Days</h3>
+<p>A stablecoin is a demand liability — it must be redeemable at par, on demand, in cash. Reserves with weighted-average maturities beyond 90 days introduce duration risk: in a rising-rate environment, the mark-to-market value of those reserves falls below the par value of the stablecoins they back. A weighted-average maturity disclosure of more than 90 days is a yellow flag. Beyond 180 days is a red flag for a large-circulation stablecoin.</p>
+
+<h3>3. Custody Concentration in a Single Counterparty</h3>
+<p>Read the custody section carefully. A reserve held entirely with a single custodian — even a globally systemic bank — is a single-point-of-failure exposure that the 2023 banking events made painfully concrete. The healthier reserve disclosures in 2026 show custody distributed across multiple G-SIBs, with a clearly stated minimum allocation per counterparty and a triggering event that mandates rebalancing.</p>
+
+<h3>4. Geographic and Regulatory Mismatch</h3>
+<p>Look for whether the legal entity issuing the stablecoin sits in the same jurisdiction as the bulk of its reserve assets and the bulk of its end-user redemptions. A stablecoin issued by a Caribbean entity, holding reserves in US banks, with the majority of its end-users redeeming through European exchanges, is exposed to a multi-jurisdictional bankruptcy waterfall that almost no end user has actually modelled. The MiCA-licensed issuers are increasingly resolving this by issuing through onshore EU entities; the US-onshore issuers under the new stablecoin framework are doing the same.</p>
+
+<h2>How to Read the Numbers Section in Five Minutes</h2>
+<p>A disciplined five-minute read of an attestation goes in this order. First, confirm the snapshot date and check it against the most recent disclosure date — gaps longer than 35 days suggest a delay that itself is a signal. Second, compare reserves to liabilities and confirm the surplus is at least 1% — a coverage ratio of exactly 100% leaves no margin for valuation movement. Third, scan the asset-composition table for the four red flags above. Fourth, read the footnotes for any qualifying language about subsequent events, legal proceedings, or restricted assets. Fifth, cross-check the issuer's reported stablecoin supply against the on-chain circulating supply on the chains the stablecoin is issued on — material differences are themselves a red flag.</p>
+
+<h2>What Has Changed Under MiCA and the US Framework</h2>
+<p>The 2024–2025 implementation of MiCA in the EU and the parallel US stablecoin legislation have raised the floor on what a credible reserve attestation looks like. EU-licensed e-money tokens (EMTs) and asset-referenced tokens (ARTs) must now publish quarterly attestations with prescribed asset-composition disclosure, weekly redemption-volume reporting, and a defined liquidity-buffer requirement. The US framework, finalised through the bipartisan stablecoin legislation passed in 2025, requires monthly attestations, an annual full audit, and explicit segregation of reserve assets from issuer operating capital.</p>
+<p>The practical effect is that the gap between the strongest and weakest stablecoin reserves is narrowing in regulated jurisdictions and widening relative to issuers that operate outside any of these frameworks. A treasurer holding a meaningful position in a stablecoin in 2026 should be reading the attestations every month, not every quarter — and should be reading them with the four red flags above in front of them, not the press release the issuer published alongside the document.</p>
+    `,
+  },
 ];
 
 export default posts;
