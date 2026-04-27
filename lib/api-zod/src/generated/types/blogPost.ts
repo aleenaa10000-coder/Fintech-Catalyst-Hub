@@ -23,4 +23,10 @@ export interface BlogPost {
   /** Auto-bumped on every edit via Drizzle's `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a "Last updated" indicator in the UI when materially newer than `publishedAt`.
    */
   updatedAt: Date;
+  /** Timestamp of the most recent successful IndexNow ping for this post (Bing/Yandex/Seznam/Naver). `null` when the post has never been successfully pinged (e.g. INDEXNOW_KEY was unset or the post predates this feature). Surface in the admin posts list as an "indexed N ago" badge.
+   */
+  lastSeoPingAt?: Date | null;
+  /** Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.
+   */
+  lastSeoPingStatus?: string | null;
 }

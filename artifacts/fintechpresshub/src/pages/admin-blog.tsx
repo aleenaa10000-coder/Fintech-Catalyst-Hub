@@ -141,6 +141,88 @@ function seoNotificationIsSuccess(seo: SeoNotification): boolean {
   return seo.indexNow.status === "accepted";
 }
 
+/**
+ * Render an absolute timestamp as a short relative-time string
+ * ("2 m ago", "3 h ago", "5 d ago"). Used by the per-post IndexNow
+ * badge so admins can spot stale posts at a glance. Falls back to a
+ * locale date for anything older than a week.
+ */
+function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return "unknown";
+  const diffMs = Date.now() - then;
+  if (diffMs < 0) return "just now";
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+/**
+ * Per-row badge in the admin posts list summarising the latest
+ * IndexNow ping for the post. Three visual states:
+ *   - green: pinged successfully (shows "indexed Nm ago")
+ *   - amber: last attempt failed/skipped (shows the status reason)
+ *   - gray: never pinged (post predates the feature OR INDEXNOW_KEY
+ *     was unset at publish time)
+ *
+ * Title attribute carries the full status string for hover details.
+ */
+function SeoStatusBadge({
+  pingedAt,
+  status,
+}: {
+  pingedAt: string | null | undefined;
+  status: string | null | undefined;
+}) {
+  if (pingedAt) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-800"
+        title={`IndexNow accepted at ${new Date(pingedAt).toLocaleString()}`}
+      >
+        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-green-600" />
+        indexed {formatRelativeTime(pingedAt)}
+      </span>
+    );
+  }
+  if (status && status !== "accepted") {
+    const label =
+      status === "skipped_no_key"
+        ? "no INDEXNOW_KEY"
+        : status === "skipped_malformed_key"
+          ? "bad INDEXNOW_KEY"
+          : status === "rejected"
+            ? "ping rejected"
+            : status === "error"
+              ? "ping errored"
+              : status;
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800"
+        title={`Last IndexNow attempt status: ${status}`}
+      >
+        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-600" />
+        {label}
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700"
+      title="This post has never been submitted to IndexNow. Edit & save it to ping search engines now."
+    >
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+      not indexed
+    </span>
+  );
+}
+
 async function presignAndUpload(file: {
   name: string;
   size: number;
@@ -926,6 +1008,12 @@ export default function AdminBlog() {
                           slug: <code>{p.slug}</code> · {p.category} ·{" "}
                           {new Date(p.publishedAt).toLocaleDateString()}
                           {p.featured ? " · ★ featured" : ""}
+                        </div>
+                        <div className="mt-2">
+                          <SeoStatusBadge
+                            pingedAt={p.lastSeoPingAt}
+                            status={p.lastSeoPingStatus}
+                          />
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">

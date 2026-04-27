@@ -127,6 +127,18 @@ export const ListBlogPostsResponseItem = zod.object({
     .describe(
       'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
     ),
+  lastSeoPingAt: zod.coerce
+    .date()
+    .nullish()
+    .describe(
+      'Timestamp of the most recent successful IndexNow ping for this post (Bing\/Yandex\/Seznam\/Naver). `null` when the post has never been successfully pinged (e.g. INDEXNOW_KEY was unset or the post predates this feature). Surface in the admin posts list as an \"indexed N ago\" badge.\n',
+    ),
+  lastSeoPingStatus: zod
+    .string()
+    .nullish()
+    .describe(
+      "Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.\n",
+    ),
 });
 export const ListBlogPostsResponse = zod.array(ListBlogPostsResponseItem);
 
@@ -187,6 +199,18 @@ export const GetBlogPostResponse = zod.object({
     .describe(
       'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
     ),
+  lastSeoPingAt: zod.coerce
+    .date()
+    .nullish()
+    .describe(
+      'Timestamp of the most recent successful IndexNow ping for this post (Bing\/Yandex\/Seznam\/Naver). `null` when the post has never been successfully pinged (e.g. INDEXNOW_KEY was unset or the post predates this feature). Surface in the admin posts list as an \"indexed N ago\" badge.\n',
+    ),
+  lastSeoPingStatus: zod
+    .string()
+    .nullish()
+    .describe(
+      "Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.\n",
+    ),
 });
 
 /**
@@ -238,6 +262,18 @@ export const UpdateBlogPostResponse = zod
       .date()
       .describe(
         'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
+      ),
+    lastSeoPingAt: zod.coerce
+      .date()
+      .nullish()
+      .describe(
+        'Timestamp of the most recent successful IndexNow ping for this post (Bing\/Yandex\/Seznam\/Naver). `null` when the post has never been successfully pinged (e.g. INDEXNOW_KEY was unset or the post predates this feature). Surface in the admin posts list as an \"indexed N ago\" badge.\n',
+      ),
+    lastSeoPingStatus: zod
+      .string()
+      .nullish()
+      .describe(
+        "Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.\n",
       ),
   })
   .and(
@@ -307,6 +343,18 @@ export const ListFeaturedPostsResponseItem = zod.object({
     .date()
     .describe(
       'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
+    ),
+  lastSeoPingAt: zod.coerce
+    .date()
+    .nullish()
+    .describe(
+      'Timestamp of the most recent successful IndexNow ping for this post (Bing\/Yandex\/Seznam\/Naver). `null` when the post has never been successfully pinged (e.g. INDEXNOW_KEY was unset or the post predates this feature). Surface in the admin posts list as an \"indexed N ago\" badge.\n',
+    ),
+  lastSeoPingStatus: zod
+    .string()
+    .nullish()
+    .describe(
+      "Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.\n",
     ),
 });
 export const ListFeaturedPostsResponse = zod.array(

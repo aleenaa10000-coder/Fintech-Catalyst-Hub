@@ -87,7 +87,41 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
     featured: row.featured,
     publishedAt: row.publishedAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    lastSeoPingAt: row.lastSeoPingAt ? row.lastSeoPingAt.toISOString() : null,
+    lastSeoPingStatus: row.lastSeoPingStatus ?? null,
   };
+}
+
+/**
+ * Persist the IndexNow ping outcome on the blog post row so the admin
+ * UI can show a per-post "indexed N ago" badge. Fire-and-forget — a
+ * write failure here is non-fatal; we just log and move on.
+ */
+async function recordSeoPing(
+  slug: string,
+  notification: SeoNotificationResult,
+): Promise<typeof blogPostsTable.$inferSelect | null> {
+  const status = notification.indexNow.status;
+  const set: Partial<typeof blogPostsTable.$inferInsert> = {
+    lastSeoPingStatus: status,
+  };
+  // Only bump the timestamp on a real successful ping. Failures and
+  // skipped runs still update the status string so the admin can see
+  // *why* the badge shows "never indexed".
+  if (status === "accepted") {
+    set.lastSeoPingAt = new Date();
+  }
+  try {
+    const [row] = await db
+      .update(blogPostsTable)
+      .set(set)
+      .where(eq(blogPostsTable.slug, slug))
+      .returning();
+    return row ?? null;
+  } catch (err) {
+    logger.error({ err, slug }, "Failed to persist SEO ping outcome");
+    return null;
+  }
 }
 
 function serializeWithSeo(
@@ -216,7 +250,8 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
       };
     }
 
-    res.status(201).json(serializeWithSeo(row, seoNotification));
+    const updatedRow = await recordSeoPing(row.slug, seoNotification);
+    res.status(201).json(serializeWithSeo(updatedRow ?? row, seoNotification));
   } catch (err) {
     if (err instanceof z.ZodError) {
       res.status(400).json({ error: "Invalid body", issues: err.issues });
@@ -284,7 +319,8 @@ router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
       };
     }
 
-    res.json(serializeWithSeo(row, seoNotification));
+    const updatedRow = await recordSeoPing(row.slug, seoNotification);
+    res.json(serializeWithSeo(updatedRow ?? row, seoNotification));
   } catch (err) {
     if (err instanceof z.ZodError) {
       res.status(400).json({ error: "Invalid body", issues: err.issues });

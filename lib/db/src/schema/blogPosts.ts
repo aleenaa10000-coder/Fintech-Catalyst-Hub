@@ -21,6 +21,12 @@ export const blogPostsTable = pgTable("blog_posts", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
+  // Last successful IndexNow ping for this post. Set whenever the
+  // publish/update endpoints get an "accepted" response from IndexNow,
+  // so the admin posts list can show a per-row "indexed N minutes ago"
+  // badge and surface stale posts that need a manual re-ping.
+  lastSeoPingAt: timestamp("last_seo_ping_at", { withTimezone: true }),
+  lastSeoPingStatus: text("last_seo_ping_status"),
 });
 
 export type BlogPostRow = typeof blogPostsTable.$inferSelect;
