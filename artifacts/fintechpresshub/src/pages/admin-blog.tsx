@@ -63,6 +63,7 @@ import {
   ScrollText,
   ClipboardCopy,
   Bell,
+  Inbox,
   Send as SendIcon,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
@@ -2611,6 +2612,16 @@ export default function AdminBlog() {
             >
               <a href="/admin/notifications">
                 <Bell className="w-4 h-4 mr-1.5" /> Notifications
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              data-testid="open-moderation"
+            >
+              <a href="/admin/moderation">
+                <Inbox className="w-4 h-4 mr-1.5" /> Submissions
               </a>
             </Button>
             <span className="text-muted-foreground">
