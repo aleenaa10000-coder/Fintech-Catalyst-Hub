@@ -228,7 +228,7 @@ async function seed() {
 <p>Wrap your content in structured data. Make sure your brand is on Wikidata, Crunchbase, and the major fintech databases. Get your founders quoted in tier-one finance publications. These are the entity signals that turn a website into a known brand inside Google's knowledge graph.</p>
 <h2>Putting It Into Practice</h2>
 <p>Take this playbook back to your team. Audit your current program against the four pillars. Wherever you're weakest is where you should invest first — and the order matters less than the consistency you bring to executing it over the next 12 months.</p>`,
-      author: "Elena Marsh",
+      author: "Marcus Webb",
       authorRole: "Head of SEO Strategy",
       category: "SEO Strategy",
       tags: ["SEO", "Fintech", "Strategy", "Topical Authority"],
@@ -279,8 +279,8 @@ async function seed() {
         "Owning a category in search is a strategy, not a content quota. Here's the topical map we build for every fintech client before we publish a single article.",
       content:
         "Topical authority is the most under-rated SEO concept of the last five years — and the most powerful in regulated verticals. In this article we walk through how to map every entity, sub-topic, and intent inside a fintech category, how to architect a pillar-and-cluster system around it, and how to sequence production so internal linking compounds from week one. The same framework has taken clients from non-existent in their category to top-three rankings on more than 200 commercial keywords inside a single year.",
-      author: "Elena Marsh",
-      authorRole: "Head of SEO Strategy",
+      author: "Naledi Khumalo",
+      authorRole: "Director of Content Strategy",
       category: "SEO Strategy",
       tags: ["Topical Authority", "Strategy", "Pillar Pages"],
       coverImage:
@@ -313,8 +313,8 @@ async function seed() {
         "The best fintech content lives at the intersection of legal, brand, and growth. Here's how our editorial team ships work all three teams sign off on.",
       content:
         "Most fintechs lose weeks every quarter to compliance review cycles that could have been avoided in the brief. In this guide, our editorial leadership walks through the briefing system we use to align legal, brand, and growth before a single word is written. You'll see the disclaimer library we maintain, the claim-substantiation checklist we ship with every draft, and the redline workflow we use to keep cycle times under five business days even on regulated topics like lending, crypto, and investment products.",
-      author: "Hannah Liu",
-      authorRole: "Editorial Director",
+      author: "Aisha Mensah",
+      authorRole: "Compliance & Regtech Editor",
       category: "Editorial",
       tags: ["Compliance", "Editorial", "Process"],
       coverImage:
@@ -347,7 +347,7 @@ async function seed() {
         "AI-assisted content isn't a death sentence for rankings — but unedited AI sludge is. Here's where we draw the line in our editorial process.",
       content:
         "There is a lot of fear and a lot of hype about AI content in regulated verticals like fintech. In this article, we share the editorial policy our team uses internally — what we let AI assist with, what we never let it touch, and the human review checkpoints that keep our work safely on the right side of Google's helpful content guidance. We also include the disclosure framework we recommend clients adopt to future-proof against likely regulatory changes in 2026 and beyond.",
-      author: "Elena Marsh",
+      author: "Marcus Webb",
       authorRole: "Head of SEO Strategy",
       category: "SEO Strategy",
       tags: ["AI Content", "Google Updates", "Editorial Policy"],
