@@ -394,6 +394,16 @@ function ProbeUrlButton({ post }: { post: BlogPost }) {
  *  whatever upstream CDN is in front of the live site. */
 const BULK_PROBE_CONCURRENCY = 6;
 
+/** localStorage key for the persisted bulk-probe summary. The `:v1`
+ *  suffix lets us bump the schema if the shape changes without
+ *  surprising users with corrupt JSON. */
+const BULK_PROBE_STORAGE_KEY = "fph:admin:bulkProbeSummary:v1";
+
+/** Persisted summaries older than this are dropped on load. Past a day
+ *  the data is too stale to act on — a deploy or content change in the
+ *  meantime would silently invalidate every chip. */
+const BULK_PROBE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
 interface BulkProbeRowResult {
   post: BlogPost;
   /** Null when the request itself rejected (network/auth/server 500). */
@@ -409,6 +419,46 @@ interface BulkProbeSummary {
 }
 
 /**
+ * Read the persisted summary, dropping anything malformed or older than
+ * BULK_PROBE_MAX_AGE_MS. Runs synchronously inside a useState initializer
+ * so the strip flashes back into view on the first render after reload
+ * instead of after an effect tick.
+ */
+function loadStoredBulkProbeSummary(): BulkProbeSummary | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(BULK_PROBE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as BulkProbeSummary | null;
+    if (!parsed || typeof parsed !== "object") return null;
+    if (
+      typeof parsed.okCount !== "number" ||
+      typeof parsed.brokenCount !== "number" ||
+      typeof parsed.total !== "number" ||
+      typeof parsed.ranAt !== "string" ||
+      !Array.isArray(parsed.broken)
+    ) {
+      return null;
+    }
+    const ranAtMs = Date.parse(parsed.ranAt);
+    if (!Number.isFinite(ranAtMs)) return null;
+    if (Date.now() - ranAtMs > BULK_PROBE_MAX_AGE_MS) {
+      window.localStorage.removeItem(BULK_PROBE_STORAGE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    // Corrupt JSON / quota errors / privacy mode — clear and start fresh.
+    try {
+      window.localStorage.removeItem(BULK_PROBE_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+}
+
+/**
  * "Probe all live URLs" — fires the single-URL spot-check against every
  * currently-rendered post in parallel (capped concurrency) and shows a
  * summary strip with clickable chips for any URL that came back broken.
@@ -421,7 +471,31 @@ function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
     done: number;
     total: number;
   } | null>(null);
-  const [summary, setSummary] = useState<BulkProbeSummary | null>(null);
+  // Hydrate from localStorage synchronously so the strip is visible on
+  // first paint after a reload — admins picking back up a session don't
+  // have to re-run the sweep just to see what was broken.
+  const [summary, setSummary] = useState<BulkProbeSummary | null>(
+    loadStoredBulkProbeSummary,
+  );
+
+  // Mirror summary state to localStorage. Removing the key on dismiss
+  // (summary === null) keeps the storage tidy and ensures a clean slate
+  // for the next session.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (summary) {
+        window.localStorage.setItem(
+          BULK_PROBE_STORAGE_KEY,
+          JSON.stringify(summary),
+        );
+      } else {
+        window.localStorage.removeItem(BULK_PROBE_STORAGE_KEY);
+      }
+    } catch {
+      // Quota or privacy mode — non-fatal, just lose the persistence.
+    }
+  }, [summary]);
 
   const runAll = async () => {
     if (posts.length === 0 || progress !== null) return;
