@@ -22,7 +22,7 @@ async function seed() {
       name: "Fintech Content Writing",
       tagline: "Long-form articles written by analysts who understand finance.",
       description:
-        "Editorial-grade blog posts, white papers, and pillar pages crafted by writers with backgrounds in banking, payments, lending, crypto, and wealth tech. Every piece is built on original research, mapped to high-intent search queries, and edited by a senior reviewer before it ships.",
+        "Editorial-grade blog posts, white papers, and pillar pages crafted by writers with backgrounds in banking, payments, lending, and wealth tech. Every piece is built on original research, mapped to high-intent search queries, and edited by a senior reviewer before it ships.",
       deliverables: [
         "Topic and keyword research mapped to your funnel",
         "1,500–3,500 word SEO-optimized articles",
@@ -216,7 +216,7 @@ async function seed() {
 <h3>The keyword overlap problem</h3>
 <p>Half your target queries are also targeted by Forbes, NerdWallet, and Investopedia — sites with decades of authority and full-time editorial teams. You cannot out-content them with thin posts. You have to out-specialize them.</p>
 <h2>Pillar 1: Topical Authority</h2>
-<p>Pick a sub-vertical narrow enough that you can credibly own it: B2B payouts, embedded lending, RIA tech, crypto custody. Then build a content cluster that covers <strong>every</strong> meaningful query in that sub-vertical.</p>
+<p>Pick a sub-vertical narrow enough that you can credibly own it: B2B payouts, embedded lending, RIA tech, payments orchestration. Then build a content cluster that covers <strong>every</strong> meaningful query in that sub-vertical.</p>
 <blockquote>The brands that win fintech SEO in 2026 aren't the ones that publish the most — they're the ones that publish the most about a single, defensible topic.</blockquote>
 <h2>Pillar 2: Editorial-Grade Content</h2>
 <p>Hire writers with actual operating experience. A former credit analyst writing about underwriting will out-rank a generalist freelancer every single time, because the depth shows up in the entities, the examples, and the structured data Google extracts from the page.</p>
@@ -312,7 +312,7 @@ async function seed() {
       excerpt:
         "The best fintech content lives at the intersection of legal, brand, and growth. Here's how our editorial team ships work all three teams sign off on.",
       content:
-        "Most fintechs lose weeks every quarter to compliance review cycles that could have been avoided in the brief. In this guide, our editorial leadership walks through the briefing system we use to align legal, brand, and growth before a single word is written. You'll see the disclaimer library we maintain, the claim-substantiation checklist we ship with every draft, and the redline workflow we use to keep cycle times under five business days even on regulated topics like lending, crypto, and investment products.",
+        "Most fintechs lose weeks every quarter to compliance review cycles that could have been avoided in the brief. In this guide, our editorial leadership walks through the briefing system we use to align legal, brand, and growth before a single word is written. You'll see the disclaimer library we maintain, the claim-substantiation checklist we ship with every draft, and the redline workflow we use to keep cycle times under five business days even on regulated topics like lending, payments, and investment products.",
       author: "Aisha Mensah",
       authorRole: "Compliance & Regtech Editor",
       category: "Editorial",

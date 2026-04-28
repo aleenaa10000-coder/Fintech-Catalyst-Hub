@@ -41,7 +41,7 @@ const valuesData: CoreValue[] = [
 ];
 
 const aboutDescription =
-  "FintechPressHub is a specialist fintech digital marketing agency. We pair senior content strategists with experienced fintech writers, technical SEO operators, and digital PR leads to build defensible organic growth engines for payments, lending, banking infrastructure, wealth tech, and crypto-adjacent companies.";
+  "FintechPressHub is a specialist fintech digital marketing agency. We pair senior content strategists with experienced fintech writers, technical SEO operators, and digital PR leads to build defensible organic growth engines for payments, lending, banking infrastructure, and wealth tech companies.";
 
 const aboutSlogan = "Bridging fintech expertise and search visibility.";
 

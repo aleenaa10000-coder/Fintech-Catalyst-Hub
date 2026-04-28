@@ -101,7 +101,7 @@ export const HOME_FAQS = [
   {
     question: "How is FintechPressHub different from a generalist SEO agency?",
     answer:
-      "We work exclusively with fintech, payments, lending, wealth, banking infrastructure, and crypto-adjacent companies. Every writer, editor, and outreach lead has direct fintech experience — no generalists ramping up on your account. That focus is also why our publication relationships skew toward Finextra, The Fintech Times, Tearsheet, Finovate, and similar tier-1 trade press your buyers actually read.",
+      "We work exclusively with fintech, payments, lending, wealth, and banking infrastructure companies. Every writer, editor, and outreach lead has direct fintech experience — no generalists ramping up on your account. That focus is also why our publication relationships skew toward Finextra, The Fintech Times, Tearsheet, Finovate, and similar tier-1 trade press your buyers actually read.",
   },
   {
     question: "What kinds of fintech companies do you typically work with?",
@@ -144,7 +144,7 @@ export const PRICING_FAQS = [
   {
     question: "Do you only work with fintech companies?",
     answer:
-      "Yes. We work exclusively with fintech, payments, lending, wealth, banking infrastructure, and crypto-adjacent companies. That focus is what lets our writers and link builders deliver work that meets compliance, accuracy, and E-E-A-T standards Google rewards in YMYL verticals.",
+      "Yes. We work exclusively with fintech, payments, lending, wealth, and banking infrastructure companies. That focus is what lets our writers and link builders deliver work that meets compliance, accuracy, and E-E-A-T standards Google rewards in YMYL verticals.",
   },
   {
     question: "What is included in a content piece?",
@@ -189,7 +189,7 @@ export const CONTACT_FAQS = [
 
 export const ABOUT_PAGE = {
   description:
-    "FintechPressHub is a specialist fintech digital marketing agency. We pair senior content strategists with experienced fintech writers, technical SEO operators, and digital PR leads to build defensible organic growth engines for payments, lending, banking infrastructure, wealth tech, and crypto-adjacent companies.",
+    "FintechPressHub is a specialist fintech digital marketing agency. We pair senior content strategists with experienced fintech writers, technical SEO operators, and digital PR leads to build defensible organic growth engines for payments, lending, banking infrastructure, and wealth tech companies.",
   slogan: "Bridging fintech expertise and search visibility.",
   knowsAbout: [
     "Fintech SEO",
@@ -213,7 +213,7 @@ export const SERVICE_FAQS = {
     {
       question: "Who actually writes the articles?",
       answer:
-        "Senior writers with backgrounds in banking, payments, lending, crypto, or wealth tech — never generalist freelancers. Every brief is scoped by a fintech editor, drafted by a domain writer, and reviewed by a senior editor before it ships.",
+        "Senior writers with backgrounds in banking, payments, lending, or wealth tech — never generalist freelancers. Every brief is scoped by a fintech editor, drafted by a domain writer, and reviewed by a senior editor before it ships.",
     },
     {
       question:
@@ -285,7 +285,7 @@ export const SERVICE_FAQS = {
     {
       question: "Which sub-verticals do you cover?",
       answer:
-        "We've shipped topical maps for embedded finance, BNPL, payments orchestration, B2B lending, neobanking, wealth tech, RegTech, crypto on/off-ramps, and SMB banking. If you operate in fintech, we can build a topical map for your category.",
+        "We've shipped topical maps for embedded finance, BNPL, payments orchestration, B2B lending, neobanking, wealth tech, RegTech, and SMB banking. If you operate in fintech, we can build a topical map for your category.",
     },
     {
       question: "How is this different from buying a content retainer?",

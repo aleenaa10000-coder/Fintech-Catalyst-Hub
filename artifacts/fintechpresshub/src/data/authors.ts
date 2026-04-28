@@ -191,7 +191,7 @@ export const authors: Author[] = [
     shortBio:
       "Lawyer-turned-content-strategist who makes KYC, AML, and regulatory marketing actually rank — without losing the legal nuance compliance teams demand.",
     fullBio: [
-      "Aisha leads coverage of compliance, regtech, and regulatory marketing at FintechPressHub. She trained as a financial-services lawyer in Toronto and spent four years at a global law firm advising challenger banks, money-services businesses, and crypto-asset platforms before pivoting into content strategy for the regtech vendors she used to brief.",
+      "Aisha leads coverage of compliance, regtech, and regulatory marketing at FintechPressHub. She trained as a financial-services lawyer in Toronto and spent four years at a global law firm advising challenger banks, money-services businesses, and payments companies before pivoting into content strategy for the regtech vendors she used to brief.",
       "She specializes in the editorial problem most fintech marketing teams quietly fail at: producing content on KYC, AML, sanctions screening, and consumer-protection rules that satisfies both Google and a real compliance officer's red-pen review. Her review framework is now used by content leads at three publicly traded regtech vendors.",
       "Aisha sits on the editorial board of a Canadian fintech association and runs a private Slack community for compliance marketers across the EU, UK, US, and Canada.",
     ],

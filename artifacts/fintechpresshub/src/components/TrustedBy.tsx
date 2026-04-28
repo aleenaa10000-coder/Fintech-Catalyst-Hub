@@ -1,9 +1,9 @@
-import { Landmark, CircleDollarSign, Bitcoin, Wallet, ShieldCheck, LineChart } from "lucide-react";
+import { Landmark, CircleDollarSign, Building2, Wallet, ShieldCheck, LineChart } from "lucide-react";
 
 const logos = [
   { name: "NorthVault", Icon: Landmark },
   { name: "PaySphere", Icon: CircleDollarSign },
-  { name: "ChainBlock", Icon: Bitcoin },
+  { name: "LedgerOne", Icon: Building2 },
   { name: "Walletly", Icon: Wallet },
   { name: "SafeFi", Icon: ShieldCheck },
   { name: "QuantEdge", Icon: LineChart },

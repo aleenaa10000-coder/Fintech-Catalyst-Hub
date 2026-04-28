@@ -33,7 +33,7 @@ const faqs = [
   },
   {
     q: "Do you only work with fintech companies?",
-    a: "Yes. We work exclusively with fintech, payments, lending, wealth, banking infrastructure, and crypto-adjacent companies. That focus is what lets our writers and link builders deliver work that meets compliance, accuracy, and E-E-A-T standards Google rewards in YMYL verticals.",
+    a: "Yes. We work exclusively with fintech, payments, lending, wealth, and banking infrastructure companies. That focus is what lets our writers and link builders deliver work that meets compliance, accuracy, and E-E-A-T standards Google rewards in YMYL verticals.",
   },
   {
     q: "What is included in a content piece?",

@@ -5,7 +5,7 @@ export const serviceFaqsBySlug: Record<string, ServiceFaq[]> = {
     {
       question: "Who actually writes the articles?",
       answer:
-        "Senior writers with backgrounds in banking, payments, lending, crypto, or wealth tech — never generalist freelancers. Every brief is scoped by a fintech editor, drafted by a domain writer, and reviewed by a senior editor before it ships.",
+        "Senior writers with backgrounds in banking, payments, lending, or wealth tech — never generalist freelancers. Every brief is scoped by a fintech editor, drafted by a domain writer, and reviewed by a senior editor before it ships.",
     },
     {
       question: "How long are the articles, and how many do I get per month?",
@@ -76,7 +76,7 @@ export const serviceFaqsBySlug: Record<string, ServiceFaq[]> = {
     {
       question: "Which sub-verticals do you cover?",
       answer:
-        "We've shipped topical maps for embedded finance, BNPL, payments orchestration, B2B lending, neobanking, wealth tech, RegTech, crypto on/off-ramps, and SMB banking. If you operate in fintech, we can build a topical map for your category.",
+        "We've shipped topical maps for embedded finance, BNPL, payments orchestration, B2B lending, neobanking, wealth tech, RegTech, and SMB banking. If you operate in fintech, we can build a topical map for your category.",
     },
     {
       question: "How is this different from buying a content retainer?",
