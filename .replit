@@ -25,12 +25,12 @@ name = "Start application"
 author = "agent"
 
 [workflows.workflow.metadata]
-outputType = "webview"
+outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=8080 BASE_PATH=/ pnpm --filter @workspace/api-server run dev & PORT=5000 BASE_PATH=/ API_PROXY_TARGET=http://127.0.0.1:8080 pnpm --filter @workspace/fintechpresshub run dev"
-waitForPort = 5000
+args = "PORT=8080 BASE_PATH=/ pnpm --filter @workspace/api-server run dev & PORT=21096 BASE_PATH=/ pnpm --filter @workspace/fintechpresshub run dev"
+waitForPort = 21096
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
