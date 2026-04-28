@@ -35,6 +35,7 @@ import AdminNewsletter from "@/pages/admin-newsletter";
 import AdminModeration from "@/pages/admin-moderation";
 import AdminAuditLog from "@/pages/admin-audit-log";
 import AdminNotifications from "@/pages/admin-notifications";
+import AdminDashboard from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -82,6 +83,7 @@ function Router() {
             path="/tools/financial-health-score-calculator"
             component={FinancialHealthScoreCalculator}
           />
+          <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/login" component={AdminLogin} />
           <Route path="/admin/services" component={AdminServices} />
           <Route path="/admin/blog" component={AdminBlog} />

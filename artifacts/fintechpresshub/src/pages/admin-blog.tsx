@@ -65,6 +65,7 @@ import {
   Bell,
   Inbox,
   Send as SendIcon,
+  LayoutDashboard,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -2594,6 +2595,15 @@ export default function AdminBlog() {
           </div>
           <div className="flex items-center gap-3 text-sm">
             <HealthBadge />
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+            >
+              <a href="/admin">
+                <LayoutDashboard className="w-4 h-4 mr-1.5" /> Dashboard
+              </a>
+            </Button>
             <Button
               asChild
               variant="outline"

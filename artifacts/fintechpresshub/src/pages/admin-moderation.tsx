@@ -357,10 +357,10 @@ export default function AdminModeration() {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
             <Link
-              href="/admin/blog"
+              href="/admin"
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-2 transition-colors"
             >
-              <ArrowLeft className="w-3 h-3" /> Back to admin
+              <ArrowLeft className="w-3 h-3" /> Back to dashboard
             </Link>
             <div className="text-xs uppercase tracking-wider text-[#0052FF] font-semibold mb-1">
               Moderation inbox
