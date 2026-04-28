@@ -233,11 +233,11 @@ Recurring summary post that mirrors a daily traffic/publishing digest email into
 
 ## Author roster cap
 
-`authors.ts` now exports `MAX_AUTHORS = 12` and asserts at module load that `authors.length <= MAX_AUTHORS`. The roster is currently exactly 12 (the 12 launch authors). Adding a 13th will throw a clear build-time error pointing future contributors at the masthead/grid layouts that need updating before the cap can be raised. No data was removed — the count was already at the cap.
+`authors.ts` exports `MAX_AUTHORS = 20` and asserts at module load that `authors.length <= MAX_AUTHORS`. The roster is currently 11. The cap is now an upper sanity bound (catches duplicate / copy-paste mistakes during onboarding) rather than a layout constraint — masthead, author archive, and admin author dropdown all use responsive grids, so the count can grow up to 20 without UI changes. The error message points future contributors at the per-author monthly publishing quota in `admin-blog.tsx` to review commissioning load before raising the cap further.
 
 ## Per-author monthly publishing quota
 
-Editorial-calendar guardrail in `artifacts/fintechpresshub/src/pages/admin-blog.tsx` that surfaces — but does not block — when an author is approaching or over the per-month posting cap, so commissioning stays balanced across the 12-author masthead.
+Editorial-calendar guardrail in `artifacts/fintechpresshub/src/pages/admin-blog.tsx` that surfaces — but does not block — when an author is approaching or over the per-month posting cap, so commissioning stays balanced across the masthead.
 
 - **Constant** — `MAX_POSTS_PER_AUTHOR_PER_MONTH = 3`. Single source of truth read by the dropdown badges, inline form warnings, and dashboard summary card.
 - **Computation** — `computeAuthorMonthlyUsage(posts)` buckets the in-memory `BlogPost[]` by `author` for the current calendar month using each post's `publishedAt` (not `updatedAt`, so editing legacy posts never surprises the admin). Returns a `Map<authorName, number>` so author-select renders are O(1) per row.

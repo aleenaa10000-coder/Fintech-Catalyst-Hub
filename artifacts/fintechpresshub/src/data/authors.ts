@@ -383,21 +383,23 @@ export const authors: Author[] = [
   },
 ];
 
-// Hard cap on the size of the author roster. The blog UI is designed
-// around an 11-author masthead, the author dropdown in the admin editor
-// uses a single-screen list, and the author archive page assumes a
-// fixed-size grid. Growing the roster should be a deliberate product
-// decision that updates the layouts — not something that quietly slips
-// in via a PR. Enforced here so a future contributor adding to the array
-// trips a build-time error instead of shipping an off-grid roster to
-// production.
-export const MAX_AUTHORS = 11;
+// Upper sanity bound on the size of the author roster. The masthead,
+// author archive, and admin author dropdown all use responsive grids /
+// scrollable lists, so adding contributors won't break layout — but
+// hiring beyond this cap should still be a deliberate decision that
+// triggers a review of the per-author monthly publishing quota
+// (`MAX_POSTS_PER_AUTHOR_PER_MONTH` in admin-blog.tsx) and the
+// commissioning workload distribution. Enforced here so accidental
+// duplicates or copy-paste mistakes during onboarding trip a
+// build-time error instead of silently bloating the roster.
+export const MAX_AUTHORS = 20;
 
 if (authors.length > MAX_AUTHORS) {
   throw new Error(
     `[authors] roster exceeds the ${MAX_AUTHORS}-author cap (got ${authors.length}). ` +
-      `Remove an entry, or update MAX_AUTHORS together with the masthead/grid layouts in ` +
-      `blog.tsx and the author archive page before raising the limit.`,
+      `Either remove an entry, or — if the team really has grown past ${MAX_AUTHORS} — ` +
+      `bump MAX_AUTHORS after reviewing commissioning load and the per-author monthly ` +
+      `publishing quota in admin-blog.tsx.`,
   );
 }
 
