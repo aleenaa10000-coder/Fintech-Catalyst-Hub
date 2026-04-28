@@ -1017,7 +1017,25 @@ components:
       properties:
         status:
           type: string
-      required: [status]
+          enum: [ok, degraded]
+        db:
+          type: object
+          properties:
+            ok:
+              type: boolean
+            latencyMs:
+              type: integer
+              minimum: 0
+            error:
+              type: string
+          required: [ok, latencyMs]
+        uptimeSeconds:
+          type: integer
+          minimum: 0
+        checkedAt:
+          type: string
+          format: date-time
+      required: [status, db, uptimeSeconds, checkedAt]
 
     BlogPost:
       type: object

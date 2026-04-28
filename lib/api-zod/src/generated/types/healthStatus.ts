@@ -5,7 +5,13 @@
  * FintechPressHub API
  * OpenAPI spec version: 0.1.0
  */
+import type { HealthStatusDb } from "./healthStatusDb";
+import type { HealthStatusStatus } from "./healthStatusStatus";
 
 export interface HealthStatus {
-  status: string;
+  status: HealthStatusStatus;
+  db: HealthStatusDb;
+  /** @minimum 0 */
+  uptimeSeconds: number;
+  checkedAt: Date;
 }

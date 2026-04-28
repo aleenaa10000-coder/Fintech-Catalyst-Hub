@@ -56,8 +56,27 @@ export interface ErrorEnvelope {
   error: string;
 }
 
+export type HealthStatusStatus =
+  (typeof HealthStatusStatus)[keyof typeof HealthStatusStatus];
+
+export const HealthStatusStatus = {
+  ok: "ok",
+  degraded: "degraded",
+} as const;
+
+export type HealthStatusDb = {
+  ok: boolean;
+  /** @minimum 0 */
+  latencyMs: number;
+  error?: string;
+};
+
 export interface HealthStatus {
-  status: string;
+  status: HealthStatusStatus;
+  db: HealthStatusDb;
+  /** @minimum 0 */
+  uptimeSeconds: number;
+  checkedAt: string;
 }
 
 export interface BlogPost {

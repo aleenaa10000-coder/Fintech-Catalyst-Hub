@@ -38,6 +38,8 @@ export * from "./guestPostSubmission";
 export * from "./guestPostSubmissionInput";
 export * from "./handleBrowserLoginCallbackParams";
 export * from "./healthStatus";
+export * from "./healthStatusDb";
+export * from "./healthStatusStatus";
 export * from "./linkCheckResult";
 export * from "./listBlogPostsParams";
 export * from "./logoutSuccess";

@@ -136,8 +136,19 @@ export const LogoutAdminSessionResponse = zod.object({
 /**
  * @summary Health check
  */
+export const healthCheckResponseDbLatencyMsMin = 0;
+
+export const healthCheckResponseUptimeSecondsMin = 0;
+
 export const HealthCheckResponse = zod.object({
-  status: zod.string(),
+  status: zod.enum(["ok", "degraded"]),
+  db: zod.object({
+    ok: zod.boolean(),
+    latencyMs: zod.number().min(healthCheckResponseDbLatencyMsMin),
+    error: zod.string().optional(),
+  }),
+  uptimeSeconds: zod.number().min(healthCheckResponseUptimeSecondsMin),
+  checkedAt: zod.coerce.date(),
 });
 
 /**

@@ -70,6 +70,7 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, UserPlus } from "lucide-react";
 import { authors, type Author } from "@/data/authors";
+import { HealthBadge } from "@/components/HealthBadge";
 
 const GUEST_AUTHOR_VALUE = "__guest__";
 
@@ -2415,6 +2416,7 @@ export default function AdminBlog() {
             </p>
           </div>
           <div className="flex items-center gap-3 text-sm">
+            <HealthBadge />
             <span className="text-muted-foreground">
               Signed in as{" "}
               <strong className="text-foreground">
