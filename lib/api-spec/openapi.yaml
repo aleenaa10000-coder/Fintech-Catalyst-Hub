@@ -446,6 +446,112 @@ paths:
         "404":
           description: Not found
 
+  /admin/notifications/settings:
+    get:
+      operationId: getNotificationSettings
+      tags: [notifications]
+      summary: Get Slack webhook notification settings (admin)
+      description: |
+        Returns whether a Slack incoming webhook is configured, whether
+        it's currently enabled for outbound alerts, and the result of
+        the last test ping. The webhook URL itself is **never** returned
+        in full — only a 4-character hint (`…ABCD`) so the admin can
+        recognise which webhook is in use without leaking the secret.
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicNotificationSettings"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+    put:
+      operationId: updateNotificationSettings
+      tags: [notifications]
+      summary: Update Slack webhook notification settings (admin)
+      description: |
+        Sets the Slack incoming webhook URL and the master enabled flag.
+        Pass `slackWebhookUrl=null` to clear the URL — when cleared,
+        `slackEnabled` is forced false so we can never sit in an
+        "enabled but no URL" state. Stale test status is wiped whenever
+        the URL changes so the UI doesn't show a misleading "ok 3 days
+        ago" against a fresh webhook.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNotificationSettingsInput"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicNotificationSettings"
+        "400":
+          description: Invalid webhook URL
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+
+  /admin/notifications/slack/test:
+    post:
+      operationId: testSlackNotification
+      tags: [notifications]
+      summary: Send a test ping to the configured Slack webhook (admin)
+      description: |
+        Posts a one-line "connection works" message to the configured
+        Slack webhook and records the outcome on the settings row so the
+        UI can show a status pill without re-pinging on every page load.
+        Returns the same outcome inline.
+      responses:
+        "200":
+          description: Test result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlackTestResult"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+
+  /admin/notifications/slack/broken-urls:
+    post:
+      operationId: postBrokenUrlsToSlack
+      tags: [notifications]
+      summary: Post a bulk-probe broken-URL list to Slack (admin)
+      description: |
+        Forwards the result of an on-demand bulk URL probe to the
+        configured Slack webhook. The same data the admin would
+        otherwise download as CSV / copy as Markdown — but pushed
+        directly into the team's incident channel. Caps at 15 URLs in
+        the message body and links the rest to the dashboard.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SlackBrokenUrlsInput"
+      responses:
+        "200":
+          description: Posted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlackPostResult"
+        "400":
+          description: Empty list or Slack not enabled
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+
   /blog/posts/{slug}/reping-indexnow:
     post:
       operationId: repingBlogPostIndexNow
@@ -1857,6 +1963,98 @@ components:
         - totalViewsHidden
         - posts
         - createdAt
+
+    PublicNotificationSettings:
+      type: object
+      description: |
+        Public-facing view of the Slack notification settings — never
+        includes the webhook URL itself. `slackWebhookHint` is the last
+        4 characters of the URL prefixed with `…` so the admin can
+        recognise which webhook is in use.
+      properties:
+        slackConfigured:
+          type: boolean
+        slackEnabled:
+          type: boolean
+        slackWebhookHint:
+          type: string
+          nullable: true
+        lastTestAt:
+          type: string
+          nullable: true
+          format: date-time
+        lastTestOk:
+          type: boolean
+          nullable: true
+        lastTestError:
+          type: string
+          nullable: true
+      required: [slackConfigured, slackEnabled]
+
+    UpdateNotificationSettingsInput:
+      type: object
+      properties:
+        slackWebhookUrl:
+          type: string
+          nullable: true
+          description: |
+            Full Slack incoming-webhook URL (must start with
+            `https://hooks.slack.com/services/`). Pass `null` to clear.
+        slackEnabled:
+          type: boolean
+      required: [slackEnabled]
+
+    SlackTestResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        error:
+          type: string
+          nullable: true
+      required: [ok]
+
+    SlackBrokenUrlPayload:
+      type: object
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+        statusCode:
+          type: integer
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        checkedAt:
+          type: string
+          nullable: true
+      required: [slug, title, url]
+
+    SlackBrokenUrlsInput:
+      type: object
+      properties:
+        broken:
+          type: array
+          items:
+            $ref: "#/components/schemas/SlackBrokenUrlPayload"
+      required: [broken]
+
+    SlackPostResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        posted:
+          type: integer
+          nullable: true
+        error:
+          type: string
+          nullable: true
+      required: [ok]
 
     NewsletterSubscriberRow:
       type: object

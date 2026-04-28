@@ -11,8 +11,11 @@ import {
   useRunSitemapHealth,
   useCheckSingleSitemapUrl,
   checkSingleSitemapUrl,
+  useGetNotificationSettings,
+  usePostBrokenUrlsToSlack,
   getListBlogPostsQueryKey,
   getGetSitemapHealthQueryKey,
+  getGetNotificationSettingsQueryKey,
   type BlogPost,
   type SeoNotification,
   type SitemapHealthReport,
@@ -59,6 +62,8 @@ import {
   Download,
   ScrollText,
   ClipboardCopy,
+  Bell,
+  Send as SendIcon,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -481,6 +486,37 @@ function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
     loadStoredBulkProbeSummary,
   );
 
+  // Slack notification settings — used to conditionally show the
+  // "Send to Slack" button on the broken-URL strip. We refetch on focus
+  // so a fresh save on /admin/notifications shows up here without a
+  // hard reload.
+  const slackSettingsQuery = useGetNotificationSettings({
+    query: {
+      queryKey: getGetNotificationSettingsQueryKey(),
+      refetchOnWindowFocus: true,
+      staleTime: 30_000,
+    },
+  });
+  const slackPostMutation = usePostBrokenUrlsToSlack({
+    mutation: {
+      onSuccess: (result) => {
+        if (result.ok) {
+          toast.success(
+            `Posted ${result.posted ?? "list"} to Slack — check the channel.`,
+          );
+        } else {
+          toast.error(`Slack post failed: ${result.error ?? "unknown error"}`);
+        }
+      },
+      onError: (err: unknown) => {
+        const msg =
+          err instanceof Error ? err.message : "Failed to post to Slack";
+        toast.error(msg);
+      },
+    },
+  });
+  const slackEnabled = slackSettingsQuery.data?.slackEnabled === true;
+
   // Mirror summary state to localStorage. Removing the key on dismiss
   // (summary === null) keeps the storage tidy and ensures a clean slate
   // for the next session.
@@ -668,6 +704,37 @@ function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
                   <ClipboardCopy className="w-3 h-3" />
                   Copy as Markdown
                 </button>
+                {slackEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      slackPostMutation.mutate({
+                        data: {
+                          broken: summary.broken.map(({ post, result }) => ({
+                            slug: post.slug,
+                            title: post.title,
+                            url:
+                              result?.url ??
+                              `${typeof window !== "undefined" ? window.location.origin : ""}/blog/${post.slug}`,
+                            statusCode: result?.statusCode ?? null,
+                            error: result?.error ?? null,
+                            checkedAt:
+                              (result?.checkedAt as unknown as
+                                | string
+                                | undefined) ?? null,
+                          })),
+                        },
+                      });
+                    }}
+                    disabled={slackPostMutation.isPending}
+                    className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50"
+                    data-testid="bulk-probe-summary-send-slack"
+                    title="Post the broken-URL list to the configured Slack channel"
+                  >
+                    <SendIcon className="w-3 h-3" />
+                    {slackPostMutation.isPending ? "Posting…" : "Send to Slack"}
+                  </button>
+                )}
               </>
             )}
             <button
@@ -2534,6 +2601,16 @@ export default function AdminBlog() {
             >
               <a href="/admin/audit-log">
                 <ScrollText className="w-4 h-4 mr-1.5" /> Audit log
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              data-testid="open-notifications"
+            >
+              <a href="/admin/notifications">
+                <Bell className="w-4 h-4 mr-1.5" /> Notifications
               </a>
             </Button>
             <span className="text-muted-foreground">

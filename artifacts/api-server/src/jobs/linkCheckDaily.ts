@@ -6,6 +6,7 @@ import {
   markNotified,
   type SerializedResult,
 } from "../lib/sitemapHealth";
+import { postPersistentAlertToSlack } from "../lib/slackNotifier";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 
@@ -213,10 +214,11 @@ export async function runDailyLinkCheck(): Promise<void> {
     // Still send the DB alert if the sitemap walk blew up but the DB
     // itself is unreachable — admins need to know.
     if (!dbStatus.ok && recipients.length > 0) {
+      const windowHours = Math.round(persistentBreakageWindowMs() / ONE_HOUR_MS);
       const { subject, text } = buildPersistentAlertEmail(
         [],
         dbStatus,
-        Math.round(persistentBreakageWindowMs() / ONE_HOUR_MS),
+        windowHours,
       );
       for (const to of recipients) {
         await sendMail({ to, subject, text }).catch((mailErr) => {
@@ -224,6 +226,16 @@ export async function runDailyLinkCheck(): Promise<void> {
           return false;
         });
       }
+      // Slack post is best-effort — its failure must NEVER mask the
+      // sitemap-walk failure that brought us down this branch.
+      await postPersistentAlertToSlack({
+        persistent: [],
+        dbStatus,
+        windowHours,
+        siteUrl: getSiteUrl(),
+      }).catch((slackErr) => {
+        JOB_LOG.warn({ err: slackErr }, "Slack DB-down alert failed");
+      });
     }
     return;
   }
@@ -309,12 +321,34 @@ export async function runDailyLinkCheck(): Promise<void> {
       // from now if they're still down.
       await markNotified(persistent.map((r) => r.url));
     }
+
+    // Mirror the email to Slack when configured. Best-effort — Slack
+    // failure must never reverse `markNotified` (the email already went
+    // out and we don't want to spam admins with duplicate emails next
+    // run just because the webhook hiccuped).
+    const slackResult = await postPersistentAlertToSlack({
+      persistent: persistent.map((r) => ({
+        url: r.url,
+        source: r.source,
+        isBroken: r.isBroken,
+        lastStatusCode: r.lastStatusCode,
+        lastError: r.lastError,
+        brokenSince: r.brokenSince,
+        lastOkAt: r.lastOkAt,
+      })),
+      dbStatus,
+      windowHours,
+      siteUrl: getSiteUrl(),
+    }).catch((err) => ({ ok: false, error: String(err) }));
+
     JOB_LOG.info(
       {
         recipients: recipients.length,
         persistent: persistent.length,
         dbDown: !dbStatus.ok,
         allSent,
+        slackOk: slackResult.ok,
+        slackErr: slackResult.error ?? null,
       },
       "Persistent-failure alert evaluated",
     );

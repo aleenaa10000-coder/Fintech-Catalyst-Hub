@@ -745,6 +745,102 @@ export const DownloadBulkNoIndexAuditCsvParams = zod.object({
 });
 
 /**
+ * Returns whether a Slack incoming webhook is configured, whether
+it's currently enabled for outbound alerts, and the result of
+the last test ping. The webhook URL itself is **never** returned
+in full — only a 4-character hint (`…ABCD`) so the admin can
+recognise which webhook is in use without leaking the secret.
+
+ * @summary Get Slack webhook notification settings (admin)
+ */
+export const GetNotificationSettingsResponse = zod
+  .object({
+    slackConfigured: zod.boolean(),
+    slackEnabled: zod.boolean(),
+    slackWebhookHint: zod.string().nullish(),
+    lastTestAt: zod.coerce.date().nullish(),
+    lastTestOk: zod.boolean().nullish(),
+    lastTestError: zod.string().nullish(),
+  })
+  .describe(
+    "Public-facing view of the Slack notification settings — never\nincludes the webhook URL itself. `slackWebhookHint` is the last\n4 characters of the URL prefixed with `…` so the admin can\nrecognise which webhook is in use.\n",
+  );
+
+/**
+ * Sets the Slack incoming webhook URL and the master enabled flag.
+Pass `slackWebhookUrl=null` to clear the URL — when cleared,
+`slackEnabled` is forced false so we can never sit in an
+"enabled but no URL" state. Stale test status is wiped whenever
+the URL changes so the UI doesn't show a misleading "ok 3 days
+ago" against a fresh webhook.
+
+ * @summary Update Slack webhook notification settings (admin)
+ */
+export const UpdateNotificationSettingsBody = zod.object({
+  slackWebhookUrl: zod
+    .string()
+    .nullish()
+    .describe(
+      "Full Slack incoming-webhook URL (must start with\n`https:\/\/hooks.slack.com\/services\/`). Pass `null` to clear.\n",
+    ),
+  slackEnabled: zod.boolean(),
+});
+
+export const UpdateNotificationSettingsResponse = zod
+  .object({
+    slackConfigured: zod.boolean(),
+    slackEnabled: zod.boolean(),
+    slackWebhookHint: zod.string().nullish(),
+    lastTestAt: zod.coerce.date().nullish(),
+    lastTestOk: zod.boolean().nullish(),
+    lastTestError: zod.string().nullish(),
+  })
+  .describe(
+    "Public-facing view of the Slack notification settings — never\nincludes the webhook URL itself. `slackWebhookHint` is the last\n4 characters of the URL prefixed with `…` so the admin can\nrecognise which webhook is in use.\n",
+  );
+
+/**
+ * Posts a one-line "connection works" message to the configured
+Slack webhook and records the outcome on the settings row so the
+UI can show a status pill without re-pinging on every page load.
+Returns the same outcome inline.
+
+ * @summary Send a test ping to the configured Slack webhook (admin)
+ */
+export const TestSlackNotificationResponse = zod.object({
+  ok: zod.boolean(),
+  error: zod.string().nullish(),
+});
+
+/**
+ * Forwards the result of an on-demand bulk URL probe to the
+configured Slack webhook. The same data the admin would
+otherwise download as CSV / copy as Markdown — but pushed
+directly into the team's incident channel. Caps at 15 URLs in
+the message body and links the rest to the dashboard.
+
+ * @summary Post a bulk-probe broken-URL list to Slack (admin)
+ */
+export const PostBrokenUrlsToSlackBody = zod.object({
+  broken: zod.array(
+    zod.object({
+      slug: zod.string(),
+      title: zod.string(),
+      url: zod.string(),
+      statusCode: zod.number().nullish(),
+      error: zod.string().nullish(),
+      checkedAt: zod.string().nullish(),
+    }),
+  ),
+});
+
+export const PostBrokenUrlsToSlackResponse = zod.object({
+  ok: zod.boolean(),
+  posted: zod.number().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
  * Triggers an immediate IndexNow + Google sitemap ping for the post
 with this slug. Used by the admin posts table to manually re-submit
 a post (e.g. after a stale "indexed N days ago" badge or after the

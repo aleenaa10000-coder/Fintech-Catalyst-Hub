@@ -542,6 +542,54 @@ views that became visible again.
   createdAt: string;
 }
 
+/**
+ * Public-facing view of the Slack notification settings — never
+includes the webhook URL itself. `slackWebhookHint` is the last
+4 characters of the URL prefixed with `…` so the admin can
+recognise which webhook is in use.
+
+ */
+export interface PublicNotificationSettings {
+  slackConfigured: boolean;
+  slackEnabled: boolean;
+  slackWebhookHint?: string | null;
+  lastTestAt?: string | null;
+  lastTestOk?: boolean | null;
+  lastTestError?: string | null;
+}
+
+export interface UpdateNotificationSettingsInput {
+  /** Full Slack incoming-webhook URL (must start with
+`https://hooks.slack.com/services/`). Pass `null` to clear.
+ */
+  slackWebhookUrl?: string | null;
+  slackEnabled: boolean;
+}
+
+export interface SlackTestResult {
+  ok: boolean;
+  error?: string | null;
+}
+
+export interface SlackBrokenUrlPayload {
+  slug: string;
+  title: string;
+  url: string;
+  statusCode?: number | null;
+  error?: string | null;
+  checkedAt?: string | null;
+}
+
+export interface SlackBrokenUrlsInput {
+  broken: SlackBrokenUrlPayload[];
+}
+
+export interface SlackPostResult {
+  ok: boolean;
+  posted?: number | null;
+  error?: string | null;
+}
+
 export interface NewsletterSubscriberRow {
   id: number;
   email: string;

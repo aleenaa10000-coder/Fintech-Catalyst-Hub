@@ -52,14 +52,19 @@ import type {
   NewsletterSubscription,
   NewsletterSubscriptionInput,
   PricingPlan,
+  PublicNotificationSettings,
   PublishBlogPostInput,
   PublishedBlogPost,
   Service,
   ServiceInput,
   SitemapHealthReport,
+  SlackBrokenUrlsInput,
+  SlackPostResult,
+  SlackTestResult,
   Testimonial,
   TrustStats,
   UpdateBlogPostInput,
+  UpdateNotificationSettingsInput,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -1596,6 +1601,366 @@ export function useDownloadBulkNoIndexAuditCsv<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Returns whether a Slack incoming webhook is configured, whether
+it's currently enabled for outbound alerts, and the result of
+the last test ping. The webhook URL itself is **never** returned
+in full — only a 4-character hint (`…ABCD`) so the admin can
+recognise which webhook is in use without leaking the secret.
+
+ * @summary Get Slack webhook notification settings (admin)
+ */
+export const getGetNotificationSettingsUrl = () => {
+  return `/api/admin/notifications/settings`;
+};
+
+export const getNotificationSettings = async (
+  options?: RequestInit,
+): Promise<PublicNotificationSettings> => {
+  return customFetch<PublicNotificationSettings>(
+    getGetNotificationSettingsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetNotificationSettingsQueryKey = () => {
+  return [`/api/admin/notifications/settings`] as const;
+};
+
+export const getGetNotificationSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getNotificationSettings>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetNotificationSettingsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getNotificationSettings>>
+  > = ({ signal }) => getNotificationSettings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetNotificationSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNotificationSettings>>
+>;
+export type GetNotificationSettingsQueryError = ErrorType<void>;
+
+/**
+ * @summary Get Slack webhook notification settings (admin)
+ */
+
+export function useGetNotificationSettings<
+  TData = Awaited<ReturnType<typeof getNotificationSettings>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetNotificationSettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Sets the Slack incoming webhook URL and the master enabled flag.
+Pass `slackWebhookUrl=null` to clear the URL — when cleared,
+`slackEnabled` is forced false so we can never sit in an
+"enabled but no URL" state. Stale test status is wiped whenever
+the URL changes so the UI doesn't show a misleading "ok 3 days
+ago" against a fresh webhook.
+
+ * @summary Update Slack webhook notification settings (admin)
+ */
+export const getUpdateNotificationSettingsUrl = () => {
+  return `/api/admin/notifications/settings`;
+};
+
+export const updateNotificationSettings = async (
+  updateNotificationSettingsInput: UpdateNotificationSettingsInput,
+  options?: RequestInit,
+): Promise<PublicNotificationSettings> => {
+  return customFetch<PublicNotificationSettings>(
+    getUpdateNotificationSettingsUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateNotificationSettingsInput),
+    },
+  );
+};
+
+export const getUpdateNotificationSettingsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateNotificationSettings>>,
+    TError,
+    { data: BodyType<UpdateNotificationSettingsInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateNotificationSettings>>,
+  TError,
+  { data: BodyType<UpdateNotificationSettingsInput> },
+  TContext
+> => {
+  const mutationKey = ["updateNotificationSettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateNotificationSettings>>,
+    { data: BodyType<UpdateNotificationSettingsInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateNotificationSettings(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateNotificationSettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateNotificationSettings>>
+>;
+export type UpdateNotificationSettingsMutationBody =
+  BodyType<UpdateNotificationSettingsInput>;
+export type UpdateNotificationSettingsMutationError = ErrorType<void>;
+
+/**
+ * @summary Update Slack webhook notification settings (admin)
+ */
+export const useUpdateNotificationSettings = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateNotificationSettings>>,
+    TError,
+    { data: BodyType<UpdateNotificationSettingsInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateNotificationSettings>>,
+  TError,
+  { data: BodyType<UpdateNotificationSettingsInput> },
+  TContext
+> => {
+  return useMutation(getUpdateNotificationSettingsMutationOptions(options));
+};
+
+/**
+ * Posts a one-line "connection works" message to the configured
+Slack webhook and records the outcome on the settings row so the
+UI can show a status pill without re-pinging on every page load.
+Returns the same outcome inline.
+
+ * @summary Send a test ping to the configured Slack webhook (admin)
+ */
+export const getTestSlackNotificationUrl = () => {
+  return `/api/admin/notifications/slack/test`;
+};
+
+export const testSlackNotification = async (
+  options?: RequestInit,
+): Promise<SlackTestResult> => {
+  return customFetch<SlackTestResult>(getTestSlackNotificationUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getTestSlackNotificationMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof testSlackNotification>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof testSlackNotification>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["testSlackNotification"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof testSlackNotification>>,
+    void
+  > = () => {
+    return testSlackNotification(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TestSlackNotificationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof testSlackNotification>>
+>;
+
+export type TestSlackNotificationMutationError = ErrorType<void>;
+
+/**
+ * @summary Send a test ping to the configured Slack webhook (admin)
+ */
+export const useTestSlackNotification = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof testSlackNotification>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof testSlackNotification>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getTestSlackNotificationMutationOptions(options));
+};
+
+/**
+ * Forwards the result of an on-demand bulk URL probe to the
+configured Slack webhook. The same data the admin would
+otherwise download as CSV / copy as Markdown — but pushed
+directly into the team's incident channel. Caps at 15 URLs in
+the message body and links the rest to the dashboard.
+
+ * @summary Post a bulk-probe broken-URL list to Slack (admin)
+ */
+export const getPostBrokenUrlsToSlackUrl = () => {
+  return `/api/admin/notifications/slack/broken-urls`;
+};
+
+export const postBrokenUrlsToSlack = async (
+  slackBrokenUrlsInput: SlackBrokenUrlsInput,
+  options?: RequestInit,
+): Promise<SlackPostResult> => {
+  return customFetch<SlackPostResult>(getPostBrokenUrlsToSlackUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(slackBrokenUrlsInput),
+  });
+};
+
+export const getPostBrokenUrlsToSlackMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postBrokenUrlsToSlack>>,
+    TError,
+    { data: BodyType<SlackBrokenUrlsInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postBrokenUrlsToSlack>>,
+  TError,
+  { data: BodyType<SlackBrokenUrlsInput> },
+  TContext
+> => {
+  const mutationKey = ["postBrokenUrlsToSlack"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postBrokenUrlsToSlack>>,
+    { data: BodyType<SlackBrokenUrlsInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return postBrokenUrlsToSlack(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostBrokenUrlsToSlackMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postBrokenUrlsToSlack>>
+>;
+export type PostBrokenUrlsToSlackMutationBody = BodyType<SlackBrokenUrlsInput>;
+export type PostBrokenUrlsToSlackMutationError = ErrorType<void>;
+
+/**
+ * @summary Post a bulk-probe broken-URL list to Slack (admin)
+ */
+export const usePostBrokenUrlsToSlack = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postBrokenUrlsToSlack>>,
+    TError,
+    { data: BodyType<SlackBrokenUrlsInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof postBrokenUrlsToSlack>>,
+  TError,
+  { data: BodyType<SlackBrokenUrlsInput> },
+  TContext
+> => {
+  return useMutation(getPostBrokenUrlsToSlackMutationOptions(options));
+};
 
 /**
  * Triggers an immediate IndexNow + Google sitemap ping for the post

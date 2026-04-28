@@ -19,6 +19,7 @@ import toolsRouter from "./tools";
 import commissioningTopicsRouter from "./commissioningTopics";
 import sitemapHealthRouter from "./sitemapHealth";
 import auditRouter from "./audit";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -42,5 +43,6 @@ router.use(toolsRouter);
 router.use(commissioningTopicsRouter);
 router.use(sitemapHealthRouter);
 router.use(auditRouter);
+router.use(notificationsRouter);
 
 export default router;

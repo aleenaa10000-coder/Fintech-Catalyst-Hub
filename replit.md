@@ -198,6 +198,22 @@ The daily sitemap link-check job now also pages admins about *infrastructure tha
 - **What it covers** — at the start of each daily run, the job probes the DB (`select 1`) and walks the sitemap. After the OK→broken email, it scans persisted `link_check_results` rows for URLs where `isBroken=true`, `brokenSince < now - HEALTH_ALERT_HOURS`, and `notifiedAt < now - HEALTH_RENOTIFY_HOURS` (or null), then sends a single combined "Health alert" email covering both the DB outage (if any) and the persistently-broken URLs. Re-stamps `notifiedAt` on success so the throttle resets. Falls back to a DB-only alert if the sitemap walk itself throws.
 - **Files** — extended `artifacts/api-server/src/jobs/linkCheckDaily.ts`; `SerializedResult` in `sitemapHealth.ts` now exposes `notifiedAt: string | null` so the job can read the throttle state without a separate DB read.
 
+## Slack notifications (persistent failures + on-demand bulk-probe)
+
+Mirrors persistent-failure email alerts and lets admins post bulk-probe broken-URL summaries to a Slack channel via an Incoming Webhook.
+
+- **Settings storage** — webhook URL + enabled flag live in `kv_store` under key `notification_settings` (no new table). The full URL is **never** returned to the client; the API exposes a `slackWebhookHint` with the last 4 chars only and a `slackWebhookConfigured` boolean.
+- **Validation** — only `https://hooks.slack.com/services/…` URLs are accepted; empty string clears the saved URL, `null` leaves it untouched. 10s `AbortController` timeout on every POST.
+- **Endpoints** (all admin-gated, defined in `artifacts/api-server/src/routes/notifications.ts`, OpenAPI specced in `lib/api-spec/openapi.yaml`):
+  - `GET /admin/notifications/settings` — returns the public (masked) settings + last test result
+  - `PUT /admin/notifications/settings` — set/clear webhook URL and enabled flag
+  - `POST /admin/notifications/slack/test` — sends a test message and persists the outcome
+  - `POST /admin/notifications/slack/broken-urls` — posts the bulk-probe broken list to Slack
+- **Daily job mirroring** — `artifacts/api-server/src/jobs/linkCheckDaily.ts` calls `postPersistentAlertToSlack` after both branches that send the persistent-failure email (DB-only fallback and combined alert). Slack post is best-effort with `.catch` and never reverses `markNotified` — email remains the source of truth.
+- **Message format** — Slack Block Kit (`text` fallback + `blocks`) with a header, fields summary, and up to 15 broken URLs in the body; overflow shown as "+N more". Site origin and triggered-by label included for context.
+- **Admin UI** — `artifacts/fintechpresshub/src/pages/admin-notifications.tsx` (route `/admin/notifications`, linked from the admin-blog header next to "Audit log") provides URL input (password-masked), enabled switch, Save / Send test / Clear buttons, status pill, and last-test outcome.
+- **Bulk-probe button** — admin-blog.tsx broken-URL summary strip now renders a "Send to Slack" button (next to Export CSV / Copy as Markdown), conditionally rendered when `slackEnabled === true`. Settings query refetches on window focus so saving on `/admin/notifications` propagates without a hard reload.
+
 ## Blog content quality bar
 
 - **Post length**: every post in `artifacts/fintechpresshub/src/data/posts.js` is now between 800 and 1500 words. Five posts that were previously below 800 (core-web-vitals, digital-pr, ymyl-eeat, content-funnel, keyword-research) gained a closing "operationalising"/"refreshing"/"auditing" section that sits naturally with the existing voice.
