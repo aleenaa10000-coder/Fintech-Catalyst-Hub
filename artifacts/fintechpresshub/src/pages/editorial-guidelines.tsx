@@ -133,6 +133,7 @@ const SECTIONS: Section[] = [
   { id: "ai-policy", label: "AI Policy" },
   { id: "voice-tone", label: "Voice/Tone" },
   { id: "article-length", label: "Article Length" },
+  { id: "images-visuals", label: "Images & Visuals" },
   { id: "originality", label: "Originality" },
   { id: "outbound-linking", label: "Outbound Linking" },
   { id: "contributor-links", label: "Contributor Link Policy" },
@@ -557,14 +558,120 @@ export default function EditorialGuidelines() {
                 </li>
               </ul>
 
-              <h2 id="originality">7. Originality</h2>
+              <h2 id="images-visuals">7. Images &amp; Visuals</h2>
+              <p>
+                Cover and in-body images carry as much editorial weight as the copy itself —
+                they anchor the layout, drive Largest Contentful Paint, and determine how the
+                article looks when shared. Submissions must hit the specs below or editors will
+                replace the visuals before publication.
+              </p>
+
+              <h3>Cover image (article hero)</h3>
+              <ul>
+                <li>
+                  <strong>Minimum dimensions:</strong> 1600×800&nbsp;px (2:1 aspect ratio).
+                  This is the rendered intrinsic size of the hero on the live blog post page —
+                  smaller files visibly soften on retina displays and trigger a warning in the
+                  admin uploader.
+                </li>
+                <li>
+                  <strong>Aspect ratio:</strong> 2:1 (≥640&nbsp;px viewport) or 16:9 on mobile.
+                  Anything taller than 2:1 gets cropped from the top and bottom.
+                </li>
+                <li>
+                  <strong>File format:</strong> JPG or WebP for photographs and gradients,
+                  PNG for screenshots, charts, and any image with text. SVG is fine for vector
+                  illustrations only.
+                </li>
+                <li>
+                  <strong>File size:</strong> ≤500&nbsp;KB after compression. Hard cap of
+                  10&nbsp;MB at upload, but anything over 500&nbsp;KB will be re-encoded by an
+                  editor.
+                </li>
+                <li>
+                  <strong>Subject framing:</strong> keep the focal point in the centre 60% of
+                  the frame so the title overlay (which sits beneath the image on desktop and
+                  alongside it on mobile) never collides with faces, logos, or chart axes.
+                </li>
+              </ul>
+
+              <h3>In-body images (inline illustrations, charts, screenshots)</h3>
+              <ul>
+                <li>
+                  <strong>Minimum width:</strong> 1536&nbsp;px (2× the 768&nbsp;px content
+                  column for retina sharpness). Height is automatic — preserve the source
+                  aspect ratio.
+                </li>
+                <li>
+                  <strong>Display width:</strong> images render at 100% of the article column
+                  (max 768&nbsp;px wide), with rounded corners, a soft shadow, and an 8&nbsp;px
+                  vertical margin applied automatically.
+                </li>
+                <li>
+                  <strong>File format:</strong> PNG for screenshots, dashboards, and any image
+                  containing UI text or numbers; JPG / WebP for photos and gradient hero
+                  graphics; SVG for charts you control end-to-end.
+                </li>
+                <li>
+                  <strong>File size:</strong> ≤300&nbsp;KB per inline image. Pre-compress
+                  screenshots with TinyPNG or Squoosh before submitting.
+                </li>
+                <li>
+                  <strong>Captions:</strong> wrap each in-body image in a{" "}
+                  <code>&lt;figure&gt;</code> with a one-line{" "}
+                  <code>&lt;figcaption&gt;</code> explaining what the reader is looking at.
+                  Charts must caption the data source and date.
+                </li>
+              </ul>
+
+              <h3>Author headshots &amp; OG / social images</h3>
+              <ul>
+                <li>
+                  <strong>Author headshots:</strong> 800×800&nbsp;px square (1:1), PNG or JPG,
+                  face centred, head-and-shoulders crop, neutral or lightly textured
+                  background.
+                </li>
+                <li>
+                  <strong>Open Graph / Twitter image:</strong> 1200×630&nbsp;px (1.91:1). If
+                  omitted, we fall back to the cover image, which is automatically resized for
+                  social previews — but a purpose-built OG card always converts better.
+                </li>
+              </ul>
+
+              <h3>Accessibility, attribution &amp; rights</h3>
+              <ul>
+                <li>
+                  <strong>Alt text is mandatory:</strong> describe what the image shows in
+                  context (not just &ldquo;chart&rdquo; or &ldquo;photo&rdquo;). Decorative-only
+                  images may use empty alt (<code>alt=&quot;&quot;</code>) but must be flagged
+                  as such in the submission.
+                </li>
+                <li>
+                  <strong>Source &amp; licence:</strong> every image must be either original,
+                  licensed (Unsplash, Pexels, paid stock with provable receipt), or used under
+                  a clear fair-use citation with the source named in the caption. We do not
+                  publish unsourced screenshots of paywalled tools.
+                </li>
+                <li>
+                  <strong>No watermarks, no on-image promotional text:</strong> stock-watermarks,
+                  competitor logos, agency taglines, and CTAs baked into the pixels are all
+                  rejected.
+                </li>
+                <li>
+                  <strong>Charts must be reproducible:</strong> if you submit a chart, include
+                  the underlying data (CSV or linked source) so editors can regenerate it if
+                  the styling has to change.
+                </li>
+              </ul>
+
+              <h2 id="originality">8. Originality</h2>
               <p>
                 All content must be 100% original. We run all submissions through plagiarism
                 checkers. We do not accept syndicated content or articles that have been published
                 elsewhere.
               </p>
 
-              <h2 id="outbound-linking">8. Outbound Linking</h2>
+              <h2 id="outbound-linking">9. Outbound Linking</h2>
               <p>
                 We encourage linking to high-quality external resources to provide context, evidence,
                 and further reading. Every outbound link must clear the bar below — no exceptions.
@@ -618,7 +725,7 @@ export default function EditorialGuidelines() {
                 ]}
               />
 
-              <h2 id="contributor-links">9. Contributor Link Policy</h2>
+              <h2 id="contributor-links">10. Contributor Link Policy</h2>
               <p>
                 High-quality guest submissions that meet our editorial standards receive up to 2
                 permanent dofollow backlinks from FintechPressHub. Because we publish on a
