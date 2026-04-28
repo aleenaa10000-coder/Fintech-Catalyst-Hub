@@ -1024,6 +1024,8 @@ function PostEditor({
             <ObjectUploader
               maxNumberOfFiles={1}
               maxFileSize={10 * 1024 * 1024}
+              imageMinDimensions={{ width: 1600, height: 800 }}
+              onValidationWarning={(msg) => toast.warning(msg)}
               onGetUploadParameters={async (file) => {
                 const { uploadURL } = await presignAndUpload({
                   name: file.name ?? "upload",
@@ -2809,6 +2811,8 @@ export default function AdminBlog() {
                     <ObjectUploader
                       maxNumberOfFiles={1}
                       maxFileSize={10 * 1024 * 1024}
+                      imageMinDimensions={{ width: 1600, height: 800 }}
+                      onValidationWarning={(msg) => toast.warning(msg)}
                       onGetUploadParameters={async (file) => {
                         const { uploadURL } = await presignAndUpload({
                           name: file.name ?? "upload",
@@ -2847,6 +2851,7 @@ export default function AdminBlog() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Paste an external URL or upload a file (≤10 MB).
+                    Recommended cover size: at least 1600×800 px (2:1).
                   </p>
                 </div>
                 <div>

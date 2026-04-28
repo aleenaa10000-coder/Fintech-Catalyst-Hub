@@ -8,6 +8,11 @@ import "@uppy/dashboard/css/style.min.css";
 import AwsS3 from "@uppy/aws-s3";
 import { Button } from "@/components/ui/button";
 
+interface ImageMinDimensions {
+  width: number;
+  height: number;
+}
+
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
@@ -28,6 +33,45 @@ interface ObjectUploaderProps {
   ) => void;
   buttonClassName?: string;
   children: ReactNode;
+  /**
+   * Optional minimum width/height for image uploads. When set, every image file
+   * added is measured client-side; if it is smaller than the recommendation, a
+   * non-blocking warning is sent to `onValidationWarning` (the upload still
+   * proceeds). Non-image files are ignored.
+   */
+  imageMinDimensions?: ImageMinDimensions;
+  /**
+   * Receives a human-readable warning string when an image fails the
+   * `imageMinDimensions` check. Typically wired to a toast.
+   */
+  onValidationWarning?: (message: string) => void;
+}
+
+/**
+ * Read intrinsic image dimensions from a File without uploading it.
+ * Resolves to null for non-image files or when decoding fails.
+ */
+function readImageDimensions(
+  file: File,
+): Promise<{ width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/")) {
+      resolve(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const dims = { width: img.naturalWidth, height: img.naturalHeight };
+      URL.revokeObjectURL(url);
+      resolve(dims);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    img.src = url;
+  });
 }
 
 /**
@@ -66,10 +110,12 @@ export function ObjectUploader({
   onComplete,
   buttonClassName,
   children,
+  imageMinDimensions,
+  onValidationWarning,
 }: ObjectUploaderProps) {
   const [showModal, setShowModal] = useState(false);
-  const [uppy] = useState(() =>
-    new Uppy({
+  const [uppy] = useState(() => {
+    const instance = new Uppy({
       restrictions: {
         maxNumberOfFiles,
         maxFileSize,
@@ -82,8 +128,30 @@ export function ObjectUploader({
       })
       .on("complete", (result) => {
         onComplete?.(result);
-      })
-  );
+      });
+
+    if (imageMinDimensions) {
+      instance.on("file-added", (file) => {
+        const data = file.data as File | Blob;
+        if (typeof File === "undefined" || !(data instanceof File)) return;
+        void readImageDimensions(data).then((dims) => {
+          if (!dims) return;
+          if (
+            dims.width < imageMinDimensions.width ||
+            dims.height < imageMinDimensions.height
+          ) {
+            const msg =
+              `"${file.name}" is ${dims.width}×${dims.height}px — recommended ` +
+              `at least ${imageMinDimensions.width}×${imageMinDimensions.height}px ` +
+              `for a sharp display. The image will still upload.`;
+            onValidationWarning?.(msg);
+          }
+        });
+      });
+    }
+
+    return instance;
+  });
 
   return (
     <div>
