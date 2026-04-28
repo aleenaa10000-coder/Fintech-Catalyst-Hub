@@ -1153,15 +1153,56 @@ function PostEditor({
           </div>
           <div>
             <Label htmlFor={`seoOgImage-${post.id}`}>OG / social image</Label>
-            <Input
-              id={`seoOgImage-${post.id}`}
-              type="url"
-              value={draft.seoOgImage}
-              placeholder="Defaults to the cover image"
-              onChange={(e) =>
-                setDraft({ ...draft, seoOgImage: e.target.value })
-              }
-            />
+            <div className="flex gap-2">
+              <Input
+                id={`seoOgImage-${post.id}`}
+                type="url"
+                value={draft.seoOgImage}
+                placeholder="Defaults to the cover image"
+                onChange={(e) =>
+                  setDraft({ ...draft, seoOgImage: e.target.value })
+                }
+              />
+              <ObjectUploader
+                maxNumberOfFiles={1}
+                maxFileSize={10 * 1024 * 1024}
+                imageMinDimensions={{ width: 1200, height: 630 }}
+                onValidationWarning={(msg) => toast.warning(msg)}
+                onGetUploadParameters={async (file) => {
+                  const { uploadURL } = await presignAndUpload({
+                    name: file.name ?? "upload",
+                    size: file.size ?? 0,
+                    type: file.type ?? "application/octet-stream",
+                  });
+                  return {
+                    method: "PUT",
+                    url: uploadURL,
+                    headers: {
+                      "Content-Type":
+                        file.type ?? "application/octet-stream",
+                    },
+                  };
+                }}
+                onComplete={async (result) => {
+                  const uploaded = result.successful?.[0];
+                  const uploadURL = uploaded?.uploadURL;
+                  if (!uploadURL) {
+                    toast.error("Upload did not return a URL");
+                    return;
+                  }
+                  try {
+                    const { objectPath } = await finalizeUpload(uploadURL);
+                    setDraft((d) => ({ ...d, seoOgImage: objectPath }));
+                    toast.success("OG image uploaded");
+                  } catch {
+                    toast.error("Could not finalize upload");
+                  }
+                }}
+                buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
+              >
+                <Upload className="w-4 h-4" />
+              </ObjectUploader>
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               1200×630 PNG/JPG works best for LinkedIn, X, Slack & Facebook.
             </p>
@@ -2943,15 +2984,60 @@ export default function AdminBlog() {
                   </div>
                   <div>
                     <Label htmlFor="seoOgImage">OG / social image</Label>
-                    <Input
-                      id="seoOgImage"
-                      type="url"
-                      placeholder="Defaults to the cover image"
-                      value={form.seoOgImage}
-                      onChange={(e) =>
-                        setForm({ ...form, seoOgImage: e.target.value })
-                      }
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="seoOgImage"
+                        type="url"
+                        placeholder="Defaults to the cover image"
+                        value={form.seoOgImage}
+                        onChange={(e) =>
+                          setForm({ ...form, seoOgImage: e.target.value })
+                        }
+                      />
+                      <ObjectUploader
+                        maxNumberOfFiles={1}
+                        maxFileSize={10 * 1024 * 1024}
+                        imageMinDimensions={{ width: 1200, height: 630 }}
+                        onValidationWarning={(msg) => toast.warning(msg)}
+                        onGetUploadParameters={async (file) => {
+                          const { uploadURL } = await presignAndUpload({
+                            name: file.name ?? "upload",
+                            size: file.size ?? 0,
+                            type: file.type ?? "application/octet-stream",
+                          });
+                          return {
+                            method: "PUT",
+                            url: uploadURL,
+                            headers: {
+                              "Content-Type":
+                                file.type ?? "application/octet-stream",
+                            },
+                          };
+                        }}
+                        onComplete={async (result) => {
+                          const uploaded = result.successful?.[0];
+                          const uploadURL = uploaded?.uploadURL;
+                          if (!uploadURL) {
+                            toast.error("Upload did not return a URL");
+                            return;
+                          }
+                          try {
+                            const { objectPath } =
+                              await finalizeUpload(uploadURL);
+                            setForm((f) => ({
+                              ...f,
+                              seoOgImage: objectPath,
+                            }));
+                            toast.success("OG image uploaded");
+                          } catch {
+                            toast.error("Could not finalize upload");
+                          }
+                        }}
+                        buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
+                      >
+                        <Upload className="w-4 h-4" />
+                      </ObjectUploader>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       1200×630 PNG/JPG works best for LinkedIn, X, Slack &
                       Facebook.
