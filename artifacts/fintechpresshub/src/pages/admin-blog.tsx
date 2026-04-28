@@ -629,6 +629,18 @@ function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
             <span className="ml-auto text-[11px] text-muted-foreground">
               {formatRelativeTime(summary.ranAt)}
             </span>
+            {summary.broken.length > 0 && (
+              <button
+                type="button"
+                onClick={() => downloadBulkProbeCsv(summary.broken)}
+                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+                data-testid="bulk-probe-summary-export"
+                title="Download the broken-URL list as CSV"
+              >
+                <Download className="w-3 h-3" />
+                Export CSV
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setSummary(null)}
@@ -1688,6 +1700,49 @@ function buildImpactCsv(impacted: BlogPost[]): string {
   ]);
   const lines = [header, ...rows].map((r) => r.map(csvEscape).join(","));
   return "\ufeff" + lines.join("\r\n") + "\r\n";
+}
+
+/**
+ * Build a CSV blob of the broken URLs from a bulk-probe summary so the
+ * admin can paste them into a ticket or hand them off to a developer
+ * without retyping. Columns: slug, url, status_code, error, checked_at.
+ * Rows are emitted in the same order they appear in the summary chip
+ * list (which already mirrors the post-list order). UTF-8 BOM keeps
+ * Excel happy on the receiving end.
+ */
+function buildBulkProbeCsv(broken: BulkProbeRowResult[]): string {
+  const header = ["slug", "url", "status_code", "error", "checked_at"];
+  const rows = broken.map(({ post, result }) => [
+    post.slug,
+    result?.url ?? "",
+    result?.statusCode ?? "",
+    result?.error ?? "",
+    result?.checkedAt ?? "",
+  ]);
+  const lines = [header, ...rows].map((r) => r.map(csvEscape).join(","));
+  return "\ufeff" + lines.join("\r\n") + "\r\n";
+}
+
+/**
+ * Trigger a browser download of the broken-URL list. Filename is
+ * timestamped so multiple exports from the same session don't clobber.
+ */
+function downloadBulkProbeCsv(broken: BulkProbeRowResult[]) {
+  const csv = buildBulkProbeCsv(broken);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const ts = new Date()
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .replace("T", "_")
+    .slice(0, 19);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `bulk-probe-broken_${ts}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /**
