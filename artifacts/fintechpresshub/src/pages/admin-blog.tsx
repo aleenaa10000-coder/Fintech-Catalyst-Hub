@@ -53,6 +53,7 @@ import {
   Star,
   TrendingUp,
   Clock,
+  Download,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -906,6 +907,64 @@ function computeNoIndexImpact(
 
 type NoIndexImpact = ReturnType<typeof computeNoIndexImpact>;
 
+/**
+ * Wrap a single CSV cell so embedded commas, quotes, or newlines don't
+ * corrupt the column layout. Follows RFC 4180: any field containing a
+ * special char is double-quoted and inner quotes are doubled.
+ */
+function csvEscape(value: string | number | boolean): string {
+  const str = String(value);
+  if (/[",\r\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+/**
+ * Build a CSV blob of every post in the impact set so the admin gets an
+ * audit trail of exactly which URLs were affected by a bulk no-index /
+ * re-index batch. Columns: slug, title, current views, featured flag.
+ * Includes a UTF-8 BOM so Excel opens it with the right encoding.
+ */
+function buildImpactCsv(impacted: BlogPost[]): string {
+  const header = ["slug", "title", "current_views", "featured"];
+  const rows = impacted.map((p) => [
+    p.slug,
+    p.title,
+    p.viewCount ?? 0,
+    p.featured ? "true" : "false",
+  ]);
+  const lines = [header, ...rows].map((r) => r.map(csvEscape).join(","));
+  return "\ufeff" + lines.join("\r\n") + "\r\n";
+}
+
+/**
+ * Trigger a browser download of the impact set as a CSV. Filename is
+ * timestamped + tagged with the action mode so multiple exports from a
+ * single session don't clobber each other.
+ */
+function downloadImpactCsv(
+  impacted: BlogPost[],
+  mode: "noindex" | "reindex",
+) {
+  const csv = buildImpactCsv(impacted);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const ts = new Date()
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .replace("T", "_")
+    .slice(0, 19);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `bulk-${mode}-impact_${ts}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Defer revoke so Safari has time to start the download.
+  setTimeout(() => URL.revokeObjectURL(url), 1_000);
+}
+
 function formatViews(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
@@ -1131,6 +1190,33 @@ function BulkNoIndexImpactDialog({
                 ? "An hourly background job will flip these posts back to indexed once the snooze window elapses — no need to remember to re-expose them."
                 : "Leave off for an indefinite hide that only a manual action can reverse."}
             </p>
+          </div>
+        )}
+
+        {hasImpact && (
+          <div
+            className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2"
+            data-testid="impact-csv-export"
+          >
+            <div className="min-w-0 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">
+                Audit trail
+              </span>{" "}
+              — download every affected URL (slug, title, current views,
+              featured) as a CSV before you confirm.
+            </div>
+            <button
+              type="button"
+              onClick={() => downloadImpactCsv(impact.impacted, mode)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
+              data-testid="impact-csv-download"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download CSV
+              <span className="ml-0.5 rounded bg-muted px-1 py-0.5 text-[10px] tabular-nums text-muted-foreground">
+                {impact.impactedCount}
+              </span>
+            </button>
           </div>
         )}
 
