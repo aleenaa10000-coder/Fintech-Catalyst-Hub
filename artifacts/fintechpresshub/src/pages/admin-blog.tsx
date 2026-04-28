@@ -298,6 +298,96 @@ function RepingButton({ post }: { post: BlogPost }) {
   );
 }
 
+/**
+ * Per-row "probe live URL" button. Runs the same single-URL probe used
+ * by the Sitemap Health panel against this post's canonical URL on the
+ * current host (so dev probes the dev server, prod probes prod). The
+ * result is shown inline as a small status pill next to the button —
+ * green for 2xx/3xx, amber for 4xx/5xx or network failure — and a
+ * matching toast pops up. Does NOT update the persisted sitemap report
+ * (mirrors the panel's spot-check semantics).
+ */
+function ProbeUrlButton({ post }: { post: BlogPost }) {
+  const mut = useCheckSingleSitemapUrl();
+  const [result, setResult] = useState<CheckSingleUrlResult | null>(null);
+  const onClick = async () => {
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "";
+    if (!origin) return;
+    const url = `${origin}/blog/${post.slug}`;
+    try {
+      const probed = await mut.mutateAsync({ data: { url } });
+      setResult(probed);
+      const codeOrError = probed.statusCode ?? probed.error ?? "failed";
+      if (probed.isBroken) {
+        toast.warning(`Live URL probe → ${codeOrError}`, {
+          description: post.title,
+        });
+      } else {
+        toast.success(`Live URL OK (${codeOrError})`, {
+          description: post.title,
+        });
+      }
+    } catch {
+      setResult(null);
+      toast.error(`Could not probe "${post.title}".`);
+    }
+  };
+  const tone: "good" | "bad" | null = result
+    ? result.isBroken
+      ? "bad"
+      : "good"
+    : null;
+  return (
+    <div className="flex items-center gap-1">
+      {result && (
+        <span
+          className={`font-mono text-[10px] px-1.5 py-0.5 rounded border ${
+            tone === "bad"
+              ? "bg-amber-50 text-amber-800 border-amber-200"
+              : "bg-green-50 text-green-700 border-green-200"
+          }`}
+          title={
+            result.error
+              ? `${result.error} — checked ${new Date(
+                  result.checkedAt as unknown as string,
+                ).toLocaleTimeString()}`
+              : `Checked ${new Date(
+                  result.checkedAt as unknown as string,
+                ).toLocaleTimeString()}`
+          }
+          data-testid={`probe-result-${post.slug}`}
+        >
+          {result.statusCode ?? "ERR"}
+        </span>
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onClick}
+        disabled={mut.isPending}
+        aria-label={`Probe live URL for ${post.title}`}
+        title="Probe the live URL (HEAD/GET via the link checker)"
+        data-testid={`probe-url-${post.slug}`}
+      >
+        {mut.isPending ? (
+          <RefreshCw className="w-4 h-4 animate-spin" />
+        ) : (
+          <Activity
+            className={`w-4 h-4 ${
+              tone === "bad"
+                ? "text-amber-600"
+                : tone === "good"
+                  ? "text-green-600"
+                  : ""
+            }`}
+          />
+        )}
+      </Button>
+    </div>
+  );
+}
+
 async function presignAndUpload(file: {
   name: string;
   size: number;
@@ -2647,6 +2737,7 @@ export default function AdminBlog() {
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         </Button>
+                        <ProbeUrlButton post={p} />
                         <RepingButton post={p} />
                         <Button
                           variant="ghost"
