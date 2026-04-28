@@ -2273,13 +2273,51 @@ export default function AdminBlog() {
               });
               const noun =
                 result.updatedCount === 1 ? "post" : "posts";
-              toast.success(
-                wantHidden
-                  ? useSnooze
-                    ? `No-indexed ${result.updatedCount} ${noun} — auto re-index in ${snoozeDays} ${snoozeDays === 1 ? "day" : "days"}`
-                    : `No-indexed ${result.updatedCount} ${noun}`
-                  : `Removed no-index from ${result.updatedCount} ${noun}`,
-              );
+              // Snapshot the just-changed slugs so the Undo affordance
+              // below fires the inverse mutation against exactly the same
+              // set, even if the admin starts re-selecting other posts
+              // while the toast is still on screen.
+              const undoSlugs = result.posts.map((p) => p.slug);
+              const undoNoIndex = !wantHidden;
+              const undoVerbed = wantHidden ? "re-exposed" : "no-indexed";
+              const message = wantHidden
+                ? useSnooze
+                  ? `No-indexed ${result.updatedCount} ${noun} — auto re-index in ${snoozeDays} ${snoozeDays === 1 ? "day" : "days"}`
+                  : `No-indexed ${result.updatedCount} ${noun}`
+                : `Removed no-index from ${result.updatedCount} ${noun}`;
+              toast.success(message, {
+                // Wider window than the default ~4s so a distracted admin
+                // still has time to reverse a sweeping bulk action.
+                duration: 10_000,
+                action:
+                  undoSlugs.length > 0
+                    ? {
+                        label: "Undo",
+                        onClick: async () => {
+                          try {
+                            const undone = await bulkNoIndexMut.mutateAsync({
+                              data: {
+                                slugs: undoSlugs,
+                                noIndex: undoNoIndex,
+                              },
+                            });
+                            const undoneNoun =
+                              undone.updatedCount === 1 ? "post" : "posts";
+                            toast.success(
+                              `Undo complete — ${undoneNoun === "post" ? "1 post" : `${undone.updatedCount} ${undoneNoun}`} ${undoVerbed} again`,
+                            );
+                            invalidate();
+                          } catch (undoErr) {
+                            toast.error(
+                              undoErr instanceof Error
+                                ? `Undo failed: ${undoErr.message}`
+                                : "Undo failed.",
+                            );
+                          }
+                        },
+                      }
+                    : undefined,
+              });
               setSelectedSlugs(new Set());
               setImpactDialogMode(null);
               setSnoozeEnabled(false);
