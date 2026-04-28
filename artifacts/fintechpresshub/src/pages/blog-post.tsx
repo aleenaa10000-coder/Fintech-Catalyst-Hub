@@ -160,6 +160,40 @@ export default function BlogPost() {
     [headings],
   );
 
+  // Fallback bullets derived from the post excerpt + tags, used when the
+  // article body has no H2 headings. Guarantees every blog post renders the
+  // same Key takeaways panel so presentation is consistent across the site.
+  const fallbackTakeaways = useMemo(() => {
+    if (!post) return [] as string[];
+    const sentences = (post.excerpt || "")
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 12)
+      .slice(0, 3);
+    if (sentences.length >= 3) return sentences;
+    const tagBullets = (post.tags || [])
+      .slice(0, 3 - sentences.length)
+      .map(
+        (t: string) =>
+          `What ${t.toLowerCase()} means for ${post.category.toLowerCase()} teams in 2026.`,
+      );
+    return [...sentences, ...tagBullets];
+  }, [post]);
+
+  // Fallback "On this page" anchors for posts with no H2 headings. These
+  // map to wrapper IDs we render around the article body, author bio, and
+  // related posts grid further down the page.
+  const fallbackToc = useMemo(
+    () => [
+      { id: "post-article", text: "Read the article", level: 2 as const },
+      { id: "post-author", text: "About the author", level: 2 as const },
+      { id: "post-related", text: "Related articles", level: 2 as const },
+    ],
+    [],
+  );
+
+  const tocItems = headings.length > 0 ? headings : fallbackToc;
+
   // Split article content roughly in half (at the closest </p> after midpoint)
   // so we can insert an inline Lead Magnet CTA between the two halves.
   const { firstHalfHtml, secondHalfHtml } = useMemo(() => {
@@ -228,8 +262,8 @@ export default function BlogPost() {
   };
 
   useEffect(() => {
-    if (!contentHtml || headings.length === 0) return;
-    const elements = headings
+    if (!contentHtml || tocItems.length === 0) return;
+    const elements = tocItems
       .map((h) => document.getElementById(h.id))
       .filter((el): el is HTMLElement => !!el);
     if (elements.length === 0) return;
@@ -245,7 +279,7 @@ export default function BlogPost() {
           }
         }
         if (visible.size > 0) {
-          const topId = headings.find((h) => visible.has(h.id))?.id;
+          const topId = tocItems.find((h) => visible.has(h.id))?.id;
           if (topId) setActiveHeadingId(topId);
         }
       },
@@ -254,7 +288,7 @@ export default function BlogPost() {
 
     elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [contentHtml, headings]);
+  }, [contentHtml, tocItems]);
 
   // Don't redirect to /404 while the API list is still loading — otherwise
   // direct hits on a post that only exists in the database would briefly
@@ -577,97 +611,116 @@ export default function BlogPost() {
         </div>
       </header>
 
-      {/* Key Takeaways panel — auto-built from H2 headings. Skim-friendly
-          summary above the fold; helps featured-snippet eligibility and
-          gives AI Overviews a clean BLUF (Bottom Line Up Front) to cite. */}
-      {keyTakeaways.length >= 3 ? (
-        <div className="container mx-auto px-4 max-w-4xl mb-12">
-          <aside
-            aria-labelledby="key-takeaways-heading"
-            className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/80 via-white to-white p-6 sm:p-8 shadow-sm"
-          >
-            <div
-              aria-hidden="true"
-              className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-[#0052FF]/10 blur-2xl pointer-events-none"
-            />
-            <div className="relative flex items-start gap-4">
-              <div className="shrink-0 w-10 h-10 rounded-xl bg-[#0052FF] text-white flex items-center justify-center shadow-md">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0052FF] mb-1">
-                  In this guide
-                </div>
-                <h2
-                  id="key-takeaways-heading"
-                  className="text-lg sm:text-xl font-bold text-slate-900 mb-4"
-                >
-                  Key takeaways
-                </h2>
-                <ol className="space-y-2.5">
-                  {keyTakeaways.map((h, idx) => (
-                    <li key={h.id} className="flex items-start gap-3">
-                      <span
-                        aria-hidden="true"
-                        className="shrink-0 mt-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-blue-200 text-[#0052FF] text-xs font-bold"
-                      >
-                        {idx + 1}
-                      </span>
-                      <a
-                        href={`#${h.id}`}
-                        className="text-sm sm:text-base text-slate-700 hover:text-[#0052FF] hover:underline underline-offset-4 decoration-2 transition-colors"
-                        data-testid={`key-takeaway-${h.id}`}
-                      >
-                        {h.text}
-                      </a>
-                    </li>
-                  ))}
-                </ol>
-              </div>
+      {/* Key Takeaways panel — always rendered for visual consistency
+          across every blog post. When the article has H2 headings we use
+          them as deep links; otherwise we fall back to bullets derived
+          from the post excerpt + tags. */}
+      <div className="container mx-auto px-4 max-w-4xl mb-12">
+        <aside
+          aria-labelledby="key-takeaways-heading"
+          className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/80 via-white to-white p-6 sm:p-8 shadow-sm"
+        >
+          <div
+            aria-hidden="true"
+            className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-[#0052FF]/10 blur-2xl pointer-events-none"
+          />
+          <div className="relative flex items-start gap-4">
+            <div className="shrink-0 w-10 h-10 rounded-xl bg-[#0052FF] text-white flex items-center justify-center shadow-md">
+              <Sparkles className="w-5 h-5" />
             </div>
-          </aside>
-        </div>
-      ) : null}
-
-      {/* Content + sticky TOC grid */}
-      <div className="container mx-auto px-4 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 lg:gap-12">
-          {/* Sticky TOC (desktop only) — 1/4 width */}
-          <aside className="hidden lg:block lg:col-span-1">
-            {headings.length > 0 ? (
-              <nav className="sticky top-24">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4">
-                  <ListOrdered className="w-4 h-4" />
-                  On this page
-                </div>
-                <ul className="space-y-2 border-l border-slate-200">
-                  {headings.map((h) => {
-                    const active = activeHeadingId === h.id;
-                    return (
-                      <li key={h.id}>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0052FF] mb-1">
+                In this guide
+              </div>
+              <h2
+                id="key-takeaways-heading"
+                className="text-lg sm:text-xl font-bold text-slate-900 mb-4"
+              >
+                Key takeaways
+              </h2>
+              <ol className="space-y-2.5">
+                {keyTakeaways.length > 0
+                  ? keyTakeaways.map((h, idx) => (
+                      <li key={h.id} className="flex items-start gap-3">
+                        <span
+                          aria-hidden="true"
+                          className="shrink-0 mt-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-blue-200 text-[#0052FF] text-xs font-bold"
+                        >
+                          {idx + 1}
+                        </span>
                         <a
                           href={`#${h.id}`}
-                          className={`block text-sm border-l-2 -ml-px pl-4 py-1 transition-all ${
-                            h.level === 3 ? "pl-7 text-[13px]" : "font-medium"
-                          } ${
-                            active
-                              ? "text-[#0052FF] border-[#0052FF] font-semibold"
-                              : "text-slate-600 border-transparent hover:text-[#0052FF] hover:border-[#0052FF]"
-                          }`}
+                          className="text-sm sm:text-base text-slate-700 hover:text-[#0052FF] hover:underline underline-offset-4 decoration-2 transition-colors"
+                          data-testid={`key-takeaway-${h.id}`}
                         >
                           {h.text}
                         </a>
                       </li>
-                    );
-                  })}
-                </ul>
-              </nav>
-            ) : null}
+                    ))
+                  : fallbackTakeaways.map((text, idx) => (
+                      <li
+                        key={`fallback-${idx}`}
+                        className="flex items-start gap-3"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="shrink-0 mt-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-blue-200 text-[#0052FF] text-xs font-bold"
+                        >
+                          {idx + 1}
+                        </span>
+                        <span
+                          className="text-sm sm:text-base text-slate-700"
+                          data-testid={`key-takeaway-fallback-${idx}`}
+                        >
+                          {text}
+                        </span>
+                      </li>
+                    ))}
+              </ol>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* Content + sticky TOC grid */}
+      <div className="container mx-auto px-4 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 lg:gap-12">
+          {/* Sticky TOC (desktop only) — 1/4 width. Always rendered so
+              every blog post has the same on-page navigation; falls back to
+              section anchors when the article has no H2 headings. */}
+          <aside className="hidden lg:block lg:col-span-1">
+            <nav className="sticky top-24" aria-label="On this page">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4">
+                <ListOrdered className="w-4 h-4" />
+                On this page
+              </div>
+              <ul className="space-y-2 border-l border-slate-200">
+                {tocItems.map((h) => {
+                  const active = activeHeadingId === h.id;
+                  return (
+                    <li key={h.id}>
+                      <a
+                        href={`#${h.id}`}
+                        className={`block text-sm border-l-2 -ml-px pl-4 py-1 transition-all ${
+                          h.level === 3 ? "pl-7 text-[13px]" : "font-medium"
+                        } ${
+                          active
+                            ? "text-[#0052FF] border-[#0052FF] font-semibold"
+                            : "text-slate-600 border-transparent hover:text-[#0052FF] hover:border-[#0052FF]"
+                        }`}
+                      >
+                        {h.text}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
           </aside>
 
           {/* Main article column — 3/4 width */}
           <div className="lg:col-span-3 min-w-0">
-            <div className="max-w-3xl mx-auto">
+            <div id="post-article" className="max-w-3xl mx-auto scroll-mt-24">
               {(() => {
                 const proseClass =
                   "prose prose-lg dark:prose-invert max-w-none leading-relaxed " +
@@ -766,7 +819,7 @@ export default function BlogPost() {
                 ? authorProfile.shortBio
                 : `${post.author} writes about ${post.category.toLowerCase()} for fintech operators at FintechPressHub, drawing on hands-on experience running SEO and content programs for venture-backed finance brands.`;
               return (
-                <Card className="mt-12 border-slate-200 bg-gradient-to-br from-blue-50/40 to-white">
+                <Card id="post-author" className="mt-12 border-slate-200 bg-gradient-to-br from-blue-50/40 to-white scroll-mt-24">
                   <CardContent className="p-8 flex flex-col sm:flex-row items-start gap-6">
                     <Link
                       href={`/authors/${authorSlug}`}
@@ -823,7 +876,10 @@ export default function BlogPost() {
 
         {/* Related Posts */}
         {relatedPosts.length > 0 && (
-          <section className="mt-24 pt-16 border-t border-slate-200">
+          <section
+            id="post-related"
+            className="mt-24 pt-16 border-t border-slate-200 scroll-mt-24"
+          >
             <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] font-semibold text-[#0052FF] mb-2">
