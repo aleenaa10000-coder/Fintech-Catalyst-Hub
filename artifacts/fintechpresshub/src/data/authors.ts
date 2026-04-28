@@ -283,39 +283,6 @@ export const authors: Author[] = [
     },
   },
   {
-    slug: "hiroshi-yamamoto",
-    name: "Hiroshi Yamamoto",
-    role: "Crypto, Web3 & Digital Assets Lead",
-    photo: "/author-photos/hiroshi-yamamoto.png",
-    shortBio:
-      "Veteran capital-markets operator covering regulated digital assets, stablecoins, and the institutional crypto rails actually being adopted by banks and payments companies.",
-    fullBio: [
-      "Hiroshi covers digital assets, stablecoins, and institutional crypto infrastructure for FintechPressHub. He spent two decades inside traditional capital markets — first as a fixed-income trader at a tier-one Japanese bank, then as Head of Digital Assets at a Hong Kong–licensed virtual-asset trading platform regulated by the SFC, where he built the institutional desk and authored the firm's first regulated stablecoin custody playbook.",
-      "His writing is deliberately allergic to the speculative side of crypto coverage. He focuses on the parts of the digital-asset stack that already work inside regulated finance: tokenized money-market funds, MAS- and SFC-licensed exchanges, stablecoin payment rails, on-chain settlement for FX and securities, and the prudential rules (Basel 3.1, MiCA, Hong Kong's VASP regime) that decide what banks can actually touch.",
-      "Hiroshi sits on a Hong Kong industry working group on tokenized real-world assets and is a frequent speaker at Point Zero Forum, the Hong Kong FinTech Week, and Singapore FinTech Festival.",
-    ],
-    expertise: [
-      "Regulated stablecoin and tokenized-money coverage",
-      "Institutional crypto custody and settlement",
-      "MiCA, MAS, SFC, and HKMA digital-asset rules",
-      "Tokenized real-world assets and on-chain securities",
-      "Bank and payments-company crypto go-to-market",
-    ],
-    credentials: [
-      "20+ years in capital markets and digital assets",
-      "Former Head of Digital Assets at an SFC-licensed exchange",
-      "Speaker: Hong Kong FinTech Week, Point Zero Forum, SFF",
-      "Member, HK industry working group on tokenized RWAs",
-      "MBA, Hitotsubashi University Graduate School of Business",
-    ],
-    yearsExperience: 20,
-    location: "Hong Kong",
-    social: {
-      linkedin: "https://www.linkedin.com/in/hiroshiyamamotodigitalassets",
-      twitter: "https://twitter.com/hyamamoto_da",
-    },
-  },
-  {
     slug: "olivia-bennett",
     name: "Olivia Bennett",
     role: "Performance Marketing & Paid Media Director",
@@ -417,14 +384,14 @@ export const authors: Author[] = [
 ];
 
 // Hard cap on the size of the author roster. The blog UI is designed
-// around a 12-author masthead (2 rows of 6 on desktop, 3×4 on tablet),
-// the author dropdown in the admin editor uses a single-screen list,
-// and the author archive page assumes a fixed-size grid. Adding a 13th
-// author should be a deliberate product decision that updates the layouts
-// — not something that quietly slips in via a PR. Enforced here so a
-// future contributor adding to the array trips a build-time error
-// instead of shipping an off-grid roster to production.
-export const MAX_AUTHORS = 12;
+// around an 11-author masthead, the author dropdown in the admin editor
+// uses a single-screen list, and the author archive page assumes a
+// fixed-size grid. Growing the roster should be a deliberate product
+// decision that updates the layouts — not something that quietly slips
+// in via a PR. Enforced here so a future contributor adding to the array
+// trips a build-time error instead of shipping an off-grid roster to
+// production.
+export const MAX_AUTHORS = 11;
 
 if (authors.length > MAX_AUTHORS) {
   throw new Error(
