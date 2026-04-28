@@ -185,3 +185,15 @@ Extends the bulk no-index flow with a one-click "hide for N days, then auto re-e
 ## Author roster cap
 
 `authors.ts` now exports `MAX_AUTHORS = 12` and asserts at module load that `authors.length <= MAX_AUTHORS`. The roster is currently exactly 12 (the 12 launch authors). Adding a 13th will throw a clear build-time error pointing future contributors at the masthead/grid layouts that need updating before the cap can be raised. No data was removed — the count was already at the cap.
+
+## Per-author monthly publishing quota
+
+Editorial-calendar guardrail in `artifacts/fintechpresshub/src/pages/admin-blog.tsx` that surfaces — but does not block — when an author is approaching or over the per-month posting cap, so commissioning stays balanced across the 12-author masthead.
+
+- **Constant** — `MAX_POSTS_PER_AUTHOR_PER_MONTH = 3`. Single source of truth read by the dropdown badges, inline form warnings, and dashboard summary card.
+- **Computation** — `computeAuthorMonthlyUsage(posts)` buckets the in-memory `BlogPost[]` by `author` for the current calendar month using each post's `publishedAt` (not `updatedAt`, so editing legacy posts never surprises the admin). Returns a `Map<authorName, number>` so author-select renders are O(1) per row.
+- **Tone tiers** — `quotaTone(count)` returns `"ok" | "warn" | "over"` (over = at cap, warn = one below). All three surfaces use the same helper for consistent colour coding (muted / amber / red).
+- **Author dropdown badges** — every author row in both the new-post form and the inline editor's author selects now shows a `count/3` badge, tinted amber as the author approaches and red when at/over cap.
+- **Inline form warning** — `<AuthorQuotaInlineWarning>` renders directly beneath each author select when the picked author has hit (or is one short of) the cap. The warn copy says "one more post will hit the monthly cap"; the over copy explicitly suggests rotating to another team member.
+- **Dashboard summary card** — only renders when at least one author is at warn-or-over, sits at the top of the admin page, lists the affected authors as avatar pills with the same red/amber tone treatment. Helps the admin spot calendar imbalance at a glance without opening the form.
+- The cap is intentionally a *soft* nudge (no API enforcement) because special-occasion publishing — re-publishing a delayed post, surge coverage of a market event — is legitimate. The API can be tightened later if abuse appears.

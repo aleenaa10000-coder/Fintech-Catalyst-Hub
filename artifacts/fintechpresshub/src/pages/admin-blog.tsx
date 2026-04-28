@@ -85,7 +85,71 @@ function authorInitials(name: string) {
     .join("");
 }
 
-function AuthorOption({ author }: { author: Author }) {
+/**
+ * Editorial-calendar guardrail: each author can publish at most this many
+ * posts per calendar month before the admin UI starts warning. The number
+ * is intentionally low (3) to keep the 12-author roster active and avoid
+ * any single author monopolising the publishing schedule. Lifted into a
+ * named constant so the threshold can be tuned in one place — and so the
+ * dashboard summary, author dropdown, and inline form warnings all read
+ * from the same source of truth.
+ */
+const MAX_POSTS_PER_AUTHOR_PER_MONTH = 3;
+
+/** "YYYY-MM" key for the month a given timestamp falls into, in local time. */
+function monthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Bucket the API-managed blog posts by author for the current calendar
+ * month. Returns a Map keyed by author *display name* (matching what the
+ * `BlogPost.author` field stores) so lookups from the author select can
+ * happen in O(1) without re-scanning the whole list on every keystroke.
+ *
+ * Uses `publishedAt` rather than `updatedAt` so editing an old post does
+ * not surprise the admin by suddenly counting against the author's
+ * current-month quota.
+ */
+function computeAuthorMonthlyUsage(
+  posts: BlogPost[] | undefined,
+): Map<string, number> {
+  const usage = new Map<string, number>();
+  if (!posts) return usage;
+  const currentKey = monthKey(new Date());
+  for (const p of posts) {
+    if (!p.author) continue;
+    const t = new Date(p.publishedAt);
+    if (Number.isNaN(t.getTime())) continue;
+    if (monthKey(t) !== currentKey) continue;
+    usage.set(p.author, (usage.get(p.author) ?? 0) + 1);
+  }
+  return usage;
+}
+
+/** Tone tier for a given month-to-date count vs the cap. */
+function quotaTone(
+  count: number,
+): "ok" | "warn" | "over" {
+  if (count >= MAX_POSTS_PER_AUTHOR_PER_MONTH) return "over";
+  if (count >= MAX_POSTS_PER_AUTHOR_PER_MONTH - 1) return "warn";
+  return "ok";
+}
+
+function AuthorOption({
+  author,
+  monthlyCount = 0,
+}: {
+  author: Author;
+  monthlyCount?: number;
+}) {
+  const tone = quotaTone(monthlyCount);
+  const badgeCls =
+    tone === "over"
+      ? "bg-red-100 text-red-700"
+      : tone === "warn"
+        ? "bg-amber-100 text-amber-800"
+        : "bg-muted text-muted-foreground";
   return (
     <SelectPrimitive.Item
       value={author.slug}
@@ -103,12 +167,68 @@ function AuthorOption({ author }: { author: Author }) {
           {author.role}
         </div>
       </div>
+      <span
+        className={`mr-6 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${badgeCls}`}
+        title={
+          tone === "over"
+            ? `Over the ${MAX_POSTS_PER_AUTHOR_PER_MONTH}-posts-per-month cap`
+            : tone === "warn"
+              ? `Approaching the ${MAX_POSTS_PER_AUTHOR_PER_MONTH}-posts-per-month cap`
+              : `${monthlyCount} of ${MAX_POSTS_PER_AUTHOR_PER_MONTH} posts this month`
+        }
+        data-testid={`author-quota-${author.slug}`}
+      >
+        {monthlyCount}/{MAX_POSTS_PER_AUTHOR_PER_MONTH}
+      </span>
       <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
           <Check className="h-4 w-4" />
         </SelectPrimitive.ItemIndicator>
       </span>
     </SelectPrimitive.Item>
+  );
+}
+
+/**
+ * Inline warning rendered beneath each author select when the currently
+ * picked author is at or over the monthly publishing cap. Pure visual
+ * nudge — does not block the publish action, since occasional overrides
+ * (re-publishing a delayed post, special-occasion piece) are legitimate.
+ */
+function AuthorQuotaInlineWarning({
+  authorName,
+  usage,
+}: {
+  authorName: string;
+  usage: Map<string, number>;
+}) {
+  if (!authorName) return null;
+  const count = usage.get(authorName) ?? 0;
+  const tone = quotaTone(count);
+  if (tone === "ok") return null;
+  const isOver = tone === "over";
+  return (
+    <div
+      className={`mt-2 flex items-start gap-2 rounded-md border px-3 py-2 text-xs ${
+        isOver
+          ? "border-red-200 bg-red-50 text-red-900"
+          : "border-amber-200 bg-amber-50 text-amber-900"
+      }`}
+      data-testid="author-quota-inline-warning"
+    >
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <div>
+        <strong>{authorName}</strong> has{" "}
+        {isOver ? "already published" : "published"}{" "}
+        <strong>
+          {count} of {MAX_POSTS_PER_AUTHOR_PER_MONTH}
+        </strong>{" "}
+        posts allotted for this month.{" "}
+        {isOver
+          ? "Publishing now will exceed the editorial cap — consider rotating to another team member to keep the calendar balanced."
+          : "One more post will hit the monthly cap — plan accordingly."}
+      </div>
+    </div>
   );
 }
 
@@ -348,10 +468,16 @@ function slugify(input: string) {
 
 function PostEditor({
   post,
+  authorUsage,
   onCancel,
   onSaved,
 }: {
   post: BlogPost;
+  // Current-month publishing count keyed by author display name. Drives
+  // the per-row badges inside the author select and the inline warning
+  // beneath it. Threaded down from <AdminBlog> so it stays in sync with
+  // the dashboard summary card without a second computation pass.
+  authorUsage: Map<string, number>;
   onCancel: () => void;
   onSaved: () => void;
 }) {
@@ -464,11 +590,19 @@ function PostEditor({
           </SelectTrigger>
           <SelectContent>
             {authors.map((a) => (
-              <AuthorOption key={a.slug} author={a} />
+              <AuthorOption
+                key={a.slug}
+                author={a}
+                monthlyCount={authorUsage.get(a.name) ?? 0}
+              />
             ))}
             <GuestAuthorOption />
           </SelectContent>
         </Select>
+        <AuthorQuotaInlineWarning
+          authorName={draft.author}
+          usage={authorUsage}
+        />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -1289,6 +1423,20 @@ export default function AdminBlog() {
     () => new Set(),
   );
   const bulkNoIndexMut = useBulkNoIndexBlogPosts();
+  // Per-author publishing count for the current calendar month. Computed
+  // once per render against the in-memory posts list (cheap — bounded by
+  // the admin page size). Threaded into both author selects (new post
+  // form + inline editor) and the dashboard summary so the editorial
+  // calendar guardrails stay consistent across the whole admin surface.
+  const authorUsage = computeAuthorMonthlyUsage(posts);
+  const currentMonthLabel = new Date().toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
+  const authorsAtOrOver = authors
+    .map((a) => ({ author: a, count: authorUsage.get(a.name) ?? 0 }))
+    .filter(({ count }) => count >= MAX_POSTS_PER_AUTHOR_PER_MONTH - 1)
+    .sort((a, b) => b.count - a.count);
   // Which bulk no-index dialog is open (if any). Driving the dialog from
   // here — instead of inline window.confirm() — lets us render a rich
   // "preview impact" panel before the destructive action fires.
@@ -1534,6 +1682,71 @@ export default function AdminBlog() {
           </div>
         </div>
 
+        {authorsAtOrOver.length > 0 && (
+          <Card
+            className="mb-6 border-amber-200 bg-amber-50/40"
+            data-testid="author-quota-summary"
+          >
+            <CardContent className="pt-5 pb-5">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-semibold text-amber-900">
+                    Editorial calendar — author quota check ·{" "}
+                    {currentMonthLabel}
+                  </h3>
+                  <p className="mt-1 text-xs text-amber-900/80">
+                    Each author is capped at{" "}
+                    <strong>
+                      {MAX_POSTS_PER_AUTHOR_PER_MONTH} posts per month
+                    </strong>{" "}
+                    to keep the 12-author masthead active. The following{" "}
+                    {authorsAtOrOver.length === 1 ? "author has" : "authors have"}{" "}
+                    hit or are approaching the cap — rotate to another team
+                    member for new commissions.
+                  </p>
+                  <ul
+                    className="mt-3 flex flex-wrap gap-2"
+                    data-testid="author-quota-summary-list"
+                  >
+                    {authorsAtOrOver.map(({ author: a, count }) => {
+                      const tone = quotaTone(count);
+                      const isOver = tone === "over";
+                      return (
+                        <li
+                          key={a.slug}
+                          className={`flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs ${
+                            isOver
+                              ? "border-red-200 bg-red-50 text-red-800"
+                              : "border-amber-200 bg-white text-amber-900"
+                          }`}
+                          data-testid={`author-quota-summary-${a.slug}`}
+                        >
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={a.photo} alt={a.name} />
+                            <AvatarFallback className="text-[9px] bg-[#0052FF]/10 text-[#0052FF]">
+                              {authorInitials(a.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{a.name}</span>
+                          <span className="tabular-nums">
+                            {count}/{MAX_POSTS_PER_AUTHOR_PER_MONTH}
+                          </span>
+                          {isOver && (
+                            <span className="text-[10px] uppercase tracking-wide font-semibold">
+                              over cap
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="mb-10">
           <CardContent className="pt-6">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -1620,11 +1833,19 @@ export default function AdminBlog() {
                   </SelectTrigger>
                   <SelectContent>
                     {authors.map((a) => (
-                      <AuthorOption key={a.slug} author={a} />
+                      <AuthorOption
+                        key={a.slug}
+                        author={a}
+                        monthlyCount={authorUsage.get(a.name) ?? 0}
+                      />
                     ))}
                     <GuestAuthorOption />
                   </SelectContent>
                 </Select>
+                <AuthorQuotaInlineWarning
+                  authorName={form.author}
+                  usage={authorUsage}
+                />
                 <p className="text-xs text-muted-foreground mt-1">
                   Picks the right name + role and links the post to the
                   author profile page.
@@ -2187,6 +2408,7 @@ export default function AdminBlog() {
                     {isEditing && (
                       <PostEditor
                         post={p}
+                        authorUsage={authorUsage}
                         onCancel={() => setEditingId(null)}
                         onSaved={() => {
                           setEditingId(null);
