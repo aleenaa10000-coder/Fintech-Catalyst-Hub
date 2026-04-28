@@ -365,15 +365,14 @@ export default function BlogPost() {
         </button>
       </aside>
 
-      {/* Hero — Stripe-style title-first layout.
-          Two-column on lg+: a narrow author/meta sidebar on the left and a
-          wide title column on the right. On mobile the columns stack so the
-          author block sits above the title. The cover image follows below
-          as a "featured visual" instead of overlapping the hero. */}
+      {/* Hero — Moov-style image-first layout.
+          The large cover image is the hero. Title, excerpt, and a compact
+          horizontal author/date/category/share row sit beneath it. On lg+
+          the article body that follows uses a right-anchored sticky TOC. */}
       <header className="relative bg-white border-b border-slate-200">
-        <div className="relative container mx-auto px-4 max-w-6xl pt-12 lg:pt-16 pb-10 lg:pb-14">
+        <div className="relative container mx-auto px-4 max-w-5xl pt-8 lg:pt-12 pb-10 lg:pb-14">
           {/* Top breadcrumb row */}
-          <div className="flex items-center justify-between gap-4 mb-10 lg:mb-14">
+          <div className="flex items-center justify-between gap-4 mb-6 lg:mb-8">
             <nav
               aria-label="Breadcrumb"
               className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0"
@@ -407,10 +406,49 @@ export default function BlogPost() {
             )}
           </div>
 
-          {/* Title hero grid: narrow meta column + wide title column */}
-          <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-8 lg:gap-14 items-start">
-            {/* LEFT: author chip stacked above date / read time / word count */}
-            <aside className="lg:pt-3" aria-label="Article details">
+          {/* Hero cover image — full-width within the article container,
+              large (16:9 by default, capped at ~520px tall on wide screens).
+              fetchPriority="high" + eager loading lock in LCP. The
+              decorative background panel mirrors the screenshot mockups in
+              the Moov reference layout. */}
+          <figure
+            className="relative w-full overflow-hidden rounded-2xl shadow-xl border border-slate-100 bg-gradient-to-br from-slate-50 via-blue-50/40 to-white"
+            data-testid="blog-hero-image"
+          >
+            <div className="aspect-[16/9] sm:aspect-[16/8] w-full">
+              <img
+                src={post.image}
+                alt={`${post.title} — ${post.category} guide cover image`}
+                width={1600}
+                height={800}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </figure>
+
+          {/* Title block sits beneath the hero image, left-aligned. */}
+          <div className="mt-10 lg:mt-12 max-w-4xl">
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider mb-5">
+              {post.category}
+            </span>
+
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-[1.1] tracking-tight text-slate-900 mb-5">
+              {post.title}
+            </h1>
+            <p className="text-lg sm:text-xl text-slate-600 leading-relaxed">
+              {post.excerpt}
+            </p>
+          </div>
+
+          {/* Compact horizontal meta row — author chip on the left, date /
+              read time / category in the middle, share icons on the right.
+              Mirrors the Moov byline strip directly under the title. */}
+          <div className="mt-8 pt-6 border-t border-slate-200 flex flex-wrap items-center gap-x-6 gap-y-4 justify-between">
+            {/* LEFT: author chip + meta */}
+            <div className="flex items-center gap-4 flex-wrap">
               <Link
                 href={`/authors/${authorSlugFromName(post.author)}`}
                 className="flex items-center gap-3 group"
@@ -419,7 +457,7 @@ export default function BlogPost() {
                 {(() => {
                   const ap = getAuthorByName(post.author);
                   return (
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-[#0052FF] text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-[#0052FF] text-white flex items-center justify-center font-bold text-xs shadow-sm group-hover:scale-105 transition-transform">
                       {ap?.photo ? (
                         <img
                           src={ap.photo}
@@ -433,9 +471,6 @@ export default function BlogPost() {
                   );
                 })()}
                 <div className="flex flex-col leading-tight min-w-0">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                    Written by
-                  </span>
                   <span className="text-sm font-semibold text-slate-900 group-hover:text-[#0052FF] transition-colors truncate">
                     {post.author}
                   </span>
@@ -444,45 +479,29 @@ export default function BlogPost() {
                   </span>
                 </div>
               </Link>
-              {/* Inline deep-link into the blog index pre-filtered to this
-                  author. The avatar/name above still goes to the dedicated
-                  bio page at /authors/<slug>. */}
-              <Link
-                href={`/blog?author=${encodeURIComponent(authorSlugFromName(post.author))}`}
-                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#0052FF] hover:underline"
-                data-testid={`link-more-from-${authorSlugFromName(post.author)}`}
-                aria-label={`Browse all articles by ${post.author}`}
-              >
-                More from {post.author.split(" ")[0]}
-                <ArrowRight className="w-3 h-3" />
-              </Link>
 
-              <dl className="mt-6 pt-6 border-t border-slate-200 space-y-3 text-sm">
-                <div className="flex items-center gap-2 text-slate-500">
+              <span
+                aria-hidden="true"
+                className="hidden sm:inline-block w-px h-8 bg-slate-200"
+              />
+
+              <dl className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+                <div className="flex items-center gap-1.5 text-slate-600">
                   <Calendar
                     className="w-4 h-4 text-slate-400 shrink-0"
                     aria-hidden="true"
                   />
                   <dt className="sr-only">Published</dt>
-                  <dd className="text-slate-700">{formatDate(post.date)}</dd>
+                  <dd>{formatDate(post.date)}</dd>
                 </div>
-                {/* "Last updated" indicator — only shown when the post was
-                    edited at least a day after it was first published. Uses
-                    the same machine-readable ISO timestamp that powers the
-                    BlogPosting JSON-LD `dateModified` and the article
-                    `article:modified_time` OG tag, so visible text and
-                    crawler signals stay in sync. */}
                 {isMeaningfullyUpdated(post.date, post.dateModified) ? (
-                  <div className="flex items-center gap-2 text-slate-500">
+                  <div className="flex items-center gap-1.5 text-slate-600">
                     <Pencil
                       className="w-4 h-4 text-emerald-500 shrink-0"
                       aria-hidden="true"
                     />
                     <dt className="sr-only">Last updated</dt>
-                    <dd
-                      className="text-slate-700"
-                      data-testid="blog-post-updated-at"
-                    >
+                    <dd data-testid="blog-post-updated-at">
                       Updated{" "}
                       <time dateTime={post.dateModified}>
                         {formatDate(post.dateModified!)}
@@ -490,57 +509,38 @@ export default function BlogPost() {
                     </dd>
                   </div>
                 ) : null}
-                <div className="flex items-center gap-2 text-slate-500">
+                <div className="flex items-center gap-1.5 text-slate-600">
                   <Clock
                     className="w-4 h-4 text-slate-400 shrink-0"
                     aria-hidden="true"
                   />
                   <dt className="sr-only">Reading time</dt>
-                  <dd className="text-slate-700">
+                  <dd>
                     {readingMinutes > 0
                       ? `${readingMinutes} min read`
                       : post.readTime}
                   </dd>
                 </div>
                 {wordCount > 0 ? (
-                  <div className="flex items-center gap-2 text-slate-500">
+                  <div className="hidden md:flex items-center gap-1.5 text-slate-600">
                     <BookOpen
                       className="w-4 h-4 text-slate-400 shrink-0"
                       aria-hidden="true"
                     />
                     <dt className="sr-only">Word count</dt>
-                    <dd className="text-slate-700">
-                      {wordCount.toLocaleString()} words
-                    </dd>
+                    <dd>{wordCount.toLocaleString()} words</dd>
                   </div>
                 ) : null}
               </dl>
-            </aside>
-
-            {/* RIGHT: category badge → big bold title → excerpt */}
-            <div className="min-w-0">
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider mb-5">
-                {post.category}
-              </span>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold leading-[1.05] tracking-tight text-slate-900 mb-6">
-                {post.title}
-              </h1>
-              <p className="text-lg sm:text-xl text-slate-600 max-w-3xl leading-relaxed">
-                {post.excerpt}
-              </p>
             </div>
-          </div>
 
-          {/* Horizontal share bar (below xl — the floating vertical bar
-              handles xl+ during scroll). Kept at the bottom of the hero so
-              first impressions encourage sharing without crowding the meta
-              sidebar on smaller screens. */}
+            {/* RIGHT: inline share icons (replaces the old mobile-only bar
+                — the floating xl+ vertical share rail is unchanged). */}
           <div
-            className="flex xl:hidden items-center gap-2 mt-10 pt-6 border-t border-slate-200/70"
+            className="flex items-center gap-2 xl:hidden"
             aria-label="Share this article"
           >
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mr-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mr-1">
               Share
             </span>
             <a
@@ -573,28 +573,9 @@ export default function BlogPost() {
               <Link2 className="w-4 h-4" />
             </button>
           </div>
+          </div>
         </div>
       </header>
-
-      {/* Cover image — featured visual right under the title hero.
-          - Explicit width/height locks the aspect ratio and prevents CLS.
-          - fetchPriority="high" + eager loading boosts LCP (this is the
-            largest above-the-fold element on the page).
-          - Richer alt text combines title + category for descriptive SEO. */}
-      <div className="container mx-auto px-4 max-w-6xl mt-10 lg:mt-12 mb-12">
-        <figure className="aspect-[2/1] w-full overflow-hidden rounded-2xl shadow-xl border border-slate-100 bg-slate-100">
-          <img
-            src={post.image}
-            alt={`${post.title} — ${post.category} guide cover image`}
-            width={1200}
-            height={600}
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-            className="w-full h-full object-cover"
-          />
-        </figure>
-      </div>
 
       {/* Key Takeaways panel — auto-built from H2 headings. Skim-friendly
           summary above the fold; helps featured-snippet eligibility and
@@ -691,11 +672,16 @@ export default function BlogPost() {
                 const proseClass =
                   "prose prose-lg dark:prose-invert max-w-none leading-relaxed " +
                   "prose-headings:font-bold prose-headings:tracking-tight " +
-                  "prose-h2:text-[#0a2540] prose-h3:text-[#0052FF] " +
+                  "prose-h2:text-[#0a2540] prose-h2:text-2xl sm:prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-4 " +
+                  "prose-h3:text-[#0052FF] prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 " +
                   "prose-h2:scroll-mt-24 prose-h3:scroll-mt-24 " +
-                  "prose-p:text-slate-700 " +
+                  "prose-p:text-slate-700 prose-p:leading-[1.8] " +
                   "prose-a:text-[#0052FF] prose-a:no-underline hover:prose-a:underline " +
-                  "prose-img:rounded-xl prose-img:shadow-sm " +
+                  // Inline images: full-width within the content column,
+                  // rounded-2xl corners, soft border + lifted shadow to
+                  // match the Moov-style screenshot mockups in body copy.
+                  "prose-img:w-full prose-img:rounded-2xl prose-img:shadow-lg prose-img:border prose-img:border-slate-100 prose-img:my-8 " +
+                  "prose-figure:my-8 prose-figcaption:text-sm prose-figcaption:text-slate-500 prose-figcaption:text-center prose-figcaption:mt-3 " +
                   "prose-blockquote:border-l-4 prose-blockquote:border-[#0052FF] prose-blockquote:bg-blue-50/40 prose-blockquote:py-1 prose-blockquote:not-italic " +
                   "prose-code:before:content-none prose-code:after:content-none prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded";
                 return (
