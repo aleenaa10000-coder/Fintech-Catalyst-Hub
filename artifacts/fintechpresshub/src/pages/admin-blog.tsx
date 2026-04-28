@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageMeta } from "@/components/PageMeta";
 import {
   useListBlogPosts,
@@ -901,6 +901,16 @@ function SitemapHealthBody({ report }: { report: SitemapHealthReport }) {
 /** Maximum URLs the in-session probe history keeps. */
 const PROBE_HISTORY_LIMIT = 5;
 
+/**
+ * True when the current platform's primary keyboard modifier is the
+ * Mac Command key. Used to render the right shortcut hint (⌘K vs Ctrl+K)
+ * and to match the right modifier in the global keydown listener.
+ */
+function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Mac|iPhone|iPad|iPod/i.test(navigator.platform);
+}
+
 function SingleUrlProbe({ defaultBase }: { defaultBase: string | null }) {
   const baseOrigin = (() => {
     if (!defaultBase) return "";
@@ -914,7 +924,47 @@ function SingleUrlProbe({ defaultBase }: { defaultBase: string | null }) {
   const [result, setResult] = useState<CheckSingleUrlResult | null>(null);
   const [history, setHistory] = useState<CheckSingleUrlResult[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const isMac = useMemo(isMacPlatform, []);
   const mut = useCheckSingleSitemapUrl();
+
+  /**
+   * Global Cmd/Ctrl+K listener — focuses and selects the probe input
+   * from anywhere on the page so an admin doesn't have to scroll past
+   * the post list to spot-check a URL. Mirrors the convention popular
+   * search/command palettes (Linear, GitHub, Slack) use, so it'll
+   * already be in admins' muscle memory. We only intercept the
+   * shortcut when no other input/textarea/contenteditable is already
+   * focused — typing `Cmd+K` inside the post editor should still do
+   * whatever the editor wants with it (or, in plain inputs, nothing).
+   */
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const wantsModifier = isMac ? e.metaKey : e.ctrlKey;
+      if (!wantsModifier) return;
+      if (e.key !== "k" && e.key !== "K") return;
+      const active = document.activeElement as HTMLElement | null;
+      if (active && active !== inputRef.current) {
+        const tag = active.tagName;
+        if (
+          tag === "INPUT" ||
+          tag === "TEXTAREA" ||
+          active.isContentEditable
+        ) {
+          return;
+        }
+      }
+      e.preventDefault();
+      const el = inputRef.current;
+      if (el) {
+        el.focus();
+        el.select();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isMac]);
 
   const resolveUrl = (raw: string): string | null => {
     const trimmed = raw.trim();
@@ -994,20 +1044,37 @@ function SingleUrlProbe({ defaultBase }: { defaultBase: string | null }) {
         </span>
       </div>
       <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2">
-        <Input
-          type="text"
-          inputMode="url"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={
-            baseOrigin
-              ? `${baseOrigin}/blog/your-slug`
-              : "https://example.com/page"
-          }
-          className="font-mono text-xs"
-          data-testid="sitemap-health-probe-input"
-          disabled={mut.isPending}
-        />
+        <div className="relative flex-1">
+          <Input
+            ref={inputRef}
+            type="text"
+            inputMode="url"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={
+              baseOrigin
+                ? `${baseOrigin}/blog/your-slug`
+                : "https://example.com/page"
+            }
+            className="font-mono text-xs pr-16"
+            data-testid="sitemap-health-probe-input"
+            disabled={mut.isPending}
+            aria-keyshortcuts={isMac ? "Meta+K" : "Control+K"}
+          />
+          <kbd
+            className="hidden sm:inline-flex pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground"
+            data-testid="sitemap-health-probe-kbd"
+            aria-hidden="true"
+            title={
+              isMac
+                ? "Press ⌘K from anywhere to focus this input"
+                : "Press Ctrl+K from anywhere to focus this input"
+            }
+          >
+            {isMac ? "⌘" : "Ctrl"}
+            <span>K</span>
+          </kbd>
+        </div>
         <Button
           type="submit"
           size="sm"
