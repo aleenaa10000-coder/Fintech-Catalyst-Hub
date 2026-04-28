@@ -1,6 +1,7 @@
 import { db, linkCheckResultsTable, type LinkCheckResultRow } from "@workspace/db";
 import { eq, sql, desc } from "drizzle-orm";
 import { logger } from "./logger";
+import { getSiteUrl } from "./seo";
 import {
   buildSitemapEntries,
   type SitemapEntry,
@@ -37,6 +38,31 @@ export interface SitemapHealthReport {
   total: number;
   brokenCount: number;
   results: SerializedResult[];
+  /**
+   * The base URL the link-checker walks (i.e. what `SITE_URL` resolves
+   * to on this server). Surfaced so the admin dashboard can warn when
+   * a non-production environment is checking a domain that isn't
+   * actually this server, which would produce false-positive reports.
+   */
+  targetSiteUrl?: string;
+  /**
+   * Whether the background daily link-check job is currently scheduled
+   * in this environment. False in dev / preview when `NODE_ENV !==
+   * "production"` and `SITE_URL` is not overridden. UI uses this to
+   * show a "daily job is paused" notice next to the manual run button.
+   */
+  dailyJobEnabled?: boolean;
+}
+
+/**
+ * Mirrors the gating logic in `scheduleLinkCheckDaily` so the report
+ * can tell the admin dashboard whether the background job is actually
+ * scheduled in this environment. Kept in this lib (instead of imported
+ * from the job) to avoid pulling job-side timers into the read path.
+ */
+export function isDailyLinkCheckEnabled(): boolean {
+  if (process.env["NODE_ENV"] === "production") return true;
+  return Boolean(process.env["SITE_URL"]?.trim());
 }
 
 export interface SerializedResult {
@@ -295,6 +321,8 @@ export async function getStoredSitemapHealth(): Promise<SitemapHealthReport> {
     total: results.length,
     brokenCount: results.filter((r) => r.isBroken).length,
     results,
+    targetSiteUrl: getSiteUrl(),
+    dailyJobEnabled: isDailyLinkCheckEnabled(),
   };
 }
 
@@ -325,5 +353,7 @@ export function buildReport(results: SerializedResult[]): SitemapHealthReport {
     total: results.length,
     brokenCount: results.filter((r) => r.isBroken).length,
     results,
+    targetSiteUrl: getSiteUrl(),
+    dailyJobEnabled: isDailyLinkCheckEnabled(),
   };
 }

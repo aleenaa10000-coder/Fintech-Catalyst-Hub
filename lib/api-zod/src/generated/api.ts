@@ -816,6 +816,18 @@ export const GetSitemapHealthResponse = zod
           "Persistent state for one URL we monitor in the daily sitemap link\nchecker. Updated in place per URL on every run.\n",
         ),
     ),
+    targetSiteUrl: zod
+      .string()
+      .optional()
+      .describe(
+        'The base URL the link-checker walks (i.e. what `SITE_URL`\nresolves to on this server). Surfaced so the admin dashboard\ncan warn when a non-production environment is checking a\ndomain that isn\'t actually this server, which would produce\nfalse-positive \"broken\" reports.\n',
+      ),
+    dailyJobEnabled: zod
+      .boolean()
+      .optional()
+      .describe(
+        'Whether the background daily link-check job is currently\nscheduled in this environment. False in dev \/ preview when\n`NODE_ENV !== \"production\"` and `SITE_URL` is not overridden.\nUI uses this to show a \"daily job is paused\" notice.\n',
+      ),
   })
   .describe(
     "Aggregate response from `GET \/admin\/sitemap-health` and\n`POST \/admin\/sitemap-health\/run`. `generatedAt` is the time the\nunderlying check ran (or the most recent `lastCheckedAt` for the\nread-only GET).\n",
@@ -872,6 +884,18 @@ export const RunSitemapHealthResponse = zod
           "Persistent state for one URL we monitor in the daily sitemap link\nchecker. Updated in place per URL on every run.\n",
         ),
     ),
+    targetSiteUrl: zod
+      .string()
+      .optional()
+      .describe(
+        'The base URL the link-checker walks (i.e. what `SITE_URL`\nresolves to on this server). Surfaced so the admin dashboard\ncan warn when a non-production environment is checking a\ndomain that isn\'t actually this server, which would produce\nfalse-positive \"broken\" reports.\n',
+      ),
+    dailyJobEnabled: zod
+      .boolean()
+      .optional()
+      .describe(
+        'Whether the background daily link-check job is currently\nscheduled in this environment. False in dev \/ preview when\n`NODE_ENV !== \"production\"` and `SITE_URL` is not overridden.\nUI uses this to show a \"daily job is paused\" notice.\n',
+      ),
   })
   .describe(
     "Aggregate response from `GET \/admin\/sitemap-health` and\n`POST \/admin\/sitemap-health\/run`. `generatedAt` is the time the\nunderlying check ran (or the most recent `lastCheckedAt` for the\nread-only GET).\n",

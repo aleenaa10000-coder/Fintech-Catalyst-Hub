@@ -766,8 +766,71 @@ function SitemapHealthBody({ report }: { report: SitemapHealthReport }) {
   const lastRun = report.generatedAt
     ? new Date(report.generatedAt as unknown as string).toLocaleString()
     : "never";
+  const target = report.targetSiteUrl;
+  const dailyJobEnabled = report.dailyJobEnabled !== false;
+  // When the configured target host doesn't match the host the admin is
+  // browsing from, manual + daily checks will hit a different server.
+  // That's the normal case in dev (admin opens a Replit preview URL but
+  // the link-checker walks the production domain) and produces
+  // false-positive "broken" reports — surface that mismatch loudly so
+  // the admin doesn't waste time chasing ghosts.
+  const browsingHost =
+    typeof window !== "undefined" ? window.location.host : "";
+  let targetHost = "";
+  try {
+    if (target) targetHost = new URL(target).host;
+  } catch {
+    targetHost = "";
+  }
+  const hostMismatch = Boolean(
+    target && targetHost && browsingHost && targetHost !== browsingHost,
+  );
   return (
     <div className="space-y-4">
+      {target && (
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs"
+          data-testid="sitemap-health-target"
+        >
+          <span className="text-muted-foreground">Checking</span>
+          <code className="rounded bg-background border px-1.5 py-0.5 text-foreground">
+            {target}
+          </code>
+          {dailyJobEnabled ? (
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200">
+              <CheckCircle2 className="w-3 h-3" />
+              Daily job active
+            </span>
+          ) : (
+            <span
+              className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 border border-amber-200"
+              data-testid="sitemap-health-daily-paused"
+              title="Daily job is paused in non-production environments unless SITE_URL is set."
+            >
+              <Clock className="w-3 h-3" />
+              Daily job paused (dev)
+            </span>
+          )}
+        </div>
+      )}
+      {hostMismatch && (
+        <div
+          className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          data-testid="sitemap-health-host-mismatch"
+        >
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <div className="min-w-0">
+            <strong>Heads up — host mismatch.</strong> The link-checker
+            walks <code className="rounded bg-amber-100 px-1">{targetHost}</code>{" "}
+            but you're viewing the dashboard from{" "}
+            <code className="rounded bg-amber-100 px-1">{browsingHost}</code>.
+            If the target host doesn't actually serve this codebase, every
+            URL will look broken — those results are likely false positives.
+            Set <code className="rounded bg-amber-100 px-1">SITE_URL</code>{" "}
+            to your preview URL to point checks at this server.
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
         <Stat label="Last run" value={lastRun} />
         <Stat label="URLs checked" value={String(report.total)} />

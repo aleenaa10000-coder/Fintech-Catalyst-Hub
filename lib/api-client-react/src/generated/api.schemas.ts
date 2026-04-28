@@ -288,6 +288,19 @@ export interface SitemapHealthReport {
   /** @minimum 0 */
   brokenCount: number;
   results: LinkCheckResult[];
+  /** The base URL the link-checker walks (i.e. what `SITE_URL`
+resolves to on this server). Surfaced so the admin dashboard
+can warn when a non-production environment is checking a
+domain that isn't actually this server, which would produce
+false-positive "broken" reports.
+ */
+  targetSiteUrl?: string;
+  /** Whether the background daily link-check job is currently
+scheduled in this environment. False in dev / preview when
+`NODE_ENV !== "production"` and `SITE_URL` is not overridden.
+UI uses this to show a "daily job is paused" notice.
+ */
+  dailyJobEnabled?: boolean;
 }
 
 export interface PricingPlan {
