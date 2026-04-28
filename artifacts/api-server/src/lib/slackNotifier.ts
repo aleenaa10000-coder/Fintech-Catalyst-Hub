@@ -28,28 +28,42 @@ const SLACK_REQUEST_TIMEOUT_MS = 10_000;
 export interface NotificationSettings {
   slackWebhookUrl: string | null;
   slackEnabled: boolean;
+  /** When true, the weekly digest scheduler will post a summary of
+   *  publishing activity + post traffic to the Slack webhook every 7
+   *  days. Independent of `slackEnabled` (which gates *alert*-class
+   *  messages) so admins can opt into the digest without subscribing
+   *  to noisier breakage alerts, and vice-versa. */
+  weeklyDigestEnabled: boolean;
   lastTestAt: string | null;
   lastTestOk: boolean | null;
   lastTestError: string | null;
+  /** Persisted timestamp of the last successful weekly digest post.
+   *  Used by the scheduler to enforce the 7-day cadence across server
+   *  restarts so an admin restarting the API doesn't double-post. */
+  weeklyDigestLastSentAt: string | null;
 }
 
 const DEFAULT_SETTINGS: NotificationSettings = {
   slackWebhookUrl: null,
   slackEnabled: false,
+  weeklyDigestEnabled: false,
   lastTestAt: null,
   lastTestOk: null,
   lastTestError: null,
+  weeklyDigestLastSentAt: null,
 };
 
 export interface PublicNotificationSettings {
   slackConfigured: boolean;
   slackEnabled: boolean;
+  weeklyDigestEnabled: boolean;
   /** Last 4 chars of the webhook URL for admin recognition (never the
    *  full URL — webhooks are bearer secrets). */
   slackWebhookHint: string | null;
   lastTestAt: string | null;
   lastTestOk: boolean | null;
   lastTestError: string | null;
+  weeklyDigestLastSentAt: string | null;
 }
 
 export function isValidSlackWebhookUrl(raw: string): boolean {
@@ -82,11 +96,16 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
     slackWebhookUrl:
       typeof raw?.slackWebhookUrl === "string" ? raw.slackWebhookUrl : null,
     slackEnabled: raw?.slackEnabled === true,
+    weeklyDigestEnabled: raw?.weeklyDigestEnabled === true,
     lastTestAt: typeof raw?.lastTestAt === "string" ? raw.lastTestAt : null,
     lastTestOk:
       typeof raw?.lastTestOk === "boolean" ? raw.lastTestOk : null,
     lastTestError:
       typeof raw?.lastTestError === "string" ? raw.lastTestError : null,
+    weeklyDigestLastSentAt:
+      typeof raw?.weeklyDigestLastSentAt === "string"
+        ? raw.weeklyDigestLastSentAt
+        : null,
   };
 }
 
@@ -96,10 +115,12 @@ export function toPublicSettings(
   return {
     slackConfigured: !!s.slackWebhookUrl,
     slackEnabled: s.slackEnabled,
+    weeklyDigestEnabled: s.weeklyDigestEnabled,
     slackWebhookHint: maskWebhookUrl(s.slackWebhookUrl),
     lastTestAt: s.lastTestAt,
     lastTestOk: s.lastTestOk,
     lastTestError: s.lastTestError,
+    weeklyDigestLastSentAt: s.weeklyDigestLastSentAt,
   };
 }
 
@@ -116,6 +137,10 @@ async function writeSettings(next: NotificationSettings): Promise<void> {
 export async function updateNotificationSettings(input: {
   slackWebhookUrl: string | null;
   slackEnabled: boolean;
+  /** Optional — `undefined` leaves the saved value untouched, so the
+   *  existing PUT contract for callers that only care about the
+   *  webhook URL + alerts toggle keeps working unchanged. */
+  weeklyDigestEnabled?: boolean;
 }): Promise<NotificationSettings> {
   const current = await getNotificationSettings();
   const trimmed = input.slackWebhookUrl?.trim() || null;
@@ -124,12 +149,19 @@ export async function updateNotificationSettings(input: {
       `Invalid Slack webhook URL — must start with ${SLACK_WEBHOOK_PREFIX}`,
     );
   }
+  // Same "URL cleared ⇒ force everything off" rule as `slackEnabled` —
+  // a digest with no webhook to post to would silently no-op forever.
+  const nextWeeklyDigest =
+    trimmed === null
+      ? false
+      : input.weeklyDigestEnabled ?? current.weeklyDigestEnabled;
   const next: NotificationSettings = {
     ...current,
     slackWebhookUrl: trimmed,
     // If they cleared the URL we force `enabled` off so we never sit in a
     // "enabled but no URL" state that would silently swallow alerts.
     slackEnabled: trimmed === null ? false : input.slackEnabled,
+    weeklyDigestEnabled: nextWeeklyDigest,
     // Wipe stale test status when the URL changes — a "ok 3 days ago"
     // pill against a fresh URL would be misleading.
     lastTestAt:
@@ -141,6 +173,16 @@ export async function updateNotificationSettings(input: {
   };
   await writeSettings(next);
   return next;
+}
+
+/** Stamp the most recent successful weekly-digest send time. The
+ *  scheduler reads this on every tick to decide whether to fire. */
+export async function recordWeeklyDigestSent(at: Date): Promise<void> {
+  const current = await getNotificationSettings();
+  await writeSettings({
+    ...current,
+    weeklyDigestLastSentAt: at.toISOString(),
+  });
 }
 
 async function recordTestResult(ok: boolean, error: string | null): Promise<void> {
@@ -379,4 +421,158 @@ export async function postBrokenUrlsToSlack(args: {
     return result;
   }
   return { ok: true, posted: args.broken.length };
+}
+
+/* ---------- Weekly digest -------------------------------------------- */
+
+export interface WeeklyDigestTopPost {
+  slug: string;
+  title: string;
+  viewCount: number;
+}
+
+export interface WeeklyDigestPayload {
+  /** Inclusive ISO timestamp of the start of the digest window. */
+  windowStart: string;
+  /** Exclusive ISO timestamp of the end of the digest window (= now). */
+  windowEnd: string;
+  /** Number of posts published *inside* the window. */
+  postsPublishedInWindow: number;
+  /** Titles of posts published inside the window (newest-first, capped
+   *  at 10 in the message body — anything beyond goes into a +N footer
+   *  so the Slack section block doesn't exceed the 3000-char limit). */
+  newPostTitles: string[];
+  /** Total view count across every blog post (lifetime). Cheaper to
+   *  compute than per-window views (which we don't track) and gives
+   *  admins a running headline metric. */
+  totalLifetimeViews: number;
+  /** Top N posts by lifetime view count — the engine that powers the
+   *  "Most read" sort on the public blog. */
+  topByViews: WeeklyDigestTopPost[];
+}
+
+/** Build the Slack Block Kit payload for a weekly digest. Pure
+ *  function so the route handler can preview the message body in tests
+ *  / dry-runs without touching the network. */
+export function buildWeeklyDigestBlocks(args: {
+  payload: WeeklyDigestPayload;
+  siteUrl: string;
+  isPreview: boolean;
+}): { headerText: string; blocks: Array<Record<string, unknown>> } {
+  const { payload, siteUrl, isPreview } = args;
+  const windowEndDate = new Date(payload.windowEnd);
+  const windowStartDate = new Date(payload.windowStart);
+  const fmtDate = (d: Date) =>
+    d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  const headerText = isPreview
+    ? `:bar_chart: *FintechPressHub weekly digest (preview)* — ${fmtDate(windowStartDate)} → ${fmtDate(windowEndDate)}`
+    : `:bar_chart: *FintechPressHub weekly digest* — ${fmtDate(windowStartDate)} → ${fmtDate(windowEndDate)}`;
+
+  const blocks: Array<Record<string, unknown>> = [
+    { type: "section", text: { type: "mrkdwn", text: headerText } },
+  ];
+
+  // Headline numbers row — kept compact so the channel preview shows
+  // the whole thing without needing to expand the message.
+  blocks.push({
+    type: "section",
+    fields: [
+      {
+        type: "mrkdwn",
+        text: `*Posts published this week*\n${payload.postsPublishedInWindow}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Lifetime post views*\n${payload.totalLifetimeViews.toLocaleString("en-US")}`,
+      },
+    ],
+  });
+
+  // New posts section — only render when there's at least one, so an
+  // empty week doesn't get a confusing "_(none)_" line.
+  if (payload.newPostTitles.length > 0) {
+    const display = payload.newPostTitles.slice(0, 10);
+    const overflow = payload.newPostTitles.length - display.length;
+    const lines = display.map((t, i) => `${i + 1}. ${t}`);
+    if (overflow > 0)
+      lines.push(`_…and ${overflow} more — see the blog index_`);
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*New posts*\n${lines.join("\n")}`,
+      },
+    });
+  }
+
+  if (payload.topByViews.length > 0) {
+    const lines = payload.topByViews.map(
+      (p, i) =>
+        `${i + 1}. <${siteUrl}/blog/${p.slug}|${p.title}> — *${p.viewCount.toLocaleString("en-US")}* views`,
+    );
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Top posts by lifetime views*\n${lines.join("\n")}`,
+      },
+    });
+  }
+
+  blocks.push({
+    type: "context",
+    elements: [
+      {
+        type: "mrkdwn",
+        text: `<${siteUrl}/admin/blog|Open admin dashboard> · <${siteUrl}/blog|View public blog>`,
+      },
+    ],
+  });
+
+  return { headerText, blocks };
+}
+
+/**
+ * Post a weekly digest to Slack. Uses `weeklyDigestEnabled` (not
+ * `slackEnabled`) so admins can opt into the digest separately from
+ * breakage alerts. When `isPreview` is true the gating flag is
+ * bypassed — that path powers the admin "Send sample digest now"
+ * button which we want to work even before the recurring schedule is
+ * turned on.
+ */
+export async function postWeeklyDigestToSlack(args: {
+  payload: WeeklyDigestPayload;
+  siteUrl: string;
+  isPreview?: boolean;
+}): Promise<{ ok: boolean; error?: string }> {
+  const settings = await getNotificationSettings();
+  const isPreview = args.isPreview === true;
+  if (!settings.slackWebhookUrl) {
+    return { ok: false, error: "No Slack webhook URL configured" };
+  }
+  if (!isPreview && !settings.weeklyDigestEnabled) {
+    return { ok: false, error: "Weekly digest is not enabled" };
+  }
+
+  const { headerText, blocks } = buildWeeklyDigestBlocks({
+    payload: args.payload,
+    siteUrl: args.siteUrl,
+    isPreview,
+  });
+
+  const result = await postToWebhook(settings.slackWebhookUrl, {
+    text: headerText,
+    blocks,
+  });
+  if (!result.ok) {
+    SLACK_LOG.warn(
+      { err: result.error },
+      "Slack weekly-digest post failed",
+    );
+  }
+  return result;
 }

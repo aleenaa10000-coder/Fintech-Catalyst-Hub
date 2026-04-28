@@ -74,3 +74,4 @@ export * from "./testimonial";
 export * from "./trustStats";
 export * from "./updateBlogPostInput";
 export * from "./updateNotificationSettingsInput";
+export * from "./weeklyDigestSendResult";

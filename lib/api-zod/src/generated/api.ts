@@ -757,10 +757,21 @@ export const GetNotificationSettingsResponse = zod
   .object({
     slackConfigured: zod.boolean(),
     slackEnabled: zod.boolean(),
+    weeklyDigestEnabled: zod
+      .boolean()
+      .describe(
+        "When true, a background scheduler posts a weekly summary of\npublishing activity + lifetime post traffic to the Slack\nwebhook every 7 days.\n",
+      ),
     slackWebhookHint: zod.string().nullish(),
     lastTestAt: zod.coerce.date().nullish(),
     lastTestOk: zod.boolean().nullish(),
     lastTestError: zod.string().nullish(),
+    weeklyDigestLastSentAt: zod.coerce
+      .date()
+      .nullish()
+      .describe(
+        'ISO timestamp of the last successful weekly-digest send.\nDrives the cadence check (7-day minimum gap) and powers\nthe \"last sent N days ago\" pill in the admin UI.\n',
+      ),
   })
   .describe(
     "Public-facing view of the Slack notification settings — never\nincludes the webhook URL itself. `slackWebhookHint` is the last\n4 characters of the URL prefixed with `…` so the admin can\nrecognise which webhook is in use.\n",
@@ -784,16 +795,33 @@ export const UpdateNotificationSettingsBody = zod.object({
       "Full Slack incoming-webhook URL (must start with\n`https:\/\/hooks.slack.com\/services\/`). Pass `null` to clear.\n",
     ),
   slackEnabled: zod.boolean(),
+  weeklyDigestEnabled: zod
+    .boolean()
+    .optional()
+    .describe(
+      'Optional — omit to leave the saved value untouched. Forced\nto `false` on the server side whenever `slackWebhookUrl` is\ncleared so we never sit in an \"enabled-but-no-URL\" state.\n',
+    ),
 });
 
 export const UpdateNotificationSettingsResponse = zod
   .object({
     slackConfigured: zod.boolean(),
     slackEnabled: zod.boolean(),
+    weeklyDigestEnabled: zod
+      .boolean()
+      .describe(
+        "When true, a background scheduler posts a weekly summary of\npublishing activity + lifetime post traffic to the Slack\nwebhook every 7 days.\n",
+      ),
     slackWebhookHint: zod.string().nullish(),
     lastTestAt: zod.coerce.date().nullish(),
     lastTestOk: zod.boolean().nullish(),
     lastTestError: zod.string().nullish(),
+    weeklyDigestLastSentAt: zod.coerce
+      .date()
+      .nullish()
+      .describe(
+        'ISO timestamp of the last successful weekly-digest send.\nDrives the cadence check (7-day minimum gap) and powers\nthe \"last sent N days ago\" pill in the admin UI.\n',
+      ),
   })
   .describe(
     "Public-facing view of the Slack notification settings — never\nincludes the webhook URL itself. `slackWebhookHint` is the last\n4 characters of the URL prefixed with `…` so the admin can\nrecognise which webhook is in use.\n",
@@ -811,6 +839,29 @@ export const TestSlackNotificationResponse = zod.object({
   ok: zod.boolean(),
   error: zod.string().nullish(),
 });
+
+/**
+ * Builds a fresh weekly-digest payload (publishing activity +
+lifetime post traffic over the last 7 days) and posts it to
+the configured Slack webhook immediately. Bypasses the
+`weeklyDigestEnabled` gate and the 7-day cadence check, but
+still requires a saved webhook URL. Used by the admin "Send
+sample digest now" button so admins can preview the message
+before turning the recurring schedule on. Does **not** advance
+`weeklyDigestLastSentAt`, so the next scheduled digest still
+fires on its normal cadence.
+
+ * @summary Send a weekly-digest preview to Slack right now (admin)
+ */
+export const SendWeeklyDigestNowResponse = zod
+  .object({
+    ok: zod.boolean(),
+    error: zod.string().nullish(),
+    sentAt: zod.coerce.date().nullish(),
+  })
+  .describe(
+    'Result of an immediate weekly-digest send (the \"Send sample\ndigest now\" admin action). `sentAt` is non-null only on\nsuccess and reflects the moment the post hit Slack — it does\n\*\*not\*\* mean the recurring `weeklyDigestLastSentAt` was\nupdated; previews intentionally don\'t reset the cadence.\n',
+  );
 
 /**
  * Forwards the result of an on-demand bulk URL probe to the

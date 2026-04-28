@@ -16,8 +16,18 @@ recognise which webhook is in use.
 export interface PublicNotificationSettings {
   slackConfigured: boolean;
   slackEnabled: boolean;
+  /** When true, a background scheduler posts a weekly summary of
+publishing activity + lifetime post traffic to the Slack
+webhook every 7 days.
+ */
+  weeklyDigestEnabled: boolean;
   slackWebhookHint?: string | null;
   lastTestAt?: Date | null;
   lastTestOk?: boolean | null;
   lastTestError?: string | null;
+  /** ISO timestamp of the last successful weekly-digest send.
+Drives the cadence check (7-day minimum gap) and powers
+the "last sent N days ago" pill in the admin UI.
+ */
+  weeklyDigestLastSentAt?: Date | null;
 }

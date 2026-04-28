@@ -521,6 +521,39 @@ paths:
         "403":
           description: Forbidden — admin access required
 
+  /admin/notifications/slack/weekly-digest/send-now:
+    post:
+      operationId: sendWeeklyDigestNow
+      tags: [notifications]
+      summary: Send a weekly-digest preview to Slack right now (admin)
+      description: |
+        Builds a fresh weekly-digest payload (publishing activity +
+        lifetime post traffic over the last 7 days) and posts it to
+        the configured Slack webhook immediately. Bypasses the
+        `weeklyDigestEnabled` gate and the 7-day cadence check, but
+        still requires a saved webhook URL. Used by the admin "Send
+        sample digest now" button so admins can preview the message
+        before turning the recurring schedule on. Does **not** advance
+        `weeklyDigestLastSentAt`, so the next scheduled digest still
+        fires on its normal cadence.
+      responses:
+        "200":
+          description: Posted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyDigestSendResult"
+        "400":
+          description: Webhook unset, post failed, or payload build failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyDigestSendResult"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+
   /admin/notifications/slack/broken-urls:
     post:
       operationId: postBrokenUrlsToSlack
@@ -1976,6 +2009,12 @@ components:
           type: boolean
         slackEnabled:
           type: boolean
+        weeklyDigestEnabled:
+          type: boolean
+          description: |
+            When true, a background scheduler posts a weekly summary of
+            publishing activity + lifetime post traffic to the Slack
+            webhook every 7 days.
         slackWebhookHint:
           type: string
           nullable: true
@@ -1989,7 +2028,15 @@ components:
         lastTestError:
           type: string
           nullable: true
-      required: [slackConfigured, slackEnabled]
+        weeklyDigestLastSentAt:
+          type: string
+          nullable: true
+          format: date-time
+          description: |
+            ISO timestamp of the last successful weekly-digest send.
+            Drives the cadence check (7-day minimum gap) and powers
+            the "last sent N days ago" pill in the admin UI.
+      required: [slackConfigured, slackEnabled, weeklyDigestEnabled]
 
     UpdateNotificationSettingsInput:
       type: object
@@ -2002,6 +2049,12 @@ components:
             `https://hooks.slack.com/services/`). Pass `null` to clear.
         slackEnabled:
           type: boolean
+        weeklyDigestEnabled:
+          type: boolean
+          description: |
+            Optional — omit to leave the saved value untouched. Forced
+            to `false` on the server side whenever `slackWebhookUrl` is
+            cleared so we never sit in an "enabled-but-no-URL" state.
       required: [slackEnabled]
 
     SlackTestResult:
@@ -2012,6 +2065,26 @@ components:
         error:
           type: string
           nullable: true
+      required: [ok]
+
+    WeeklyDigestSendResult:
+      type: object
+      description: |
+        Result of an immediate weekly-digest send (the "Send sample
+        digest now" admin action). `sentAt` is non-null only on
+        success and reflects the moment the post hit Slack — it does
+        **not** mean the recurring `weeklyDigestLastSentAt` was
+        updated; previews intentionally don't reset the cadence.
+      properties:
+        ok:
+          type: boolean
+        error:
+          type: string
+          nullable: true
+        sentAt:
+          type: string
+          nullable: true
+          format: date-time
       required: [ok]
 
     SlackBrokenUrlPayload:

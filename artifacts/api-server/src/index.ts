@@ -5,6 +5,7 @@ import { bootstrapAdminFromEnv } from "./lib/bootstrapAdmin";
 import { scheduleIndexNowDaily } from "./jobs/indexNowDaily";
 import { scheduleLinkCheckDaily } from "./jobs/linkCheckDaily";
 import { scheduleNoIndexExpiryHourly } from "./jobs/noindexExpiryHourly";
+import { scheduleWeeklyDigest } from "./jobs/weeklyDigest";
 
 const rawPort = process.env["PORT"];
 
@@ -56,6 +57,7 @@ async function bootstrap() {
     scheduleIndexNowDaily();
     scheduleLinkCheckDaily();
     scheduleNoIndexExpiryHourly();
+    scheduleWeeklyDigest();
   });
 }
 

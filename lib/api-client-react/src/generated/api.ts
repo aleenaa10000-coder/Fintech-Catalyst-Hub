@@ -65,6 +65,7 @@ import type {
   TrustStats,
   UpdateBlogPostInput,
   UpdateNotificationSettingsInput,
+  WeeklyDigestSendResult,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -1868,6 +1869,98 @@ export const useTestSlackNotification = <
   TContext
 > => {
   return useMutation(getTestSlackNotificationMutationOptions(options));
+};
+
+/**
+ * Builds a fresh weekly-digest payload (publishing activity +
+lifetime post traffic over the last 7 days) and posts it to
+the configured Slack webhook immediately. Bypasses the
+`weeklyDigestEnabled` gate and the 7-day cadence check, but
+still requires a saved webhook URL. Used by the admin "Send
+sample digest now" button so admins can preview the message
+before turning the recurring schedule on. Does **not** advance
+`weeklyDigestLastSentAt`, so the next scheduled digest still
+fires on its normal cadence.
+
+ * @summary Send a weekly-digest preview to Slack right now (admin)
+ */
+export const getSendWeeklyDigestNowUrl = () => {
+  return `/api/admin/notifications/slack/weekly-digest/send-now`;
+};
+
+export const sendWeeklyDigestNow = async (
+  options?: RequestInit,
+): Promise<WeeklyDigestSendResult> => {
+  return customFetch<WeeklyDigestSendResult>(getSendWeeklyDigestNowUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getSendWeeklyDigestNowMutationOptions = <
+  TError = ErrorType<WeeklyDigestSendResult | void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendWeeklyDigestNow>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendWeeklyDigestNow>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["sendWeeklyDigestNow"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendWeeklyDigestNow>>,
+    void
+  > = () => {
+    return sendWeeklyDigestNow(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendWeeklyDigestNowMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendWeeklyDigestNow>>
+>;
+
+export type SendWeeklyDigestNowMutationError =
+  ErrorType<WeeklyDigestSendResult | void>;
+
+/**
+ * @summary Send a weekly-digest preview to Slack right now (admin)
+ */
+export const useSendWeeklyDigestNow = <
+  TError = ErrorType<WeeklyDigestSendResult | void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendWeeklyDigestNow>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendWeeklyDigestNow>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getSendWeeklyDigestNowMutationOptions(options));
 };
 
 /**

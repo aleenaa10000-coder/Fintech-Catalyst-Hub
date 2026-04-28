@@ -4,6 +4,7 @@ import {
   useGetNotificationSettings,
   useUpdateNotificationSettings,
   useTestSlackNotification,
+  useSendWeeklyDigestNow,
   getGetNotificationSettingsQueryKey,
   type PublicNotificationSettings,
 } from "@workspace/api-client-react";
@@ -26,6 +27,7 @@ import {
   XCircle,
   Loader2,
   Trash2,
+  CalendarClock,
 } from "lucide-react";
 
 const SLACK_PREFIX = "https://hooks.slack.com/services/";
@@ -94,6 +96,7 @@ export default function AdminNotifications() {
   // admin types a new one.
   const [webhookUrl, setWebhookUrl] = useState("");
   const [enabled, setEnabled] = useState(false);
+  const [weeklyDigestEnabled, setWeeklyDigestEnabled] = useState(false);
   /** True when the local form differs from what we last saved. Lets us
    *  disable the Save button until there's something to send. */
   const [dirty, setDirty] = useState(false);
@@ -115,6 +118,7 @@ export default function AdminNotifications() {
   useEffect(() => {
     if (settingsQuery.data) {
       setEnabled(settingsQuery.data.slackEnabled);
+      setWeeklyDigestEnabled(settingsQuery.data.weeklyDigestEnabled);
       setDirty(false);
     }
   }, [settingsQuery.data]);
@@ -133,6 +137,30 @@ export default function AdminNotifications() {
       onError: (err: unknown) => {
         const msg =
           err instanceof Error ? err.message : "Failed to save settings.";
+        toast.error(msg);
+      },
+    },
+  });
+
+  const sendDigestNowMutation = useSendWeeklyDigestNow({
+    mutation: {
+      onSuccess: (result) => {
+        if (result.ok) {
+          toast.success(
+            "Weekly digest preview sent — check the channel.",
+          );
+        } else {
+          // The endpoint returns 200 with `ok:false` when gating fails
+          // (e.g. webhook missing) and 400 when the post itself fails.
+          // Both surface here as a non-thrown response we render.
+          toast.error(
+            `Couldn't send digest preview: ${result.error ?? "unknown error"}`,
+          );
+        }
+      },
+      onError: (err: unknown) => {
+        const msg =
+          err instanceof Error ? err.message : "Digest preview failed";
         toast.error(msg);
       },
     },
@@ -194,6 +222,7 @@ export default function AdminNotifications() {
     updateMutation.mutate({
       data: {
         slackEnabled: enabled,
+        weeklyDigestEnabled,
         // null = leave existing URL alone; empty string clears it.
         // Trimmed string overwrites.
         slackWebhookUrl:
@@ -205,7 +234,7 @@ export default function AdminNotifications() {
   function handleClear() {
     if (
       !window.confirm(
-        "Remove the saved Slack webhook? Persistent-failure alerts will stop posting to Slack until a new URL is added.",
+        "Remove the saved Slack webhook? Persistent-failure alerts and the weekly digest will stop posting to Slack until a new URL is added.",
       )
     ) {
       return;
@@ -213,6 +242,9 @@ export default function AdminNotifications() {
     updateMutation.mutate({
       data: {
         slackEnabled: false,
+        // Clearing the webhook also disables the digest — otherwise
+        // the toggle would sit stuck-on with no way to deliver.
+        weeklyDigestEnabled: false,
         // The PUT route treats empty string as "clear" — see route handler.
         slackWebhookUrl: "",
       },
@@ -379,6 +411,96 @@ export default function AdminNotifications() {
         </CardContent>
       </Card>
 
+      <Card className="mb-4">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <CalendarClock className="w-6 h-6 text-violet-700" />
+            <div className="flex-1">
+              <h2 className="font-semibold">Weekly digest</h2>
+              <p className="text-sm text-muted-foreground">
+                Mirror a daily-style summary email into Slack once a week
+                — posts published in the last 7 days plus the top 5
+                blog posts by lifetime views.
+              </p>
+            </div>
+            {settings?.weeklyDigestLastSentAt ? (
+              <Badge
+                variant="outline"
+                className="bg-violet-50 text-violet-700 border-violet-200"
+              >
+                Last sent {formatDateTime(settings.weeklyDigestLastSentAt)}
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="bg-muted text-muted-foreground"
+              >
+                Never sent
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <div>
+              <Label
+                htmlFor="weekly-digest-toggle"
+                className="font-medium"
+              >
+                Send weekly digest to Slack
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Posts every 7 days at the next hourly tick after the
+                cadence elapses. Requires a saved webhook URL.
+              </p>
+            </div>
+            <Switch
+              id="weekly-digest-toggle"
+              checked={weeklyDigestEnabled}
+              onCheckedChange={(v) => {
+                setWeeklyDigestEnabled(v);
+                setDirty(true);
+              }}
+              disabled={!settings?.slackConfigured}
+              data-testid="notifications-weekly-digest-toggle"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => sendDigestNowMutation.mutate()}
+              disabled={
+                !settings?.slackConfigured ||
+                dirty ||
+                sendDigestNowMutation.isPending
+              }
+              title={
+                dirty
+                  ? "Save your changes before sending a preview"
+                  : !settings?.slackConfigured
+                    ? "Add a webhook URL first"
+                    : "Send a digest preview to the channel right now"
+              }
+              data-testid="notifications-weekly-digest-send-now"
+            >
+              {sendDigestNowMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                  Sending preview…
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-1.5" /> Send sample digest now
+                </>
+              )}
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              Previews don't reset the 7-day cadence.
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="pt-6 text-sm space-y-2 text-muted-foreground">
           <p className="font-medium text-foreground">What gets posted</p>
@@ -401,6 +523,12 @@ export default function AdminNotifications() {
               </Link>{" "}
               lets you push the current sweep result into the channel
               with one click.
+            </li>
+            <li>
+              <strong>Weekly digest</strong> — a recurring summary of
+              posts published in the last 7 days plus the top 5 blog
+              posts by lifetime views. Toggled separately above; cadence
+              is enforced server-side at 7 days minimum.
             </li>
           </ul>
           <p className="pt-2">

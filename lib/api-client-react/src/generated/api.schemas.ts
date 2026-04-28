@@ -552,10 +552,20 @@ recognise which webhook is in use.
 export interface PublicNotificationSettings {
   slackConfigured: boolean;
   slackEnabled: boolean;
+  /** When true, a background scheduler posts a weekly summary of
+publishing activity + lifetime post traffic to the Slack
+webhook every 7 days.
+ */
+  weeklyDigestEnabled: boolean;
   slackWebhookHint?: string | null;
   lastTestAt?: string | null;
   lastTestOk?: boolean | null;
   lastTestError?: string | null;
+  /** ISO timestamp of the last successful weekly-digest send.
+Drives the cadence check (7-day minimum gap) and powers
+the "last sent N days ago" pill in the admin UI.
+ */
+  weeklyDigestLastSentAt?: string | null;
 }
 
 export interface UpdateNotificationSettingsInput {
@@ -564,11 +574,30 @@ export interface UpdateNotificationSettingsInput {
  */
   slackWebhookUrl?: string | null;
   slackEnabled: boolean;
+  /** Optional — omit to leave the saved value untouched. Forced
+to `false` on the server side whenever `slackWebhookUrl` is
+cleared so we never sit in an "enabled-but-no-URL" state.
+ */
+  weeklyDigestEnabled?: boolean;
 }
 
 export interface SlackTestResult {
   ok: boolean;
   error?: string | null;
+}
+
+/**
+ * Result of an immediate weekly-digest send (the "Send sample
+digest now" admin action). `sentAt` is non-null only on
+success and reflects the moment the post hit Slack — it does
+**not** mean the recurring `weeklyDigestLastSentAt` was
+updated; previews intentionally don't reset the cadence.
+
+ */
+export interface WeeklyDigestSendResult {
+  ok: boolean;
+  error?: string | null;
+  sentAt?: string | null;
 }
 
 export interface SlackBrokenUrlPayload {

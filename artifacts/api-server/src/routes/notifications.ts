@@ -16,6 +16,7 @@ import {
   postBrokenUrlsToSlack,
   type BrokenUrlPayload,
 } from "../lib/slackNotifier";
+import { runWeeklyDigest } from "../jobs/weeklyDigest";
 
 const ROUTE_LOG = logger.child({ route: "notifications" });
 
@@ -52,7 +53,11 @@ router.put(
   async (req, res, next) => {
     try {
       const body = req.body as
-        | { slackWebhookUrl?: string | null; slackEnabled?: boolean }
+        | {
+            slackWebhookUrl?: string | null;
+            slackEnabled?: boolean;
+            weeklyDigestEnabled?: boolean;
+          }
         | undefined;
       if (!body || typeof body.slackEnabled !== "boolean") {
         res.status(400).json({ error: "slackEnabled is required" });
@@ -67,6 +72,13 @@ router.put(
         const next = await updateNotificationSettings({
           slackWebhookUrl: rawUrl,
           slackEnabled: body.slackEnabled,
+          // Forward `undefined` when the client didn't include the
+          // field so the storage helper falls back to the saved value
+          // (lets older PUT callers keep working).
+          weeklyDigestEnabled:
+            typeof body.weeklyDigestEnabled === "boolean"
+              ? body.weeklyDigestEnabled
+              : undefined,
         });
         res.json(toPublicSettings(next));
       } catch (validationErr) {
@@ -90,6 +102,28 @@ router.post(
     try {
       const result = await sendSlackTest(getSiteUrl());
       res.json({ ok: result.ok, error: result.error ?? null });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/admin/notifications/slack/weekly-digest/send-now",
+  requireAdmin,
+  async (_req, res, next) => {
+    try {
+      const result = await runWeeklyDigest({ force: true });
+      if (!result.ok) {
+        const reason = result.reason ?? "unknown";
+        ROUTE_LOG.warn(
+          { reason },
+          "Weekly digest preview send-now did not post",
+        );
+        res.status(400).json({ ok: false, error: reason, sentAt: null });
+        return;
+      }
+      res.json({ ok: true, error: null, sentAt: result.sentAt ?? null });
     } catch (err) {
       next(err);
     }

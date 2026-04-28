@@ -12,4 +12,9 @@ export interface UpdateNotificationSettingsInput {
  */
   slackWebhookUrl?: string | null;
   slackEnabled: boolean;
+  /** Optional — omit to leave the saved value untouched. Forced
+to `false` on the server side whenever `slackWebhookUrl` is
+cleared so we never sit in an "enabled-but-no-URL" state.
+ */
+  weeklyDigestEnabled?: boolean;
 }
