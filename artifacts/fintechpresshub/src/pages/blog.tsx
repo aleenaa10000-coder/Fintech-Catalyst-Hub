@@ -26,6 +26,7 @@ import {
   Tag as TagIcon,
   ChevronDown,
   Sparkles,
+  SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePublicPosts, type PublicPost } from "@/data/usePublicPosts";
@@ -306,6 +307,18 @@ export default function Blog() {
       onlyRecent,
   );
 
+  // Count of "facet" filters (category / tag / author) for the mobile
+  // Filters toggle badge. Search + onlyRecent live in their own UI above
+  // the sidebar so they're intentionally excluded here.
+  const activeFacetCount =
+    (activeCategory ? 1 : 0) + (activeTag ? 1 : 0) + (activeAuthor ? 1 : 0);
+
+  // Mobile-only collapse for the filter sidebar. Defaults to closed so
+  // post cards appear immediately when a visitor lands on /blog from a
+  // small screen; on lg+ the sidebar is always visible regardless of this
+  // state because the wrapping element uses lg:block.
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   const clearFilters = () => {
     setActiveCategory(undefined);
     setActiveTag(undefined);
@@ -561,8 +574,112 @@ export default function Blog() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 lg:gap-10">
-            {/* Categories sidebar */}
+            {/* Filter sidebar — collapsed by default on mobile behind a
+                single "Filters" button, always expanded on lg+. */}
             <aside className="lg:sticky lg:top-24 lg:self-start">
+              {/* Mobile-only Filters toggle. The sidebar that follows uses
+                  hidden / lg:block to honour the collapsed state on mobile
+                  while staying always-visible on desktop. */}
+              <div className="lg:hidden mb-4">
+                <button
+                  type="button"
+                  onClick={() => setMobileFiltersOpen((v) => !v)}
+                  aria-expanded={mobileFiltersOpen}
+                  aria-controls="blog-filter-panels"
+                  data-testid="button-mobile-filters-toggle"
+                  className="w-full flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm hover:border-[#0052FF]/40 hover:bg-[#0052FF]/5 transition-colors"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#0052FF]/10 text-[#0052FF]">
+                      <SlidersHorizontal
+                        className="w-4 h-4"
+                        aria-hidden="true"
+                      />
+                    </span>
+                    <span>Filters</span>
+                    {activeFacetCount > 0 && (
+                      <span
+                        className="inline-flex items-center justify-center min-w-[1.25rem] h-5 rounded-full bg-[#0052FF] text-white text-[11px] font-bold px-1.5"
+                        data-testid="badge-active-filter-count"
+                      >
+                        {activeFacetCount}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                      mobileFiltersOpen ? "rotate-180" : ""
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {/* Active filter chips — rendered below the toggle so the
+                    user can see and remove what's currently applied
+                    without expanding the full panel. */}
+                {activeFacetCount > 0 && (
+                  <div
+                    className="mt-3 flex flex-wrap gap-1.5"
+                    aria-label="Active filters"
+                  >
+                    {activeCategory && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategory(undefined)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0052FF] text-white text-xs font-semibold hover:bg-[#0040CC] transition-colors"
+                        data-testid="active-filter-category"
+                        aria-label={`Remove ${activeCategory} filter`}
+                      >
+                        {activeCategory}
+                        <X className="w-3 h-3" aria-hidden="true" />
+                      </button>
+                    )}
+                    {activeTag && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTag(undefined)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0052FF] text-white text-xs font-semibold hover:bg-[#0040CC] transition-colors"
+                        data-testid="active-filter-tag"
+                        aria-label={`Remove ${activeTag} tag filter`}
+                      >
+                        #{activeTag}
+                        <X className="w-3 h-3" aria-hidden="true" />
+                      </button>
+                    )}
+                    {activeAuthor && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveAuthor(undefined)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0052FF] text-white text-xs font-semibold hover:bg-[#0040CC] transition-colors"
+                        data-testid="active-filter-author"
+                        aria-label="Remove author filter"
+                      >
+                        {getAuthorBySlug(activeAuthor)?.name || activeAuthor}
+                        <X className="w-3 h-3" aria-hidden="true" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveCategory(undefined);
+                        setActiveTag(undefined);
+                        setActiveAuthor(undefined);
+                      }}
+                      className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold text-slate-500 hover:text-[#0052FF] underline-offset-4 hover:underline"
+                      data-testid="button-clear-facets"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Filter panels — collapsed on mobile (controlled by the
+                  toggle above), always shown on lg+. */}
+              <div
+                id="blog-filter-panels"
+                className={`${mobileFiltersOpen ? "block" : "hidden"} lg:block space-y-4`}
+              >
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="flex items-center gap-2 mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                   Categories
@@ -754,6 +871,7 @@ export default function Blog() {
                   </div>
                 </details>
               )}
+              </div>
             </aside>
 
             {/* Post grid */}
