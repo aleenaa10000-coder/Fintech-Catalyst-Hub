@@ -167,3 +167,21 @@ Five connected upgrades layered on top of the existing IndexNow pipeline:
 - **Confirmation dialog** — clicking either bulk button (`No-index selected` / `Remove no-index`) opens a shadcn `<AlertDialog>` (`<BulkNoIndexImpactDialog>`) instead of the previous `window.confirm()`. The dialog shows three stat tiles (impacted count, views being hidden/returning, already-in-target-state count), tone-coded warning rows for *featured posts*, *recently published posts* (within `RECENT_POST_WINDOW_DAYS = 30`), and *high-traffic batches* (≥500 total views), plus a "Highest-traffic posts in this batch" list (top 5 by `viewCount`) so the admin can spot a money post before pulling the trigger.
 - **No-op safety** — the confirm handler re-runs `computeNoIndexImpact` and only sends the slugs whose state would actually change, so the response `updatedCount` matches the preview the admin saw. When every selected post is already in the target state, the confirm button is disabled and reads "Nothing to be hidden/re-exposed".
 - The backend `POST /api/admin/blog/posts/bulk-noindex` endpoint and the `useBulkNoIndexBlogPosts` mutation are unchanged — this is a pure UX layer on top of existing plumbing.
+
+## Snooze no-index for N days (auto-unsnooze background job)
+
+Extends the bulk no-index flow with a one-click "hide for N days, then auto re-expose" option so the admin can pull a thin/outdated post out of search while it gets fixed without having to remember to re-index it later.
+
+- **DB** — `blog_posts` gained a nullable `noindex_until timestamptz` column (`lib/db/src/schema/blogPosts.ts`). When `noIndex=true` and `noindex_until` is set, the post stays hidden until the timestamp passes; when `noIndex=false`, the column is always cleared.
+- **API** — `POST /api/admin/blog/posts/bulk-noindex` now accepts an optional `snoozeDays` (1–365). When `noIndex=true && snoozeDays`, the route stamps `noindex_until = now + snoozeDays * 24h`. When `noIndex=false`, it always clears `noindex_until` so re-indexing cancels any pending snooze. `BlogPost` responses now carry `noindexUntil: string | null`. OpenAPI updated; client regenerated.
+- **Background job** — `artifacts/api-server/src/jobs/noindexExpiryHourly.ts` runs once 60s after boot, then every hour. It runs a single SQL `UPDATE blog_posts SET no_index=false, noindex_until=null WHERE no_index=true AND noindex_until IS NOT NULL AND noindex_until <= now()` and logs the slugs that were re-exposed. Idempotent — re-running it within the same hour does nothing because affected rows no longer match the WHERE clause. Wired into `index.ts` next to the existing IndexNow + link-check schedulers.
+- **Admin UI** — the impact dialog (in `admin-blog.tsx`) now has a snooze checkbox + `<input type="number">` (default 14 days, min 1, max 365). When enabled, the dialog shows the computed re-index date inline ("Hide for 14 days, then auto re-index on May 12, 2026"). Per-row blog list entries display an amber `Clock` "snoozed → MMM D" badge whenever a post has `noIndex && noindexUntil`. The success toast confirms the schedule ("No-indexed 3 posts — auto re-index in 14 days").
+
+## Blog content quality bar
+
+- **Post length**: every post in `artifacts/fintechpresshub/src/data/posts.js` is now between 800 and 1500 words. Five posts that were previously below 800 (core-web-vitals, digital-pr, ymyl-eeat, content-funnel, keyword-research) gained a closing "operationalising"/"refreshing"/"auditing" section that sits naturally with the existing voice.
+- **Inline imagery**: every post now contains exactly one in-body `<figure>` (Unsplash photo + descriptive `alt` + italic caption) inserted just before the third H2 in each article — far enough into the read to break up the wall-of-text without competing with the cover image.
+
+## Author roster cap
+
+`authors.ts` now exports `MAX_AUTHORS = 12` and asserts at module load that `authors.length <= MAX_AUTHORS`. The roster is currently exactly 12 (the 12 launch authors). Adding a 13th will throw a clear build-time error pointing future contributors at the masthead/grid layouts that need updating before the cap can be raised. No data was removed — the count was already at the cap.

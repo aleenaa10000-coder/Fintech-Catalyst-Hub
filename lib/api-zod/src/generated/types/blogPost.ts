@@ -47,4 +47,7 @@ export interface BlogPost {
   /** When true, the public post detail page emits `<meta name="robots" content="noindex,nofollow">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.
    */
   noIndex: boolean;
+  /** Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means "no scheduled flip; manual control only".
+   */
+  noindexUntil?: Date | null;
 }

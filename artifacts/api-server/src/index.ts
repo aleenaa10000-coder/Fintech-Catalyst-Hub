@@ -4,6 +4,7 @@ import { logger } from "./lib/logger";
 import { bootstrapAdminFromEnv } from "./lib/bootstrapAdmin";
 import { scheduleIndexNowDaily } from "./jobs/indexNowDaily";
 import { scheduleLinkCheckDaily } from "./jobs/linkCheckDaily";
+import { scheduleNoIndexExpiryHourly } from "./jobs/noindexExpiryHourly";
 
 const rawPort = process.env["PORT"];
 
@@ -54,6 +55,7 @@ async function bootstrap() {
     logger.info({ port }, "Server listening");
     scheduleIndexNowDaily();
     scheduleLinkCheckDaily();
+    scheduleNoIndexExpiryHourly();
   });
 }
 

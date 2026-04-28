@@ -212,6 +212,12 @@ export const ListBlogPostsResponseItem = zod.object({
     .describe(
       'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
     ),
+  noindexUntil: zod.coerce
+    .date()
+    .nullish()
+    .describe(
+      'Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n',
+    ),
 });
 export const ListBlogPostsResponse = zod.array(ListBlogPostsResponseItem);
 
@@ -339,6 +345,12 @@ export const GetBlogPostResponse = zod.object({
     .describe(
       'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
     ),
+  noindexUntil: zod.coerce
+    .date()
+    .nullish()
+    .describe(
+      'Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n',
+    ),
 });
 
 /**
@@ -458,6 +470,12 @@ export const UpdateBlogPostResponse = zod
       .describe(
         'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
       ),
+    noindexUntil: zod.coerce
+      .date()
+      .nullish()
+      .describe(
+        'Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n',
+      ),
   })
   .and(
     zod.object({
@@ -517,6 +535,8 @@ round-trip. Requires an authenticated admin session.
 
 export const bulkNoIndexBlogPostsBodySlugsMax = 500;
 
+export const bulkNoIndexBlogPostsBodySnoozeDaysMax = 365;
+
 export const BulkNoIndexBlogPostsBody = zod.object({
   slugs: zod
     .array(zod.string().min(1))
@@ -526,6 +546,14 @@ export const BulkNoIndexBlogPostsBody = zod.object({
   noIndex: zod
     .boolean()
     .describe("New value for the `noIndex` flag on every targeted post."),
+  snoozeDays: zod
+    .number()
+    .min(1)
+    .max(bulkNoIndexBlogPostsBodySnoozeDaysMax)
+    .optional()
+    .describe(
+      "Optional auto-unsnooze window in days. Only meaningful when `noIndex=true`: each affected post's `noindexUntil` is set to `now + snoozeDays \* 24h`, and an hourly background job will flip the post back to indexed when that timestamp passes. Ignored (and `noindexUntil` is cleared) when `noIndex=false`.\n",
+    ),
 });
 
 export const bulkNoIndexBlogPostsResponsePostsItemViewCountMin = 0;
@@ -597,6 +625,12 @@ export const BulkNoIndexBlogPostsResponse = zod.object({
         .boolean()
         .describe(
           'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
+        ),
+      noindexUntil: zod.coerce
+        .date()
+        .nullish()
+        .describe(
+          'Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n',
         ),
     }),
   ),
@@ -683,6 +717,12 @@ export const RepingBlogPostIndexNowResponse = zod
       .boolean()
       .describe(
         'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
+      ),
+    noindexUntil: zod.coerce
+      .date()
+      .nullish()
+      .describe(
+        'Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n',
       ),
   })
   .and(
@@ -924,6 +964,12 @@ export const ListFeaturedPostsResponseItem = zod.object({
     .boolean()
     .describe(
       'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
+    ),
+  noindexUntil: zod.coerce
+    .date()
+    .nullish()
+    .describe(
+      'Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n',
     ),
 });
 export const ListFeaturedPostsResponse = zod.array(

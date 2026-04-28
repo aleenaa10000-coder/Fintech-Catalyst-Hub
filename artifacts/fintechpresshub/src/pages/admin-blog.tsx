@@ -925,6 +925,10 @@ function BulkNoIndexImpactDialog({
   mode,
   impact,
   isPending,
+  snoozeEnabled,
+  snoozeDays,
+  onSnoozeEnabledChange,
+  onSnoozeDaysChange,
   onCancel,
   onConfirm,
 }: {
@@ -932,6 +936,10 @@ function BulkNoIndexImpactDialog({
   mode: "noindex" | "reindex";
   impact: NoIndexImpact;
   isPending: boolean;
+  snoozeEnabled: boolean;
+  snoozeDays: number;
+  onSnoozeEnabledChange: (v: boolean) => void;
+  onSnoozeDaysChange: (v: number) => void;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -1071,6 +1079,58 @@ function BulkNoIndexImpactDialog({
                 from search after the next crawl.
               </ImpactWarning>
             )}
+          </div>
+        )}
+
+        {hasImpact && isHide && (
+          <div
+            className="rounded-md border bg-muted/30 px-3 py-2.5 space-y-2"
+            data-testid="snooze-noindex-control"
+          >
+            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+              <Checkbox
+                checked={snoozeEnabled}
+                onCheckedChange={(v) => onSnoozeEnabledChange(v === true)}
+                data-testid="snooze-toggle"
+              />
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              Snooze — auto re-expose after a set number of days
+            </label>
+            {snoozeEnabled && (
+              <div className="flex flex-wrap items-center gap-2 pl-6">
+                <span className="text-sm text-muted-foreground">Hide for</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={365}
+                  step={1}
+                  value={snoozeDays}
+                  onChange={(e) => {
+                    const n = Number.parseInt(e.target.value, 10);
+                    if (Number.isFinite(n)) onSnoozeDaysChange(n);
+                  }}
+                  className="w-20 h-8"
+                  data-testid="snooze-days-input"
+                />
+                <span className="text-sm text-muted-foreground">
+                  {snoozeDays === 1 ? "day" : "days"}, then auto re-index on{" "}
+                  <strong className="text-foreground">
+                    {new Date(
+                      Date.now() + snoozeDays * 86_400_000,
+                    ).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </strong>
+                </span>
+              </div>
+            )}
+            <p className="pl-6 text-xs text-muted-foreground">
+              {snoozeEnabled
+                ? "An hourly background job will flip these posts back to indexed once the snooze window elapses — no need to remember to re-expose them."
+                : "Leave off for an indefinite hide that only a manual action can reverse."}
+            </p>
           </div>
         )}
 
@@ -1235,6 +1295,14 @@ export default function AdminBlog() {
   const [impactDialogMode, setImpactDialogMode] = useState<
     "noindex" | "reindex" | null
   >(null);
+  // "Snooze no-index for N days" controls inside the impact dialog. When
+  // `snoozeEnabled` is true, the bulk-noindex mutation forwards
+  // `snoozeDays` so the API stamps each post's `noindex_until`, and the
+  // hourly background job will auto-flip them back to indexed once the
+  // window elapses. Defaults to a 14-day window — the typical "fix thin
+  // content / re-publish" turnaround for a fintech blog post.
+  const [snoozeEnabled, setSnoozeEnabled] = useState(false);
+  const [snoozeDays, setSnoozeDays] = useState(14);
   // Whether we've already consumed the `?slug=` deep-link query param. We
   // only auto-open once per visit so re-opening the editor doesn't re-trigger
   // when the user later navigates away and back.
@@ -1943,8 +2011,17 @@ export default function AdminBlog() {
             impactDialogMode ?? "noindex",
           )}
           isPending={bulkNoIndexMut.isPending}
+          snoozeEnabled={snoozeEnabled}
+          snoozeDays={snoozeDays}
+          onSnoozeEnabledChange={setSnoozeEnabled}
+          onSnoozeDaysChange={(n) =>
+            setSnoozeDays(Math.min(365, Math.max(1, n)))
+          }
           onCancel={() => {
-            if (!bulkNoIndexMut.isPending) setImpactDialogMode(null);
+            if (!bulkNoIndexMut.isPending) {
+              setImpactDialogMode(null);
+              setSnoozeEnabled(false);
+            }
           }}
           onConfirm={async () => {
             const mode = impactDialogMode;
@@ -1960,19 +2037,31 @@ export default function AdminBlog() {
               return;
             }
             const wantHidden = mode === "noindex";
+            // Only forward `snoozeDays` when hiding AND the snooze toggle
+            // is on. The API treats the absent field as "indefinite hide"
+            // and clears any prior `noindex_until` automatically.
+            const useSnooze =
+              wantHidden && snoozeEnabled && snoozeDays >= 1;
             try {
               const result = await bulkNoIndexMut.mutateAsync({
-                data: { slugs, noIndex: wantHidden },
+                data: {
+                  slugs,
+                  noIndex: wantHidden,
+                  ...(useSnooze ? { snoozeDays } : {}),
+                },
               });
               const noun =
                 result.updatedCount === 1 ? "post" : "posts";
               toast.success(
                 wantHidden
-                  ? `No-indexed ${result.updatedCount} ${noun}`
+                  ? useSnooze
+                    ? `No-indexed ${result.updatedCount} ${noun} — auto re-index in ${snoozeDays} ${snoozeDays === 1 ? "day" : "days"}`
+                    : `No-indexed ${result.updatedCount} ${noun}`
                   : `Removed no-index from ${result.updatedCount} ${noun}`,
               );
               setSelectedSlugs(new Set());
               setImpactDialogMode(null);
+              setSnoozeEnabled(false);
               invalidate();
             } catch (err) {
               toast.error(
@@ -2019,6 +2108,20 @@ export default function AdminBlog() {
                               className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
                             >
                               <EyeOff className="w-3 h-3" /> noindex
+                            </span>
+                          )}
+                          {p.noIndex && p.noindexUntil && (
+                            <span
+                              title={`Auto re-index on ${new Date(p.noindexUntil).toLocaleString()}`}
+                              className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-800"
+                              data-testid={`snoozed-until-${p.slug}`}
+                            >
+                              <Clock className="w-3 h-3" />
+                              snoozed →{" "}
+                              {new Date(p.noindexUntil).toLocaleDateString(
+                                undefined,
+                                { month: "short", day: "numeric" },
+                              )}
                             </span>
                           )}
                         </div>

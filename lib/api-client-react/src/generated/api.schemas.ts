@@ -101,6 +101,9 @@ export interface BlogPost {
   /** When true, the public post detail page emits `<meta name="robots" content="noindex,nofollow">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.
    */
   noIndex: boolean;
+  /** Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means "no scheduled flip; manual control only".
+   */
+  noindexUntil?: string | null;
 }
 
 export interface BlogCategory {
@@ -406,6 +409,13 @@ export interface BulkNoIndexBlogPostsInput {
   slugs: string[];
   /** New value for the `noIndex` flag on every targeted post. */
   noIndex: boolean;
+  /**
+   * Optional auto-unsnooze window in days. Only meaningful when `noIndex=true`: each affected post's `noindexUntil` is set to `now + snoozeDays * 24h`, and an hourly background job will flip the post back to indexed when that timestamp passes. Ignored (and `noindexUntil` is cleared) when `noIndex=false`.
+
+   * @minimum 1
+   * @maximum 365
+   */
+  snoozeDays?: number;
 }
 
 export interface BulkNoIndexBlogPostsResult {

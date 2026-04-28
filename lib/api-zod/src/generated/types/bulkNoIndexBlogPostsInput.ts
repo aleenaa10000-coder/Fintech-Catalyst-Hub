@@ -15,4 +15,11 @@ export interface BulkNoIndexBlogPostsInput {
   slugs: string[];
   /** New value for the `noIndex` flag on every targeted post. */
   noIndex: boolean;
+  /**
+   * Optional auto-unsnooze window in days. Only meaningful when `noIndex=true`: each affected post's `noindexUntil` is set to `now + snoozeDays * 24h`, and an hourly background job will flip the post back to indexed when that timestamp passes. Ignored (and `noindexUntil` is cleared) when `noIndex=false`.
+
+   * @minimum 1
+   * @maximum 365
+   */
+  snoozeDays?: number;
 }

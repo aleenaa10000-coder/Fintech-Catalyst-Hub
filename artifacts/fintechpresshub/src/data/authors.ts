@@ -416,6 +416,24 @@ export const authors: Author[] = [
   },
 ];
 
+// Hard cap on the size of the author roster. The blog UI is designed
+// around a 12-author masthead (2 rows of 6 on desktop, 3×4 on tablet),
+// the author dropdown in the admin editor uses a single-screen list,
+// and the author archive page assumes a fixed-size grid. Adding a 13th
+// author should be a deliberate product decision that updates the layouts
+// — not something that quietly slips in via a PR. Enforced here so a
+// future contributor adding to the array trips a build-time error
+// instead of shipping an off-grid roster to production.
+export const MAX_AUTHORS = 12;
+
+if (authors.length > MAX_AUTHORS) {
+  throw new Error(
+    `[authors] roster exceeds the ${MAX_AUTHORS}-author cap (got ${authors.length}). ` +
+      `Remove an entry, or update MAX_AUTHORS together with the masthead/grid layouts in ` +
+      `blog.tsx and the author archive page before raising the limit.`,
+  );
+}
+
 export function authorSlugFromName(name: string): string {
   return name
     .toLowerCase()

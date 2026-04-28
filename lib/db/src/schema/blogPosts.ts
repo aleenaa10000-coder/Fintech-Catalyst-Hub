@@ -47,6 +47,13 @@ export const blogPostsTable = pgTable("blog_posts", {
   // outdated articles being phased out, or work-in-progress drafts the
   // admin wants visible for stakeholder review.
   noIndex: boolean("no_index").notNull().default(false),
+  // Optional auto-unsnooze timestamp. When set together with
+  // `noIndex = true`, an hourly background job (noindexExpiryHourly)
+  // flips `noIndex` back to `false` and clears this column once
+  // `now() >= noindexUntil`. Lets the admin temporarily hide a post
+  // (e.g. while fixing thin content) without remembering to re-expose
+  // it later. `null` means "no scheduled flip; manual control only".
+  noindexUntil: timestamp("noindex_until", { withTimezone: true }),
 });
 
 export type BlogPostRow = typeof blogPostsTable.$inferSelect;

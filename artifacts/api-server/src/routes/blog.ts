@@ -95,6 +95,14 @@ const PublishBlogPostBody = z.object({
 const BulkNoIndexBody = z.object({
   slugs: z.array(z.string().min(1)).min(1).max(500),
   noIndex: z.boolean(),
+  // Optional auto-unsnooze window. Only meaningful when `noIndex=true`:
+  // a future `noindex_until` is computed as `now + snoozeDays * 24h`,
+  // and the hourly background job will flip the post back to indexed
+  // once that timestamp passes. When `noIndex=false`, `noindex_until`
+  // is always cleared regardless of this value (re-indexing cancels
+  // any pending snooze). Capped at 365 days so a typo cannot effectively
+  // permanently de-index a post by accident.
+  snoozeDays: z.number().int().positive().max(365).optional(),
 });
 
 const UpdateBlogPostBody = z
@@ -141,6 +149,7 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
     seoDescription: row.seoDescription ?? null,
     seoOgImage: row.seoOgImage ?? null,
     noIndex: row.noIndex,
+    noindexUntil: row.noindexUntil ? row.noindexUntil.toISOString() : null,
   };
 }
 
@@ -434,9 +443,29 @@ router.post(
       const body = BulkNoIndexBody.parse(req.body);
       const uniqueSlugs = Array.from(new Set(body.slugs));
 
+      // Snooze semantics:
+      //   - noIndex=true + snoozeDays=N → set noindex_until = now + N days
+      //     (the hourly job will auto-flip back to indexed when the
+      //     timestamp passes).
+      //   - noIndex=true with no snoozeDays → indefinite hide; clear
+      //     any prior pending snooze so a previously-snoozed post
+      //     becomes a manually-managed hide.
+      //   - noIndex=false → re-expose immediately and cancel any
+      //     pending auto-unsnooze (clearing noindex_until).
+      const updateValues: Partial<typeof blogPostsTable.$inferInsert> = {
+        noIndex: body.noIndex,
+      };
+      if (body.noIndex && body.snoozeDays) {
+        updateValues.noindexUntil = new Date(
+          Date.now() + body.snoozeDays * 24 * 60 * 60 * 1000,
+        );
+      } else {
+        updateValues.noindexUntil = null;
+      }
+
       const updated = await db
         .update(blogPostsTable)
-        .set({ noIndex: body.noIndex })
+        .set(updateValues)
         .where(inArray(blogPostsTable.slug, uniqueSlugs))
         .returning();
 

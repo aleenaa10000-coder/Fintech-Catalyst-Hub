@@ -32,6 +32,11 @@ const posts = [
 <h3>Table Snippets</h3>
 <p>Comparison and pricing queries trigger table snippets: "business bank account fees comparison," "fintech lending rates 2025," "wire transfer fees by bank." Structure your HTML with proper table elements and include a clear header row. Keep the table narrow — two to three columns — so it renders correctly in the snippet box.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1200&q=80" alt="Search engine results page on a laptop screen showing a featured snippet box" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">Featured snippets sit above all organic results — the most valuable real estate in any SERP.</figcaption>
+</figure>
 <h2>A Repeatable Framework for Identifying Snippet Opportunities</h2>
 <p>Step one is finding queries where a snippet exists but your competitors — not you — own it. Use Ahrefs or Semrush to filter your keyword list by "Featured snippet" in the SERP features column. Sort by monthly search volume and your current position. The sweet spot is queries where you rank between positions two and ten — you are already on page one, but Google has chosen someone else's answer format.</p>
 <p>Step two is auditing the current snippet holder. Copy the exact answer text Google is showing and reverse-engineer its structure. Is it a direct definition? A three-step process? A five-row table? Your goal is not to copy the content but to match and improve the format while providing a demonstrably more complete answer.</p>
@@ -88,6 +93,11 @@ const posts = [
 <h3>Strategic Guest Posting</h3>
 <p>Guest posting works in fintech when it is done with editorial intent rather than link placement intent. Editors at serious publications receive dozens of pitches from content marketers every week — they can identify and reject SEO-motivated pitches immediately. The pitches that succeed offer a specific angle the publication has not covered, a credible author (your CTO, your Head of Compliance, your VP of Risk), and a tight 200-word summary that demonstrates the author can actually write. Targeting three to five quality placements per month at DR 60+ publications compounds meaningfully over a 12-month horizon.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80" alt="A team of marketers collaborating around a laptop while building outreach lists" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">Backlink acquisition is a relationship business — every editorial link traces back to a journalist or editor you actually spoke to.</figcaption>
+</figure>
 <h2>What to Avoid: Tactics That Damage Fintech Brands</h2>
 <p>Private blog networks (PBNs) are particularly dangerous in fintech. Google's Helpful Content and spam updates have dramatically increased the risk of manual penalties, and financial services sites are subject to higher scrutiny because they fall under YMYL guidelines. A single manual action can remove a fintech brand from search results for months — a catastrophic outcome for any business dependent on organic acquisition.</p>
 <p>Link exchanges are a violation of Google's webmaster guidelines when done at scale. Organised schemes — especially those facilitated by a third party — carry growing algorithmic risk as Google's graph analysis of link patterns becomes more sophisticated.</p>
@@ -123,6 +133,11 @@ const posts = [
 <p>Next, audit every meaningful question a target customer asks throughout their journey: awareness questions ("what bank is best for freelancers"), research questions ("how do business bank accounts work for sole traders"), comparison questions ("wise business vs Revolut business"), and decision questions ("how to open a freelance business account"). Tools like AlsoAsked, AnswerThePublic, and the Google Search Console queries report help surface these comprehensively. Aim to identify 80–120 distinct questions and sub-topics within your territory.</p>
 <p>Then map these questions into a content architecture: one pillar page per major sub-topic, supported by cluster articles that address specific questions within that sub-topic. The pillar page for "business banking for freelancers" might be 4,000 words covering the category in full; the cluster articles address specific questions like "can you use a personal account for freelance work," "best bank accounts for Etsy sellers," and "how to invoice clients as a sole trader." Each cluster article links back to the pillar; the pillar links to each cluster. This internal linking structure signals to Google that the pillar page is the authoritative resource for the parent topic.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80" alt="An open notebook with content cluster diagrams sketched alongside a laptop" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">Topical authority is built one content cluster at a time — a hub page surrounded by tightly linked supporting articles.</figcaption>
+</figure>
 <h2>Content Velocity and Consistent Coverage</h2>
 <p>Topical authority is not built with a single content sprint — it is built through consistent, comprehensive coverage over time. The strategic question is: how many pieces per month do you need to publish to fill your topical map before your competitors do? In most fintech sub-verticals, the answer is eight to twelve well-researched articles per month sustained over six to twelve months. This is a meaningful commitment, but it is the difference between ranking for 50 queries and ranking for 5,000.</p>
 <p>Prioritise the content that closes gaps in your topical map rather than the content that repeats what you have already covered. It is common for fintech content teams to produce multiple articles on the same high-volume keyword variations while leaving entire semantic sub-topics completely uncovered. A quick audit of your existing content against your topical map will almost always reveal large gaps — those gaps are costing you ranking trust across every related query.</p>
@@ -168,8 +183,18 @@ const posts = [
 <p>Start with Google Search Console's Core Web Vitals report — this shows real-user data (field data) for your site segmented by mobile and desktop. Field data is the metric Google uses for ranking, so this is your ground truth. Then use PageSpeed Insights to get the lab data (simulated load) for specific pages — this gives you the diagnostic waterfall and specific recommendations.</p>
 <p>For fintech sites with authentication, the most performance-critical pages are often behind a login wall and therefore invisible to Google's crawlers and to standard audit tools. Use a Chrome DevTools performance profile of the authenticated application pages to diagnose INP and CLS issues that affect logged-in users. These pages may not directly affect SEO rankings, but they are where customer retention and conversion happens.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80" alt="Browser performance dashboard showing Core Web Vitals timing metrics" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">Real-user Core Web Vitals data from Chrome's CrUX report — the only numbers Google actually uses for rankings.</figcaption>
+</figure>
 <h2>Prioritisation: Which Pages to Fix First</h2>
 <p>Not all pages are equal. Prioritise Core Web Vitals improvements in this order: your highest-traffic landing pages (where SEO and paid acquisition converge), your primary conversion pages (account opening, loan application, sign-up flows), and your blog and content pages (which drive the greatest crawl budget and support topical authority). A fintech brand that achieves "Good" Core Web Vitals ratings across its top 20 pages will see measurable ranking improvements within three to six months, as well as measurable conversion rate improvements that compound across all acquisition channels simultaneously.</p>
+<h2>Operationalising Core Web Vitals as a Quarterly Discipline</h2>
+<p>One-off audits buy you a temporary win; sustained ranking improvement comes from treating Core Web Vitals as a recurring engineering scorecard. The fintech teams that hold their gains book a 90-minute review every quarter where engineering, design, and SEO sit together with the latest CrUX export and walk URL-by-URL through any page where the 75th-percentile metric has slipped past the "Good" threshold. Regressions usually trace to one of three culprits: a new third-party script (chat widget, A/B test platform, marketing pixel), an updated hero image that bypassed the build pipeline's compression step, or a dependency upgrade that grew the JS bundle by a few hundred kilobytes.</p>
+<p>Bake a CWV budget into your CI pipeline so regressions get caught before they ship. Lighthouse CI plus a simple GitHub Actions workflow can fail any pull request that pushes LCP above 2.5 seconds, INP above 200 ms, or CLS above 0.1 on the canonical landing pages. The first month after you turn the budget on will feel painful — half your pull requests will fail — but within six weeks engineering teams internalise the constraints and "performance debt" stops accumulating in the first place.</p>
+<p>Finally, share the numbers publicly inside the company. A weekly Slack post in #marketing showing "this week's median LCP across all blog URLs" turns CWV from an SEO-team obsession into a cross-functional metric that everyone can rally around. Engineering teams that can see the impact of their own work on a real user-facing dashboard fix performance issues without being chased.</p>
+
     `,
   },
   {
@@ -199,6 +224,11 @@ const posts = [
 <p>Newsjacking is the practice of inserting your brand's expert commentary into a story that is already generating media attention. In fintech, the opportunity is almost weekly: interest rate decisions, banking regulation updates, major payment technology announcements, data breach reports, fintech funding rounds. The window for newsjacking is narrow — you need to respond within two to four hours of a major news event to have any chance of being included in initial coverage.</p>
 <p>Build a response infrastructure: identify two or three executives who can provide expert commentary quickly, create a template for journalist outreach responses (150 words, direct answer first, no marketing language), and set up Google Alerts for your key topic areas. The goal in months four through six is to generate three to five reactive media placements per month.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1200&q=80" alt="A stack of newspapers and a laptop showing a press release" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">Tier-1 fintech coverage in the FT, Bloomberg, or TechCrunch is worth multiple months of cold link-building outreach combined.</figcaption>
+</figure>
 <h2>Months 7–9: Tier-1 Publication Targeting</h2>
 <p>By this point, you should have an established track record of original data and a handful of media placements you can reference in outreach. Now is the time to target Tier-1 financial publications — the FT, Bloomberg, Reuters, the Wall Street Journal, Forbes Finance, and category-specific outlets (Payments Dive, American Banker, The Banker).</p>
 <p>Tier-1 outreach requires a fundamentally different approach from volume-based link building. You are not pitching an article — you are pitching a relationship. Identify the three to five journalists who cover your specific segment and read their last 30 articles before reaching out. Your pitch should reference their recent coverage, explain specifically why your data or expertise adds to a story they are already working on, and offer exclusivity for 48 hours. Exclusivity is the single most effective lever in Tier-1 PR outreach — journalists value the guarantee that they will not be scooped on a story.</p>
@@ -206,6 +236,11 @@ const posts = [
 <h2>Months 10–12: Compounding and Content Amplification</h2>
 <p>By the end of a sustained 12-month programme, a fintech brand with a genuine story to tell should have earned 80–150 new editorial backlinks from a diverse range of domains, with five to ten placements in Tier-1 financial publications. The final quarter is about amplifying and compounding: update your research assets with new data (updated studies earn links from journalists who covered the original), systematically repitch your most successful pieces to outlets that did not cover them the first time, and begin building brand awareness offline — conferences, industry panels, regulatory consultation submissions — that generates online coverage without active outreach.</p>
 <p>Domain authority is a lagging indicator — it typically takes three to six months for earned links to be fully indexed and reflected in your domain rating. The brands that sustain a 12-month digital PR commitment consistently see compound acceleration in their organic rankings in months nine through eighteen, as the combined authority of their link profile reaches a critical mass that competitors cannot close quickly.</p>
+<h2>Measuring Digital PR Beyond Vanity Coverage</h2>
+<p>The biggest mistake fintech marketing teams make with digital PR is reporting on the wrong things. Hit counts, "potential reach," and AVE (Advertising Value Equivalent) numbers look impressive in board decks but tell you nothing about whether the campaign moved the search needle. The metrics that matter are referring-domain growth from publications above DR 70, the change in your organic rankings for the head terms the campaign was designed to support, and downstream brand-search volume in Google Trends in the four weeks after launch.</p>
+<p>Set up a dedicated Looker Studio dashboard that joins Ahrefs referring-domain data with Search Console performance and Google Trends brand-query volume. After every major campaign, screenshot the dashboard at launch and at thirty, sixty, and ninety days post-launch. Within two campaigns you will start spotting which story formats actually move pipeline-relevant search demand and which ones are pure noise — and you can stop pitching the second category entirely.</p>
+<p>Treat unlinked brand mentions as a recovery pipeline. Ahrefs and Brandwatch will both flag publications that have written about your brand without including a link. A polite follow-up email asking the journalist to add a link "for your readers' convenience" converts at roughly 25–35% in our experience, and recovers an average of eight to twelve high-authority links per quarter from coverage that already exists.</p>
+
     `,
   },
   {
@@ -244,9 +279,19 @@ const posts = [
 <p>The most common failure is publishing financial guidance without qualification. Statements like "you should move your savings to a high-yield account" or "this is the best mortgage for first-time buyers" constitute financial advice in many regulatory frameworks — and even where they do not, they are evaluated as YMYL content requiring expert backing. Add qualification language ("based on our research," "consult a financial adviser before making any decision") and link to your regulatory disclosures page from every piece of financial guidance content.</p>
 <p>The second failure is publishing outdated rates, terms, and regulatory information. A 2022 article about ISA allowances that still shows the 2022 annual limit is not just unhelpful — it actively demonstrates low trustworthiness to Google's quality raters. Institute a quarterly content audit process to update every piece of content that references rates, legislation, or product terms that change regularly.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1200&q=80" alt="Author bio page showing credentials, certifications, and headshot" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">A credentialed author bio with a real photo, role, and link to LinkedIn does more for E-E-A-T than any schema markup.</figcaption>
+</figure>
 <h2>Building an E-E-A-T-Positive Content Infrastructure</h2>
 <p>Every fintech brand should have: a dedicated "About" page with named team members and their credentials, individual author pages for every bylined contributor with their relevant qualifications and experience, a transparent editorial process description (how content is researched, fact-checked, and reviewed), and a readily accessible page describing your regulatory status and licences. These pages do not need to rank for keywords — they serve as trust signals that support the ranking ability of every other page on the site.</p>
 <p>The fintech brands that rank consistently in Google's most competitive financial queries are, without exception, the ones that have invested in E-E-A-T infrastructure as deliberately as they have invested in keyword research and link building. It is not a supplementary consideration — it is the foundation on which everything else rests.</p>
+<h2>Auditing Existing Content Against E-E-A-T</h2>
+<p>Most fintech sites have hundreds of legacy blog posts that pre-date any serious E-E-A-T discipline — anonymous "Marketing Team" by-lines, no review dates, undefined sources, and zero subject-matter-expert involvement. Run a quarterly audit: pull every URL that gets at least 50 organic visits per month, score each one against a simple eight-point E-E-A-T checklist (named author with credentials, last-reviewed date within 18 months, primary sources cited, expert quote included, no factual errors, schema markup present, internal links to authoritative cluster pages, mobile-friendly layout), and prioritise remediation by current organic traffic value.</p>
+<p>Pages that score under five out of eight are the ones most exposed to a future Google quality update. Fix the by-line and review date first — those are 30-minute changes that compound across the whole content library — then schedule the deeper expert-quote and source-citation work in the regular content calendar. Within two refresh cycles, every high-traffic legacy post should be at six points or above.</p>
+<p>Keep the audit data versioned in a Notion or Coda table so you can see which articles improved and which regressed quarter-over-quarter. The audit itself becomes an internal artefact that proves to a Search Quality Rater (or, more importantly, to Google's algorithm proxies for one) that you actively maintain the integrity of your published content.</p>
+
     `,
   },
   {
@@ -283,7 +328,17 @@ const posts = [
 
 <h2>The Content Metric That Actually Predicts Pipeline</h2>
 <p>Traffic is a vanity metric for content programmes that are supposed to drive pipeline. The metric that predicts pipeline is influenced pipeline — the number of closed deals or active opportunities where marketing content was consumed by the prospect at some point in the sales cycle. This requires connecting your content analytics to your CRM and attributing content touches to deals. Most fintech marketing teams have not done this integration — and as a result, they cannot demonstrate the ROI of their content programme to the CFO, which means content budgets are perpetually underinvested.</p>
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80" alt="A marketing analytics dashboard showing funnel stages and conversion rates" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">Mapping each blog URL to a funnel stage in your analytics tool is the only way to prove content's contribution to pipeline.</figcaption>
+</figure>
 <p>Building a full-funnel content programme with proper attribution takes two to three quarters to execute correctly, but the output is a content strategy that is directly accountable to revenue rather than to traffic or social engagement. In a climate where marketing budgets face constant scrutiny, that accountability is what protects and grows the investment in content over the long term.</p>
+<h2>From Stage Mapping to Closed Revenue Attribution</h2>
+<p>Stage-mapping content is necessary but not sufficient. The follow-on step that most fintech marketing teams skip is wiring the stage tags into your CRM so revenue can be attributed back to the article that first touched the prospect. In HubSpot or Salesforce, add a custom property called "first_touch_content_url" that fires on the first form submission of a contact's lifecycle, then build a quarterly report that joins closed-won deal value to the URL that originally captured the lead.</p>
+<p>The numbers that surface from this report are usually surprising — and frequently uncomfortable. The blog posts that drive the most traffic are rarely the ones that drive the most revenue, and the unsexy comparison or "alternative to" posts often outperform thought-leadership pieces by an order of magnitude on closed pipeline. Use the data to defend (or kill) entire content categories at the next planning cycle.</p>
+<p>One pattern we see consistently: in B2B fintech, middle-funnel content drives 60–70% of attributed pipeline despite representing only 20–30% of total content output. Rebalancing the editorial calendar toward middle-funnel — without abandoning the top of the funnel that feeds it — is usually the single highest-leverage change a content team can make in any given year.</p>
+
     `,
   },
   {
@@ -312,6 +367,11 @@ const posts = [
 <p>Read the five most recent articles in the target publication that are relevant to your topic area. Note the specific angles they have covered, the format they prefer (data-led, opinion, how-to, case study), the typical article length, and any obvious gaps in their recent coverage. Your pitch will be meaningfully stronger if it references one of their recent articles and positions your proposed piece as a logical extension or counterpoint.</p>
 <p>Find the right contact — not the generic "contact@" email, but the specific editor or contributor programme manager. LinkedIn is often the most reliable source; many editorial teams list their contributor programme contacts there. At larger publications, look for the "contributing editor," "guest editor," or "digital editor" rather than the general editor-in-chief.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=1200&q=80" alt="A laptop with an email outreach sequence open alongside a coffee cup" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">Personalised outreach beats template blasts at roughly 8x the response rate — and editors talk to each other about who sends which.</figcaption>
+</figure>
 <h2>Step 3: Craft a Pitch That Gets Read</h2>
 <p>The subject line should be your proposed article title — specific, informative, not clever. "Why Open Banking Is Failing UK SMBs — And How to Fix It" will get opened; "Thought Leadership Opportunity" will not. Keep the pitch email to four paragraphs: (1) one sentence about why this topic is timely and relevant to their readership, (2) one sentence with your proposed headline and a two-sentence description of the article's key argument, (3) your author bio in 50 words — credentials first, not your company's product description, (4) one sentence offering to send the full draft on spec.</p>
 <p>Response rates for well-targeted, personalised pitches in financial publications run between 10–20%. Expect to send 40–50 pitches per month to generate four to eight article placements. Track every pitch in a spreadsheet: publication, editor contact, date sent, follow-up date, response, and outcome.</p>
@@ -360,9 +420,19 @@ const posts = [
 <h3>Brand and Competitor Keywords</h3>
 <p>Queries that name your brand or a competitor: "Monzo business review," "Revolut vs Starling for business," "[Your brand] pricing." These often have lower volume but extremely high conversion intent. Ensure you rank for your own branded queries (defend against competitor bidding on your brand) and create high-quality comparison content for competitor alternatives queries — these are the queries where you can convert prospects who are evaluating your direct competitors.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80" alt="A spreadsheet of fintech keywords with search volume, difficulty, and revenue potential columns" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">A revenue-weighted keyword sheet beats a volume-sorted one every time — high-volume head terms rarely convert in regulated verticals.</figcaption>
+</figure>
 <h2>Prioritisation: The Business Value Score</h2>
 <p>After building your keyword list (aim for 200–500 keywords for a focused fintech sub-vertical), prioritise by a business value score rather than raw volume. Score each keyword on: estimated monthly volume (0–3 points), commercial intent (0–3 points based on your assessment of buyer stage), current ranking position (3 points if ranking 2–10, 2 points if 11–20, 1 point if not ranking), and competitive difficulty (3 points if DA 40 sites rank top 5, 0 points if DA 80+ sites dominate). Target keywords with a composite score of 7+ first — these combine meaningful traffic potential with realistic rankability and genuine commercial value.</p>
 <p>Revisit your keyword research quarterly. Fintech search behaviour evolves rapidly — regulatory changes create new query categories overnight, new product launches by major players shift category vocabulary, and Google's understanding of search intent updates continuously. A fintech content strategy built on a static keyword list created 18 months ago is almost certainly missing the highest-value opportunities available today.</p>
+<h2>Refreshing the Keyword List Every Quarter</h2>
+<p>A fintech keyword list goes stale faster than most other categories because regulators, partners, and product features change constantly. A quarterly refresh ritual keeps the list aligned with what prospects are actually searching for. Pull the latest "queries" report from Search Console for the previous 90 days, filter to queries that drove at least 50 impressions but where you currently rank below position 10, and add the genuinely on-strategy ones to the active target list. Equally important: prune the queries you targeted six months ago that have since lost search volume or where the SERP has shifted toward an intent (transactional vs informational) that no longer matches your product fit.</p>
+<p>Track the "close-velocity-weighted opportunity" of the active list as a single rolled-up number: sum of (monthly search volume × your historical conversion rate from that intent class × estimated deal value). When that number is climbing quarter-over-quarter, your keyword strategy is improving even before any individual ranking changes show up. When it stalls, you have a leading indicator that the strategy needs a refresh before organic traffic flatlines.</p>
+<p>Finally, make sure the list is shared with the demand-gen and product-marketing teams. Paid search bids, landing-page copy, sales battle cards, and even product naming decisions all benefit from a single source of truth on which prospect language is gaining or losing momentum in the market.</p>
+
     `,
   },
   {
@@ -411,6 +481,11 @@ const posts = [
 <h3>7. Public Regulatory History</h3>
 <p>Search the OCC, FDIC, and CFPB enforcement databases for both the BaaS provider and every sponsor bank it routes through. Consent Orders, Cease-and-Desist letters, and MOUs are public. A sponsor bank under an active enforcement action is a sponsor bank that cannot onboard new programmes — even if your BaaS sales rep does not mention it.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&w=1200&q=80" alt="A modern banking dashboard interface displayed on a laptop screen" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">Modern BaaS dashboards expose API logs, ledger entries, and compliance state in a single pane — make sure yours does too before signing.</figcaption>
+</figure>
 <h2>Quick-Reference Comparison Table</h2>
 <table>
   <thead>
@@ -472,6 +547,11 @@ const posts = [
 <h3>Stage 4: Publish With Author E-E-A-T Signals</h3>
 <p>YMYL content with no visible author authority ranks poorly regardless of writing quality. Every compliance page should have a named author with a visible role (e.g., "Head of Compliance" or "Former AML Officer"), a credential line (JD, ACAMS, CRCM), a link to a full author bio page, and ideally an external citation in a recognised industry publication. These E-E-A-T signals are what allow Google to rank a YMYL page above identical content on a domain with no demonstrated expertise.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1200&q=80" alt="A person verifying their identity with a passport and smartphone" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">KYC content that earns links is content that respects the user's privacy concerns while being technically precise about the verification flow.</figcaption>
+</figure>
 <h2>What Compliance Officers Will and Will Not Approve</h2>
 
 <h3>Will Approve</h3>
@@ -509,6 +589,11 @@ const posts = [
 <p>Take-rate — the merchant discount fee the BNPL provider charges as a percentage of transaction value — is the single largest revenue line for any pay-in-four BNPL business. The 2025 reporting cycle confirmed what risk teams have suspected since 2023: take-rates are compressing structurally, not cyclically.</p>
 <p>The compression has three drivers. First, large enterprise merchants (the categories that drive volume — apparel, electronics, home goods) have aggressively renegotiated take-rates downward as BNPL became a commoditised checkout option rather than a conversion lever. Second, the entry of card networks into instalment offers (Visa Instalments, Mastercard Instalment Solution) gave merchants a credible alternative they did not have in 2020. Third, regulatory disclosure requirements in the EU and UK have made merchant pricing more transparent, which mathematically pulls take-rates toward the low end of the published range.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=80" alt="A financial chart showing vintage cohort curves over time" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">Vintage cohort curves are the only honest way to read BNPL unit economics — quarterly aggregates hide everything that matters.</figcaption>
+</figure>
 <h2>Number 2: Vintage Curves and Reading Them Honestly</h2>
 <p>A vintage curve plots the cumulative net charge-off rate of all loans originated in a given month, as that cohort ages. It is the only honest way to read BNPL credit performance because the headline net-charge-off-to-receivables ratio is heavily distorted by the rapid growth of the receivables denominator.</p>
 
@@ -566,6 +651,11 @@ const posts = [
 <h3>4. Embedded-Finance Take-Rate Pricing</h3>
 <p>Fintech SaaS platforms with an embedded-finance layer — virtual cards, embedded payments, FX, lending — are increasingly cross-subsidising the SaaS subscription with payments and interchange revenue. Several of the leading spend-management platforms now offer aggressive SaaS pricing (or zero subscription on entry tiers) when customers route a defined volume through the platform's card or payments rails. The economic profile becomes a fintech P&L, not a pure SaaS P&L — which has implications for both customer LTV modelling and vendor capital structure.</p>
 
+
+<figure class="my-6">
+  <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80" alt="A pricing page mockup with three tiers and a usage-based slider" loading="lazy" class="w-full rounded-lg" />
+  <figcaption class="mt-2 text-sm text-muted-foreground italic text-center">Hybrid pricing pages — platform fee plus usage — convert better in B2B fintech than pure-seat or pure-usage models.</figcaption>
+</figure>
 <h2>The Four Pricing-Model Traps to Avoid</h2>
 
 <h3>1. Repackaging the Seat as the AI Agent</h3>

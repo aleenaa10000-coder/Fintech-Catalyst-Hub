@@ -1081,6 +1081,15 @@ components:
             `<meta name="robots" content="noindex,nofollow">` so this post
             is excluded from search engines (still publicly accessible by
             URL). Useful for sponsored, outdated, or work-in-progress posts.
+        noindexUntil:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            Optional auto-unsnooze timestamp. When set together with
+            `noIndex=true`, an hourly background job re-flips `noIndex`
+            back to `false` and clears this field once the moment passes.
+            `null` means "no scheduled flip; manual control only".
       required: [id, slug, title, excerpt, content, author, authorRole, category, tags, coverImage, readingMinutes, featured, publishedAt, updatedAt, viewCount, noIndex]
 
     BlogCategory:
@@ -1567,6 +1576,16 @@ components:
         noIndex:
           type: boolean
           description: New value for the `noIndex` flag on every targeted post.
+        snoozeDays:
+          type: integer
+          minimum: 1
+          maximum: 365
+          description: >
+            Optional auto-unsnooze window in days. Only meaningful when
+            `noIndex=true`: each affected post's `noindexUntil` is set to
+            `now + snoozeDays * 24h`, and an hourly background job will
+            flip the post back to indexed when that timestamp passes.
+            Ignored (and `noindexUntil` is cleared) when `noIndex=false`.
       required: [slugs, noIndex]
 
     BulkNoIndexBlogPostsResult:
