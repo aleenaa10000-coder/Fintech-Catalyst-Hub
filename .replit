@@ -29,8 +29,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=8080 BASE_PATH=/ pnpm --filter @workspace/api-server run dev & PORT=21096 BASE_PATH=/ pnpm --filter @workspace/fintechpresshub run dev"
-waitForPort = 21096
+args = "echo 'Services managed by artifact workflows (api-server on :8080, fintechpresshub on :21096)'"
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
@@ -48,6 +47,10 @@ externalPort = 80
 [[ports]]
 localPort = 8080
 externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
 
 [[ports]]
 localPort = 18082
