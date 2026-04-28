@@ -245,8 +245,8 @@ async function seed() {
         "Most link building programs sold to fintechs are noise. Here's how to build a backlink profile that compounds — and survives core updates.",
       content:
         "Domain Rating is a vanity metric until it's tied to relevance. In this guide, we break down the off-page SEO framework we use to earn links from real finance publications, niche fintech blogs, and contextual SaaS sites. You'll learn how to score a target list by topical relevance and traffic, how to pitch editors without sounding like a sales rep, and how to use HARO, broken-link reclamation, and digital PR to keep your link velocity natural. We also cover the anchor text mix that protects against spam classifiers and the cadence we recommend for sustained ranking gains.",
-      author: "Jordan Reyes",
-      authorRole: "Director of Off-Page SEO",
+      author: "James Okafor",
+      authorRole: "Head of Digital PR & Link Building",
       category: "Off-Page SEO",
       tags: ["Off-Page SEO", "Link Building", "Digital PR"],
       coverImage:
@@ -364,8 +364,8 @@ async function seed() {
         "The best fintech link building programs of 2026 look more like newsrooms than outreach factories. Here's the digital PR framework we use.",
       content:
         "Digital PR has become the most efficient way to earn high-authority links in finance — but only if you have something genuinely newsworthy to pitch. In this article, our PR lead walks through the four story angles that consistently earn coverage from finance journalists (proprietary data, contrarian takes, regulatory commentary, and category-defining frameworks), how we package and pitch each, and the typical placement-to-link conversion rates we see across each format.",
-      author: "Jordan Reyes",
-      authorRole: "Director of Off-Page SEO",
+      author: "James Okafor",
+      authorRole: "Head of Digital PR & Link Building",
       category: "Off-Page SEO",
       tags: ["Digital PR", "Link Building", "Outreach"],
       coverImage:
