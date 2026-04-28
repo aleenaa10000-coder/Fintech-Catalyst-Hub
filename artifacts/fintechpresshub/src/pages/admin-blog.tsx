@@ -22,6 +22,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
   Plus,
@@ -40,6 +50,9 @@ import {
   CheckCircle2,
   EyeOff,
   Eye,
+  Star,
+  TrendingUp,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -832,6 +845,373 @@ function Stat({
   );
 }
 
+/**
+ * Number of days a post is considered "recently published". Posts inside
+ * this window get a warning chip in the no-index impact preview because
+ * they're typically still earning their initial wave of organic traffic
+ * and de-indexing them can wipe rankings before they've even matured.
+ */
+const RECENT_POST_WINDOW_DAYS = 30;
+
+/**
+ * Compute the "before-you-confirm" impact summary for a bulk no-index /
+ * remove-no-index action. The result drives the <BulkNoIndexImpactDialog>
+ * so the admin can see exactly which currently-indexed posts (and how
+ * much traffic) would disappear from search before they pull the trigger.
+ *
+ *  - For `mode: "noindex"` the impact set is the selected posts that are
+ *    currently indexed (i.e. `noIndex !== true`). Posts already hidden are
+ *    excluded from the impact because re-flagging them is a no-op.
+ *  - For `mode: "reindex"` the impact set is the selected posts that are
+ *    currently hidden, since those are the only ones that would actually
+ *    re-appear in search.
+ */
+function computeNoIndexImpact(
+  selectedSlugs: Set<string>,
+  posts: BlogPost[] | undefined,
+  mode: "noindex" | "reindex",
+) {
+  const selected = (posts ?? []).filter((p) => selectedSlugs.has(p.slug));
+  const wantHidden = mode === "noindex";
+  const impacted = selected.filter((p) =>
+    wantHidden ? !p.noIndex : !!p.noIndex,
+  );
+  const skipped = selected.filter((p) =>
+    wantHidden ? !!p.noIndex : !p.noIndex,
+  );
+
+  const totalViews = impacted.reduce((sum, p) => sum + (p.viewCount ?? 0), 0);
+  const featuredCount = impacted.filter((p) => p.featured).length;
+  const recentCutoff = Date.now() - RECENT_POST_WINDOW_DAYS * 86_400_000;
+  const recentCount = impacted.filter((p) => {
+    const t = new Date(p.publishedAt).getTime();
+    return Number.isFinite(t) && t >= recentCutoff;
+  }).length;
+
+  const topByViews = [...impacted]
+    .sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0))
+    .slice(0, 5);
+
+  return {
+    selectedCount: selected.length,
+    impactedCount: impacted.length,
+    skippedCount: skipped.length,
+    totalViews,
+    featuredCount,
+    recentCount,
+    topByViews,
+    impacted,
+  };
+}
+
+type NoIndexImpact = ReturnType<typeof computeNoIndexImpact>;
+
+function formatViews(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return n.toLocaleString();
+}
+
+/**
+ * "Preview no-index impact" panel — a confirmation dialog that lists how
+ * many of the selected posts would actually be hidden from search (vs
+ * already-hidden no-ops), the total view count those URLs are currently
+ * pulling in, the highest-traffic posts in the impact set, and warnings
+ * for featured / recently-published posts so an admin never accidentally
+ * de-indexes a high-traffic post in a bulk action.
+ */
+function BulkNoIndexImpactDialog({
+  open,
+  mode,
+  impact,
+  isPending,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  mode: "noindex" | "reindex";
+  impact: NoIndexImpact;
+  isPending: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const isHide = mode === "noindex";
+  const verb = isHide ? "Hide" : "Re-expose";
+  const verbed = isHide ? "hidden" : "re-exposed";
+  const noun = impact.impactedCount === 1 ? "post" : "posts";
+  const hasImpact = impact.impactedCount > 0;
+  const hasHighTraffic = impact.totalViews >= 500;
+
+  return (
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onCancel();
+      }}
+    >
+      <AlertDialogContent
+        className="max-w-xl"
+        data-testid="bulk-noindex-impact-dialog"
+      >
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            {isHide ? (
+              <EyeOff className="w-5 h-5 text-amber-600" />
+            ) : (
+              <Eye className="w-5 h-5 text-green-600" />
+            )}
+            Preview no-index impact
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="text-sm text-muted-foreground">
+              {isHide ? (
+                <>
+                  Each affected post will get{" "}
+                  <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
+                    &lt;meta name="robots" content="noindex,nofollow"&gt;
+                  </code>{" "}
+                  and drop out of Google, Bing &amp; co. on the next crawl.
+                  The URL stays publicly reachable — only search engines
+                  are told to forget it.
+                </>
+              ) : (
+                <>
+                  Each affected post will lose its{" "}
+                  <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
+                    noindex
+                  </code>{" "}
+                  flag and become eligible for the index again on the next
+                  crawl.
+                </>
+              )}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="grid grid-cols-3 gap-2">
+          <ImpactStat
+            label={isHide ? "Will be hidden" : "Will return"}
+            value={impact.impactedCount.toLocaleString()}
+            tone={hasImpact ? (isHide ? "warn" : "good") : "neutral"}
+            testid="impact-stat-impacted"
+          />
+          <ImpactStat
+            label={
+              isHide
+                ? "Views being hidden"
+                : "Views returning"
+            }
+            value={formatViews(impact.totalViews)}
+            tone={
+              isHide && hasHighTraffic
+                ? "warn"
+                : hasImpact
+                  ? "good"
+                  : "neutral"
+            }
+            testid="impact-stat-views"
+          />
+          <ImpactStat
+            label="Already no-op"
+            value={impact.skippedCount.toLocaleString()}
+            tone="neutral"
+            testid="impact-stat-skipped"
+          />
+        </div>
+
+        {!hasImpact && (
+          <div
+            className="rounded-md border border-muted bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+            data-testid="impact-empty"
+          >
+            None of the {impact.selectedCount} selected{" "}
+            {impact.selectedCount === 1 ? "post is" : "posts are"} eligible
+            for this action — every selected post is already in the
+            target state. Nothing will change.
+          </div>
+        )}
+
+        {hasImpact && isHide && (
+          <div className="space-y-2">
+            {impact.featuredCount > 0 && (
+              <ImpactWarning
+                icon={<Star className="w-4 h-4" />}
+                tone="warn"
+                testid="impact-warn-featured"
+              >
+                <strong>{impact.featuredCount}</strong>{" "}
+                {impact.featuredCount === 1 ? "post is" : "posts are"}{" "}
+                marked <em>featured</em> on the public blog. Hiding{" "}
+                {impact.featuredCount === 1 ? "it" : "them"} will also
+                strip {impact.featuredCount === 1 ? "it" : "them"} from
+                search snippets while the public blog still links there.
+              </ImpactWarning>
+            )}
+            {impact.recentCount > 0 && (
+              <ImpactWarning
+                icon={<Clock className="w-4 h-4" />}
+                tone="warn"
+                testid="impact-warn-recent"
+              >
+                <strong>{impact.recentCount}</strong>{" "}
+                {impact.recentCount === 1 ? "post was" : "posts were"}{" "}
+                published in the last {RECENT_POST_WINDOW_DAYS} days and
+                may still be ranking up — de-indexing now usually wipes
+                the early-traffic ramp.
+              </ImpactWarning>
+            )}
+            {hasHighTraffic && (
+              <ImpactWarning
+                icon={<TrendingUp className="w-4 h-4" />}
+                tone="warn"
+                testid="impact-warn-traffic"
+              >
+                <strong>{formatViews(impact.totalViews)} views</strong>{" "}
+                across the selection — that traffic will stop landing
+                from search after the next crawl.
+              </ImpactWarning>
+            )}
+          </div>
+        )}
+
+        {hasImpact && impact.topByViews.length > 0 && (
+          <div className="rounded-md border">
+            <div className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground border-b">
+              Highest-traffic posts in this batch
+            </div>
+            <ul
+              className="divide-y text-sm"
+              data-testid="impact-top-posts"
+            >
+              {impact.topByViews.map((p) => (
+                <li
+                  key={p.slug}
+                  className="flex items-center justify-between gap-3 px-3 py-2"
+                  data-testid={`impact-top-post-${p.slug}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{p.title}</div>
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <span className="truncate">/blog/{p.slug}</span>
+                      {p.featured && (
+                        <span className="inline-flex items-center gap-0.5 text-amber-600">
+                          <Star className="w-3 h-3" />
+                          featured
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="text-sm font-semibold tabular-nums">
+                      {(p.viewCount ?? 0).toLocaleString()}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      views
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {impact.impactedCount > impact.topByViews.length && (
+              <div className="px-3 py-2 text-[11px] text-muted-foreground border-t bg-muted/40">
+                + {impact.impactedCount - impact.topByViews.length} more
+                {" "}
+                {impact.impactedCount - impact.topByViews.length === 1
+                  ? "post"
+                  : "posts"}{" "}
+                in this batch
+              </div>
+            )}
+          </div>
+        )}
+
+        <AlertDialogFooter>
+          <AlertDialogCancel
+            disabled={isPending}
+            data-testid="impact-cancel"
+          >
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            disabled={isPending || !hasImpact}
+            onClick={(e) => {
+              e.preventDefault();
+              onConfirm();
+            }}
+            className={
+              isHide
+                ? "bg-amber-600 text-white hover:bg-amber-700"
+                : "bg-[#0052FF] hover:bg-[#0040cc]"
+            }
+            data-testid="impact-confirm"
+          >
+            {isPending
+              ? "Working…"
+              : hasImpact
+                ? `${verb} ${impact.impactedCount} ${noun}`
+                : `Nothing to be ${verbed}`}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+function ImpactStat({
+  label,
+  value,
+  tone,
+  testid,
+}: {
+  label: string;
+  value: string;
+  tone: "neutral" | "good" | "warn";
+  testid?: string;
+}) {
+  const toneClass =
+    tone === "warn"
+      ? "text-amber-700"
+      : tone === "good"
+        ? "text-green-700"
+        : "text-foreground";
+  return (
+    <div className="rounded-md border px-3 py-2" data-testid={testid}>
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className={`text-base font-semibold tabular-nums ${toneClass}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ImpactWarning({
+  icon,
+  tone,
+  children,
+  testid,
+}: {
+  icon: React.ReactNode;
+  tone: "warn" | "info";
+  children: React.ReactNode;
+  testid?: string;
+}) {
+  const cls =
+    tone === "warn"
+      ? "border-amber-200 bg-amber-50 text-amber-900"
+      : "border-blue-200 bg-blue-50 text-blue-900";
+  return (
+    <div
+      className={`flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${cls}`}
+      data-testid={testid}
+    >
+      <span className="mt-0.5 shrink-0">{icon}</span>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
 export default function AdminBlog() {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } =
     useAuth();
@@ -849,6 +1229,12 @@ export default function AdminBlog() {
     () => new Set(),
   );
   const bulkNoIndexMut = useBulkNoIndexBlogPosts();
+  // Which bulk no-index dialog is open (if any). Driving the dialog from
+  // here — instead of inline window.confirm() — lets us render a rich
+  // "preview impact" panel before the destructive action fires.
+  const [impactDialogMode, setImpactDialogMode] = useState<
+    "noindex" | "reindex" | null
+  >(null);
   // Whether we've already consumed the `?slug=` deep-link query param. We
   // only auto-open once per visit so re-opening the editor doesn't re-trigger
   // when the user later navigates away and back.
@@ -1437,14 +1823,81 @@ export default function AdminBlog() {
           )}
         </div>
 
-        {selectedSlugs.size > 0 && (
+        {selectedSlugs.size > 0 && (() => {
+          // Live "before-you-confirm" preview rendered directly in the
+          // bulk action bar. Computed on every render against the current
+          // selection — cheap because `posts` is already in memory and
+          // capped at the admin list page size. Driving both the inline
+          // strip and the impact dialog from the same helper keeps the
+          // numbers consistent.
+          const livePreview = computeNoIndexImpact(
+            selectedSlugs,
+            posts,
+            "noindex",
+          );
+          return (
           <div
             className="sticky top-16 z-20 mb-4 rounded-md border bg-background/95 backdrop-blur px-4 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3"
             data-testid="bulk-actions-bar"
           >
-            <div className="text-sm">
-              <strong>{selectedSlugs.size}</strong>{" "}
-              {selectedSlugs.size === 1 ? "post" : "posts"} selected
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <div>
+                <strong>{selectedSlugs.size}</strong>{" "}
+                {selectedSlugs.size === 1 ? "post" : "posts"} selected
+              </div>
+              <div
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"
+                data-testid="bulk-impact-preview"
+              >
+                <span
+                  className={
+                    livePreview.impactedCount > 0
+                      ? "inline-flex items-center gap-1 text-amber-700"
+                      : "inline-flex items-center gap-1"
+                  }
+                  data-testid="bulk-impact-would-hide"
+                >
+                  <EyeOff className="w-3.5 h-3.5" />
+                  <strong className="tabular-nums">
+                    {livePreview.impactedCount}
+                  </strong>{" "}
+                  indexed →&nbsp;hidden
+                </span>
+                <span
+                  className="inline-flex items-center gap-1"
+                  data-testid="bulk-impact-views"
+                >
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  <strong className="tabular-nums">
+                    {formatViews(livePreview.totalViews)}
+                  </strong>{" "}
+                  views at risk
+                </span>
+                {livePreview.skippedCount > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1"
+                    data-testid="bulk-impact-skipped"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <strong className="tabular-nums">
+                      {livePreview.skippedCount}
+                    </strong>{" "}
+                    already&nbsp;hidden
+                  </span>
+                )}
+                {livePreview.featuredCount > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 text-amber-700"
+                    data-testid="bulk-impact-featured"
+                  >
+                    <Star className="w-3.5 h-3.5" />
+                    <strong className="tabular-nums">
+                      {livePreview.featuredCount}
+                    </strong>{" "}
+                    featured
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -1459,27 +1912,7 @@ export default function AdminBlog() {
                 size="sm"
                 variant="outline"
                 disabled={bulkNoIndexMut.isPending}
-                onClick={async () => {
-                  const slugs = Array.from(selectedSlugs);
-                  try {
-                    const result = await bulkNoIndexMut.mutateAsync({
-                      data: { slugs, noIndex: false },
-                    });
-                    toast.success(
-                      `Removed no-index from ${result.updatedCount} ${
-                        result.updatedCount === 1 ? "post" : "posts"
-                      }`,
-                    );
-                    setSelectedSlugs(new Set());
-                    invalidate();
-                  } catch (err) {
-                    toast.error(
-                      err instanceof Error
-                        ? err.message
-                        : "Failed to update posts",
-                    );
-                  }
-                }}
+                onClick={() => setImpactDialogMode("reindex")}
                 data-testid="bulk-remove-noindex"
               >
                 <Eye className="w-4 h-4 mr-1.5" /> Remove no-index
@@ -1488,36 +1921,7 @@ export default function AdminBlog() {
                 size="sm"
                 disabled={bulkNoIndexMut.isPending}
                 className="bg-[#0052FF] hover:bg-[#0040cc]"
-                onClick={async () => {
-                  const slugs = Array.from(selectedSlugs);
-                  if (
-                    !window.confirm(
-                      `Hide ${slugs.length} ${
-                        slugs.length === 1 ? "post" : "posts"
-                      } from search engines?\n\nEach selected post will get <meta name="robots" content="noindex,nofollow">. The URLs stay public but search engines will drop them on the next crawl.`,
-                    )
-                  ) {
-                    return;
-                  }
-                  try {
-                    const result = await bulkNoIndexMut.mutateAsync({
-                      data: { slugs, noIndex: true },
-                    });
-                    toast.success(
-                      `No-indexed ${result.updatedCount} ${
-                        result.updatedCount === 1 ? "post" : "posts"
-                      }`,
-                    );
-                    setSelectedSlugs(new Set());
-                    invalidate();
-                  } catch (err) {
-                    toast.error(
-                      err instanceof Error
-                        ? err.message
-                        : "Failed to update posts",
-                    );
-                  }
-                }}
+                onClick={() => setImpactDialogMode("noindex")}
                 data-testid="bulk-noindex"
               >
                 <EyeOff className="w-4 h-4 mr-1.5" />
@@ -1527,7 +1931,58 @@ export default function AdminBlog() {
               </Button>
             </div>
           </div>
-        )}
+          );
+        })()}
+
+        <BulkNoIndexImpactDialog
+          open={impactDialogMode !== null}
+          mode={impactDialogMode ?? "noindex"}
+          impact={computeNoIndexImpact(
+            selectedSlugs,
+            posts,
+            impactDialogMode ?? "noindex",
+          )}
+          isPending={bulkNoIndexMut.isPending}
+          onCancel={() => {
+            if (!bulkNoIndexMut.isPending) setImpactDialogMode(null);
+          }}
+          onConfirm={async () => {
+            const mode = impactDialogMode;
+            if (!mode) return;
+            // Only fire the mutation against the slugs that would actually
+            // change state — posts already in the target state are filtered
+            // out so the request stays minimal and the response count
+            // matches the impact preview the admin just confirmed.
+            const impact = computeNoIndexImpact(selectedSlugs, posts, mode);
+            const slugs = impact.impacted.map((p) => p.slug);
+            if (slugs.length === 0) {
+              setImpactDialogMode(null);
+              return;
+            }
+            const wantHidden = mode === "noindex";
+            try {
+              const result = await bulkNoIndexMut.mutateAsync({
+                data: { slugs, noIndex: wantHidden },
+              });
+              const noun =
+                result.updatedCount === 1 ? "post" : "posts";
+              toast.success(
+                wantHidden
+                  ? `No-indexed ${result.updatedCount} ${noun}`
+                  : `Removed no-index from ${result.updatedCount} ${noun}`,
+              );
+              setSelectedSlugs(new Set());
+              setImpactDialogMode(null);
+              invalidate();
+            } catch (err) {
+              toast.error(
+                err instanceof Error
+                  ? err.message
+                  : "Failed to update posts",
+              );
+            }
+          }}
+        />
 
         {isLoading ? (
           <p className="text-muted-foreground">Loading…</p>
