@@ -6,6 +6,7 @@ import {
   useUpdateBlogPost,
   useDeleteBlogPost,
   useRepingBlogPostIndexNow,
+  useBulkNoIndexBlogPosts,
   useGetSitemapHealth,
   useRunSitemapHealth,
   getListBlogPostsQueryKey,
@@ -37,6 +38,8 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -839,6 +842,13 @@ export default function AdminBlog() {
   const [form, setForm] = useState(emptyForm);
   const [autoSlug, setAutoSlug] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
+  // Slugs of posts the admin has ticked for a bulk-noindex / bulk-index
+  // operation. Stored as a Set for O(1) membership checks while rendering
+  // each row's checkbox.
+  const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const bulkNoIndexMut = useBulkNoIndexBlogPosts();
   // Whether we've already consumed the `?slug=` deep-link query param. We
   // only auto-open once per visit so re-opening the editor doesn't re-trigger
   // when the user later navigates away and back.
@@ -1394,19 +1404,169 @@ export default function AdminBlog() {
 
         <SitemapHealthPanel />
 
-        <h2 className="text-xl font-bold mb-4">Recent posts</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h2 className="text-xl font-bold">Recent posts</h2>
+          {posts && posts.length > 0 && (
+            <div className="flex items-center gap-2 text-sm">
+              <Checkbox
+                id="select-all-posts"
+                checked={
+                  selectedSlugs.size > 0 &&
+                  selectedSlugs.size === posts.length
+                    ? true
+                    : selectedSlugs.size > 0
+                      ? "indeterminate"
+                      : false
+                }
+                onCheckedChange={(v) => {
+                  if (v === true) {
+                    setSelectedSlugs(new Set(posts.map((p) => p.slug)));
+                  } else {
+                    setSelectedSlugs(new Set());
+                  }
+                }}
+                data-testid="select-all-posts"
+              />
+              <Label
+                htmlFor="select-all-posts"
+                className="cursor-pointer text-muted-foreground"
+              >
+                Select all
+              </Label>
+            </div>
+          )}
+        </div>
+
+        {selectedSlugs.size > 0 && (
+          <div
+            className="sticky top-16 z-20 mb-4 rounded-md border bg-background/95 backdrop-blur px-4 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3"
+            data-testid="bulk-actions-bar"
+          >
+            <div className="text-sm">
+              <strong>{selectedSlugs.size}</strong>{" "}
+              {selectedSlugs.size === 1 ? "post" : "posts"} selected
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedSlugs(new Set())}
+                disabled={bulkNoIndexMut.isPending}
+              >
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={bulkNoIndexMut.isPending}
+                onClick={async () => {
+                  const slugs = Array.from(selectedSlugs);
+                  try {
+                    const result = await bulkNoIndexMut.mutateAsync({
+                      data: { slugs, noIndex: false },
+                    });
+                    toast.success(
+                      `Removed no-index from ${result.updatedCount} ${
+                        result.updatedCount === 1 ? "post" : "posts"
+                      }`,
+                    );
+                    setSelectedSlugs(new Set());
+                    invalidate();
+                  } catch (err) {
+                    toast.error(
+                      err instanceof Error
+                        ? err.message
+                        : "Failed to update posts",
+                    );
+                  }
+                }}
+                data-testid="bulk-remove-noindex"
+              >
+                <Eye className="w-4 h-4 mr-1.5" /> Remove no-index
+              </Button>
+              <Button
+                size="sm"
+                disabled={bulkNoIndexMut.isPending}
+                className="bg-[#0052FF] hover:bg-[#0040cc]"
+                onClick={async () => {
+                  const slugs = Array.from(selectedSlugs);
+                  if (
+                    !window.confirm(
+                      `Hide ${slugs.length} ${
+                        slugs.length === 1 ? "post" : "posts"
+                      } from search engines?\n\nEach selected post will get <meta name="robots" content="noindex,nofollow">. The URLs stay public but search engines will drop them on the next crawl.`,
+                    )
+                  ) {
+                    return;
+                  }
+                  try {
+                    const result = await bulkNoIndexMut.mutateAsync({
+                      data: { slugs, noIndex: true },
+                    });
+                    toast.success(
+                      `No-indexed ${result.updatedCount} ${
+                        result.updatedCount === 1 ? "post" : "posts"
+                      }`,
+                    );
+                    setSelectedSlugs(new Set());
+                    invalidate();
+                  } catch (err) {
+                    toast.error(
+                      err instanceof Error
+                        ? err.message
+                        : "Failed to update posts",
+                    );
+                  }
+                }}
+                data-testid="bulk-noindex"
+              >
+                <EyeOff className="w-4 h-4 mr-1.5" />
+                {bulkNoIndexMut.isPending
+                  ? "Updating…"
+                  : "No-index selected"}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <p className="text-muted-foreground">Loading…</p>
         ) : (
           <div className="space-y-3">
             {posts?.map((p) => {
               const isEditing = editingId === p.id;
+              const isSelected = selectedSlugs.has(p.slug);
               return (
                 <Card key={p.id} id={`admin-post-${p.id}`}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4">
+                      <div className="pt-0.5">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(v) => {
+                            setSelectedSlugs((prev) => {
+                              const next = new Set(prev);
+                              if (v === true) next.add(p.slug);
+                              else next.delete(p.slug);
+                              return next;
+                            });
+                          }}
+                          aria-label={`Select ${p.title}`}
+                          data-testid={`select-post-${p.slug}`}
+                        />
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold truncate">{p.title}</div>
+                        <div className="font-semibold truncate flex items-center gap-2">
+                          {p.title}
+                          {p.noIndex && (
+                            <span
+                              title="Hidden from search engines (noindex)"
+                              className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                            >
+                              <EyeOff className="w-3 h-3" /> noindex
+                            </span>
+                          )}
+                        </div>
                         <div className="text-sm text-muted-foreground truncate">
                           {p.excerpt}
                         </div>

@@ -506,6 +506,103 @@ export const DeleteBlogPostParams = zod.object({
 });
 
 /**
+ * Sets `noIndex` on every post whose slug is in the request body in a
+single transaction. Used by the blog admin to hide a batch of older
+posts from search engines (or to un-hide them) in one click. Returns
+the updated rows so the admin UI can refresh its list without a
+round-trip. Requires an authenticated admin session.
+
+ * @summary Bulk set the no-index flag on multiple blog posts (admin)
+ */
+
+export const bulkNoIndexBlogPostsBodySlugsMax = 500;
+
+export const BulkNoIndexBlogPostsBody = zod.object({
+  slugs: zod
+    .array(zod.string().min(1))
+    .min(1)
+    .max(bulkNoIndexBlogPostsBodySlugsMax)
+    .describe("Slugs of the posts to update."),
+  noIndex: zod
+    .boolean()
+    .describe("New value for the `noIndex` flag on every targeted post."),
+});
+
+export const bulkNoIndexBlogPostsResponsePostsItemViewCountMin = 0;
+
+export const BulkNoIndexBlogPostsResponse = zod.object({
+  updatedCount: zod
+    .number()
+    .describe("Number of posts whose `noIndex` flag was changed."),
+  noIndex: zod
+    .boolean()
+    .describe("The value that was applied to every targeted post."),
+  posts: zod.array(
+    zod.object({
+      id: zod.number(),
+      slug: zod.string(),
+      title: zod.string(),
+      excerpt: zod.string(),
+      content: zod.string(),
+      author: zod.string(),
+      authorRole: zod.string(),
+      category: zod.string(),
+      tags: zod.array(zod.string()),
+      coverImage: zod.string(),
+      readingMinutes: zod.number(),
+      featured: zod.boolean(),
+      publishedAt: zod.coerce.date(),
+      updatedAt: zod.coerce
+        .date()
+        .describe(
+          'Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n',
+        ),
+      lastSeoPingAt: zod.coerce
+        .date()
+        .nullish()
+        .describe(
+          'Timestamp of the most recent successful IndexNow ping for this post (Bing\/Yandex\/Seznam\/Naver). `null` when the post has never been successfully pinged (e.g. INDEXNOW_KEY was unset or the post predates this feature). Surface in the admin posts list as an \"indexed N ago\" badge.\n',
+        ),
+      lastSeoPingStatus: zod
+        .string()
+        .nullish()
+        .describe(
+          "Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.\n",
+        ),
+      viewCount: zod
+        .number()
+        .min(bulkNoIndexBlogPostsResponsePostsItemViewCountMin)
+        .describe(
+          'Lifetime view count, incremented by the public-facing post detail page on mount via `POST \/blog\/posts\/{slug}\/view`. Used to power the \"Most read\" sort option on the blog index.\n',
+        ),
+      seoTitle: zod
+        .string()
+        .nullish()
+        .describe(
+          "Optional override for the `<title>` tag on this post's detail page. When `null` the title falls back to the post's `title` field. Used by the admin to hand-tune SERP appearance.\n",
+        ),
+      seoDescription: zod
+        .string()
+        .nullish()
+        .describe(
+          "Optional override for `<meta name=\"description\">` on this post's detail page. When `null` the description falls back to the post's `excerpt`.\n",
+        ),
+      seoOgImage: zod
+        .string()
+        .nullish()
+        .describe(
+          "Optional override for `og:image` \/ `twitter:image` on this post's detail page. When `null` the social card falls back to the post's `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n",
+        ),
+      noIndex: zod
+        .boolean()
+        .describe(
+          'When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n',
+        ),
+    }),
+  ),
+});
+
+/**
  * Triggers an immediate IndexNow + Google sitemap ping for the post
 with this slug. Used by the admin posts table to manually re-submit
 a post (e.g. after a stale "indexed N days ago" badge or after the
@@ -1001,6 +1098,39 @@ export const SubscribeToAuthorResponse = zod.object({
     .boolean()
     .describe("True when the email was already linked to this author."),
   createdAt: zod.coerce.date(),
+});
+
+/**
+ * Returns every row in the `newsletter_subscribers` table plus a
+per-day signup time series (last 90 days, zero-filled) for charting,
+and rolling 30-day / 7-day totals. Used by the master `/admin/newsletter`
+dashboard. Requires an authenticated admin session.
+
+ * @summary Master newsletter subscriber list with daily signup buckets (admin)
+ */
+export const GetNewsletterSubscribersResponse = zod.object({
+  totalCount: zod.number(),
+  last30DayCount: zod.number(),
+  last7DayCount: zod.number(),
+  latestSubscribedAt: zod.coerce.date().nullish(),
+  subscribers: zod.array(
+    zod.object({
+      id: zod.number(),
+      email: zod.string(),
+      createdAt: zod.coerce.date(),
+      source: zod.string().nullish(),
+    }),
+  ),
+  dailySignups: zod
+    .array(
+      zod.object({
+        date: zod.string().describe("ISO calendar date (UTC) — `YYYY-MM-DD`."),
+        count: zod.number(),
+      }),
+    )
+    .describe(
+      "Per-day signup buckets for the last 90 days, oldest first, zero-filled.",
+    ),
 });
 
 /**

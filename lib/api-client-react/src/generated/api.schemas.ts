@@ -397,6 +397,50 @@ export interface AuthorSubscription {
   createdAt: string;
 }
 
+export interface BulkNoIndexBlogPostsInput {
+  /**
+   * Slugs of the posts to update.
+   * @minItems 1
+   * @maxItems 500
+   */
+  slugs: string[];
+  /** New value for the `noIndex` flag on every targeted post. */
+  noIndex: boolean;
+}
+
+export interface BulkNoIndexBlogPostsResult {
+  /** Number of posts whose `noIndex` flag was changed. */
+  updatedCount: number;
+  /** The value that was applied to every targeted post. */
+  noIndex: boolean;
+  posts: BlogPost[];
+}
+
+export interface NewsletterSubscriberRow {
+  id: number;
+  email: string;
+  createdAt: string;
+  /** @nullable */
+  source?: string | null;
+}
+
+export interface NewsletterDailyBucket {
+  /** ISO calendar date (UTC) — `YYYY-MM-DD`. */
+  date: string;
+  count: number;
+}
+
+export interface NewsletterSubscribersDetail {
+  totalCount: number;
+  last30DayCount: number;
+  last7DayCount: number;
+  /** @nullable */
+  latestSubscribedAt?: string | null;
+  subscribers: NewsletterSubscriberRow[];
+  /** Per-day signup buckets for the last 90 days, oldest first, zero-filled. */
+  dailySignups: NewsletterDailyBucket[];
+}
+
 export interface AuthorSubscriberSummary {
   authorSlug: string;
   authorName: string;

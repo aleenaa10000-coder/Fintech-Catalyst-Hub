@@ -1,0 +1,391 @@
+import { useMemo } from "react";
+import { useAuth } from "@workspace/replit-auth-web";
+import {
+  useGetNewsletterSubscribers,
+  getGetNewsletterSubscribersQueryKey,
+} from "@workspace/api-client-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Lock,
+  LogOut,
+  Download,
+  Mail,
+  TrendingUp,
+  Calendar,
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
+import { PageMeta } from "@/components/PageMeta";
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function ChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length || !label) return null;
+  return (
+    <div className="rounded-md border bg-popover px-3 py-2 text-xs shadow-md">
+      <div className="font-medium">
+        {new Date(label).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })}
+      </div>
+      <div className="text-[#0052FF]">
+        {payload[0].value} new {payload[0].value === 1 ? "signup" : "signups"}
+      </div>
+    </div>
+  );
+}
+
+export default function AdminNewsletter() {
+  const {
+    user,
+    isLoading: authLoading,
+    isAuthenticated,
+    login,
+    logout,
+  } = useAuth();
+  const isAdmin = Boolean(user?.isAdmin);
+
+  const detailQuery = useGetNewsletterSubscribers({
+    query: {
+      queryKey: getGetNewsletterSubscribersQueryKey(),
+      enabled: isAuthenticated && isAdmin,
+    },
+  });
+
+  const chartData = useMemo(
+    () =>
+      (detailQuery.data?.dailySignups ?? []).map((d) => ({
+        date: d.date,
+        count: d.count,
+      })),
+    [detailQuery.data],
+  );
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-[#0052FF]/10 flex items-center justify-center mb-4">
+              <Lock className="w-6 h-6 text-[#0052FF]" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Admin sign in required</h1>
+            <p className="text-muted-foreground mb-6">
+              You need to sign in to view this dashboard.
+            </p>
+            <Button
+              size="lg"
+              onClick={login}
+              className="bg-[#0052FF] hover:bg-[#0040cc]"
+            >
+              Log in with Replit
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <Lock className="w-6 h-6 text-destructive" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Not authorized</h1>
+            <p className="text-muted-foreground mb-6">
+              You're signed in as{" "}
+              <strong className="text-foreground">
+                {user?.email ?? user?.firstName ?? "this account"}
+              </strong>
+              , but this account is not on the admin allowlist.
+            </p>
+            <Button variant="outline" size="sm" onClick={logout}>
+              <LogOut className="w-4 h-4 mr-1.5" /> Log out
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (detailQuery.isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading subscribers…</p>
+      </div>
+    );
+  }
+
+  if (detailQuery.isError || !detailQuery.data) {
+    return (
+      <div className="min-h-screen bg-background py-16">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <Card className="border-destructive/50">
+            <CardContent className="pt-8 pb-8 text-center">
+              <h1 className="text-2xl font-bold mb-2">Couldn't load subscribers</h1>
+              <p className="text-muted-foreground">
+                Something went wrong fetching the subscriber list. Try
+                refreshing the page.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const detail = detailQuery.data;
+  const csvUrl = `/api/admin/newsletter/subscribers.csv`;
+
+  return (
+    <div className="min-h-screen bg-background py-16">
+      <PageMeta page="adminNewsletter" />
+      <div className="container mx-auto px-4 max-w-5xl">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <div>
+            <div className="text-xs uppercase tracking-wider text-[#0052FF] font-semibold mb-1">
+              Subscriber dashboard
+            </div>
+            <h1 className="text-3xl font-bold">Newsletter subscribers</h1>
+            <p className="text-sm text-muted-foreground">
+              Master list across every signup source — homepage form, blog
+              footer, financial health calculator, author opt-ins.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <a href={csvUrl} download data-testid="export-csv">
+              <Button
+                size="sm"
+                className="bg-[#0052FF] hover:bg-[#0040cc]"
+                disabled={detail.subscribers.length === 0}
+              >
+                <Download className="w-4 h-4 mr-1.5" /> Export CSV
+              </Button>
+            </a>
+            <Button variant="outline" size="sm" onClick={logout}>
+              <LogOut className="w-4 h-4 mr-1.5" /> Log out
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <Card>
+            <CardContent className="pt-6 pb-6">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                <Mail className="w-3 h-3" /> Total subscribers
+              </div>
+              <div
+                className="text-3xl font-bold tabular-nums"
+                data-testid="stat-total"
+              >
+                {detail.totalCount.toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 pb-6">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" /> Last 30 days
+              </div>
+              <div
+                className="text-3xl font-bold tabular-nums"
+                data-testid="stat-30d"
+              >
+                {detail.last30DayCount.toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 pb-6">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                <Calendar className="w-3 h-3" /> Last 7 days
+              </div>
+              <div
+                className="text-3xl font-bold tabular-nums"
+                data-testid="stat-7d"
+              >
+                {detail.last7DayCount.toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="mb-8">
+          <CardContent className="pt-6 pb-6">
+            <div className="flex items-baseline justify-between mb-4">
+              <h2 className="font-semibold">Signups over time</h2>
+              <span className="text-xs text-muted-foreground">
+                Last 90 days
+              </span>
+            </div>
+            {detail.subscribers.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+                No signups yet.
+              </div>
+            ) : (
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={chartData}
+                    margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="newsletterSignupGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#0052FF"
+                          stopOpacity={0.4}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#0052FF"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="hsl(var(--border))"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(v) =>
+                        new Date(v).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        })
+                      }
+                      minTickGap={32}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11 }}
+                      width={32}
+                    />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#0052FF"
+                      strokeWidth={2}
+                      fill="url(#newsletterSignupGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6 pb-6">
+            <div className="flex items-baseline justify-between mb-4">
+              <h2 className="font-semibold">Subscribers</h2>
+              <span className="text-xs text-muted-foreground">
+                {detail.subscribers.length}{" "}
+                {detail.subscribers.length === 1 ? "person" : "people"}
+              </span>
+            </div>
+            {detail.subscribers.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-8 text-center">
+                No subscribers yet.
+              </div>
+            ) : (
+              <div className="overflow-x-auto -mx-6 px-6">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="py-2 pr-4 font-medium">Email</th>
+                      <th className="py-2 pr-4 font-medium">Subscribed</th>
+                      <th className="py-2 pr-4 font-medium">Source</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.subscribers.map((s) => (
+                      <tr
+                        key={s.id}
+                        className="border-b last:border-b-0"
+                        data-testid={`subscriber-row-${s.id}`}
+                      >
+                        <td className="py-2.5 pr-4 font-mono text-xs">
+                          {s.email}
+                        </td>
+                        <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap">
+                          <span title={formatDateTime(s.createdAt)}>
+                            {formatDate(s.createdAt)}
+                          </span>
+                        </td>
+                        <td className="py-2.5 pr-4 text-muted-foreground">
+                          {s.source ? (
+                            <code className="px-1.5 py-0.5 rounded bg-muted text-[11px]">
+                              {s.source}
+                            </code>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

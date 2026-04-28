@@ -27,6 +27,8 @@ import type {
   BlogCategory,
   BlogPost,
   BlogPostViewCount,
+  BulkNoIndexBlogPostsInput,
+  BulkNoIndexBlogPostsResult,
   CommissioningTopic,
   CommissioningTopicInput,
   ContactSubmission,
@@ -42,6 +44,7 @@ import type {
   LogoutSuccess,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
+  NewsletterSubscribersDetail,
   NewsletterSubscription,
   NewsletterSubscriptionInput,
   PricingPlan,
@@ -1287,6 +1290,99 @@ export const useDeleteBlogPost = <
 };
 
 /**
+ * Sets `noIndex` on every post whose slug is in the request body in a
+single transaction. Used by the blog admin to hide a batch of older
+posts from search engines (or to un-hide them) in one click. Returns
+the updated rows so the admin UI can refresh its list without a
+round-trip. Requires an authenticated admin session.
+
+ * @summary Bulk set the no-index flag on multiple blog posts (admin)
+ */
+export const getBulkNoIndexBlogPostsUrl = () => {
+  return `/api/admin/blog/posts/bulk-noindex`;
+};
+
+export const bulkNoIndexBlogPosts = async (
+  bulkNoIndexBlogPostsInput: BulkNoIndexBlogPostsInput,
+  options?: RequestInit,
+): Promise<BulkNoIndexBlogPostsResult> => {
+  return customFetch<BulkNoIndexBlogPostsResult>(getBulkNoIndexBlogPostsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkNoIndexBlogPostsInput),
+  });
+};
+
+export const getBulkNoIndexBlogPostsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bulkNoIndexBlogPosts>>,
+    TError,
+    { data: BodyType<BulkNoIndexBlogPostsInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof bulkNoIndexBlogPosts>>,
+  TError,
+  { data: BodyType<BulkNoIndexBlogPostsInput> },
+  TContext
+> => {
+  const mutationKey = ["bulkNoIndexBlogPosts"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof bulkNoIndexBlogPosts>>,
+    { data: BodyType<BulkNoIndexBlogPostsInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return bulkNoIndexBlogPosts(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BulkNoIndexBlogPostsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof bulkNoIndexBlogPosts>>
+>;
+export type BulkNoIndexBlogPostsMutationBody =
+  BodyType<BulkNoIndexBlogPostsInput>;
+export type BulkNoIndexBlogPostsMutationError = ErrorType<void>;
+
+/**
+ * @summary Bulk set the no-index flag on multiple blog posts (admin)
+ */
+export const useBulkNoIndexBlogPosts = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bulkNoIndexBlogPosts>>,
+    TError,
+    { data: BodyType<BulkNoIndexBlogPostsInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof bulkNoIndexBlogPosts>>,
+  TError,
+  { data: BodyType<BulkNoIndexBlogPostsInput> },
+  TContext
+> => {
+  return useMutation(getBulkNoIndexBlogPostsMutationOptions(options));
+};
+
+/**
  * Triggers an immediate IndexNow + Google sitemap ping for the post
 with this slug. Used by the admin posts table to manually re-submit
 a post (e.g. after a stale "indexed N days ago" badge or after the
@@ -2370,6 +2466,90 @@ export const useSubscribeToAuthor = <
 > => {
   return useMutation(getSubscribeToAuthorMutationOptions(options));
 };
+
+/**
+ * Returns every row in the `newsletter_subscribers` table plus a
+per-day signup time series (last 90 days, zero-filled) for charting,
+and rolling 30-day / 7-day totals. Used by the master `/admin/newsletter`
+dashboard. Requires an authenticated admin session.
+
+ * @summary Master newsletter subscriber list with daily signup buckets (admin)
+ */
+export const getGetNewsletterSubscribersUrl = () => {
+  return `/api/admin/newsletter/subscribers`;
+};
+
+export const getNewsletterSubscribers = async (
+  options?: RequestInit,
+): Promise<NewsletterSubscribersDetail> => {
+  return customFetch<NewsletterSubscribersDetail>(
+    getGetNewsletterSubscribersUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetNewsletterSubscribersQueryKey = () => {
+  return [`/api/admin/newsletter/subscribers`] as const;
+};
+
+export const getGetNewsletterSubscribersQueryOptions = <
+  TData = Awaited<ReturnType<typeof getNewsletterSubscribers>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNewsletterSubscribers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetNewsletterSubscribersQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getNewsletterSubscribers>>
+  > = ({ signal }) => getNewsletterSubscribers({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getNewsletterSubscribers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetNewsletterSubscribersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNewsletterSubscribers>>
+>;
+export type GetNewsletterSubscribersQueryError = ErrorType<void>;
+
+/**
+ * @summary Master newsletter subscriber list with daily signup buckets (admin)
+ */
+
+export function useGetNewsletterSubscribers<
+  TData = Awaited<ReturnType<typeof getNewsletterSubscribers>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNewsletterSubscribers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetNewsletterSubscribersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Returns one row per author from the canonical author registry with the

@@ -30,6 +30,7 @@ import AdminBlog from "@/pages/admin-blog";
 import AdminAuthorsSubscribers from "@/pages/admin-authors-subscribers";
 import AdminAuthorSubscribers from "@/pages/admin-author-subscribers";
 import AdminCommissioningTopics from "@/pages/admin-commissioning-topics";
+import AdminNewsletter from "@/pages/admin-newsletter";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -91,6 +92,7 @@ function Router() {
             path="/admin/commissioning-topics"
             component={AdminCommissioningTopics}
           />
+          <Route path="/admin/newsletter" component={AdminNewsletter} />
           <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
         </Switch>

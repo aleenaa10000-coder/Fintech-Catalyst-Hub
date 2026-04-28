@@ -120,6 +120,11 @@ export const PAGE_META = {
     title: "Admin · Commissioning Topics | FintechPressHub",
     description: "Curate the topics shown on the Write For Us page.",
   },
+  adminNewsletter: {
+    title: "Admin · Newsletter | FintechPressHub",
+    description:
+      "Master list of newsletter subscribers with daily signups and CSV export.",
+  },
   notFound: {
     title: "Page Not Found | FintechPressHub",
     description: "The page you are looking for could not be found.",

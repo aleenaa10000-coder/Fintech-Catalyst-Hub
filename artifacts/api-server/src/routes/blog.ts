@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
 import { db, blogPostsTable } from "@workspace/db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, inArray } from "drizzle-orm";
 import { ListBlogPostsQueryParams, GetBlogPostParams } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { isAdminEmail } from "../lib/auth";
@@ -90,6 +90,11 @@ const PublishBlogPostBody = z.object({
   seoDescription: seoDescriptionField,
   seoOgImage: seoOgImageField,
   noIndex: z.boolean().optional(),
+});
+
+const BulkNoIndexBody = z.object({
+  slugs: z.array(z.string().min(1)).min(1).max(500),
+  noIndex: z.boolean(),
 });
 
 const UpdateBlogPostBody = z
@@ -413,6 +418,42 @@ router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     next(err);
   }
 });
+
+/**
+ * Bulk-set the `noIndex` flag on a batch of posts in a single transaction.
+ * Used by the admin blog dashboard to hide a wad of older posts from search
+ * engines (or to un-hide them) in one click. Pure DB write — does NOT
+ * trigger an IndexNow ping (the goal is the opposite: tell crawlers these
+ * URLs are no longer index targets via the meta robots tag on next crawl).
+ */
+router.post(
+  "/admin/blog/posts/bulk-noindex",
+  requireAdmin,
+  async (req, res, next) => {
+    try {
+      const body = BulkNoIndexBody.parse(req.body);
+      const uniqueSlugs = Array.from(new Set(body.slugs));
+
+      const updated = await db
+        .update(blogPostsTable)
+        .set({ noIndex: body.noIndex })
+        .where(inArray(blogPostsTable.slug, uniqueSlugs))
+        .returning();
+
+      res.json({
+        updatedCount: updated.length,
+        noIndex: body.noIndex,
+        posts: updated.map(serialize),
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid body", issues: err.issues });
+        return;
+      }
+      next(err);
+    }
+  },
+);
 
 /**
  * Manually re-ping IndexNow + Google for a single existing post. Pinned
