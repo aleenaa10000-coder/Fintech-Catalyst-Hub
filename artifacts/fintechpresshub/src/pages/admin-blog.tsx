@@ -10,6 +10,7 @@ import {
   useGetSitemapHealth,
   useRunSitemapHealth,
   useCheckSingleSitemapUrl,
+  checkSingleSitemapUrl,
   getListBlogPostsQueryKey,
   getGetSitemapHealthQueryKey,
   type BlogPost,
@@ -385,6 +386,225 @@ function ProbeUrlButton({ post }: { post: BlogPost }) {
         )}
       </Button>
     </div>
+  );
+}
+
+/** Concurrency cap for the bulk probe: enough to be fast, low enough
+ *  not to stampede the link-checker route (HEAD then GET fallback) or
+ *  whatever upstream CDN is in front of the live site. */
+const BULK_PROBE_CONCURRENCY = 6;
+
+interface BulkProbeRowResult {
+  post: BlogPost;
+  /** Null when the request itself rejected (network/auth/server 500). */
+  result: CheckSingleUrlResult | null;
+}
+
+interface BulkProbeSummary {
+  okCount: number;
+  brokenCount: number;
+  total: number;
+  broken: BulkProbeRowResult[];
+  ranAt: string;
+}
+
+/**
+ * "Probe all live URLs" — fires the single-URL spot-check against every
+ * currently-rendered post in parallel (capped concurrency) and shows a
+ * summary strip with clickable chips for any URL that came back broken.
+ * Like the per-row button and the panel input, this does NOT touch the
+ * persisted sitemap report — purely an on-demand sweep so an admin can
+ * confirm a recent deploy didn't 404 the post list before walking off.
+ */
+function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
+  const [progress, setProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  const [summary, setSummary] = useState<BulkProbeSummary | null>(null);
+
+  const runAll = async () => {
+    if (posts.length === 0 || progress !== null) return;
+    if (typeof window === "undefined") return;
+    const origin = window.location.origin;
+    setSummary(null);
+    setProgress({ done: 0, total: posts.length });
+
+    const queue = posts.slice();
+    const results: BulkProbeRowResult[] = [];
+    let cursor = 0;
+
+    /**
+     * Worker pulls the next index off the shared cursor and probes it.
+     * Several workers run in parallel so total wall-clock time scales
+     * with the slowest URLs, not the post count. We swallow per-URL
+     * exceptions and record `result: null` so one flaky probe doesn't
+     * abort the entire sweep.
+     */
+    const worker = async () => {
+      while (true) {
+        const idx = cursor++;
+        if (idx >= queue.length) return;
+        const post = queue[idx];
+        let probed: CheckSingleUrlResult | null = null;
+        try {
+          probed = await checkSingleSitemapUrl({
+            url: `${origin}/blog/${post.slug}`,
+          });
+        } catch {
+          probed = null;
+        }
+        results.push({ post, result: probed });
+        setProgress({ done: results.length, total: queue.length });
+      }
+    };
+
+    const workerCount = Math.min(BULK_PROBE_CONCURRENCY, queue.length);
+    await Promise.all(Array.from({ length: workerCount }, worker));
+
+    const broken = results.filter(
+      (r) => r.result === null || r.result.isBroken,
+    );
+    // Preserve original list order for the broken chips so admins can
+    // scan top-to-bottom and the chips line up with the row order.
+    const orderIndex = new Map(posts.map((p, i) => [p.slug, i]));
+    broken.sort(
+      (a, b) =>
+        (orderIndex.get(a.post.slug) ?? 0) -
+        (orderIndex.get(b.post.slug) ?? 0),
+    );
+
+    const okCount = results.length - broken.length;
+    setSummary({
+      okCount,
+      brokenCount: broken.length,
+      total: results.length,
+      broken,
+      ranAt: new Date().toISOString(),
+    });
+    setProgress(null);
+
+    if (broken.length === 0) {
+      toast.success(`Probed ${okCount} URL${okCount === 1 ? "" : "s"} — all OK`);
+    } else {
+      const sample = broken
+        .slice(0, 3)
+        .map((b) => b.post.slug)
+        .join(", ");
+      const more =
+        broken.length > 3 ? ` and ${broken.length - 3} more` : "";
+      toast.warning(
+        `${okCount}/${results.length} OK · ${broken.length} broken`,
+        { description: `${sample}${more}` },
+      );
+    }
+  };
+
+  if (posts.length === 0) return null;
+
+  /**
+   * The summary is rendered as a sibling with `basis-full`, which makes
+   * it consume an entire flex row inside the parent `flex-wrap`
+   * container — i.e. it tucks itself underneath the header without
+   * having to lift state up out of this component.
+   */
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={runAll}
+        disabled={progress !== null}
+        data-testid="bulk-probe-button"
+        title="Run the link-checker probe against every post in this list"
+      >
+        <Activity
+          className={`w-4 h-4 mr-1.5 ${progress ? "animate-pulse" : ""}`}
+        />
+        {progress
+          ? `Probing ${progress.done}/${progress.total}…`
+          : `Probe all (${posts.length})`}
+      </Button>
+      {summary && (
+        <div
+          className="basis-full rounded-md border bg-muted/20 px-3 py-2 text-xs space-y-1.5"
+          data-testid="bulk-probe-summary"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            {summary.brokenCount === 0 ? (
+              <CheckCircle2 className="w-4 h-4 text-green-700 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            )}
+            <span>
+              <strong className="tabular-nums">{summary.okCount}</strong>/
+              <span className="tabular-nums">{summary.total}</span> OK
+              {summary.brokenCount > 0 && (
+                <>
+                  {" · "}
+                  <strong
+                    className="tabular-nums text-amber-800"
+                    data-testid="bulk-probe-broken-count"
+                  >
+                    {summary.brokenCount}
+                  </strong>{" "}
+                  broken
+                </>
+              )}
+            </span>
+            <span className="ml-auto text-[11px] text-muted-foreground">
+              {formatRelativeTime(summary.ranAt)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSummary(null)}
+              className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+              data-testid="bulk-probe-summary-dismiss"
+            >
+              Dismiss
+            </button>
+          </div>
+          {summary.broken.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {summary.broken.map(({ post, result }) => {
+                const code = result?.statusCode ?? "ERR";
+                const tooltip = result?.error
+                  ? `${result.error}`
+                  : result
+                    ? `Status ${result.statusCode ?? "—"}`
+                    : "Request failed";
+                return (
+                  <a
+                    key={post.slug}
+                    href={`#admin-post-${post.id}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const el = document.getElementById(
+                        `admin-post-${post.id}`,
+                      );
+                      if (el) {
+                        el.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                      }
+                    }}
+                    title={`${tooltip} — click to scroll to this post`}
+                    className="inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-amber-900 hover:bg-amber-100"
+                    data-testid={`bulk-probe-broken-chip-${post.slug}`}
+                  >
+                    <span className="font-mono text-[10px]">{code}</span>
+                    <span className="truncate max-w-[16rem]">
+                      {post.slug}
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -2404,6 +2624,9 @@ export default function AdminBlog() {
 
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h2 className="text-xl font-bold">Recent posts</h2>
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <BulkProbeButton posts={posts ?? []} />
+          </div>
           {posts && posts.length > 0 && (
             <div className="flex items-center gap-2 text-sm">
               <Checkbox
