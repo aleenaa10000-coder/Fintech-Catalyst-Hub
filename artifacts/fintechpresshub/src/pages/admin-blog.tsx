@@ -898,6 +898,9 @@ function SitemapHealthBody({ report }: { report: SitemapHealthReport }) {
  * path. When the input is a bare path ("/blog/foo"), we resolve it
  * against the target before sending — same shape the daily job uses.
  */
+/** Maximum URLs the in-session probe history keeps. */
+const PROBE_HISTORY_LIMIT = 5;
+
 function SingleUrlProbe({ defaultBase }: { defaultBase: string | null }) {
   const baseOrigin = (() => {
     if (!defaultBase) return "";
@@ -909,6 +912,7 @@ function SingleUrlProbe({ defaultBase }: { defaultBase: string | null }) {
   })();
   const [value, setValue] = useState(baseOrigin ? `${baseOrigin}/` : "");
   const [result, setResult] = useState<CheckSingleUrlResult | null>(null);
+  const [history, setHistory] = useState<CheckSingleUrlResult[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
   const mut = useCheckSingleSitemapUrl();
 
@@ -933,6 +937,27 @@ function SingleUrlProbe({ defaultBase }: { defaultBase: string | null }) {
     }
   };
 
+  /**
+   * Probe a fully-resolved URL and update both the main result strip
+   * and the in-session history. Dedupes by URL — re-checking a URL
+   * already in history bumps it to the top with the fresh status
+   * instead of producing a duplicate row, so the list stays tight.
+   */
+  const probe = async (url: string) => {
+    setValidationError(null);
+    try {
+      const probed = await mut.mutateAsync({ data: { url } });
+      setResult(probed);
+      setHistory((prev) => {
+        const filtered = prev.filter((h) => h.url !== probed.url);
+        return [probed, ...filtered].slice(0, PROBE_HISTORY_LIMIT);
+      });
+    } catch {
+      setResult(null);
+      toast.error("Probe failed — server returned an error.");
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const url = resolveUrl(value);
@@ -943,14 +968,12 @@ function SingleUrlProbe({ defaultBase }: { defaultBase: string | null }) {
       setResult(null);
       return;
     }
-    setValidationError(null);
-    try {
-      const probed = await mut.mutateAsync({ data: { url } });
-      setResult(probed);
-    } catch {
-      setResult(null);
-      toast.error("Probe failed — server returned an error.");
-    }
+    await probe(url);
+  };
+
+  const recheck = async (url: string) => {
+    setValue(url);
+    await probe(url);
   };
 
   const tone: "good" | "bad" | null = result
@@ -1030,6 +1053,69 @@ function SingleUrlProbe({ defaultBase }: { defaultBase: string | null }) {
           <span className="ml-auto text-[11px] opacity-75 whitespace-nowrap">
             {formatRelativeTime(result.checkedAt as unknown as string)}
           </span>
+        </div>
+      )}
+      {history.length > 0 && (
+        <div
+          className="space-y-1 pt-1"
+          data-testid="sitemap-health-probe-history"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Recent checks ({history.length})
+            </h4>
+            <button
+              type="button"
+              onClick={() => setHistory([])}
+              className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+              data-testid="sitemap-health-probe-history-clear"
+            >
+              Clear
+            </button>
+          </div>
+          <ul className="border rounded-md divide-y bg-background">
+            {history.map((h) => (
+              <li
+                key={h.url}
+                className="px-2.5 py-1.5 text-xs grid grid-cols-[auto_1fr_auto_auto] gap-2 items-center"
+                data-testid="sitemap-health-probe-history-row"
+              >
+                <span
+                  className={`font-mono px-1.5 py-0.5 rounded text-[11px] ${
+                    h.isBroken
+                      ? "bg-amber-50 text-amber-800 border border-amber-200"
+                      : "bg-green-50 text-green-700 border border-green-200"
+                  }`}
+                  title={h.error ?? undefined}
+                >
+                  {h.statusCode ?? "ERR"}
+                </span>
+                <a
+                  href={h.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="truncate text-[#0052FF] hover:underline"
+                  title={h.url}
+                >
+                  {h.url}
+                </a>
+                <span className="text-muted-foreground whitespace-nowrap">
+                  {formatRelativeTime(h.checkedAt as unknown as string)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => recheck(h.url)}
+                  disabled={mut.isPending}
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50"
+                  data-testid="sitemap-health-probe-history-recheck"
+                  title="Re-probe this URL"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Re-check
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
