@@ -275,6 +275,36 @@ export interface LinkCheckResult {
 }
 
 /**
+ * Body for `POST /admin/sitemap-health/check-url`.
+ */
+export interface CheckSingleUrlBody {
+  /** Absolute http(s) URL to probe. */
+  url: string;
+}
+
+/**
+ * Result of an on-demand single-URL probe. Mirrors the shape of an
+individual entry in the sitemap report but is *not* persisted.
+
+ */
+export interface CheckSingleUrlResult {
+  url: string;
+  /** HTTP status code of the response (after following redirects),
+or null if the request failed before producing one (network
+error, timeout, DNS failure, etc.).
+ */
+  statusCode: number | null;
+  /** Error message when `statusCode` is null. */
+  error: string | null;
+  /** True when the probe failed (no status code) or the status is
+outside the 2xx/3xx range.
+ */
+  isBroken: boolean;
+  /** Server-side timestamp of when the probe completed. */
+  checkedAt: string;
+}
+
+/**
  * Aggregate response from `GET /admin/sitemap-health` and
 `POST /admin/sitemap-health/run`. `generatedAt` is the time the
 underlying check ran (or the most recent `lastCheckedAt` for the

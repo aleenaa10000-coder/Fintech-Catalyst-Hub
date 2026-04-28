@@ -22,6 +22,8 @@ export * from "./blogPost";
 export * from "./blogPostViewCount";
 export * from "./bulkNoIndexBlogPostsInput";
 export * from "./bulkNoIndexBlogPostsResult";
+export * from "./checkSingleUrlBody";
+export * from "./checkSingleUrlResult";
 export * from "./commissioningTopic";
 export * from "./commissioningTopicInput";
 export * from "./contactSubmission";

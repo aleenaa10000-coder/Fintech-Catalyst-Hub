@@ -902,6 +902,47 @@ export const RunSitemapHealthResponse = zod
   );
 
 /**
+ * Runs the same HEAD-then-fallback-GET probe used by the daily job
+against a single URL and returns its current status. Does NOT
+persist the result or affect the sitemap report — purely a
+diagnostic so an admin can verify a URL on demand without
+re-walking the entire sitemap.
+
+ * @summary Spot-check a single URL (admin)
+ */
+export const CheckSingleSitemapUrlBody = zod
+  .object({
+    url: zod.string().url().describe("Absolute http(s) URL to probe."),
+  })
+  .describe("Body for `POST \/admin\/sitemap-health\/check-url`.");
+
+export const CheckSingleSitemapUrlResponse = zod
+  .object({
+    url: zod.string(),
+    statusCode: zod
+      .number()
+      .nullable()
+      .describe(
+        "HTTP status code of the response (after following redirects),\nor null if the request failed before producing one (network\nerror, timeout, DNS failure, etc.).\n",
+      ),
+    error: zod
+      .string()
+      .nullable()
+      .describe("Error message when `statusCode` is null."),
+    isBroken: zod
+      .boolean()
+      .describe(
+        "True when the probe failed (no status code) or the status is\noutside the 2xx\/3xx range.\n",
+      ),
+    checkedAt: zod.coerce
+      .date()
+      .describe("Server-side timestamp of when the probe completed."),
+  })
+  .describe(
+    "Result of an on-demand single-URL probe. Mirrors the shape of an\nindividual entry in the sitemap report but is \*not\* persisted.\n",
+  );
+
+/**
  * Atomically bumps `view_count` by 1 for the post with this slug and
 returns the new total. Pinged from the public-facing post detail
 page on mount. Unauthenticated by design — anyone visiting a post

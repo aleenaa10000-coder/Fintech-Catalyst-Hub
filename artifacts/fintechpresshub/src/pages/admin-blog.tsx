@@ -9,11 +9,13 @@ import {
   useBulkNoIndexBlogPosts,
   useGetSitemapHealth,
   useRunSitemapHealth,
+  useCheckSingleSitemapUrl,
   getListBlogPostsQueryKey,
   getGetSitemapHealthQueryKey,
   type BlogPost,
   type SeoNotification,
   type SitemapHealthReport,
+  type CheckSingleUrlResult,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -831,6 +833,7 @@ function SitemapHealthBody({ report }: { report: SitemapHealthReport }) {
           </div>
         </div>
       )}
+      <SingleUrlProbe defaultBase={target ?? null} />
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
         <Stat label="Last run" value={lastRun} />
         <Stat label="URLs checked" value={String(report.total)} />
@@ -878,6 +881,155 @@ function SitemapHealthBody({ report }: { report: SitemapHealthReport }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * On-demand single-URL spot-check. Lets an admin verify one URL without
+ * re-walking the whole sitemap (which is expensive on big content sets
+ * and writes to the persistent report). The result is purely local —
+ * the dashboard report is untouched.
+ *
+ * `defaultBase` is the configured target site URL; when present it pre-
+ * fills the input with the origin so the admin only has to type the
+ * path. When the input is a bare path ("/blog/foo"), we resolve it
+ * against the target before sending — same shape the daily job uses.
+ */
+function SingleUrlProbe({ defaultBase }: { defaultBase: string | null }) {
+  const baseOrigin = (() => {
+    if (!defaultBase) return "";
+    try {
+      return new URL(defaultBase).origin;
+    } catch {
+      return "";
+    }
+  })();
+  const [value, setValue] = useState(baseOrigin ? `${baseOrigin}/` : "");
+  const [result, setResult] = useState<CheckSingleUrlResult | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const mut = useCheckSingleSitemapUrl();
+
+  const resolveUrl = (raw: string): string | null => {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    // Bare path — resolve against the configured target so admins can
+    // type "/blog/foo" instead of repeating the origin every time.
+    if (trimmed.startsWith("/") && baseOrigin) {
+      try {
+        return new URL(trimmed, baseOrigin).toString();
+      } catch {
+        return null;
+      }
+    }
+    try {
+      const u = new URL(trimmed);
+      if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+      return u.toString();
+    } catch {
+      return null;
+    }
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const url = resolveUrl(value);
+    if (!url) {
+      setValidationError(
+        "Enter an absolute http(s) URL, or a path like /blog/foo when a target is configured.",
+      );
+      setResult(null);
+      return;
+    }
+    setValidationError(null);
+    try {
+      const probed = await mut.mutateAsync({ data: { url } });
+      setResult(probed);
+    } catch {
+      setResult(null);
+      toast.error("Probe failed — server returned an error.");
+    }
+  };
+
+  const tone: "good" | "bad" | null = result
+    ? result.isBroken
+      ? "bad"
+      : "good"
+    : null;
+
+  return (
+    <div
+      className="rounded-md border bg-muted/20 p-3 space-y-2"
+      data-testid="sitemap-health-single-probe"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Check a single URL</h3>
+        <span className="text-[11px] text-muted-foreground">
+          Doesn't update the report
+        </span>
+      </div>
+      <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2">
+        <Input
+          type="text"
+          inputMode="url"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={
+            baseOrigin
+              ? `${baseOrigin}/blog/your-slug`
+              : "https://example.com/page"
+          }
+          className="font-mono text-xs"
+          data-testid="sitemap-health-probe-input"
+          disabled={mut.isPending}
+        />
+        <Button
+          type="submit"
+          size="sm"
+          variant="outline"
+          disabled={mut.isPending || value.trim().length === 0}
+          data-testid="sitemap-health-probe-submit"
+        >
+          <RefreshCw
+            className={`w-4 h-4 mr-1.5 ${mut.isPending ? "animate-spin" : ""}`}
+          />
+          {mut.isPending ? "Probing…" : "Check URL"}
+        </Button>
+      </form>
+      {validationError && (
+        <p className="text-xs text-destructive">{validationError}</p>
+      )}
+      {result && (
+        <div
+          className={`flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-xs ${
+            tone === "bad"
+              ? "border-amber-200 bg-amber-50 text-amber-900"
+              : "border-green-200 bg-green-50 text-green-800"
+          }`}
+          data-testid="sitemap-health-probe-result"
+        >
+          {tone === "bad" ? (
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+          )}
+          <span className="font-mono">
+            {result.statusCode ?? result.error ?? "—"}
+          </span>
+          <a
+            href={result.url}
+            target="_blank"
+            rel="noreferrer"
+            className="truncate hover:underline"
+            title={result.url}
+          >
+            {result.url}
+          </a>
+          <span className="ml-auto text-[11px] opacity-75 whitespace-nowrap">
+            {formatRelativeTime(result.checkedAt as unknown as string)}
+          </span>
         </div>
       )}
     </div>

@@ -125,6 +125,15 @@ async function fetchOnce(
   }
 }
 
+/**
+ * Public helper for the on-demand single-URL spot-check endpoint.
+ * Wraps the internal `checkUrl` so the dashboard can verify one URL
+ * without re-walking the entire sitemap.
+ */
+export async function checkSingleUrl(url: string): Promise<CheckedUrl> {
+  return checkUrl({ loc: url, source: "manual" });
+}
+
 async function checkUrl(
   entry: SitemapEntry | { loc: string; source: "manual" },
 ): Promise<CheckedUrl> {

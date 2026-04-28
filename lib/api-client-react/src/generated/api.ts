@@ -29,6 +29,8 @@ import type {
   BlogPostViewCount,
   BulkNoIndexBlogPostsInput,
   BulkNoIndexBlogPostsResult,
+  CheckSingleUrlBody,
+  CheckSingleUrlResult,
   CommissioningTopic,
   CommissioningTopicInput,
   ContactSubmission,
@@ -1639,6 +1641,98 @@ export const useRunSitemapHealth = <
   TContext
 > => {
   return useMutation(getRunSitemapHealthMutationOptions(options));
+};
+
+/**
+ * Runs the same HEAD-then-fallback-GET probe used by the daily job
+against a single URL and returns its current status. Does NOT
+persist the result or affect the sitemap report — purely a
+diagnostic so an admin can verify a URL on demand without
+re-walking the entire sitemap.
+
+ * @summary Spot-check a single URL (admin)
+ */
+export const getCheckSingleSitemapUrlUrl = () => {
+  return `/api/admin/sitemap-health/check-url`;
+};
+
+export const checkSingleSitemapUrl = async (
+  checkSingleUrlBody: CheckSingleUrlBody,
+  options?: RequestInit,
+): Promise<CheckSingleUrlResult> => {
+  return customFetch<CheckSingleUrlResult>(getCheckSingleSitemapUrlUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(checkSingleUrlBody),
+  });
+};
+
+export const getCheckSingleSitemapUrlMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof checkSingleSitemapUrl>>,
+    TError,
+    { data: BodyType<CheckSingleUrlBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof checkSingleSitemapUrl>>,
+  TError,
+  { data: BodyType<CheckSingleUrlBody> },
+  TContext
+> => {
+  const mutationKey = ["checkSingleSitemapUrl"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof checkSingleSitemapUrl>>,
+    { data: BodyType<CheckSingleUrlBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return checkSingleSitemapUrl(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CheckSingleSitemapUrlMutationResult = NonNullable<
+  Awaited<ReturnType<typeof checkSingleSitemapUrl>>
+>;
+export type CheckSingleSitemapUrlMutationBody = BodyType<CheckSingleUrlBody>;
+export type CheckSingleSitemapUrlMutationError = ErrorType<void>;
+
+/**
+ * @summary Spot-check a single URL (admin)
+ */
+export const useCheckSingleSitemapUrl = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof checkSingleSitemapUrl>>,
+    TError,
+    { data: BodyType<CheckSingleUrlBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof checkSingleSitemapUrl>>,
+  TError,
+  { data: BodyType<CheckSingleUrlBody> },
+  TContext
+> => {
+  return useMutation(getCheckSingleSitemapUrlMutationOptions(options));
 };
 
 /**
