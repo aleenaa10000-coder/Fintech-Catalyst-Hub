@@ -262,8 +262,8 @@ async function seed() {
         "Bylined articles on the right publications still move pipeline and rankings. Here's how to land them — and what editors are actually looking for in 2026.",
       content:
         "Guest posting got a bad name because of paid networks and spun content. But editorial guest contributions on real finance publications are still one of the most defensible link and authority plays available to fintechs. This article walks through how to identify publications that match your ICP, how to develop a pitch angle editors say yes to, how to ghostwrite for executives without losing their voice, and how to negotiate dofollow links inside contextual placements. We also share the post-placement checklist we use to extract maximum SEO and pipeline value from every byline.",
-      author: "Ade Akinola",
-      authorRole: "Editorial Outreach Lead",
+      author: "James Okafor",
+      authorRole: "Head of Digital PR & Link Building",
       category: "Guest Posting",
       tags: ["Guest Posting", "Outreach", "Authority Building"],
       coverImage:
@@ -296,8 +296,8 @@ async function seed() {
         "Most fintech content dashboards are vanity in disguise. Here's the attribution model we use to prove content's contribution to pipeline and revenue.",
       content:
         "Content marketing in fintech has a measurement problem. Long sales cycles, multi-touch journeys, and compliance gates make last-click attribution useless. In this article, our analytics team walks through the multi-touch model we use with B2B fintech clients — combining first-touch, decay-weighted, and self-reported attribution — to show exactly how content contributes to pipeline and revenue. We include a downloadable template and the dashboard structure we ship with every Growth-tier engagement.",
-      author: "Sasha Liang",
-      authorRole: "Analytics Lead",
+      author: "Naledi Khumalo",
+      authorRole: "Director of Content Strategy",
       category: "Analytics",
       tags: ["Attribution", "Analytics", "Content ROI"],
       coverImage:
@@ -330,8 +330,8 @@ async function seed() {
         "Internal linking is the single most under-used SEO lever in fintech. Here's the architecture we deploy that turns existing content into a growth engine.",
       content:
         "Most fintech blogs leave 30–50% of their potential organic traffic on the table because of weak internal linking. In this article, our technical SEO team walks through the hub-and-spoke architecture we deploy for clients — from how we identify revenue-bearing money pages, to the contextual link patterns we use inside long-form articles, to the nav and sidebar tweaks that distribute link equity efficiently. Includes the audit script we use to find broken and orphaned pages.",
-      author: "Marcus Devine",
-      authorRole: "Technical SEO Lead",
+      author: "Marcus Webb",
+      authorRole: "Head of SEO Strategy",
       category: "Technical SEO",
       tags: ["Internal Linking", "Technical SEO", "Architecture"],
       coverImage:

@@ -81,7 +81,7 @@ export default defineConfig({
         target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
         changeOrigin: true,
       },
-      // Per-author RSS feeds (e.g. /authors/mei-tanaka/rss.xml) are served
+      // Per-author RSS feeds (e.g. /authors/marcus-webb/rss.xml) are served
       // dynamically by the API. The regex limits the proxy to URLs that end
       // in `/rss.xml`, so the SPA still handles plain `/authors/<slug>` and
       // `/authors` index requests.

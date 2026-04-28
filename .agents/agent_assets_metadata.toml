@@ -90,6 +90,18 @@ uri = "file://artifacts/fintechpresshub/public/author-photos/rashid-al-mansoori.
 type = "image"
 title = "generated_image"
 
+[[generated]]
+id = "-h4FCUbnpo_ySqaXMP5Dz"
+uri = "file://artifacts/fintechpresshub/public/author-photos/naledi-khumalo.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "evdJqJ0fvy1Q9WiTFFPGh"
+uri = "file://artifacts/fintechpresshub/public/author-photos/lucas-pereira.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "oXFKrf_XTmgUw1M-KGhRm"
 uri = "file://attached_assets/logo/fintechpresshub-logo.png"

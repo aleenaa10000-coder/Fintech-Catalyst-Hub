@@ -63,8 +63,8 @@ const posts = [
       "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?auto=format&fit=crop&w=1200&q=80",
     date: "2026-02-25",
     readTime: "11 min read",
-    author: "Priya Nair",
-    authorRole: "Director of Off-Page SEO",
+    author: "James Okafor",
+    authorRole: "Head of Digital PR & Link Building",
     tags: ["Link Building", "Digital PR", "Backlinks", "Domain Authority"],
     content: `
 <p>Backlinks remain the single most predictive ranking factor in competitive search verticals, and fintech is one of the most competitive verticals on the internet. You are competing not just against other startups but against legacy financial institutions with decades of editorial relationships, enormous PR budgets, and domain authority scores north of 80.</p>
@@ -208,8 +208,8 @@ const posts = [
       "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1200&q=80",
     date: "2025-12-18",
     readTime: "10 min read",
-    author: "Priya Nair",
-    authorRole: "Director of Off-Page SEO",
+    author: "James Okafor",
+    authorRole: "Head of Digital PR & Link Building",
     tags: ["Digital PR", "Link Building", "Brand Authority", "Media Coverage"],
     content: `
 <p>Digital PR sits at the intersection of traditional public relations and SEO — it uses the earned media tactics of PR to generate editorial backlinks that improve search rankings. For fintech brands, it is the most efficient way to build domain authority at scale, because financial journalism is one of the most active and well-resourced editorial ecosystems in media.</p>
@@ -352,8 +352,8 @@ const posts = [
       "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1200&q=80",
     date: "2025-09-15",
     readTime: "10 min read",
-    author: "Priya Nair",
-    authorRole: "Director of Off-Page SEO",
+    author: "James Okafor",
+    authorRole: "Head of Digital PR & Link Building",
     tags: ["Guest Posting", "Outreach", "Link Building", "Content Placement"],
     content: `
 <p>Guest posting — publishing an original article on another website in exchange for a byline and, typically, one contextual dofollow link — remains one of the most reliable link-building tactics available to fintech brands. Unlike digital PR (which depends on a journalist choosing to cover you) or link exchanges (which carry algorithmic risk), a well-executed guest posting programme gives you near-complete control over publication selection, link placement, anchor text, and content quality.</p>
@@ -626,8 +626,8 @@ const posts = [
       "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
     date: "2026-04-01",
     readTime: "10 min read",
-    author: "Mei Tanaka",
-    authorRole: "Fintech SaaS Correspondent",
+    author: "Lucas Pereira",
+    authorRole: "Vertical Fintech SaaS Editor",
     tags: ["Fintech SaaS", "Vertical SaaS", "Pricing", "CFO Tooling", "Embedded Finance"],
     content: `
 <p>The most important shift in vertical fintech SaaS in 2026 is not a feature — it is a pricing-model reset. Across treasury, FP&A, AP/AR, spend management, and billing platforms, the seat-based pricing that defined the 2018–2024 wave is being replaced, hybridised, or quietly deprecated. The reason is simple: when an AI workflow does the job a seat used to do, charging per seat is charging for a unit that no longer correlates with value delivered.</p>
