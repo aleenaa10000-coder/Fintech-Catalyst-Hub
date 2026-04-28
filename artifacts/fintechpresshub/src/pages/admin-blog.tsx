@@ -58,6 +58,7 @@ import {
   Clock,
   Download,
   ScrollText,
+  ClipboardCopy,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -632,16 +633,42 @@ function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
               {formatRelativeTime(summary.ranAt)}
             </span>
             {summary.broken.length > 0 && (
-              <button
-                type="button"
-                onClick={() => downloadBulkProbeCsv(summary.broken)}
-                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
-                data-testid="bulk-probe-summary-export"
-                title="Download the broken-URL list as CSV"
-              >
-                <Download className="w-3 h-3" />
-                Export CSV
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => downloadBulkProbeCsv(summary.broken)}
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+                  data-testid="bulk-probe-summary-export"
+                  title="Download the broken-URL list as CSV"
+                >
+                  <Download className="w-3 h-3" />
+                  Export CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const md = buildBulkProbeMarkdown(summary.broken);
+                    const ok = await copyTextToClipboard(md);
+                    if (ok) {
+                      toast.success(
+                        `Copied ${summary.broken.length} broken URL${
+                          summary.broken.length === 1 ? "" : "s"
+                        } as Markdown — paste into Slack, GitHub, or Linear.`,
+                      );
+                    } else {
+                      toast.error(
+                        "Couldn't access the clipboard. Try the CSV export instead.",
+                      );
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+                  data-testid="bulk-probe-summary-copy-md"
+                  title="Copy the broken-URL list as a Markdown table (Slack / GitHub / Linear)"
+                >
+                  <ClipboardCopy className="w-3 h-3" />
+                  Copy as Markdown
+                </button>
+              </>
             )}
             <button
               type="button"
@@ -1723,6 +1750,87 @@ function buildBulkProbeCsv(broken: BulkProbeRowResult[]): string {
   ]);
   const lines = [header, ...rows].map((r) => r.map(csvEscape).join(","));
   return "\ufeff" + lines.join("\r\n") + "\r\n";
+}
+
+/**
+ * Escape a single Markdown table cell so embedded pipes and newlines
+ * don't corrupt the column layout. `|` becomes `\|`; CR/LF collapse to a
+ * single space (Markdown tables are strictly one-line-per-row). We don't
+ * touch `*`, `_`, etc. — admins generally *want* an URL to render as a
+ * link in Slack/Linear/GitHub, and those are inert inside table cells
+ * for plain text content anyway.
+ */
+function mdEscapeCell(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  const str = String(value);
+  if (str === "") return "—";
+  return str.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+}
+
+/**
+ * Build a GitHub-flavoured Markdown table of the broken URLs from a
+ * bulk-probe summary. Designed to paste straight into Slack, GitHub
+ * issues, or Linear comments — all three render this format natively
+ * (Slack since 2024, GitHub/Linear since launch). Same column set as
+ * the CSV so the two exports stay parallel:
+ *   `# | Slug | URL | Status | Error | Checked at`
+ * A leading "Bulk URL probe …" caption lets the receiver see at a
+ * glance how big the failure set is and when it was generated.
+ */
+function buildBulkProbeMarkdown(broken: BulkProbeRowResult[]): string {
+  const header = ["#", "Slug", "URL", "Status", "Error", "Checked at"];
+  const lines: string[] = [];
+  lines.push(
+    `**Bulk URL probe — ${broken.length} broken URL${broken.length === 1 ? "" : "s"}** (${new Date().toISOString()})`,
+  );
+  lines.push("");
+  lines.push(`| ${header.join(" | ")} |`);
+  lines.push(`| ${header.map(() => "---").join(" | ")} |`);
+  broken.forEach(({ post, result }, i) => {
+    const row = [
+      String(i + 1),
+      mdEscapeCell(post.slug),
+      mdEscapeCell(result?.url ?? ""),
+      mdEscapeCell(result?.statusCode ?? "ERR"),
+      mdEscapeCell(result?.error ?? ""),
+      mdEscapeCell(result?.checkedAt ?? ""),
+    ];
+    lines.push(`| ${row.join(" | ")} |`);
+  });
+  return lines.join("\n");
+}
+
+/**
+ * Copy a string to the clipboard with a graceful fallback for non-secure
+ * contexts (HTTP previews, etc.) where `navigator.clipboard` is gated.
+ * Returns true on success so the caller can branch its toast.
+ */
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to the textarea fallback — Safari occasionally
+      // rejects the modern API even in secure contexts when the page
+      // doesn't have focus.
+    }
+  }
+  if (typeof document === "undefined") return false;
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "absolute";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
 }
 
 /**
