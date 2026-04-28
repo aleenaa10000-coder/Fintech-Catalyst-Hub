@@ -45,7 +45,7 @@ export default function Terms() {
     <>
       <PageMeta page="terms" webPage={{ datePublished: "2023-10-01", dateModified: "2026-04-28" }} />
       <LegalPageLayout
-      title={<>Terms of Service</>}
+      title={<>Terms and Conditions</>}
       description="The agreement that governs your use of FintechPressHub's website, services, and engagements."
       lastUpdated="April 28, 2026"
       sections={SECTIONS}
@@ -54,7 +54,7 @@ export default function Terms() {
       <h2 id="agreement-to-terms">1. Agreement to Terms</h2>
       <p>
         By accessing or using FintechPressHub's website and services, you agree to be bound by
-        these Terms of Service. If you disagree with any part of the terms, then you may not access
+        these Terms and Conditions. If you disagree with any part of the terms, then you may not access
         the service.
       </p>
 

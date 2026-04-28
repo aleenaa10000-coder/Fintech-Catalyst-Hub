@@ -73,7 +73,7 @@ export const PAGE_META = {
   },
   terms: {
     path: "/terms",
-    title: "Terms of Service | FintechPressHub",
+    title: "Terms and Conditions | FintechPressHub",
     description:
       "The terms governing use of the FintechPressHub website and services.",
   },

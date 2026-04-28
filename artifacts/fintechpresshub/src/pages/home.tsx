@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -8,6 +9,7 @@ import {
   useListFeaturedPosts,
   useListServices,
   useListBlogPosts,
+  getListBlogPostsQueryKey,
 } from "@workspace/api-client-react";
 import heroBg from "@/assets/hero-bg.png";
 import servicesGraph from "@/assets/services-graph.png";
@@ -98,7 +100,36 @@ export default function Home() {
   // from the curated `featuredPosts` grid above: that's editorially
   // pinned, this is purely chronological so the homepage feels fresh
   // the moment a post goes live.
-  const { data: recentPosts } = useListBlogPosts({ limit: 3 });
+  //
+  // Auto-refresh: this query overrides the global QueryClient defaults
+  // (which switch focus-refetch *off*) so the homepage picks up newly
+  // published posts without a hard reload. 60 s polling is cheap (the
+  // payload is 3 rows + Express's 304 short-circuit kicks in when
+  // nothing changed) and `refetchOnWindowFocus` covers the most common
+  // case of a visitor flipping back to the tab after a while.
+  const recentPostsQuery = useListBlogPosts(
+    { limit: 3 },
+    {
+      query: {
+        queryKey: getListBlogPostsQueryKey({ limit: 3 }),
+        staleTime: 30_000,
+        refetchInterval: 60_000,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+      },
+    },
+  );
+  const recentPosts = recentPostsQuery.data;
+  const recentPostsUpdatedAt = recentPostsQuery.dataUpdatedAt;
+  // Tick every 30 s so the "Updated N seconds ago" label stays
+  // accurate without us coupling it to the React Query refetch
+  // cadence — visitors leaving the homepage open won't see a frozen
+  // "Updated 6 seconds ago" pill.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const handle = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(handle);
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -400,8 +431,30 @@ export default function Home() {
                 <Clock className="w-6 h-6 text-primary" />
                 Recently published
               </h2>
-              <p className="text-muted-foreground">
-                The three newest posts on the blog, refreshed every visit.
+              <p className="text-muted-foreground flex items-center gap-2 flex-wrap">
+                <span>The three newest posts on the blog.</span>
+                {recentPostsUpdatedAt > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    title={new Date(recentPostsUpdatedAt).toLocaleString()}
+                    aria-live="polite"
+                    data-testid="recently-published-updated-pill"
+                  >
+                    <span
+                      className={
+                        recentPostsQuery.isFetching
+                          ? "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
+                          : "w-1.5 h-1.5 rounded-full bg-emerald-500"
+                      }
+                      aria-hidden="true"
+                    />
+                    {recentPostsQuery.isFetching
+                      ? "Refreshing…"
+                      : now - recentPostsUpdatedAt < 60_000
+                        ? "Updated just now"
+                        : `Updated ${formatRelativeTime(new Date(recentPostsUpdatedAt).toISOString())}`}
+                  </span>
+                )}
               </p>
             </div>
             <Link href="/blog" className="hidden md:flex">

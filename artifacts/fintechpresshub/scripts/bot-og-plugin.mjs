@@ -550,7 +550,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       privacyPolicy: "Privacy Policy",
       refundPolicy: "Refund Policy",
       cookiePolicy: "Cookie Policy",
-      terms: "Terms of Service",
+      terms: "Terms and Conditions",
       editorialGuidelines: "Editorial Guidelines",
     };
     const heading = HEADINGS[key] ?? m.title.split("|")[0].trim();

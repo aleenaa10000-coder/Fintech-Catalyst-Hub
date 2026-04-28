@@ -117,7 +117,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
-                  Terms of Service
+                  Terms and Conditions
                 </Link>
               </li>
             </ul>

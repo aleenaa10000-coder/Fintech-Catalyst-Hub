@@ -94,7 +94,7 @@ export const PAGE_META = {
       "How FintechPressHub uses cookies and similar technologies on this website.",
   },
   terms: {
-    title: "Terms of Service | FintechPressHub",
+    title: "Terms and Conditions | FintechPressHub",
     description:
       "The terms governing use of the FintechPressHub website and services.",
   },
