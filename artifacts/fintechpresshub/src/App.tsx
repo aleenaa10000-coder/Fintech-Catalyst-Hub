@@ -32,6 +32,7 @@ import AdminAuthorsSubscribers from "@/pages/admin-authors-subscribers";
 import AdminAuthorSubscribers from "@/pages/admin-author-subscribers";
 import AdminCommissioningTopics from "@/pages/admin-commissioning-topics";
 import AdminNewsletter from "@/pages/admin-newsletter";
+import AdminModeration from "@/pages/admin-moderation";
 import AdminAuditLog from "@/pages/admin-audit-log";
 import AdminNotifications from "@/pages/admin-notifications";
 import NotFound from "@/pages/not-found";
@@ -97,6 +98,7 @@ function Router() {
             component={AdminCommissioningTopics}
           />
           <Route path="/admin/newsletter" component={AdminNewsletter} />
+          <Route path="/admin/moderation" component={AdminModeration} />
           <Route path="/admin/audit-log" component={AdminAuditLog} />
           <Route path="/admin/notifications" component={AdminNotifications} />
           <Route path="/404" component={NotFound} />

@@ -68,9 +68,9 @@ const benefits = [
   },
   {
     icon: TrendingUp,
-    title: "Two permanent dofollow links",
+    title: "Up to 2 permanent dofollow links",
     description:
-      "Earn one in-body contextual dofollow link plus one author-bio dofollow link from a niche-aligned, topically relevant domain.",
+      "We provide up to 2 permanent dofollow backlinks for high-quality submissions that meet our editorial standards.",
   },
   {
     icon: Target,
@@ -281,14 +281,14 @@ const wfuFaqs = [
       "We review all pitches within 5–7 business days. If your topic is a strong fit you'll receive an acceptance email with a brief scope doc and a suggested deadline. Off-niche or under-specified pitches are declined with a short note.",
   },
   {
-    question: "Can I include more than one dofollow link?",
+    question: "How many dofollow links will my post include?",
     answer:
-      "Every approved post earns one in-body dofollow contextual link and one dofollow author-bio link. Additional citations may be approved at editorial discretion when they reference primary data, regulator filings, or original research that materially strengthens the piece.",
+      "High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks — typically one in-body contextual link and one author-bio link. Additional citations may be approved at editorial discretion when they reference primary data, regulator filings, or original research that materially strengthens the piece.",
   },
   {
     question: "Is payment available for guest posts?",
     answer:
-      "We do not pay contributors. The compensation is two permanent dofollow backlinks from a topically-aligned fintech domain with a targeted readership — the same audience your product serves. Contributors consistently report measurable referral traffic and ranking lift from the placement.",
+      "We do not pay contributors. The compensation is up to 2 permanent dofollow backlinks from a topically-aligned fintech domain with a targeted readership — the same audience your product serves. Contributors consistently report measurable referral traffic and ranking lift from the placement.",
   },
   {
     question: "What word count do you require?",

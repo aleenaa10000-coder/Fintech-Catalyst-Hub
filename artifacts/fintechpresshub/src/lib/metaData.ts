@@ -131,6 +131,10 @@ export const PAGE_META = {
     description:
       "Master list of newsletter subscribers with daily signups and CSV export.",
   },
+  adminModeration: {
+    title: "Admin · Moderation Inbox | FintechPressHub",
+    description: "Review guest post pitch submissions and contact enquiries.",
+  },
   notFound: {
     title: "Page Not Found | FintechPressHub",
     description: "The page you are looking for could not be found.",

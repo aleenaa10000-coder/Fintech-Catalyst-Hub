@@ -962,8 +962,8 @@ export default function Blog() {
                       We're commissioning expert-led pieces on {activeCategory}{" "}
                       from operators in this space. If you've shipped real work
                       in this category, pitch us — accepted contributors get a
-                      dofollow contextual backlink and an author bio link from
-                      a topically relevant fintech domain.
+                      up to 2 permanent dofollow backlinks from
+                      a topically relevant fintech domain for high-quality submissions.
                     </p>
                     <div className="flex flex-wrap gap-3 justify-center">
                       <Link

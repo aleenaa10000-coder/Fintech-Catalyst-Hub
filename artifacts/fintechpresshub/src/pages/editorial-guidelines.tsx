@@ -36,6 +36,11 @@ const egFaqs = [
     answer:
       "No. We require exclusive publication. You may quote up to two paragraphs with a canonical link back to the FintechPressHub version — for example in a newsletter or a LinkedIn post — but full republication on any other domain, including Medium, LinkedIn Articles, or Substack, violates the contributor agreement and results in immediate article removal.",
   },
+  {
+    question: "How many dofollow backlinks does a guest post earn?",
+    answer:
+      "High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks — typically one in-body contextual link and one author-bio link. Submissions that don't clear the editorial bar may receive fewer links or none at all. Quality of the piece, relevance of the link targets, and adherence to our contributor guidelines all factor into the final allowance.",
+  },
 ];
 
 type ComparisonItem = { label: string; detail?: string };
@@ -615,21 +620,20 @@ export default function EditorialGuidelines() {
 
               <h2 id="contributor-links">9. Contributor Link Policy</h2>
               <p>
-                Guest contributors and sponsored partners receive a fixed, transparent backlink
-                allowance from FintechPressHub. Because we publish on a topically-focused fintech
-                domain, every approved link passes contextual link equity from a niche-relevant
-                page — exactly what fintech SEO teams are after.
+                High-quality guest submissions that meet our editorial standards receive up to 2
+                permanent dofollow backlinks from FintechPressHub. Because we publish on a
+                topically-focused fintech domain, every approved link passes contextual link equity
+                from a niche-relevant page — exactly what fintech SEO teams are after.
               </p>
               <ul>
                 <li>
-                  <strong>One (1) dofollow contextual backlink:</strong> placed in-body, surrounded
-                  by relevant copy, and pointing to a real fintech product page, study, data set,
-                  blog post, or tool — never a thin landing page or affiliate redirect.
-                </li>
-                <li>
-                  <strong>One (1) dofollow author-bio link:</strong> to your company homepage,
-                  personal site, or LinkedIn. Author bios are reused across all your articles, so
-                  this link compounds with each new contribution.
+                  <strong>Up to 2 permanent dofollow backlinks:</strong> for submissions that meet
+                  our editorial standards. Where awarded, these are typically one in-body contextual
+                  link — placed surrounded by relevant copy and pointing to a real fintech product
+                  page, study, data set, blog post, or tool — and one author-bio link to your
+                  company homepage, personal site, or LinkedIn. Author bios are reused across all
+                  your articles, so the bio link compounds with each new contribution. Submissions
+                  that do not meet the bar may receive fewer links or none at all.
                 </li>
                 <li>
                   <strong>Natural anchor text only:</strong> branded, partial-match, or descriptive
