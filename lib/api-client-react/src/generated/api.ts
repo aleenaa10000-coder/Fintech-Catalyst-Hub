@@ -27,6 +27,7 @@ import type {
   BlogCategory,
   BlogPost,
   BlogPostViewCount,
+  BulkNoIndexAuditEntry,
   BulkNoIndexBlogPostsInput,
   BulkNoIndexBlogPostsResult,
   CheckSingleUrlBody,
@@ -43,6 +44,7 @@ import type {
   HandleBrowserLoginCallbackParams,
   HealthStatus,
   ListBlogPostsParams,
+  ListBulkNoIndexAuditParams,
   LogoutSuccess,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
@@ -1296,7 +1298,9 @@ export const useDeleteBlogPost = <
 single transaction. Used by the blog admin to hide a batch of older
 posts from search engines (or to un-hide them) in one click. Returns
 the updated rows so the admin UI can refresh its list without a
-round-trip. Requires an authenticated admin session.
+round-trip. Requires an authenticated admin session. Every call also
+appends a row to the `bulk_noindex_audit_log` table so the admin
+can see who changed what later (`GET /admin/audit/bulk-noindex`).
 
  * @summary Bulk set the no-index flag on multiple blog posts (admin)
  */
@@ -1383,6 +1387,215 @@ export const useBulkNoIndexBlogPosts = <
 > => {
   return useMutation(getBulkNoIndexBlogPostsMutationOptions(options));
 };
+
+/**
+ * Returns every confirmed bulk no-index / re-index batch in
+reverse-chronological order, capped at `limit` rows. Each entry
+records who ran it, when, the requested vs. effective row count,
+the total impacted view count, and a snapshot of every affected
+post — the snapshot is what powers the per-batch CSV download
+endpoint so the audit trail is reproducible even if the
+underlying posts are later edited or deleted.
+
+ * @summary List bulk no-index audit log entries (admin)
+ */
+export const getListBulkNoIndexAuditUrl = (
+  params?: ListBulkNoIndexAuditParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/audit/bulk-noindex?${stringifiedParams}`
+    : `/api/admin/audit/bulk-noindex`;
+};
+
+export const listBulkNoIndexAudit = async (
+  params?: ListBulkNoIndexAuditParams,
+  options?: RequestInit,
+): Promise<BulkNoIndexAuditEntry[]> => {
+  return customFetch<BulkNoIndexAuditEntry[]>(
+    getListBulkNoIndexAuditUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListBulkNoIndexAuditQueryKey = (
+  params?: ListBulkNoIndexAuditParams,
+) => {
+  return [
+    `/api/admin/audit/bulk-noindex`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListBulkNoIndexAuditQueryOptions = <
+  TData = Awaited<ReturnType<typeof listBulkNoIndexAudit>>,
+  TError = ErrorType<void>,
+>(
+  params?: ListBulkNoIndexAuditParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBulkNoIndexAudit>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListBulkNoIndexAuditQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listBulkNoIndexAudit>>
+  > = ({ signal }) =>
+    listBulkNoIndexAudit(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listBulkNoIndexAudit>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListBulkNoIndexAuditQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listBulkNoIndexAudit>>
+>;
+export type ListBulkNoIndexAuditQueryError = ErrorType<void>;
+
+/**
+ * @summary List bulk no-index audit log entries (admin)
+ */
+
+export function useListBulkNoIndexAudit<
+  TData = Awaited<ReturnType<typeof listBulkNoIndexAudit>>,
+  TError = ErrorType<void>,
+>(
+  params?: ListBulkNoIndexAuditParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBulkNoIndexAudit>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListBulkNoIndexAuditQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Streams a CSV of the post snapshot captured at the time the batch
+was confirmed (slug, title, category, view count, featured flag,
+previous noIndex state, published_at). The body is built from the
+persisted snapshot so the download stays accurate even if the
+underlying posts were later edited or deleted.
+
+ * @summary Re-download the CSV for a past bulk no-index batch (admin)
+ */
+export const getDownloadBulkNoIndexAuditCsvUrl = (id: number) => {
+  return `/api/admin/audit/bulk-noindex/${id}/csv`;
+};
+
+export const downloadBulkNoIndexAuditCsv = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getDownloadBulkNoIndexAuditCsvUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadBulkNoIndexAuditCsvQueryKey = (id: number) => {
+  return [`/api/admin/audit/bulk-noindex/${id}/csv`] as const;
+};
+
+export const getDownloadBulkNoIndexAuditCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadBulkNoIndexAuditCsv>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof downloadBulkNoIndexAuditCsv>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadBulkNoIndexAuditCsvQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadBulkNoIndexAuditCsv>>
+  > = ({ signal }) =>
+    downloadBulkNoIndexAuditCsv(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadBulkNoIndexAuditCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadBulkNoIndexAuditCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadBulkNoIndexAuditCsv>>
+>;
+export type DownloadBulkNoIndexAuditCsvQueryError = ErrorType<void>;
+
+/**
+ * @summary Re-download the CSV for a past bulk no-index batch (admin)
+ */
+
+export function useDownloadBulkNoIndexAuditCsv<
+  TData = Awaited<ReturnType<typeof downloadBulkNoIndexAuditCsv>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof downloadBulkNoIndexAuditCsv>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadBulkNoIndexAuditCsvQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Triggers an immediate IndexNow + Google sitemap ping for the post

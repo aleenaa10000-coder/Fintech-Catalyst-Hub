@@ -354,7 +354,9 @@ paths:
         single transaction. Used by the blog admin to hide a batch of older
         posts from search engines (or to un-hide them) in one click. Returns
         the updated rows so the admin UI can refresh its list without a
-        round-trip. Requires an authenticated admin session.
+        round-trip. Requires an authenticated admin session. Every call also
+        appends a row to the `bulk_noindex_audit_log` table so the admin
+        can see who changed what later (`GET /admin/audit/bulk-noindex`).
       requestBody:
         required: true
         content:
@@ -374,6 +376,75 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden — admin access required
+
+  /admin/audit/bulk-noindex:
+    get:
+      operationId: listBulkNoIndexAudit
+      tags: [audit]
+      summary: List bulk no-index audit log entries (admin)
+      description: |
+        Returns every confirmed bulk no-index / re-index batch in
+        reverse-chronological order, capped at `limit` rows. Each entry
+        records who ran it, when, the requested vs. effective row count,
+        the total impacted view count, and a snapshot of every affected
+        post — the snapshot is what powers the per-batch CSV download
+        endpoint so the audit trail is reproducible even if the
+        underlying posts are later edited or deleted.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Audit entries (newest first)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BulkNoIndexAuditEntry"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+
+  /admin/audit/bulk-noindex/{id}/csv:
+    get:
+      operationId: downloadBulkNoIndexAuditCsv
+      tags: [audit]
+      summary: Re-download the CSV for a past bulk no-index batch (admin)
+      description: |
+        Streams a CSV of the post snapshot captured at the time the batch
+        was confirmed (slug, title, category, view count, featured flag,
+        previous noIndex state, published_at). The body is built from the
+        persisted snapshot so the download stays accurate even if the
+        underlying posts were later edited or deleted.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: CSV body
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+        "404":
+          description: Not found
 
   /blog/posts/{slug}/reping-indexnow:
     post:
@@ -1705,7 +1776,87 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/BlogPost"
+        auditId:
+          type: integer
+          nullable: true
+          description: |
+            Primary key of the audit-log row written for this batch (if
+            any rows actually changed). `null` when the request was a
+            no-op so no audit row was created.
       required: [updatedCount, noIndex, posts]
+
+    BulkNoIndexAuditPostSnapshot:
+      type: object
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        viewCount:
+          type: integer
+          minimum: 0
+        featured:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+        wasNoIndex:
+          type: boolean
+          description: |
+            The post's `noIndex` flag *before* the batch ran. Lets the
+            audit page show the diff (e.g. "10 of 12 posts were already
+            hidden — only 2 actually flipped").
+      required: [slug, title, category, viewCount, featured, publishedAt, wasNoIndex]
+
+    BulkNoIndexAuditEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        actorEmail:
+          type: string
+        actorUserId:
+          type: string
+          nullable: true
+        mode:
+          type: string
+          enum: [noindex, reindex]
+        snoozeDays:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 365
+        requestedSlugCount:
+          type: integer
+          minimum: 0
+        updatedCount:
+          type: integer
+          minimum: 0
+        totalViewsHidden:
+          type: integer
+          minimum: 0
+          description: |
+            Sum of `viewCount` across the impacted posts at the moment
+            the batch ran. For `mode=reindex` this is the number of
+            views that became visible again.
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/BulkNoIndexAuditPostSnapshot"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - actorEmail
+        - mode
+        - requestedSlugCount
+        - updatedCount
+        - totalViewsHidden
+        - posts
+        - createdAt
 
     NewsletterSubscriberRow:
       type: object

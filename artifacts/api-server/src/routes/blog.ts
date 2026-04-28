@@ -1,6 +1,11 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
-import { db, blogPostsTable } from "@workspace/db";
+import {
+  db,
+  blogPostsTable,
+  bulkNoIndexAuditLogTable,
+} from "@workspace/db";
+import type { BulkNoIndexAuditPostSnapshot } from "@workspace/db";
 import { eq, desc, sql, inArray } from "drizzle-orm";
 import { ListBlogPostsQueryParams, GetBlogPostParams } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
@@ -463,16 +468,84 @@ router.post(
         updateValues.noindexUntil = null;
       }
 
+      // Snapshot the targeted rows BEFORE the update so we can write a
+      // faithful audit entry (view counts, prior noIndex flag, etc.). We
+      // pull only the columns we need for the audit log + impact totals.
+      const before = await db
+        .select({
+          slug: blogPostsTable.slug,
+          title: blogPostsTable.title,
+          category: blogPostsTable.category,
+          viewCount: blogPostsTable.viewCount,
+          featured: blogPostsTable.featured,
+          publishedAt: blogPostsTable.publishedAt,
+          noIndex: blogPostsTable.noIndex,
+        })
+        .from(blogPostsTable)
+        .where(inArray(blogPostsTable.slug, uniqueSlugs));
+
       const updated = await db
         .update(blogPostsTable)
         .set(updateValues)
         .where(inArray(blogPostsTable.slug, uniqueSlugs))
         .returning();
 
+      // Only the rows whose `noIndex` flag actually flipped count as
+      // "impacted" — posts already in the target state get filtered out
+      // so the audit log mirrors what the admin saw in the impact preview.
+      const updatedSlugs = new Set(updated.map((p) => p.slug));
+      const impactedBefore = before.filter(
+        (p) => updatedSlugs.has(p.slug) && p.noIndex !== body.noIndex,
+      );
+
+      let auditId: number | null = null;
+      if (impactedBefore.length > 0) {
+        const snapshot: BulkNoIndexAuditPostSnapshot[] = impactedBefore.map(
+          (p) => ({
+            slug: p.slug,
+            title: p.title,
+            category: p.category,
+            viewCount: p.viewCount ?? 0,
+            featured: !!p.featured,
+            publishedAt: p.publishedAt.toISOString(),
+            wasNoIndex: !!p.noIndex,
+          }),
+        );
+        const totalViewsHidden = snapshot.reduce(
+          (sum, p) => sum + (p.viewCount ?? 0),
+          0,
+        );
+        try {
+          const [auditRow] = await db
+            .insert(bulkNoIndexAuditLogTable)
+            .values({
+              actorEmail: req.user?.email ?? "unknown",
+              actorUserId: req.user?.id ?? null,
+              mode: body.noIndex ? "noindex" : "reindex",
+              snoozeDays:
+                body.noIndex && body.snoozeDays ? body.snoozeDays : null,
+              requestedSlugCount: uniqueSlugs.length,
+              updatedCount: snapshot.length,
+              totalViewsHidden,
+              posts: snapshot,
+            })
+            .returning({ id: bulkNoIndexAuditLogTable.id });
+          auditId = auditRow?.id ?? null;
+        } catch (auditErr) {
+          // Audit write failures must not break the user-visible bulk
+          // action — log loudly so we still notice, but return success.
+          logger.error(
+            { err: auditErr, slugCount: snapshot.length },
+            "Failed to write bulk-noindex audit log row",
+          );
+        }
+      }
+
       res.json({
         updatedCount: updated.length,
         noIndex: body.noIndex,
         posts: updated.map(serialize),
+        auditId,
       });
     } catch (err) {
       if (err instanceof z.ZodError) {

@@ -486,6 +486,60 @@ export interface BulkNoIndexBlogPostsResult {
   /** The value that was applied to every targeted post. */
   noIndex: boolean;
   posts: BlogPost[];
+  /** Primary key of the audit-log row written for this batch (if
+any rows actually changed). `null` when the request was a
+no-op so no audit row was created.
+ */
+  auditId?: number | null;
+}
+
+export interface BulkNoIndexAuditPostSnapshot {
+  slug: string;
+  title: string;
+  category: string;
+  /** @minimum 0 */
+  viewCount: number;
+  featured: boolean;
+  publishedAt: string;
+  /** The post's `noIndex` flag *before* the batch ran. Lets the
+audit page show the diff (e.g. "10 of 12 posts were already
+hidden — only 2 actually flipped").
+ */
+  wasNoIndex: boolean;
+}
+
+export type BulkNoIndexAuditEntryMode =
+  (typeof BulkNoIndexAuditEntryMode)[keyof typeof BulkNoIndexAuditEntryMode];
+
+export const BulkNoIndexAuditEntryMode = {
+  noindex: "noindex",
+  reindex: "reindex",
+} as const;
+
+export interface BulkNoIndexAuditEntry {
+  id: number;
+  actorEmail: string;
+  actorUserId?: string | null;
+  mode: BulkNoIndexAuditEntryMode;
+  /**
+   * @minimum 1
+   * @maximum 365
+   */
+  snoozeDays?: number | null;
+  /** @minimum 0 */
+  requestedSlugCount: number;
+  /** @minimum 0 */
+  updatedCount: number;
+  /**
+   * Sum of `viewCount` across the impacted posts at the moment
+the batch ran. For `mode=reindex` this is the number of
+views that became visible again.
+
+   * @minimum 0
+   */
+  totalViewsHidden: number;
+  posts: BulkNoIndexAuditPostSnapshot[];
+  createdAt: string;
 }
 
 export interface NewsletterSubscriberRow {
@@ -706,6 +760,14 @@ export type ListBlogPostsParams = {
   /**
    * @minimum 1
    * @maximum 50
+   */
+  limit?: number;
+};
+
+export type ListBulkNoIndexAuditParams = {
+  /**
+   * @minimum 1
+   * @maximum 200
    */
   limit?: number;
 };

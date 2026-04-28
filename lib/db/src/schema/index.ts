@@ -11,3 +11,4 @@ export * from "./authorSubscriptions";
 export * from "./kvStore";
 export * from "./commissioningTopics";
 export * from "./linkCheckResults";
+export * from "./bulkNoIndexAuditLog";

@@ -539,7 +539,9 @@ export const DeleteBlogPostParams = zod.object({
 single transaction. Used by the blog admin to hide a batch of older
 posts from search engines (or to un-hide them) in one click. Returns
 the updated rows so the admin UI can refresh its list without a
-round-trip. Requires an authenticated admin session.
+round-trip. Requires an authenticated admin session. Every call also
+appends a row to the `bulk_noindex_audit_log` table so the admin
+can see who changed what later (`GET /admin/audit/bulk-noindex`).
 
  * @summary Bulk set the no-index flag on multiple blog posts (admin)
  */
@@ -645,6 +647,101 @@ export const BulkNoIndexBlogPostsResponse = zod.object({
         ),
     }),
   ),
+  auditId: zod
+    .number()
+    .nullish()
+    .describe(
+      "Primary key of the audit-log row written for this batch (if\nany rows actually changed). `null` when the request was a\nno-op so no audit row was created.\n",
+    ),
+});
+
+/**
+ * Returns every confirmed bulk no-index / re-index batch in
+reverse-chronological order, capped at `limit` rows. Each entry
+records who ran it, when, the requested vs. effective row count,
+the total impacted view count, and a snapshot of every affected
+post — the snapshot is what powers the per-batch CSV download
+endpoint so the audit trail is reproducible even if the
+underlying posts are later edited or deleted.
+
+ * @summary List bulk no-index audit log entries (admin)
+ */
+export const listBulkNoIndexAuditQueryLimitDefault = 50;
+export const listBulkNoIndexAuditQueryLimitMax = 200;
+
+export const ListBulkNoIndexAuditQueryParams = zod.object({
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listBulkNoIndexAuditQueryLimitMax)
+    .default(listBulkNoIndexAuditQueryLimitDefault),
+});
+
+export const listBulkNoIndexAuditResponseSnoozeDaysMax = 365;
+
+export const listBulkNoIndexAuditResponseRequestedSlugCountMin = 0;
+
+export const listBulkNoIndexAuditResponseUpdatedCountMin = 0;
+
+export const listBulkNoIndexAuditResponseTotalViewsHiddenMin = 0;
+
+export const listBulkNoIndexAuditResponsePostsItemViewCountMin = 0;
+
+export const ListBulkNoIndexAuditResponseItem = zod.object({
+  id: zod.number(),
+  actorEmail: zod.string(),
+  actorUserId: zod.string().nullish(),
+  mode: zod.enum(["noindex", "reindex"]),
+  snoozeDays: zod
+    .number()
+    .min(1)
+    .max(listBulkNoIndexAuditResponseSnoozeDaysMax)
+    .nullish(),
+  requestedSlugCount: zod
+    .number()
+    .min(listBulkNoIndexAuditResponseRequestedSlugCountMin),
+  updatedCount: zod.number().min(listBulkNoIndexAuditResponseUpdatedCountMin),
+  totalViewsHidden: zod
+    .number()
+    .min(listBulkNoIndexAuditResponseTotalViewsHiddenMin)
+    .describe(
+      "Sum of `viewCount` across the impacted posts at the moment\nthe batch ran. For `mode=reindex` this is the number of\nviews that became visible again.\n",
+    ),
+  posts: zod.array(
+    zod.object({
+      slug: zod.string(),
+      title: zod.string(),
+      category: zod.string(),
+      viewCount: zod
+        .number()
+        .min(listBulkNoIndexAuditResponsePostsItemViewCountMin),
+      featured: zod.boolean(),
+      publishedAt: zod.coerce.date(),
+      wasNoIndex: zod
+        .boolean()
+        .describe(
+          'The post\'s `noIndex` flag \*before\* the batch ran. Lets the\naudit page show the diff (e.g. \"10 of 12 posts were already\nhidden — only 2 actually flipped\").\n',
+        ),
+    }),
+  ),
+  createdAt: zod.coerce.date(),
+});
+export const ListBulkNoIndexAuditResponse = zod.array(
+  ListBulkNoIndexAuditResponseItem,
+);
+
+/**
+ * Streams a CSV of the post snapshot captured at the time the batch
+was confirmed (slug, title, category, view count, featured flag,
+previous noIndex state, published_at). The body is built from the
+persisted snapshot so the download stays accurate even if the
+underlying posts were later edited or deleted.
+
+ * @summary Re-download the CSV for a past bulk no-index batch (admin)
+ */
+
+export const DownloadBulkNoIndexAuditCsvParams = zod.object({
+  id: zod.coerce.number().min(1),
 });
 
 /**

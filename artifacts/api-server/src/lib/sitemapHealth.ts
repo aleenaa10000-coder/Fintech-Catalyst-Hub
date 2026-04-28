@@ -75,6 +75,10 @@ export interface SerializedResult {
   lastOkAt: string | null;
   lastCheckedAt: string;
   consecutiveFailures: number;
+  // Last time we emailed admins about this URL being broken. Surfaced so
+  // the daily job's persistent-failure pass can throttle re-alerts on URLs
+  // we've already paged about.
+  notifiedAt: string | null;
 }
 
 function serialize(row: LinkCheckResultRow): SerializedResult {
@@ -88,6 +92,7 @@ function serialize(row: LinkCheckResultRow): SerializedResult {
     lastOkAt: row.lastOkAt ? row.lastOkAt.toISOString() : null,
     lastCheckedAt: row.lastCheckedAt.toISOString(),
     consecutiveFailures: row.consecutiveFailures,
+    notifiedAt: row.notifiedAt ? row.notifiedAt.toISOString() : null,
   };
 }
 

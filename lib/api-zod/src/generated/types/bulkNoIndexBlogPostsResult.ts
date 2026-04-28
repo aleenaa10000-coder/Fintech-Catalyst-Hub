@@ -13,4 +13,9 @@ export interface BulkNoIndexBlogPostsResult {
   /** The value that was applied to every targeted post. */
   noIndex: boolean;
   posts: BlogPost[];
+  /** Primary key of the audit-log row written for this batch (if
+any rows actually changed). `null` when the request was a
+no-op so no audit row was created.
+ */
+  auditId?: number | null;
 }

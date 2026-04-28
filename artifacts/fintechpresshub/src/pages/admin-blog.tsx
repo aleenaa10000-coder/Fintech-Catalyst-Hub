@@ -57,6 +57,7 @@ import {
   TrendingUp,
   Clock,
   Download,
+  ScrollText,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -2417,6 +2418,16 @@ export default function AdminBlog() {
           </div>
           <div className="flex items-center gap-3 text-sm">
             <HealthBadge />
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              data-testid="open-audit-log"
+            >
+              <a href="/admin/audit-log">
+                <ScrollText className="w-4 h-4 mr-1.5" /> Audit log
+              </a>
+            </Button>
             <span className="text-muted-foreground">
               Signed in as{" "}
               <strong className="text-foreground">

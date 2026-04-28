@@ -177,6 +177,22 @@ Extends the bulk no-index flow with a one-click "hide for N days, then auto re-e
 - **Background job** — `artifacts/api-server/src/jobs/noindexExpiryHourly.ts` runs once 60s after boot, then every hour. It runs a single SQL `UPDATE blog_posts SET no_index=false, noindex_until=null WHERE no_index=true AND noindex_until IS NOT NULL AND noindex_until <= now()` and logs the slugs that were re-exposed. Idempotent — re-running it within the same hour does nothing because affected rows no longer match the WHERE clause. Wired into `index.ts` next to the existing IndexNow + link-check schedulers.
 - **Admin UI** — the impact dialog (in `admin-blog.tsx`) now has a snooze checkbox + `<input type="number">` (default 14 days, min 1, max 365). When enabled, the dialog shows the computed re-index date inline ("Hide for 14 days, then auto re-index on May 12, 2026"). Per-row blog list entries display an amber `Clock` "snoozed → MMM D" badge whenever a post has `noIndex && noindexUntil`. The success toast confirms the schedule ("No-indexed 3 posts — auto re-index in 14 days").
 
+## Bulk no-index audit log
+
+Every confirmed bulk no-index / re-index batch is now persisted with full traceability so admins can see who changed what and re-pull a CSV of any past batch.
+
+- **DB** — `bulk_noindex_audit_log` table (`lib/db/src/schema/bulkNoIndexAuditLog.ts`) with `actorEmail`, `actorUserId`, `mode` (`noindex`|`reindex`), `snoozeDays`, `requestedSlugCount`, `updatedCount`, `totalViewsHidden`, `posts` (jsonb snapshot of `{slug, title, category, viewCount, featured, publishedAt, wasNoIndex}` taken *before* the update), and `createdAt` (indexed). Snapshot is the source of truth for CSV regeneration so exports stay accurate even if the underlying posts are later edited or deleted.
+- **API** — `POST /api/admin/blog/posts/bulk-noindex` snapshots the targeted rows before the UPDATE, then inserts an audit row for the slugs that actually flipped (no-op slugs are excluded). Audit-write failures are logged but never break the user-visible bulk action. Two new admin-gated routes in `artifacts/api-server/src/routes/audit.ts`: `GET /api/admin/audit/bulk-noindex?limit=N` (newest-first list, capped at 200) and `GET /api/admin/audit/bulk-noindex/:id/csv` (streams a UTF-8 BOM CSV with `Content-Disposition: attachment` so the browser saves it directly). OpenAPI updated; client regenerated.
+- **Admin UI** — new `/admin/audit-log` page (`artifacts/fintechpresshub/src/pages/admin-audit-log.tsx`) reachable from a "Audit log" button next to the health badge in the admin-blog header. Each entry shows mode badge, snooze pill (when set), actor email, four stat tiles (posts changed / requested / views hidden / snooze), an expandable affected-posts list (top 5 by default, "Show N more" toggle), and a "CSV" button that downloads the per-batch snapshot. Filter chips: All / No-index only / Re-index only.
+
+## Persistent-failure email alerts (DB + sitemap URLs)
+
+The daily sitemap link-check job now also pages admins about *infrastructure that has been down too long*, complementing the existing fresh OK→broken alert.
+
+- **Window config** — `HEALTH_ALERT_HOURS` env var (default 48h) is the threshold past which a still-broken URL triggers a follow-up alert; `HEALTH_RENOTIFY_HOURS` (default 168h / 7d) throttles re-alerts on the same URL so admins aren't paged every morning.
+- **What it covers** — at the start of each daily run, the job probes the DB (`select 1`) and walks the sitemap. After the OK→broken email, it scans persisted `link_check_results` rows for URLs where `isBroken=true`, `brokenSince < now - HEALTH_ALERT_HOURS`, and `notifiedAt < now - HEALTH_RENOTIFY_HOURS` (or null), then sends a single combined "Health alert" email covering both the DB outage (if any) and the persistently-broken URLs. Re-stamps `notifiedAt` on success so the throttle resets. Falls back to a DB-only alert if the sitemap walk itself throws.
+- **Files** — extended `artifacts/api-server/src/jobs/linkCheckDaily.ts`; `SerializedResult` in `sitemapHealth.ts` now exposes `notifiedAt: string | null` so the job can read the throttle state without a separate DB read.
+
 ## Blog content quality bar
 
 - **Post length**: every post in `artifacts/fintechpresshub/src/data/posts.js` is now between 800 and 1500 words. Five posts that were previously below 800 (core-web-vitals, digital-pr, ymyl-eeat, content-funnel, keyword-research) gained a closing "operationalising"/"refreshing"/"auditing" section that sits naturally with the existing voice.

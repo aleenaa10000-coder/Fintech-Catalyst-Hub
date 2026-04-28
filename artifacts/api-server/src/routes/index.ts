@@ -18,6 +18,7 @@ import ogRouter from "./og";
 import toolsRouter from "./tools";
 import commissioningTopicsRouter from "./commissioningTopics";
 import sitemapHealthRouter from "./sitemapHealth";
+import auditRouter from "./audit";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(ogRouter);
 router.use(toolsRouter);
 router.use(commissioningTopicsRouter);
 router.use(sitemapHealthRouter);
+router.use(auditRouter);
 
 export default router;
