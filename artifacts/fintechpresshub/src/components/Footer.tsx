@@ -120,6 +120,11 @@ export function Footer() {
                   Terms and Conditions
                 </Link>
               </li>
+              <li>
+                <Link href="/community-guidelines" className="text-muted-foreground hover:text-primary transition-colors">
+                  Community Guidelines
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

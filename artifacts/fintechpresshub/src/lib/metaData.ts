@@ -26,6 +26,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   "cookie-policy": "Cookie Policy",
   terms: "Terms",
   "editorial-guidelines": "Editorial Guidelines",
+  "community-guidelines": "Community Guidelines",
   admin: "Admin",
 };
 
@@ -102,6 +103,11 @@ export const PAGE_META = {
     title: "Editorial Guidelines | FintechPressHub",
     description:
       "The standards we hold our writers, guest contributors, and client deliverables to — accuracy, sourcing, AI usage, tone, and compliance.",
+  },
+  communityGuidelines: {
+    title: "Community Guidelines | FintechPressHub",
+    description:
+      "Standards of conduct, content quality, and IP expectations for every contributor and community participant on FintechPressHub.",
   },
   financialHealthCalculator: {
     title: "Financial Health Score Calculator | Debt-to-Income Checker",

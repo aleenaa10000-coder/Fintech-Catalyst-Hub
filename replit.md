@@ -15,7 +15,7 @@ Professional fintech digital marketing & content agency website. React + Vite + 
 
 ## Pages
 
-Home, About, Services (+ per-service detail at `/services/:slug` for the 5 seeded services — fintech-content-writing, off-page-seo, guest-posting, topical-authority, fintech-seo-audit), Pricing, Blog (+ post detail), Authors index (`/authors`) + author profile (`/authors/:slug`), Write For Us, Contact, Privacy Policy, Refund Policy, Terms, Editorial Guidelines, 404.
+Home, About, Services (+ per-service detail at `/services/:slug` for the 5 seeded services — fintech-content-writing, off-page-seo, guest-posting, topical-authority, fintech-seo-audit), Pricing, Blog (+ post detail), Authors index (`/authors`) + author profile (`/authors/:slug`), Write For Us, Contact, Privacy Policy, Refund Policy, Terms, Editorial Guidelines, Community Guidelines, 404.
 
 The service detail page (`artifacts/fintechpresshub/src/pages/service-detail.tsx`) reuses the cached `useListServices` query and finds the service by slug client-side — no extra API roundtrip. Icons + short labels are shared via `src/lib/serviceIcons.ts`, and per-service FAQs (rendered as a shadcn Accordion section + emitted as FAQPage JSON-LD via `<PageMeta faq={...} />`) live in `src/lib/serviceFaqs.ts`. Each detail page also emits `Service` JSON-LD (provider Organization, areaServed Worldwide, deliverables → OfferCatalog) and an explicit canonical. The sitemap is now served live by the API (`artifacts/api-server/src/routes/sitemap.ts` → `/sitemap.xml`) — it reads static routes + author slugs from a small in-file list and dynamic blog post URLs from Postgres, so new posts appear in the sitemap immediately. The static `scripts/generate-sitemap.mjs` was removed.
 

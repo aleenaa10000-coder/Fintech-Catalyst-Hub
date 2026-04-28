@@ -83,6 +83,12 @@ export const PAGE_META = {
     description:
       "The standards we hold our writers, guest contributors, and client deliverables to — accuracy, sourcing, AI usage, tone, and compliance.",
   },
+  communityGuidelines: {
+    path: "/community-guidelines",
+    title: "Community Guidelines | FintechPressHub",
+    description:
+      "Standards of conduct, content quality, and IP expectations for every contributor and community participant on FintechPressHub.",
+  },
   financialHealthCalculator: {
     path: "/tools/financial-health-score-calculator",
     title:

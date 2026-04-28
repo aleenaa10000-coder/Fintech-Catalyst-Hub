@@ -26,6 +26,7 @@ const STATIC_ROUTES: Array<{
   { path: "/refund-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/cookie-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/terms", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
+  { path: "/community-guidelines", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
 ];
 
 // Author profile slugs come straight from the canonical frontend data file
