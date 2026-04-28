@@ -148,6 +148,26 @@ export function scheduleLinkCheckDaily(): void {
   if (scheduled) return;
   scheduled = true;
 
+  // The link-checker walks the public sitemap and HEADs every URL. The
+  // sitemap is built against `SITE_URL` (default
+  // `https://www.fintechpresshub.com`), which only resolves in
+  // production — in a dev / preview environment that domain isn't this
+  // server, so every URL would be reported as "broken" and the daily
+  // alert would either spam admins or pollute the dashboard with
+  // false-positives.
+  //
+  // We skip when not in production unless the operator has *explicitly*
+  // set `SITE_URL` (e.g. to a Replit preview URL) so they can still
+  // opt-in to dry-runs against a reachable host.
+  const isProd = process.env["NODE_ENV"] === "production";
+  const siteUrlOverride = process.env["SITE_URL"]?.trim();
+  if (!isProd && !siteUrlOverride) {
+    JOB_LOG.info(
+      "Skipping daily sitemap link-check — non-production environment and no SITE_URL override set. Set SITE_URL=<your preview URL> to enable in dev.",
+    );
+    return;
+  }
+
   setTimeout(() => {
     void runDailyLinkCheck();
   }, INITIAL_DELAY_MS);
