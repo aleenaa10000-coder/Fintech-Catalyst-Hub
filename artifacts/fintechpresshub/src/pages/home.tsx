@@ -2,10 +2,16 @@ import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { useGetTrustStats, useListTestimonials, useListFeaturedPosts, useListServices } from "@workspace/api-client-react";
+import {
+  useGetTrustStats,
+  useListTestimonials,
+  useListFeaturedPosts,
+  useListServices,
+  useListBlogPosts,
+} from "@workspace/api-client-react";
 import heroBg from "@/assets/hero-bg.png";
 import servicesGraph from "@/assets/services-graph.png";
-import { ArrowRight, CheckCircle2, TrendingUp, ShieldCheck, Globe, FileText, Link2, Cog, HelpCircle, Plus } from "lucide-react";
+import { ArrowRight, CheckCircle2, TrendingUp, ShieldCheck, Globe, FileText, Link2, Cog, HelpCircle, Plus, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -19,6 +25,36 @@ import { ParticleNetwork } from "@/components/ParticleNetwork";
 import { TrustedBy } from "@/components/TrustedBy";
 import { QuickPublishSheet } from "@/components/QuickPublishSheet";
 import { useAuth } from "@workspace/replit-auth-web";
+
+/** Tiny relative-time formatter used by the "Recently published"
+ *  homepage widget. Falls back to an absolute date once a post is
+ *  more than ~30 days old so a stale homepage doesn't claim something
+ *  was published "27 days ago" in perpetuity. */
+function formatRelativeTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const diffMs = Date.now() - date.getTime();
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  if (diffMs < minute) return "just now";
+  if (diffMs < hour) {
+    const mins = Math.floor(diffMs / minute);
+    return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  }
+  if (diffMs < day) {
+    const hrs = Math.floor(diffMs / hour);
+    return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  }
+  const days = Math.floor(diffMs / day);
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 const homeFaqs = [
   {
@@ -56,6 +92,13 @@ export default function Home() {
   const { data: testimonials } = useListTestimonials();
   const { data: featuredPosts } = useListFeaturedPosts();
   const { data: services } = useListServices();
+  // "Recently published" widget — pulls the 3 newest posts from the
+  // live API on every mount (the list endpoint already orders by
+  // `publishedAt desc`, so a `limit=3` is the whole story). Distinct
+  // from the curated `featuredPosts` grid above: that's editorially
+  // pinned, this is purely chronological so the homepage feels fresh
+  // the moment a post goes live.
+  const { data: recentPosts } = useListBlogPosts({ limit: 3 });
 
   return (
     <div className="min-h-screen">
@@ -332,6 +375,111 @@ export default function Home() {
                 <div key={i}><Skeleton className="aspect-video w-full rounded-xl mb-4" /><Skeleton className="h-6 w-full mb-2" /><Skeleton className="h-4 w-2/3" /></div>
               ))
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* Recently published — live, chronological feed (3 newest posts
+          straight from the API). Visually distinct from the curated
+          "Latest Insights" grid above so the homepage shows both
+          editorial picks AND a fresh "what just landed" signal. */}
+      <section
+        className="py-16 border-t bg-slate-50"
+        data-testid="section-home-recently-published"
+      >
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5 }}
+            className="flex justify-between items-end mb-8"
+          >
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
+                <Clock className="w-6 h-6 text-primary" />
+                Recently published
+              </h2>
+              <p className="text-muted-foreground">
+                The three newest posts on the blog, refreshed every visit.
+              </p>
+            </div>
+            <Link href="/blog" className="hidden md:flex">
+              <Button variant="ghost" size="sm">
+                Browse all posts
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </Link>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Array.isArray(recentPosts) && recentPosts.length > 0
+              ? recentPosts.map((post, i) => (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: i * 0.05 }}
+                  >
+                    <Link
+                      href={`/blog/${post.slug}`}
+                      className="group flex gap-4 p-4 rounded-xl bg-white border border-slate-200 hover:border-primary/40 hover:shadow-md transition-all h-full"
+                      data-testid={`recently-published-card-${i}`}
+                    >
+                      <div
+                        className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-slate-100"
+                        aria-hidden="true"
+                      >
+                        <img
+                          src={post.coverImage}
+                          alt=""
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col">
+                        <span className="text-[11px] font-medium uppercase tracking-wide text-sky-700 mb-1">
+                          {post.category}
+                        </span>
+                        <h3 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                          {post.title}
+                        </h3>
+                        <div className="mt-auto pt-2 text-xs text-muted-foreground flex items-center gap-1.5">
+                          <Clock className="w-3 h-3" />
+                          <time dateTime={post.publishedAt}>
+                            {formatRelativeTime(post.publishedAt)}
+                          </time>
+                          <span aria-hidden="true">·</span>
+                          <span>{post.readingMinutes} min read</span>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))
+              : Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex gap-4 p-4 rounded-xl bg-white border border-slate-200"
+                  >
+                    <Skeleton className="shrink-0 w-20 h-20 rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2 mt-2" />
+                    </div>
+                  </div>
+                ))}
+          </div>
+
+          <div className="mt-6 md:hidden">
+            <Link href="/blog">
+              <Button variant="outline" className="w-full">
+                Browse all posts
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
