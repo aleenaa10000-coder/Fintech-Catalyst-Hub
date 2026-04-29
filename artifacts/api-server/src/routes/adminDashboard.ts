@@ -5,7 +5,7 @@ import {
   type Response,
   type NextFunction,
 } from "express";
-import { db, guestPostSubmissionsTable, contactSubmissionsTable, blogPostsTable, newsletterSubscribersTable, contentReportsTable } from "@workspace/db";
+import { db, guestPostSubmissionsTable, contactSubmissionsTable, blogPostsTable, newsletterSubscribersTable, contentReportsTable, authorPhotoRequestsTable } from "@workspace/db";
 import { desc, count, eq } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
 
@@ -36,6 +36,7 @@ router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
       [reportTotal],
       [reportOpen],
       recentReports,
+      [pendingHeadshotCount],
     ] = await Promise.all([
       db.select({ total: count() }).from(guestPostSubmissionsTable),
       db
@@ -97,6 +98,10 @@ router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
         .where(eq(contentReportsTable.status, "open"))
         .orderBy(desc(contentReportsTable.createdAt))
         .limit(5),
+      db
+        .select({ total: count() })
+        .from(authorPhotoRequestsTable)
+        .where(eq(authorPhotoRequestsTable.status, "pending")),
     ]);
 
     res.json({
@@ -119,6 +124,9 @@ router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
         total: reportTotal?.total ?? 0,
         open: reportOpen?.total ?? 0,
         recent: recentReports,
+      },
+      authorPhotoRequests: {
+        pending: pendingHeadshotCount?.total ?? 0,
       },
     });
   } catch (err) {

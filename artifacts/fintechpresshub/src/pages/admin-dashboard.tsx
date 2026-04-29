@@ -24,6 +24,7 @@ import {
   ArrowRight,
   LayoutDashboard,
   Flag,
+  Camera,
 } from "lucide-react";
 
 function timeAgo(iso: string): string {
@@ -81,6 +82,7 @@ interface DashboardData {
   blogPosts: { total: number; recent: RecentPost[] };
   newsletterSubscribers: { total: number };
   contentReports?: { open: number; total: number; recent: RecentReport[] };
+  authorPhotoRequests?: { pending: number };
 }
 
 function StatCard({
@@ -265,6 +267,20 @@ export default function AdminDashboard() {
               </a>
             </Button>
             <Button asChild variant="outline" size="sm">
+              <a href="/admin/author-photos" className="relative">
+                <Camera className="w-4 h-4 mr-1.5" /> Headshots
+                {(data?.authorPhotoRequests?.pending ?? 0) > 0 ? (
+                  <Badge
+                    variant="destructive"
+                    className="ml-1.5 h-5 min-w-5 px-1.5 text-[10px] font-semibold"
+                    data-testid="badge-pending-headshots-header"
+                  >
+                    {data!.authorPhotoRequests!.pending}
+                  </Badge>
+                ) : null}
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="sm">
               <a href="/admin/audit-log">
                 <ScrollText className="w-4 h-4 mr-1.5" /> Audit log
               </a>
@@ -325,6 +341,17 @@ export default function AdminDashboard() {
                 color={
                   (data.contentReports?.open ?? 0) > 0
                     ? "bg-red-100 text-red-600"
+                    : "bg-slate-100 text-slate-500"
+                }
+              />
+              <StatCard
+                icon={Camera}
+                label="Pending Headshots"
+                value={data.authorPhotoRequests?.pending ?? 0}
+                href="/admin/author-photos"
+                color={
+                  (data.authorPhotoRequests?.pending ?? 0) > 0
+                    ? "bg-amber-100 text-amber-600"
                     : "bg-slate-100 text-slate-500"
                 }
               />
@@ -515,20 +542,35 @@ export default function AdminDashboard() {
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-2">
                 <Settings className="w-4 h-4" /> Admin sections
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
                 {[
-                  { label: "Blog", icon: BookOpen, href: "/admin/blog" },
-                  { label: "Submissions", icon: Inbox, href: "/admin/moderation" },
-                  { label: "Newsletter", icon: TrendingUp, href: "/admin/newsletter" },
-                  { label: "Services", icon: Settings, href: "/admin/services" },
-                  { label: "Audit log", icon: ScrollText, href: "/admin/audit-log" },
-                  { label: "Notifications", icon: Bell, href: "/admin/notifications" },
-                ].map(({ label, icon: Icon, href }) => (
+                  { label: "Blog", icon: BookOpen, href: "/admin/blog", badge: 0 },
+                  { label: "Submissions", icon: Inbox, href: "/admin/moderation", badge: 0 },
+                  {
+                    label: "Headshots",
+                    icon: Camera,
+                    href: "/admin/author-photos",
+                    badge: data.authorPhotoRequests?.pending ?? 0,
+                  },
+                  { label: "Newsletter", icon: TrendingUp, href: "/admin/newsletter", badge: 0 },
+                  { label: "Services", icon: Settings, href: "/admin/services", badge: 0 },
+                  { label: "Audit log", icon: ScrollText, href: "/admin/audit-log", badge: 0 },
+                  { label: "Notifications", icon: Bell, href: "/admin/notifications", badge: 0 },
+                ].map(({ label, icon: Icon, href, badge }) => (
                   <a
                     key={href}
                     href={href}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors text-center group"
+                    className="relative flex flex-col items-center gap-2 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors text-center group"
                   >
+                    {badge > 0 ? (
+                      <Badge
+                        variant="destructive"
+                        className="absolute -top-2 -right-2 h-5 min-w-5 px-1.5 text-[10px] font-semibold shadow-sm"
+                        data-testid={`badge-quicknav-${label.toLowerCase()}`}
+                      >
+                        {badge}
+                      </Badge>
+                    ) : null}
                     <Icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                     <span className="text-xs font-medium">{label}</span>
                   </a>
