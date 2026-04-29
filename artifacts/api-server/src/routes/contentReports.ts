@@ -6,9 +6,12 @@ import {
   type NextFunction,
 } from "express";
 import { db, contentReportsTable } from "@workspace/db";
-import { desc, eq, and, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { isAdminEmail } from "../lib/auth";
+import { sendMail, cleanEmail } from "../lib/mailer";
+import { logger } from "../lib/logger";
+import { getSiteUrl } from "../lib/seo";
 
 const router: IRouter = Router();
 
@@ -32,6 +35,85 @@ const REASONS = [
   "broken",
   "other",
 ] as const;
+
+const REASON_LABELS: Record<(typeof REASONS)[number], string> = {
+  spam: "Spam / promotional",
+  inaccurate: "Factually inaccurate",
+  inappropriate: "Inappropriate or harmful",
+  copyright: "Copyright / plagiarism",
+  broken: "Broken link or media",
+  other: "Other",
+};
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildReportEmail(args: {
+  id: number;
+  contentType: string;
+  contentId: string;
+  contentTitle: string | null;
+  contentUrl: string | null;
+  reporterName: string | null;
+  reporterEmail: string | null;
+  reason: (typeof REASONS)[number];
+  details: string | null;
+}): { subject: string; text: string; html: string } {
+  const reasonLabel = REASON_LABELS[args.reason];
+  const titleLine =
+    args.contentTitle ?? `${args.contentType} · ${args.contentId}`;
+  const subject = `New content report (${reasonLabel}): ${titleLine}`;
+
+  const moderationUrl = `${getSiteUrl()}/admin/moderation`;
+
+  const lines = [
+    `A reader has flagged content on FintechPressHub.`,
+    ``,
+    `Reason:        ${reasonLabel}`,
+    `Content type:  ${args.contentType}`,
+    `Content title: ${titleLine}`,
+    args.contentUrl ? `Content URL:   ${args.contentUrl}` : null,
+    `Reporter:      ${args.reporterEmail ?? "Anonymous"}${args.reporterName ? ` (${args.reporterName})` : ""}`,
+    ``,
+    `Details:`,
+    args.details ?? "(no additional details provided)",
+    ``,
+    `Triage in the moderation inbox: ${moderationUrl}`,
+  ].filter((l): l is string => l !== null);
+
+  const html = `
+    <div style="font-family:system-ui,sans-serif;color:#0a2540">
+      <h2 style="margin:0 0 8px 0;color:#dc2626">New content report</h2>
+      <p style="margin:0 0 16px 0;color:#475569;font-size:14px">A reader has flagged content on FintechPressHub.</p>
+      <table cellpadding="6" style="font-size:14px;border-collapse:collapse;margin-bottom:16px">
+        <tr><td><b>Reason</b></td><td>${escapeHtml(reasonLabel)}</td></tr>
+        <tr><td><b>Content type</b></td><td>${escapeHtml(args.contentType)}</td></tr>
+        <tr><td><b>Title</b></td><td>${escapeHtml(titleLine)}</td></tr>
+        ${args.contentUrl ? `<tr><td><b>URL</b></td><td><a href="${escapeHtml(args.contentUrl)}" style="color:#0052FF">${escapeHtml(args.contentUrl)}</a></td></tr>` : ""}
+        <tr><td><b>Reporter</b></td><td>${args.reporterEmail ? `<a href="mailto:${escapeHtml(args.reporterEmail)}" style="color:#0052FF">${escapeHtml(args.reporterEmail)}</a>` : "Anonymous"}${args.reporterName ? ` (${escapeHtml(args.reporterName)})` : ""}</td></tr>
+      </table>
+      ${
+        args.details
+          ? `<div style="border-left:3px solid #dc2626;padding:8px 12px;background:#fef2f2;font-size:14px;white-space:pre-wrap;margin-bottom:16px">${escapeHtml(args.details)}</div>`
+          : `<p style="font-size:13px;color:#94a3b8;font-style:italic">No additional details provided.</p>`
+      }
+      <p style="margin:16px 0 0 0;font-size:14px">
+        <a href="${escapeHtml(moderationUrl)}" style="display:inline-block;background:#0052FF;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600">
+          Triage in moderation inbox →
+        </a>
+      </p>
+      <p style="margin-top:24px;font-size:12px;color:#94a3b8">Report #${args.id} · automated alert</p>
+    </div>
+  `;
+
+  return { subject, text: lines.join("\n"), html };
+}
 
 const STATUSES = ["open", "resolved", "dismissed"] as const;
 
@@ -100,6 +182,44 @@ router.post("/reports", async (req, res, next) => {
         details: parsed.data.details ?? null,
       })
       .returning({ id: contentReportsTable.id });
+
+    // Fire-and-forget editorial alert. Falls through to CONTACT_NOTIFY_TO and
+    // then SMTP_USER so the same env you configured for contact leads can be
+    // reused. Won't block the public response if email transport is missing.
+    const notifyTo = cleanEmail(
+      process.env["REPORT_NOTIFY_TO"] ??
+        process.env["CONTACT_NOTIFY_TO"] ??
+        process.env["SMTP_USER"],
+    );
+    if (notifyTo && row) {
+      const email = buildReportEmail({
+        id: row.id,
+        contentType: parsed.data.contentType,
+        contentId: parsed.data.contentId,
+        contentTitle: parsed.data.contentTitle ?? null,
+        contentUrl: parsed.data.contentUrl ?? null,
+        reporterName: parsed.data.reporterName ?? null,
+        reporterEmail: parsed.data.reporterEmail ?? null,
+        reason: parsed.data.reason,
+        details: parsed.data.details ?? null,
+      });
+      void sendMail({
+        to: notifyTo,
+        subject: email.subject,
+        text: email.text,
+        html: email.html,
+        ...(parsed.data.reporterEmail
+          ? { replyTo: parsed.data.reporterEmail }
+          : {}),
+      }).catch((err) =>
+        logger.error({ err, reportId: row.id }, "Content report alert email failed"),
+      );
+    } else if (!notifyTo) {
+      logger.warn(
+        { reportId: row?.id },
+        "Content report saved but no recipient configured (set REPORT_NOTIFY_TO, CONTACT_NOTIFY_TO, or SMTP_USER).",
+      );
+    }
 
     res.status(201).json({ ok: true, id: row?.id ?? null });
   } catch (err) {

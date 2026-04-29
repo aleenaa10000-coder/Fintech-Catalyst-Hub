@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSubscribeToAuthor } from "@workspace/api-client-react";
 import type { Author } from "@/data/authors";
+import {
+  resolveAuthorPhoto,
+  useAuthorPhotoOverrides,
+} from "@/data/useAuthorPhotos";
 
 type Props = {
   author: Pick<Author, "slug" | "name" | "role" | "photo">;
@@ -26,6 +30,8 @@ function authorInitials(name: string): string {
 }
 
 export function AuthorSubscribeCard({ author, className }: Props) {
+  const overrides = useAuthorPhotoOverrides();
+  const photo = resolveAuthorPhoto(author.slug, author.photo, overrides);
   const [email, setEmail] = useState("");
   const [done, setDone] = useState<null | { alreadySubscribed: boolean }>(null);
 
@@ -78,9 +84,9 @@ export function AuthorSubscribeCard({ author, className }: Props) {
       <CardContent className="relative p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="relative w-11 h-11 shrink-0 rounded-full overflow-hidden bg-white/20 border border-white/30 text-white flex items-center justify-center font-bold text-sm">
-            {author.photo ? (
+            {photo ? (
               <img
-                src={author.photo}
+                src={photo}
                 alt={`${author.name} headshot`}
                 loading="lazy"
                 className="absolute inset-0 w-full h-full object-cover"

@@ -26,6 +26,10 @@ import {
   authorSlugFromName,
   getAuthorBySlug,
 } from "@/data/authors";
+import {
+  resolveAuthorPhoto,
+  useAuthorPhotoOverrides,
+} from "@/data/useAuthorPhotos";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", {
@@ -49,6 +53,7 @@ export default function AuthorPage() {
   const slug = params.slug || "";
 
   const author = useMemo(() => getAuthorBySlug(slug), [slug]);
+  const overrides = useAuthorPhotoOverrides();
   // Merged feed picks up newly published API posts so an author's profile
   // automatically reflects everything they've published — including posts
   // created in /admin/blog after the static seed file was generated.
@@ -67,6 +72,8 @@ export default function AuthorPage() {
     return <Redirect to="/404" />;
   }
 
+  const authorPhoto = resolveAuthorPhoto(author.slug, author.photo, overrides);
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <PageMeta
@@ -83,8 +90,10 @@ export default function AuthorPage() {
           jobTitle: author.role,
           description:
             author.fullBio?.join(" ") ?? author.shortBio,
-          image: author.photo
-            ? `https://www.fintechpresshub.com${author.photo}`
+          image: authorPhoto
+            ? authorPhoto.startsWith("http")
+              ? authorPhoto
+              : `https://www.fintechpresshub.com${authorPhoto}`
             : undefined,
           email: author.social?.email,
           knowsAbout: author.expertise,
@@ -140,9 +149,9 @@ export default function AuthorPage() {
               transition={{ duration: 0.4 }}
               className="relative w-28 h-28 md:w-32 md:h-32 shrink-0 rounded-full overflow-hidden bg-white/15 border-2 border-white/30 backdrop-blur text-white flex items-center justify-center font-bold text-3xl md:text-4xl shadow-lg"
             >
-              {author.photo ? (
+              {authorPhoto ? (
                 <img
-                  src={author.photo}
+                  src={authorPhoto}
                   alt={`${author.name} headshot`}
                   loading="eager"
                   className="absolute inset-0 w-full h-full object-cover"
@@ -376,16 +385,23 @@ export default function AuthorPage() {
                   <Card className="border border-slate-100 hover:border-[#0052FF]/40 hover:shadow-md transition-all cursor-pointer group">
                     <CardContent className="p-4 flex items-center gap-4">
                       <div className="relative w-12 h-12 shrink-0 rounded-full overflow-hidden bg-[#0052FF] text-white flex items-center justify-center font-bold text-sm">
-                        {a.photo ? (
-                          <img
-                            src={a.photo}
-                            alt={`${a.name} headshot`}
-                            loading="lazy"
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                        ) : (
-                          authorInitials(a.name)
-                        )}
+                        {(() => {
+                          const otherPhoto = resolveAuthorPhoto(
+                            a.slug,
+                            a.photo,
+                            overrides,
+                          );
+                          return otherPhoto ? (
+                            <img
+                              src={otherPhoto}
+                              alt={`${a.name} headshot`}
+                              loading="lazy"
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            authorInitials(a.name)
+                          );
+                        })()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-slate-900 group-hover:text-[#0052FF] transition-colors truncate">

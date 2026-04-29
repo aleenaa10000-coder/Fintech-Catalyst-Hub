@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/PageHero";
 import { authors } from "@/data/authors";
 import { SITE_URL } from "@/lib/metaData";
+import {
+  resolveAuthorPhoto,
+  useAuthorPhotoOverrides,
+} from "@/data/useAuthorPhotos";
 
 interface CoreValue {
   icon: LucideIcon;
@@ -61,6 +65,7 @@ const aboutKnowsAbout = [
 ];
 
 export default function About() {
+  const overrides = useAuthorPhotoOverrides();
 
   const teamForSchema = authors.map((a) => ({
     name: a.name,
@@ -215,7 +220,13 @@ export default function About() {
                   <CardContent className="p-6">
                     <div className="flex items-start gap-5">
                       <img
-                        src={author.photo}
+                        src={
+                          resolveAuthorPhoto(
+                            author.slug,
+                            author.photo,
+                            overrides,
+                          ) ?? author.photo
+                        }
                         alt={`${author.name} — ${author.role}`}
                         loading="lazy"
                         className="h-20 w-20 rounded-full object-cover ring-2 ring-primary/20 shrink-0"

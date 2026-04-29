@@ -14,6 +14,10 @@ import {
 } from "lucide-react";
 import { usePublicPosts } from "@/data/usePublicPosts";
 import { authors, authorSlugFromName } from "@/data/authors";
+import {
+  resolveAuthorPhoto,
+  useAuthorPhotoOverrides,
+} from "@/data/useAuthorPhotos";
 
 function authorInitials(name: string): string {
   return name
@@ -29,6 +33,7 @@ export default function AuthorsIndex() {
   // Counts include API-published posts, so per-author article totals stay
   // accurate as new pieces ship through /admin/blog.
   const { posts: allPosts } = usePublicPosts();
+  const overrides = useAuthorPhotoOverrides();
   const articleCounts = allPosts.reduce<Record<string, number>>((acc, p) => {
     const slug = authorSlugFromName(p.author);
     acc[slug] = (acc[slug] ?? 0) + 1;
@@ -71,16 +76,23 @@ export default function AuthorsIndex() {
                     <Card className="h-full overflow-hidden border border-slate-200 hover:border-[#0052FF]/40 hover:shadow-xl transition-all duration-300 group cursor-pointer bg-card">
                       <CardContent className="p-6 sm:p-8 flex flex-col sm:flex-row gap-6">
                         <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 mx-auto sm:mx-0 rounded-2xl overflow-hidden bg-gradient-to-br from-[#0052FF] to-[#0040CC] text-white flex items-center justify-center font-bold text-2xl shadow-md">
-                          {author.photo ? (
-                            <img
-                              src={author.photo}
-                              alt={`${author.name} headshot`}
-                              loading="lazy"
-                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            />
-                          ) : (
-                            authorInitials(author.name)
-                          )}
+                          {(() => {
+                            const photo = resolveAuthorPhoto(
+                              author.slug,
+                              author.photo,
+                              overrides,
+                            );
+                            return photo ? (
+                              <img
+                                src={photo}
+                                alt={`${author.name} headshot`}
+                                loading="lazy"
+                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              />
+                            ) : (
+                              authorInitials(author.name)
+                            );
+                          })()}
                         </div>
 
                         <div className="flex-1 min-w-0">

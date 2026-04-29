@@ -22,6 +22,10 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { usePublicPosts, usePublicPostBySlug } from "@/data/usePublicPosts";
 import { authorSlugFromName, getAuthorByName } from "@/data/authors";
+import {
+  resolveAuthorPhoto,
+  useAuthorPhotoOverrides,
+} from "@/data/useAuthorPhotos";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useIncrementBlogPostView } from "@workspace/api-client-react";
 import { ReportContentDialog } from "@/components/ReportContentDialog";
@@ -108,6 +112,7 @@ export default function BlogPost() {
   // so non-admins (and signed-out visitors) never see the button.
   const { user } = useAuth();
   const isAdmin = Boolean(user?.isAdmin);
+  const photoOverrides = useAuthorPhotoOverrides();
 
   // Pulls from the merged feed (static seed posts + API-published posts).
   // Slug collisions resolve in favour of the API version, so an admin can
@@ -491,11 +496,16 @@ export default function BlogPost() {
               >
                 {(() => {
                   const ap = getAuthorByName(post.author);
+                  const apPhoto = resolveAuthorPhoto(
+                    ap?.slug ?? null,
+                    ap?.photo,
+                    photoOverrides,
+                  );
                   return (
                     <div className="relative w-10 h-10 rounded-full overflow-hidden bg-[#0052FF] text-white flex items-center justify-center font-bold text-xs shadow-sm group-hover:scale-105 transition-transform">
-                      {ap?.photo ? (
+                      {apPhoto ? (
                         <img
-                          src={ap.photo}
+                          src={apPhoto}
                           alt={`${post.author} headshot`}
                           className="absolute inset-0 w-full h-full object-cover"
                         />
@@ -828,15 +838,22 @@ export default function BlogPost() {
                       aria-label={`View ${post.author}'s profile`}
                     >
                       <div className="relative w-16 h-16 rounded-full overflow-hidden bg-[#0052FF] text-white flex items-center justify-center font-bold text-xl shadow-md hover:scale-105 transition-transform">
-                        {authorProfile?.photo ? (
-                          <img
-                            src={authorProfile.photo}
-                            alt={`${post.author} headshot`}
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                        ) : (
-                          authorInitials(post.author)
-                        )}
+                        {(() => {
+                          const profilePhoto = resolveAuthorPhoto(
+                            authorProfile?.slug ?? null,
+                            authorProfile?.photo,
+                            photoOverrides,
+                          );
+                          return profilePhoto ? (
+                            <img
+                              src={profilePhoto}
+                              alt={`${post.author} headshot`}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            authorInitials(post.author)
+                          );
+                        })()}
                       </div>
                     </Link>
                     <div className="flex-1">

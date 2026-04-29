@@ -66,6 +66,7 @@ import {
   Inbox,
   Send as SendIcon,
   LayoutDashboard,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -2675,6 +2676,16 @@ export default function AdminBlog() {
             >
               <a href="/admin/moderation">
                 <Inbox className="w-4 h-4 mr-1.5" /> Moderation inbox
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              data-testid="open-author-photos"
+            >
+              <a href="/admin/author-photos">
+                <Users className="w-4 h-4 mr-1.5" /> Author photos
               </a>
             </Button>
             <span className="text-muted-foreground">
