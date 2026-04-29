@@ -18,6 +18,8 @@ import {
   resolveAuthorPhoto,
   useAuthorPhotoOverrides,
 } from "@/data/useAuthorPhotos";
+import { prefetchAuthor } from "@/lib/route-prefetch";
+import { useEffect, useRef } from "react";
 
 function authorInitials(name: string): string {
   return name
@@ -40,6 +42,32 @@ export default function AuthorsIndex() {
     return acc;
   }, {});
 
+  // Warm the author bio chunk once any team card scrolls into range.
+  const authorGridRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (typeof IntersectionObserver === "undefined") {
+      prefetchAuthor();
+      return;
+    }
+    const el = authorGridRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            prefetchAuthor();
+            observer.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <PageMeta
@@ -59,7 +87,10 @@ export default function AuthorsIndex() {
 
       <section className="py-20">
         <div className="container mx-auto px-4 max-w-6xl">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+          <div
+            ref={authorGridRef}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6"
+          >
             {authors.map((author, i) => {
               const count = articleCounts[author.slug] ?? 0;
               return (
@@ -71,6 +102,9 @@ export default function AuthorsIndex() {
                 >
                   <Link
                     href={`/authors/${author.slug}`}
+                    onMouseEnter={prefetchAuthor}
+                    onFocus={prefetchAuthor}
+                    onTouchStart={prefetchAuthor}
                     data-testid={`link-team-${author.slug}`}
                   >
                     <Card className="h-full overflow-hidden border border-slate-200 hover:border-[#0052FF]/40 hover:shadow-xl transition-all duration-300 group cursor-pointer bg-card">

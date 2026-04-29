@@ -10,9 +10,39 @@ import {
   getServiceIcon,
   serviceShortLabelBySlug as shortLabelBySlug,
 } from "@/lib/serviceIcons";
+import { prefetchServiceDetail } from "@/lib/route-prefetch";
+import { useEffect, useRef } from "react";
 
 export default function Services() {
   const { data: services, isLoading } = useListServices();
+
+  // Warm the service-detail chunk as soon as the service blocks scroll
+  // within ~200px of the viewport. Same one-shot pattern as the blog
+  // index — `prefetchServiceDetail` dedupes via a module-level flag.
+  const serviceListRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (typeof IntersectionObserver === "undefined") {
+      prefetchServiceDetail();
+      return;
+    }
+    const el = serviceListRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            prefetchServiceDetail();
+            observer.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -51,7 +81,7 @@ export default function Services() {
             </div>
           )}
 
-          <div className="flex flex-col gap-16">
+          <div ref={serviceListRef} className="flex flex-col gap-16">
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex flex-col md:flex-row gap-8 border rounded-2xl p-8 shadow-sm">
@@ -80,7 +110,12 @@ export default function Services() {
                     {service.description}
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    <Link href={`/services/${service.slug}`}>
+                    <Link
+                      href={`/services/${service.slug}`}
+                      onMouseEnter={prefetchServiceDetail}
+                      onFocus={prefetchServiceDetail}
+                      onTouchStart={prefetchServiceDetail}
+                    >
                       <Button size="lg" data-testid={`button-learn-more-${service.slug}`}>
                         Learn more
                         <ArrowRight className="ml-2 h-4 w-4" />

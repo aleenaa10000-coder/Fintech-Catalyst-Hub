@@ -57,3 +57,34 @@ export function prefetchBlogPost(): void {
     blogPostPrefetched = false;
   });
 }
+
+/**
+ * `/services/:slug` always renders `service-detail.tsx`, so it follows
+ * the same one-shot pattern as blog posts.
+ */
+const SERVICE_DETAIL_LOADER = () => import("@/pages/service-detail");
+let serviceDetailPrefetched = false;
+
+export function prefetchServiceDetail(): void {
+  if (typeof window === "undefined") return;
+  if (serviceDetailPrefetched) return;
+  serviceDetailPrefetched = true;
+  SERVICE_DETAIL_LOADER().catch(() => {
+    serviceDetailPrefetched = false;
+  });
+}
+
+/**
+ * `/authors/:slug` always renders `author.tsx`, same one-shot pattern.
+ */
+const AUTHOR_LOADER = () => import("@/pages/author");
+let authorPrefetched = false;
+
+export function prefetchAuthor(): void {
+  if (typeof window === "undefined") return;
+  if (authorPrefetched) return;
+  authorPrefetched = true;
+  AUTHOR_LOADER().catch(() => {
+    authorPrefetched = false;
+  });
+}
