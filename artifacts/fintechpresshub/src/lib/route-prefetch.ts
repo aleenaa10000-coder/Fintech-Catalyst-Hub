@@ -88,3 +88,70 @@ export function prefetchAuthor(): void {
     authorPrefetched = false;
   });
 }
+
+/**
+ * Admin route bundle. Once a logged-in admin user is detected anywhere
+ * on the site, we want to silently warm every admin page chunk so that
+ * navigating between them never shows a Suspense fallback. Each loader
+ * fires sequentially during browser idle time so we never compete with
+ * actual user-initiated work for network or CPU.
+ *
+ * Visitors who are not admins never trigger this — the bundle is large
+ * enough (~150 KB total across all admin chunks) that we don't want to
+ * waste bandwidth on the 99% of traffic who will never see /admin.
+ */
+const ADMIN_LOADERS: ReadonlyArray<() => Promise<unknown>> = [
+  () => import("@/pages/admin-dashboard"),
+  () => import("@/pages/admin-blog"),
+  () => import("@/pages/admin-services"),
+  () => import("@/pages/admin-newsletter"),
+  () => import("@/pages/admin-moderation"),
+  () => import("@/pages/admin-audit-log"),
+  () => import("@/pages/admin-notifications"),
+  () => import("@/pages/admin-author-photos"),
+  () => import("@/pages/admin-authors-subscribers"),
+  () => import("@/pages/admin-author-subscribers"),
+  () => import("@/pages/admin-commissioning-topics"),
+];
+
+let adminBundlePrefetched = false;
+
+type IdleWindow = Window & {
+  requestIdleCallback?: (
+    cb: IdleRequestCallback,
+    opts?: { timeout: number },
+  ) => number;
+};
+
+function scheduleIdle(fn: () => void): void {
+  const w = window as IdleWindow;
+  if (typeof w.requestIdleCallback === "function") {
+    w.requestIdleCallback(() => fn(), { timeout: 3000 });
+  } else {
+    // Safari fallback. 1500ms is long enough that we're past the
+    // initial render burst on virtually every device.
+    setTimeout(fn, 1500);
+  }
+}
+
+export function prefetchAdminBundle(): void {
+  if (typeof window === "undefined") return;
+  if (adminBundlePrefetched) return;
+  adminBundlePrefetched = true;
+
+  // Stagger imports one per idle slice so we never block a real
+  // user interaction. Failures are swallowed — if a chunk genuinely
+  // can't load, the user will hit the normal Suspense fallback when
+  // they navigate to that route, which is the same UX as before.
+  let i = 0;
+  const next = () => {
+    const loader = ADMIN_LOADERS[i++];
+    if (!loader) return;
+    loader()
+      .catch(() => undefined)
+      .finally(() => {
+        if (i < ADMIN_LOADERS.length) scheduleIdle(next);
+      });
+  };
+  scheduleIdle(next);
+}

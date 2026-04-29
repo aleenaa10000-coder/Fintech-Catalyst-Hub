@@ -4,8 +4,10 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { useEffect, lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
+import { useAuth } from "@workspace/replit-auth-web";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { prefetchAdminBundle } from "@/lib/route-prefetch";
 
 // Eager: home is the most common landing route — keep it in the main chunk
 // so the first paint after hydration doesn't wait on a code-split fetch.
@@ -84,10 +86,31 @@ function ScrollToTop() {
   return null;
 }
 
+/**
+ * Once the user is detected as an admin, schedule background loading
+ * of every admin route chunk during browser idle time. The prefetch
+ * helper is idempotent and self-deduping, so re-runs (e.g. when the
+ * auth query refetches) cost nothing.
+ *
+ * `useAuth` is already called from `home.tsx` and elsewhere on the
+ * public site, so mounting it here adds no extra network requests —
+ * the same `/api/auth/user` query is shared via React Query's cache.
+ */
+function AdminBundlePrefetch() {
+  const { user, isAuthenticated } = useAuth();
+  useEffect(() => {
+    if (isAuthenticated && user?.isAdmin) {
+      prefetchAdminBundle();
+    }
+  }, [isAuthenticated, user?.isAdmin]);
+  return null;
+}
+
 function Router() {
   return (
     <div className="flex flex-col min-h-screen">
       <ScrollToTop />
+      <AdminBundlePrefetch />
       <Header />
       <main className="flex-grow pt-16">
         <Suspense fallback={<RouteFallback />}>
