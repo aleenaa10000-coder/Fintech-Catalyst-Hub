@@ -46,14 +46,7 @@ const replitDevPlugins =
 
 export default defineConfig(({ command }) => {
   const rawPort = process.env.PORT;
-  const basePath = process.env.BASE_PATH;
-  const isServing = command === "serve";
-
-  if (isServing && !rawPort) {
-    throw new Error(
-      "PORT environment variable is required but was not provided.",
-    );
-  }
+  const basePath = process.env.BASE_PATH ?? "/";
 
   const port = rawPort ? Number(rawPort) : 5173;
 
@@ -61,14 +54,8 @@ export default defineConfig(({ command }) => {
     throw new Error(`Invalid PORT value: "${rawPort}"`);
   }
 
-  if (isServing && !basePath) {
-    throw new Error(
-      "BASE_PATH environment variable is required but was not provided.",
-    );
-  }
-
   return {
-  base: basePath ?? "/",
+  base: basePath,
   define: {
     __TERMS_LAST_UPDATED_ISO__: JSON.stringify(TERMS_LAST_UPDATED_ISO),
   },
