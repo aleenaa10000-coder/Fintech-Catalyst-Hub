@@ -20,7 +20,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { usePublicPosts, usePublicPostBySlug } from "@/data/usePublicPosts";
+import {
+  usePublicPosts,
+  usePublicPostBySlug,
+  type PublicPost,
+} from "@/data/usePublicPosts";
+import { prefetchBlogPost } from "@/lib/route-prefetch";
 import { authorSlugFromName, getAuthorByName } from "@/data/authors";
 import {
   resolveAuthorPhoto,
@@ -233,13 +238,59 @@ export default function BlogPost() {
     };
   }, [slug]);
 
-  const relatedPosts = useMemo(
-    () =>
-      allPosts
-        .filter((p) => p.category === post?.category && p.id !== post?.id)
-        .slice(0, 3),
-    [allPosts, post?.id, post?.category],
-  );
+  /**
+   * Related-posts recommendation engine.
+   *
+   * Scoring model (per candidate post):
+   *   +5  same category as the current post
+   *   +2  per shared tag
+   * Ties are broken by recency (newer first) so when scores are flat the
+   * reader still gets the freshest take. Posts with score 0 are kept as a
+   * pure-recency fallback pool so the row is *always* fully populated even
+   * for an article in a niche category with no overlap — better to show
+   * three good-but-unrelated articles than one orphaned card.
+   *
+   * Capped at 3 to match the 3-column grid below.
+   */
+  const RELATED_LIMIT = 3;
+  const relatedPosts = useMemo(() => {
+    if (!post) return [] as PublicPost[];
+    const currentTags = new Set(post.tags ?? []);
+    const currentTime = new Date(post.date).getTime();
+
+    type Scored = { post: PublicPost; score: number; time: number };
+    const scored: Scored[] = [];
+    for (const p of allPosts) {
+      if (p.id === post.id) continue;
+      let score = 0;
+      if (p.category === post.category) score += 5;
+      if (currentTags.size > 0 && p.tags) {
+        for (const t of p.tags) {
+          if (currentTags.has(t)) score += 2;
+        }
+      }
+      scored.push({ post: p, score, time: new Date(p.date).getTime() });
+    }
+
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return b.time - a.time;
+    });
+
+    // Prefer posts with non-zero score first; fall back to the recency
+    // pool only if we'd otherwise come up short.
+    const withScore = scored.filter((s) => s.score > 0);
+    const filler = scored.filter((s) => s.score === 0);
+    const fillerSorted = filler.sort((a, b) => {
+      const tieByDistance =
+        Math.abs(currentTime - a.time) - Math.abs(currentTime - b.time);
+      return tieByDistance;
+    });
+
+    return [...withScore, ...fillerSorted]
+      .slice(0, RELATED_LIMIT)
+      .map((s) => s.post);
+  }, [allPosts, post]);
 
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
 
@@ -929,8 +980,14 @@ export default function BlogPost() {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {relatedPosts.map((rp: any) => (
-                <Link key={rp.id} href={`/blog/${rp.slug}`}>
+              {relatedPosts.map((rp) => (
+                <Link
+                  key={rp.id}
+                  href={`/blog/${rp.slug}`}
+                  onMouseEnter={prefetchBlogPost}
+                  onFocus={prefetchBlogPost}
+                  onTouchStart={prefetchBlogPost}
+                >
                   <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer bg-card">
                     <div className="aspect-[16/9] overflow-hidden bg-slate-100">
                       <img
