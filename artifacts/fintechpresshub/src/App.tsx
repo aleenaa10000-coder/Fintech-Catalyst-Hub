@@ -1,43 +1,71 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+// Eager: home is the most common landing route — keep it in the main chunk
+// so the first paint after hydration doesn't wait on a code-split fetch.
 import Home from "@/pages/home";
-import About from "@/pages/about";
-import Services from "@/pages/services";
-import ServiceDetail from "@/pages/service-detail";
-import Pricing from "@/pages/pricing";
-import Blog from "@/pages/blog";
-import BlogPost from "@/pages/blog-post";
-import AuthorPage from "@/pages/author";
-import AuthorsIndex from "@/pages/authors";
-import WriteForUs from "@/pages/write-for-us";
-import Contact from "@/pages/contact";
-import PrivacyPolicy from "@/pages/privacy-policy";
-import RefundPolicy from "@/pages/refund-policy";
-import CookiePolicy from "@/pages/cookie-policy";
-import Terms from "@/pages/terms";
-import EditorialGuidelines from "@/pages/editorial-guidelines";
-import CommunityGuidelines from "@/pages/community-guidelines";
-import FinancialHealthScoreCalculator from "@/pages/tools/financial-health-score-calculator";
-import AdminLogin from "@/pages/admin-login";
-import AdminServices from "@/pages/admin-services";
-import AdminBlog from "@/pages/admin-blog";
-import AdminAuthorsSubscribers from "@/pages/admin-authors-subscribers";
-import AdminAuthorSubscribers from "@/pages/admin-author-subscribers";
-import AdminCommissioningTopics from "@/pages/admin-commissioning-topics";
-import AdminNewsletter from "@/pages/admin-newsletter";
-import AdminModeration from "@/pages/admin-moderation";
-import AdminAuditLog from "@/pages/admin-audit-log";
-import AdminNotifications from "@/pages/admin-notifications";
-import AdminDashboard from "@/pages/admin-dashboard";
-import AdminAuthorPhotos from "@/pages/admin-author-photos";
 import NotFound from "@/pages/not-found";
+
+// Lazy-loaded routes — each becomes its own JS chunk fetched on demand.
+const About = lazy(() => import("@/pages/about"));
+const Services = lazy(() => import("@/pages/services"));
+const ServiceDetail = lazy(() => import("@/pages/service-detail"));
+const Pricing = lazy(() => import("@/pages/pricing"));
+const Blog = lazy(() => import("@/pages/blog"));
+const BlogPost = lazy(() => import("@/pages/blog-post"));
+const AuthorPage = lazy(() => import("@/pages/author"));
+const AuthorsIndex = lazy(() => import("@/pages/authors"));
+const WriteForUs = lazy(() => import("@/pages/write-for-us"));
+const Contact = lazy(() => import("@/pages/contact"));
+const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
+const RefundPolicy = lazy(() => import("@/pages/refund-policy"));
+const CookiePolicy = lazy(() => import("@/pages/cookie-policy"));
+const Terms = lazy(() => import("@/pages/terms"));
+const EditorialGuidelines = lazy(() => import("@/pages/editorial-guidelines"));
+const CommunityGuidelines = lazy(() => import("@/pages/community-guidelines"));
+const FinancialHealthScoreCalculator = lazy(
+  () => import("@/pages/tools/financial-health-score-calculator"),
+);
+const AdminLogin = lazy(() => import("@/pages/admin-login"));
+const AdminServices = lazy(() => import("@/pages/admin-services"));
+const AdminBlog = lazy(() => import("@/pages/admin-blog"));
+const AdminAuthorsSubscribers = lazy(
+  () => import("@/pages/admin-authors-subscribers"),
+);
+const AdminAuthorSubscribers = lazy(
+  () => import("@/pages/admin-author-subscribers"),
+);
+const AdminCommissioningTopics = lazy(
+  () => import("@/pages/admin-commissioning-topics"),
+);
+const AdminNewsletter = lazy(() => import("@/pages/admin-newsletter"));
+const AdminModeration = lazy(() => import("@/pages/admin-moderation"));
+const AdminAuditLog = lazy(() => import("@/pages/admin-audit-log"));
+const AdminNotifications = lazy(() => import("@/pages/admin-notifications"));
+const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
+const AdminAuthorPhotos = lazy(() => import("@/pages/admin-author-photos"));
+
+function RouteFallback() {
+  return (
+    <div
+      className="flex min-h-[60vh] items-center justify-center"
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary"
+        aria-hidden="true"
+      />
+      <span className="sr-only">Loading…</span>
+    </div>
+  );
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,8 +90,9 @@ function Router() {
       <ScrollToTop />
       <Header />
       <main className="flex-grow pt-16">
-        <Switch>
-          <Route path="/" component={Home} />
+        <Suspense fallback={<RouteFallback />}>
+          <Switch>
+            <Route path="/" component={Home} />
           <Route path="/about" component={About} />
           <Route path="/services" component={Services} />
           <Route path="/services/:slug" component={ServiceDetail} />
@@ -107,7 +136,8 @@ function Router() {
           <Route path="/admin/notifications" component={AdminNotifications} />
           <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
-        </Switch>
+          </Switch>
+        </Suspense>
       </main>
       <Footer />
     </div>
