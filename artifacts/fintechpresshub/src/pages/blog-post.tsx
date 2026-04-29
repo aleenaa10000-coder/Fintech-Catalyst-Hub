@@ -10,7 +10,6 @@ import {
   Clock,
   Calendar,
   User,
-  ListOrdered,
   Linkedin,
   Link2,
   ChevronRight,
@@ -34,6 +33,7 @@ import {
 import { useAuth } from "@workspace/replit-auth-web";
 import { useIncrementBlogPostView } from "@workspace/api-client-react";
 import { ReportContentDialog } from "@/components/ReportContentDialog";
+import { BlogPostToc } from "@/components/BlogPostToc";
 
 const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
@@ -747,38 +747,12 @@ export default function BlogPost() {
       {/* Content + sticky TOC grid */}
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 lg:gap-12">
-          {/* Sticky TOC (desktop only) — 1/4 width. Always rendered so
-              every blog post has the same on-page navigation; falls back to
-              section anchors when the article has no H2 headings. */}
-          <aside className="hidden lg:block lg:col-span-1">
-            <nav className="sticky top-24" aria-label="On this page">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4">
-                <ListOrdered className="w-4 h-4" />
-                On this page
-              </div>
-              <ul className="space-y-2 border-l border-slate-200">
-                {tocItems.map((h) => {
-                  const active = activeHeadingId === h.id;
-                  return (
-                    <li key={h.id}>
-                      <a
-                        href={`#${h.id}`}
-                        className={`block text-sm border-l-2 -ml-px pl-4 py-1 transition-all ${
-                          h.level === 3 ? "pl-7 text-[13px]" : "font-medium"
-                        } ${
-                          active
-                            ? "text-[#0052FF] border-[#0052FF] font-semibold"
-                            : "text-slate-600 border-transparent hover:text-[#0052FF] hover:border-[#0052FF]"
-                        }`}
-                      >
-                        {h.text}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
-          </aside>
+          {/* Sticky TOC sidebar (desktop) + floating mobile sheet.
+              Always rendered so every blog post has the same on-page
+              navigation; falls back to section anchors when the article
+              has no H2 headings. The component handles smooth-scroll
+              jumps and the animated active-heading indicator. */}
+          <BlogPostToc items={tocItems} activeId={activeHeadingId} />
 
           {/* Main article column — 3/4 width */}
           <div className="lg:col-span-3 min-w-0">

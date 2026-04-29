@@ -69,3 +69,7 @@ channel = "stable-25_05"
 [userenv.shared]
 REPORT_FROM_EMAIL = "FintechPressHub <onboarding@resend.dev>"
 ADMIN_EMAILS = "hello@fintechpresshub.com,jasmine.offpageseospecialist@hotmail.com"
+
+[userenv.production]
+INDEXNOW_KEY = "cYBulNRfdK5MiecIhrEQr0r8jh0TI-ow"
+SITE_URL = "https://www.fintechpresshub.com"
