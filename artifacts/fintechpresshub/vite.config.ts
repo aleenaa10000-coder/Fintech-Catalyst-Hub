@@ -30,30 +30,45 @@ function gitFileMtimeIso(relPath: string): string {
 
 const TERMS_LAST_UPDATED_ISO = gitFileMtimeIso("src/pages/terms.tsx");
 
-const rawPort = process.env.PORT;
+const replitDevPlugins =
+  process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined
+    ? [
+        await import("@replit/vite-plugin-cartographer").then((m) =>
+          m.cartographer({
+            root: path.resolve(import.meta.dirname, ".."),
+          }),
+        ),
+        await import("@replit/vite-plugin-dev-banner").then((m) =>
+          m.devBanner(),
+        ),
+      ]
+    : [];
 
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
+export default defineConfig(({ command }) => {
+  const rawPort = process.env.PORT;
+  const basePath = process.env.BASE_PATH;
+  const isServing = command === "serve";
 
-const port = Number(rawPort);
+  if (isServing && !rawPort) {
+    throw new Error(
+      "PORT environment variable is required but was not provided.",
+    );
+  }
 
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
+  const port = rawPort ? Number(rawPort) : 5173;
 
-const basePath = process.env.BASE_PATH;
+  if (rawPort && (Number.isNaN(port) || port <= 0)) {
+    throw new Error(`Invalid PORT value: "${rawPort}"`);
+  }
 
-if (!basePath) {
-  throw new Error(
-    "BASE_PATH environment variable is required but was not provided.",
-  );
-}
+  if (isServing && !basePath) {
+    throw new Error(
+      "BASE_PATH environment variable is required but was not provided.",
+    );
+  }
 
-export default defineConfig({
-  base: basePath,
+  return {
+  base: basePath ?? "/",
   define: {
     __TERMS_LAST_UPDATED_ISO__: JSON.stringify(TERMS_LAST_UPDATED_ISO),
   },
@@ -66,19 +81,7 @@ export default defineConfig({
       siteUrl:
         process.env.SITE_URL ?? "https://www.fintechpresshub.com",
     }),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer({
-              root: path.resolve(import.meta.dirname, ".."),
-            }),
-          ),
-          await import("@replit/vite-plugin-dev-banner").then((m) =>
-            m.devBanner(),
-          ),
-        ]
-      : []),
+    ...replitDevPlugins,
   ],
   resolve: {
     alias: {
@@ -135,4 +138,5 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
   },
+  };
 });
