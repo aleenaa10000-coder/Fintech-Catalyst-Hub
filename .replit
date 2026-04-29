@@ -24,13 +24,13 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "bash -c 'PORT=8080 pnpm --filter @workspace/api-server run dev & API_PID=$!; sleep 1; PORT=5000 BASE_PATH=/ pnpm --filter @workspace/fintechpresshub run dev; kill $API_PID 2>/dev/null'"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash -c 'PORT=8080 pnpm --filter @workspace/api-server run dev & API_PID=$!; PORT=8081 BASE_PATH=/__mockup pnpm --filter @workspace/mockup-sandbox run dev & SANDBOX_PID=$!; sleep 2; PORT=5000 BASE_PATH=/ pnpm --filter @workspace/fintechpresshub run dev; kill $API_PID $SANDBOX_PID 2>/dev/null'"
+waitForPort = 5000
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
