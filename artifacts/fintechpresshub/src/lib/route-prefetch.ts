@@ -36,3 +36,24 @@ export function prefetchRoute(path: string): void {
     prefetched.delete(path);
   });
 }
+
+/**
+ * Every individual blog post URL (`/blog/:slug`) renders the same
+ * `blog-post.tsx` component, so its chunk only needs to be prefetched
+ * once per session — not per card. Exposed as a dedicated function
+ * (rather than a path entry above) because there is no single literal
+ * pathname that maps to it. The blog index calls this both from an
+ * IntersectionObserver as cards scroll into view and from per-card
+ * hover/focus, both deduped by the flag below.
+ */
+const BLOG_POST_LOADER = () => import("@/pages/blog-post");
+let blogPostPrefetched = false;
+
+export function prefetchBlogPost(): void {
+  if (typeof window === "undefined") return;
+  if (blogPostPrefetched) return;
+  blogPostPrefetched = true;
+  BLOG_POST_LOADER().catch(() => {
+    blogPostPrefetched = false;
+  });
+}

@@ -31,6 +31,7 @@ import {
 import { toast } from "sonner";
 import { usePublicPosts, type PublicPost } from "@/data/usePublicPosts";
 import { authors, authorSlugFromName, getAuthorBySlug } from "@/data/authors";
+import { prefetchBlogPost } from "@/lib/route-prefetch";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", {
@@ -335,6 +336,37 @@ export default function Blog() {
   const restBatch = visiblePosts.slice(NEWSLETTER_AFTER);
   const showNewsletter = visiblePosts.length >= 3;
 
+  // Warm the blog-post chunk the moment any post card scrolls within
+  // ~200px of the viewport. Every /blog/:slug route shares the same
+  // component, so one fetch is enough for the whole session — the
+  // helper itself dedupes via a module-level flag. Falls back to an
+  // immediate prefetch when IntersectionObserver isn't available
+  // (very old browsers, JSDOM, etc.).
+  const postGridRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (typeof IntersectionObserver === "undefined") {
+      prefetchBlogPost();
+      return;
+    }
+    const el = postGridRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            prefetchBlogPost();
+            observer.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
 
@@ -376,7 +408,13 @@ export default function Blog() {
       exit={{ opacity: 0, y: -10, scale: 0.97 }}
       transition={{ duration: 0.35, delay: i * 0.04 }}
     >
-      <Link href={`/blog/${post.slug}`} data-testid={`link-post-${post.slug}`}>
+      <Link
+        href={`/blog/${post.slug}`}
+        onMouseEnter={prefetchBlogPost}
+        onFocus={prefetchBlogPost}
+        onTouchStart={prefetchBlogPost}
+        data-testid={`link-post-${post.slug}`}
+      >
         <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer bg-card">
           <div className="aspect-[16/9] overflow-hidden bg-slate-100">
             <img
@@ -916,7 +954,10 @@ export default function Blog() {
                   </Select>
                 </div>
               </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div
+              ref={postGridRef}
+              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"
+            >
             {visiblePosts.length === 0 ? (
               <div className="col-span-full">
                 {searchQuery.trim() || activeTag || activeAuthor ? (
