@@ -24,6 +24,7 @@ import { usePublicPosts, usePublicPostBySlug } from "@/data/usePublicPosts";
 import { authorSlugFromName, getAuthorByName } from "@/data/authors";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useIncrementBlogPostView } from "@workspace/api-client-react";
+import { ReportContentDialog } from "@/components/ReportContentDialog";
 
 const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
@@ -872,6 +873,21 @@ export default function BlogPost() {
             })()}
             </div>
           </div>
+        </div>
+
+        {/* Report this post */}
+        <div className="mt-12 pt-6 border-t border-slate-200 flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-xs text-muted-foreground">
+            See something wrong with this article? Let our editors know.
+          </p>
+          <ReportContentDialog
+            contentType="blog_post"
+            contentId={post.slug}
+            contentTitle={post.title}
+            contentUrl={`${SITE_URL}/blog/${post.slug}`}
+            triggerVariant="outline"
+            triggerLabel="Report this post"
+          />
         </div>
 
         {/* Related Posts */}

@@ -23,6 +23,7 @@ import {
   Star,
   ArrowRight,
   LayoutDashboard,
+  Flag,
 } from "lucide-react";
 
 function timeAgo(iso: string): string {
@@ -64,11 +65,22 @@ interface RecentPost {
   featured: boolean;
 }
 
+interface RecentReport {
+  id: number;
+  contentType: string;
+  contentId: string;
+  contentTitle: string | null;
+  reason: string;
+  reporterEmail: string | null;
+  createdAt: string;
+}
+
 interface DashboardData {
   pitchSubmissions: { total: number; recent: RecentPitch[] };
   contactSubmissions: { total: number; recent: RecentContact[] };
   blogPosts: { total: number; recent: RecentPost[] };
   newsletterSubscribers: { total: number };
+  contentReports?: { open: number; total: number; recent: RecentReport[] };
 }
 
 function StatCard({
@@ -290,7 +302,7 @@ export default function AdminDashboard() {
         ) : data ? (
           <>
             {/* Stat cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
               <StatCard
                 icon={FileText}
                 label="Guest Pitches"
@@ -304,6 +316,17 @@ export default function AdminDashboard() {
                 value={data.contactSubmissions.total}
                 href="/admin/moderation"
                 color="bg-orange-100 text-orange-600"
+              />
+              <StatCard
+                icon={Flag}
+                label="Open Reports"
+                value={data.contentReports?.open ?? 0}
+                href="/admin/moderation"
+                color={
+                  (data.contentReports?.open ?? 0) > 0
+                    ? "bg-red-100 text-red-600"
+                    : "bg-slate-100 text-slate-500"
+                }
               />
               <StatCard
                 icon={Newspaper}
@@ -401,6 +424,43 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Open Content Reports */}
+            {data.contentReports && data.contentReports.recent.length > 0 && (
+              <Card className="mb-6 border-red-200/50">
+                <CardContent className="pt-5 pb-4 px-5">
+                  <SectionHeader
+                    icon={Flag}
+                    title="Open content reports"
+                    href="/admin/moderation"
+                    linkLabel="View all"
+                  />
+                  <ul className="divide-y">
+                    {data.contentReports.recent.map((r) => (
+                      <li key={r.id} className="py-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {r.contentTitle ?? `${r.contentType} · ${r.contentId}`}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {r.reporterEmail ?? "Anonymous"}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <Badge
+                            variant="secondary"
+                            className="text-[11px] mb-0.5 bg-red-100 text-red-700"
+                          >
+                            {r.reason}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground">{timeAgo(r.createdAt)}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Recent Blog Posts */}
             <Card className="mb-6">

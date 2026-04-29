@@ -2674,7 +2674,7 @@ export default function AdminBlog() {
               data-testid="open-moderation"
             >
               <a href="/admin/moderation">
-                <Inbox className="w-4 h-4 mr-1.5" /> Submissions
+                <Inbox className="w-4 h-4 mr-1.5" /> Moderation inbox
               </a>
             </Button>
             <span className="text-muted-foreground">

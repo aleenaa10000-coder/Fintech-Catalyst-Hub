@@ -5,8 +5,8 @@ import {
   type Response,
   type NextFunction,
 } from "express";
-import { db, guestPostSubmissionsTable, contactSubmissionsTable, blogPostsTable, newsletterSubscribersTable } from "@workspace/db";
-import { desc, count } from "drizzle-orm";
+import { db, guestPostSubmissionsTable, contactSubmissionsTable, blogPostsTable, newsletterSubscribersTable, contentReportsTable } from "@workspace/db";
+import { desc, count, eq } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
 
 const router: IRouter = Router();
@@ -33,6 +33,9 @@ router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
       [blogCount],
       recentPosts,
       [subscriberCount],
+      [reportTotal],
+      [reportOpen],
+      recentReports,
     ] = await Promise.all([
       db.select({ total: count() }).from(guestPostSubmissionsTable),
       db
@@ -75,6 +78,25 @@ router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
         .orderBy(desc(blogPostsTable.publishedAt))
         .limit(5),
       db.select({ total: count() }).from(newsletterSubscribersTable),
+      db.select({ total: count() }).from(contentReportsTable),
+      db
+        .select({ total: count() })
+        .from(contentReportsTable)
+        .where(eq(contentReportsTable.status, "open")),
+      db
+        .select({
+          id: contentReportsTable.id,
+          contentType: contentReportsTable.contentType,
+          contentId: contentReportsTable.contentId,
+          contentTitle: contentReportsTable.contentTitle,
+          reason: contentReportsTable.reason,
+          reporterEmail: contentReportsTable.reporterEmail,
+          createdAt: contentReportsTable.createdAt,
+        })
+        .from(contentReportsTable)
+        .where(eq(contentReportsTable.status, "open"))
+        .orderBy(desc(contentReportsTable.createdAt))
+        .limit(5),
     ]);
 
     res.json({
@@ -92,6 +114,11 @@ router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
       },
       newsletterSubscribers: {
         total: subscriberCount?.total ?? 0,
+      },
+      contentReports: {
+        total: reportTotal?.total ?? 0,
+        open: reportOpen?.total ?? 0,
+        recent: recentReports,
       },
     });
   } catch (err) {
