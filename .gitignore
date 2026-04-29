@@ -40,6 +40,17 @@ testem.log
 # System Files
 .DS_Store
 Thumbs.db
+desktop.ini
+__MACOSX/
+$RECYCLE.BIN/
+
+# Editor / temporary / backup files
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.tmp
 
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
@@ -55,6 +66,7 @@ replit.md
 screenshots/
 attached_assets/screenshots/
 attached_assets/Screenshot_*.png
+attached_assets/screencapture-*.png
 
 # Environment / secrets — never commit local secrets.
 # .env.example is allowed and acts as the template for new clones.
