@@ -26,6 +26,7 @@ import {
   Flag,
   Camera,
   UserCog,
+  DollarSign,
 } from "lucide-react";
 
 function timeAgo(iso: string): string {
@@ -559,7 +560,7 @@ export default function AdminDashboard() {
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-2">
                 <Settings className="w-4 h-4" /> Admin sections
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
                 {[
                   { label: "Blog", icon: BookOpen, href: "/admin/blog", badge: 0 },
                   {
@@ -584,6 +585,7 @@ export default function AdminDashboard() {
                   },
                   { label: "Newsletter", icon: TrendingUp, href: "/admin/newsletter", badge: 0 },
                   { label: "Services", icon: Settings, href: "/admin/services", badge: 0 },
+                  { label: "Pricing", icon: DollarSign, href: "/admin/pricing", badge: 0 },
                   { label: "Audit log", icon: ScrollText, href: "/admin/audit-log", badge: 0 },
                   { label: "Notifications", icon: Bell, href: "/admin/notifications", badge: 0 },
                 ].map(({ label, icon: Icon, href, badge }) => (

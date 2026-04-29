@@ -13,7 +13,8 @@ import {
   Twitter,
 } from "lucide-react";
 import { usePublicPosts } from "@/data/usePublicPosts";
-import { authors, authorSlugFromName } from "@/data/authors";
+import { authorSlugFromName } from "@/data/authors";
+import { useAuthors } from "@/data/useAuthors";
 import {
   resolveAuthorPhoto,
   useAuthorPhotoOverrides,
@@ -32,6 +33,8 @@ function authorInitials(name: string): string {
 }
 
 export default function AuthorsIndex() {
+  // Live author roster — falls back to static seed until the API responds.
+  const authors = useAuthors();
   // Counts include API-published posts, so per-author article totals stay
   // accurate as new pieces ship through /admin/blog.
   const { posts: allPosts } = usePublicPosts();

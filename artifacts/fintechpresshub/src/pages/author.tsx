@@ -22,11 +22,8 @@ import {
 } from "lucide-react";
 import { SITE_URL } from "@/lib/metaData";
 import { usePublicPosts } from "@/data/usePublicPosts";
-import {
-  authors,
-  authorSlugFromName,
-  getAuthorBySlug,
-} from "@/data/authors";
+import { authorSlugFromName } from "@/data/authors";
+import { useAuthorBySlug, useAuthors } from "@/data/useAuthors";
 import {
   resolveAuthorPhoto,
   useAuthorPhotoOverrides,
@@ -53,7 +50,9 @@ export default function AuthorPage() {
   const params = useParams();
   const slug = params.slug || "";
 
-  const author = useMemo(() => getAuthorBySlug(slug), [slug]);
+  // Live author data — falls back to static seed until the API responds.
+  const author = useAuthorBySlug(slug);
+  const authors = useAuthors();
   const overrides = useAuthorPhotoOverrides();
   // Merged feed picks up newly published API posts so an author's profile
   // automatically reflects everything they've published — including posts
