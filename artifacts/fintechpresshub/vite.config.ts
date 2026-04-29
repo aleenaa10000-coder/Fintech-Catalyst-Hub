@@ -94,6 +94,58 @@ export default defineConfig(({ command }) => {
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        // Split slow-moving third-party deps into their own long-cached
+        // chunks so a deploy that only changes app code doesn't bust the
+        // vendor cache for returning visitors.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+
+          if (
+            id.includes("/react/") ||
+            id.includes("/react-dom/") ||
+            id.includes("/scheduler/") ||
+            id.includes("/react-helmet-async/")
+          ) {
+            return "vendor-react";
+          }
+          if (id.includes("/@radix-ui/")) {
+            return "vendor-radix";
+          }
+          if (id.includes("/@tanstack/")) {
+            return "vendor-query";
+          }
+          if (id.includes("/wouter")) {
+            return "vendor-router";
+          }
+          if (
+            id.includes("/react-hook-form/") ||
+            id.includes("/@hookform/") ||
+            id.includes("/zod/")
+          ) {
+            return "vendor-forms";
+          }
+          if (id.includes("/framer-motion/")) {
+            return "vendor-motion";
+          }
+          if (
+            id.includes("/lucide-react/") ||
+            id.includes("/react-icons/")
+          ) {
+            return "vendor-icons";
+          }
+          if (
+            id.includes("/date-fns/") ||
+            id.includes("/react-day-picker/")
+          ) {
+            return "vendor-date";
+          }
+
+          return undefined;
+        },
+      },
+    },
   },
   server: {
     port,
