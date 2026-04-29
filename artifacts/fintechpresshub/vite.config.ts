@@ -2,8 +2,33 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { execSync } from "node:child_process";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import botOgPlugin from "./scripts/bot-og-plugin.mjs";
+
+/**
+ * Inject the git mtime of a tracked source file as a build-time constant so
+ * legal pages (Terms, Privacy, etc.) can display an accurate "Last updated"
+ * date that auto-tracks file edits without manual bumps.
+ *
+ * Returns an ISO-8601 timestamp string, or an empty string if the file is
+ * untracked / outside a git repo (in which case the page falls back to its
+ * hard-coded date).
+ */
+function gitFileMtimeIso(relPath: string): string {
+  try {
+    const out = execSync(`git log -1 --format=%cI -- ${relPath}`, {
+      cwd: import.meta.dirname,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return out || "";
+  } catch {
+    return "";
+  }
+}
+
+const TERMS_LAST_UPDATED_ISO = gitFileMtimeIso("src/pages/terms.tsx");
 
 const rawPort = process.env.PORT;
 
@@ -29,6 +54,9 @@ if (!basePath) {
 
 export default defineConfig({
   base: basePath,
+  define: {
+    __TERMS_LAST_UPDATED_ISO__: JSON.stringify(TERMS_LAST_UPDATED_ISO),
+  },
   plugins: [
     react(),
     tailwindcss(),

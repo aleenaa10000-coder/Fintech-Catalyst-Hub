@@ -15,6 +15,8 @@ import {
   RotateCcw,
   CheckCircle2,
   Image as ImageIcon,
+  Inbox,
+  X as XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -27,6 +29,19 @@ interface OverrideRow {
   updatedBy: string | null;
   updatedAt: string;
 }
+
+interface RequestRow {
+  id: number;
+  slug: string;
+  photoUrl: string;
+  submitterName: string | null;
+  submitterEmail: string | null;
+  note: string | null;
+  status: "pending" | "approved" | "dismissed";
+  createdAt: string;
+}
+
+const AUTHOR_NAMES_BY_SLUG: Record<string, string> = {};
 
 const HEADSHOT_MIN = { width: 800, height: 800 };
 
@@ -67,6 +82,16 @@ async function setOverride(slug: string, photoUrl: string) {
   return (await res.json()) as { ok: true; override: OverrideRow };
 }
 
+async function reviewRequest(id: number, status: "approved" | "dismissed") {
+  const res = await fetch(`/api/admin/author-photo-requests/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as { ok: true; request: RequestRow };
+}
+
 async function deleteOverride(slug: string) {
   const res = await fetch(
     `/api/admin/author-photos/${encodeURIComponent(slug)}`,
@@ -81,29 +106,71 @@ export default function AdminAuthorPhotos() {
   const { user, isAuthenticated, isLoading: authLoading, login, logout } = useAuth();
   const isAdmin = Boolean(user?.isAdmin);
   const [overrides, setOverrides] = useState<Record<string, OverrideRow>>({});
+  const [pendingRequests, setPendingRequests] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState<number | null>(null);
   const [search, setSearch] = useState("");
 
-  async function loadOverrides() {
+  // Build slug→name map once for the requests panel (which only has slugs).
+  for (const a of authors) AUTHOR_NAMES_BY_SLUG[a.slug] = a.name;
+
+  async function loadAll() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/author-photos");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as { overrides: OverrideRow[] };
-      const map: Record<string, OverrideRow> = {};
-      for (const r of json.overrides) map[r.slug] = r;
-      setOverrides(map);
-    } catch {
-      toast.error("Failed to load author photo overrides.");
+      const [overridesRes, requestsRes] = await Promise.all([
+        fetch("/api/admin/author-photos"),
+        fetch("/api/admin/author-photo-requests?status=pending"),
+      ]);
+      if (overridesRes.ok) {
+        const json = (await overridesRes.json()) as { overrides: OverrideRow[] };
+        const map: Record<string, OverrideRow> = {};
+        for (const r of json.overrides) map[r.slug] = r;
+        setOverrides(map);
+      } else {
+        toast.error("Failed to load author photo overrides.");
+      }
+      if (requestsRes.ok) {
+        const json = (await requestsRes.json()) as { requests: RequestRow[] };
+        setPendingRequests(json.requests);
+      } else {
+        toast.error("Failed to load pending requests.");
+      }
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (isAuthenticated && isAdmin) loadOverrides();
+    if (isAuthenticated && isAdmin) loadAll();
   }, [isAuthenticated, isAdmin]);
+
+  async function handleReview(id: number, status: "approved" | "dismissed") {
+    setReviewing(id);
+    try {
+      const { request } = await reviewRequest(id, status);
+      setPendingRequests((prev) => prev.filter((r) => r.id !== id));
+      if (status === "approved") {
+        setOverrides((prev) => ({
+          ...prev,
+          [request.slug]: {
+            slug: request.slug,
+            photoUrl: request.photoUrl,
+            updatedBy: null,
+            updatedAt: new Date().toISOString(),
+          },
+        }));
+        invalidateAuthorPhotoOverrides();
+        toast.success("Approved — headshot is now live.");
+      } else {
+        toast.success("Submission dismissed.");
+      }
+    } catch {
+      toast.error("Couldn't update the submission.");
+    } finally {
+      setReviewing(null);
+    }
+  }
 
   async function handleUpload(slug: string, uploadURL: string) {
     setBusy(slug);
@@ -221,7 +288,7 @@ export default function AdminAuthorPhotos() {
             <Button
               variant="outline"
               size="sm"
-              onClick={loadOverrides}
+              onClick={loadAll}
               disabled={loading}
             >
               <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
@@ -232,6 +299,97 @@ export default function AdminAuthorPhotos() {
             </Button>
           </div>
         </div>
+
+        {pendingRequests.length > 0 && (
+          <Card className="mb-8 border-amber-200 bg-amber-50/40">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Inbox className="w-4 h-4 text-amber-700" />
+                <h2 className="font-semibold text-amber-900">
+                  Pending submissions
+                </h2>
+                <Badge
+                  variant="secondary"
+                  className="bg-amber-100 text-amber-800 text-[11px]"
+                >
+                  {pendingRequests.length}
+                </Badge>
+              </div>
+              <div className="space-y-3">
+                {pendingRequests.map((req) => {
+                  const isReviewing = reviewing === req.id;
+                  return (
+                    <div
+                      key={req.id}
+                      className="flex flex-col sm:flex-row gap-4 p-3 rounded-lg border border-amber-200 bg-white"
+                      data-testid={`pending-request-${req.id}`}
+                    >
+                      <img
+                        src={req.photoUrl}
+                        alt="Submitted headshot"
+                        className="w-20 h-20 rounded-lg object-cover border shrink-0 mx-auto sm:mx-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm">
+                          For{" "}
+                          <span className="text-[#0052FF]">
+                            {AUTHOR_NAMES_BY_SLUG[req.slug] ?? req.slug}
+                          </span>
+                        </p>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Submitted{" "}
+                          {new Date(req.createdAt).toLocaleString(undefined, {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}{" "}
+                          by{" "}
+                          {req.submitterEmail ? (
+                            <a
+                              href={`mailto:${req.submitterEmail}`}
+                              className="text-[#0052FF] hover:underline"
+                            >
+                              {req.submitterName ?? req.submitterEmail}
+                            </a>
+                          ) : (
+                            req.submitterName ?? "anonymous"
+                          )}
+                        </p>
+                        {req.note && (
+                          <p className="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 mt-2 whitespace-pre-wrap">
+                            {req.note}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex sm:flex-col gap-2 shrink-0 self-stretch justify-end">
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-xs"
+                          onClick={() => handleReview(req.id, "approved")}
+                          disabled={isReviewing}
+                          data-testid={`approve-${req.id}`}
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs"
+                          onClick={() => handleReview(req.id, "dismissed")}
+                          disabled={isReviewing}
+                          data-testid={`dismiss-${req.id}`}
+                        >
+                          <XIcon className="w-3.5 h-3.5 mr-1.5" />
+                          Dismiss
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="mb-6">
           <Input

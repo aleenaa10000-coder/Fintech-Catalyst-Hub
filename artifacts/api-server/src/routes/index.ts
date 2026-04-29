@@ -24,6 +24,7 @@ import adminModerationRouter from "./adminModeration";
 import adminDashboardRouter from "./adminDashboard";
 import contentReportsRouter from "./contentReports";
 import authorPhotosRouter from "./authorPhotos";
+import authorPhotoRequestsRouter from "./authorPhotoRequests";
 
 const router: IRouter = Router();
 
@@ -52,5 +53,6 @@ router.use(adminModerationRouter);
 router.use(adminDashboardRouter);
 router.use(contentReportsRouter);
 router.use(authorPhotosRouter);
+router.use(authorPhotoRequestsRouter);
 
 export default router;

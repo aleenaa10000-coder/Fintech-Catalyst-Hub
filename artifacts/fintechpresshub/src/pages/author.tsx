@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AuthorSubscribeCard } from "@/components/AuthorSubscribeCard";
+import { AuthorHeadshotRequestDialog } from "@/components/AuthorHeadshotRequestDialog";
 import {
   ArrowLeft,
   ArrowRight,
@@ -238,6 +239,15 @@ export default function AuthorPage() {
                   </a>
                 </div>
               )}
+
+              <div className="mt-5">
+                <AuthorHeadshotRequestDialog
+                  authorSlug={author.slug}
+                  authorName={author.name}
+                  triggerLabel="Submit a new headshot"
+                  className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                />
+              </div>
             </div>
           </div>
         </div>

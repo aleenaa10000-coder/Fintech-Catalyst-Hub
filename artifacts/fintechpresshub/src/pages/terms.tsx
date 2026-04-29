@@ -1,6 +1,26 @@
 import { PageMeta } from "@/components/PageMeta";
 import { LegalPageLayout, type LegalSection } from "@/components/LegalPageLayout";
 
+// Build-time fallback if git mtime can't be resolved (e.g. shallow clones,
+// non-git environments). Bumped manually only when the page is rewritten
+// outside of git history.
+const FALLBACK_LAST_UPDATED_ISO = "2026-04-28";
+
+function resolveLastUpdated(): { display: string; iso: string } {
+  const raw = __TERMS_LAST_UPDATED_ISO__ || FALLBACK_LAST_UPDATED_ISO;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) {
+    return { display: "April 28, 2026", iso: FALLBACK_LAST_UPDATED_ISO };
+  }
+  // "DD MMM YYYY" — e.g. "29 Apr 2026"
+  const display = d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  return { display, iso: d.toISOString().slice(0, 10) };
+}
+
 const SECTIONS: LegalSection[] = [
   {
     id: "agreement-to-terms",
@@ -41,13 +61,14 @@ const SECTIONS: LegalSection[] = [
 ];
 
 export default function Terms() {
+  const { display, iso } = resolveLastUpdated();
   return (
     <>
-      <PageMeta page="terms" webPage={{ datePublished: "2023-10-01", dateModified: "2026-04-28" }} />
+      <PageMeta page="terms" webPage={{ datePublished: "2023-10-01", dateModified: iso }} />
       <LegalPageLayout
       title={<>Terms and Conditions</>}
       description="The agreement that governs your use of FintechPressHub's website, services, and engagements."
-      lastUpdated="April 28, 2026"
+      lastUpdated={display}
       sections={SECTIONS}
       testIdPrefix="terms"
     >

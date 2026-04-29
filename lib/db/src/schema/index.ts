@@ -14,3 +14,4 @@ export * from "./linkCheckResults";
 export * from "./bulkNoIndexAuditLog";
 export * from "./contentReports";
 export * from "./authorPhotoOverrides";
+export * from "./authorPhotoRequests";
