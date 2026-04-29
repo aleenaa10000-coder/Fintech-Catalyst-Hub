@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { prefetchRoute } from "@/lib/route-prefetch";
 import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
 
 const NAV_LINKS = [
@@ -53,6 +54,9 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
+              onMouseEnter={() => prefetchRoute(link.href)}
+              onFocus={() => prefetchRoute(link.href)}
+              onTouchStart={() => prefetchRoute(link.href)}
               aria-current={location === link.href ? "page" : undefined}
               className={cn(
                 "text-sm font-medium transition-colors hover:text-primary",
@@ -64,7 +68,12 @@ export function Header() {
               {link.label}
             </Link>
           ))}
-          <Link href="/contact">
+          <Link
+            href="/contact"
+            onMouseEnter={() => prefetchRoute("/contact")}
+            onFocus={() => prefetchRoute("/contact")}
+            onTouchStart={() => prefetchRoute("/contact")}
+          >
             <Button
               size="sm"
               className="bg-orange-500 hover:bg-orange-600 text-white font-semibold shadow-sm"
@@ -89,6 +98,8 @@ export function Header() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setIsOpen(false)}
+                  onTouchStart={() => prefetchRoute(link.href)}
+                  onFocus={() => prefetchRoute(link.href)}
                   aria-current={location === link.href ? "page" : undefined}
                   className={cn(
                     "text-lg font-medium transition-colors hover:text-primary",
@@ -101,7 +112,12 @@ export function Header() {
                 </Link>
               ))}
               <div className="pt-4 mt-4 border-t border-border">
-                <Link href="/contact" onClick={() => setIsOpen(false)}>
+                <Link
+                  href="/contact"
+                  onClick={() => setIsOpen(false)}
+                  onTouchStart={() => prefetchRoute("/contact")}
+                  onFocus={() => prefetchRoute("/contact")}
+                >
                   <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold">
                     Contact Us
                   </Button>
