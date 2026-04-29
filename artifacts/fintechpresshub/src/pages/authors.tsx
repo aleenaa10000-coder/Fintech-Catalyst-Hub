@@ -1,6 +1,6 @@
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ function authorInitials(name: string): string {
 }
 
 export default function AuthorsIndex() {
+  const [, navigate] = useLocation();
   // Live author roster — falls back to static seed until the API responds.
   const authors = useAuthors();
   // Counts include API-published posts, so per-author article totals stay
@@ -103,12 +104,16 @@ export default function AuthorsIndex() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: i * 0.06 }}
                 >
-                  <Link
-                    href={`/authors/${author.slug}`}
+                  <div
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => navigate(`/authors/${author.slug}`)}
+                    onKeyDown={(e) => e.key === "Enter" && navigate(`/authors/${author.slug}`)}
                     onMouseEnter={prefetchAuthor}
                     onFocus={prefetchAuthor}
                     onTouchStart={prefetchAuthor}
                     data-testid={`link-team-${author.slug}`}
+                    className="h-full"
                   >
                     <Card className="h-full overflow-hidden border border-slate-200 hover:border-[#0052FF]/40 hover:shadow-xl transition-all duration-300 group cursor-pointer bg-card">
                       <CardContent className="p-6 sm:p-8 flex flex-col sm:flex-row gap-6">
@@ -193,7 +198,7 @@ export default function AuthorsIndex() {
                         </div>
                       </CardContent>
                     </Card>
-                  </Link>
+                  </div>
                 </motion.div>
               );
             })}
