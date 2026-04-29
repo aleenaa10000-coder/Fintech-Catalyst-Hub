@@ -15,3 +15,4 @@ export * from "./bulkNoIndexAuditLog";
 export * from "./contentReports";
 export * from "./authorPhotoOverrides";
 export * from "./authorPhotoRequests";
+export * from "./authors";

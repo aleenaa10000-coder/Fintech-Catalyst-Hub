@@ -1,17 +1,20 @@
 import { sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
+  authorsTable,
   blogPostsTable,
   pricingPlansTable,
   servicesTable,
   siteStatsTable,
   testimonialsTable,
 } from "./schema";
+import type { AuthorSocial } from "./schema";
 import pricingSeed from "./seed-data/pricing.json";
 import servicesSeed from "./seed-data/services.json";
 import testimonialsSeed from "./seed-data/testimonials.json";
 import statsSeed from "./seed-data/stats.json";
 import blogPostsSeed from "./seed-data/blog_posts.json";
+import authorsSeed from "./seed-data/authors.json";
 
 type AnyDb = NodePgDatabase<Record<string, unknown>>;
 
@@ -59,6 +62,20 @@ type StatsRow = {
   average_domain_rating: number;
 };
 
+type AuthorSeedRow = {
+  slug: string;
+  name: string;
+  role: string;
+  photo: string;
+  short_bio: string;
+  full_bio: string[];
+  expertise: string[];
+  credentials: string[];
+  years_experience: number;
+  location: string;
+  social: AuthorSocial;
+};
+
 type BlogPostRow = {
   slug: string;
   title: string;
@@ -80,6 +97,7 @@ export type SeedReport = {
   testimonials: number;
   siteStats: number;
   blogPosts: number;
+  authors: number;
 };
 
 export async function runSeed(db: AnyDb): Promise<SeedReport> {
@@ -89,6 +107,7 @@ export async function runSeed(db: AnyDb): Promise<SeedReport> {
     testimonials: 0,
     siteStats: 0,
     blogPosts: 0,
+    authors: 0,
   };
 
   if (await isEmpty(db, "pricing_plans")) {
@@ -160,6 +179,25 @@ export async function runSeed(db: AnyDb): Promise<SeedReport> {
     }));
     await db.insert(blogPostsTable).values(rows);
     report.blogPosts = rows.length;
+  }
+
+  if (await isEmpty(db, "authors")) {
+    const rows = (authorsSeed as AuthorSeedRow[]).map((r, i) => ({
+      slug: r.slug,
+      name: r.name,
+      role: r.role,
+      photo: r.photo,
+      shortBio: r.short_bio,
+      fullBio: r.full_bio,
+      expertise: r.expertise,
+      credentials: r.credentials,
+      yearsExperience: r.years_experience,
+      location: r.location,
+      social: r.social,
+      sortOrder: i,
+    }));
+    await db.insert(authorsTable).values(rows);
+    report.authors = rows.length;
   }
 
   return report;

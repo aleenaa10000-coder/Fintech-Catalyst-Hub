@@ -25,6 +25,7 @@ import adminDashboardRouter from "./adminDashboard";
 import contentReportsRouter from "./contentReports";
 import authorPhotosRouter from "./authorPhotos";
 import authorPhotoRequestsRouter from "./authorPhotoRequests";
+import authorsRouter from "./authors";
 
 const router: IRouter = Router();
 
@@ -54,5 +55,6 @@ router.use(adminDashboardRouter);
 router.use(contentReportsRouter);
 router.use(authorPhotosRouter);
 router.use(authorPhotoRequestsRouter);
+router.use(authorsRouter);
 
 export default router;

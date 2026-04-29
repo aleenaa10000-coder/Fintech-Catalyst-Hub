@@ -25,6 +25,7 @@ import {
   LayoutDashboard,
   Flag,
   Camera,
+  UserCog,
 } from "lucide-react";
 
 function timeAgo(iso: string): string {
@@ -77,8 +78,12 @@ interface RecentReport {
 }
 
 interface DashboardData {
-  pitchSubmissions: { total: number; recent: RecentPitch[] };
-  contactSubmissions: { total: number; recent: RecentContact[] };
+  pitchSubmissions: { total: number; unread?: number; recent: RecentPitch[] };
+  contactSubmissions: {
+    total: number;
+    unread?: number;
+    recent: RecentContact[];
+  };
   blogPosts: { total: number; recent: RecentPost[] };
   newsletterSubscribers: { total: number };
   contentReports?: { open: number; total: number; recent: RecentReport[] };
@@ -321,17 +326,29 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
               <StatCard
                 icon={FileText}
-                label="Guest Pitches"
-                value={data.pitchSubmissions.total}
+                label="Unread Pitches"
+                value={
+                  data.pitchSubmissions.unread ?? data.pitchSubmissions.total
+                }
                 href="/admin/moderation"
-                color="bg-blue-100 text-blue-600"
+                color={
+                  (data.pitchSubmissions.unread ?? data.pitchSubmissions.total) > 0
+                    ? "bg-blue-100 text-blue-600"
+                    : "bg-slate-100 text-slate-500"
+                }
               />
               <StatCard
                 icon={MessageSquare}
-                label="Contact Enquiries"
-                value={data.contactSubmissions.total}
+                label="Unread Enquiries"
+                value={
+                  data.contactSubmissions.unread ?? data.contactSubmissions.total
+                }
                 href="/admin/moderation"
-                color="bg-orange-100 text-orange-600"
+                color={
+                  (data.contactSubmissions.unread ?? data.contactSubmissions.total) > 0
+                    ? "bg-orange-100 text-orange-600"
+                    : "bg-slate-100 text-slate-500"
+                }
               />
               <StatCard
                 icon={Flag}
@@ -542,10 +559,23 @@ export default function AdminDashboard() {
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-2">
                 <Settings className="w-4 h-4" /> Admin sections
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3">
                 {[
                   { label: "Blog", icon: BookOpen, href: "/admin/blog", badge: 0 },
-                  { label: "Submissions", icon: Inbox, href: "/admin/moderation", badge: 0 },
+                  {
+                    label: "Submissions",
+                    icon: Inbox,
+                    href: "/admin/moderation",
+                    badge:
+                      (data.pitchSubmissions.unread ?? 0) +
+                      (data.contactSubmissions.unread ?? 0),
+                  },
+                  {
+                    label: "Authors",
+                    icon: UserCog,
+                    href: "/admin/authors",
+                    badge: 0,
+                  },
                   {
                     label: "Headshots",
                     icon: Camera,

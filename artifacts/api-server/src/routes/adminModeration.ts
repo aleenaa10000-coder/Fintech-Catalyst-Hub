@@ -5,8 +5,9 @@ import {
   type Response,
   type NextFunction,
 } from "express";
+import { z } from "zod";
 import { db, guestPostSubmissionsTable, contactSubmissionsTable } from "@workspace/db";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
 
 const router: IRouter = Router();
@@ -23,28 +24,130 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-router.get("/admin/pitch-submissions", requireAdmin, async (_req, res, next) => {
+const STATUS_VALUES = ["unread", "handled"] as const;
+type SubmissionStatus = (typeof STATUS_VALUES)[number];
+const StatusFilter = z.enum(["all", ...STATUS_VALUES]);
+
+function parseStatusFilter(raw: unknown): "all" | SubmissionStatus {
+  const parsed = StatusFilter.safeParse(raw);
+  return parsed.success ? parsed.data : "unread";
+}
+
+const StatusBody = z.object({ status: z.enum(STATUS_VALUES) });
+
+router.get("/admin/pitch-submissions", requireAdmin, async (req, res, next) => {
   try {
-    const rows = await db
+    const status = parseStatusFilter(req.query["status"]);
+    const base = db
       .select()
       .from(guestPostSubmissionsTable)
       .orderBy(desc(guestPostSubmissionsTable.createdAt));
+    const rows =
+      status === "all"
+        ? await base
+        : await db
+            .select()
+            .from(guestPostSubmissionsTable)
+            .where(eq(guestPostSubmissionsTable.status, status))
+            .orderBy(desc(guestPostSubmissionsTable.createdAt));
     res.json({ submissions: rows });
   } catch (err) {
     next(err);
   }
 });
 
-router.get("/admin/contact-submissions", requireAdmin, async (_req, res, next) => {
+router.patch(
+  "/admin/pitch-submissions/:id",
+  requireAdmin,
+  async (req, res, next) => {
+    const id = Number(req.params["id"]);
+    if (!Number.isFinite(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const parsed = StatusBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input", issues: parsed.error.issues });
+      return;
+    }
+    try {
+      const status = parsed.data.status;
+      const [row] = await db
+        .update(guestPostSubmissionsTable)
+        .set({
+          status,
+          handledAt: status === "handled" ? new Date() : null,
+          handledBy:
+            status === "handled" ? req.user?.email ?? "admin" : null,
+        })
+        .where(eq(guestPostSubmissionsTable.id, id))
+        .returning();
+      if (!row) {
+        res.status(404).json({ error: "Submission not found" });
+        return;
+      }
+      res.json({ ok: true, submission: row });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.get("/admin/contact-submissions", requireAdmin, async (req, res, next) => {
   try {
-    const rows = await db
-      .select()
-      .from(contactSubmissionsTable)
-      .orderBy(desc(contactSubmissionsTable.createdAt));
+    const status = parseStatusFilter(req.query["status"]);
+    const rows =
+      status === "all"
+        ? await db
+            .select()
+            .from(contactSubmissionsTable)
+            .orderBy(desc(contactSubmissionsTable.createdAt))
+        : await db
+            .select()
+            .from(contactSubmissionsTable)
+            .where(eq(contactSubmissionsTable.status, status))
+            .orderBy(desc(contactSubmissionsTable.createdAt));
     res.json({ submissions: rows });
   } catch (err) {
     next(err);
   }
 });
+
+router.patch(
+  "/admin/contact-submissions/:id",
+  requireAdmin,
+  async (req, res, next) => {
+    const id = Number(req.params["id"]);
+    if (!Number.isFinite(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const parsed = StatusBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input", issues: parsed.error.issues });
+      return;
+    }
+    try {
+      const status = parsed.data.status;
+      const [row] = await db
+        .update(contactSubmissionsTable)
+        .set({
+          status,
+          handledAt: status === "handled" ? new Date() : null,
+          handledBy:
+            status === "handled" ? req.user?.email ?? "admin" : null,
+        })
+        .where(eq(contactSubmissionsTable.id, id))
+        .returning();
+      if (!row) {
+        res.status(404).json({ error: "Submission not found" });
+        return;
+      }
+      res.json({ ok: true, submission: row });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 export default router;

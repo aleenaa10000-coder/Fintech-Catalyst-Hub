@@ -84,6 +84,58 @@ import { HealthBadge } from "@/components/HealthBadge";
 
 const GUEST_AUTHOR_VALUE = "__guest__";
 
+const COVER_MIN_WIDTH = 1600;
+const COVER_MIN_HEIGHT = 800;
+
+/**
+ * Loads a remote URL into an Image element to read its natural dimensions.
+ * Used to give editors the same "image too small" warning the file-uploader
+ * shows when they paste an external cover URL instead of uploading a file.
+ * Resolves to null if the URL fails to load (CORS, 404, etc.) so callers
+ * can choose to silently skip rather than firing a confusing toast.
+ */
+async function probeImageDimensions(
+  url: string,
+): Promise<{ width: number; height: number } | null> {
+  if (!url || !/^https?:\/\//i.test(url.trim()) && !url.startsWith("/")) {
+    return null;
+  }
+  return new Promise((resolve) => {
+    const img = new Image();
+    let settled = false;
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(null);
+    }, 8000);
+    img.onload = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      resolve(null);
+    };
+    img.src = url;
+  });
+}
+
+async function warnIfCoverTooSmall(url: string) {
+  const trimmed = url.trim();
+  if (!trimmed) return;
+  const dims = await probeImageDimensions(trimmed);
+  if (!dims) return;
+  if (dims.width < COVER_MIN_WIDTH || dims.height < COVER_MIN_HEIGHT) {
+    toast.warning(
+      `Cover image is ${dims.width}×${dims.height}px — recommended at least ${COVER_MIN_WIDTH}×${COVER_MIN_HEIGHT}px (2:1) for hero crispness.`,
+    );
+  }
+}
+
 function authorSelectValue(name: string, role: string) {
   const match = authors.find(
     (a) => a.name === name && a.role === role,
@@ -1020,6 +1072,9 @@ function PostEditor({
               onChange={(e) =>
                 setDraft({ ...draft, coverImage: e.target.value })
               }
+              onBlur={(e) => {
+                void warnIfCoverTooSmall(e.target.value);
+              }}
               required
             />
             <ObjectUploader
@@ -1062,6 +1117,9 @@ function PostEditor({
               <Upload className="w-4 h-4" />
             </ObjectUploader>
           </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Recommended cover size: at least {COVER_MIN_WIDTH}×{COVER_MIN_HEIGHT} px (2:1).
+          </p>
         </div>
         <div>
           <Label htmlFor={`readingMinutes-${post.id}`}>Reading minutes</Label>
@@ -2858,6 +2916,9 @@ export default function AdminBlog() {
                       onChange={(e) =>
                         setForm({ ...form, coverImage: e.target.value })
                       }
+                      onBlur={(e) => {
+                        void warnIfCoverTooSmall(e.target.value);
+                      }}
                       required
                     />
                     <ObjectUploader

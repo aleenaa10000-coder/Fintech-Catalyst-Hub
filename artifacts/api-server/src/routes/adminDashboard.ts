@@ -27,8 +27,10 @@ router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
   try {
     const [
       [pitchCount],
+      [pitchUnreadCount],
       recentPitches,
       [contactCount],
+      [contactUnreadCount],
       recentContacts,
       [blogCount],
       recentPosts,
@@ -40,6 +42,10 @@ router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
     ] = await Promise.all([
       db.select({ total: count() }).from(guestPostSubmissionsTable),
       db
+        .select({ total: count() })
+        .from(guestPostSubmissionsTable)
+        .where(eq(guestPostSubmissionsTable.status, "unread")),
+      db
         .select({
           id: guestPostSubmissionsTable.id,
           name: guestPostSubmissionsTable.name,
@@ -49,9 +55,14 @@ router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
           createdAt: guestPostSubmissionsTable.createdAt,
         })
         .from(guestPostSubmissionsTable)
+        .where(eq(guestPostSubmissionsTable.status, "unread"))
         .orderBy(desc(guestPostSubmissionsTable.createdAt))
         .limit(5),
       db.select({ total: count() }).from(contactSubmissionsTable),
+      db
+        .select({ total: count() })
+        .from(contactSubmissionsTable)
+        .where(eq(contactSubmissionsTable.status, "unread")),
       db
         .select({
           id: contactSubmissionsTable.id,
@@ -62,6 +73,7 @@ router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
           createdAt: contactSubmissionsTable.createdAt,
         })
         .from(contactSubmissionsTable)
+        .where(eq(contactSubmissionsTable.status, "unread"))
         .orderBy(desc(contactSubmissionsTable.createdAt))
         .limit(5),
       db.select({ total: count() }).from(blogPostsTable),
@@ -107,10 +119,12 @@ router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
     res.json({
       pitchSubmissions: {
         total: pitchCount?.total ?? 0,
+        unread: pitchUnreadCount?.total ?? 0,
         recent: recentPitches,
       },
       contactSubmissions: {
         total: contactCount?.total ?? 0,
+        unread: contactUnreadCount?.total ?? 0,
         recent: recentContacts,
       },
       blogPosts: {

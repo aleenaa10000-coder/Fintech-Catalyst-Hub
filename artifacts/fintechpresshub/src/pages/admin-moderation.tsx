@@ -19,6 +19,7 @@ import {
   Flag,
   CheckCircle2,
   XCircle,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,6 +40,9 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
+type SubmissionStatus = "unread" | "handled";
+type SubmissionStatusFilter = SubmissionStatus | "all";
+
 interface PitchSubmission {
   id: number;
   name: string;
@@ -48,6 +52,9 @@ interface PitchSubmission {
   category: string | null;
   pitch: string;
   sampleUrl: string | null;
+  status: SubmissionStatus;
+  handledAt: string | null;
+  handledBy: string | null;
   createdAt: string;
 }
 
@@ -61,20 +68,108 @@ interface ContactSubmission {
   service: string | null;
   budget: string | null;
   message: string;
+  status: SubmissionStatus;
+  handledAt: string | null;
+  handledBy: string | null;
   createdAt: string;
 }
 
-function PitchRow({ sub }: { sub: PitchSubmission }) {
-  const [open, setOpen] = useState(false);
+function StatusBadge({ status }: { status: SubmissionStatus }) {
+  if (status === "handled") {
+    return (
+      <Badge
+        variant="secondary"
+        className="text-[10px] shrink-0 bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+      >
+        <CheckCircle2 className="w-3 h-3 mr-1" /> Handled
+      </Badge>
+    );
+  }
   return (
-    <div className="border-b last:border-b-0">
+    <Badge
+      variant="secondary"
+      className="text-[10px] shrink-0 bg-amber-100 text-amber-800 hover:bg-amber-100"
+    >
+      Unread
+    </Badge>
+  );
+}
+
+function StatusActions({
+  status,
+  busy,
+  onMark,
+}: {
+  status: SubmissionStatus;
+  busy: boolean;
+  onMark: (next: SubmissionStatus) => void;
+}) {
+  if (status === "unread") {
+    return (
+      <Button
+        size="sm"
+        onClick={() => onMark("handled")}
+        disabled={busy}
+        className="bg-emerald-600 hover:bg-emerald-700 text-xs"
+      >
+        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+        {busy ? "Saving…" : "Mark as handled"}
+      </Button>
+    );
+  }
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() => onMark("unread")}
+      disabled={busy}
+      className="text-xs"
+    >
+      <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+      {busy ? "Saving…" : "Reopen"}
+    </Button>
+  );
+}
+
+function PitchRow({
+  sub,
+  onSetStatus,
+}: {
+  sub: PitchSubmission;
+  onSetStatus: (id: number, status: SubmissionStatus) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function handle(next: SubmissionStatus) {
+    setBusy(true);
+    try {
+      await onSetStatus(sub.id, next);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className={`border-b last:border-b-0 ${
+        sub.status === "unread" ? "" : "bg-muted/20"
+      }`}
+    >
       <button
         className="w-full text-left px-6 py-4 hover:bg-muted/40 transition-colors flex items-start gap-4"
         onClick={() => setOpen((v) => !v)}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm truncate">{sub.topic}</span>
+            <StatusBadge status={sub.status} />
+            <span
+              className={`font-semibold text-sm truncate ${
+                sub.status === "handled" ? "text-muted-foreground" : ""
+              }`}
+            >
+              {sub.topic}
+            </span>
             {sub.category && (
               <Badge variant="secondary" className="text-[11px] shrink-0">
                 {sub.category}
@@ -135,6 +230,15 @@ function PitchRow({ sub }: { sub: PitchSubmission }) {
               <span className="font-semibold text-foreground">Received:</span>{" "}
               {formatDateTime(sub.createdAt)}
             </div>
+            {sub.status === "handled" && sub.handledAt && (
+              <div className="sm:col-span-2">
+                <span className="font-semibold text-foreground">Handled:</span>{" "}
+                {formatDateTime(sub.handledAt)}
+                {sub.handledBy && (
+                  <span className="text-muted-foreground/70"> · by {sub.handledBy}</span>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <div className="text-xs font-semibold text-foreground uppercase tracking-wide mb-1">
@@ -144,9 +248,14 @@ function PitchRow({ sub }: { sub: PitchSubmission }) {
               {sub.pitch}
             </p>
           </div>
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-1 flex-wrap">
+            <StatusActions status={sub.status} busy={busy} onMark={handle} />
             <a href={`mailto:${sub.email}?subject=Re: Your pitch – ${sub.topic}`}>
-              <Button size="sm" className="bg-[#0052FF] hover:bg-[#0040cc] text-xs">
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs"
+              >
                 Reply via email
               </Button>
             </a>
@@ -157,17 +266,45 @@ function PitchRow({ sub }: { sub: PitchSubmission }) {
   );
 }
 
-function ContactRow({ sub }: { sub: ContactSubmission }) {
+function ContactRow({
+  sub,
+  onSetStatus,
+}: {
+  sub: ContactSubmission;
+  onSetStatus: (id: number, status: SubmissionStatus) => Promise<void>;
+}) {
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function handle(next: SubmissionStatus) {
+    setBusy(true);
+    try {
+      await onSetStatus(sub.id, next);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="border-b last:border-b-0">
+    <div
+      className={`border-b last:border-b-0 ${
+        sub.status === "unread" ? "" : "bg-muted/20"
+      }`}
+    >
       <button
         className="w-full text-left px-6 py-4 hover:bg-muted/40 transition-colors flex items-start gap-4"
         onClick={() => setOpen((v) => !v)}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm">{sub.name}</span>
+            <StatusBadge status={sub.status} />
+            <span
+              className={`font-semibold text-sm ${
+                sub.status === "handled" ? "text-muted-foreground" : ""
+              }`}
+            >
+              {sub.name}
+            </span>
             {sub.company && (
               <span className="text-xs text-muted-foreground">· {sub.company}</span>
             )}
@@ -233,6 +370,15 @@ function ContactRow({ sub }: { sub: ContactSubmission }) {
               <span className="font-semibold text-foreground">Received:</span>{" "}
               {formatDateTime(sub.createdAt)}
             </div>
+            {sub.status === "handled" && sub.handledAt && (
+              <div className="sm:col-span-2">
+                <span className="font-semibold text-foreground">Handled:</span>{" "}
+                {formatDateTime(sub.handledAt)}
+                {sub.handledBy && (
+                  <span className="text-muted-foreground/70"> · by {sub.handledBy}</span>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <div className="text-xs font-semibold text-foreground uppercase tracking-wide mb-1">
@@ -242,9 +388,10 @@ function ContactRow({ sub }: { sub: ContactSubmission }) {
               {sub.message}
             </p>
           </div>
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-1 flex-wrap">
+            <StatusActions status={sub.status} busy={busy} onMark={handle} />
             <a href={`mailto:${sub.email}?subject=Re: Your enquiry`}>
-              <Button size="sm" className="bg-[#0052FF] hover:bg-[#0040cc] text-xs">
+              <Button size="sm" variant="outline" className="text-xs">
                 Reply via email
               </Button>
             </a>
@@ -465,6 +612,10 @@ export default function AdminModeration() {
     dismissed: 0,
   });
   const [reportStatusFilter, setReportStatusFilter] = useState<ReportStatusFilter>("open");
+  const [pitchStatusFilter, setPitchStatusFilter] =
+    useState<SubmissionStatusFilter>("unread");
+  const [contactStatusFilter, setContactStatusFilter] =
+    useState<SubmissionStatusFilter>("unread");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -473,8 +624,10 @@ export default function AdminModeration() {
     setError(null);
     try {
       let url: string;
-      if (which === "pitches") url = "/api/admin/pitch-submissions";
-      else if (which === "contacts") url = "/api/admin/contact-submissions";
+      if (which === "pitches")
+        url = `/api/admin/pitch-submissions?status=${pitchStatusFilter}`;
+      else if (which === "contacts")
+        url = `/api/admin/contact-submissions?status=${contactStatusFilter}`;
       else url = `/api/admin/reports?status=${reportStatusFilter}`;
 
       const res = await fetch(url);
@@ -493,10 +646,32 @@ export default function AdminModeration() {
     }
   }
 
-  async function resolveReport(
+  async function setSubmissionStatus(
+    kind: "pitch" | "contact",
     id: number,
-    status: "resolved" | "dismissed",
+    status: SubmissionStatus,
   ) {
+    try {
+      const url =
+        kind === "pitch"
+          ? `/api/admin/pitch-submissions/${id}`
+          : `/api/admin/contact-submissions/${id}`;
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast.success(
+        status === "handled" ? "Marked as handled." : "Reopened — back to inbox.",
+      );
+      await loadData(kind === "pitch" ? "pitches" : "contacts");
+    } catch (e) {
+      toast.error("Couldn't update status. Please try again.");
+    }
+  }
+
+  async function resolveReport(id: number, status: "resolved" | "dismissed") {
     try {
       const res = await fetch(`/api/admin/reports/${id}`, {
         method: "PATCH",
@@ -515,7 +690,14 @@ export default function AdminModeration() {
     if (!isAuthenticated || !isAdmin) return;
     loadData(tab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, reportStatusFilter, isAuthenticated, isAdmin]);
+  }, [
+    tab,
+    reportStatusFilter,
+    pitchStatusFilter,
+    contactStatusFilter,
+    isAuthenticated,
+    isAdmin,
+  ]);
 
   if (authLoading) {
     return (
@@ -573,6 +755,8 @@ export default function AdminModeration() {
 
   const activeItems =
     tab === "pitches" ? pitches : tab === "contacts" ? contacts : reports;
+
+  const submissionFilters: SubmissionStatusFilter[] = ["unread", "handled", "all"];
 
   return (
     <div className="min-h-screen bg-background py-16">
@@ -675,6 +859,44 @@ export default function AdminModeration() {
           </button>
         </div>
 
+        {tab === "pitches" && (
+          <div className="flex gap-1 mb-4 text-xs flex-wrap">
+            {submissionFilters.map((s) => (
+              <button
+                key={s}
+                onClick={() => setPitchStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-full transition-colors capitalize ${
+                  pitchStatusFilter === s
+                    ? "bg-[#0052FF] text-white"
+                    : "bg-muted text-muted-foreground hover:bg-muted/70"
+                }`}
+                data-testid={`pitch-filter-${s}`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {tab === "contacts" && (
+          <div className="flex gap-1 mb-4 text-xs flex-wrap">
+            {submissionFilters.map((s) => (
+              <button
+                key={s}
+                onClick={() => setContactStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-full transition-colors capitalize ${
+                  contactStatusFilter === s
+                    ? "bg-[#0052FF] text-white"
+                    : "bg-muted text-muted-foreground hover:bg-muted/70"
+                }`}
+                data-testid={`contact-filter-${s}`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
         {tab === "reports" && (
           <div className="flex gap-1 mb-4 text-xs">
             {(["open", "resolved", "dismissed"] as ReportStatusFilter[]).map((s) => (
@@ -723,9 +945,9 @@ export default function AdminModeration() {
               )}
               <p className="text-sm text-muted-foreground">
                 {tab === "pitches"
-                  ? "No pitch submissions yet."
+                  ? `No ${pitchStatusFilter === "all" ? "" : pitchStatusFilter + " "}pitch submissions.`
                   : tab === "contacts"
-                    ? "No contact enquiries yet."
+                    ? `No ${contactStatusFilter === "all" ? "" : contactStatusFilter + " "}contact enquiries.`
                     : `No ${reportStatusFilter} reports.`}
               </p>
             </CardContent>
@@ -737,11 +959,23 @@ export default function AdminModeration() {
             <CardContent className="p-0">
               {tab === "pitches"
                 ? (activeItems as PitchSubmission[]).map((sub) => (
-                    <PitchRow key={sub.id} sub={sub} />
+                    <PitchRow
+                      key={sub.id}
+                      sub={sub}
+                      onSetStatus={(id, status) =>
+                        setSubmissionStatus("pitch", id, status)
+                      }
+                    />
                   ))
                 : tab === "contacts"
                   ? (activeItems as ContactSubmission[]).map((sub) => (
-                      <ContactRow key={sub.id} sub={sub} />
+                      <ContactRow
+                        key={sub.id}
+                        sub={sub}
+                        onSetStatus={(id, status) =>
+                          setSubmissionStatus("contact", id, status)
+                        }
+                      />
                     ))
                   : (activeItems as ContentReport[]).map((report) => (
                       <ReportRow
