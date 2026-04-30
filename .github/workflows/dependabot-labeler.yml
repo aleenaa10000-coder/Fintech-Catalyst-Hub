@@ -1,0 +1,80 @@
+name: Dependabot labeler
+
+# Labels Dependabot PRs to make triage easier in the PR list:
+#   - `auto-merge-eligible` → matches the auto-merge rule
+#       (direct:development + patch/minor)
+#   - `needs-review`        → everything else from Dependabot
+#       (production deps, indirect deps, or any major bump)
+#
+# This runs in parallel with dependabot-auto-merge.yml; both read the same
+# metadata, so the label always reflects what the auto-merge job will do.
+#
+# The two labels are created on-demand if they don't already exist, so there's
+# no manual setup required in the repo.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  label:
+    name: Label Dependabot PR
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    timeout-minutes: 5
+
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Decide label
+        id: gate
+        run: |
+          dep_type='${{ steps.meta.outputs.dependency-type }}'
+          update_type='${{ steps.meta.outputs.update-type }}'
+
+          if [ "$dep_type" = "direct:development" ] && \
+             { [ "$update_type" = "version-update:semver-patch" ] || \
+               [ "$update_type" = "version-update:semver-minor" ]; }; then
+            echo "label=auto-merge-eligible" >> "$GITHUB_OUTPUT"
+            echo "remove=needs-review"       >> "$GITHUB_OUTPUT"
+            echo "color=0e8a16"              >> "$GITHUB_OUTPUT"
+            echo "desc=Safe Dependabot bump: dev-dep, patch/minor. Auto-merges once CI passes." >> "$GITHUB_OUTPUT"
+          else
+            echo "label=needs-review"        >> "$GITHUB_OUTPUT"
+            echo "remove=auto-merge-eligible" >> "$GITHUB_OUTPUT"
+            echo "color=d93f0b"              >> "$GITHUB_OUTPUT"
+            echo "desc=Dependabot bump that requires human review (prod, indirect, or major)." >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ensure label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          LABEL: ${{ steps.gate.outputs.label }}
+          COLOR: ${{ steps.gate.outputs.color }}
+          DESC: ${{ steps.gate.outputs.desc }}
+        run: |
+          if ! gh label list --repo "$REPO" --limit 200 | awk -F'\t' '{print $1}' | grep -Fxq "$LABEL"; then
+            gh label create "$LABEL" --repo "$REPO" --color "$COLOR" --description "$DESC"
+          fi
+
+      - name: Apply correct label and remove the opposite one
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          ADD: ${{ steps.gate.outputs.label }}
+          REMOVE: ${{ steps.gate.outputs.remove }}
+        run: |
+          gh pr edit "$PR_URL" --add-label "$ADD"
+          # --remove-label fails if the label isn't present on the PR; ignore that.
+          gh pr edit "$PR_URL" --remove-label "$REMOVE" || true
