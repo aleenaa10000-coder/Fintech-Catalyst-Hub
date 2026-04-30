@@ -1,5 +1,24 @@
 # The format of this file is identical to `.dockerignore`.
 # It is used to reduce the size of deployed images to make the process of publishing faster.
 
-# No need to store the pnpm store twice.
+# Agent / workspace internals
 .local
+.agents/
+.replit_integration_files/
+
+# Build artefacts not needed at runtime (the API server builds into dist/ at startup)
+artifacts/fintechpresshub/dist/
+artifacts/mockup-sandbox/dist/
+
+# Dev-only screenshots and debug assets
+screenshots/
+attached_assets/screenshots/
+
+# Source maps (large, dev-only)
+**/*.map
+
+# TypeScript build info
+**/*.tsbuildinfo
+
+# Test output
+coverage/
