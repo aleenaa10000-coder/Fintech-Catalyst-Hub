@@ -26,7 +26,7 @@ function bandColor(score: number): { bg: string; fg: string; ring: string } {
   return { bg: "#FBE0DD", fg: "#D8362A", ring: "#D8362A" };
 }
 
-function buildReportHtml(input: {
+type ReportInput = {
   score: number;
   label: string;
   metrics: {
@@ -36,7 +36,55 @@ function buildReportHtml(input: {
     expenseRatio: number;
   };
   tips: { title: string; body: string }[];
-}): string {
+};
+
+function buildReportText(input: ReportInput): string {
+  const siteUrl = getSiteUrl();
+  const calcUrl = `${siteUrl}/tools/financial-health-score-calculator`;
+  const m = input.metrics;
+  const dateStr = new Date().toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const tipsText = input.tips
+    .map((tip, i) => `${i + 1}. ${tip.title}\n   ${tip.body}`)
+    .join("\n\n");
+
+  return [
+    "YOUR FINANCIAL HEALTH SCORE REPORT",
+    "FintechPressHub",
+    "",
+    `Score: ${input.score}/100 — ${input.label}`,
+    `Calculated: ${dateStr}`,
+    "",
+    "YOUR KEY RATIOS",
+    "──────────────────────────────────────",
+    `Debt-to-Income (DTI):  ${m.dti.toFixed(1)}%   (Target ≤ 35%)`,
+    `Savings Rate:          ${m.savingsRate.toFixed(1)}%   (Target ≥ 10%)`,
+    `Emergency Fund:        ${m.emergencyFundMonths.toFixed(1)} months  (Target ≥ 3 months)`,
+    `Expense Ratio:         ${m.expenseRatio.toFixed(1)}%   (Target ≤ 75%)`,
+    "",
+    "PERSONALIZED TIPS",
+    "──────────────────────────────────────",
+    tipsText,
+    "",
+    "──────────────────────────────────────",
+    "A NOTE ON THIS REPORT",
+    "This is an educational snapshot, not financial advice. For decisions",
+    "involving taxes, investments, or debt restructuring, consult a licensed",
+    "financial professional in your jurisdiction.",
+    "",
+    `Re-run the calculator: ${calcUrl}`,
+    "",
+    "You're receiving this because you requested a Financial Health Score",
+    `report on FintechPressHub. © ${new Date().getFullYear()} FintechPressHub`,
+    siteUrl,
+  ].join("\n");
+}
+
+function buildReportHtml(input: ReportInput): string {
   const siteUrl = getSiteUrl();
   const colors = bandColor(input.score);
   const m = input.metrics;
@@ -109,10 +157,10 @@ function buildReportHtml(input: {
 
                 <h2 style="margin:32px 0 12px 0;font-size:16px;font-weight:700;color:#0f172a;">Your Key Ratios</h2>
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f1f5f9;border-radius:8px;overflow:hidden;">
-                  ${metricRow("Debt-to-Income (DTI)", `${m.dti.toFixed(1)}%`, "Target ≤ 35%", m.dti <= 35)}
-                  ${metricRow("Savings Rate", `${m.savingsRate.toFixed(1)}%`, "Target ≥ 10%", m.savingsRate >= 10)}
-                  ${metricRow("Emergency Fund", `${m.emergencyFundMonths.toFixed(1)} months`, "Target ≥ 3 months", m.emergencyFundMonths >= 3)}
-                  ${metricRow("Expense Ratio", `${m.expenseRatio.toFixed(1)}%`, "Target ≤ 75%", m.expenseRatio <= 75)}
+                  ${metricRow("Debt-to-Income (DTI)", `${m.dti.toFixed(1)}%`, "Target \u2264 35%", m.dti <= 35)}
+                  ${metricRow("Savings Rate", `${m.savingsRate.toFixed(1)}%`, "Target \u2265 10%", m.savingsRate >= 10)}
+                  ${metricRow("Emergency Fund", `${m.emergencyFundMonths.toFixed(1)} months`, "Target \u2265 3 months", m.emergencyFundMonths >= 3)}
+                  ${metricRow("Expense Ratio", `${m.expenseRatio.toFixed(1)}%`, "Target \u2264 75%", m.expenseRatio <= 75)}
                 </table>
 
                 <h2 style="margin:32px 0 8px 0;font-size:16px;font-weight:700;color:#0f172a;">Personalized Tips</h2>
@@ -130,7 +178,7 @@ function buildReportHtml(input: {
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
                   <tr>
                     <td align="center">
-                      <a href="${siteUrl}/tools/financial-health-score-calculator" style="display:inline-block;background:#0052FF;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:8px;">Re-run the calculator →</a>
+                      <a href="${siteUrl}/tools/financial-health-score-calculator" style="display:inline-block;background:#0052FF;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:8px;">Re-run the calculator \u2192</a>
                     </td>
                   </tr>
                 </table>
@@ -138,8 +186,10 @@ function buildReportHtml(input: {
             </tr>
             <tr>
               <td style="padding:20px 32px;background:#f8fafc;border-top:1px solid #f1f5f9;font-size:12px;color:#64748b;text-align:center;">
-                You're receiving this because you requested a Financial Health Score report on FintechPressHub.<br />
-                © ${new Date().getFullYear()} FintechPressHub · <a href="${siteUrl}" style="color:#0052FF;text-decoration:none;">fintechpresshub.com</a>
+                You requested this report on FintechPressHub's Financial Health Score tool.<br />
+                This is a transactional email — no marketing content.<br />
+                &copy; ${new Date().getFullYear()} FintechPressHub &middot;
+                <a href="${siteUrl}" style="color:#0052FF;text-decoration:none;">fintechpresshub.com</a>
               </td>
             </tr>
           </table>
@@ -154,6 +204,9 @@ async function sendViaResend(args: {
   to: string;
   subject: string;
   html: string;
+  text: string;
+  replyTo: string;
+  listUnsubscribeUrl: string;
 }): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (!RESEND_API_KEY) {
     return { ok: false, reason: "no_provider" };
@@ -168,8 +221,15 @@ async function sendViaResend(args: {
       body: JSON.stringify({
         from: REPORT_FROM_EMAIL,
         to: [args.to],
+        reply_to: args.replyTo,
         subject: args.subject,
         html: args.html,
+        text: args.text,
+        headers: {
+          "List-Unsubscribe": `<${args.listUnsubscribeUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          "X-Entity-Ref-ID": `fph-health-report-${Date.now()}`,
+        },
       }),
     });
     if (!resp.ok) {
@@ -215,15 +275,30 @@ router.post("/tools/financial-health-score/email-report", async (req, res) => {
     }
   }
 
-  const html = buildReportHtml({
+  const siteUrl = getSiteUrl();
+  const reportInput: ReportInput = {
     score: data.score,
     label: data.label,
     metrics: data.metrics,
     tips: data.tips,
-  });
+  };
 
+  const html = buildReportHtml(reportInput);
+  const text = buildReportText(reportInput);
   const subject = `Your Financial Health Score: ${data.score}/100 (${data.label})`;
-  const sendResult = await sendViaResend({ to: email, subject, html });
+
+  const replyTo = process.env["REPORT_FROM_EMAIL"]
+    ? process.env["REPORT_FROM_EMAIL"].replace(/^.*<(.+)>.*$/, "$1").trim()
+    : "hello@fintechpresshub.com";
+
+  const sendResult = await sendViaResend({
+    to: email,
+    subject,
+    html,
+    text,
+    replyTo,
+    listUnsubscribeUrl: `${siteUrl}/unsubscribe?email=${encodeURIComponent(email)}`,
+  });
 
   if (sendResult.ok) {
     res.json({
