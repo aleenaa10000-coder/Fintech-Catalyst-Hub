@@ -6,15 +6,26 @@
 #
 # Usage:
 #   bash scripts/bootstrap.sh                # run all checks
+#   bash scripts/bootstrap.sh --ci           # treat DATABASE_URL + services as optional
 #   API_PORT=8080 WEB_PORT=21096 bash scripts/bootstrap.sh
 #
 # The API and web checks are skipped (marked SKIP) when their ports are not
 # listening yet — that's expected before the workflows are started.
+# Pass --ci (or set BOOTSTRAP_CI=1) to also treat a missing DATABASE_URL as a
+# SKIP rather than a FAILURE — useful for GitHub Actions where the database
+# is intentionally not provisioned.
 
 set -u
 
 API_PORT="${API_PORT:-8080}"
 WEB_PORT="${WEB_PORT:-21096}"
+
+CI_MODE="${BOOTSTRAP_CI:-0}"
+for arg in "$@"; do
+  case "$arg" in
+    --ci) CI_MODE=1 ;;
+  esac
+done
 
 GREEN=$'\033[0;32m'
 RED=$'\033[0;31m'
@@ -66,6 +77,8 @@ hdr "Environment"
 
 if [ -n "${DATABASE_URL:-}" ]; then
   ok "DATABASE_URL set"
+elif [ "$CI_MODE" = "1" ]; then
+  skip "DATABASE_URL" "CI mode — no database expected"
 else
   bad "DATABASE_URL" "unset — provision Replit Postgres or copy .env.example to .env"
 fi
@@ -105,7 +118,10 @@ probe() {
   # probe <label> <url>
   local label="$1" url="$2"
   local code
-  code=$(curl -s -o /dev/null -m 3 -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+  # curl prints "000" via -w when it can't connect; suppress its own error
+  # output and don't append a second "000" via shell fallback.
+  code=$(curl -s -o /dev/null -m 3 -w "%{http_code}" "$url" 2>/dev/null)
+  code="${code:-000}"
   if [ "$code" = "200" ] || [ "$code" = "304" ]; then
     ok "$label ($url → $code)"
   elif [ "$code" = "000" ]; then
