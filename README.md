@@ -28,7 +28,11 @@ When you import this repo into Replit (or fork it from another Replit account), 
    ```bash
    pnpm --filter @workspace/db run push
    ```
-5. **Click Run.** The `Project` workflow starts both the API Server and the frontend in parallel. The API server pushes the schema, then auto-seeds demo content (services, pricing plans, testimonials, blog posts, site stats) on first start when the tables are empty — so the preview pane shows a fully populated site straight away.
+5. **Click Run.** Replit auto-discovers the workflows for each artifact (`artifacts/api-server`, `artifacts/fintechpresshub`, `artifacts/mockup-sandbox`) and starts them in parallel. The API server pushes the schema, then auto-seeds demo content (services, pricing plans, testimonials, blog posts, site stats) on first start when the tables are empty — so the preview pane shows a fully populated site straight away.
+6. **(Optional) Verify the install** — run a one-shot health check that reports READY / FAILED for the toolchain, dependencies, env vars, database connectivity, and running services:
+   ```bash
+   pnpm bootstrap
+   ```
 
 > Want to wipe and re-seed? Run `pnpm --filter @workspace/scripts run seed` (destructive — deletes existing rows first).
 
