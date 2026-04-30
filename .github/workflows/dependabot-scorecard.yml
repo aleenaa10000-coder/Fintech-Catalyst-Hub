@@ -1,0 +1,162 @@
+name: Dependabot scorecard
+
+# Once a week, summarise how Dependabot PRs are going:
+#   - how many were merged in the last 7 days
+#   - of those, how many were auto-merged vs. needed manual review
+#     (using the labels applied by .github/workflows/dependabot-labeler.yml)
+#   - which packages got bumped most often
+#   - how many Dependabot PRs are still open and waiting
+#
+# The summary is posted as a new comment on a single pinned tracker issue
+# titled "Dependabot weekly scorecard". The issue is created on first run
+# if it doesn't already exist, so there is no manual setup.
+#
+# Schedule: Monday 18:00 UTC. That's ~9 hours after Dependabot's Monday
+# 09:00 UTC run (see .github/dependabot.yml), so the new week's PRs have
+# had time to land and be auto-merged before we tally up the previous week.
+
+on:
+  schedule:
+    - cron: "0 18 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  scorecard:
+    name: Post weekly Dependabot scorecard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      TRACKER_TITLE: "Dependabot weekly scorecard"
+
+    steps:
+      - name: Compute the 7-day window
+        id: window
+        run: |
+          since=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          until=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "since=$since" >> "$GITHUB_OUTPUT"
+          echo "until=$until" >> "$GITHUB_OUTPUT"
+          echo "human_since=$(date -u -d '7 days ago' '+%b %d')" >> "$GITHUB_OUTPUT"
+          echo "human_until=$(date -u '+%b %d, %Y')" >> "$GITHUB_OUTPUT"
+
+      - name: Collect merged Dependabot PRs from the last 7 days
+        id: merged
+        run: |
+          # gh's search syntax: author + merged date range
+          gh pr list \
+            --repo "$REPO" \
+            --state merged \
+            --search "author:app/dependabot merged:>=${{ steps.window.outputs.since }}" \
+            --limit 200 \
+            --json number,title,mergedAt,labels,url \
+            > merged.json
+          echo "Merged PR count: $(jq 'length' merged.json)"
+
+      - name: Collect still-open Dependabot PRs
+        id: open
+        run: |
+          gh pr list \
+            --repo "$REPO" \
+            --state open \
+            --search "author:app/dependabot" \
+            --limit 200 \
+            --json number,title,createdAt,labels,url \
+            > open.json
+          echo "Open PR count: $(jq 'length' open.json)"
+
+      - name: Build the scorecard markdown
+        id: build
+        run: |
+          merged_total=$(jq 'length' merged.json)
+          auto_merged=$(jq '[.[] | select(.labels[]?.name == "auto-merge-eligible")] | length' merged.json)
+          needs_review=$(jq '[.[] | select(.labels[]?.name == "needs-review")] | length' merged.json)
+          unlabeled=$(( merged_total - auto_merged - needs_review ))
+          if [ "$unlabeled" -lt 0 ]; then unlabeled=0; fi
+
+          open_total=$(jq 'length' open.json)
+          open_needs_review=$(jq '[.[] | select(.labels[]?.name == "needs-review")] | length' open.json)
+          open_eligible=$(jq '[.[] | select(.labels[]?.name == "auto-merge-eligible")] | length' open.json)
+
+          # Top 5 most-bumped packages, parsed out of titles like
+          # "chore(deps-dev): bump foo from 1.2.3 to 1.2.4"
+          # or grouped: "bump the dev-dependencies group with N updates"
+          top_packages=$(jq -r '
+            .[] | .title
+            | capture("bump (the )?(?<pkg>[A-Za-z0-9@/_.-]+)( group)?")
+            | .pkg
+          ' merged.json 2>/dev/null \
+            | sort | uniq -c | sort -rn | head -5 \
+            | awk '{printf "  - `%s` × %d\n", $2, $1}')
+          if [ -z "$top_packages" ]; then top_packages="  - _(none)_"; fi
+
+          # Auto-merge rate (integer %, guard divide-by-zero)
+          if [ "$merged_total" -gt 0 ]; then
+            rate=$(( auto_merged * 100 / merged_total ))
+          else
+            rate=0
+          fi
+
+          {
+            echo "## Weekly Dependabot scorecard — ${{ steps.window.outputs.human_since }} → ${{ steps.window.outputs.human_until }}"
+            echo
+            echo "**Merged PRs this week:** $merged_total"
+            echo "- Auto-merged (dev-dep, patch/minor): **$auto_merged**"
+            echo "- Manually reviewed (prod / major / indirect): **$needs_review**"
+            if [ "$unlabeled" -gt 0 ]; then
+              echo "- Unlabeled (likely predates the labeler workflow): $unlabeled"
+            fi
+            echo "- Auto-merge rate: **${rate}%**"
+            echo
+            echo "**Still open:** $open_total"
+            echo "- Waiting on review (\`needs-review\`): $open_needs_review"
+            echo "- Eligible / waiting on CI (\`auto-merge-eligible\`): $open_eligible"
+            echo
+            echo "**Most-bumped packages this week:**"
+            echo "$top_packages"
+            echo
+            echo "<sub>Generated by \`.github/workflows/dependabot-scorecard.yml\` — run [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).</sub>"
+          } > comment.md
+
+          echo "----- comment preview -----"
+          cat comment.md
+
+      - name: Find or create the tracker issue
+        id: tracker
+        run: |
+          # Look for an open issue with the exact tracker title.
+          number=$(gh issue list \
+            --repo "$REPO" \
+            --state open \
+            --search "in:title \"$TRACKER_TITLE\"" \
+            --json number,title \
+            --jq ".[] | select(.title == \"$TRACKER_TITLE\") | .number" \
+            | head -1)
+
+          if [ -z "$number" ]; then
+            body="Automated tracker for the weekly Dependabot scorecard. Each week, \`.github/workflows/dependabot-scorecard.yml\` posts a new comment here summarising auto-merge vs. manual-review activity. Close this issue if you no longer want the reports — the workflow will create a new one next run."
+            number=$(gh issue create \
+              --repo "$REPO" \
+              --title "$TRACKER_TITLE" \
+              --label "dependencies" \
+              --body "$body" \
+              | sed -n 's#.*/issues/\([0-9]*\)#\1#p')
+            echo "Created tracker issue #$number"
+          else
+            echo "Reusing tracker issue #$number"
+          fi
+
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Post the scorecard comment
+        run: |
+          gh issue comment "${{ steps.tracker.outputs.number }}" \
+            --repo "$REPO" \
+            --body-file comment.md
