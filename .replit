@@ -54,6 +54,18 @@ localPort = 8081
 externalPort = 8081
 
 [[ports]]
+localPort = 8082
+externalPort = 4200
+
+[[ports]]
+localPort = 8083
+externalPort = 5000
+
+[[ports]]
+localPort = 8084
+externalPort = 3001
+
+[[ports]]
 localPort = 18082
 externalPort = 3003
 
@@ -67,8 +79,10 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-REPORT_FROM_EMAIL = "FintechPressHub <onboarding@resend.dev>"
+REPORT_FROM_EMAIL = "FintechPressHub <hello@fintechpresshub.com>"
 ADMIN_EMAILS = "hello@fintechpresshub.com,jasmine.offpageseospecialist@hotmail.com"
+CONTACT_NOTIFY_TO = "hello@fintechpresshub.com"
+PITCH_RECIPIENT_EMAIL = "hello@fintechpresshub.com"
 
 [userenv.production]
 INDEXNOW_KEY = "cYBulNRfdK5MiecIhrEQr0r8jh0TI-ow"

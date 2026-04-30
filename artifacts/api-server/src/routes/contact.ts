@@ -95,7 +95,10 @@ router.post("/contact", formRateLimiter, async (req, res) => {
   }
 
   // Auto-reply confirmation to the person who submitted the form
-  const replyFromAddr = process.env["SMTP_FROM"] ?? process.env["SMTP_USER"];
+  const replyFromAddr =
+    process.env["SMTP_FROM"] ??
+    process.env["SMTP_USER"] ??
+    process.env["REPORT_FROM_EMAIL"];
   const ackSubject = "Thanks for reaching out to FintechPressHub";
   const ackText = `Hi ${body.name},
 
