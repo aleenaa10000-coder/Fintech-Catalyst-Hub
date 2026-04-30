@@ -6,6 +6,7 @@ import {
   getGetCurrentAuthUserQueryKey,
 } from "@workspace/api-client-react";
 import { PageMeta } from "@/components/PageMeta";
+import { HealthBadge } from "@/components/HealthBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -140,6 +141,13 @@ export default function AdminLogin() {
             </Link>
             .
           </p>
+
+          <div className="mt-6 pt-4 border-t flex flex-col items-center gap-2">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              System status
+            </span>
+            <HealthBadge />
+          </div>
         </CardContent>
       </Card>
     </div>
