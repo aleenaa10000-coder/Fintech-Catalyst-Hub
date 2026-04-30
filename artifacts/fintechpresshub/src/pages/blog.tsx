@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { usePublicPosts, type PublicPost } from "@/data/usePublicPosts";
 import { authors, authorSlugFromName, getAuthorBySlug } from "@/data/authors";
 import { prefetchBlogPost } from "@/lib/route-prefetch";
+import { TrendingPosts } from "@/components/TrendingPosts";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", {
@@ -914,6 +915,11 @@ export default function Blog() {
 
             {/* Post grid */}
             <div>
+              {/* Trending now — recency-weighted popularity, full posts list
+                  so the ranking reflects the whole catalog rather than the
+                  currently filtered/searched subset. */}
+              <TrendingPosts posts={allPosts} className="mb-6" />
+
               {/* Sort + result count bar */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-200">
                 <p className="text-sm text-slate-600" data-testid="text-post-count">
