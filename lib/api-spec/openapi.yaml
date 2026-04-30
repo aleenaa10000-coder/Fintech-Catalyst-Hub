@@ -225,6 +225,14 @@ paths:
       operationId: listBlogPosts
       tags: [blog]
       summary: List published blog posts
+      description: |
+        Returns posts whose `publishedAt` is at or before the visibility
+        cutoff. The cutoff is `now()` for anonymous callers; admins may
+        pass `asOf` to preview the list as it would appear to the public
+        at a future moment (so a scheduled post becomes visible if its
+        `publishedAt` falls before `asOf`). The server silently ignores
+        `asOf` for non-admins, so visitors can never use it to peek at
+        scheduled content.
       parameters:
         - name: category
           in: query
@@ -238,6 +246,17 @@ paths:
             type: integer
             minimum: 1
             maximum: 50
+        - name: asOf
+          in: query
+          required: false
+          description: |
+            Admin-only. ISO-8601 timestamp used as the visibility cutoff
+            instead of `now()`, so admins can preview the public list as
+            it will look at a future date. Ignored (and silently dropped)
+            for non-admin sessions.
+          schema:
+            type: string
+            format: date-time
       responses:
         "200":
           description: List of posts

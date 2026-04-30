@@ -152,6 +152,14 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * Returns posts whose `publishedAt` is at or before the visibility
+cutoff. The cutoff is `now()` for anonymous callers; admins may
+pass `asOf` to preview the list as it would appear to the public
+at a future moment (so a scheduled post becomes visible if its
+`publishedAt` falls before `asOf`). The server silently ignores
+`asOf` for non-admins, so visitors can never use it to peek at
+scheduled content.
+
  * @summary List published blog posts
  */
 export const listBlogPostsQueryLimitMax = 50;
@@ -159,6 +167,12 @@ export const listBlogPostsQueryLimitMax = 50;
 export const ListBlogPostsQueryParams = zod.object({
   category: zod.coerce.string().optional(),
   limit: zod.coerce.number().min(1).max(listBlogPostsQueryLimitMax).optional(),
+  asOf: zod
+    .date()
+    .optional()
+    .describe(
+      "Admin-only. ISO-8601 timestamp used as the visibility cutoff\ninstead of `now()`, so admins can preview the public list as\nit will look at a future date. Ignored (and silently dropped)\nfor non-admin sessions.\n",
+    ),
 });
 
 export const listBlogPostsResponseViewCountMin = 0;

@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,8 @@ import {
   Send as SendIcon,
   LayoutDashboard,
   Users,
+  CalendarClock,
+  RotateCcw,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -2493,11 +2496,69 @@ function ImpactWarning({
   );
 }
 
+/**
+ * Default lookahead used when the admin first turns on "preview as
+ * scheduled visitor" with no prior date in mind. Seven days is far
+ * enough out to surface a typical content-calendar week — most
+ * editorial schedules in this app are queued for a sprint at a time —
+ * but close enough that the rendered "as of …" date still feels
+ * concrete instead of abstract. Admins can dial it forward or back from
+ * the inline picker.
+ */
+const PREVIEW_DEFAULT_DAYS_AHEAD = 7;
+
+/**
+ * Compute a sensible default value for the preview datetime picker:
+ * one week from now, snapped to the next round hour in the admin's
+ * local timezone so the picker doesn't show jagged ":37" minute values.
+ */
+function defaultPreviewAtLocal(): string {
+  const now = new Date();
+  const future = new Date(
+    now.getTime() + PREVIEW_DEFAULT_DAYS_AHEAD * 24 * 60 * 60 * 1000,
+  );
+  future.setMinutes(0, 0, 0);
+  const tzOffsetMs = future.getTimezoneOffset() * 60000;
+  return new Date(future.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+}
+
 export default function AdminBlog() {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } =
     useAuth();
   const qc = useQueryClient();
-  const { data: posts, isLoading } = useListBlogPosts();
+  // "Preview as scheduled visitor" — when on, we forward an `asOf`
+  // timestamp to /blog/posts so the API returns exactly the list a
+  // public visitor would see at that moment (scheduled posts whose
+  // publishedAt has passed by then become visible). Admin-only chrome
+  // (bulk select, edit/delete, probe/re-ping) is hidden in preview
+  // mode so the row layout reads as close to the real public list as
+  // possible. The toggle starts off so the page looks like its old
+  // self for admins who don't care about scheduling.
+  const [previewMode, setPreviewMode] = useState(false);
+  const [previewAtLocal, setPreviewAtLocal] = useState<string>(
+    defaultPreviewAtLocal,
+  );
+  // Convert the local-time picker value into the ISO-8601 `asOf` the
+  // API expects. Only forward when the toggle is on AND the picker
+  // holds a parseable value — otherwise we fall back to the standard
+  // "now()" filter so the page never silently goes blank.
+  const previewAsOfIso = useMemo(() => {
+    if (!previewMode) return undefined;
+    if (!previewAtLocal) return undefined;
+    const parsed = new Date(previewAtLocal);
+    if (!Number.isFinite(parsed.getTime())) return undefined;
+    return parsed.toISOString();
+  }, [previewMode, previewAtLocal]);
+  const listParams = previewAsOfIso ? { asOf: previewAsOfIso } : undefined;
+  const { data: posts, isLoading } = useListBlogPosts(listParams);
+  // Cutoff used for client-side rendering decisions (e.g. whether to
+  // show a "scheduled →" badge). Mirrors the cutoff the server used to
+  // build the response, so a post that's only visible because we're
+  // previewing the future no longer wears the "scheduled" badge — by
+  // the previewed moment it would already be live.
+  const visibilityCutoffMs = previewAsOfIso
+    ? new Date(previewAsOfIso).getTime()
+    : Date.now();
   const publishMut = usePublishBlogPost();
   const deleteMut = useDeleteBlogPost();
   const [form, setForm] = useState(emptyForm);
@@ -3213,10 +3274,59 @@ export default function AdminBlog() {
 
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h2 className="text-xl font-bold">Recent posts</h2>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <BulkProbeButton posts={posts ?? []} />
+          <div
+            className="flex flex-wrap items-center gap-3 text-sm rounded-md border bg-background px-3 py-2"
+            data-testid="preview-as-visitor-control"
+          >
+            <CalendarClock className="w-4 h-4 text-muted-foreground" />
+            <Label
+              htmlFor="preview-as-visitor-toggle"
+              className="cursor-pointer font-medium"
+            >
+              Preview as scheduled visitor
+            </Label>
+            <Switch
+              id="preview-as-visitor-toggle"
+              checked={previewMode}
+              onCheckedChange={(v) => {
+                setPreviewMode(v);
+                // Wipe any in-progress bulk selection when entering
+                // preview mode — once admin chrome disappears the
+                // selection state would be invisible and confusing.
+                if (v) setSelectedSlugs(new Set());
+              }}
+              data-testid="preview-as-visitor-switch"
+            />
+            {previewMode && (
+              <>
+                <Input
+                  type="datetime-local"
+                  value={previewAtLocal}
+                  onChange={(e) => setPreviewAtLocal(e.target.value)}
+                  className="h-8 w-[15rem]"
+                  aria-label="Preview the public list as it will look on this date"
+                  data-testid="preview-as-visitor-date"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setPreviewAtLocal(defaultPreviewAtLocal())
+                  }
+                  title="Reset to default (one week from now)"
+                  data-testid="preview-as-visitor-reset"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </Button>
+              </>
+            )}
           </div>
-          {posts && posts.length > 0 && (
+          {!previewMode && (
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <BulkProbeButton posts={posts ?? []} />
+            </div>
+          )}
+          {!previewMode && posts && posts.length > 0 && (
             <div className="flex items-center gap-2 text-sm">
               <Checkbox
                 id="select-all-posts"
@@ -3247,7 +3357,63 @@ export default function AdminBlog() {
           )}
         </div>
 
-        {selectedSlugs.size > 0 && (() => {
+        {previewMode && previewAsOfIso && (() => {
+          // Banner that anchors the preview: tells the admin which
+          // moment they're previewing, how many posts the public would
+          // see, and how that compares to the current live list. The
+          // delta is computed by counting "scheduled" posts in the
+          // returned set — i.e. posts whose publishedAt is still in
+          // the future relative to *now* but at or before the preview
+          // cutoff.
+          const previewDate = new Date(previewAsOfIso);
+          const visibleCount = posts?.length ?? 0;
+          const newlyVisible = (posts ?? []).filter(
+            (p) => new Date(p.publishedAt).getTime() > Date.now(),
+          ).length;
+          return (
+            <div
+              className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 flex flex-wrap items-center gap-x-4 gap-y-1"
+              data-testid="preview-as-visitor-banner"
+              role="status"
+            >
+              <CalendarClock className="w-4 h-4 shrink-0" aria-hidden />
+              <span>
+                Showing the public blog list as of{" "}
+                <strong>{previewDate.toLocaleString()}</strong>.
+              </span>
+              <span className="text-blue-800">
+                <strong className="tabular-nums">{visibleCount}</strong>{" "}
+                {visibleCount === 1 ? "post" : "posts"} would be live
+                {newlyVisible > 0 && (
+                  <>
+                    {" "}
+                    (
+                    <strong className="tabular-nums">
+                      +{newlyVisible}
+                    </strong>{" "}
+                    not yet public)
+                  </>
+                )}
+                .
+              </span>
+              <span className="text-blue-800/80 text-xs">
+                Admin actions (bulk select, edit, delete, probe) are
+                hidden in preview.
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-7 text-blue-900 hover:bg-blue-100"
+                onClick={() => setPreviewMode(false)}
+                data-testid="preview-as-visitor-exit"
+              >
+                Exit preview
+              </Button>
+            </div>
+          );
+        })()}
+
+        {!previewMode && selectedSlugs.size > 0 && (() => {
           // Live "before-you-confirm" preview rendered directly in the
           // bulk action bar. Computed on every render against the current
           // selection — cheap because `posts` is already in memory and
@@ -3474,29 +3640,41 @@ export default function AdminBlog() {
             {posts?.map((p) => {
               const isEditing = editingId === p.id;
               const isSelected = selectedSlugs.has(p.slug);
+              // In preview mode, suppress the "scheduled" badge for any
+              // post whose publishedAt has already passed the previewed
+              // moment — by then the public would see it as a normal
+              // live post, so the badge would lie. The badge stays for
+              // posts that are *still* scheduled past the preview
+              // cutoff (they wouldn't appear in the list at all in
+              // that case, but be defensive in case the server returns
+              // something edge-case).
+              const publishedAtMs = new Date(p.publishedAt).getTime();
+              const isStillScheduled = publishedAtMs > visibilityCutoffMs;
               return (
                 <Card key={p.id} id={`admin-post-${p.id}`}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="pt-0.5">
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={(v) => {
-                            setSelectedSlugs((prev) => {
-                              const next = new Set(prev);
-                              if (v === true) next.add(p.slug);
-                              else next.delete(p.slug);
-                              return next;
-                            });
-                          }}
-                          aria-label={`Select ${p.title}`}
-                          data-testid={`select-post-${p.slug}`}
-                        />
-                      </div>
+                      {!previewMode && (
+                        <div className="pt-0.5">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(v) => {
+                              setSelectedSlugs((prev) => {
+                                const next = new Set(prev);
+                                if (v === true) next.add(p.slug);
+                                else next.delete(p.slug);
+                                return next;
+                              });
+                            }}
+                            aria-label={`Select ${p.title}`}
+                            data-testid={`select-post-${p.slug}`}
+                          />
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold truncate flex items-center gap-2">
                           {p.title}
-                          {new Date(p.publishedAt).getTime() > Date.now() && (
+                          {isStillScheduled && (
                             <span
                               title={`Scheduled — goes live on ${new Date(p.publishedAt).toLocaleString()}`}
                               className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-800"
@@ -3563,37 +3741,43 @@ export default function AdminBlog() {
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         </Button>
-                        <ProbeUrlButton post={p} />
-                        <RepingButton post={p} />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            setEditingId(isEditing ? null : p.id)
-                          }
-                          aria-label={
-                            isEditing ? `Close editor` : `Edit ${p.title}`
-                          }
-                        >
-                          {isEditing ? (
-                            <X className="w-4 h-4" />
-                          ) : (
-                            <Pencil className="w-4 h-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(p)}
-                          disabled={deleteMut.isPending}
-                          aria-label={`Unpublish ${p.title}`}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {!previewMode && (
+                          <>
+                            <ProbeUrlButton post={p} />
+                            <RepingButton post={p} />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                setEditingId(isEditing ? null : p.id)
+                              }
+                              aria-label={
+                                isEditing
+                                  ? `Close editor`
+                                  : `Edit ${p.title}`
+                              }
+                            >
+                              {isEditing ? (
+                                <X className="w-4 h-4" />
+                              ) : (
+                                <Pencil className="w-4 h-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(p)}
+                              disabled={deleteMut.isPending}
+                              aria-label={`Unpublish ${p.title}`}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
-                    {isEditing && (
+                    {!previewMode && isEditing && (
                       <PostEditor
                         post={p}
                         onCancel={() => setEditingId(null)}

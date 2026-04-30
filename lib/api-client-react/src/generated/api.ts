@@ -852,6 +852,14 @@ export function useHealthCheck<
 }
 
 /**
+ * Returns posts whose `publishedAt` is at or before the visibility
+cutoff. The cutoff is `now()` for anonymous callers; admins may
+pass `asOf` to preview the list as it would appear to the public
+at a future moment (so a scheduled post becomes visible if its
+`publishedAt` falls before `asOf`). The server silently ignores
+`asOf` for non-admins, so visitors can never use it to peek at
+scheduled content.
+
  * @summary List published blog posts
  */
 export const getListBlogPostsUrl = (params?: ListBlogPostsParams) => {

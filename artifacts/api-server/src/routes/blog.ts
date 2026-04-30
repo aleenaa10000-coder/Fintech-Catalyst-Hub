@@ -140,8 +140,18 @@ const UpdateBlogPostBody = z
  * reads. The DB clock — not the Node process clock — is the source of
  * truth so a future-dated post flips to "published" the moment the SQL
  * `now()` advances past it, with no cron or background job required.
+ *
+ * The optional `asOf` argument is used by the admin "preview as scheduled
+ * visitor" toggle: it shifts the visibility cutoff to a chosen future
+ * moment so the admin sees exactly the list a public visitor will see on
+ * that date. Callers MUST gate this on an admin check before forwarding
+ * `asOf` from a request — `visibleToPublic` itself trusts whatever it's
+ * given, since it has no view of the session.
  */
-const visibleToPublic = (): SQL => lte(blogPostsTable.publishedAt, sql`now()`);
+const visibleToPublic = (asOf?: Date): SQL =>
+  asOf
+    ? lte(blogPostsTable.publishedAt, asOf)
+    : lte(blogPostsTable.publishedAt, sql`now()`);
 
 function serialize(row: typeof blogPostsTable.$inferSelect) {
   return {
@@ -210,20 +220,52 @@ function serializeWithSeo(
 }
 
 router.get("/blog/posts", async (req, res) => {
+  // `asOf` arrives as a string on the wire but the generated zod schema
+  // expects a Date (orval doesn't coerce dates from query params), so we
+  // hand-parse here before handing it to the schema. An invalid timestamp
+  // is treated as "not provided" rather than a 400 — a stale bookmark
+  // shouldn't break the page.
+  const rawAsOf =
+    typeof req.query.asOf === "string" ? req.query.asOf : undefined;
+  const asOfCandidate = rawAsOf ? new Date(rawAsOf) : undefined;
   const params = ListBlogPostsQueryParams.parse({
     category: req.query.category,
     limit: req.query.limit ? Number(req.query.limit) : undefined,
+    asOf:
+      asOfCandidate && Number.isFinite(asOfCandidate.getTime())
+        ? asOfCandidate
+        : undefined,
   });
 
+  // The "preview as scheduled visitor" admin toggle pipes a future
+  // timestamp through `asOf` so the response matches what the public
+  // will see on that date. We only honor it for admin sessions —
+  // anyone else gets the standard `now()` cutoff so a curious visitor
+  // can't probe scheduled URLs by guessing dates. We *silently drop*
+  // the parameter for non-admins (rather than 400) to keep cache
+  // behaviour predictable and to match the OpenAPI contract.
+  let asOfDate: Date | undefined;
+  if (params.asOf) {
+    const isAdmin =
+      req.isAuthenticated() && isAdminEmail(req.user.email);
+    if (isAdmin) {
+      asOfDate = params.asOf;
+    }
+  }
+
   // Hide scheduled (future-dated) posts from the public listing — they
-  // appear automatically once the DB clock passes their publishedAt.
+  // appear automatically once the DB clock passes their publishedAt
+  // (or the admin's `asOf` cutoff, when previewing).
   const rows = await db
     .select()
     .from(blogPostsTable)
     .where(
       params.category
-        ? and(eq(blogPostsTable.category, params.category), visibleToPublic())
-        : visibleToPublic(),
+        ? and(
+            eq(blogPostsTable.category, params.category),
+            visibleToPublic(asOfDate),
+          )
+        : visibleToPublic(asOfDate),
     )
     .orderBy(desc(blogPostsTable.publishedAt))
     .limit(params.limit ?? 50);

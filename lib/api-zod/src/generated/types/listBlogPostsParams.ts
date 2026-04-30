@@ -13,4 +13,12 @@ export type ListBlogPostsParams = {
    * @maximum 50
    */
   limit?: number;
+  /**
+ * Admin-only. ISO-8601 timestamp used as the visibility cutoff
+instead of `now()`, so admins can preview the public list as
+it will look at a future date. Ignored (and silently dropped)
+for non-admin sessions.
+
+ */
+  asOf?: Date;
 };
