@@ -1,6 +1,7 @@
 import { Header } from "@/components/Header";
 import { AdminHealthBanner } from "@/components/AdminHealthBanner";
 import { Footer } from "@/components/Footer";
+import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { useEffect, lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -177,6 +178,7 @@ function Router() {
         </Suspense>
       </main>
       <Footer />
+      <CookieConsentBanner />
     </div>
   );
 }
