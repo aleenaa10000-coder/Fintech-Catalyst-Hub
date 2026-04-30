@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
 import { PageMeta } from "@/components/PageMeta";
+import { HealthBadge } from "@/components/HealthBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -244,9 +245,10 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <LayoutDashboard className="w-5 h-5 text-[#0052FF]" />
               <h1 className="text-3xl font-bold">Dashboard</h1>
+              <HealthBadge />
             </div>
             <p className="text-muted-foreground">
               Overview of submissions, content, and growth — all in one place.
