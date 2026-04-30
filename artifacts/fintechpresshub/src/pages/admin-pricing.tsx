@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { PageMeta } from "@/components/PageMeta";
 import { useAuth } from "@workspace/replit-auth-web";
 import { Button } from "@/components/ui/button";
@@ -127,7 +127,7 @@ function PlanForm({
   isPending,
   submitLabel,
 }: {
-  title: string;
+  title: ReactNode;
   form: FormState;
   setForm: (f: FormState) => void;
   onSubmit: (e: React.FormEvent) => void;
