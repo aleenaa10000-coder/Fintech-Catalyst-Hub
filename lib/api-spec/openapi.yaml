@@ -1405,6 +1405,16 @@ components:
           minimum: 1
         featured:
           type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+          description: >
+            Reschedule the post. A timestamp in the past (or now) keeps the
+            post visible to the public; a future timestamp moves the post
+            into "scheduled" state — the public listings, detail page,
+            sitemap, and RSS feeds hide it until that moment passes, at
+            which point it appears automatically. Omit to leave the
+            existing `publishedAt` untouched.
         seoTitle:
           type: string
           nullable: true
@@ -1532,6 +1542,12 @@ components:
         publishedAt:
           type: string
           format: date-time
+          description: >
+            When omitted, the post publishes immediately (server stamps
+            `now()`). Pass a future ISO timestamp to schedule the post —
+            it will be hidden from the public listings, detail page,
+            sitemap, and RSS feeds until that moment passes, then appear
+            automatically.
         seoTitle:
           type: string
           nullable: true

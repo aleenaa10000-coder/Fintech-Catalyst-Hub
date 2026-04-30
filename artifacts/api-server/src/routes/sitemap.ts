@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, blogPostsTable } from "@workspace/db";
-import { desc } from "drizzle-orm";
+import { desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
 
@@ -69,7 +69,10 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
   const today = new Date().toISOString().slice(0, 10);
 
   // Skip posts the admin marked as no-index — they shouldn't be advertised
-  // in the sitemap even though their URL stays publicly reachable.
+  // in the sitemap even though their URL stays publicly reachable. Also
+  // skip scheduled (future-dated) posts: their public URLs return 404
+  // until the scheduled time passes, so listing them here would feed
+  // crawlers broken links.
   const posts = (
     await db
       .select({
@@ -78,6 +81,7 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
         noIndex: blogPostsTable.noIndex,
       })
       .from(blogPostsTable)
+      .where(lte(blogPostsTable.publishedAt, sql`now()`))
       .orderBy(desc(blogPostsTable.publishedAt))
   ).filter((p) => !p.noIndex);
 

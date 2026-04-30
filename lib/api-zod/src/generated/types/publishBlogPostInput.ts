@@ -29,6 +29,8 @@ export interface PublishBlogPostInput {
   /** @minimum 1 */
   readingMinutes: number;
   featured?: boolean;
+  /** When omitted, the post publishes immediately (server stamps `now()`). Pass a future ISO timestamp to schedule the post — it will be hidden from the public listings, detail page, sitemap, and RSS feeds until that moment passes, then appear automatically.
+   */
   publishedAt?: Date;
   /** Optional override for the `<title>` tag on this post's detail page. Falls back to `title` when omitted or null.
    */

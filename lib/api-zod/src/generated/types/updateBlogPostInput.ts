@@ -27,6 +27,9 @@ export interface UpdateBlogPostInput {
   /** @minimum 1 */
   readingMinutes?: number;
   featured?: boolean;
+  /** Reschedule the post. A timestamp in the past (or now) keeps the post visible to the public; a future timestamp moves the post into "scheduled" state — the public listings, detail page, sitemap, and RSS feeds hide it until that moment passes, at which point it appears automatically. Omit to leave the existing `publishedAt` untouched.
+   */
+  publishedAt?: Date;
   /** Override the `<title>` tag for this post. Pass an empty string or `null` to clear an existing override and fall back to the post's `title`.
    */
   seoTitle?: string | null;

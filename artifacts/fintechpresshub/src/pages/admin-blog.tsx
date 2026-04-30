@@ -881,11 +881,26 @@ const emptyForm = {
   coverImage: "",
   readingMinutes: "5",
   featured: false,
+  // Empty string = "publish immediately" (server stamps now()). A future
+  // local-time value (YYYY-MM-DDTHH:MM) schedules the post — public reads
+  // hide it until that moment passes.
+  publishedAt: "",
   seoTitle: "",
   seoDescription: "",
   seoOgImage: "",
   noIndex: false,
 };
+
+/**
+ * Convert a UTC ISO timestamp into the value expected by an
+ * `<input type="datetime-local">` (`YYYY-MM-DDTHH:MM` in *local* time).
+ * Keeps the local wall-clock time the admin chose intact across renders.
+ */
+function toDateTimeLocalValue(iso: string): string {
+  const d = new Date(iso);
+  const tzOffsetMs = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+}
 
 function slugify(input: string) {
   return input
@@ -905,6 +920,11 @@ function PostEditor({
   onCancel: () => void;
   onSaved: () => void;
 }) {
+  // Snapshot the original publishedAt as a datetime-local string so we can
+  // detect whether the admin actually edited it. Untouched values are not
+  // sent in the PATCH payload, which avoids rounding the original
+  // second/millisecond precision down to the minute on every save.
+  const initialPublishedAt = toDateTimeLocalValue(post.publishedAt);
   const [draft, setDraft] = useState({
     title: post.title,
     excerpt: post.excerpt,
@@ -916,6 +936,7 @@ function PostEditor({
     coverImage: post.coverImage,
     readingMinutes: String(post.readingMinutes),
     featured: post.featured,
+    publishedAt: initialPublishedAt,
     seoTitle: post.seoTitle ?? "",
     seoDescription: post.seoDescription ?? "",
     seoOgImage: post.seoOgImage ?? "",
@@ -930,6 +951,11 @@ function PostEditor({
       toast.error("Reading minutes must be a positive number.");
       return;
     }
+    // Only send publishedAt when the admin actually changed the value;
+    // sending the unchanged round-tripped value would round seconds off
+    // the original timestamp on every save.
+    const publishedAtChanged =
+      draft.publishedAt && draft.publishedAt !== initialPublishedAt;
     try {
       const updated = await updateMut.mutateAsync({
         slug: post.slug,
@@ -948,6 +974,9 @@ function PostEditor({
           readingMinutes,
           featured: draft.featured,
           noIndex: draft.noIndex,
+          ...(publishedAtChanged
+            ? { publishedAt: new Date(draft.publishedAt).toISOString() }
+            : {}),
           seoTitle: draft.seoTitle.trim() || null,
           seoDescription: draft.seoDescription.trim() || null,
           seoOgImage: draft.seoOgImage.trim() || null,
@@ -1134,6 +1163,24 @@ function PostEditor({
             required
           />
         </div>
+      </div>
+      <div>
+        <Label htmlFor={`publishedAt-${post.id}`}>Publish date &amp; time</Label>
+        <Input
+          id={`publishedAt-${post.id}`}
+          type="datetime-local"
+          value={draft.publishedAt}
+          onChange={(e) =>
+            setDraft({ ...draft, publishedAt: e.target.value })
+          }
+          data-testid={`edit-post-${post.id}-published-at`}
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          {draft.publishedAt &&
+          new Date(draft.publishedAt).getTime() > Date.now()
+            ? `Scheduled — goes live on ${new Date(draft.publishedAt).toLocaleString()}.`
+            : "Past date keeps the post visible. Set a future date to schedule it (it'll auto-publish at that time)."}
+        </p>
       </div>
       <div className="flex items-center gap-2">
         <Checkbox
@@ -2543,6 +2590,11 @@ export default function AdminBlog() {
       return;
     }
 
+    // Empty publishedAt = publish immediately; the server will stamp now().
+    // A future-dated value puts the post into "scheduled" state.
+    const publishedAtIso = form.publishedAt
+      ? new Date(form.publishedAt).toISOString()
+      : undefined;
     try {
       const post = await publishMut.mutateAsync({
         data: {
@@ -2558,13 +2610,21 @@ export default function AdminBlog() {
           readingMinutes,
           featured: form.featured,
           noIndex: form.noIndex,
+          ...(publishedAtIso ? { publishedAt: publishedAtIso } : {}),
           seoTitle: form.seoTitle.trim() || null,
           seoDescription: form.seoDescription.trim() || null,
           seoOgImage: form.seoOgImage.trim() || null,
         },
       });
+      const isScheduled = publishedAtIso
+        ? new Date(publishedAtIso).getTime() > Date.now()
+        : false;
       const description = describeSeoNotification(post.seoNotification);
-      if (seoNotificationIsSuccess(post.seoNotification)) {
+      if (isScheduled) {
+        toast.success(`Scheduled "${post.title}"`, {
+          description: `Will go live on ${new Date(publishedAtIso!).toLocaleString()}.`,
+        });
+      } else if (seoNotificationIsSuccess(post.seoNotification)) {
         toast.success(`Published "${post.title}"`, { description });
       } else {
         toast.warning(`Published "${post.title}"`, { description });
@@ -2980,6 +3040,24 @@ export default function AdminBlog() {
                     required
                   />
                 </div>
+              </div>
+              <div>
+                <Label htmlFor="publishedAt">Publish date &amp; time (optional)</Label>
+                <Input
+                  id="publishedAt"
+                  type="datetime-local"
+                  value={form.publishedAt}
+                  onChange={(e) =>
+                    setForm({ ...form, publishedAt: e.target.value })
+                  }
+                  data-testid="new-post-published-at"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {form.publishedAt &&
+                  new Date(form.publishedAt).getTime() > Date.now()
+                    ? `Scheduled — goes live on ${new Date(form.publishedAt).toLocaleString()}.`
+                    : "Leave blank to publish immediately. Pick a future date to schedule it (it'll auto-publish at that time)."}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -3418,6 +3496,20 @@ export default function AdminBlog() {
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold truncate flex items-center gap-2">
                           {p.title}
+                          {new Date(p.publishedAt).getTime() > Date.now() && (
+                            <span
+                              title={`Scheduled — goes live on ${new Date(p.publishedAt).toLocaleString()}`}
+                              className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-800"
+                              data-testid={`scheduled-${p.slug}`}
+                            >
+                              <Clock className="w-3 h-3" />
+                              scheduled →{" "}
+                              {new Date(p.publishedAt).toLocaleDateString(
+                                undefined,
+                                { month: "short", day: "numeric" },
+                              )}
+                            </span>
+                          )}
                           {p.noIndex && (
                             <span
                               title="Hidden from search engines (noindex)"

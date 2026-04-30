@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db, blogPostsTable } from "@workspace/db";
-import { desc } from "drizzle-orm";
+import { desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import staticPostsRaw from "../../../fintechpresshub/src/data/posts.js";
 import {
@@ -62,6 +62,8 @@ async function collectAuthorPosts(authorSlug: string): Promise<FeedItem[]> {
 
   // API-published posts overlay seed posts on slug collision (same rule used
   // by the public-facing usePublicPosts hook).
+  // Filter out scheduled (future-dated) posts so feed readers don't see
+  // entries that 404 when clicked.
   const apiRows = await db
     .select({
       slug: blogPostsTable.slug,
@@ -73,6 +75,7 @@ async function collectAuthorPosts(authorSlug: string): Promise<FeedItem[]> {
       content: blogPostsTable.content,
     })
     .from(blogPostsTable)
+    .where(lte(blogPostsTable.publishedAt, sql`now()`))
     .orderBy(desc(blogPostsTable.publishedAt));
 
   const merged = new Map<string, FeedItem>();

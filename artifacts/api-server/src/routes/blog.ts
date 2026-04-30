@@ -6,7 +6,7 @@ import {
   bulkNoIndexAuditLogTable,
 } from "@workspace/db";
 import type { BulkNoIndexAuditPostSnapshot } from "@workspace/db";
-import { eq, desc, sql, inArray } from "drizzle-orm";
+import { eq, desc, sql, inArray, and, lte, type SQL } from "drizzle-orm";
 import { ListBlogPostsQueryParams, GetBlogPostParams } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { isAdminEmail } from "../lib/auth";
@@ -122,6 +122,10 @@ const UpdateBlogPostBody = z
     coverImage: z.string().url().optional(),
     readingMinutes: z.number().int().positive().optional(),
     featured: z.boolean().optional(),
+    // Reschedule the post. A future timestamp puts the post into
+    // "scheduled" state — public reads filter it out until that moment
+    // passes (no background job needed).
+    publishedAt: z.string().datetime().optional(),
     seoTitle: seoTitleField,
     seoDescription: seoDescriptionField,
     seoOgImage: seoOgImageField,
@@ -130,6 +134,14 @@ const UpdateBlogPostBody = z
   .refine((obj) => Object.keys(obj).length > 0, {
     message: "At least one field is required",
   });
+
+/**
+ * Predicate that hides scheduled posts (publishedAt > now()) from public
+ * reads. The DB clock — not the Node process clock — is the source of
+ * truth so a future-dated post flips to "published" the moment the SQL
+ * `now()` advances past it, with no cron or background job required.
+ */
+const visibleToPublic = (): SQL => lte(blogPostsTable.publishedAt, sql`now()`);
 
 function serialize(row: typeof blogPostsTable.$inferSelect) {
   return {
@@ -203,10 +215,16 @@ router.get("/blog/posts", async (req, res) => {
     limit: req.query.limit ? Number(req.query.limit) : undefined,
   });
 
+  // Hide scheduled (future-dated) posts from the public listing — they
+  // appear automatically once the DB clock passes their publishedAt.
   const rows = await db
     .select()
     .from(blogPostsTable)
-    .where(params.category ? eq(blogPostsTable.category, params.category) : undefined)
+    .where(
+      params.category
+        ? and(eq(blogPostsTable.category, params.category), visibleToPublic())
+        : visibleToPublic(),
+    )
     .orderBy(desc(blogPostsTable.publishedAt))
     .limit(params.limit ?? 50);
 
@@ -217,19 +235,22 @@ router.get("/blog/featured", async (_req, res) => {
   const rows = await db
     .select()
     .from(blogPostsTable)
-    .where(eq(blogPostsTable.featured, true))
+    .where(and(eq(blogPostsTable.featured, true), visibleToPublic()))
     .orderBy(desc(blogPostsTable.publishedAt))
     .limit(6);
   res.json(rows.map(serialize));
 });
 
 router.get("/blog/categories", async (_req, res) => {
+  // Category counts only count *visible* posts so a category that only
+  // contains scheduled posts doesn't appear in the public facets list.
   const rows = await db
     .select({
       name: blogPostsTable.category,
       count: sql<number>`cast(count(*) as int)`,
     })
     .from(blogPostsTable)
+    .where(visibleToPublic())
     .groupBy(blogPostsTable.category)
     .orderBy(desc(sql`count(*)`));
   res.json(rows);
@@ -246,6 +267,16 @@ router.get("/blog/posts/:slug", async (req, res) => {
     res.status(404).json({ error: "Not found" });
     return;
   }
+  // Scheduled posts are 404 to anonymous visitors but visible to admins
+  // so they can preview the live post URL before launch.
+  if (row.publishedAt.getTime() > Date.now()) {
+    const isAdmin =
+      req.isAuthenticated() && isAdminEmail(req.user.email);
+    if (!isAdmin) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+  }
   res.json(serialize(row));
 });
 
@@ -259,10 +290,12 @@ router.get("/blog/posts/:slug", async (req, res) => {
  */
 router.post("/blog/posts/:slug/view", async (req, res) => {
   const params = GetBlogPostParams.parse({ slug: req.params.slug });
+  // Only count views once a post is publicly visible — scheduled posts
+  // shouldn't accumulate "phantom" views from admin preview hits.
   const [row] = await db
     .update(blogPostsTable)
     .set({ viewCount: sql`${blogPostsTable.viewCount} + 1` })
-    .where(eq(blogPostsTable.slug, params.slug))
+    .where(and(eq(blogPostsTable.slug, params.slug), visibleToPublic()))
     .returning({ slug: blogPostsTable.slug, viewCount: blogPostsTable.viewCount });
   if (!row) {
     res.status(404).json({ error: "Not found" });
@@ -381,10 +414,16 @@ router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     // Pass the validated body straight to drizzle. The zod transformer
     // already normalized empty SEO override strings to null, and
     // undefined fields stay omitted so partial updates don't accidentally
-    // wipe other columns.
+    // wipe other columns. publishedAt is the only field that needs to be
+    // converted from its wire format (ISO string) to a Date for drizzle.
+    const { publishedAt, ...rest } = body;
+    const updateValues: Partial<typeof blogPostsTable.$inferInsert> = { ...rest };
+    if (publishedAt !== undefined) {
+      updateValues.publishedAt = new Date(publishedAt);
+    }
     const [row] = await db
       .update(blogPostsTable)
-      .set(body)
+      .set(updateValues)
       .where(eq(blogPostsTable.slug, slug))
       .returning();
 

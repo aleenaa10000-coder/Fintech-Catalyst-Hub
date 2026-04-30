@@ -260,7 +260,12 @@ export const PublishBlogPostBody = zod.object({
   coverImage: zod.string().url(),
   readingMinutes: zod.number().min(1),
   featured: zod.boolean().optional(),
-  publishedAt: zod.coerce.date().optional(),
+  publishedAt: zod.coerce
+    .date()
+    .optional()
+    .describe(
+      "When omitted, the post publishes immediately (server stamps `now()`). Pass a future ISO timestamp to schedule the post — it will be hidden from the public listings, detail page, sitemap, and RSS feeds until that moment passes, then appear automatically.\n",
+    ),
   seoTitle: zod
     .string()
     .nullish()
@@ -387,6 +392,12 @@ export const UpdateBlogPostBody = zod
     coverImage: zod.string().url().optional(),
     readingMinutes: zod.number().min(1).optional(),
     featured: zod.boolean().optional(),
+    publishedAt: zod.coerce
+      .date()
+      .optional()
+      .describe(
+        'Reschedule the post. A timestamp in the past (or now) keeps the post visible to the public; a future timestamp moves the post into \"scheduled\" state — the public listings, detail page, sitemap, and RSS feeds hide it until that moment passes, at which point it appears automatically. Omit to leave the existing `publishedAt` untouched.\n',
+      ),
     seoTitle: zod
       .string()
       .nullish()
