@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Twitter, Linkedin, Github } from "lucide-react";
 import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
+import { CookiePreferencesButton } from "@/components/CookiePreferencesButton";
 
 export function Footer() {
   return (
@@ -124,6 +125,9 @@ export function Footer() {
                 <Link href="/community-guidelines" className="text-muted-foreground hover:text-primary transition-colors">
                   Community Guidelines
                 </Link>
+              </li>
+              <li>
+                <CookiePreferencesButton data-testid="link-footer-manage-cookies" />
               </li>
             </ul>
           </div>
