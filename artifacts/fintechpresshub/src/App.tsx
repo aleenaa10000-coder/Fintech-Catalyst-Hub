@@ -1,4 +1,5 @@
 import { Header } from "@/components/Header";
+import { AdminHealthBanner } from "@/components/AdminHealthBanner";
 import { Footer } from "@/components/Footer";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { useEffect, lazy, Suspense } from "react";
@@ -123,6 +124,7 @@ function Router() {
       <PublicBundlePrefetch />
       <Header />
       <main className="flex-grow pt-16">
+        <AdminHealthBanner />
         <Suspense fallback={<RouteFallback />}>
           <Switch>
             <Route path="/" component={Home} />
