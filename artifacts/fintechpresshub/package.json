@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --config vite.config.ts --host 0.0.0.0",
+    "dev": "PORT=${PORT:-5000} BASE_PATH=${BASE_PATH:-/} vite --config vite.config.ts --host 0.0.0.0",
     "generate-rss": "node scripts/generate-rss.mjs",
     "ping-search-engines": "node scripts/ping-search-engines.mjs",
     "prebuild": "node scripts/generate-rss.mjs",
