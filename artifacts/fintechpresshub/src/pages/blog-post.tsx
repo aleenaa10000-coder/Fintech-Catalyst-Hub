@@ -412,7 +412,15 @@ export default function BlogPost() {
             post.seoOgImage?.trim() ||
             `${SITE_URL}/api/og?title=${encodeURIComponent(
               post.title,
-            )}&category=${encodeURIComponent(post.category ?? "Insights")}`,
+            )}&category=${encodeURIComponent(post.category ?? "Insights")}${
+              post.author
+                ? `&author=${encodeURIComponent(post.author)}`
+                : ""
+            }${
+              post.authorRole
+                ? `&authorRole=${encodeURIComponent(post.authorRole)}`
+                : ""
+            }`,
           datePublished: post.date,
           // Only emit `dateModified` when the post was actually edited after
           // publish. If we always emit it, Google's BlogPosting validator

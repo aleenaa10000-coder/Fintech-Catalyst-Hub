@@ -496,10 +496,21 @@ async function loadPosts(apiBase) {
 // ---------- per-route renderers ----------
 
 function ogImageForBlog(siteUrl, post) {
+  if (post.seoOgImage && String(post.seoOgImage).trim()) {
+    return String(post.seoOgImage).trim();
+  }
   const category = post.category ?? "Insights";
-  return `${siteUrl}/api/og?title=${encodeURIComponent(
-    post.title,
-  )}&category=${encodeURIComponent(category)}`;
+  const params = [
+    `title=${encodeURIComponent(post.title)}`,
+    `category=${encodeURIComponent(category)}`,
+  ];
+  if (post.author) {
+    params.push(`author=${encodeURIComponent(post.author)}`);
+  }
+  if (post.authorRole) {
+    params.push(`authorRole=${encodeURIComponent(post.authorRole)}`);
+  }
+  return `${siteUrl}/api/og?${params.join("&")}`;
 }
 
 // Exported for the build-time prerender script. Returns the same meta

@@ -9,6 +9,7 @@ const TITLE_FONT_SIZE = 64;
 const TITLE_LINE_HEIGHT = 78;
 const TITLE_MAX_CHARS_PER_LINE = 28;
 const TITLE_MAX_LINES = 4;
+const TITLE_MAX_LINES_WITH_AUTHOR = 3;
 
 const CACHE_MAX = 200;
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24;
@@ -28,15 +29,31 @@ function wrapText(text: string, maxChars: number, maxLines: number): string[] {
   const words = text.trim().split(/\s+/);
   const lines: string[] = [];
   let current = "";
+  let consumed = 0;
 
-  for (const word of words) {
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
     const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length > maxChars && current) {
+    const onLastLine = lines.length === maxLines - 1;
+    // On every line except the last, wrap as soon as we'd exceed maxChars.
+    // On the last line, keep packing words until they really don't fit; any
+    // overflow becomes an ellipsis below.
+    const overflows = onLastLine
+      ? candidate.length > maxChars
+      : candidate.length > maxChars && current.length > 0;
+
+    if (overflows) {
+      if (onLastLine) {
+        // Stop here — `current` is the last line as-is, remaining words
+        // become the ellipsis indicator.
+        break;
+      }
       lines.push(current);
       current = word;
-      if (lines.length === maxLines - 1) break;
+      consumed = i + 1;
     } else {
       current = candidate;
+      consumed = i + 1;
     }
   }
 
@@ -44,33 +61,61 @@ function wrapText(text: string, maxChars: number, maxLines: number): string[] {
     lines.push(current);
   }
 
-  if (lines.length === maxLines) {
-    const joined = lines.join(" ").split(/\s+/);
-    const remainingWords = words.slice(joined.length);
-    if (remainingWords.length > 0) {
-      const last = lines[lines.length - 1];
-      const trimmed =
-        last.length > maxChars - 1
-          ? last.slice(0, maxChars - 1).replace(/\s+\S*$/, "")
-          : last;
-      lines[lines.length - 1] = `${trimmed}…`;
-    }
+  if (lines.length === maxLines && consumed < words.length) {
+    const last = lines[lines.length - 1];
+    const trimmed =
+      last.length > maxChars - 1
+        ? last.slice(0, maxChars - 1).replace(/\s+\S*$/, "")
+        : last;
+    lines[lines.length - 1] = `${trimmed}…`;
   }
 
   return lines;
 }
 
+function initials(name: string): string {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+  if (parts.length === 0) return "FP";
+  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("");
+}
+
 function buildSvg({
   title,
   category,
+  author,
+  authorRole,
 }: {
   title: string;
   category: string;
+  author: string;
+  authorRole: string;
 }): string {
   const safeCategory = escapeXml(category.toUpperCase().slice(0, 40));
-  const lines = wrapText(title, TITLE_MAX_CHARS_PER_LINE, TITLE_MAX_LINES);
+  const safeAuthor = escapeXml(author.slice(0, 40));
+  const safeAuthorRole = escapeXml(authorRole.slice(0, 60));
+  const safeInitials = escapeXml(initials(author));
+  const hasAuthor = author.trim().length > 0;
+  const maxLines = hasAuthor
+    ? TITLE_MAX_LINES_WITH_AUTHOR
+    : TITLE_MAX_LINES;
+  const lines = wrapText(title, TITLE_MAX_CHARS_PER_LINE, maxLines);
 
-  const titleStartY = 360 - ((lines.length - 1) * TITLE_LINE_HEIGHT) / 2;
+  // Layout regions on a 1200x630 canvas:
+  //   Header (logo + wordmark): y=80..160
+  //   Category pill:             y=220..264
+  //   Title block:               y=300..510 (varies with line count)
+  //   Author byline:             y=460..510 (when present)
+  //   Divider line:              y=540
+  //   Footer (URL / tagline):    y=560..600
+  const titleStartY = hasAuthor
+    ? 320 + (TITLE_MAX_LINES_WITH_AUTHOR - lines.length) * (TITLE_LINE_HEIGHT / 2)
+    : 360 - ((lines.length - 1) * TITLE_LINE_HEIGHT) / 2;
+  const titleEndY = titleStartY + (lines.length - 1) * TITLE_LINE_HEIGHT;
+  const bylineY = Math.min(Math.max(titleEndY + 70, 470), 510);
 
   const titleTspans = lines
     .map((line, i) => {
@@ -148,6 +193,38 @@ function buildSvg({
         letter-spacing="-1.5"
         fill="#FFFFFF">${titleTspans}</text>
 
+  ${
+    hasAuthor
+      ? `<g transform="translate(80, ${bylineY - 36})">
+    <circle cx="24" cy="24" r="24" fill="#0074D9"/>
+    <circle cx="24" cy="24" r="24" fill="none" stroke="#4FA8FF" stroke-width="1.5" opacity="0.7"/>
+    <text x="24" y="31"
+          font-family="DejaVu Sans, Inter, 'Helvetica Neue', Arial, sans-serif"
+          font-weight="700"
+          font-size="18"
+          letter-spacing="0.5"
+          fill="#FFFFFF"
+          text-anchor="middle">${safeInitials}</text>
+    <text x="64" y="22"
+          font-family="DejaVu Sans, Inter, 'Helvetica Neue', Arial, sans-serif"
+          font-weight="600"
+          font-size="22"
+          fill="#FFFFFF">${safeAuthor}</text>
+    ${
+      safeAuthorRole
+        ? `<text x="64" y="44"
+          font-family="DejaVu Sans, Inter, 'Helvetica Neue', Arial, sans-serif"
+          font-weight="500"
+          font-size="15"
+          letter-spacing="0.3"
+          fill="#FFFFFF"
+          opacity="0.65">${safeAuthorRole}</text>`
+        : ""
+    }
+  </g>`
+      : ""
+  }
+
   <line x1="80" y1="540" x2="${WIDTH - 80}" y2="540" stroke="#FFFFFF" stroke-width="1" opacity="0.15"/>
 
   <text x="80" y="585"
@@ -193,13 +270,18 @@ router.get("/og", async (req, res) => {
   const rawTitle = typeof req.query.title === "string" ? req.query.title : "";
   const rawCategory =
     typeof req.query.category === "string" ? req.query.category : "Insights";
+  const rawAuthor = typeof req.query.author === "string" ? req.query.author : "";
+  const rawAuthorRole =
+    typeof req.query.authorRole === "string" ? req.query.authorRole : "";
 
   const title =
     rawTitle.trim().slice(0, 200) ||
     "Optimized Fintech Content That Ranks & Converts";
   const category = rawCategory.trim().slice(0, 40) || "Insights";
+  const author = rawAuthor.trim().slice(0, 40);
+  const authorRole = rawAuthorRole.trim().slice(0, 60);
 
-  const cacheKey = `${title}|${category}`;
+  const cacheKey = `${title}|${category}|${author}|${authorRole}`;
   const cached = getCached(cacheKey);
   if (cached) {
     res.setHeader("Content-Type", "image/jpeg");
@@ -213,7 +295,7 @@ router.get("/og", async (req, res) => {
   }
 
   try {
-    const svg = buildSvg({ title, category });
+    const svg = buildSvg({ title, category, author, authorRole });
     const buf = await sharp(Buffer.from(svg, "utf-8"), { density: 200 })
       .resize(WIDTH, HEIGHT, { fit: "fill" })
       .jpeg({ quality: 88, progressive: true, mozjpeg: true })
