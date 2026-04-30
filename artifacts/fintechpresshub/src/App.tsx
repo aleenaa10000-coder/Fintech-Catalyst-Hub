@@ -8,6 +8,7 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { prefetchAdminBundle, prefetchPublicBundle } from "@/lib/route-prefetch";
+import { TopProgressBar } from "@/components/TopProgressBar";
 
 // Eager: home is the most common landing route — keep it in the main chunk
 // so the first paint after hydration doesn't wait on a code-split fetch.
@@ -56,19 +57,12 @@ const AdminAuthors = lazy(() => import("@/pages/admin-authors"));
 const AdminPricing = lazy(() => import("@/pages/admin-pricing"));
 
 function RouteFallback() {
-  return (
-    <div
-      className="flex min-h-[60vh] items-center justify-center"
-      role="status"
-      aria-live="polite"
-    >
-      <div
-        className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary"
-        aria-hidden="true"
-      />
-      <span className="sr-only">Loading…</span>
-    </div>
-  );
+  // The previous page's content stays mounted by Suspense's transition
+  // semantics, so we deliberately render nothing here except the thin
+  // top progress bar — no centered spinner, no min-height blank state,
+  // no layout shift. Matches the in-app navigation feel of YouTube,
+  // GitHub, and Vercel.
+  return <TopProgressBar />;
 }
 
 const queryClient = new QueryClient({
