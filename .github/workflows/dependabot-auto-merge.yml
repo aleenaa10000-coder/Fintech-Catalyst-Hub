@@ -1,0 +1,72 @@
+name: Dependabot auto-merge
+
+# Automatically merges Dependabot PRs once CI passes, but ONLY when the update
+# is a safe one:
+#   - dependency-type must be `direct:development` (i.e. devDependencies)
+#   - update-type must be `version-update:semver-patch` or
+#     `version-update:semver-minor`
+#
+# Anything else (production deps, indirect deps, or any major bump) is left
+# alone for a human to review.
+#
+# Notes:
+# - `gh pr merge --auto` enables auto-merge on the PR; GitHub itself waits for
+#   required status checks (configured as branch protection on `main`) before
+#   actually merging. Make sure the CI workflow defined in ci.yml is listed as
+#   a required check on `main` for this to behave as intended.
+# - Squash merge is used to keep history tidy; change `--squash` below if your
+#   repo prefers merge commits or rebase.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge safe Dependabot PRs
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]' && github.event.pull_request.draft == false
+    timeout-minutes: 5
+
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Decide whether this PR is auto-mergeable
+        id: gate
+        run: |
+          dep_type='${{ steps.meta.outputs.dependency-type }}'
+          update_type='${{ steps.meta.outputs.update-type }}'
+
+          echo "dependency-type: $dep_type"
+          echo "update-type:     $update_type"
+
+          if [ "$dep_type" = "direct:development" ] && \
+             { [ "$update_type" = "version-update:semver-patch" ] || \
+               [ "$update_type" = "version-update:semver-minor" ]; }; then
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enable auto-merge (squash) once CI passes
+        if: steps.gate.outputs.eligible == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"
+
+      - name: Skip (not eligible)
+        if: steps.gate.outputs.eligible != 'true'
+        run: |
+          echo "Skipping auto-merge."
+          echo "Only direct:development patch/minor bumps are auto-merged."
+          echo "This PR is dependency-type='${{ steps.meta.outputs.dependency-type }}', update-type='${{ steps.meta.outputs.update-type }}'."
