@@ -9,44 +9,6 @@ args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
 
 [workflows]
-runButton = "Project"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "API server"
-
-[[workflows.workflow]]
-name = "Start application"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=5000 BASE_PATH=/ pnpm --filter @workspace/fintechpresshub run dev"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow]]
-name = "API server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=8080 pnpm --filter @workspace/api-server run dev"
-waitForPort = 8080
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
@@ -99,6 +61,7 @@ REPORT_FROM_EMAIL = "FintechPressHub <hello@fintechpresshub.com>"
 ADMIN_EMAILS = "hello@fintechpresshub.com,jasmine.offpageseospecialist@hotmail.com"
 CONTACT_NOTIFY_TO = "hello@fintechpresshub.com"
 PITCH_RECIPIENT_EMAIL = "hello@fintechpresshub.com"
+"RESEND.COM_API_KEY" = "re_Tf8YoMWQ_ 5hmKK9gJh1Fxxo93WuDw2pMp"
 
 [userenv.production]
 INDEXNOW_KEY = "cYBulNRfdK5MiecIhrEQr0r8jh0TI-ow"
