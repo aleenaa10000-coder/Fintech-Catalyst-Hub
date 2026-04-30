@@ -10,6 +10,7 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { prefetchAdminBundle, prefetchPublicBundle } from "@/lib/route-prefetch";
+import { trackPageview } from "@/lib/analytics";
 import { TopProgressBar } from "@/components/TopProgressBar";
 
 // Eager: home is the most common landing route — keep it in the main chunk
@@ -80,6 +81,9 @@ function ScrollToTop() {
   const [location] = useLocation();
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    // Pageview tracking is consent-gated inside trackPageview — no-op until
+    // the visitor opts in via the cookie consent banner.
+    trackPageview(location);
   }, [location]);
   return null;
 }

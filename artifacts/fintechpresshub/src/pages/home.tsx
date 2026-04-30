@@ -26,6 +26,7 @@ import { CountUp } from "@/components/CountUp";
 import { ParticleNetwork } from "@/components/ParticleNetwork";
 import { TrustedBy } from "@/components/TrustedBy";
 import { QuickPublishSheet } from "@/components/QuickPublishSheet";
+import { LandingHealthIndicator } from "@/components/LandingHealthIndicator";
 import { useAuth } from "@workspace/replit-auth-web";
 
 /** Tiny relative-time formatter used by the "Recently published"
@@ -162,6 +163,9 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
+              <div className="mb-6 flex justify-center">
+                <LandingHealthIndicator />
+              </div>
               <h1
                 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-tight"
                 style={{ textShadow: "0 2px 24px rgba(8, 18, 51, 0.55), 0 1px 2px rgba(0,0,0,0.3)" }}
