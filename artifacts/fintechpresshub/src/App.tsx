@@ -7,7 +7,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { useAuth } from "@workspace/replit-auth-web";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { prefetchAdminBundle } from "@/lib/route-prefetch";
+import { prefetchAdminBundle, prefetchPublicBundle } from "@/lib/route-prefetch";
 
 // Eager: home is the most common landing route — keep it in the main chunk
 // so the first paint after hydration doesn't wait on a code-split fetch.
@@ -108,11 +108,25 @@ function AdminBundlePrefetch() {
   return null;
 }
 
+/**
+ * After first mount, silently warm every public-page chunk during
+ * browser idle time. This means clicking any nav link (or in-app link)
+ * resolves instantly from cache and the Suspense fallback never shows.
+ * Idempotent — guarded internally so re-renders don't re-fetch.
+ */
+function PublicBundlePrefetch() {
+  useEffect(() => {
+    prefetchPublicBundle();
+  }, []);
+  return null;
+}
+
 function Router() {
   return (
     <div className="flex flex-col min-h-screen">
       <ScrollToTop />
       <AdminBundlePrefetch />
+      <PublicBundlePrefetch />
       <Header />
       <main className="flex-grow pt-16">
         <Suspense fallback={<RouteFallback />}>

@@ -90,6 +90,35 @@ export function prefetchAuthor(): void {
 }
 
 /**
+ * Public route bundle. After first paint, silently warm every public
+ * page chunk during browser idle time so that any in-app navigation
+ * resolves instantly from cache instead of showing the Suspense
+ * fallback. Each loader fires sequentially during idle slices so we
+ * never compete with actual user-initiated work for network or CPU.
+ */
+const PUBLIC_LOADERS: ReadonlyArray<() => Promise<unknown>> = [
+  () => import("@/pages/about"),
+  () => import("@/pages/services"),
+  () => import("@/pages/service-detail"),
+  () => import("@/pages/pricing"),
+  () => import("@/pages/blog"),
+  () => import("@/pages/blog-post"),
+  () => import("@/pages/author"),
+  () => import("@/pages/authors"),
+  () => import("@/pages/write-for-us"),
+  () => import("@/pages/contact"),
+  () => import("@/pages/privacy-policy"),
+  () => import("@/pages/refund-policy"),
+  () => import("@/pages/cookie-policy"),
+  () => import("@/pages/terms"),
+  () => import("@/pages/editorial-guidelines"),
+  () => import("@/pages/community-guidelines"),
+  () => import("@/pages/tools/financial-health-score-calculator"),
+];
+
+let publicBundlePrefetched = false;
+
+/**
  * Admin route bundle. Once a logged-in admin user is detected anywhere
  * on the site, we want to silently warm every admin page chunk so that
  * navigating between them never shows a Suspense fallback. Each loader
@@ -151,6 +180,30 @@ export function prefetchAdminBundle(): void {
       .catch(() => undefined)
       .finally(() => {
         if (i < ADMIN_LOADERS.length) scheduleIdle(next);
+      });
+  };
+  scheduleIdle(next);
+}
+
+/**
+ * Warm every public-page chunk during browser idle time after the
+ * initial render. Called once on first mount so that any subsequent
+ * in-app navigation resolves instantly from cache and the Suspense
+ * fallback spinner never appears for normal browsing.
+ */
+export function prefetchPublicBundle(): void {
+  if (typeof window === "undefined") return;
+  if (publicBundlePrefetched) return;
+  publicBundlePrefetched = true;
+
+  let i = 0;
+  const next = () => {
+    const loader = PUBLIC_LOADERS[i++];
+    if (!loader) return;
+    loader()
+      .catch(() => undefined)
+      .finally(() => {
+        if (i < PUBLIC_LOADERS.length) scheduleIdle(next);
       });
   };
   scheduleIdle(next);
