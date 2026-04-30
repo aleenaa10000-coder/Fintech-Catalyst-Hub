@@ -914,6 +914,111 @@ function slugify(input: string) {
     .replace(/-+/g, "-");
 }
 
+/**
+ * Live preview of the auto-generated Open Graph card the API server
+ * produces for this post. Re-renders the image as the admin edits the
+ * title, category, author, or role — debounced so we don't hammer the
+ * `/api/og` endpoint on every keystroke. When a manual `seoOgImage`
+ * URL is set, that override is shown instead so admins can verify the
+ * exact image LinkedIn / X / Slack will fetch.
+ */
+function OgImagePreview({
+  postId,
+  override,
+  title,
+  category,
+  author,
+  authorRole,
+}: {
+  postId: number;
+  override: string;
+  title: string;
+  category: string;
+  author: string;
+  authorRole: string;
+}) {
+  const trimmedOverride = override.trim();
+  const params = useMemo(() => {
+    const p = new URLSearchParams();
+    if (title.trim()) p.set("title", title.trim());
+    if (category.trim()) p.set("category", category.trim());
+    if (author.trim()) p.set("author", author.trim());
+    if (authorRole.trim()) p.set("authorRole", authorRole.trim());
+    return p.toString();
+  }, [title, category, author, authorRole]);
+
+  // Debounce by ~400ms so typing into the title field doesn't spam
+  // the OG endpoint with one request per keystroke.
+  const [debouncedSrc, setDebouncedSrc] = useState(
+    trimmedOverride || `/api/og?${params}`,
+  );
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSrc(trimmedOverride || `/api/og?${params}`);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [trimmedOverride, params]);
+
+  const isOverride = trimmedOverride.length > 0;
+  const displayUrl = isOverride
+    ? trimmedOverride
+    : `/api/og?${params}`;
+  const cacheBustedSrc = isOverride
+    ? trimmedOverride
+    : `${debouncedSrc}${debouncedSrc.includes("?") ? "&" : "?"}_=${reloadKey}`;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm">
+          Live preview ({isOverride ? "manual override" : "auto-generated"})
+        </Label>
+        {!isOverride && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="h-7 px-2"
+            aria-label="Refresh OG preview"
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1" />
+            Refresh
+          </Button>
+        )}
+      </div>
+      <div className="border rounded-md overflow-hidden bg-slate-900">
+        <img
+          key={`og-${postId}-${reloadKey}-${cacheBustedSrc}`}
+          src={cacheBustedSrc}
+          alt="Open Graph preview"
+          width={1200}
+          height={630}
+          className="w-full h-auto block"
+          loading="lazy"
+        />
+      </div>
+      <p className="text-xs text-muted-foreground break-all">
+        <span className="font-medium">URL:</span>{" "}
+        <a
+          href={displayUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="underline hover:text-foreground"
+        >
+          {displayUrl}
+        </a>
+      </p>
+      <p className="text-xs text-muted-foreground">
+        This is exactly the image LinkedIn, X, Slack, Facebook, iMessage, and
+        Discord will show when someone shares this post.
+      </p>
+    </div>
+  );
+}
+
 function PostEditor({
   post,
   onCancel,
@@ -1267,7 +1372,7 @@ function PostEditor({
                 id={`seoOgImage-${post.id}`}
                 type="url"
                 value={draft.seoOgImage}
-                placeholder="Defaults to the cover image"
+                placeholder={`Defaults to the auto-generated card`}
                 onChange={(e) =>
                   setDraft({ ...draft, seoOgImage: e.target.value })
                 }
@@ -1314,8 +1419,17 @@ function PostEditor({
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               1200×630 PNG/JPG works best for LinkedIn, X, Slack & Facebook.
+              Leave blank to use the branded auto-generated card below.
             </p>
           </div>
+          <OgImagePreview
+            postId={post.id}
+            override={draft.seoOgImage}
+            title={draft.title || post.title}
+            category={draft.category || post.category || "Insights"}
+            author={draft.author || post.author}
+            authorRole={draft.authorRole || post.authorRole}
+          />
         </div>
       </details>
 

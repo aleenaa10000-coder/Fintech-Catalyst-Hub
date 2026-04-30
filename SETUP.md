@@ -41,9 +41,39 @@ Once the **FintechPressHub: web** workflow logs `ready in …`, the preview pane
 
 If a preview shows **"Hmm… We couldn't reach this app"**, the workflow simply hasn't finished starting — wait a few seconds and refresh.
 
-## 5. Verify the import with the health endpoint
+## 5. Verify the import
 
-Open `/api/healthz` in a new tab (e.g. `https://<your-repl>.replit.dev/api/healthz`) — or run `curl http://localhost:8080/api/healthz` from the Shell — and you'll get a one-shot status report:
+You have two equivalent ways to check that the database, email provider, and seed content are all wired up correctly. Pick whichever is more convenient.
+
+### ▶ Run setup checks (terminal — recommended)
+
+Open the **Shell** tool and run:
+
+```bash
+pnpm run setup:check
+```
+
+This runs a small CLI that prints the same report `/api/healthz` returns, but directly in the terminal — no need to start the API server or open a browser. You'll see something like:
+
+```
+FintechPressHub — Setup Check
+Same checks as the /api/healthz endpoint.
+
+PASS Database
+       connected · 24ms round-trip
+PASS Email provider
+       provider: resend
+PASS Seed data
+       blogPosts=15  authors=11  services=5  testimonials=4  pricingPlans=3  siteStats=1
+
+Overall: OK  (checked at 2026-04-30T17:54:30.936Z)
+```
+
+The command exits with code `0` when everything is healthy and `1` when at least one check is degraded — handy for CI/automation.
+
+### Or: open the health endpoint in a browser
+
+Open `/api/healthz` in a new tab (e.g. `https://<your-repl>.replit.dev/api/healthz`) — or run `curl http://localhost:8080/api/healthz` from the Shell — and you'll get the same data as JSON:
 
 ```json
 {
