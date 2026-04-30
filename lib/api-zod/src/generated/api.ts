@@ -138,6 +138,8 @@ export const LogoutAdminSessionResponse = zod.object({
  */
 export const healthCheckResponseDbLatencyMsMin = 0;
 
+export const healthCheckResponseSeedDataCountsMinOne = 0;
+
 export const healthCheckResponseUptimeSecondsMin = 0;
 
 export const HealthCheckResponse = zod.object({
@@ -147,6 +149,30 @@ export const HealthCheckResponse = zod.object({
     latencyMs: zod.number().min(healthCheckResponseDbLatencyMsMin),
     error: zod.string().optional(),
   }),
+  email: zod
+    .object({
+      ok: zod.boolean(),
+      provider: zod.enum(["resend", "smtp", "none"]),
+    })
+    .describe(
+      "Reports whether at least one outbound email transport is configured. `provider` is `resend` when `RESEND_API_KEY` is set, `smtp` when all four `SMTP_\*` variables are set, or `none` when neither is configured. The `ok` flag is `true` whenever any provider is configured (the endpoint does not attempt a live send).\n",
+    ),
+  seedData: zod
+    .object({
+      ok: zod.boolean(),
+      counts: zod
+        .record(
+          zod.string(),
+          zod.number().min(healthCheckResponseSeedDataCountsMinOne),
+        )
+        .describe(
+          "Row counts per seeded table — keys are `blogPosts`, `authors`, `services`, `testimonials`, `pricingPlans`, and `siteStats`.\n",
+        ),
+      error: zod.string().optional(),
+    })
+    .describe(
+      "Confirms that the demo-data seed has populated the public content tables. `ok` is `true` only when every counted table has at least one row. Useful right after a fresh GitHub import to verify `pnpm seed:auto` has run.\n",
+    ),
   uptimeSeconds: zod.number().min(healthCheckResponseUptimeSecondsMin),
   checkedAt: zod.coerce.date(),
 });

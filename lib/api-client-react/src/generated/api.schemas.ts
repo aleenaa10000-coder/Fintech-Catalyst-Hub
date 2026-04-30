@@ -71,9 +71,51 @@ export type HealthStatusDb = {
   error?: string;
 };
 
+export type HealthStatusEmailProvider =
+  (typeof HealthStatusEmailProvider)[keyof typeof HealthStatusEmailProvider];
+
+export const HealthStatusEmailProvider = {
+  resend: "resend",
+  smtp: "smtp",
+  none: "none",
+} as const;
+
+/**
+ * Reports whether at least one outbound email transport is configured. `provider` is `resend` when `RESEND_API_KEY` is set, `smtp` when all four `SMTP_*` variables are set, or `none` when neither is configured. The `ok` flag is `true` whenever any provider is configured (the endpoint does not attempt a live send).
+
+ */
+export type HealthStatusEmail = {
+  ok: boolean;
+  provider: HealthStatusEmailProvider;
+};
+
+/**
+ * Row counts per seeded table — keys are `blogPosts`, `authors`, `services`, `testimonials`, `pricingPlans`, and `siteStats`.
+
+ */
+export type HealthStatusSeedDataCounts = { [key: string]: number };
+
+/**
+ * Confirms that the demo-data seed has populated the public content tables. `ok` is `true` only when every counted table has at least one row. Useful right after a fresh GitHub import to verify `pnpm seed:auto` has run.
+
+ */
+export type HealthStatusSeedData = {
+  ok: boolean;
+  /** Row counts per seeded table — keys are `blogPosts`, `authors`, `services`, `testimonials`, `pricingPlans`, and `siteStats`.
+   */
+  counts: HealthStatusSeedDataCounts;
+  error?: string;
+};
+
 export interface HealthStatus {
   status: HealthStatusStatus;
   db: HealthStatusDb;
+  /** Reports whether at least one outbound email transport is configured. `provider` is `resend` when `RESEND_API_KEY` is set, `smtp` when all four `SMTP_*` variables are set, or `none` when neither is configured. The `ok` flag is `true` whenever any provider is configured (the endpoint does not attempt a live send).
+   */
+  email: HealthStatusEmail;
+  /** Confirms that the demo-data seed has populated the public content tables. `ok` is `true` only when every counted table has at least one row. Useful right after a fresh GitHub import to verify `pnpm seed:auto` has run.
+   */
+  seedData: HealthStatusSeedData;
   /** @minimum 0 */
   uptimeSeconds: number;
   checkedAt: string;

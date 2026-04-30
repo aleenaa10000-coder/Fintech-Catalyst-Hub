@@ -41,6 +41,25 @@ Once the **FintechPressHub: web** workflow logs `ready in …`, the preview pane
 
 If a preview shows **"Hmm… We couldn't reach this app"**, the workflow simply hasn't finished starting — wait a few seconds and refresh.
 
+## 5. Verify the import with the health endpoint
+
+Open `/api/healthz` in a new tab (e.g. `https://<your-repl>.replit.dev/api/healthz`) — or run `curl http://localhost:8080/api/healthz` from the Shell — and you'll get a one-shot status report:
+
+```json
+{
+  "status": "ok",
+  "db":       { "ok": true,  "latencyMs": 1 },
+  "email":    { "ok": true,  "provider": "resend" },
+  "seedData": { "ok": true,  "counts": { "blogPosts": 15, "authors": 11, "services": 5, "testimonials": 4, "pricingPlans": 3, "siteStats": 1 } },
+  "uptimeSeconds": 12,
+  "checkedAt": "2026-04-30T16:58:18.493Z"
+}
+```
+
+- `status` is `"ok"` only when **db**, **email**, and **seedData** all pass; otherwise it is `"degraded"` and the failing block tells you exactly which step is missing.
+- `email.provider` will be `"none"` until you add `RESEND_API_KEY` or the `SMTP_*` secrets — useful for confirming step 2 worked.
+- `seedData.counts` lets you confirm the demo content was inserted; if any value is `0`, restart the API Server workflow to re-run the seed.
+
 ---
 
 ## Optional: make the post-merge script executable

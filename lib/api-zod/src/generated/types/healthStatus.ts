@@ -6,11 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { HealthStatusDb } from "./healthStatusDb";
+import type { HealthStatusEmail } from "./healthStatusEmail";
+import type { HealthStatusSeedData } from "./healthStatusSeedData";
 import type { HealthStatusStatus } from "./healthStatusStatus";
 
 export interface HealthStatus {
   status: HealthStatusStatus;
   db: HealthStatusDb;
+  /** Reports whether at least one outbound email transport is configured. `provider` is `resend` when `RESEND_API_KEY` is set, `smtp` when all four `SMTP_*` variables are set, or `none` when neither is configured. The `ok` flag is `true` whenever any provider is configured (the endpoint does not attempt a live send).
+   */
+  email: HealthStatusEmail;
+  /** Confirms that the demo-data seed has populated the public content tables. `ok` is `true` only when every counted table has at least one row. Useful right after a fresh GitHub import to verify `pnpm seed:auto` has run.
+   */
+  seedData: HealthStatusSeedData;
   /** @minimum 0 */
   uptimeSeconds: number;
   checkedAt: Date;

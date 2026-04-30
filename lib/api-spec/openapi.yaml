@@ -1258,13 +1258,51 @@ components:
             error:
               type: string
           required: [ok, latencyMs]
+        email:
+          type: object
+          description: >
+            Reports whether at least one outbound email transport is
+            configured. `provider` is `resend` when `RESEND_API_KEY` is
+            set, `smtp` when all four `SMTP_*` variables are set, or
+            `none` when neither is configured. The `ok` flag is `true`
+            whenever any provider is configured (the endpoint does not
+            attempt a live send).
+          properties:
+            ok:
+              type: boolean
+            provider:
+              type: string
+              enum: [resend, smtp, none]
+          required: [ok, provider]
+        seedData:
+          type: object
+          description: >
+            Confirms that the demo-data seed has populated the public
+            content tables. `ok` is `true` only when every counted table
+            has at least one row. Useful right after a fresh GitHub
+            import to verify `pnpm seed:auto` has run.
+          properties:
+            ok:
+              type: boolean
+            counts:
+              type: object
+              additionalProperties:
+                type: integer
+                minimum: 0
+              description: >
+                Row counts per seeded table — keys are
+                `blogPosts`, `authors`, `services`, `testimonials`,
+                `pricingPlans`, and `siteStats`.
+            error:
+              type: string
+          required: [ok, counts]
         uptimeSeconds:
           type: integer
           minimum: 0
         checkedAt:
           type: string
           format: date-time
-      required: [status, db, uptimeSeconds, checkedAt]
+      required: [status, db, email, seedData, uptimeSeconds, checkedAt]
 
     BlogPost:
       type: object
