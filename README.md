@@ -1,5 +1,7 @@
 # FintechPressHub
 
+[![CI](https://github.com/aleenaa10000-coder/Fintech-Catalyst-Hub/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aleenaa10000-coder/Fintech-Catalyst-Hub/actions/workflows/ci.yml)
+
 Professional fintech digital marketing & content agency website. React + Vite frontend, Express API backend, PostgreSQL via Drizzle ORM, all in a pnpm monorepo.
 
 ---
