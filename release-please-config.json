@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "include-v-in-tag": true,
+  "include-component-in-tag": false,
+  "separate-pull-requests": false,
+  "pull-request-title-pattern": "chore(release): ${version}",
+  "changelog-sections": [
+    { "type": "feat",     "section": "Features" },
+    { "type": "fix",      "section": "Bug Fixes" },
+    { "type": "perf",     "section": "Performance" },
+    { "type": "revert",   "section": "Reverts" },
+    { "type": "refactor", "section": "Code Refactoring" },
+    { "type": "docs",     "section": "Documentation" },
+    { "type": "test",     "section": "Tests", "hidden": true },
+    { "type": "build",    "section": "Build System" },
+    { "type": "ci",       "section": "CI" },
+    { "type": "style",    "section": "Styles", "hidden": true },
+    { "type": "chore",    "section": "Miscellaneous" }
+  ],
+  "extra-files": [],
+  "packages": {
+    ".": {
+      "package-name": "fintech-catalyst-hub",
+      "changelog-path": "CHANGELOG.md",
+      "draft": false,
+      "prerelease": false
+    }
+  }
+}

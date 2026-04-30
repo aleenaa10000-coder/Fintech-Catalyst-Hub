@@ -1,0 +1,47 @@
+name: Release Please
+
+# Watches conventional-commit messages on `main` and maintains a single open
+# "release PR" that bumps the version, regenerates CHANGELOG.md, and tags a
+# GitHub Release once you merge it. Plays nicely with the Dependabot prefixes
+# already configured in .github/dependabot.yml:
+#   chore(deps)     → "Dependencies" section in the changelog
+#   chore(deps-dev) → "Dev Dependencies" section
+#   ci(deps)        → "CI" section
+# (See release-please-config.json for the full mapping.)
+#
+# Versioning rules (standard conventional-commits):
+#   feat: ...   → minor bump
+#   fix:  ...   → patch bump
+#   chore/ci/docs/etc → no bump on their own (but show up in the changelog)
+#   BREAKING CHANGE / feat!: → major bump
+#
+# Nothing here publishes to npm — the root package is `private: true`. The
+# workflow only touches CHANGELOG.md, package.json (version), the manifest,
+# and creates a Git tag + GitHub Release.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: Maintain release PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Run release-please
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
