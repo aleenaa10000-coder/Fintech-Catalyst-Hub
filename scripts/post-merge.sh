@@ -7,3 +7,12 @@ pnpm --filter @workspace/db run push
 # services, pricing, authors, and site stats without waiting for the
 # api-server to start.
 pnpm --filter @workspace/scripts run seed:auto
+
+echo ""
+echo "=========================================="
+echo "Post-merge setup report (pnpm run setup:check)"
+echo "=========================================="
+pnpm run setup:check
+echo "=========================================="
+echo "End of post-merge setup report"
+echo "=========================================="
