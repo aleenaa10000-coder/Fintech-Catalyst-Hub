@@ -36,6 +36,7 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { useIncrementBlogPostView } from "@workspace/api-client-react";
 import { ReportContentDialog } from "@/components/ReportContentDialog";
 import { BlogPostToc } from "@/components/BlogPostToc";
+import { BlogPostNewsletterCta } from "@/components/BlogPostNewsletterCta";
 
 const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
@@ -1081,6 +1082,9 @@ export default function BlogPost() {
             triggerLabel="Report this post"
           />
         </div>
+
+        {/* End-of-article newsletter CTA */}
+        <BlogPostNewsletterCta postSlug={post.slug} />
 
         {/* Related Posts */}
         {relatedPosts.length > 0 && (

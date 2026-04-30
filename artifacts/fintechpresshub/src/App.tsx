@@ -32,6 +32,7 @@ const Contact = lazy(() => import("@/pages/contact"));
 const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
 const RefundPolicy = lazy(() => import("@/pages/refund-policy"));
 const CookiePolicy = lazy(() => import("@/pages/cookie-policy"));
+const StatusPage = lazy(() => import("@/pages/status"));
 const Terms = lazy(() => import("@/pages/terms"));
 const EditorialGuidelines = lazy(() => import("@/pages/editorial-guidelines"));
 const CommunityGuidelines = lazy(() => import("@/pages/community-guidelines"));
@@ -146,6 +147,7 @@ function Router() {
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/refund-policy" component={RefundPolicy} />
           <Route path="/cookie-policy" component={CookiePolicy} />
+          <Route path="/status" component={StatusPage} />
           <Route path="/terms" component={Terms} />
           <Route path="/editorial-guidelines" component={EditorialGuidelines} />
           <Route path="/community-guidelines" component={CommunityGuidelines} />

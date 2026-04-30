@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import {
   useHealthCheck,
   getHealthCheckQueryKey,
@@ -68,17 +69,15 @@ export function LandingHealthIndicator({ className }: Props) {
   const t = TONE[tone];
 
   return (
-    <a
-      href="/api/healthz"
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href="/status"
       className={cn(
         "inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm hover:bg-white/15 transition-colors",
         className,
       )}
       role="status"
       aria-live="polite"
-      aria-label={`Site status: ${t.label}`}
+      aria-label={`Site status: ${t.label}. View status page.`}
       data-testid="landing-health-indicator"
       data-tone={tone}
     >
@@ -101,6 +100,6 @@ export function LandingHealthIndicator({ className }: Props) {
         />
       </span>
       <span>{t.label}</span>
-    </a>
+    </Link>
   );
 }

@@ -1,0 +1,343 @@
+import { useEffect, useState } from "react";
+import {
+  useHealthCheck,
+  getHealthCheckQueryKey,
+  type HealthStatus,
+} from "@workspace/api-client-react";
+import {
+  CheckCircle2,
+  AlertTriangle,
+  CircleAlert,
+  Database,
+  Mail,
+  Sprout,
+  RefreshCw,
+  Loader2,
+} from "lucide-react";
+import { PageMeta } from "@/components/PageMeta";
+import { PageHero } from "@/components/PageHero";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
+const POLL_MS = 30_000;
+const HISTORY_LIMIT = 12;
+
+type Tone = "ok" | "warn" | "down" | "loading";
+
+const TONE_COLORS: Record<Tone, { dot: string; text: string; bg: string; ring: string }> = {
+  ok: {
+    dot: "bg-emerald-500",
+    text: "text-emerald-700 dark:text-emerald-300",
+    bg: "bg-emerald-50 dark:bg-emerald-950/30",
+    ring: "ring-emerald-200 dark:ring-emerald-900/60",
+  },
+  warn: {
+    dot: "bg-amber-500",
+    text: "text-amber-800 dark:text-amber-300",
+    bg: "bg-amber-50 dark:bg-amber-950/30",
+    ring: "ring-amber-200 dark:ring-amber-900/60",
+  },
+  down: {
+    dot: "bg-red-500",
+    text: "text-red-700 dark:text-red-300",
+    bg: "bg-red-50 dark:bg-red-950/30",
+    ring: "ring-red-200 dark:ring-red-900/60",
+  },
+  loading: {
+    dot: "bg-muted-foreground/60",
+    text: "text-muted-foreground",
+    bg: "bg-muted/40",
+    ring: "ring-muted",
+  },
+};
+
+function overallTone(data: HealthStatus | undefined, isError: boolean): Tone {
+  if (isError) return "down";
+  if (!data) return "loading";
+  if (!data.db.ok) return "down";
+  if (!data.email.ok || !data.seedData.ok) return "warn";
+  return "ok";
+}
+
+function overallLabel(tone: Tone): string {
+  switch (tone) {
+    case "ok":
+      return "All systems operational";
+    case "warn":
+      return "Some services degraded";
+    case "down":
+      return "Service disruption";
+    case "loading":
+      return "Checking status…";
+  }
+}
+
+function formatChecked(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 5_000) return "just now";
+  if (ms < 60_000) return `${Math.round(ms / 1000)}s ago`;
+  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m ago`;
+  return new Date(iso).toLocaleTimeString();
+}
+
+function formatUptime(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ${m % 60}m`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h`;
+}
+
+interface SubsystemCardProps {
+  icon: typeof Database;
+  title: string;
+  tone: Tone;
+  summary: string;
+  detail?: string;
+  testId: string;
+}
+
+function SubsystemCard({ icon: Icon, title, tone, summary, detail, testId }: SubsystemCardProps) {
+  const colors = TONE_COLORS[tone];
+  const StatusIcon =
+    tone === "ok"
+      ? CheckCircle2
+      : tone === "warn"
+        ? AlertTriangle
+        : tone === "down"
+          ? CircleAlert
+          : Loader2;
+  return (
+    <Card className={cn("border", colors.bg, "ring-1", colors.ring)} data-testid={testId} data-tone={tone}>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className={cn("rounded-md p-2", "bg-background")}>
+              <Icon className="h-4 w-4 text-muted-foreground" aria-hidden />
+            </div>
+            <h3 className="text-base font-semibold">{title}</h3>
+          </div>
+          <div className={cn("inline-flex items-center gap-1 text-xs font-medium", colors.text)}>
+            <StatusIcon className={cn("h-3.5 w-3.5", tone === "loading" && "animate-spin")} aria-hidden />
+            {tone === "ok" && "Operational"}
+            {tone === "warn" && "Degraded"}
+            {tone === "down" && "Down"}
+            {tone === "loading" && "Checking"}
+          </div>
+        </div>
+        <p className={cn("mt-3 text-sm", colors.text)}>{summary}</p>
+        {detail && <p className="mt-1 text-xs text-muted-foreground">{detail}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface HistoryEntry {
+  tone: Tone;
+  checkedAt: string;
+}
+
+export default function StatusPage() {
+  const { data, isError, isLoading, isFetching, dataUpdatedAt, refetch } = useHealthCheck<HealthStatus>({
+    query: {
+      queryKey: getHealthCheckQueryKey(),
+      refetchInterval: POLL_MS,
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
+      retry: 1,
+      staleTime: 0,
+      gcTime: 5 * 60_000,
+    },
+  });
+
+  const tone = overallTone(data, isError);
+  const colors = TONE_COLORS[tone];
+
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  useEffect(() => {
+    if (isLoading) return;
+    const checkedAt = data?.checkedAt ?? new Date(dataUpdatedAt || Date.now()).toISOString();
+    setHistory((prev) => {
+      const last = prev[prev.length - 1];
+      if (last && last.checkedAt === checkedAt) return prev;
+      return [...prev, { tone, checkedAt }].slice(-HISTORY_LIMIT);
+    });
+  }, [data, isError, isLoading, dataUpdatedAt, tone]);
+
+  // Subsystem tones + summaries
+  const dbTone: Tone = isError ? "down" : !data ? "loading" : data.db.ok ? "ok" : "down";
+  const emailTone: Tone = isError ? "down" : !data ? "loading" : data.email.ok ? "ok" : "warn";
+  const seedTone: Tone = isError ? "down" : !data ? "loading" : data.seedData.ok ? "ok" : "warn";
+
+  return (
+    <>
+      <PageMeta
+        page="status"
+        webPage={{ datePublished: "2026-04-30", dateModified: "2026-04-30" }}
+      />
+      <PageHero
+        eyebrow="System Status"
+        title="FintechPressHub status"
+        description="Live status of our public services — site, database, email transport, and demo content. Refreshes every 30 seconds."
+      />
+
+      <section className="container mx-auto px-4 pb-20 -mt-8">
+        <Card className={cn("border ring-1", colors.bg, colors.ring)} data-testid="status-overall" data-tone={tone}>
+          <CardContent className="p-6 sm:p-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <span className="relative inline-flex h-3 w-3" aria-hidden>
+                  {tone !== "loading" && (
+                    <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", colors.dot)} />
+                  )}
+                  <span className={cn("relative inline-flex h-3 w-3 rounded-full", colors.dot)} />
+                </span>
+                <div>
+                  <div className={cn("text-lg font-semibold", colors.text)}>{overallLabel(tone)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {data
+                      ? `Last checked ${formatChecked(data.checkedAt)} · API uptime ${formatUptime(data.uptimeSeconds)}`
+                      : isError
+                        ? "The API server did not respond to the last probe."
+                        : "Probing /api/healthz…"}
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                data-testid="status-refresh"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} aria-hidden />
+                Refresh now
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <SubsystemCard
+            icon={Database}
+            title="Database"
+            tone={dbTone}
+            summary={
+              isError
+                ? "Unreachable — API probe failed."
+                : !data
+                  ? "Checking…"
+                  : data.db.ok
+                    ? `Connected · ${data.db.latencyMs}ms round-trip`
+                    : "Offline."
+            }
+            detail={data?.db.error}
+            testId="status-card-db"
+          />
+          <SubsystemCard
+            icon={Mail}
+            title="Email"
+            tone={emailTone}
+            summary={
+              isError
+                ? "Unknown — API probe failed."
+                : !data
+                  ? "Checking…"
+                  : data.email.ok
+                    ? `Provider: ${data.email.provider}`
+                    : "No transport configured."
+            }
+            detail={
+              !isError && data && !data.email.ok
+                ? "Outbound email is disabled until RESEND_API_KEY or the SMTP_* secrets are set."
+                : undefined
+            }
+            testId="status-card-email"
+          />
+          <SubsystemCard
+            icon={Sprout}
+            title="Demo content"
+            tone={seedTone}
+            summary={
+              isError
+                ? "Unknown — API probe failed."
+                : !data
+                  ? "Checking…"
+                  : data.seedData.ok
+                    ? "All public tables populated."
+                    : "One or more tables are empty."
+            }
+            detail={data?.seedData.error}
+            testId="status-card-seed"
+          />
+        </div>
+
+        {data?.seedData.counts && Object.keys(data.seedData.counts).length > 0 && (
+          <Card className="mt-6">
+            <CardContent className="p-5">
+              <h3 className="text-sm font-semibold mb-3">Public content row counts</h3>
+              <ul
+                className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-sm"
+                data-testid="status-seed-counts"
+              >
+                {Object.entries(data.seedData.counts).map(([table, n]) => (
+                  <li key={table} className="flex items-center justify-between">
+                    <span className="text-muted-foreground">{table}</span>
+                    <span className="font-medium tabular-nums">{n}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {history.length > 0 && (
+          <Card className="mt-6">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold">Recent probes</h3>
+                <span className="text-xs text-muted-foreground">
+                  Last {history.length} of {HISTORY_LIMIT}
+                </span>
+              </div>
+              <ol className="flex items-end gap-1.5" data-testid="status-history">
+                {history.map((entry, i) => {
+                  const c = TONE_COLORS[entry.tone];
+                  return (
+                    <li
+                      key={`${entry.checkedAt}-${i}`}
+                      className={cn("h-8 w-3 rounded-sm", c.dot)}
+                      title={`${overallLabel(entry.tone)} · ${formatChecked(entry.checkedAt)}`}
+                      aria-label={`${overallLabel(entry.tone)} at ${entry.checkedAt}`}
+                    />
+                  );
+                })}
+              </ol>
+              <p className="mt-3 text-xs text-muted-foreground">
+                History is captured in this browser session only — it resets on
+                reload. For long-term incident history, see your hosting
+                dashboard.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        <p className="mt-6 text-xs text-muted-foreground">
+          Raw probe data:{" "}
+          <a
+            href="/api/healthz"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            /api/healthz
+          </a>
+        </p>
+      </section>
+    </>
+  );
+}

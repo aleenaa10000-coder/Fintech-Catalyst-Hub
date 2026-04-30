@@ -95,6 +95,15 @@ export function Footer() {
                   Editorial Guidelines
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/status"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                  data-testid="link-footer-status"
+                >
+                  System Status
+                </Link>
+              </li>
             </ul>
           </div>
 

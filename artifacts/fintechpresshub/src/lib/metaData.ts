@@ -139,6 +139,11 @@ export const PAGE_META = {
     title: "Page Not Found | FintechPressHub",
     description: "The page you are looking for could not be found.",
   },
+  status: {
+    title: "System Status | FintechPressHub",
+    description:
+      "Live status of FintechPressHub services — site, database, email transport, and demo content.",
+  },
 } as const satisfies Record<string, PageMeta>;
 
 export type PageKey = keyof typeof PAGE_META;
