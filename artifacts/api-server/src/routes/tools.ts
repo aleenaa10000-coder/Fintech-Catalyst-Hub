@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, newsletterSubscribersTable } from "@workspace/db";
 import { EmailFinancialHealthScoreReportBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
+import { getSiteUrl } from "../lib/seo";
 
 const router: IRouter = Router();
 
@@ -36,6 +37,7 @@ function buildReportHtml(input: {
   };
   tips: { title: string; body: string }[];
 }): string {
+  const siteUrl = getSiteUrl();
   const colors = bandColor(input.score);
   const m = input.metrics;
   const metricRow = (
@@ -128,7 +130,7 @@ function buildReportHtml(input: {
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
                   <tr>
                     <td align="center">
-                      <a href="https://www.fintechpresshub.com/tools/financial-health-score-calculator" style="display:inline-block;background:#0052FF;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:8px;">Re-run the calculator →</a>
+                      <a href="${siteUrl}/tools/financial-health-score-calculator" style="display:inline-block;background:#0052FF;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:8px;">Re-run the calculator →</a>
                     </td>
                   </tr>
                 </table>
@@ -137,7 +139,7 @@ function buildReportHtml(input: {
             <tr>
               <td style="padding:20px 32px;background:#f8fafc;border-top:1px solid #f1f5f9;font-size:12px;color:#64748b;text-align:center;">
                 You're receiving this because you requested a Financial Health Score report on FintechPressHub.<br />
-                © ${new Date().getFullYear()} FintechPressHub · <a href="https://www.fintechpresshub.com" style="color:#0052FF;text-decoration:none;">fintechpresshub.com</a>
+                © ${new Date().getFullYear()} FintechPressHub · <a href="${siteUrl}" style="color:#0052FF;text-decoration:none;">fintechpresshub.com</a>
               </td>
             </tr>
           </table>
