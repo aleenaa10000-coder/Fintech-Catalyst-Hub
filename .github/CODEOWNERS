@@ -1,0 +1,18 @@
+# CODEOWNERS — automatic reviewer assignment.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-security/customizing-your-repository/about-code-owners
+#
+# Syntax:  <path-pattern>   <@owner1> <@owner2> ...
+# Last matching pattern wins, so order matters: put broad rules first,
+# then narrower / more sensitive rules below.
+
+# Default owner for everything in the repo.
+*                         @aleenaa10000-coder
+
+# CI / automation surface — anything that can change how code is built,
+# tested, deployed, merged, or which dependencies are accepted MUST be
+# reviewed by a human owner. The Dependabot auto-merge workflow also
+# explicitly skips PRs that touch this path, as a belt-and-braces guard.
+/.github/                 @aleenaa10000-coder
+/.github/workflows/       @aleenaa10000-coder
+/.github/dependabot.yml   @aleenaa10000-coder
+/.github/CODEOWNERS       @aleenaa10000-coder

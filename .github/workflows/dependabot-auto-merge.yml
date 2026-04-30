@@ -40,18 +40,44 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check whether PR touches CI/automation files
+        id: paths
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # List every file changed in this PR and look for anything under
+          # .github/workflows/ or the CODEOWNERS / dependabot config files.
+          # If a Dependabot PR somehow includes one of these (e.g. an
+          # action bump rewriting workflow YAML), we never auto-merge it.
+          changed=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json files --jq '.files[].path')
+          echo "Changed files:"
+          echo "$changed"
+
+          if echo "$changed" | grep -E '^\.github/(workflows/|CODEOWNERS$|dependabot\.yml$)' >/dev/null; then
+            echo "touches_ci=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "touches_ci=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Decide whether this PR is auto-mergeable
         id: gate
         run: |
           dep_type='${{ steps.meta.outputs.dependency-type }}'
           update_type='${{ steps.meta.outputs.update-type }}'
+          touches_ci='${{ steps.paths.outputs.touches_ci }}'
 
           echo "dependency-type: $dep_type"
           echo "update-type:     $update_type"
+          echo "touches CI/.github: $touches_ci"
 
-          if [ "$dep_type" = "direct:development" ] && \
-             { [ "$update_type" = "version-update:semver-patch" ] || \
-               [ "$update_type" = "version-update:semver-minor" ]; }; then
+          if [ "$touches_ci" = "true" ]; then
+            echo "Refusing to auto-merge: PR touches CI/automation surface."
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+          elif [ "$dep_type" = "direct:development" ] && \
+               { [ "$update_type" = "version-update:semver-patch" ] || \
+                 [ "$update_type" = "version-update:semver-minor" ]; }; then
             echo "eligible=true" >> "$GITHUB_OUTPUT"
           else
             echo "eligible=false" >> "$GITHUB_OUTPUT"
