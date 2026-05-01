@@ -739,11 +739,6 @@ export default function EditorialGuidelines() {
                   adult, payday, CBD, and other off-niche or YMYL-risky categories during edit.
                 </li>
                 <li>
-                  <strong>Editor-granted citations:</strong> additional dofollow references may be
-                  added when they cite primary data, regulator filings, original research, or
-                  first-party customer stories that materially strengthen the article.
-                </li>
-                <li>
                   <strong>Permanence:</strong> approved links remain live and dofollow for the
                   lifetime of the article. We do not run silent link audits that quietly remove
                   contributor backlinks after publication.
