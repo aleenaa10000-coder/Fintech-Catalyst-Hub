@@ -71,6 +71,7 @@ import {
   Users,
   CalendarClock,
   RotateCcw,
+  GripVertical,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -2796,6 +2797,11 @@ export default function AdminBlog() {
   const [activeTab, setActiveTab] = useState<"published" | "scheduled">(
     "published",
   );
+
+  // Drag-to-reorder state for the Scheduled tab.
+  const [dragSrcIdx, setDragSrcIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const [reorderPending, setReorderPending] = useState(false);
 
   // Scheduled posts come from an admin-only endpoint that inverts the
   // public visibility filter. We re-fetch after any mutation that could
