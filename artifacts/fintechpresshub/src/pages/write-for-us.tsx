@@ -283,7 +283,7 @@ const wfuFaqs = [
   {
     question: "How many dofollow links will my post include?",
     answer:
-      "High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks — typically one in-body contextual link and one author-bio link. Additional citations may be approved at editorial discretion when they reference primary data, regulator filings, or original research that materially strengthens the piece.",
+      "High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks.",
   },
   {
     question: "Is payment available for guest posts?",
