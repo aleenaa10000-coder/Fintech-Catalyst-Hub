@@ -64,7 +64,11 @@ const AdminPricing = lazy(() => import("@/pages/admin-pricing"));
 const AdminAnalytics = lazy(() => import("@/pages/admin-analytics"));
 
 function RouteFallback() {
-  return <TopProgressBar />;
+  return (
+    <div className="min-h-[calc(100vh-4rem)]">
+      <TopProgressBar />
+    </div>
+  );
 }
 
 const queryClient = new QueryClient({
@@ -78,8 +82,14 @@ const queryClient = new QueryClient({
 
 function ScrollToTop() {
   const [location] = useLocation();
+  useEffect(() => {
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+  }, []);
   useLayoutEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, [location]);
   useEffect(() => {
     trackPageview(location);
