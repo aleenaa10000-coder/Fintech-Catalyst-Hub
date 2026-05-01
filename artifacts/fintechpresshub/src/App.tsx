@@ -65,6 +65,9 @@ const ReadabilityChecker = lazy(
 const ContentCalendarGenerator = lazy(
   () => import("@/pages/tools/content-calendar-generator"),
 );
+const KeywordDifficultyEstimator = lazy(
+  () => import("@/pages/tools/keyword-difficulty-estimator"),
+);
 const AdminLogin = lazy(() => import("@/pages/admin-login"));
 const AdminServices = lazy(() => import("@/pages/admin-services"));
 const AdminBlog = lazy(() => import("@/pages/admin-blog"));
@@ -263,6 +266,10 @@ function Router() {
             <Route
               path="/tools/content-calendar-generator"
               component={ContentCalendarGenerator}
+            />
+            <Route
+              path="/tools/keyword-difficulty-estimator"
+              component={KeywordDifficultyEstimator}
             />
             {/* /admin/login is intentionally public — it's the fallback for
                 non-Replit deployments and must be reachable unauthenticated. */}

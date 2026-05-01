@@ -11,6 +11,7 @@ import {
   Send,
   BookOpen,
   CalendarDays,
+  BarChart2,
   ArrowRight,
 } from "lucide-react";
 
@@ -68,6 +69,15 @@ const TOOLS = [
     title: "Content Calendar Generator",
     description:
       "Build a 30, 60, or 90-day fintech editorial calendar in seconds. Pick your topics and cadence, then export to CSV or copy into Notion.",
+  },
+  {
+    href: "/tools/keyword-difficulty-estimator",
+    icon: BarChart2,
+    color: "bg-violet-50 text-violet-600",
+    badge: "SEO",
+    title: "Keyword Difficulty Estimator",
+    description:
+      "Enter any fintech keyword to get an estimated difficulty score, search intent classification, volume range, and 6 long-tail variations.",
   },
 ];
 

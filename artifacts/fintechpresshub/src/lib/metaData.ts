@@ -24,6 +24,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   "guest-post-pitch-generator": "Guest Post Pitch Generator",
   "readability-checker": "Readability Checker",
   "content-calendar-generator": "Content Calendar Generator",
+  "keyword-difficulty-estimator": "Keyword Difficulty Estimator",
   "write-for-us": "Write For Us",
   contact: "Contact",
   "privacy-policy": "Privacy Policy",
@@ -148,6 +149,11 @@ export const PAGE_META = {
     title: "Fintech Content Calendar Generator | Free Editorial Planner",
     description:
       "Build a 30, 60, or 90-day fintech content calendar in seconds. Choose your topics, cadence, and format — then export to CSV or copy into Notion.",
+  },
+  keywordDifficultyEstimator: {
+    title: "Fintech Keyword Difficulty Estimator | Free SEO Tool",
+    description:
+      "Enter any fintech keyword to get an estimated difficulty score, search intent, volume range, and 6 long-tail variations — no account needed.",
   },
   adminServices: {
     title: "Admin · Services | FintechPressHub",
