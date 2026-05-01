@@ -25,6 +25,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   "readability-checker": "Readability Checker",
   "content-calendar-generator": "Content Calendar Generator",
   "keyword-difficulty-estimator": "Keyword Difficulty Estimator",
+  "backlink-value-estimator": "Backlink Value Estimator",
   "write-for-us": "Write For Us",
   contact: "Contact",
   "privacy-policy": "Privacy Policy",
@@ -154,6 +155,11 @@ export const PAGE_META = {
     title: "Fintech Keyword Difficulty Estimator | Free SEO Tool",
     description:
       "Enter any fintech keyword to get an estimated difficulty score, search intent, volume range, and 6 long-tail variations — no account needed.",
+  },
+  backlinkValueEstimator: {
+    title: "Backlink Value Estimator | Free Fintech Link Building Tool",
+    description:
+      "Enter a referring domain's DA, traffic, and relevance to get an SEO value score out of 100, with a full breakdown and risk flags.",
   },
   adminServices: {
     title: "Admin · Services | FintechPressHub",

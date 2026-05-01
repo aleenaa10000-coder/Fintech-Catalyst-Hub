@@ -12,6 +12,7 @@ import {
   BookOpen,
   CalendarDays,
   BarChart2,
+  Link2,
   ArrowRight,
 } from "lucide-react";
 
@@ -78,6 +79,15 @@ const TOOLS = [
     title: "Keyword Difficulty Estimator",
     description:
       "Enter any fintech keyword to get an estimated difficulty score, search intent classification, volume range, and 6 long-tail variations.",
+  },
+  {
+    href: "/tools/backlink-value-estimator",
+    icon: Link2,
+    color: "bg-emerald-50 text-emerald-600",
+    badge: "Link Building",
+    title: "Backlink Value Estimator",
+    description:
+      "Enter a referring domain's DA, traffic, and niche relevance to get an SEO value score out of 100 — with a breakdown and risk flags.",
   },
 ];
 
