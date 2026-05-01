@@ -7,6 +7,8 @@
 #   their own PR per package so they don't slip in unnoticed.
 # - github-actions: weekly bumps for any action used in .github/workflows/.
 # - All security updates are opened immediately regardless of schedule.
+# - Reviewer and assignee are set so every Dependabot PR lands in the right
+#   inbox without any manual triage.
 
 version: 2
 updates:
@@ -19,6 +21,10 @@ updates:
       time: "09:00"
       timezone: "Etc/UTC"
     open-pull-requests-limit: 10
+    reviewers:
+      - "aleenaa10000-coder"
+    assignees:
+      - "aleenaa10000-coder"
     labels:
       - "dependencies"
       - "javascript"
@@ -60,6 +66,10 @@ updates:
       time: "09:00"
       timezone: "Etc/UTC"
     open-pull-requests-limit: 5
+    reviewers:
+      - "aleenaa10000-coder"
+    assignees:
+      - "aleenaa10000-coder"
     labels:
       - "dependencies"
       - "github-actions"

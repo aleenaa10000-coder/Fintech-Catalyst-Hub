@@ -3894,9 +3894,117 @@ export default function AdminBlog() {
           }}
         />
 
-        {isLoading ? (
+        {/* ---- Scheduled queue tab ---- */}
+        {activeTab === "scheduled" && (
+          <div className="space-y-3">
+            {scheduledLoading && (
+              <p className="text-muted-foreground">Loading…</p>
+            )}
+            {!scheduledLoading && (!scheduledPosts || scheduledPosts.length === 0) && (
+              <div className="rounded-md border border-dashed px-6 py-10 text-center text-muted-foreground">
+                <CalendarClock className="mx-auto mb-3 h-8 w-8 opacity-40" />
+                <p className="font-medium">No posts in the queue</p>
+                <p className="text-sm mt-1">
+                  Create a post with a future publish date to schedule it.
+                </p>
+              </div>
+            )}
+            {!scheduledLoading && scheduledPosts && scheduledPosts.length > 0 && (
+              <>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Sorted by publish date — earliest first. Use{" "}
+                  <strong>Publish now</strong> to make any post live immediately.
+                </p>
+                {scheduledPosts.map((p) => (
+                  <Card key={p.id} id={`admin-post-${p.id}`}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold truncate">{p.title}</div>
+                          <div className="text-sm text-muted-foreground truncate">
+                            {p.excerpt}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            slug: <code>{p.slug}</code> · {p.category} ·{" "}
+                            {p.featured ? "★ featured · " : ""}
+                            {p.readingMinutes} min read
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Preview ${p.title}`}
+                          >
+                            <a
+                              href={`/blog/${p.slug}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setEditingId(editingId === p.id ? null : p.id)
+                            }
+                            aria-label={
+                              editingId === p.id
+                                ? "Close editor"
+                                : `Edit ${p.title}`
+                            }
+                          >
+                            {editingId === p.id ? (
+                              <X className="w-4 h-4" />
+                            ) : (
+                              <Pencil className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(p)}
+                            disabled={deleteMut.isPending}
+                            aria-label={`Remove ${p.title} from queue`}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Countdown panel — the centrepiece of the scheduled tab */}
+                      <ScheduledPostPanel
+                        post={p}
+                        onPublished={() => {
+                          invalidate();
+                          setActiveTab("published");
+                        }}
+                      />
+                      {editingId === p.id && (
+                        <PostEditor
+                          post={p}
+                          onCancel={() => setEditingId(null)}
+                          onSaved={() => {
+                            setEditingId(null);
+                            invalidate();
+                          }}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ---- Published posts tab ---- */}
+        {activeTab === "published" && isLoading ? (
           <p className="text-muted-foreground">Loading…</p>
-        ) : (
+        ) : activeTab === "published" && (
           <div className="space-y-3">
             {posts?.map((p) => {
               const isEditing = editingId === p.id;
