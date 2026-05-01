@@ -12,6 +12,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { prefetchAdminBundle, prefetchPublicBundle } from "@/lib/route-prefetch";
 import { trackPageview } from "@/lib/analytics";
 import { TopProgressBar } from "@/components/TopProgressBar";
+import {
+  HomeSkeleton,
+  BlogListSkeleton,
+  BlogPostSkeleton,
+  AuthorSkeleton,
+  AuthorsListSkeleton,
+  GenericPageSkeleton,
+} from "@/components/PageSkeletons";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -64,10 +72,26 @@ const AdminPricing = lazy(() => import("@/pages/admin-pricing"));
 const AdminAnalytics = lazy(() => import("@/pages/admin-analytics"));
 
 function RouteFallback() {
+  const [location] = useLocation();
+  let Skeleton: ComponentType;
+  if (location === "/") {
+    Skeleton = HomeSkeleton;
+  } else if (location === "/blog") {
+    Skeleton = BlogListSkeleton;
+  } else if (location.startsWith("/blog/")) {
+    Skeleton = BlogPostSkeleton;
+  } else if (location === "/authors") {
+    Skeleton = AuthorsListSkeleton;
+  } else if (location.startsWith("/authors/")) {
+    Skeleton = AuthorSkeleton;
+  } else {
+    Skeleton = GenericPageSkeleton;
+  }
   return (
-    <div className="min-h-[calc(100vh-4rem)]">
+    <>
       <TopProgressBar />
-    </div>
+      <Skeleton />
+    </>
   );
 }
 
