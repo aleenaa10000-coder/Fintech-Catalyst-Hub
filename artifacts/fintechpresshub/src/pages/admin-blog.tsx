@@ -73,6 +73,10 @@ import {
   CalendarClock,
   RotateCcw,
   GripVertical,
+  ChevronLeft,
+  ChevronRight,
+  LayoutList,
+  CalendarDays,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -548,6 +552,304 @@ function ScheduledPostPanel({
         )}
         Publish now
       </Button>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Monthly content-calendar for the Scheduled queue                           */
+/* -------------------------------------------------------------------------- */
+
+const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** Format a local-timezone Date as YYYY-MM-DD (no UTC conversion). */
+function localDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Monthly grid calendar that visualises scheduled posts. Days with posts
+ * show coloured pills; clusters of empty days get a subtle "gap" tint so
+ * admins can instantly spot holes in the content plan. Clicking a day
+ * expands an inline panel listing the posts scheduled for that day.
+ */
+function ScheduledCalendar({
+  posts,
+  onScrollToPost,
+}: {
+  posts: BlogPost[];
+  /** Called when the admin clicks a post title — scrolls the queue list to
+   *  that card. The parent can switch to list view and scroll. */
+  onScrollToPost: (postId: number) => void;
+}) {
+  const today = new Date();
+  // Default to the month of the earliest scheduled post, or today.
+  const firstPostDate =
+    posts.length > 0 ? new Date(posts[0].publishedAt) : today;
+  const initYear =
+    firstPostDate < today ? today.getFullYear() : firstPostDate.getFullYear();
+  const initMonth =
+    firstPostDate < today ? today.getMonth() : firstPostDate.getMonth();
+
+  const [viewYear, setViewYear] = useState(initYear);
+  const [viewMonth, setViewMonth] = useState(initMonth);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  // Build a map: localDateKey → BlogPost[]
+  const postsByDay = useMemo(() => {
+    const map = new Map<string, BlogPost[]>();
+    for (const p of posts) {
+      const key = localDateKey(new Date(p.publishedAt));
+      const arr = map.get(key) ?? [];
+      arr.push(p);
+      map.set(key, arr);
+    }
+    return map;
+  }, [posts]);
+
+  // Build the 6-row × 7-col grid for the current month view.
+  const grid = useMemo(() => {
+    const firstDay = new Date(viewYear, viewMonth, 1);
+    const startOffset = firstDay.getDay(); // 0 = Sunday
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+    const cells: Array<{ date: Date; isCurrentMonth: boolean } | null> = [];
+    // Leading blanks from previous month
+    for (let i = 0; i < startOffset; i++) {
+      const d = new Date(viewYear, viewMonth, -startOffset + i + 1);
+      cells.push({ date: d, isCurrentMonth: false });
+    }
+    // Days of this month
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ date: new Date(viewYear, viewMonth, d), isCurrentMonth: true });
+    }
+    // Trailing blanks to fill last row
+    const remainder = cells.length % 7;
+    if (remainder !== 0) {
+      for (let i = 1; i <= 7 - remainder; i++) {
+        cells.push({ date: new Date(viewYear, viewMonth + 1, i), isCurrentMonth: false });
+      }
+    }
+    return cells;
+  }, [viewYear, viewMonth]);
+
+  // Count how many posts are scheduled in the currently viewed month (for the gap indicator).
+  const postsThisMonth = useMemo(
+    () =>
+      posts.filter((p) => {
+        const d = new Date(p.publishedAt);
+        return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
+      }),
+    [posts, viewYear, viewMonth],
+  );
+
+  // Find the longest consecutive gap (in days) between posts this month.
+  const longestGap = useMemo(() => {
+    if (postsThisMonth.length < 2) return 0;
+    const dates = postsThisMonth
+      .map((p) => new Date(p.publishedAt).getTime())
+      .sort((a, b) => a - b);
+    let max = 0;
+    for (let i = 1; i < dates.length; i++) {
+      const gap = Math.round((dates[i] - dates[i - 1]) / 86_400_000);
+      if (gap > max) max = gap;
+    }
+    return max;
+  }, [postsThisMonth]);
+
+  const todayKey = localDateKey(today);
+  const selectedPosts = selectedKey ? (postsByDay.get(selectedKey) ?? []) : [];
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString(
+    undefined,
+    { month: "long", year: "numeric" },
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Month navigator */}
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={prevMonth}
+          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Previous month"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="font-semibold text-sm">{monthLabel}</span>
+        <button
+          type="button"
+          onClick={nextMonth}
+          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Next month"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Gap warning */}
+      {longestGap >= 7 && (
+        <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+          Longest gap this month: <strong>{longestGap} days</strong> between
+          scheduled posts — consider filling it.
+        </div>
+      )}
+
+      {/* Day-of-week headers */}
+      <div className="grid grid-cols-7 text-center">
+        {DAYS_OF_WEEK.map((d) => (
+          <div key={d} className="text-[10px] font-medium text-muted-foreground py-1">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden border">
+        {grid.map((cell, i) => {
+          if (!cell) return <div key={i} className="bg-background" />;
+          const key = localDateKey(cell.date);
+          const dayPosts = postsByDay.get(key) ?? [];
+          const isToday = key === todayKey;
+          const isSelected = key === selectedKey;
+          const hasPosts = dayPosts.length > 0;
+          const isOtherMonth = !cell.isCurrentMonth;
+
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => {
+                if (!hasPosts) return;
+                setSelectedKey(isSelected ? null : key);
+              }}
+              className={[
+                "relative flex flex-col items-start p-1.5 min-h-[64px] text-left transition-colors",
+                isOtherMonth
+                  ? "bg-muted/30 text-muted-foreground/40"
+                  : "bg-background",
+                hasPosts && !isOtherMonth
+                  ? "hover:bg-blue-50 cursor-pointer"
+                  : "cursor-default",
+                isSelected ? "bg-blue-50 ring-1 ring-inset ring-blue-300" : "",
+              ].join(" ")}
+              disabled={!hasPosts}
+              aria-label={
+                hasPosts
+                  ? `${cell.date.getDate()} — ${dayPosts.length} post${dayPosts.length > 1 ? "s" : ""}`
+                  : String(cell.date.getDate())
+              }
+            >
+              {/* Day number */}
+              <span
+                className={[
+                  "text-xs font-medium leading-none mb-1",
+                  isToday
+                    ? "flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px]"
+                    : "",
+                  !isToday && isOtherMonth ? "text-muted-foreground/40" : "",
+                  !isToday && !isOtherMonth ? "text-foreground" : "",
+                ].join(" ")}
+              >
+                {cell.date.getDate()}
+              </span>
+
+              {/* Post dots */}
+              {hasPosts && !isOtherMonth && (
+                <div className="flex flex-wrap gap-0.5 mt-0.5">
+                  {dayPosts.slice(0, 3).map((p) => (
+                    <span
+                      key={p.id}
+                      className="block w-1.5 h-1.5 rounded-full bg-blue-500"
+                      title={p.title}
+                    />
+                  ))}
+                  {dayPosts.length > 3 && (
+                    <span className="text-[9px] text-blue-600 font-bold leading-none mt-0.5">
+                      +{dayPosts.length - 3}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Post count badge */}
+              {hasPosts && !isOtherMonth && (
+                <span className="mt-auto text-[9px] font-semibold text-blue-600">
+                  {dayPosts.length === 1 ? "1 post" : `${dayPosts.length} posts`}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Expanded day panel */}
+      {selectedKey && selectedPosts.length > 0 && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 divide-y divide-blue-100">
+          <div className="px-3 py-2 flex items-center justify-between">
+            <span className="text-xs font-semibold text-blue-800">
+              {new Date(selectedKey + "T12:00:00").toLocaleDateString(undefined, {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+              {" — "}
+              {selectedPosts.length} post{selectedPosts.length > 1 ? "s" : ""}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedKey(null)}
+              className="text-blue-500 hover:text-blue-700 p-0.5"
+              aria-label="Close"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          {selectedPosts.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-start justify-between gap-3 px-3 py-2.5"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate text-blue-900">{p.title}</p>
+                <p className="text-xs text-blue-700 truncate">{p.excerpt}</p>
+                <p className="text-[10px] text-blue-600 mt-0.5">
+                  {new Date(p.publishedAt).toLocaleTimeString(undefined, {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  · {p.category} · {p.readingMinutes} min read
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onScrollToPost(p.id)}
+                className="shrink-0 text-xs text-blue-600 underline underline-offset-2 hover:text-blue-800 whitespace-nowrap"
+              >
+                Go to post
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* No posts this month */}
+      {postsThisMonth.length === 0 && (
+        <p className="text-center text-xs text-muted-foreground py-2">
+          No posts scheduled in {monthLabel}.
+        </p>
+      )}
     </div>
   );
 }
@@ -2804,6 +3106,9 @@ export default function AdminBlog() {
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [reorderPending, setReorderPending] = useState(false);
 
+  // View mode for the Scheduled tab: list (default) or calendar.
+  const [calendarView, setCalendarView] = useState(false);
+
   // Scheduled posts come from an admin-only endpoint that inverts the
   // public visibility filter. We re-fetch after any mutation that could
   // change the queue (publish-now, delete, create with a future date).
@@ -3918,12 +4223,75 @@ export default function AdminBlog() {
             )}
             {!scheduledLoading && scheduledPosts && scheduledPosts.length > 0 && (
               <>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Sorted by publish date — earliest first. Drag{" "}
-                  <GripVertical className="inline w-3 h-3" /> to reprioritize
-                  order; the publish timestamp updates automatically. Use{" "}
-                  <strong>Publish now</strong> to make any post live immediately.
-                </p>
+                {/* View toggle + helper text */}
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  {calendarView ? (
+                    <p className="text-xs text-muted-foreground">
+                      Click any day to see what's scheduled. Days with gaps ≥ 7 days
+                      trigger a warning.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Sorted earliest first. Drag{" "}
+                      <GripVertical className="inline w-3 h-3" /> to reprioritize;
+                      the timestamp updates automatically. Use{" "}
+                      <strong>Publish now</strong> to go live immediately.
+                    </p>
+                  )}
+                  <div className="flex items-center gap-0.5 rounded-md border bg-muted p-0.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setCalendarView(false)}
+                      className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
+                        !calendarView
+                          ? "bg-background shadow-sm text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      aria-label="List view"
+                    >
+                      <LayoutList className="w-3 h-3" />
+                      List
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCalendarView(true)}
+                      className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
+                        calendarView
+                          ? "bg-background shadow-sm text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      aria-label="Calendar view"
+                    >
+                      <CalendarDays className="w-3 h-3" />
+                      Calendar
+                    </button>
+                  </div>
+                </div>
+
+                {/* Calendar view */}
+                {calendarView && (
+                  <ScheduledCalendar
+                    posts={scheduledPosts}
+                    onScrollToPost={(postId) => {
+                      setCalendarView(false);
+                      // Give React a tick to unmount the calendar and mount
+                      // the list before scrolling to the card.
+                      requestAnimationFrame(() => {
+                        const el = document.getElementById(`admin-post-${postId}`);
+                        if (el) {
+                          el.scrollIntoView({ behavior: "smooth", block: "center" });
+                          el.classList.add("ring-2", "ring-blue-400", "ring-offset-2");
+                          setTimeout(() => {
+                            el.classList.remove("ring-2", "ring-blue-400", "ring-offset-2");
+                          }, 2000);
+                        }
+                      });
+                    }}
+                  />
+                )}
+
+                {/* List view */}
+                {!calendarView && <>
                 {scheduledPosts.map((p, idx) => {
                   const isDragging = dragSrcIdx === idx;
                   const isDropTarget = dragOverIdx === idx && dragSrcIdx !== idx;
@@ -4104,6 +4472,7 @@ export default function AdminBlog() {
                     Saving new order…
                   </p>
                 )}
+                </>}
               </>
             )}
           </div>
