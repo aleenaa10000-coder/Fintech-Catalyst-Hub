@@ -27,11 +27,6 @@ const egFaqs = [
       "All statistics, product claims, and regulatory references are verified against primary sources — central bank filings, FCA, SEC, or EBA publications, peer-reviewed research, or direct company data. Secondary press coverage is not accepted as a primary source. Unverified claims are either removed or flagged for the contributor to source correctly.",
   },
   {
-    question: "Can I republish my article on my own blog?",
-    answer:
-      "No. We require exclusive publication. You may quote up to two paragraphs with a canonical link back to the FintechPressHub version — for example in a newsletter or a LinkedIn post — but full republication on any other domain, including Medium, LinkedIn Articles, or Substack, violates the contributor agreement and results in immediate article removal.",
-  },
-  {
     question: "How many dofollow backlinks does a guest post earn?",
     answer:
       "High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks.",
