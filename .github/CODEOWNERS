@@ -1,18 +1,41 @@
 # CODEOWNERS — automatic reviewer assignment.
-# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-security/customizing-your-repository/about-code-owners
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 #
 # Syntax:  <path-pattern>   <@owner1> <@owner2> ...
 # Last matching pattern wins, so order matters: put broad rules first,
-# then narrower / more sensitive rules below.
+# then narrower / more-sensitive rules below.
 
-# Default owner for everything in the repo.
-*                         @aleenaa10000-coder
+# Default: every file in the repo requires a review from the primary owner.
+*                                    @aleenaa10000-coder
 
 # CI / automation surface — anything that can change how code is built,
 # tested, deployed, merged, or which dependencies are accepted MUST be
-# reviewed by a human owner. The Dependabot auto-merge workflow also
-# explicitly skips PRs that touch this path, as a belt-and-braces guard.
-/.github/                 @aleenaa10000-coder
-/.github/workflows/       @aleenaa10000-coder
-/.github/dependabot.yml   @aleenaa10000-coder
-/.github/CODEOWNERS       @aleenaa10000-coder
+# reviewed by the primary owner. The Dependabot auto-merge workflow also
+# explicitly skips PRs that touch this path as a belt-and-braces guard.
+/.github/                            @aleenaa10000-coder
+/.github/workflows/                  @aleenaa10000-coder
+/.github/dependabot.yml              @aleenaa10000-coder
+/.github/CODEOWNERS                  @aleenaa10000-coder
+
+# Database schema changes are high-risk: a bad migration can corrupt
+# production data. Require explicit sign-off from the primary owner.
+/lib/db/                             @aleenaa10000-coder
+/lib/db/src/schema/                  @aleenaa10000-coder
+
+# The OpenAPI contract is the source of truth for the entire frontend/backend
+# interface. Changing it regenerates both the React Query client and the Zod
+# schemas, so it needs careful review.
+/lib/api-spec/                       @aleenaa10000-coder
+
+# Generated code is auto-updated by `pnpm codegen` — do NOT review diffs
+# here line-by-line, but the owner still gets a notification so they know
+# codegen was run and the generated output matches the spec change.
+/lib/api-client-react/src/generated/ @aleenaa10000-coder
+/lib/api-zod/src/generated/          @aleenaa10000-coder
+
+# API server — production business logic and authentication middleware.
+/artifacts/api-server/src/           @aleenaa10000-coder
+
+# Environment / deployment config.
+/.env*                               @aleenaa10000-coder
+/replit.nix                          @aleenaa10000-coder

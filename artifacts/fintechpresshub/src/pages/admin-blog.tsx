@@ -457,6 +457,99 @@ function ProbeUrlButton({ post }: { post: BlogPost }) {
   );
 }
 
+/**
+ * Live countdown string from `now` to a future `targetMs`. Returns
+ * a formatted "Xd Yh Zm Ws" string; returns "any moment now" once
+ * the target is in the past (the auto-publish job or next page refresh
+ * will flip the badge).
+ */
+function formatCountdown(targetMs: number): string {
+  const remaining = targetMs - Date.now();
+  if (remaining <= 0) return "any moment now";
+  const totalSec = Math.floor(remaining / 1000);
+  const d = Math.floor(totalSec / 86400);
+  const h = Math.floor((totalSec % 86400) / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (d > 0) return `${d}d ${h}h ${m}m ${s}s`;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+/**
+ * Inline panel that appears on every scheduled post row. Shows a live
+ * ticking countdown to the post's publish time and a one-click "Publish
+ * Now" button that immediately sets publishedAt to the current moment,
+ * making the post publicly visible right away without any page reload.
+ */
+function ScheduledPostPanel({
+  post,
+  onPublished,
+}: {
+  post: BlogPost;
+  onPublished: () => void;
+}) {
+  const updateMut = useUpdateBlogPost();
+  const targetMs = new Date(post.publishedAt).getTime();
+  const [countdown, setCountdown] = useState<string>(() =>
+    formatCountdown(targetMs),
+  );
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setCountdown(formatCountdown(targetMs));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [targetMs]);
+
+  const publishNow = async () => {
+    try {
+      await updateMut.mutateAsync({
+        slug: post.slug,
+        data: { publishedAt: new Date().toISOString() },
+      });
+      toast.success(`"${post.title}" is now live.`);
+      onPublished();
+    } catch {
+      toast.error("Could not publish post immediately.");
+    }
+  };
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm">
+      <CalendarClock className="w-4 h-4 text-blue-600 shrink-0" />
+      <span className="text-blue-800 font-medium">Scheduled</span>
+      <span className="text-blue-700">
+        {new Date(post.publishedAt).toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      </span>
+      <span className="font-mono text-xs text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
+        {countdown}
+      </span>
+      <Button
+        size="sm"
+        variant="outline"
+        className="ml-auto border-blue-300 text-blue-700 hover:bg-blue-100 hover:text-blue-900"
+        onClick={publishNow}
+        disabled={updateMut.isPending}
+        data-testid={`publish-now-${post.slug}`}
+      >
+        {updateMut.isPending ? (
+          <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+        ) : (
+          <Send className="w-3.5 h-3.5 mr-1.5" />
+        )}
+        Publish now
+      </Button>
+    </div>
+  );
+}
+
 /** Concurrency cap for the bulk probe: enough to be fast, low enough
  *  not to stampede the link-checker route (HEAD then GET fallback) or
  *  whatever upstream CDN is in front of the live site. */
@@ -3877,6 +3970,14 @@ export default function AdminBlog() {
                         )}
                       </div>
                     </div>
+                    {isStillScheduled && !previewMode && (
+                      <ScheduledPostPanel
+                        post={p}
+                        onPublished={() => {
+                          invalidate();
+                        }}
+                      />
+                    )}
                     {!previewMode && isEditing && (
                       <PostEditor
                         post={p}
