@@ -725,12 +725,8 @@ export default function EditorialGuidelines() {
               <ul>
                 <li>
                   <strong>Up to 2 permanent dofollow backlinks:</strong> for submissions that meet
-                  our editorial standards. Where awarded, these are typically one in-body contextual
-                  link — placed surrounded by relevant copy and pointing to a real fintech product
-                  page, study, data set, blog post, or tool — and one author-bio link to your
-                  company homepage, personal site, or LinkedIn. Author bios are reused across all
-                  your articles, so the bio link compounds with each new contribution. Submissions
-                  that do not meet the bar may receive fewer links or none at all.
+                  our editorial standards. Submissions that do not meet the bar may receive fewer
+                  links or none at all.
                 </li>
                 <li>
                   <strong>Natural anchor text only:</strong> branded, partial-match, or descriptive
