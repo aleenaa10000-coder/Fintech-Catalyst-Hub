@@ -2791,8 +2791,37 @@ export default function AdminBlog() {
   // when the user later navigates away and back.
   const deepLinkConsumed = useRef(false);
 
-  const invalidate = () =>
+  // Tab for the post list: "published" = public / live posts,
+  // "scheduled" = future-dated posts queued via the admin queue.
+  const [activeTab, setActiveTab] = useState<"published" | "scheduled">(
+    "published",
+  );
+
+  // Scheduled posts come from an admin-only endpoint that inverts the
+  // public visibility filter. We re-fetch after any mutation that could
+  // change the queue (publish-now, delete, create with a future date).
+  const SCHEDULED_QUERY_KEY = ["admin", "blog", "scheduled-posts"] as const;
+  const {
+    data: scheduledPosts,
+    isLoading: scheduledLoading,
+    refetch: refetchScheduled,
+  } = useQuery({
+    queryKey: SCHEDULED_QUERY_KEY,
+    queryFn: async (): Promise<BlogPost[]> => {
+      const res = await fetch("/api/admin/blog/posts/scheduled", {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to load scheduled posts");
+      return res.json();
+    },
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  });
+
+  const invalidate = () => {
     qc.invalidateQueries({ queryKey: getListBlogPostsQueryKey() });
+    void refetchScheduled();
+  };
 
   /**
    * Deep-link handler: when an admin lands here from a public post via the
