@@ -2,7 +2,7 @@ import { Header } from "@/components/Header";
 import { AdminHealthBanner } from "@/components/AdminHealthBanner";
 import { Footer } from "@/components/Footer";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
-import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { useEffect, lazy, Suspense, type ComponentType } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";

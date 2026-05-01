@@ -3991,10 +3991,10 @@ export default function AdminBlog() {
 
                         setReorderPending(true);
                         try {
-                          await updateBlogPost({
-                            slug: moved.slug,
-                            data: { publishedAt: new Date(newPublishedAt).toISOString() },
-                          });
+                          await updateBlogPost(
+                            moved.slug,
+                            { publishedAt: new Date(newPublishedAt).toISOString() },
+                          );
                           toast.success(`"${moved.title}" rescheduled.`);
                           invalidate();
                         } catch {
