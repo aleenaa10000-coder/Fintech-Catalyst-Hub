@@ -30,6 +30,7 @@ router.get("/admin/analytics", requireAdmin, async (_req, res, next) => {
       viewsByCategory,
       postsByMonth,
       subscribersByMonth,
+      velocityByWeek,
       [totals],
       [subscriberTotal],
     ] = await Promise.all([
@@ -80,6 +81,40 @@ router.get("/admin/analytics", requireAdmin, async (_req, res, next) => {
         ORDER BY month ASC`,
       ),
 
+      // Content velocity: published vs scheduled posts per week,
+      // covering 8 weeks back and 8 weeks forward (16-week window).
+      db.execute(
+        sql`WITH weeks AS (
+          SELECT generate_series(
+            DATE_TRUNC('week', NOW() - INTERVAL '7 weeks'),
+            DATE_TRUNC('week', NOW() + INTERVAL '8 weeks'),
+            INTERVAL '1 week'
+          ) AS week_start
+        ),
+        weekly_published AS (
+          SELECT DATE_TRUNC('week', published_at) AS week_start, COUNT(*)::int AS cnt
+          FROM blog_posts
+          WHERE published_at <= NOW()
+            AND published_at >= DATE_TRUNC('week', NOW() - INTERVAL '7 weeks')
+          GROUP BY 1
+        ),
+        weekly_scheduled AS (
+          SELECT DATE_TRUNC('week', published_at) AS week_start, COUNT(*)::int AS cnt
+          FROM blog_posts
+          WHERE published_at > NOW()
+            AND published_at < DATE_TRUNC('week', NOW() + INTERVAL '9 weeks')
+          GROUP BY 1
+        )
+        SELECT
+          TO_CHAR(weeks.week_start, 'YYYY-MM-DD') AS week_start,
+          COALESCE(wp.cnt, 0) AS published,
+          COALESCE(ws.cnt, 0) AS scheduled
+        FROM weeks
+        LEFT JOIN weekly_published wp ON wp.week_start = weeks.week_start
+        LEFT JOIN weekly_scheduled  ws ON ws.week_start = weeks.week_start
+        ORDER BY weeks.week_start ASC`,
+      ),
+
       // Global totals: posts, total views, avg views per post
       db
         .select({
@@ -107,6 +142,7 @@ router.get("/admin/analytics", requireAdmin, async (_req, res, next) => {
       viewsByCategory,
       postsByMonth: postsByMonth.rows ?? [],
       subscribersByMonth: subscribersByMonth.rows ?? [],
+      velocityByWeek: velocityByWeek.rows ?? [],
     });
   } catch (err) {
     next(err);

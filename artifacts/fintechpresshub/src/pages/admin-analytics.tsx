@@ -19,6 +19,9 @@ import {
   Pie,
   Cell,
   Legend,
+  ComposedChart,
+  Area,
+  ReferenceLine,
 } from "recharts";
 import {
   ArrowLeft,
@@ -51,6 +54,7 @@ interface AnalyticsData {
   }[];
   postsByMonth: { month: string; post_count: number; total_views: number }[];
   subscribersByMonth: { month: string; new_subscribers: number }[];
+  velocityByWeek: { week_start: string; published: number; scheduled: number }[];
 }
 
 const CATEGORY_COLORS = [
@@ -102,6 +106,25 @@ function formatMonth(ym: string): string {
   if (!year || !month) return ym;
   const d = new Date(Number(year), Number(month) - 1, 1);
   return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+}
+
+function formatWeek(dateStr: string): string {
+  // dateStr is YYYY-MM-DD (Monday of the ISO week)
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+/** Returns the ISO week Monday (YYYY-MM-DD) for the current week. */
+function currentISOWeekMonday(): string {
+  const today = new Date();
+  const day = today.getDay(); // 0 = Sun
+  const daysToMonday = day === 0 ? 6 : day - 1;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - daysToMonday);
+  const y = monday.getFullYear();
+  const m = String(monday.getMonth() + 1).padStart(2, "0");
+  const d2 = String(monday.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d2}`;
 }
 
 async function fetchAnalytics(): Promise<AnalyticsData> {
@@ -193,6 +216,100 @@ export default function AdminAnalytics() {
               icon={TrendingUp}
             />
           </div>
+
+          {/* Velocity trend: published vs scheduled per week */}
+          {data.velocityByWeek.length > 0 && (
+            <Card className="mb-6">
+              <CardContent className="pt-5">
+                <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
+                  <div>
+                    <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                      Content velocity — 8-week lookback &amp; 8-week outlook
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Published posts (past) vs. scheduled posts (pipeline). The vertical line marks this week.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs shrink-0">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-3 h-3 rounded-sm bg-emerald-400 opacity-80" />
+                      Published
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-3 h-3 rounded-sm bg-sky-400 opacity-80" />
+                      Scheduled
+                    </span>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={240}>
+                  <ComposedChart
+                    data={data.velocityByWeek.map((d) => ({
+                      week: formatWeek(d.week_start),
+                      weekKey: d.week_start,
+                      Published: d.published,
+                      Scheduled: d.scheduled,
+                    }))}
+                    margin={{ top: 4, right: 12, left: -8, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="gradPublished" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor="#34d399" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#34d399" stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="gradScheduled" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor="#38bdf8" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="week"
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      interval={1}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      formatter={(val: number, name: string) => [val, name]}
+                      labelFormatter={(label) => `Week of ${label}`}
+                    />
+                    {/* "This week" reference line */}
+                    <ReferenceLine
+                      x={formatWeek(currentISOWeekMonday())}
+                      stroke="#94a3b8"
+                      strokeDasharray="4 3"
+                      label={{ value: "Today", position: "top", fontSize: 10, fill: "#94a3b8" }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="Published"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      fill="url(#gradPublished)"
+                      dot={{ r: 3, fill: "#10b981" }}
+                      activeDot={{ r: 5 }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="Scheduled"
+                      stroke="#0ea5e9"
+                      strokeWidth={2}
+                      strokeDasharray="5 3"
+                      fill="url(#gradScheduled)"
+                      dot={{ r: 3, fill: "#0ea5e9" }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {data.postsByMonth.length > 0 && (
