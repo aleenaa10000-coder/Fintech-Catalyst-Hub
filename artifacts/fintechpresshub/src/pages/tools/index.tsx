@@ -13,6 +13,7 @@ import {
   CalendarDays,
   BarChart2,
   Link2,
+  FileEdit,
   ArrowRight,
 } from "lucide-react";
 
@@ -88,6 +89,15 @@ const TOOLS = [
     title: "Backlink Value Estimator",
     description:
       "Enter a referring domain's DA, traffic, and niche relevance to get an SEO value score out of 100 — with a breakdown and risk flags.",
+  },
+  {
+    href: "/tools/content-brief-generator",
+    icon: FileEdit,
+    color: "bg-rose-50 text-rose-600",
+    badge: "Content",
+    title: "Content Brief Generator",
+    description:
+      "Enter a keyword and target audience to get a full fintech article brief — H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities.",
   },
 ];
 

@@ -26,6 +26,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   "content-calendar-generator": "Content Calendar Generator",
   "keyword-difficulty-estimator": "Keyword Difficulty Estimator",
   "backlink-value-estimator": "Backlink Value Estimator",
+  "content-brief-generator": "Content Brief Generator",
   "write-for-us": "Write For Us",
   contact: "Contact",
   "privacy-policy": "Privacy Policy",
@@ -160,6 +161,11 @@ export const PAGE_META = {
     title: "Backlink Value Estimator | Free Fintech Link Building Tool",
     description:
       "Enter a referring domain's DA, traffic, and relevance to get an SEO value score out of 100, with a full breakdown and risk flags.",
+  },
+  contentBriefGenerator: {
+    title: "Content Brief Generator | Free Fintech Content Tool",
+    description:
+      "Generate a structured fintech article brief in seconds — with H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities.",
   },
   adminServices: {
     title: "Admin · Services | FintechPressHub",
