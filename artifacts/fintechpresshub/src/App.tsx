@@ -62,6 +62,9 @@ const GuestPostPitchGenerator = lazy(
 const ReadabilityChecker = lazy(
   () => import("@/pages/tools/readability-checker"),
 );
+const ContentCalendarGenerator = lazy(
+  () => import("@/pages/tools/content-calendar-generator"),
+);
 const AdminLogin = lazy(() => import("@/pages/admin-login"));
 const AdminServices = lazy(() => import("@/pages/admin-services"));
 const AdminBlog = lazy(() => import("@/pages/admin-blog"));
@@ -256,6 +259,10 @@ function Router() {
             <Route
               path="/tools/readability-checker"
               component={ReadabilityChecker}
+            />
+            <Route
+              path="/tools/content-calendar-generator"
+              component={ContentCalendarGenerator}
             />
             {/* /admin/login is intentionally public — it's the fallback for
                 non-Replit deployments and must be reachable unauthenticated. */}
