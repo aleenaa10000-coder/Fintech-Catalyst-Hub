@@ -296,9 +296,9 @@ const wfuFaqs = [
       "Articles must be between 800 and 1,500 words. Every word must earn its place — tightly scoped, deeply researched pieces consistently outperform padded long-form in our niche. Thin or AI-generated content is rejected at pitch stage.",
   },
   {
-    question: "Do I keep copyright on my article?",
+    question: "How long does the editorial review process take?",
     answer:
-      "FintechPressHub publishes under an exclusive licence. You retain full authorship credit and may cite the published piece in your portfolio or press mentions, but may not republish the full text — including on Medium, LinkedIn Articles, or your own blog — without written editor approval.",
+      "We aim to review all pitches within 5 business days and full submissions within 10 business days. You will receive clear feedback at each stage — whether that is a green light, a revision request, or a pass with notes.",
   },
 ];
 
