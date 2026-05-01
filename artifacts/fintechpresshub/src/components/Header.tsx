@@ -13,7 +13,7 @@ const NAV_LINKS = [
   { href: "/services", label: "Services" },
   { href: "/pricing", label: "Pricing" },
   { href: "/blog", label: "Blog" },
-  { href: "/tools/financial-health-score-calculator", label: "Free Tools" },
+  { href: "/tools", label: "Free Tools" },
   { href: "/write-for-us", label: "Write For Us" },
 ];
 

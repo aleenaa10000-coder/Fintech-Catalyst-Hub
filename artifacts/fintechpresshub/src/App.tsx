@@ -46,8 +46,21 @@ const StatusPage = lazy(() => import("@/pages/status"));
 const Terms = lazy(() => import("@/pages/terms"));
 const EditorialGuidelines = lazy(() => import("@/pages/editorial-guidelines"));
 const CommunityGuidelines = lazy(() => import("@/pages/community-guidelines"));
+const ToolsIndex = lazy(() => import("@/pages/tools/index"));
 const FinancialHealthScoreCalculator = lazy(
   () => import("@/pages/tools/financial-health-score-calculator"),
+);
+const ContentROICalculator = lazy(
+  () => import("@/pages/tools/content-roi-calculator"),
+);
+const MetaDescriptionGenerator = lazy(
+  () => import("@/pages/tools/meta-description-generator"),
+);
+const GuestPostPitchGenerator = lazy(
+  () => import("@/pages/tools/guest-post-pitch-generator"),
+);
+const ReadabilityChecker = lazy(
+  () => import("@/pages/tools/readability-checker"),
 );
 const AdminLogin = lazy(() => import("@/pages/admin-login"));
 const AdminServices = lazy(() => import("@/pages/admin-services"));
@@ -223,9 +236,26 @@ function Router() {
             <Route path="/terms" component={Terms} />
             <Route path="/editorial-guidelines" component={EditorialGuidelines} />
             <Route path="/community-guidelines" component={CommunityGuidelines} />
+            <Route path="/tools" component={ToolsIndex} />
             <Route
               path="/tools/financial-health-score-calculator"
               component={FinancialHealthScoreCalculator}
+            />
+            <Route
+              path="/tools/content-roi-calculator"
+              component={ContentROICalculator}
+            />
+            <Route
+              path="/tools/meta-description-generator"
+              component={MetaDescriptionGenerator}
+            />
+            <Route
+              path="/tools/guest-post-pitch-generator"
+              component={GuestPostPitchGenerator}
+            />
+            <Route
+              path="/tools/readability-checker"
+              component={ReadabilityChecker}
             />
             {/* /admin/login is intentionally public — it's the fallback for
                 non-Replit deployments and must be reachable unauthenticated. */}

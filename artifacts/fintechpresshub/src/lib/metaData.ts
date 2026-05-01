@@ -113,10 +113,35 @@ export const PAGE_META = {
     description:
       "Standards of conduct, content quality, and IP expectations for every contributor and community participant on FintechPressHub.",
   },
+  tools: {
+    title: "Free Fintech Marketing Tools | FintechPressHub",
+    description:
+      "Free, browser-based tools for fintech marketers and SEO teams — calculators, generators, and checkers. No sign-up required.",
+  },
   financialHealthCalculator: {
     title: "Financial Health Score Calculator | Debt-to-Income Checker",
     description:
       "Free Financial Health Score Calculator. Get your 0–100 score instantly with a debt-to-income ratio check, savings rate, emergency fund coverage, and personalized tips.",
+  },
+  contentRoiCalculator: {
+    title: "Content ROI Calculator | Free Fintech Marketing Tool",
+    description:
+      "Estimate the revenue impact of your fintech content marketing. Enter traffic, conversion rate, and deal size to see projected ROI, net revenue, and payback period.",
+  },
+  metaDescriptionGenerator: {
+    title: "Meta Description Generator for Fintech | Free SEO Tool",
+    description:
+      "Generate 3 ready-to-use SEO meta descriptions for any fintech page. Enter your title and keyword — no sign-up needed.",
+  },
+  guestPostPitchGenerator: {
+    title: "Guest Post Pitch Generator | Free Fintech Link Building Tool",
+    description:
+      "Create a personalised guest post pitch email in seconds. Fill in your details and get a ready-to-copy pitch for any fintech publication.",
+  },
+  readabilityChecker: {
+    title: "Readability Checker for Fintech Content | Free Tool",
+    description:
+      "Paste your fintech article and get an instant Flesch readability score, grade level, and actionable tips to make your content clearer.",
   },
   adminServices: {
     title: "Admin · Services | FintechPressHub",
