@@ -2109,6 +2109,17 @@ components:
             ISO timestamp of the last successful weekly-digest send.
             Drives the cadence check (7-day minimum gap) and powers
             the "last sent N days ago" pill in the admin UI.
+        publishNotifyEnabled:
+          type: boolean
+          description: |
+            When true, an email is sent to `publishNotifyEmail` whenever
+            a scheduled post transitions from queued to live.
+        publishNotifyEmail:
+          type: string
+          nullable: true
+          description: |
+            Destination address for publish-notify emails. Only used when
+            `publishNotifyEnabled` is true.
       required: [slackConfigured, slackEnabled, weeklyDigestEnabled]
 
     UpdateNotificationSettingsInput:
@@ -2128,6 +2139,15 @@ components:
             Optional — omit to leave the saved value untouched. Forced
             to `false` on the server side whenever `slackWebhookUrl` is
             cleared so we never sit in an "enabled-but-no-URL" state.
+        publishNotifyEnabled:
+          type: boolean
+          description: |
+            Optional — omit to leave the saved value untouched.
+        publishNotifyEmail:
+          type: string
+          nullable: true
+          description: |
+            Optional — pass null to clear. Omit to leave untouched.
       required: [slackEnabled]
 
     SlackTestResult:
