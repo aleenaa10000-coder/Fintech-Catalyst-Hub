@@ -2,8 +2,8 @@ import { Header } from "@/components/Header";
 import { AdminHealthBanner } from "@/components/AdminHealthBanner";
 import { Footer } from "@/components/Footer";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { useEffect, lazy, Suspense } from "react";
+import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
+import { useEffect, lazy, Suspense, type ComponentType } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
 import { useAuth } from "@workspace/replit-auth-web";
@@ -12,6 +12,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { prefetchAdminBundle, prefetchPublicBundle } from "@/lib/route-prefetch";
 import { trackPageview } from "@/lib/analytics";
 import { TopProgressBar } from "@/components/TopProgressBar";
+import { Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Eager: home is the most common landing route — keep it in the main chunk
 // so the first paint after hydration doesn't wait on a code-split fetch.
@@ -62,11 +64,6 @@ const AdminPricing = lazy(() => import("@/pages/admin-pricing"));
 const AdminAnalytics = lazy(() => import("@/pages/admin-analytics"));
 
 function RouteFallback() {
-  // The previous page's content stays mounted by Suspense's transition
-  // semantics, so we deliberately render nothing here except the thin
-  // top progress bar — no centered spinner, no min-height blank state,
-  // no layout shift. Matches the in-app navigation feel of YouTube,
-  // GitHub, and Vercel.
   return <TopProgressBar />;
 }
 
@@ -83,23 +80,11 @@ function ScrollToTop() {
   const [location] = useLocation();
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    // Pageview tracking is consent-gated inside trackPageview — no-op until
-    // the visitor opts in via the cookie consent banner.
     trackPageview(location);
   }, [location]);
   return null;
 }
 
-/**
- * Once the user is detected as an admin, schedule background loading
- * of every admin route chunk during browser idle time. The prefetch
- * helper is idempotent and self-deduping, so re-runs (e.g. when the
- * auth query refetches) cost nothing.
- *
- * `useAuth` is already called from `home.tsx` and elsewhere on the
- * public site, so mounting it here adds no extra network requests —
- * the same `/api/auth/user` query is shared via React Query's cache.
- */
 function AdminBundlePrefetch() {
   const { user, isAuthenticated } = useAuth();
   useEffect(() => {
@@ -110,17 +95,67 @@ function AdminBundlePrefetch() {
   return null;
 }
 
-/**
- * After first mount, silently warm every public-page chunk during
- * browser idle time. This means clicking any nav link (or in-app link)
- * resolves instantly from cache and the Suspense fallback never shows.
- * Idempotent — guarded internally so re-renders don't re-fetch.
- */
 function PublicBundlePrefetch() {
   useEffect(() => {
     prefetchPublicBundle();
   }, []);
   return null;
+}
+
+/**
+ * Route guard for all /admin/* pages.
+ *
+ * - While auth is loading: shows a minimal spinner so the layout doesn't
+ *   flash between states.
+ * - Not signed in: immediately redirects to Replit OIDC login, preserving
+ *   the intended destination so the user lands back here after sign-in.
+ * - Signed in but not an admin: shows an "Access denied" screen. They can
+ *   sign out and try a different account.
+ * - Signed in and admin: renders the wrapped page component.
+ */
+function ProtectedAdminRoute({ component: Component }: { component: ComponentType }) {
+  const { user, isLoading, login } = useAuth();
+  const [location] = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    const returnTo = encodeURIComponent(location);
+    window.location.href = `/api/login?returnTo=${returnTo}`;
+    return null;
+  }
+
+  if (!user.isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
+        <Lock className="w-10 h-10 text-muted-foreground" />
+        <h1 className="text-xl font-semibold">Access denied</h1>
+        <p className="text-muted-foreground max-w-sm">
+          Your account (<strong>{user.email}</strong>) doesn't have admin
+          access. Contact your team to be added to the admin allowlist.
+        </p>
+        <Button variant="outline" onClick={() => { window.location.href = "/api/logout"; }}>
+          Sign out
+        </Button>
+      </div>
+    );
+  }
+
+  return <Component />;
+}
+
+function AdminRoute({ path, component }: { path: string; component: ComponentType }) {
+  return (
+    <Route path={path}>
+      <ProtectedAdminRoute component={component} />
+    </Route>
+  );
 }
 
 function Router() {
@@ -135,53 +170,55 @@ function Router() {
         <Suspense fallback={<RouteFallback />}>
           <Switch>
             <Route path="/" component={Home} />
-          <Route path="/about" component={About} />
-          <Route path="/services" component={Services} />
-          <Route path="/services/:slug" component={ServiceDetail} />
-          <Route path="/pricing" component={Pricing} />
-          <Route path="/blog" component={Blog} />
-          <Route path="/blog/:slug" component={BlogPost} />
-          <Route path="/authors" component={AuthorsIndex} />
-          <Route path="/authors/:slug" component={AuthorPage} />
-          <Route path="/write-for-us" component={WriteForUs} />
-          <Route path="/contact" component={Contact} />
-          <Route path="/privacy-policy" component={PrivacyPolicy} />
-          <Route path="/refund-policy" component={RefundPolicy} />
-          <Route path="/cookie-policy" component={CookiePolicy} />
-          <Route path="/status" component={StatusPage} />
-          <Route path="/terms" component={Terms} />
-          <Route path="/editorial-guidelines" component={EditorialGuidelines} />
-          <Route path="/community-guidelines" component={CommunityGuidelines} />
-          <Route
-            path="/tools/financial-health-score-calculator"
-            component={FinancialHealthScoreCalculator}
-          />
-          <Route path="/admin" component={AdminDashboard} />
-          <Route path="/admin/login" component={AdminLogin} />
-          <Route path="/admin/services" component={AdminServices} />
-          <Route path="/admin/blog" component={AdminBlog} />
-          <Route
-            path="/admin/authors/subscribers"
-            component={AdminAuthorsSubscribers}
-          />
-          <Route
-            path="/admin/authors/:slug/subscribers"
-            component={AdminAuthorSubscribers}
-          />
-          <Route
-            path="/admin/commissioning-topics"
-            component={AdminCommissioningTopics}
-          />
-          <Route path="/admin/newsletter" component={AdminNewsletter} />
-          <Route path="/admin/moderation" component={AdminModeration} />
-          <Route path="/admin/author-photos" component={AdminAuthorPhotos} />
-          <Route path="/admin/authors" component={AdminAuthors} />
-          <Route path="/admin/pricing" component={AdminPricing} />
-          <Route path="/admin/audit-log" component={AdminAuditLog} />
-          <Route path="/admin/notifications" component={AdminNotifications} />
-          <Route path="/admin/analytics" component={AdminAnalytics} />
-          <Route path="/404" component={NotFound} />
-          <Route component={NotFound} />
+            <Route path="/about" component={About} />
+            <Route path="/services" component={Services} />
+            <Route path="/services/:slug" component={ServiceDetail} />
+            <Route path="/pricing" component={Pricing} />
+            <Route path="/blog" component={Blog} />
+            <Route path="/blog/:slug" component={BlogPost} />
+            <Route path="/authors" component={AuthorsIndex} />
+            <Route path="/authors/:slug" component={AuthorPage} />
+            <Route path="/write-for-us" component={WriteForUs} />
+            <Route path="/contact" component={Contact} />
+            <Route path="/privacy-policy" component={PrivacyPolicy} />
+            <Route path="/refund-policy" component={RefundPolicy} />
+            <Route path="/cookie-policy" component={CookiePolicy} />
+            <Route path="/status" component={StatusPage} />
+            <Route path="/terms" component={Terms} />
+            <Route path="/editorial-guidelines" component={EditorialGuidelines} />
+            <Route path="/community-guidelines" component={CommunityGuidelines} />
+            <Route
+              path="/tools/financial-health-score-calculator"
+              component={FinancialHealthScoreCalculator}
+            />
+            {/* /admin/login is intentionally public — it's the fallback for
+                non-Replit deployments and must be reachable unauthenticated. */}
+            <Route path="/admin/login" component={AdminLogin} />
+            <AdminRoute path="/admin" component={AdminDashboard} />
+            <AdminRoute path="/admin/services" component={AdminServices} />
+            <AdminRoute path="/admin/blog" component={AdminBlog} />
+            <AdminRoute
+              path="/admin/authors/subscribers"
+              component={AdminAuthorsSubscribers}
+            />
+            <AdminRoute
+              path="/admin/authors/:slug/subscribers"
+              component={AdminAuthorSubscribers}
+            />
+            <AdminRoute
+              path="/admin/commissioning-topics"
+              component={AdminCommissioningTopics}
+            />
+            <AdminRoute path="/admin/newsletter" component={AdminNewsletter} />
+            <AdminRoute path="/admin/moderation" component={AdminModeration} />
+            <AdminRoute path="/admin/author-photos" component={AdminAuthorPhotos} />
+            <AdminRoute path="/admin/authors" component={AdminAuthors} />
+            <AdminRoute path="/admin/pricing" component={AdminPricing} />
+            <AdminRoute path="/admin/audit-log" component={AdminAuditLog} />
+            <AdminRoute path="/admin/notifications" component={AdminNotifications} />
+            <AdminRoute path="/admin/analytics" component={AdminAnalytics} />
+            <Route path="/404" component={NotFound} />
+            <Route component={NotFound} />
           </Switch>
         </Suspense>
       </main>
