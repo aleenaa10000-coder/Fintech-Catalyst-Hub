@@ -33,8 +33,8 @@ const DEFAULTS: FormState = {
 };
 
 // ── 1. Grammar Normalization ─────────────────────────────────────────────────
-// Maps common 3rd-person-singular verb forms → base/infinitive form so the
-// benefit phrase reads naturally after "to" or "help [audience]".
+// Maps 3rd-person-singular verb forms → base/infinitive so the benefit phrase
+// reads naturally after "to", "help", or "help them" (e.g. "help them eliminate").
 const VERB_BASE: Record<string, string> = {
   accelerates: "accelerate", achieves: "achieve", arrives: "arrive",
   attracts: "attract", boosts: "boost", brings: "bring", builds: "build",
@@ -47,11 +47,12 @@ const VERB_BASE: Record<string, string> = {
   provides: "provide", raises: "raise", ranks: "rank", reaches: "reach",
   reduces: "reduce", removes: "remove", saves: "save", scales: "scale",
   secures: "secure", sends: "send", shortens: "shorten", speeds: "speed",
-  targets: "target", transforms: "transform", wins: "win", works: "work",
+  streamlines: "streamline", targets: "target", transforms: "transform",
+  unlocks: "unlock", wins: "win", works: "work",
 };
 
 function toInfinitive(phrase: string): string {
-  return phrase.replace(/^(\w+)/, (word) => VERB_BASE[word.toLowerCase()] ?? word);
+  return phrase.replace(/^(\w+)/, (w) => VERB_BASE[w.toLowerCase()] ?? w);
 }
 
 // ── 2. Niche Detection ────────────────────────────────────────────────────────
@@ -62,30 +63,53 @@ function detectNiche(kw: string, title: string): "service" | "b2b" {
   return SERVICE_RE.test(`${kw} ${title}`) ? "service" : "b2b";
 }
 
-// ── 3. No-Ellipsis Completion ─────────────────────────────────────────────────
-// Ensures the description ends with a period and never exceeds 160 chars.
-// If a candidate is too long, try the next; as a last resort trim at the last
-// complete word before the limit and append a period — never an ellipsis.
+// ── 3. Clean Completion ───────────────────────────────────────────────────────
+// Every description must end with a full stop — never an ellipsis.
 function ensurePeriod(text: string): string {
   const t = text.trim();
   return /[.!?]$/.test(t) ? t : `${t}.`;
 }
 
-function fitToLimit(candidates: string[]): string {
-  for (const raw of candidates) {
-    const t = ensurePeriod(raw);
-    if (t.length <= 160) return t;
+// ── 4. CTA Padding ────────────────────────────────────────────────────────────
+// Descriptions under 145 chars get a CTA appended to reach the 155-char sweet
+// spot. Tried in order; the first one that keeps the total ≤ 160 is used.
+const CTAS = [
+  "Read the full guide here.",
+  "Learn more on our hub.",
+  "Explore the full breakdown.",
+  "See the full analysis here.",
+  "Start reading today.",
+  "Learn more.",
+];
+
+function padIfShort(text: string): string {
+  if (text.length >= 145) return text;
+  const bare = text.endsWith(".") ? text.slice(0, -1) : text;
+  for (const cta of CTAS) {
+    const candidate = `${bare}. ${cta}`;
+    if (candidate.length <= 160) return candidate;
   }
-  // Last-resort: trim last candidate at word boundary, close with period
-  const fallback = candidates[candidates.length - 1];
-  const cut = fallback.lastIndexOf(" ", 158);
-  return ensurePeriod(cut > 80 ? fallback.slice(0, cut) : fallback.slice(0, 158));
+  return text;
 }
 
-// ── 4. Keyword-in-65 Guard ────────────────────────────────────────────────────
-// Verifies the keyword starts within the first 65 characters of a candidate.
-function kwInFirst65(text: string, kw: string): boolean {
-  return text.toLowerCase().indexOf(kw.toLowerCase()) < 65;
+// ── 5. Build & Optimise ───────────────────────────────────────────────────────
+// Picks the first candidate that fits within 160 chars, pads short ones with a
+// CTA, and as a last resort trims at the nearest word boundary — never ellipsis.
+function buildDescription(candidates: string[]): string {
+  for (const raw of candidates) {
+    const t = ensurePeriod(raw);
+    if (t.length <= 160) return padIfShort(t);
+  }
+  const fallback = candidates[candidates.length - 1];
+  const cut = fallback.lastIndexOf(" ", 157);
+  const trimmed = ensurePeriod(cut > 80 ? fallback.slice(0, cut) : fallback.slice(0, 157));
+  return padIfShort(trimmed);
+}
+
+// ── 6. Keyword-in-60 Guard ────────────────────────────────────────────────────
+// SERP snippet keyword must start within the first 60 characters.
+function kwInFirst60(text: string, kw: string): boolean {
+  return text.toLowerCase().indexOf(kw.toLowerCase()) < 60;
 }
 
 // ── Main Generator ────────────────────────────────────────────────────────────
@@ -99,60 +123,64 @@ function generateDescriptions(form: FormState): GeneratedResult[] {
   const aud    = audience.trim() || "fintech teams";
   const rawBen = benefit.trim() || "grow faster";
 
-  // Normalise verb to base form for use after "to" / "help [aud]"
+  // Normalise verb: "eliminates" → "eliminate" so "help them eliminate" is correct
   const ben = toInfinitive(rawBen.charAt(0).toLowerCase() + rawBen.slice(1));
 
   const niche = detectNiche(kw, title);
 
-  // ── Option 1 · Action ──────────────────────────────────────────────────────
-  // Starts with a command verb; keyword must land within the first 65 chars.
-  const actionVerb = niche === "service" ? "Secure" : "Discover";
-  const actionCandidates = [
+  // ── [Action] ──────────────────────────────────────────────────────────────
+  // High-impact command verb; keyword opens the sentence (always within 60 chars).
+  const actionVerb = niche === "service" ? "Secure" : "Optimize";
+  const actionPool = [
+    `${actionVerb} ${kw}: ${title} is built to help ${aud} ${ben}.`,
     `${actionVerb} ${kw} — ${title} helps ${aud} ${ben}.`,
-    `${actionVerb} ${kw}: the guide built to help ${aud} ${ben}.`,
-    `${actionVerb} ${kw} and help ${aud} ${ben}.`,
-  ].filter((c) => kwInFirst65(c, kw));
+    `Scale ${kw} with ${title} — built to help ${aud} ${ben}.`,
+    `Deploy ${kw} tactics from ${title} to help ${aud} ${ben}.`,
+  ].filter((c) => kwInFirst60(c, kw));
 
-  // ── Option 2 · Curiosity ───────────────────────────────────────────────────
-  // Opens with a question aimed directly at the target audience.
-  const curiosityCandidates = [
-    `Are ${aud} struggling with ${kw}? ${title} shows you how to ${ben}.`,
-    `Need better ${kw}? ${title} guides ${aud} to ${ben}.`,
-    `Want to ${ben}? ${title} is the ${kw} resource built for ${aud}.`,
-  ].filter((c) => kwInFirst65(c, kw));
+  // ── [Curiosity] ───────────────────────────────────────────────────────────
+  // Specific question tailored to the target audience; keyword in opening clause.
+  const curiosityPool = [
+    `Need stronger ${kw}? ${title} shows ${aud} how to ${ben}.`,
+    `Struggling with ${kw}? ${title} helps ${aud} ${ben}.`,
+    `Is your ${kw} strategy working? ${title} guides ${aud} to ${ben}.`,
+    `Want better ${kw} results? ${title} helps ${aud} ${ben}.`,
+  ].filter((c) => kwInFirst60(c, kw));
 
-  // ── Option 3 · Authority ───────────────────────────────────────────────────
-  // Uses a professional claim fitted to the niche.
-  const authorityPrefix = niche === "service" ? "Reliable" : "Advanced";
-  const authorityCandidates = [
-    `${authorityPrefix} ${kw}: ${title} is purpose-built to help ${aud} ${ben}.`,
-    `${authorityPrefix} ${kw} insights for ${aud} who need to ${ben}.`,
-    `Master ${kw} with ${title} — trusted guidance for ${aud} to ${ben}.`,
-  ].filter((c) => kwInFirst65(c, kw));
+  // ── [Authority] ───────────────────────────────────────────────────────────
+  // Industry-grade descriptor: "Enterprise-grade"/"Advanced" for tech,
+  // "Professional" for trade/service niches.
+  const authPrefix = niche === "service" ? "Professional" : "Enterprise-grade";
+  const authFallback = niche === "service" ? "Professional" : "Advanced";
+  const authorityPool = [
+    `${authPrefix} ${kw}: ${title} purpose-built to help ${aud} ${ben}.`,
+    `${authFallback} ${kw} for ${aud} — ${title} shows how to ${ben}.`,
+    `${authFallback} ${kw} insights: ${title} helps ${aud} ${ben}.`,
+  ].filter((c) => kwInFirst60(c, kw));
 
-  // Fallback: if every candidate failed the 65-char filter, use unfiltered list
-  const pick = (filtered: string[], all: string[]) =>
-    filtered.length ? filtered : all;
+  // Fallback pools (no 60-char filter) used only if all filtered candidates fail
+  const pick = (filtered: string[], fallbacks: string[]) =>
+    filtered.length ? filtered : fallbacks;
 
   return [
     {
-      text: fitToLimit(pick(actionCandidates, [
-        `${actionVerb} ${kw}: the guide built to help ${aud} ${ben}.`,
-        `${actionVerb} ${kw} and help ${aud} ${ben}.`,
+      text: buildDescription(pick(actionPool, [
+        `${actionVerb} ${kw}: ${title} built to help ${aud} ${ben}.`,
+        `${actionVerb} ${kw} — guide for ${aud} to ${ben}.`,
       ])),
       tone: "Action",
     },
     {
-      text: fitToLimit(pick(curiosityCandidates, [
-        `Need better ${kw}? ${title} guides ${aud} to ${ben}.`,
-        `Want to ${ben}? ${title} is the ${kw} resource built for ${aud}.`,
+      text: buildDescription(pick(curiosityPool, [
+        `Need stronger ${kw}? ${title} helps ${aud} ${ben}.`,
+        `Struggling with ${kw}? ${title} guides ${aud} to ${ben}.`,
       ])),
       tone: "Curiosity",
     },
     {
-      text: fitToLimit(pick(authorityCandidates, [
-        `${authorityPrefix} ${kw} insights for ${aud} who need to ${ben}.`,
-        `Master ${kw} with ${title} — trusted guidance for ${aud} to ${ben}.`,
+      text: buildDescription(pick(authorityPool, [
+        `${authFallback} ${kw} for ${aud} who need to ${ben}.`,
+        `${authPrefix} ${kw}: trusted by ${aud} to ${ben}.`,
       ])),
       tone: "Authority",
     },
