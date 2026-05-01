@@ -278,7 +278,7 @@ const wfuFaqs = [
   {
     question: "How long does it take to hear back on a pitch?",
     answer:
-      "We review all pitches within 5–7 business days. If your topic is a strong fit you'll receive an acceptance email with a brief scope doc and a suggested deadline. Off-niche or under-specified pitches are declined with a short note.",
+      "We review all pitches within 2–3 business days. If your topic is a strong fit you'll receive an acceptance email with a brief scope doc and a suggested deadline. Off-niche or under-specified pitches are declined with a short note.",
   },
   {
     question: "How many dofollow links will my post include?",
@@ -974,7 +974,7 @@ export default function WriteForUs() {
               Send your guest post idea
             </h2>
             <p className="text-muted-foreground">
-              Editors review every pitch within 5–7 business days.
+              Editors review every pitch within 2–3 business days.
             </p>
           </div>
           <div className="relative bg-card border rounded-2xl p-8 shadow-sm overflow-hidden">
