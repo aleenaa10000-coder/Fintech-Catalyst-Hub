@@ -7,7 +7,7 @@ id = "3B4_FFSkEVBkAeYMFRJ2e"
 [[services]]
 localPort = 8080
 name = "API Server"
-paths = ["/api", "/sitemap.xml", "/objects", "/indexnow-key.txt"]
+paths = ["/api", "/sitemap.xml", "/rss.xml", "/objects", "/indexnow-key.txt"]
 
 [services.development]
 run = "pnpm --filter @workspace/api-server run dev"
@@ -15,7 +15,10 @@ run = "pnpm --filter @workspace/api-server run dev"
 [services.production]
 
 [services.production.build]
-args = ["pnpm", "--filter", "@workspace/api-server", "run", "build"]
+# Push the DB schema first so a fresh deployment has all tables before the
+# server starts — without this, queries on first boot would fail with
+# "relation does not exist" and the startup probe would time out.
+args = ["bash", "-c", "pnpm --filter @workspace/db run push-force && pnpm --filter @workspace/api-server run build"]
 
 [services.production.build.env]
 NODE_ENV = "production"

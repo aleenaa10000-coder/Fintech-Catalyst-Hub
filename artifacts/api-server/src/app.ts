@@ -5,6 +5,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import sitemapRouter from "./routes/sitemap";
 import authorRssRouter from "./routes/authorRss";
+import rssRouter from "./routes/rss";
 import uploadsRouter from "./routes/uploads";
 import indexNowKeyRouter from "./routes/indexNowKey";
 import { logger } from "./lib/logger";
@@ -48,6 +49,10 @@ app.use(sitemapRouter);
 // Per-author RSS feeds at /authors/<slug>/rss.xml. Mounted at root so the
 // feed URL mirrors the public author-profile URL pattern.
 app.use(authorRssRouter);
+
+// Site-wide RSS feed at /rss.xml — dynamically merges static seed posts with
+// DB-published posts so feed readers always see the latest content.
+app.use(rssRouter);
 
 // Serves the IndexNow ownership-verification key file at /<key>.txt when
 // INDEXNOW_KEY is configured. Mounted at root for the same reason.
