@@ -32,27 +32,76 @@ const DEFAULTS: FormState = {
   benefit: "",
 };
 
+// ── 1. Grammar Normalization ─────────────────────────────────────────────────
+// Maps common 3rd-person-singular verb forms → base/infinitive form so the
+// benefit phrase reads naturally after "to" or "help [audience]".
+const VERB_BASE: Record<string, string> = {
+  accelerates: "accelerate", achieves: "achieve", arrives: "arrive",
+  attracts: "attract", boosts: "boost", brings: "bring", builds: "build",
+  closes: "close", converts: "convert", creates: "create",
+  delivers: "deliver", drives: "drive", expands: "expand", gains: "gain",
+  generates: "generate", gets: "get", grows: "grow", helps: "help",
+  improves: "improve", increases: "increase", leads: "lead",
+  maximises: "maximise", maximizes: "maximize", optimises: "optimise",
+  optimizes: "optimize", provides: "provide", raises: "raise",
+  ranks: "rank", reaches: "reach", reduces: "reduce", saves: "save",
+  scales: "scale", secures: "secure", targets: "target",
+  transforms: "transform", wins: "win", works: "work",
+};
+
+function toInfinitive(phrase: string): string {
+  return phrase.replace(/^(\w+)/, (word) => VERB_BASE[word.toLowerCase()] ?? word);
+}
+
+// ── 2. Niche Detection ────────────────────────────────────────────────────────
+// Returns "service" for trade/local-service niches, "b2b" for everything else.
+const SERVICE_RE =
+  /plumb|electri|dentist|doctor|lawyer|solicitor|cleaner|repair|remov|emergency|locksmith|builder|plaster|roofer|accountant|surveyor|glazier|pest/i;
+
+function detectNiche(kw: string, title: string): "service" | "b2b" {
+  return SERVICE_RE.test(`${kw} ${title}`) ? "service" : "b2b";
+}
+
+// ── 3. Smart Truncation ───────────────────────────────────────────────────────
+// Cuts at the last word boundary before 157 chars; never mid-word.
+function smartTruncate(text: string): string {
+  if (text.length <= 160) return text;
+  const cut = text.lastIndexOf(" ", 156);
+  return (cut > 100 ? text.slice(0, cut) : text.slice(0, 157)) + "…";
+}
+
+// ── Main Generator ────────────────────────────────────────────────────────────
 function generateDescriptions(form: FormState): string[] {
   const { pageTitle, keyword, audience, benefit } = form;
-  const kw = keyword.trim() || "fintech solutions";
+  const kw    = keyword.trim() || "fintech solutions";
   const title = pageTitle.trim() || "this resource";
-  const aud = audience.trim() || "fintech teams";
-  const ben = benefit.trim() || "grow faster";
-  const benLower = ben.charAt(0).toLowerCase() + ben.slice(1);
+  const aud   = audience.trim() || "fintech teams";
+  const rawBen = benefit.trim() || "grow faster";
 
+  // Normalise verb to base form for use after "to" / "help [aud]"
+  const ben = toInfinitive(rawBen.charAt(0).toLowerCase() + rawBen.slice(1));
+
+  // ── 2 cont. Niche-Specific Tone ──────────────────────────────────────────
+  const niche = detectNiche(kw, title);
+  const authorityHook = niche === "service"
+    ? `Get professional ${kw} from`   // e.g. "Get professional emergency plumber London from"
+    : `Master ${kw} with`;            // e.g. "Master fintech SEO agency with"
+
+  // ── 5. Varied Starters + 4. Keyword within first 65 chars ───────────────
   const templates = [
-    // Action-Oriented: keyword within first 60 chars
-    `Explore ${kw} in ${title} — your step-by-step guide to ${benLower} for ${aud}.`,
-    // Curiosity-Gap: keyword within first 60 chars
-    `Are you looking for ${kw}? Explore ${title} for ${aud} ready to ${benLower}.`,
-    // Authority-Driven: keyword within first 60 chars
-    `Master ${kw} with our guide on ${title}, designed to help ${aud} ${benLower}.`,
+    // Action-Oriented — starts with action verb; kw follows immediately
+    `Explore ${kw} in ${title} — your step-by-step guide to ${ben} for ${aud}.`,
+
+    // Curiosity-Gap — starts with question; kw in first clause
+    `Are you looking for ${kw}? ${title} is the guide for ${aud} ready to ${ben}.`,
+
+    // Authority-Driven — hook adapts to niche; kw in first clause
+    niche === "service"
+      ? `${authorityHook} ${title} — trusted by ${aud} to ${ben}.`
+      : `${authorityHook} our guide on ${title}, designed to help ${aud} ${ben}.`,
   ];
 
-  return templates.map((d) => {
-    if (d.length > 160) return d.slice(0, 157) + "…";
-    return d;
-  });
+  return templates.map(smartTruncate);
 }
 
 function CharBadge({ count }: { count: number }) {
