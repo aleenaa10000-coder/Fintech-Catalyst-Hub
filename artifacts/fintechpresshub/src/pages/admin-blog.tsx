@@ -3115,6 +3115,11 @@ export default function AdminBlog() {
   const [shiftHoursInput, setShiftHoursInput] = useState("");
   const [shiftQueuePending, setShiftQueuePending] = useState(false);
 
+  // Undo snapshot: stores the previous timestamps so the admin can reverse a bulk shift.
+  const [shiftSnapshot, setShiftSnapshot] = useState<{ slug: string; publishedAt: string }[] | null>(null);
+  const [shiftSnapshotLabel, setShiftSnapshotLabel] = useState<string>("");
+  const [shiftUndoPending, setShiftUndoPending] = useState(false);
+
   // Scheduled posts come from an admin-only endpoint that inverts the
   // public visibility filter. We re-fetch after any mutation that could
   // change the queue (publish-now, delete, create with a future date).
@@ -4315,6 +4320,11 @@ export default function AdminBlog() {
                           const hours = Number(shiftHoursInput);
                           if (!scheduledPosts || Number.isNaN(hours) || hours === 0) return;
                           setShiftQueuePending(true);
+                          // Capture a snapshot of the current timestamps before shifting.
+                          const snapshot = scheduledPosts.map((p) => ({
+                            slug: p.slug,
+                            publishedAt: p.publishedAt,
+                          }));
                           try {
                             const result = await bulkRescheduleBlogPosts({
                               posts: scheduledPosts.map((p) => ({
@@ -4326,6 +4336,11 @@ export default function AdminBlog() {
                             });
                             toast.success(
                               `Shifted ${result.updatedCount} post${result.updatedCount === 1 ? "" : "s"} by ${hours > 0 ? "+" : ""}${hours}h.`,
+                            );
+                            // Save snapshot so the admin can undo this shift.
+                            setShiftSnapshot(snapshot);
+                            setShiftSnapshotLabel(
+                              `${hours > 0 ? "+" : ""}${hours}h across ${snapshot.length} post${snapshot.length === 1 ? "" : "s"}`,
                             );
                             invalidate();
                             setShiftQueueOpen(false);
@@ -4351,6 +4366,50 @@ export default function AdminBlog() {
                     </div>
                   )}
                 </div>
+
+                {/* Undo last shift bar — visible after a successful bulk reschedule */}
+                {shiftSnapshot && !shiftQueueOpen && (
+                  <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                    <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                    <span className="flex-1">
+                      Last shift: <span className="font-medium">{shiftSnapshotLabel}</span>
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-xs px-2 border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900"
+                      disabled={shiftUndoPending}
+                      onClick={async () => {
+                        if (!shiftSnapshot) return;
+                        setShiftUndoPending(true);
+                        try {
+                          const result = await bulkRescheduleBlogPosts({ posts: shiftSnapshot });
+                          toast.success(
+                            `Rolled back ${result.updatedCount} post${result.updatedCount === 1 ? "" : "s"} to their previous schedule.`,
+                          );
+                          setShiftSnapshot(null);
+                          setShiftSnapshotLabel("");
+                          invalidate();
+                        } catch {
+                          toast.error("Could not undo the shift. Try again.");
+                        } finally {
+                          setShiftUndoPending(false);
+                        }
+                      }}
+                    >
+                      {shiftUndoPending ? "Undoing…" : "Undo"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900"
+                      onClick={() => { setShiftSnapshot(null); setShiftSnapshotLabel(""); }}
+                      aria-label="Dismiss"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
 
                 {/* Calendar view */}
                 {calendarView && (
