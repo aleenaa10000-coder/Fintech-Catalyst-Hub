@@ -33,6 +33,8 @@ import type {
   BulkNoIndexAuditEntry,
   BulkNoIndexBlogPostsInput,
   BulkNoIndexBlogPostsResult,
+  BulkRescheduleBlogPostsInput,
+  BulkRescheduleBlogPostsResult,
   CheckSingleUrlBody,
   CheckSingleUrlResult,
   CommissioningTopic,
@@ -1241,6 +1243,85 @@ export const useBulkNoIndexBlogPosts = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getBulkNoIndexBlogPostsMutationOptions(options));
+    }
+
+/**
+ * Updates the `publishedAt` timestamp on every post listed in the
+request body in a single database transaction. Used by the admin
+scheduling queue when the admin drag-reorders posts or applies a
+time-shift to a batch. Posts whose slug is not found in the database
+(e.g. static seed posts) are silently skipped — compare the returned
+`updatedCount` against the request array length to detect skipped
+slugs. Requires an authenticated admin session.
+
+ * @summary Bulk-update the publishedAt timestamp on multiple blog posts (admin)
+ */
+export const getBulkRescheduleBlogPostsUrl = () => {
+
+
+
+
+  return `/api/admin/blog/posts/bulk-reschedule`
+}
+
+export const bulkRescheduleBlogPosts = async (bulkRescheduleBlogPostsInput: BulkRescheduleBlogPostsInput, options?: RequestInit): Promise<BulkRescheduleBlogPostsResult> => {
+
+  return customFetch<BulkRescheduleBlogPostsResult>(getBulkRescheduleBlogPostsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      bulkRescheduleBlogPostsInput,)
+  }
+);}
+
+
+
+
+export const getBulkRescheduleBlogPostsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkRescheduleBlogPosts>>, TError,{data: BodyType<BulkRescheduleBlogPostsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkRescheduleBlogPosts>>, TError,{data: BodyType<BulkRescheduleBlogPostsInput>}, TContext> => {
+
+const mutationKey = ['bulkRescheduleBlogPosts'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkRescheduleBlogPosts>>, {data: BodyType<BulkRescheduleBlogPostsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkRescheduleBlogPosts(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkRescheduleBlogPostsMutationResult = NonNullable<Awaited<ReturnType<typeof bulkRescheduleBlogPosts>>>
+    export type BulkRescheduleBlogPostsMutationBody = BodyType<BulkRescheduleBlogPostsInput>
+    export type BulkRescheduleBlogPostsMutationError = ErrorType<void>
+
+    /**
+ * @summary Bulk-update the publishedAt timestamp on multiple blog posts (admin)
+ */
+export const useBulkRescheduleBlogPosts = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkRescheduleBlogPosts>>, TError,{data: BodyType<BulkRescheduleBlogPostsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkRescheduleBlogPosts>>,
+        TError,
+        {data: BodyType<BulkRescheduleBlogPostsInput>},
+        TContext
+      > => {
+      return useMutation(getBulkRescheduleBlogPostsMutationOptions(options));
     }
 
 /**

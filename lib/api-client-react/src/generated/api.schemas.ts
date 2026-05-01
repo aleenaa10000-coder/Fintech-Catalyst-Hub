@@ -540,6 +540,33 @@ export interface BulkNoIndexBlogPostsResult {
   auditId?: number | null;
 }
 
+export type BulkRescheduleBlogPostsInputPostsItem = {
+  /**
+     * Slug of the post to reschedule.
+     * @minLength 1
+     */
+  slug: string;
+  /** New `publishedAt` timestamp (ISO 8601) for this post. */
+  publishedAt: string;
+};
+
+export interface BulkRescheduleBlogPostsInput {
+  /**
+     * List of slug + new publishedAt pairs to update.
+     * @minItems 1
+     * @maxItems 100
+     */
+  posts: BulkRescheduleBlogPostsInputPostsItem[];
+}
+
+export interface BulkRescheduleBlogPostsResult {
+  /** Number of posts actually updated. May be less than the number of entries in the request if some slugs were not found in the database (e.g. static seed posts that haven't been published via the admin yet).
+   */
+  updatedCount: number;
+  /** Full post objects for every row that was updated. */
+  posts: BlogPost[];
+}
+
 export interface BulkNoIndexAuditPostSnapshot {
   slug: string;
   title: string;

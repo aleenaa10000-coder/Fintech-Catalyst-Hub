@@ -6,6 +6,7 @@ import {
   usePublishBlogPost,
   useUpdateBlogPost,
   updateBlogPost,
+  bulkRescheduleBlogPosts,
   useDeleteBlogPost,
   useRepingBlogPostIndexNow,
   useBulkNoIndexBlogPosts,
@@ -3109,6 +3110,11 @@ export default function AdminBlog() {
   // View mode for the Scheduled tab: list (default) or calendar.
   const [calendarView, setCalendarView] = useState(false);
 
+  // Bulk "shift queue" inline form state.
+  const [shiftQueueOpen, setShiftQueueOpen] = useState(false);
+  const [shiftHoursInput, setShiftHoursInput] = useState("");
+  const [shiftQueuePending, setShiftQueuePending] = useState(false);
+
   // Scheduled posts come from an admin-only endpoint that inverts the
   // public visibility filter. We re-fetch after any mutation that could
   // change the queue (publish-now, delete, create with a future date).
@@ -4268,6 +4274,84 @@ export default function AdminBlog() {
                   </div>
                 </div>
 
+                {/* Bulk shift-queue inline form */}
+                <div className="mb-3">
+                  {!shiftQueueOpen ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs gap-1.5"
+                      onClick={() => {
+                        setShiftHoursInput("");
+                        setShiftQueueOpen(true);
+                      }}
+                    >
+                      <Clock className="w-3 h-3" />
+                      Shift entire queue
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        Shift all posts by
+                      </span>
+                      <Input
+                        type="number"
+                        className="h-7 w-24 text-xs"
+                        placeholder="e.g. 48"
+                        value={shiftHoursInput}
+                        onChange={(e) => setShiftHoursInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setShiftQueueOpen(false);
+                        }}
+                        autoFocus
+                      />
+                      <span className="text-xs text-muted-foreground shrink-0">hours</span>
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs px-3"
+                        disabled={shiftQueuePending || !shiftHoursInput.trim() || Number.isNaN(Number(shiftHoursInput))}
+                        onClick={async () => {
+                          const hours = Number(shiftHoursInput);
+                          if (!scheduledPosts || Number.isNaN(hours) || hours === 0) return;
+                          setShiftQueuePending(true);
+                          try {
+                            const result = await bulkRescheduleBlogPosts({
+                              posts: scheduledPosts.map((p) => ({
+                                slug: p.slug,
+                                publishedAt: new Date(
+                                  new Date(p.publishedAt).getTime() + hours * 3_600_000,
+                                ).toISOString(),
+                              })),
+                            });
+                            toast.success(
+                              `Shifted ${result.updatedCount} post${result.updatedCount === 1 ? "" : "s"} by ${hours > 0 ? "+" : ""}${hours}h.`,
+                            );
+                            invalidate();
+                            setShiftQueueOpen(false);
+                            setShiftHoursInput("");
+                          } catch {
+                            toast.error("Could not shift the queue. Try again.");
+                          } finally {
+                            setShiftQueuePending(false);
+                          }
+                        }}
+                      >
+                        {shiftQueuePending ? "Shifting…" : "Apply"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => setShiftQueueOpen(false)}
+                        aria-label="Cancel"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Calendar view */}
                 {calendarView && (
                   <ScheduledCalendar
@@ -4359,10 +4443,14 @@ export default function AdminBlog() {
 
                         setReorderPending(true);
                         try {
-                          await updateBlogPost(
-                            moved.slug,
-                            { publishedAt: new Date(newPublishedAt).toISOString() },
-                          );
+                          await bulkRescheduleBlogPosts({
+                            posts: [
+                              {
+                                slug: moved.slug,
+                                publishedAt: new Date(newPublishedAt).toISOString(),
+                              },
+                            ],
+                          });
                           toast.success(`"${moved.title}" rescheduled.`);
                           invalidate();
                         } catch {

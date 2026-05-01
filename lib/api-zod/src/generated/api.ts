@@ -444,6 +444,62 @@ export const BulkNoIndexBlogPostsResponse = zod.object({
 
 
 /**
+ * Updates the `publishedAt` timestamp on every post listed in the
+request body in a single database transaction. Used by the admin
+scheduling queue when the admin drag-reorders posts or applies a
+time-shift to a batch. Posts whose slug is not found in the database
+(e.g. static seed posts) are silently skipped — compare the returned
+`updatedCount` against the request array length to detect skipped
+slugs. Requires an authenticated admin session.
+
+ * @summary Bulk-update the publishedAt timestamp on multiple blog posts (admin)
+ */
+
+export const bulkRescheduleBlogPostsBodyPostsMax = 100;
+
+
+
+export const BulkRescheduleBlogPostsBody = zod.object({
+  "posts": zod.array(zod.object({
+  "slug": zod.string().min(1).describe('Slug of the post to reschedule.'),
+  "publishedAt": zod.coerce.date().describe('New `publishedAt` timestamp (ISO 8601) for this post.')
+})).min(1).max(bulkRescheduleBlogPostsBodyPostsMax).describe('List of slug + new publishedAt pairs to update.')
+})
+
+export const bulkRescheduleBlogPostsResponsePostsItemViewCountMin = 0;
+
+
+
+export const BulkRescheduleBlogPostsResponse = zod.object({
+  "updatedCount": zod.number().describe('Number of posts actually updated. May be less than the number of entries in the request if some slugs were not found in the database (e.g. static seed posts that haven\'t been published via the admin yet).\n'),
+  "posts": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "excerpt": zod.string(),
+  "content": zod.string(),
+  "author": zod.string(),
+  "authorRole": zod.string(),
+  "category": zod.string(),
+  "tags": zod.array(zod.string()),
+  "coverImage": zod.string(),
+  "readingMinutes": zod.number(),
+  "featured": zod.boolean(),
+  "publishedAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().describe('Auto-bumped on every edit via Drizzle\'s `$onUpdate` hook. Equal to `publishedAt` for never-edited rows. Surface as a \"Last updated\" indicator in the UI when materially newer than `publishedAt`.\n'),
+  "lastSeoPingAt": zod.coerce.date().nullish().describe('Timestamp of the most recent successful IndexNow ping for this post (Bing\/Yandex\/Seznam\/Naver). `null` when the post has never been successfully pinged (e.g. INDEXNOW_KEY was unset or the post predates this feature). Surface in the admin posts list as an \"indexed N ago\" badge.\n'),
+  "lastSeoPingStatus": zod.string().nullish().describe('Status string from the most recent IndexNow attempt, even if unsuccessful. One of `accepted`, `rejected`, `skipped_no_key`, `skipped_malformed_key`, `error`. `null` for posts that have never been pinged.\n'),
+  "viewCount": zod.number().min(bulkRescheduleBlogPostsResponsePostsItemViewCountMin).describe('Lifetime view count, incremented by the public-facing post detail page on mount via `POST \/blog\/posts\/{slug}\/view`. Used to power the \"Most read\" sort option on the blog index.\n'),
+  "seoTitle": zod.string().nullish().describe('Optional override for the `<title>` tag on this post\'s detail page. When `null` the title falls back to the post\'s `title` field. Used by the admin to hand-tune SERP appearance.\n'),
+  "seoDescription": zod.string().nullish().describe('Optional override for `<meta name=\"description\">` on this post\'s detail page. When `null` the description falls back to the post\'s `excerpt`.\n'),
+  "seoOgImage": zod.string().nullish().describe('Optional override for `og:image` \/ `twitter:image` on this post\'s detail page. When `null` the social card falls back to the post\'s `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n'),
+  "noIndex": zod.boolean().describe('When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n'),
+  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n')
+})).describe('Full post objects for every row that was updated.')
+})
+
+
+/**
  * Returns every confirmed bulk no-index / re-index batch in
 reverse-chronological order, capped at `limit` rows. Each entry
 records who ran it, when, the requested vs. effective row count,

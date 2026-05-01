@@ -110,6 +110,18 @@ const BulkNoIndexBody = z.object({
   snoozeDays: z.number().int().positive().max(365).optional(),
 });
 
+const BulkRescheduleBody = z.object({
+  posts: z
+    .array(
+      z.object({
+        slug: z.string().min(1),
+        publishedAt: z.string().datetime(),
+      }),
+    )
+    .min(1)
+    .max(100),
+});
+
 const UpdateBlogPostBody = z
   .object({
     title: z.string().min(1).optional(),
@@ -631,6 +643,53 @@ router.post(
         noIndex: body.noIndex,
         posts: updated.map(serialize),
         auditId,
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid body", issues: err.issues });
+        return;
+      }
+      next(err);
+    }
+  },
+);
+
+/**
+ * Bulk-update the `publishedAt` timestamp on multiple posts in a single
+ * database transaction. Used by the admin blog scheduling queue when the
+ * admin drag-reorders multiple posts or applies a bulk time-shift operation.
+ *
+ * Body: { posts: Array<{ slug: string; publishedAt: string (ISO datetime) }> }
+ * Response: { updatedCount: number; posts: PublishedBlogPost[] }
+ *
+ * Posts whose slug is not found in the DB are silently skipped (they are
+ * static seed posts that haven't been published to the DB yet). The caller
+ * can detect this by comparing `updatedCount` against the length of the
+ * request array.
+ */
+router.post(
+  "/admin/blog/posts/bulk-reschedule",
+  requireAdmin,
+  async (req, res, next) => {
+    try {
+      const body = BulkRescheduleBody.parse(req.body);
+
+      const updated: (typeof blogPostsTable.$inferSelect)[] = [];
+
+      await db.transaction(async (tx) => {
+        for (const item of body.posts) {
+          const [row] = await tx
+            .update(blogPostsTable)
+            .set({ publishedAt: new Date(item.publishedAt) })
+            .where(eq(blogPostsTable.slug, item.slug))
+            .returning();
+          if (row) updated.push(row);
+        }
+      });
+
+      res.json({
+        updatedCount: updated.length,
+        posts: updated.map(serialize),
       });
     } catch (err) {
       if (err instanceof z.ZodError) {
