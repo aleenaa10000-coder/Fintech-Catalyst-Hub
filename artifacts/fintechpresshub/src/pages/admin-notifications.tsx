@@ -28,6 +28,7 @@ import {
   Loader2,
   Trash2,
   CalendarClock,
+  Mail,
 } from "lucide-react";
 
 const SLACK_PREFIX = "https://hooks.slack.com/services/";
@@ -97,6 +98,8 @@ export default function AdminNotifications() {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [enabled, setEnabled] = useState(false);
   const [weeklyDigestEnabled, setWeeklyDigestEnabled] = useState(false);
+  const [publishNotifyEnabled, setPublishNotifyEnabled] = useState(false);
+  const [publishNotifyEmail, setPublishNotifyEmail] = useState("");
   /** True when the local form differs from what we last saved. Lets us
    *  disable the Save button until there's something to send. */
   const [dirty, setDirty] = useState(false);
@@ -119,6 +122,8 @@ export default function AdminNotifications() {
     if (settingsQuery.data) {
       setEnabled(settingsQuery.data.slackEnabled);
       setWeeklyDigestEnabled(settingsQuery.data.weeklyDigestEnabled);
+      setPublishNotifyEnabled(settingsQuery.data.publishNotifyEnabled ?? false);
+      setPublishNotifyEmail(settingsQuery.data.publishNotifyEmail ?? "");
       setDirty(false);
     }
   }, [settingsQuery.data]);
@@ -227,6 +232,8 @@ export default function AdminNotifications() {
         // Trimmed string overwrites.
         slackWebhookUrl:
           webhookUrl.trim() === "" ? null : webhookUrl.trim(),
+        publishNotifyEnabled,
+        publishNotifyEmail: publishNotifyEmail.trim() || null,
       },
     });
   }
