@@ -224,6 +224,43 @@ export default function AdminAnalytics() {
       .sort((a, b) => a.avgGrade - b.avgGrade);
   }, [allPosts]);
 
+  /**
+   * For each of the last 12 months, count how many published posts fell
+   * into each FK grade band. Used for the stacked "band mix" bar chart so
+   * editors can see whether the *distribution* is shifting toward easier
+   * writing — not just whether the average moved.
+   */
+  const readabilityBandByMonth = useMemo(() => {
+    if (!allPosts || allPosts.length === 0) return [];
+    const byMonth = new Map<
+      string,
+      { elementary: number; middle: number; high: number; college: number }
+    >();
+    for (const post of allPosts) {
+      const grade = fleschKincaidGrade(post.content ?? "");
+      if (grade === null) continue;
+      const month = (post.publishedAt ?? "").slice(0, 7);
+      if (!month) continue;
+      const entry = byMonth.get(month) ?? {
+        elementary: 0,
+        middle: 0,
+        high: 0,
+        college: 0,
+      };
+      const band = gradeToBand(grade);
+      if (band) entry[band]++;
+      byMonth.set(month, entry);
+    }
+    return Array.from(byMonth.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-12)
+      .map(([month, bands]) => ({
+        month: formatMonth(month),
+        ...bands,
+        total: bands.elementary + bands.middle + bands.high + bands.college,
+      }));
+  }, [allPosts]);
+
   if (authLoading || !user?.isAdmin) {
     return (
       <div className="container mx-auto px-4 py-12">
@@ -781,6 +818,146 @@ export default function AdminAnalytics() {
                       activeDot={{ r: 6 }}
                     />
                   </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Readability band mix — stacked bar per month */}
+          {readabilityBandByMonth.length > 0 && (
+            <Card className="mt-6">
+              <CardContent className="pt-5">
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+                  <div>
+                    <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5" />
+                      Readability band mix — posts published per FK tier per month
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Each bar shows how many posts landed in each grade band that month.
+                      A shift toward green &amp; blue means writing is getting more accessible.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs shrink-0">
+                    {(["elementary", "middle", "high", "college"] as const).map(
+                      (band) => (
+                        <span key={band} className="flex items-center gap-1.5">
+                          <span
+                            className="inline-block w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: BAND_COLORS[band].hex }}
+                          />
+                          {BAND_LABELS[band]}
+                        </span>
+                      ),
+                    )}
+                  </div>
+                </div>
+
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart
+                    data={readabilityBandByMonth}
+                    margin={{ top: 4, right: 16, left: -8, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      allowDecimals={false}
+                      label={{
+                        value: "Posts",
+                        angle: -90,
+                        position: "insideLeft",
+                        offset: 12,
+                        style: { fontSize: 10, fill: "#94a3b8" },
+                      }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        const bands = [
+                          "college",
+                          "high",
+                          "middle",
+                          "elementary",
+                        ] as const;
+                        const total = payload.reduce(
+                          (s, p) => s + ((p.value as number) ?? 0),
+                          0,
+                        );
+                        return (
+                          <div className="rounded-lg border bg-background shadow-md px-3 py-2 text-sm min-w-[160px]">
+                            <p className="font-semibold mb-1.5">{label}</p>
+                            {bands.map((band) => {
+                              const entry = payload.find(
+                                (p) => p.dataKey === band,
+                              );
+                              const count = (entry?.value as number) ?? 0;
+                              if (!count) return null;
+                              return (
+                                <div
+                                  key={band}
+                                  className="flex items-center gap-2 py-0.5"
+                                >
+                                  <span
+                                    className="inline-block w-2 h-2 rounded-full shrink-0"
+                                    style={{
+                                      backgroundColor: BAND_COLORS[band].hex,
+                                    }}
+                                  />
+                                  <span className="text-muted-foreground flex-1">
+                                    {BAND_LABELS[band]}
+                                  </span>
+                                  <span className="font-medium tabular-nums">
+                                    {count}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            <div className="mt-1.5 pt-1.5 border-t flex justify-between text-xs text-muted-foreground">
+                              <span>Total</span>
+                              <span className="font-medium tabular-nums text-foreground">
+                                {total}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar
+                      dataKey="elementary"
+                      stackId="a"
+                      fill={BAND_COLORS.elementary.hex}
+                      radius={[0, 0, 3, 3]}
+                      name="Elementary"
+                    />
+                    <Bar
+                      dataKey="middle"
+                      stackId="a"
+                      fill={BAND_COLORS.middle.hex}
+                      name="Middle school"
+                    />
+                    <Bar
+                      dataKey="high"
+                      stackId="a"
+                      fill={BAND_COLORS.high.hex}
+                      name="High school"
+                    />
+                    <Bar
+                      dataKey="college"
+                      stackId="a"
+                      fill={BAND_COLORS.college.hex}
+                      radius={[3, 3, 0, 0]}
+                      name="College+"
+                    />
+                  </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
