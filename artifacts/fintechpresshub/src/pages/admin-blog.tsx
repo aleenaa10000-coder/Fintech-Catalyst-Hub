@@ -78,6 +78,7 @@ import {
   ChevronRight,
   LayoutList,
   CalendarDays,
+  ArrowUpDown,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -4701,7 +4702,7 @@ export default function AdminBlog() {
                     </div>
                   );
                 })}
-                {reorderPending && (
+                {reorderSavePending && (
                   <p className="text-xs text-muted-foreground text-center py-1">
                     <RefreshCw className="inline w-3 h-3 mr-1 animate-spin" />
                     Saving new order…
