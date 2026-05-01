@@ -607,10 +607,7 @@ export default function EditorialGuidelines() {
                   screenshots with TinyPNG or Squoosh before submitting.
                 </li>
                 <li>
-                  <strong>Captions:</strong> wrap each in-body image in a{" "}
-                  <code>&lt;figure&gt;</code> with a one-line{" "}
-                  <code>&lt;figcaption&gt;</code> explaining what the reader is looking at.
-                  Charts must caption the data source and date.
+                  <strong>Captions:</strong> add a short caption to every image and chart.
                 </li>
               </ul>
 
