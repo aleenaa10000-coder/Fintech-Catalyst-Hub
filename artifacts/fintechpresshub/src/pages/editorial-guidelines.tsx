@@ -39,7 +39,7 @@ const egFaqs = [
   {
     question: "How many dofollow backlinks does a guest post earn?",
     answer:
-      "High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks — typically one in-body contextual link and one author-bio link. Submissions that don't clear the editorial bar may receive fewer links or none at all. Quality of the piece, relevance of the link targets, and adherence to our contributor guidelines all factor into the final allowance.",
+      "High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks.",
   },
 ];
 
