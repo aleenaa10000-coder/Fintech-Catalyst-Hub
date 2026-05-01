@@ -3105,7 +3105,12 @@ export default function AdminBlog() {
   // Drag-to-reorder state for the Scheduled tab.
   const [dragSrcIdx, setDragSrcIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  const [reorderPending, setReorderPending] = useState(false);
+  // Local ordering: null = server order; array of post IDs = unsaved drag order.
+  const [localQueueOrder, setLocalQueueOrder] = useState<number[] | null>(null);
+  const [reorderSavePending, setReorderSavePending] = useState(false);
+  // Snapshot of timestamps captured just before saving so the admin can undo.
+  const [reorderUndoSnapshot, setReorderUndoSnapshot] = useState<{ slug: string; publishedAt: string }[] | null>(null);
+  const [reorderUndoPending, setReorderUndoPending] = useState(false);
 
   // View mode for the Scheduled tab: list (default) or calendar.
   const [calendarView, setCalendarView] = useState(false);
@@ -3145,6 +3150,23 @@ export default function AdminBlog() {
     qc.invalidateQueries({ queryKey: getListBlogPostsQueryKey() });
     void refetchScheduled();
   };
+
+  // Ordered list for the scheduled queue — reflects local drag order before save.
+  const displayedScheduledPosts = useMemo(() => {
+    if (!scheduledPosts) return [];
+    if (!localQueueOrder) return scheduledPosts;
+    const byId = new Map(scheduledPosts.map((p) => [p.id, p]));
+    return localQueueOrder.map((id) => byId.get(id)).filter(Boolean) as typeof scheduledPosts;
+  }, [scheduledPosts, localQueueOrder]);
+
+  // True when the local drag order differs from the server order.
+  const hasQueueChanges = useMemo(
+    () =>
+      localQueueOrder !== null &&
+      scheduledPosts !== undefined &&
+      localQueueOrder.some((id, i) => scheduledPosts[i]?.id !== id),
+    [localQueueOrder, scheduledPosts],
+  );
 
   /**
    * Deep-link handler: when an admin lands here from a public post via the
@@ -4244,9 +4266,9 @@ export default function AdminBlog() {
                   ) : (
                     <p className="text-xs text-muted-foreground">
                       Sorted earliest first. Drag{" "}
-                      <GripVertical className="inline w-3 h-3" /> to reprioritize;
-                      the timestamp updates automatically. Use{" "}
-                      <strong>Publish now</strong> to go live immediately.
+                      <GripVertical className="inline w-3 h-3" /> to reprioritize,
+                      then <strong>Save order</strong> to redistribute timestamps.
+                      Use <strong>Publish now</strong> to go live immediately.
                     </p>
                   )}
                   <div className="flex items-center gap-0.5 rounded-md border bg-muted p-0.5 shrink-0">
