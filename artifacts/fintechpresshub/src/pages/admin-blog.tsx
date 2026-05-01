@@ -85,6 +85,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, UserPlus } from "lucide-react";
 import { authors, type Author } from "@/data/authors";
 import { HealthBadge } from "@/components/HealthBadge";
+import { SchedulePicker } from "@/components/SchedulePicker";
 
 const GUEST_AUTHOR_VALUE = "__guest__";
 
@@ -1274,22 +1275,14 @@ function PostEditor({
         </div>
       </div>
       <div>
-        <Label htmlFor={`publishedAt-${post.id}`}>Publish date &amp; time</Label>
-        <Input
+        <Label className="mb-2 block">Scheduling</Label>
+        <SchedulePicker
           id={`publishedAt-${post.id}`}
-          type="datetime-local"
           value={draft.publishedAt}
-          onChange={(e) =>
-            setDraft({ ...draft, publishedAt: e.target.value })
-          }
+          onChange={(v) => setDraft({ ...draft, publishedAt: v })}
+          mode="edit"
           data-testid={`edit-post-${post.id}-published-at`}
         />
-        <p className="text-xs text-muted-foreground mt-1">
-          {draft.publishedAt &&
-          new Date(draft.publishedAt).getTime() > Date.now()
-            ? `Scheduled — goes live on ${new Date(draft.publishedAt).toLocaleString()}.`
-            : "Past date keeps the post visible. Set a future date to schedule it (it'll auto-publish at that time)."}
-        </p>
       </div>
       <div className="flex items-center gap-2">
         <Checkbox
@@ -3218,22 +3211,14 @@ export default function AdminBlog() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="publishedAt">Publish date &amp; time (optional)</Label>
-                <Input
+                <Label className="mb-2 block">Scheduling</Label>
+                <SchedulePicker
                   id="publishedAt"
-                  type="datetime-local"
                   value={form.publishedAt}
-                  onChange={(e) =>
-                    setForm({ ...form, publishedAt: e.target.value })
-                  }
+                  onChange={(v) => setForm({ ...form, publishedAt: v })}
+                  mode="create"
                   data-testid="new-post-published-at"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {form.publishedAt &&
-                  new Date(form.publishedAt).getTime() > Date.now()
-                    ? `Scheduled — goes live on ${new Date(form.publishedAt).toLocaleString()}.`
-                    : "Leave blank to publish immediately. Pick a future date to schedule it (it'll auto-publish at that time)."}
-                </p>
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox
