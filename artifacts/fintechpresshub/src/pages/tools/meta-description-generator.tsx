@@ -35,15 +35,21 @@ const DEFAULTS: FormState = {
 function generateDescriptions(form: FormState): string[] {
   const { pageTitle, keyword, audience, benefit } = form;
   const kw = keyword.trim() || "fintech solutions";
-  const title = pageTitle.trim() || "this page";
+  const title = pageTitle.trim() || "this resource";
   const aud = audience.trim() || "fintech teams";
   const ben = benefit.trim() || "grow faster";
+  const benLower = ben.charAt(0).toLowerCase() + ben.slice(1);
 
-  return [
-    `Discover how ${title} helps ${aud} with ${kw}. ${ben.charAt(0).toUpperCase() + ben.slice(1)} — backed by expert fintech content strategy. Read more.`,
-    `Looking for ${kw}? ${title} gives ${aud} the insights they need to ${ben.toLowerCase()}. Explore our in-depth fintech guide today.`,
-    `${title} covers everything ${aud} need to know about ${kw}. Learn proven strategies to ${ben.toLowerCase()} and stay ahead in fintech.`,
-  ].map((d) => {
+  const templates = [
+    // Action-Oriented: keyword within first 60 chars
+    `Explore ${kw} in ${title} — your step-by-step guide to ${benLower} for ${aud}.`,
+    // Curiosity-Gap: keyword within first 60 chars
+    `Are you looking for ${kw}? Explore ${title} for ${aud} ready to ${benLower}.`,
+    // Authority-Driven: keyword within first 60 chars
+    `Master ${kw} with our guide on ${title}, designed to help ${aud} ${benLower}.`,
+  ];
+
+  return templates.map((d) => {
     if (d.length > 160) return d.slice(0, 157) + "…";
     return d;
   });
