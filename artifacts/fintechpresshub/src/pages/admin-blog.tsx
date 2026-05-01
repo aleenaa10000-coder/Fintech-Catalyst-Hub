@@ -3459,7 +3459,7 @@ export default function AdminBlog() {
           </div>
         </div>
 
-        <Card className="mb-10">
+        <Card id="new-post-form" className="mb-10">
           <CardContent className="pt-6">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Plus className="w-5 h-5" /> New blog post
@@ -4631,6 +4631,30 @@ export default function AdminBlog() {
                           <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                           <span className="text-xs font-semibold">{gapLabel}</span>
                           <span className="text-xs text-amber-600/80 dark:text-amber-400/70">— scheduling hole exceeds {gapThresholdHours}h threshold</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="ml-auto h-6 text-xs px-2 shrink-0 border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/50 gap-1"
+                            onClick={() => {
+                              // Compute the midpoint of the gap as the suggested publish time.
+                              const midMs = (
+                                new Date(prevPost!.publishedAt).getTime() +
+                                new Date(p.publishedAt).getTime()
+                              ) / 2;
+                              const midLocalStr = toDateTimeLocalValue(new Date(midMs).toISOString());
+                              setForm((f) => ({ ...f, publishedAt: midLocalStr }));
+                              // Scroll to the new post form and flash it.
+                              const el = document.getElementById("new-post-form");
+                              if (el) {
+                                el.scrollIntoView({ behavior: "smooth", block: "start" });
+                                el.classList.add("ring-2", "ring-amber-400", "ring-offset-2");
+                                setTimeout(() => el.classList.remove("ring-2", "ring-amber-400", "ring-offset-2"), 2000);
+                              }
+                            }}
+                          >
+                            <CalendarClock className="w-3 h-3" />
+                            Fill gap
+                          </Button>
                         </div>
                       )}
                     <div
