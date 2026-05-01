@@ -3,7 +3,7 @@ import { AdminHealthBanner } from "@/components/AdminHealthBanner";
 import { Footer } from "@/components/Footer";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { useEffect, lazy, Suspense, type ComponentType } from "react";
+import { useEffect, useLayoutEffect, lazy, Suspense, type ComponentType } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
 import { useAuth } from "@workspace/replit-auth-web";
@@ -78,8 +78,10 @@ const queryClient = new QueryClient({
 
 function ScrollToTop() {
   const [location] = useLocation();
-  useEffect(() => {
+  useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location]);
+  useEffect(() => {
     trackPageview(location);
   }, [location]);
   return null;
