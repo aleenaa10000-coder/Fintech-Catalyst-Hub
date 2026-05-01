@@ -22,14 +22,6 @@ args = "Health Monitor"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "API Server"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Frontend"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "artifacts/mockup-sandbox: Component Preview Server"
 
 [[workflows.workflow]]
@@ -42,30 +34,6 @@ args = "bash scripts/healthcheck.sh"
 
 [workflows.workflow.metadata]
 outputType = "console"
-
-[[workflows.workflow]]
-name = "API Server"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/api-server && NODE_ENV=development PORT=${PORT:-8080} node --enable-source-maps ./dist/index.mjs"
-waitForPort = 8080
-
-[[workflows.workflow]]
-name = "Frontend"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/fintechpresshub run dev"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[workflows.workflow]]
 name = "artifacts/mockup-sandbox: Component Preview Server"
