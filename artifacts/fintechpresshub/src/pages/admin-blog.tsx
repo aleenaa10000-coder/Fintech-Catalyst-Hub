@@ -3495,8 +3495,47 @@ export default function AdminBlog() {
         <SitemapHealthPanel />
 
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 className="text-xl font-bold">Recent posts</h2>
-          <div
+          {/* Tab switcher */}
+          <div className="flex items-center gap-1 rounded-lg border bg-muted p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("published")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                activeTab === "published"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              data-testid="tab-published"
+            >
+              <ScrollText className="w-3.5 h-3.5" />
+              Published
+              {posts && posts.length > 0 && (
+                <span className="ml-0.5 rounded-full bg-muted-foreground/15 px-1.5 py-0.5 text-[10px] tabular-nums">
+                  {posts.length}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("scheduled")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                activeTab === "scheduled"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              data-testid="tab-scheduled"
+            >
+              <CalendarClock className="w-3.5 h-3.5" />
+              Scheduled
+              {scheduledPosts && scheduledPosts.length > 0 && (
+                <span className="ml-0.5 rounded-full bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] tabular-nums font-semibold">
+                  {scheduledPosts.length}
+                </span>
+              )}
+            </button>
+          </div>
+          {/* Preview-as-visitor control — only relevant for the published tab */}
+          {activeTab === "published" && <div
             className="flex flex-wrap items-center gap-3 text-sm rounded-md border bg-background px-3 py-2"
             data-testid="preview-as-visitor-control"
           >
@@ -3542,13 +3581,13 @@ export default function AdminBlog() {
                 </Button>
               </>
             )}
-          </div>
-          {!previewMode && (
+          </div>}
+          {activeTab === "published" && !previewMode && (
             <div className="flex flex-wrap items-center gap-3 text-sm">
               <BulkProbeButton posts={posts ?? []} />
             </div>
           )}
-          {!previewMode && posts && posts.length > 0 && (
+          {activeTab === "published" && !previewMode && posts && posts.length > 0 && (
             <div className="flex items-center gap-2 text-sm">
               <Checkbox
                 id="select-all-posts"
