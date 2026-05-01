@@ -708,6 +708,24 @@ function ScheduledCalendar({
         </div>
       )}
 
+      {/* Density heatmap legend */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] font-medium text-muted-foreground shrink-0">Density:</span>
+        {(
+          [
+            { label: "Empty",  bg: "bg-background border border-border" },
+            { label: "1 post", bg: "bg-sky-50 border border-sky-200" },
+            { label: "2–3",    bg: "bg-blue-100 border border-blue-200" },
+            { label: "4+ ⚠",  bg: "bg-amber-100 border border-amber-300" },
+          ] as const
+        ).map(({ label, bg }) => (
+          <span key={label} className="flex items-center gap-1">
+            <span className={`inline-block w-3.5 h-3.5 rounded-sm ${bg}`} />
+            <span className="text-[10px] text-muted-foreground">{label}</span>
+          </span>
+        ))}
+      </div>
+
       {/* Day-of-week headers */}
       <div className="grid grid-cols-7 text-center">
         {DAYS_OF_WEEK.map((d) => (
@@ -728,6 +746,14 @@ function ScheduledCalendar({
           const hasPosts = dayPosts.length > 0;
           const isOtherMonth = !cell.isCurrentMonth;
 
+          // Heatmap tier: 0 = empty, 1 = 1 post, 2 = 2–3 posts, 3 = 4+ crowded
+          const tier = isOtherMonth ? -1 : dayPosts.length === 0 ? 0 : dayPosts.length === 1 ? 1 : dayPosts.length <= 3 ? 2 : 3;
+          const tierBg  = tier === 1 ? "bg-sky-50"    : tier === 2 ? "bg-blue-100"  : tier === 3 ? "bg-amber-100" : "bg-background";
+          const tierHover = tier === 1 ? "hover:bg-sky-100" : tier === 2 ? "hover:bg-blue-200" : tier === 3 ? "hover:bg-amber-200" : "hover:bg-muted/30";
+          const tierRing  = tier === 3 ? "ring-2 ring-inset ring-amber-400" : "ring-2 ring-inset ring-blue-400";
+          const tierDot   = tier === 3 ? "bg-amber-500" : tier === 2 ? "bg-blue-600" : "bg-sky-500";
+          const tierBadge = tier === 3 ? "text-amber-700" : tier === 2 ? "text-blue-700" : "text-sky-600";
+
           return (
             <button
               key={key}
@@ -738,13 +764,9 @@ function ScheduledCalendar({
               }}
               className={[
                 "relative flex flex-col items-start p-1.5 min-h-[64px] text-left transition-colors",
-                isOtherMonth
-                  ? "bg-muted/30 text-muted-foreground/40"
-                  : "bg-background",
-                hasPosts && !isOtherMonth
-                  ? "hover:bg-blue-50 cursor-pointer"
-                  : "cursor-default",
-                isSelected ? "bg-blue-50 ring-1 ring-inset ring-blue-300" : "",
+                isOtherMonth ? "bg-muted/30 text-muted-foreground/40" : tierBg,
+                hasPosts && !isOtherMonth ? `${tierHover} cursor-pointer` : "cursor-default",
+                isSelected ? tierRing : "",
               ].join(" ")}
               disabled={!hasPosts}
               aria-label={
@@ -767,27 +789,27 @@ function ScheduledCalendar({
                 {cell.date.getDate()}
               </span>
 
-              {/* Post dots */}
+              {/* Post dots — color-coded to tier */}
               {hasPosts && !isOtherMonth && (
                 <div className="flex flex-wrap gap-0.5 mt-0.5">
                   {dayPosts.slice(0, 3).map((p) => (
                     <span
                       key={p.id}
-                      className="block w-1.5 h-1.5 rounded-full bg-blue-500"
+                      className={`block w-1.5 h-1.5 rounded-full ${tierDot}`}
                       title={p.title}
                     />
                   ))}
                   {dayPosts.length > 3 && (
-                    <span className="text-[9px] text-blue-600 font-bold leading-none mt-0.5">
+                    <span className={`text-[9px] font-bold leading-none mt-0.5 ${tierBadge}`}>
                       +{dayPosts.length - 3}
                     </span>
                   )}
                 </div>
               )}
 
-              {/* Post count badge */}
+              {/* Post count badge — color-coded to tier */}
               {hasPosts && !isOtherMonth && (
-                <span className="mt-auto text-[9px] font-semibold text-blue-600">
+                <span className={`mt-auto text-[9px] font-semibold ${tierBadge}`}>
                   {dayPosts.length === 1 ? "1 post" : `${dayPosts.length} posts`}
                 </span>
               )}
