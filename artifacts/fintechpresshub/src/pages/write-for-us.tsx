@@ -298,7 +298,7 @@ const wfuFaqs = [
   {
     question: "How long does the editorial review process take?",
     answer:
-      "We aim to review all pitches within 5 business days and full submissions within 10 business days. You will receive clear feedback at each stage — whether that is a green light, a revision request, or a pass with notes.",
+      "We aim to review all pitches and full submissions within 2–3 days. You will receive clear feedback at each stage — whether that is a green light, a revision request, or a pass with notes.",
   },
 ];
 
@@ -373,7 +373,7 @@ function CommissioningTopicsBoard({
             </h3>
             <p className="text-sm text-muted-foreground mt-2">
               Pitches that match one of these get fast-tracked review and a
-              guaranteed editor reply within 5 business days.
+              guaranteed editor reply within 2–3 days.
             </p>
           </div>
         </div>
@@ -1020,7 +1020,7 @@ export default function WriteForUs() {
                       transition={{ delay: 0.45, duration: 0.35 }}
                       className="text-muted-foreground max-w-md"
                     >
-                      Our editorial team will review your pitch and get back to you via your work email within 3–5 business days.
+                      Our editorial team will review your pitch and get back to you via your work email within 2–3 days.
                     </motion.p>
                     <motion.div
                       initial={{ opacity: 0 }}

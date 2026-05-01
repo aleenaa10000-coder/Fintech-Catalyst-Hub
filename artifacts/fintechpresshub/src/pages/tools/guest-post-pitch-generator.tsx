@@ -76,7 +76,7 @@ The draft would be:
 - Approximately 1,200–1,800 words
 - Fully original (not published or submitted elsewhere)
 - Optimised for readability without sacrificing depth
-- Ready within 10 business days of acceptance
+- Ready within 2–3 days of acceptance
 
 Would you be open to a quick outline first, or would you prefer I send a full draft? Happy to work to your editorial guidelines and tone.
 

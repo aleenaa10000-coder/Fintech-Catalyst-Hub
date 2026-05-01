@@ -93,7 +93,7 @@ function buildConfirmationHtml(s: SanitizedPitch): string {
       <div style="padding:24px 28px;font-size:15px;line-height:1.6">
         <p style="margin:0 0 14px">Hi ${s.name},</p>
         <p style="margin:0 0 14px">Thanks for sending us your guest-post pitch — we've received it and added it to our editorial review queue.</p>
-        <p style="margin:0 0 14px">Our editors will read it carefully and get back to you at this email address within <strong>3–5 business days</strong>. If we'd like to move forward, we'll reply with next steps and a writer brief; if the pitch isn't a fit, we'll let you know quickly so you can take it elsewhere.</p>
+        <p style="margin:0 0 14px">Our editors will read it carefully and get back to you at this email address within <strong>2–3 days</strong>. If we'd like to move forward, we'll reply with next steps and a writer brief; if the pitch isn't a fit, we'll let you know quickly so you can take it elsewhere.</p>
         <div style="margin:20px 0;padding:14px 16px;background:#f1f5f9;border-radius:8px;font-size:13px;color:#334155">
           <div style="font-weight:600;color:#0f172a;margin-bottom:6px">Your pitch summary</div>
           <div><strong>Working title:</strong> ${s.topic}</div>
@@ -115,7 +115,7 @@ function buildConfirmationText(s: SanitizedPitch): string {
     "",
     "Thanks for sending us your guest-post pitch — we've received it and added it to our editorial review queue.",
     "",
-    "Our editors will read it carefully and get back to you at this email address within 3–5 business days. If we'd like to move forward, we'll reply with next steps and a writer brief; if the pitch isn't a fit, we'll let you know quickly so you can take it elsewhere.",
+    "Our editors will read it carefully and get back to you at this email address within 2–3 days. If we'd like to move forward, we'll reply with next steps and a writer brief; if the pitch isn't a fit, we'll let you know quickly so you can take it elsewhere.",
     "",
     "Your pitch summary",
     `  Working title: ${s.topic}`,
