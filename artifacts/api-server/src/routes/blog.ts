@@ -6,7 +6,7 @@ import {
   bulkNoIndexAuditLogTable,
 } from "@workspace/db";
 import type { BulkNoIndexAuditPostSnapshot } from "@workspace/db";
-import { eq, desc, sql, inArray, and, lte, type SQL } from "drizzle-orm";
+import { eq, desc, asc, sql, inArray, and, lte, gt, type SQL } from "drizzle-orm";
 import { ListBlogPostsQueryParams, GetBlogPostParams } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { isAdminEmail } from "../lib/auth";
@@ -708,6 +708,27 @@ router.post(
       }
       next(err);
     }
+  },
+);
+
+/**
+ * Admin-only: list all scheduled (future-dated) posts sorted by publishedAt
+ * ascending so the nearest-to-publish post appears first. This is a separate
+ * endpoint from GET /blog/posts because the public list intentionally hides
+ * future-dated posts — here we invert the filter so admins get a clean queue
+ * view without polluting the public API contract.
+ */
+router.get(
+  "/admin/blog/posts/scheduled",
+  requireAdmin,
+  async (_req, res) => {
+    const rows = await db
+      .select()
+      .from(blogPostsTable)
+      .where(gt(blogPostsTable.publishedAt, sql`now()`))
+      .orderBy(asc(blogPostsTable.publishedAt));
+    res.set("Cache-Control", "no-store");
+    res.json(rows.map(serialize));
   },
 );
 
