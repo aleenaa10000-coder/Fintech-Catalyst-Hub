@@ -628,10 +628,7 @@ export default function EditorialGuidelines() {
               <h3>Accessibility, attribution &amp; rights</h3>
               <ul>
                 <li>
-                  <strong>Alt text is mandatory:</strong> describe what the image shows in
-                  context (not just &ldquo;chart&rdquo; or &ldquo;photo&rdquo;). Decorative-only
-                  images may use empty alt (<code>alt=&quot;&quot;</code>) but must be flagged
-                  as such in the submission.
+                  <strong>Alt text is mandatory:</strong> describe what the image shows.
                 </li>
                 <li>
                   <strong>Source &amp; licence:</strong> every image must be either original,
