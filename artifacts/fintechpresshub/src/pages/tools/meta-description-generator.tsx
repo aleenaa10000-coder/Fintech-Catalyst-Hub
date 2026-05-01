@@ -39,14 +39,15 @@ const VERB_BASE: Record<string, string> = {
   accelerates: "accelerate", achieves: "achieve", arrives: "arrive",
   attracts: "attract", boosts: "boost", brings: "bring", builds: "build",
   closes: "close", converts: "convert", creates: "create",
-  delivers: "deliver", drives: "drive", expands: "expand", gains: "gain",
-  generates: "generate", gets: "get", grows: "grow", helps: "help",
-  improves: "improve", increases: "increase", leads: "lead",
-  maximises: "maximise", maximizes: "maximize", optimises: "optimise",
-  optimizes: "optimize", provides: "provide", raises: "raise",
-  ranks: "rank", reaches: "reach", reduces: "reduce", saves: "save",
-  scales: "scale", secures: "secure", targets: "target",
-  transforms: "transform", wins: "win", works: "work",
+  cuts: "cut", delivers: "deliver", drives: "drive", eliminates: "eliminate",
+  expands: "expand", gains: "gain", generates: "generate", gets: "get",
+  grows: "grow", helps: "help", improves: "improve", increases: "increase",
+  leads: "lead", lowers: "lower", maximises: "maximise",
+  maximizes: "maximize", optimises: "optimise", optimizes: "optimize",
+  provides: "provide", raises: "raise", ranks: "rank", reaches: "reach",
+  reduces: "reduce", removes: "remove", saves: "save", scales: "scale",
+  secures: "secure", sends: "send", shortens: "shorten", speeds: "speed",
+  targets: "target", transforms: "transform", wins: "win", works: "work",
 };
 
 function toInfinitive(phrase: string): string {
@@ -54,7 +55,6 @@ function toInfinitive(phrase: string): string {
 }
 
 // ── 2. Niche Detection ────────────────────────────────────────────────────────
-// Returns "service" for trade/local-service niches, "b2b" for everything else.
 const SERVICE_RE =
   /plumb|electri|dentist|doctor|lawyer|solicitor|cleaner|repair|remov|emergency|locksmith|builder|plaster|roofer|accountant|surveyor|glazier|pest/i;
 
@@ -62,46 +62,101 @@ function detectNiche(kw: string, title: string): "service" | "b2b" {
   return SERVICE_RE.test(`${kw} ${title}`) ? "service" : "b2b";
 }
 
-// ── 3. Smart Truncation ───────────────────────────────────────────────────────
-// Cuts at the last word boundary before 157 chars; never mid-word.
-function smartTruncate(text: string): string {
-  if (text.length <= 160) return text;
-  const cut = text.lastIndexOf(" ", 156);
-  return (cut > 100 ? text.slice(0, cut) : text.slice(0, 157)) + "…";
+// ── 3. No-Ellipsis Completion ─────────────────────────────────────────────────
+// Ensures the description ends with a period and never exceeds 160 chars.
+// If a candidate is too long, try the next; as a last resort trim at the last
+// complete word before the limit and append a period — never an ellipsis.
+function ensurePeriod(text: string): string {
+  const t = text.trim();
+  return /[.!?]$/.test(t) ? t : `${t}.`;
+}
+
+function fitToLimit(candidates: string[]): string {
+  for (const raw of candidates) {
+    const t = ensurePeriod(raw);
+    if (t.length <= 160) return t;
+  }
+  // Last-resort: trim last candidate at word boundary, close with period
+  const fallback = candidates[candidates.length - 1];
+  const cut = fallback.lastIndexOf(" ", 158);
+  return ensurePeriod(cut > 80 ? fallback.slice(0, cut) : fallback.slice(0, 158));
+}
+
+// ── 4. Keyword-in-65 Guard ────────────────────────────────────────────────────
+// Verifies the keyword starts within the first 65 characters of a candidate.
+function kwInFirst65(text: string, kw: string): boolean {
+  return text.toLowerCase().indexOf(kw.toLowerCase()) < 65;
 }
 
 // ── Main Generator ────────────────────────────────────────────────────────────
-function generateDescriptions(form: FormState): string[] {
+export type ToneLabel = "Action" | "Curiosity" | "Authority";
+export type GeneratedResult = { text: string; tone: ToneLabel };
+
+function generateDescriptions(form: FormState): GeneratedResult[] {
   const { pageTitle, keyword, audience, benefit } = form;
-  const kw    = keyword.trim() || "fintech solutions";
-  const title = pageTitle.trim() || "this resource";
-  const aud   = audience.trim() || "fintech teams";
+  const kw     = keyword.trim() || "fintech solutions";
+  const title  = pageTitle.trim() || "this resource";
+  const aud    = audience.trim() || "fintech teams";
   const rawBen = benefit.trim() || "grow faster";
 
   // Normalise verb to base form for use after "to" / "help [aud]"
   const ben = toInfinitive(rawBen.charAt(0).toLowerCase() + rawBen.slice(1));
 
-  // ── 2 cont. Niche-Specific Tone ──────────────────────────────────────────
   const niche = detectNiche(kw, title);
-  const authorityHook = niche === "service"
-    ? `Get professional ${kw} from`   // e.g. "Get professional emergency plumber London from"
-    : `Master ${kw} with`;            // e.g. "Master fintech SEO agency with"
 
-  // ── 5. Varied Starters + 4. Keyword within first 65 chars ───────────────
-  const templates = [
-    // Action-Oriented — starts with action verb; kw follows immediately
-    `Explore ${kw} in ${title} — your step-by-step guide to ${ben} for ${aud}.`,
+  // ── Option 1 · Action ──────────────────────────────────────────────────────
+  // Starts with a command verb; keyword must land within the first 65 chars.
+  const actionVerb = niche === "service" ? "Secure" : "Discover";
+  const actionCandidates = [
+    `${actionVerb} ${kw} — ${title} helps ${aud} ${ben}.`,
+    `${actionVerb} ${kw}: the guide built to help ${aud} ${ben}.`,
+    `${actionVerb} ${kw} and help ${aud} ${ben}.`,
+  ].filter((c) => kwInFirst65(c, kw));
 
-    // Curiosity-Gap — starts with question; kw in first clause
-    `Are you looking for ${kw}? ${title} is the guide for ${aud} ready to ${ben}.`,
+  // ── Option 2 · Curiosity ───────────────────────────────────────────────────
+  // Opens with a question aimed directly at the target audience.
+  const curiosityCandidates = [
+    `Are ${aud} struggling with ${kw}? ${title} shows you how to ${ben}.`,
+    `Need better ${kw}? ${title} guides ${aud} to ${ben}.`,
+    `Want to ${ben}? ${title} is the ${kw} resource built for ${aud}.`,
+  ].filter((c) => kwInFirst65(c, kw));
 
-    // Authority-Driven — hook adapts to niche; kw in first clause
-    niche === "service"
-      ? `${authorityHook} ${title} — trusted by ${aud} to ${ben}.`
-      : `${authorityHook} our guide on ${title}, designed to help ${aud} ${ben}.`,
+  // ── Option 3 · Authority ───────────────────────────────────────────────────
+  // Uses a professional claim fitted to the niche.
+  const authorityPrefix = niche === "service" ? "Reliable" : "Advanced";
+  const authorityCandidates = [
+    `${authorityPrefix} ${kw}: ${title} is purpose-built to help ${aud} ${ben}.`,
+    `${authorityPrefix} ${kw} insights for ${aud} who need to ${ben}.`,
+    `Master ${kw} with ${title} — trusted guidance for ${aud} to ${ben}.`,
+  ].filter((c) => kwInFirst65(c, kw));
+
+  // Fallback: if every candidate failed the 65-char filter, use unfiltered list
+  const pick = (filtered: string[], all: string[]) =>
+    filtered.length ? filtered : all;
+
+  return [
+    {
+      text: fitToLimit(pick(actionCandidates, [
+        `${actionVerb} ${kw}: the guide built to help ${aud} ${ben}.`,
+        `${actionVerb} ${kw} and help ${aud} ${ben}.`,
+      ])),
+      tone: "Action",
+    },
+    {
+      text: fitToLimit(pick(curiosityCandidates, [
+        `Need better ${kw}? ${title} guides ${aud} to ${ben}.`,
+        `Want to ${ben}? ${title} is the ${kw} resource built for ${aud}.`,
+      ])),
+      tone: "Curiosity",
+    },
+    {
+      text: fitToLimit(pick(authorityCandidates, [
+        `${authorityPrefix} ${kw} insights for ${aud} who need to ${ben}.`,
+        `Master ${kw} with ${title} — trusted guidance for ${aud} to ${ben}.`,
+      ])),
+      tone: "Authority",
+    },
   ];
-
-  return templates.map(smartTruncate);
 }
 
 function CharBadge({ count }: { count: number }) {
@@ -120,9 +175,15 @@ function CharBadge({ count }: { count: number }) {
   );
 }
 
+const TONE_STYLES: Record<ToneLabel, { badge: string; label: string }> = {
+  Action:    { badge: "bg-purple-50 text-purple-700 border-purple-200", label: "Action" },
+  Curiosity: { badge: "bg-blue-50 text-blue-700 border-blue-200",       label: "Curiosity" },
+  Authority: { badge: "bg-slate-50 text-slate-700 border-slate-300",    label: "Authority" },
+};
+
 export default function MetaDescriptionGenerator() {
   const [form, setForm] = useState<FormState>(DEFAULTS);
-  const [descriptions, setDescriptions] = useState<string[]>([]);
+  const [results, setResults] = useState<GeneratedResult[]>([]);
   const [edited, setEdited] = useState<string[]>([]);
   const [copied, setCopied] = useState<number | null>(null);
   const [generated, setGenerated] = useState(false);
@@ -134,20 +195,20 @@ export default function MetaDescriptionGenerator() {
 
   const reset = () => {
     setForm(DEFAULTS);
-    setDescriptions([]);
+    setResults([]);
     setEdited([]);
     setGenerated(false);
   };
 
   const generate = () => {
-    const results = generateDescriptions(form);
-    setDescriptions(results);
-    setEdited(results);
+    const generated = generateDescriptions(form);
+    setResults(generated);
+    setEdited(generated.map((r) => r.text));
     setGenerated(true);
   };
 
   const copyToClipboard = (idx: number) => {
-    navigator.clipboard.writeText(edited[idx] ?? descriptions[idx]);
+    navigator.clipboard.writeText(edited[idx] ?? results[idx]?.text ?? "");
     setCopied(idx);
     setTimeout(() => setCopied(null), 2000);
   };
@@ -288,9 +349,10 @@ export default function MetaDescriptionGenerator() {
                   Your 3 Meta Descriptions — edit &amp; copy
                 </h3>
 
-                {descriptions.map((_, idx) => {
-                  const val = edited[idx] ?? descriptions[idx];
+                {results.map((result, idx) => {
+                  const val = edited[idx] ?? result.text;
                   const len = val?.length ?? 0;
+                  const tone = TONE_STYLES[result.tone];
                   return (
                     <Card
                       key={idx}
@@ -298,9 +360,16 @@ export default function MetaDescriptionGenerator() {
                     >
                       <CardContent className="p-4 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-muted-foreground">
-                            Option {idx + 1}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-muted-foreground">
+                              Option {idx + 1}
+                            </span>
+                            <span
+                              className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 ${tone.badge}`}
+                            >
+                              {tone.label}
+                            </span>
+                          </div>
                           <CharBadge count={len} />
                         </div>
                         <Textarea
