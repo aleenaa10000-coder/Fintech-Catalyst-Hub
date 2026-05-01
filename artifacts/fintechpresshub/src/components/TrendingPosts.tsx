@@ -1,9 +1,17 @@
 import { useMemo } from "react";
 import { Link } from "wouter";
-import { Flame, Eye, ArrowRight } from "lucide-react";
+import { Flame, Eye, ArrowRight, HelpCircle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { prefetchBlogPost } from "@/lib/route-prefetch";
 import type { PublicPost } from "@/data/usePublicPosts";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useQueryClient } from "@tanstack/react-query";
+import { getListBlogPostsQueryKey } from "@workspace/api-client-react";
+import { useState } from "react";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TRENDING_WINDOW_DAYS = 14;
@@ -45,6 +53,15 @@ export function TrendingPosts({ posts, className }: Props) {
       .map((x) => x.post);
   }, [posts]);
 
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: getListBlogPostsQueryKey() });
+    setRefreshing(false);
+  }
+
   if (trending.length === 0) return null;
 
   return (
@@ -62,17 +79,55 @@ export function TrendingPosts({ posts, className }: Props) {
             <Flame className="w-4 h-4" aria-hidden />
           </span>
           <div>
-            <h2
-              id="trending-posts-heading"
-              className="text-sm font-bold uppercase tracking-[0.18em] text-slate-900"
-            >
-              Trending now
-            </h2>
+            <div className="flex items-center gap-1.5">
+              <h2
+                id="trending-posts-heading"
+                className="text-sm font-bold uppercase tracking-[0.18em] text-slate-900"
+              >
+                Trending now
+              </h2>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Why you're seeing this"
+                    className="inline-flex text-slate-400 hover:text-slate-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" aria-hidden />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  className="max-w-[240px] text-xs leading-relaxed"
+                >
+                  <p className="font-semibold mb-0.5">Why you're seeing this</p>
+                  <p>
+                    Posts are ranked by <em>views ÷ age in days</em>, so a
+                    fast-rising article always outranks an older one with more
+                    lifetime views. Only posts published in the last{" "}
+                    {TRENDING_WINDOW_DAYS} days qualify.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <p className="text-xs text-muted-foreground">
               Most-read fintech posts in the last {TRENDING_WINDOW_DAYS} days
             </p>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          aria-label="Refresh trending posts"
+          className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <RefreshCw
+            className={cn("w-3.5 h-3.5", refreshing && "animate-spin")}
+            aria-hidden
+          />
+        </button>
       </div>
 
       <ol className="space-y-3" data-testid="trending-posts-list">

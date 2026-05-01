@@ -265,17 +265,17 @@ export default function AdminDashboard() {
               Refresh
             </Button>
             <Button asChild variant="outline" size="sm">
-              <a href="/admin/blog">
+              <Link href="/admin/blog">
                 <BookOpen className="w-4 h-4 mr-1.5" /> Blog
-              </a>
+              </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <a href="/admin/moderation">
+              <Link href="/admin/moderation">
                 <Inbox className="w-4 h-4 mr-1.5" /> Submissions
-              </a>
+              </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <a href="/admin/author-photos" className="relative">
+              <Link href="/admin/author-photos" className="relative">
                 <Camera className="w-4 h-4 mr-1.5" /> Headshots
                 {(data?.authorPhotoRequests?.pending ?? 0) > 0 ? (
                   <Badge
@@ -286,12 +286,12 @@ export default function AdminDashboard() {
                     {data!.authorPhotoRequests!.pending}
                   </Badge>
                 ) : null}
-              </a>
+              </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <a href="/admin/audit-log">
+              <Link href="/admin/audit-log">
                 <ScrollText className="w-4 h-4 mr-1.5" /> Audit log
-              </a>
+              </Link>
             </Button>
             <span className="text-muted-foreground hidden sm:inline">
               Signed in as{" "}
@@ -591,7 +591,7 @@ export default function AdminDashboard() {
                   { label: "Audit log", icon: ScrollText, href: "/admin/audit-log", badge: 0 },
                   { label: "Notifications", icon: Bell, href: "/admin/notifications", badge: 0 },
                 ].map(({ label, icon: Icon, href, badge }) => (
-                  <a
+                  <Link
                     key={href}
                     href={href}
                     className="relative flex flex-col items-center gap-2 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors text-center group"
@@ -607,7 +607,7 @@ export default function AdminDashboard() {
                     ) : null}
                     <Icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                     <span className="text-xs font-medium">{label}</span>
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>

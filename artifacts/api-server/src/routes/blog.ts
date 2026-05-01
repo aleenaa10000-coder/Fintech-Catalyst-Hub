@@ -270,6 +270,10 @@ router.get("/blog/posts", async (req, res) => {
     .orderBy(desc(blogPostsTable.publishedAt))
     .limit(params.limit ?? 50);
 
+  // Prevent browser and proxy caching so admins always see the latest
+  // view counts immediately after a post is visited — no stale cache
+  // to bust manually.
+  res.set("Cache-Control", "no-store");
   res.json(rows.map(serialize));
 });
 

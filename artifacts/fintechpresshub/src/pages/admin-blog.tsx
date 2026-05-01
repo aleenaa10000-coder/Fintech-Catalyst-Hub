@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "wouter";
 import { PageMeta } from "@/components/PageMeta";
 import {
   useListBlogPosts,
@@ -2937,9 +2938,9 @@ export default function AdminBlog() {
               variant="outline"
               size="sm"
             >
-              <a href="/admin">
+              <Link href="/admin">
                 <LayoutDashboard className="w-4 h-4 mr-1.5" /> Dashboard
-              </a>
+              </Link>
             </Button>
             <Button
               asChild
@@ -2947,9 +2948,9 @@ export default function AdminBlog() {
               size="sm"
               data-testid="open-audit-log"
             >
-              <a href="/admin/audit-log">
+              <Link href="/admin/audit-log">
                 <ScrollText className="w-4 h-4 mr-1.5" /> Audit log
-              </a>
+              </Link>
             </Button>
             <Button
               asChild
@@ -2957,9 +2958,9 @@ export default function AdminBlog() {
               size="sm"
               data-testid="open-notifications"
             >
-              <a href="/admin/notifications">
+              <Link href="/admin/notifications">
                 <Bell className="w-4 h-4 mr-1.5" /> Notifications
-              </a>
+              </Link>
             </Button>
             <Button
               asChild
@@ -2967,9 +2968,9 @@ export default function AdminBlog() {
               size="sm"
               data-testid="open-moderation"
             >
-              <a href="/admin/moderation">
+              <Link href="/admin/moderation">
                 <Inbox className="w-4 h-4 mr-1.5" /> Moderation inbox
-              </a>
+              </Link>
             </Button>
             <Button
               asChild
@@ -2977,9 +2978,9 @@ export default function AdminBlog() {
               size="sm"
               data-testid="open-author-photos"
             >
-              <a href="/admin/author-photos">
+              <Link href="/admin/author-photos">
                 <Users className="w-4 h-4 mr-1.5" /> Author photos
-              </a>
+              </Link>
             </Button>
             <span className="text-muted-foreground">
               Signed in as{" "}
