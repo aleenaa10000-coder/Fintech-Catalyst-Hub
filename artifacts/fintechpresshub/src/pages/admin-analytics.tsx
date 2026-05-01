@@ -205,6 +205,25 @@ export default function AdminAnalytics() {
     return Math.round((curr - prev) * 10) / 10;
   }, [readabilityTrend]);
 
+  const categoryReadability = useMemo(() => {
+    if (!allPosts || allPosts.length === 0) return [];
+    const byCat = new Map<string, { sum: number; count: number }>();
+    for (const post of allPosts) {
+      const grade = fleschKincaidGrade(post.content ?? "");
+      if (grade === null) continue;
+      const cat = post.category || "Uncategorised";
+      const entry = byCat.get(cat) ?? { sum: 0, count: 0 };
+      byCat.set(cat, { sum: entry.sum + grade, count: entry.count + 1 });
+    }
+    return Array.from(byCat.entries())
+      .map(([category, { sum, count }]) => ({
+        category,
+        avgGrade: Math.round((sum / count) * 10) / 10,
+        postCount: count,
+      }))
+      .sort((a, b) => a.avgGrade - b.avgGrade);
+  }, [allPosts]);
+
   if (authLoading || !user?.isAdmin) {
     return (
       <div className="container mx-auto px-4 py-12">
@@ -763,6 +782,76 @@ export default function AdminAnalytics() {
                     />
                   </LineChart>
                 </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Readability by category */}
+          {categoryReadability.length > 0 && (
+            <Card className="mt-6">
+              <CardContent className="pt-5">
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+                  <div>
+                    <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5" />
+                      Readability by category
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Average Flesch-Kincaid grade level per content category, sorted from most to least accessible.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {categoryReadability.map((row) => {
+                    const band = gradeToBand(row.avgGrade);
+                    const colors = band ? BAND_COLORS[band] : BAND_COLORS.middle;
+                    const pct = Math.min(
+                      100,
+                      Math.round(((row.avgGrade - 1) / 17) * 100),
+                    );
+                    return (
+                      <div key={row.category}>
+                        <div className="flex items-center gap-3 mb-1">
+                          <span
+                            className="inline-block w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: colors.hex }}
+                          />
+                          <span className="text-sm font-medium flex-1 truncate">
+                            {row.category}
+                          </span>
+                          <span
+                            className="text-sm font-bold tabular-nums"
+                            style={{ color: colors.hex }}
+                          >
+                            Gr.{row.avgGrade}
+                          </span>
+                          <span className="text-xs text-muted-foreground tabular-nums w-16 text-right shrink-0">
+                            {row.postCount} post{row.postCount !== 1 ? "s" : ""}
+                          </span>
+                          <span
+                            className={`text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0 ${colors.bg} ${colors.text}`}
+                          >
+                            {band ? BAND_LABELS[band] : "—"}
+                          </span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden ml-5">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: colors.hex,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <p className="text-xs text-muted-foreground mt-4">
+                  Bar length represents grade level relative to the 1–18 FK scale. Shorter = more accessible.
+                </p>
               </CardContent>
             </Card>
           )}
