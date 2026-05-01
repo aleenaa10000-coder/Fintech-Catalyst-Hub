@@ -329,6 +329,93 @@ function SeoStatusBadge({
 }
 
 /**
+ * Estimates the number of syllables in a single word using a heuristic
+ * vowel-group count with a silent-e correction.
+ */
+function countSyllables(word: string): number {
+  const w = word.toLowerCase().replace(/[^a-z]/g, "");
+  if (!w.length) return 0;
+  const groups = w.match(/[aeiouy]+/g);
+  let count = groups ? groups.length : 1;
+  if (w.length > 2 && w.endsWith("e") && !/[aeiouy]/.test(w[w.length - 2])) {
+    count = Math.max(1, count - 1);
+  }
+  return Math.max(1, count);
+}
+
+/**
+ * Returns the Flesch-Kincaid grade level for the given text, or null
+ * when there is not enough content to calculate a meaningful score.
+ * HTML tags are stripped before processing.
+ */
+function fleschKincaidGrade(text: string): number | null {
+  if (!text || text.trim().length === 0) return null;
+  const plain = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const sentences = plain.split(/[.!?]+/).filter((s) => s.trim().length > 2);
+  const words = plain
+    .split(/\s+/)
+    .filter((w) => w.replace(/[^a-zA-Z]/g, "").length > 0);
+  if (sentences.length < 2 || words.length < 10) return null;
+  const syllables = words.reduce((sum, w) => sum + countSyllables(w), 0);
+  const grade =
+    0.39 * (words.length / sentences.length) +
+    11.8 * (syllables / words.length) -
+    15.59;
+  return Math.max(1, Math.round(grade * 10) / 10);
+}
+
+/**
+ * Displays a colour-coded Flesch-Kincaid grade-level badge.
+ *
+ * Grade bands and their intended audience:
+ *   ≤ 5   – Elementary (green)
+ *   6–8   – Middle school (blue)
+ *   9–12  – High school (amber)
+ *   13+   – College / expert (red)
+ *
+ * When there is not enough text to compute a reliable score the badge
+ * is omitted entirely so editors are not distracted by a misleading "1".
+ */
+function ReadabilityBadge({ content }: { content: string }) {
+  const grade = fleschKincaidGrade(content);
+  if (grade === null) return null;
+
+  let colorClass: string;
+  let label: string;
+  if (grade <= 5) {
+    colorClass =
+      "bg-green-100 text-green-800";
+    label = "Elementary";
+  } else if (grade <= 8) {
+    colorClass = "bg-blue-100 text-blue-800";
+    label = "Middle school";
+  } else if (grade <= 12) {
+    colorClass = "bg-amber-100 text-amber-800";
+    label = "High school";
+  } else {
+    colorClass = "bg-red-100 text-red-800";
+    label = "College+";
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${colorClass}`}
+      title={`Flesch-Kincaid grade level ≈ ${grade} — ${label} reading level`}
+    >
+      <svg
+        aria-hidden
+        className="w-3 h-3 shrink-0"
+        viewBox="0 0 16 16"
+        fill="currentColor"
+      >
+        <path d="M2 2h12v2H2V2zm0 4h8v2H2V6zm0 4h10v2H2v-2z" />
+      </svg>
+      Grade {grade}
+    </span>
+  );
+}
+
+/**
  * Per-row "Re-ping IndexNow" button. Mirrors the publish notification
  * flow without changing any post fields, so admins can resubmit a stale
  * post (or one that missed its original ping due to missing
@@ -4749,6 +4836,9 @@ export default function AdminBlog() {
                                 {p.featured ? "★ featured · " : ""}
                                 {p.readingMinutes} min read
                               </div>
+                              <div className="mt-1.5">
+                                <ReadabilityBadge content={p.content} />
+                              </div>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               <Button
@@ -4918,11 +5008,12 @@ export default function AdminBlog() {
                           {new Date(p.publishedAt).toLocaleDateString()}
                           {p.featured ? " · ★ featured" : ""}
                         </div>
-                        <div className="mt-2">
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
                           <SeoStatusBadge
                             pingedAt={p.lastSeoPingAt}
                             status={p.lastSeoPingStatus}
                           />
+                          <ReadabilityBadge content={p.content} />
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
