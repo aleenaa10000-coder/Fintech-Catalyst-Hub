@@ -41,6 +41,15 @@ export interface NotificationSettings {
    *  Used by the scheduler to enforce the 7-day cadence across server
    *  restarts so an admin restarting the API doesn't double-post. */
   weeklyDigestLastSentAt: string | null;
+  /**
+   * When true and `publishNotifyEmail` is set, the scheduled-post
+   * publish watcher job sends an email whenever a previously-future
+   * post auto-publishes. Lets editors verify the live page without
+   * having to poll the site manually after a launch window.
+   */
+  publishNotifyEnabled: boolean;
+  /** Destination email address for the auto-publish notification. */
+  publishNotifyEmail: string | null;
 }
 
 const DEFAULT_SETTINGS: NotificationSettings = {
@@ -51,6 +60,8 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   lastTestOk: null,
   lastTestError: null,
   weeklyDigestLastSentAt: null,
+  publishNotifyEnabled: false,
+  publishNotifyEmail: null,
 };
 
 export interface PublicNotificationSettings {
@@ -64,6 +75,8 @@ export interface PublicNotificationSettings {
   lastTestOk: boolean | null;
   lastTestError: string | null;
   weeklyDigestLastSentAt: string | null;
+  publishNotifyEnabled: boolean;
+  publishNotifyEmail: string | null;
 }
 
 export function isValidSlackWebhookUrl(raw: string): boolean {
@@ -106,6 +119,11 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
       typeof raw?.weeklyDigestLastSentAt === "string"
         ? raw.weeklyDigestLastSentAt
         : null,
+    publishNotifyEnabled: raw?.publishNotifyEnabled === true,
+    publishNotifyEmail:
+      typeof raw?.publishNotifyEmail === "string"
+        ? raw.publishNotifyEmail
+        : null,
   };
 }
 
@@ -121,6 +139,8 @@ export function toPublicSettings(
     lastTestOk: s.lastTestOk,
     lastTestError: s.lastTestError,
     weeklyDigestLastSentAt: s.weeklyDigestLastSentAt,
+    publishNotifyEnabled: s.publishNotifyEnabled,
+    publishNotifyEmail: s.publishNotifyEmail,
   };
 }
 
@@ -141,6 +161,8 @@ export async function updateNotificationSettings(input: {
    *  existing PUT contract for callers that only care about the
    *  webhook URL + alerts toggle keeps working unchanged. */
   weeklyDigestEnabled?: boolean;
+  publishNotifyEnabled?: boolean;
+  publishNotifyEmail?: string | null;
 }): Promise<NotificationSettings> {
   const current = await getNotificationSettings();
   const trimmed = input.slackWebhookUrl?.trim() || null;
@@ -155,6 +177,18 @@ export async function updateNotificationSettings(input: {
     trimmed === null
       ? false
       : input.weeklyDigestEnabled ?? current.weeklyDigestEnabled;
+
+  // publishNotifyEmail: trim and coerce empty-string to null.
+  const nextPublishEmail =
+    input.publishNotifyEmail !== undefined
+      ? (input.publishNotifyEmail?.trim() || null)
+      : current.publishNotifyEmail;
+  const nextPublishEnabled =
+    input.publishNotifyEnabled !== undefined
+      ? // Force off if email was cleared.
+        input.publishNotifyEnabled && !!nextPublishEmail
+      : current.publishNotifyEnabled && !!nextPublishEmail;
+
   const next: NotificationSettings = {
     ...current,
     slackWebhookUrl: trimmed,
@@ -170,6 +204,8 @@ export async function updateNotificationSettings(input: {
       trimmed !== current.slackWebhookUrl ? null : current.lastTestOk,
     lastTestError:
       trimmed !== current.slackWebhookUrl ? null : current.lastTestError,
+    publishNotifyEnabled: nextPublishEnabled,
+    publishNotifyEmail: nextPublishEmail,
   };
   await writeSettings(next);
   return next;

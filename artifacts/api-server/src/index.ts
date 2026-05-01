@@ -6,6 +6,7 @@ import { scheduleIndexNowDaily } from "./jobs/indexNowDaily";
 import { scheduleLinkCheckDaily } from "./jobs/linkCheckDaily";
 import { scheduleNoIndexExpiryHourly } from "./jobs/noindexExpiryHourly";
 import { scheduleWeeklyDigest } from "./jobs/weeklyDigest";
+import { schedulePublishNotifyHourly } from "./jobs/scheduledPostPublishNotify";
 
 const rawPort = process.env["PORT"];
 
@@ -58,6 +59,7 @@ async function bootstrap() {
     scheduleLinkCheckDaily();
     scheduleNoIndexExpiryHourly();
     scheduleWeeklyDigest();
+    schedulePublishNotifyHourly();
   });
 }
 

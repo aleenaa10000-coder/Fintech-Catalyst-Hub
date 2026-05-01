@@ -57,6 +57,8 @@ router.put(
             slackWebhookUrl?: string | null;
             slackEnabled?: boolean;
             weeklyDigestEnabled?: boolean;
+            publishNotifyEnabled?: boolean;
+            publishNotifyEmail?: string | null;
           }
         | undefined;
       if (!body || typeof body.slackEnabled !== "boolean") {
@@ -78,6 +80,14 @@ router.put(
           weeklyDigestEnabled:
             typeof body.weeklyDigestEnabled === "boolean"
               ? body.weeklyDigestEnabled
+              : undefined,
+          publishNotifyEnabled:
+            typeof body.publishNotifyEnabled === "boolean"
+              ? body.publishNotifyEnabled
+              : undefined,
+          publishNotifyEmail:
+            body.publishNotifyEmail !== undefined
+              ? body.publishNotifyEmail
               : undefined,
         });
         res.json(toPublicSettings(next));
