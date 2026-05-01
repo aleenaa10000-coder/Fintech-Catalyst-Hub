@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@workspace/replit-auth-web";
+import { useListBlogPosts } from "@workspace/api-client-react";
 import { PageMeta } from "@/components/PageMeta";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ import {
   ComposedChart,
   Area,
   ReferenceLine,
+  ReferenceArea,
 } from "recharts";
 import {
   ArrowLeft,
@@ -31,7 +33,14 @@ import {
   Users,
   TrendingUp,
   Loader2,
+  BookOpen,
 } from "lucide-react";
+import {
+  fleschKincaidGrade,
+  gradeToBand,
+  BAND_COLORS,
+  BAND_LABELS,
+} from "@/lib/readability";
 
 interface AnalyticsData {
   overview: {
@@ -149,6 +158,52 @@ export default function AdminAnalytics() {
     enabled: !!user?.isAdmin,
     staleTime: 5 * 60 * 1000,
   });
+
+  const { data: allPosts } = useListBlogPosts(undefined, {
+    query: { enabled: !!user?.isAdmin, staleTime: 5 * 60 * 1000 },
+  });
+
+  const readabilityTrend = useMemo(() => {
+    if (!allPosts || allPosts.length === 0) return [];
+    const byMonth = new Map<string, { sum: number; count: number }>();
+    for (const post of allPosts) {
+      const grade = fleschKincaidGrade(post.content ?? "");
+      if (grade === null) continue;
+      const month = (post.publishedAt ?? "").slice(0, 7);
+      if (!month) continue;
+      const entry = byMonth.get(month) ?? { sum: 0, count: 0 };
+      byMonth.set(month, { sum: entry.sum + grade, count: entry.count + 1 });
+    }
+    return Array.from(byMonth.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-12)
+      .map(([month, { sum, count }]) => ({
+        month: formatMonth(month),
+        avgGrade: Math.round((sum / count) * 10) / 10,
+        postCount: count,
+      }));
+  }, [allPosts]);
+
+  const overallAvgGrade = useMemo(() => {
+    if (readabilityTrend.length === 0) return null;
+    const total = readabilityTrend.reduce(
+      (acc, d) => ({
+        sum: acc.sum + d.avgGrade * d.postCount,
+        count: acc.count + d.postCount,
+      }),
+      { sum: 0, count: 0 },
+    );
+    return total.count > 0
+      ? Math.round((total.sum / total.count) * 10) / 10
+      : null;
+  }, [readabilityTrend]);
+
+  const gradeChange = useMemo(() => {
+    if (readabilityTrend.length < 2) return null;
+    const prev = readabilityTrend[readabilityTrend.length - 2].avgGrade;
+    const curr = readabilityTrend[readabilityTrend.length - 1].avgGrade;
+    return Math.round((curr - prev) * 10) / 10;
+  }, [readabilityTrend]);
 
   if (authLoading || !user?.isAdmin) {
     return (
@@ -520,6 +575,194 @@ export default function AdminAnalytics() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Readability trend */}
+          {readabilityTrend.length > 0 && (
+            <Card className="mt-6">
+              <CardContent className="pt-5">
+                <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5" />
+                      Readability trend — avg Flesch-Kincaid grade level by month
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Lower grade = more accessible writing. Target: grade 8–10 for a broad fintech audience.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs shrink-0">
+                    {(["elementary", "middle", "high", "college"] as const).map(
+                      (band) => (
+                        <span key={band} className="flex items-center gap-1.5">
+                          <span
+                            className="inline-block w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: BAND_COLORS[band].hex }}
+                          />
+                          {BAND_LABELS[band]}
+                        </span>
+                      ),
+                    )}
+                  </div>
+                </div>
+
+                {overallAvgGrade !== null && (
+                  <div className="flex flex-wrap gap-6 mb-5">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Overall avg grade</p>
+                      <p
+                        className="text-2xl font-bold"
+                        style={{
+                          color:
+                            BAND_COLORS[gradeToBand(overallAvgGrade) ?? "middle"]
+                              .hex,
+                        }}
+                      >
+                        {overallAvgGrade}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {BAND_LABELS[gradeToBand(overallAvgGrade) ?? "middle"]}
+                      </p>
+                    </div>
+                    {gradeChange !== null && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">vs. prev month</p>
+                        <p
+                          className={`text-2xl font-bold ${
+                            gradeChange < 0
+                              ? "text-emerald-600"
+                              : gradeChange > 0
+                                ? "text-amber-600"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {gradeChange > 0 ? "+" : ""}
+                          {gradeChange}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {gradeChange < 0
+                            ? "easier to read"
+                            : gradeChange > 0
+                              ? "harder to read"
+                              : "no change"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart
+                    data={readabilityTrend}
+                    margin={{ top: 8, right: 16, left: -8, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="gradReadability" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <ReferenceArea y1={1} y2={5.5} fill="#16a34a" fillOpacity={0.06} />
+                    <ReferenceArea y1={5.5} y2={8.5} fill="#2563eb" fillOpacity={0.06} />
+                    <ReferenceArea y1={8.5} y2={12.5} fill="#d97706" fillOpacity={0.06} />
+                    <ReferenceArea y1={12.5} y2={18} fill="#dc2626" fillOpacity={0.06} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      domain={[1, 18]}
+                      ticks={[1, 5, 8, 12, 16]}
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v: number) => `Gr.${v}`}
+                    />
+                    <Tooltip
+                      formatter={(val: number, _name: string) => [
+                        `Grade ${val}`,
+                        "Avg FK grade",
+                      ]}
+                      labelFormatter={(label: string) => label}
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        const d = payload[0].payload as {
+                          avgGrade: number;
+                          postCount: number;
+                        };
+                        const band = gradeToBand(d.avgGrade);
+                        return (
+                          <div className="rounded-lg border bg-background shadow-md px-3 py-2 text-sm">
+                            <p className="font-semibold mb-1">{label}</p>
+                            <p>
+                              Avg grade:{" "}
+                              <span
+                                className="font-bold"
+                                style={{
+                                  color: band ? BAND_COLORS[band].hex : undefined,
+                                }}
+                              >
+                                {d.avgGrade}
+                              </span>
+                            </p>
+                            {band && (
+                              <p className="text-muted-foreground text-xs">
+                                {BAND_LABELS[band]}
+                              </p>
+                            )}
+                            <p className="text-muted-foreground text-xs mt-0.5">
+                              {d.postCount} post{d.postCount !== 1 ? "s" : ""}
+                            </p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <ReferenceLine
+                      y={8}
+                      stroke="#2563eb"
+                      strokeDasharray="4 3"
+                      strokeWidth={1}
+                      label={{
+                        value: "Target 8",
+                        position: "insideTopRight",
+                        fontSize: 10,
+                        fill: "#2563eb",
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="avgGrade"
+                      stroke="#6366f1"
+                      strokeWidth={2.5}
+                      dot={(props) => {
+                        const { cx, cy, payload } = props as {
+                          cx: number;
+                          cy: number;
+                          payload: { avgGrade: number };
+                        };
+                        const band = gradeToBand(payload.avgGrade);
+                        const color = band ? BAND_COLORS[band].hex : "#6366f1";
+                        return (
+                          <circle
+                            key={`dot-${cx}-${cy}`}
+                            cx={cx}
+                            cy={cy}
+                            r={5}
+                            fill={color}
+                            stroke="#fff"
+                            strokeWidth={2}
+                          />
+                        );
+                      }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           )}
