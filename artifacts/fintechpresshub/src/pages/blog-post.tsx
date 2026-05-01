@@ -19,7 +19,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   usePublicPosts,
@@ -34,7 +34,6 @@ import {
 } from "@/data/useAuthorPhotos";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useIncrementBlogPostView } from "@workspace/api-client-react";
-import { ReportContentDialog } from "@/components/ReportContentDialog";
 import { BlogPostToc } from "@/components/BlogPostToc";
 import { BlogPostNewsletterCta } from "@/components/BlogPostNewsletterCta";
 
@@ -235,24 +234,6 @@ export default function BlogPost() {
     };
   }, [contentHtml]);
 
-  // Reading progress bar
-  const [readProgress, setReadProgress] = useState(0);
-  useEffect(() => {
-    const onScroll = () => {
-      const doc = document.documentElement;
-      const scrolled = doc.scrollTop || document.body.scrollTop;
-      const max = (doc.scrollHeight || 0) - (doc.clientHeight || 0);
-      setReadProgress(max > 0 ? Math.min(100, (scrolled / max) * 100) : 0);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, [slug]);
-
   /**
    * Related-posts recommendation engine.
    *
@@ -308,6 +289,26 @@ export default function BlogPost() {
   }, [allPosts, post]);
 
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
+
+  /* ── Reading progress bar ── */
+  const articleRef = useRef<HTMLElement>(null);
+  const [readProgress, setReadProgress] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const el = articleRef.current;
+      if (!el) return;
+      const { top, height } = el.getBoundingClientRect();
+      const viewH = window.innerHeight;
+      // Start counting once the top of the article enters the viewport;
+      // finish when its bottom reaches the bottom of the viewport.
+      const scrolled = Math.max(0, -top);
+      const total = Math.max(1, height - viewH);
+      setReadProgress(Math.min(100, (scrolled / total) * 100));
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
@@ -379,7 +380,7 @@ export default function BlogPost() {
   }
 
   return (
-    <article className="min-h-screen bg-background pb-24">
+    <article ref={articleRef} className="min-h-screen bg-background pb-24">
       {/* Fixed reading-progress bar */}
       <div
         className="fixed top-0 left-0 right-0 h-1 bg-slate-100 z-[60]"
@@ -1030,21 +1031,6 @@ export default function BlogPost() {
               {copied ? "Copied!" : "Copy link"}
             </button>
           </div>
-        </div>
-
-        {/* Report this post */}
-        <div className="mt-8 pt-6 border-t border-slate-200 flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-xs text-muted-foreground">
-            See something wrong with this article? Let our editors know.
-          </p>
-          <ReportContentDialog
-            contentType="blog_post"
-            contentId={post.slug}
-            contentTitle={post.title}
-            contentUrl={`${SITE_URL}/blog/${post.slug}`}
-            triggerVariant="outline"
-            triggerLabel="Report this post"
-          />
         </div>
 
         {/* End-of-article newsletter CTA */}
