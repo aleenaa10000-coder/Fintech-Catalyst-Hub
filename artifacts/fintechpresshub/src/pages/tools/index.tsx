@@ -14,6 +14,7 @@ import {
   BarChart2,
   Link2,
   FileEdit,
+  Newspaper,
   ArrowRight,
 } from "lucide-react";
 
@@ -98,6 +99,15 @@ const TOOLS = [
     title: "Content Brief Generator",
     description:
       "Enter a keyword and target audience to get a full fintech article brief — H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities.",
+  },
+  {
+    href: "/tools/headline-analyzer",
+    icon: Newspaper,
+    color: "bg-indigo-50 text-indigo-600",
+    badge: "Content",
+    title: "Headline Analyzer",
+    description:
+      "Score any fintech headline out of 100 across clarity, keyword presence, emotional pull, and character count — with 3 instant rewrite suggestions.",
   },
 ];
 

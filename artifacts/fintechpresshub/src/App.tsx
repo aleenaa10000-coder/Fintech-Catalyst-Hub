@@ -74,6 +74,9 @@ const BacklinkValueEstimator = lazy(
 const ContentBriefGenerator = lazy(
   () => import("@/pages/tools/content-brief-generator"),
 );
+const HeadlineAnalyzer = lazy(
+  () => import("@/pages/tools/headline-analyzer"),
+);
 const AdminLogin = lazy(() => import("@/pages/admin-login"));
 const AdminServices = lazy(() => import("@/pages/admin-services"));
 const AdminBlog = lazy(() => import("@/pages/admin-blog"));
@@ -284,6 +287,10 @@ function Router() {
             <Route
               path="/tools/content-brief-generator"
               component={ContentBriefGenerator}
+            />
+            <Route
+              path="/tools/headline-analyzer"
+              component={HeadlineAnalyzer}
             />
             {/* /admin/login is intentionally public — it's the fallback for
                 non-Replit deployments and must be reachable unauthenticated. */}

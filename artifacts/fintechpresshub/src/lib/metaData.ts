@@ -27,6 +27,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   "keyword-difficulty-estimator": "Keyword Difficulty Estimator",
   "backlink-value-estimator": "Backlink Value Estimator",
   "content-brief-generator": "Content Brief Generator",
+  "headline-analyzer": "Headline Analyzer",
   "write-for-us": "Write For Us",
   contact: "Contact",
   "privacy-policy": "Privacy Policy",
@@ -166,6 +167,11 @@ export const PAGE_META = {
     title: "Content Brief Generator | Free Fintech Content Tool",
     description:
       "Generate a structured fintech article brief in seconds — with H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities.",
+  },
+  headlineAnalyzer: {
+    title: "Headline Analyzer | Free Fintech Content Tool",
+    description:
+      "Score any fintech article headline out of 100 across clarity, keyword presence, emotional pull, and character count — with instant rewrite suggestions.",
   },
   adminServices: {
     title: "Admin · Services | FintechPressHub",
