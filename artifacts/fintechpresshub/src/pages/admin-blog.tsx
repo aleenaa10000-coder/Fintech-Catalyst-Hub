@@ -3126,6 +3126,10 @@ export default function AdminBlog() {
   const [shiftSnapshotLabel, setShiftSnapshotLabel] = useState<string>("");
   const [shiftUndoPending, setShiftUndoPending] = useState(false);
 
+  // Gap detector: configurable threshold (hours) for highlighting scheduling holes.
+  const [gapThresholdHours, setGapThresholdHours] = useState(48);
+  const [gapThresholdInput, setGapThresholdInput] = useState("48");
+
   // Scheduled posts come from an admin-only endpoint that inverts the
   // public visibility filter. We re-fetch after any mutation that could
   // change the queue (publish-now, delete, create with a future date).
@@ -4531,6 +4535,49 @@ export default function AdminBlog() {
                   </div>
                 )}
 
+                {/* Gap detector settings row — list view only */}
+                {!calendarView && (
+                  <div className="mb-3 flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span className="text-xs text-muted-foreground shrink-0">Flag gaps longer than</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      className="h-7 w-20 text-xs"
+                      value={gapThresholdInput}
+                      onChange={(e) => setGapThresholdInput(e.target.value)}
+                      onBlur={() => {
+                        const val = Number(gapThresholdInput);
+                        if (!Number.isNaN(val) && val >= 1) setGapThresholdHours(val);
+                        else setGapThresholdInput(String(gapThresholdHours));
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const val = Number(gapThresholdInput);
+                          if (!Number.isNaN(val) && val >= 1) setGapThresholdHours(val);
+                          else setGapThresholdInput(String(gapThresholdHours));
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
+                      aria-label="Gap threshold in hours"
+                    />
+                    <span className="text-xs text-muted-foreground shrink-0">hours between posts</span>
+                    {(() => {
+                      const gapCount = displayedScheduledPosts.filter((p, i) =>
+                        i > 0 &&
+                        (new Date(p.publishedAt).getTime() - new Date(displayedScheduledPosts[i - 1].publishedAt).getTime()) / 3_600_000 > gapThresholdHours
+                      ).length;
+                      return gapCount > 0 ? (
+                        <span className="ml-auto shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700">
+                          {gapCount} gap{gapCount !== 1 ? "s" : ""} detected
+                        </span>
+                      ) : (
+                        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/60">No gaps detected</span>
+                      );
+                    })()}
+                  </div>
+                )}
+
                 {/* Calendar view */}
                 {calendarView && (
                   <ScheduledCalendar
@@ -4561,9 +4608,32 @@ export default function AdminBlog() {
                   // A post is "moved" if it sits in a different position than the server order.
                   const serverIdx = scheduledPosts?.findIndex((sp) => sp.id === p.id) ?? idx;
                   const isMoved = serverIdx !== idx;
+
+                  // Gap detector: compute hours since the previous post.
+                  const prevPost = idx > 0 ? displayedScheduledPosts[idx - 1] : null;
+                  const gapMs = prevPost
+                    ? new Date(p.publishedAt).getTime() - new Date(prevPost.publishedAt).getTime()
+                    : 0;
+                  const gapHours = gapMs / 3_600_000;
+                  const isGap = prevPost !== null && gapHours > gapThresholdHours;
+                  const gapLabel = gapHours >= 24
+                    ? `${(gapHours / 24).toFixed(1).replace(/\.0$/, "")}d gap`
+                    : `${Math.round(gapHours)}h gap`;
+
                   return (
+                    <div key={p.id}>
+                      {/* Gap banner — shown between consecutive cards with a scheduling hole */}
+                      {isGap && (
+                        <div
+                          aria-label={`Scheduling gap: ${gapLabel} between posts`}
+                          className="flex items-center gap-2 my-1.5 px-3 py-1.5 rounded-md border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                          <span className="text-xs font-semibold">{gapLabel}</span>
+                          <span className="text-xs text-amber-600/80 dark:text-amber-400/70">— scheduling hole exceeds {gapThresholdHours}h threshold</span>
+                        </div>
+                      )}
                     <div
-                      key={p.id}
                       draggable
                       onDragStart={(e) => {
                         setDragSrcIdx(idx);
@@ -4699,6 +4769,7 @@ export default function AdminBlog() {
                           )}
                         </CardContent>
                       </Card>
+                    </div>
                     </div>
                   );
                 })}
