@@ -95,6 +95,8 @@ function padIfShort(text: string): string {
 // ── 5. Build & Optimise ───────────────────────────────────────────────────────
 // Picks the first candidate that fits within 160 chars, pads short ones with a
 // CTA, and as a last resort trims at the nearest word boundary — never ellipsis.
+// Short-title variants (see §7) appear later in each pool so they are only
+// reached when full-title candidates overflow 160 chars.
 function buildDescription(candidates: string[]): string {
   for (const raw of candidates) {
     const t = ensurePeriod(raw);
@@ -110,6 +112,18 @@ function buildDescription(candidates: string[]): string {
 // SERP snippet keyword must start within the first 60 characters.
 function kwInFirst60(text: string, kw: string): boolean {
   return text.toLowerCase().indexOf(kw.toLowerCase()) < 60;
+}
+
+// ── 7. Technical Preservation ────────────────────────────────────────────────
+// When the Key Benefit contains a multi-word technical term (e.g. "lateral
+// movement", "zero-trust architecture"), the page title is shortened rather
+// than trimming the benefit mid-phrase.
+// `shortenTitle` clips `title` to at most `maxLen` chars at a word boundary
+// so it can be substituted into templates that would otherwise overflow 160.
+function shortenTitle(title: string, maxLen: number): string {
+  if (title.length <= maxLen) return title;
+  const cut = title.lastIndexOf(" ", maxLen);
+  return cut > 4 ? title.slice(0, cut) : title.slice(0, maxLen);
 }
 
 // ── Main Generator ────────────────────────────────────────────────────────────
@@ -128,23 +142,36 @@ function generateDescriptions(form: FormState): GeneratedResult[] {
 
   const niche = detectNiche(kw, title);
 
+  // §7 — Short title for technical preservation.
+  // Tried AFTER full-title candidates; keeps the full `ben` phrase intact when
+  // long inputs would otherwise overflow 160 chars and force a mid-phrase trim.
+  const shortTitle = shortenTitle(title, 22);
+
   // ── [Action] ──────────────────────────────────────────────────────────────
   // High-impact command verb; keyword opens the sentence (always within 60 chars).
   const actionVerb = niche === "service" ? "Secure" : "Optimize";
   const actionPool = [
+    // Full-title variants (preferred)
     `${actionVerb} ${kw}: ${title} is built to help ${aud} ${ben}.`,
     `${actionVerb} ${kw} — ${title} helps ${aud} ${ben}.`,
     `Scale ${kw} with ${title} — built to help ${aud} ${ben}.`,
     `Deploy ${kw} tactics from ${title} to help ${aud} ${ben}.`,
+    // Short-title variants — used only when full-title overflows; preserves `ben`
+    `${actionVerb} ${kw}: ${shortTitle} helps ${aud} ${ben}.`,
+    `${actionVerb} ${kw} — helps ${aud} ${ben}.`,
   ].filter((c) => kwInFirst60(c, kw));
 
   // ── [Curiosity] ───────────────────────────────────────────────────────────
   // Specific question tailored to the target audience; keyword in opening clause.
   const curiosityPool = [
+    // Full-title variants (preferred)
     `Need stronger ${kw}? ${title} shows ${aud} how to ${ben}.`,
     `Struggling with ${kw}? ${title} helps ${aud} ${ben}.`,
     `Is your ${kw} strategy working? ${title} guides ${aud} to ${ben}.`,
     `Want better ${kw} results? ${title} helps ${aud} ${ben}.`,
+    // Short-title variants — preserves `ben` when inputs are long
+    `Need stronger ${kw}? ${shortTitle} shows ${aud} how to ${ben}.`,
+    `Struggling with ${kw}? Helps ${aud} ${ben}.`,
   ].filter((c) => kwInFirst60(c, kw));
 
   // ── [Authority] ───────────────────────────────────────────────────────────
@@ -153,9 +180,13 @@ function generateDescriptions(form: FormState): GeneratedResult[] {
   const authPrefix = niche === "service" ? "Professional" : "Enterprise-grade";
   const authFallback = niche === "service" ? "Professional" : "Advanced";
   const authorityPool = [
+    // Full-title variants (preferred)
     `${authPrefix} ${kw}: ${title} purpose-built to help ${aud} ${ben}.`,
     `${authFallback} ${kw} for ${aud} — ${title} shows how to ${ben}.`,
     `${authFallback} ${kw} insights: ${title} helps ${aud} ${ben}.`,
+    // Short-title variants — preserves `ben` when inputs are long
+    `${authPrefix} ${kw}: ${shortTitle} purpose-built to help ${aud} ${ben}.`,
+    `${authFallback} ${kw} for ${aud} who need to ${ben}.`,
   ].filter((c) => kwInFirst60(c, kw));
 
   // Fallback pools (no 60-char filter) used only if all filtered candidates fail
@@ -165,15 +196,15 @@ function generateDescriptions(form: FormState): GeneratedResult[] {
   return [
     {
       text: buildDescription(pick(actionPool, [
-        `${actionVerb} ${kw}: ${title} built to help ${aud} ${ben}.`,
-        `${actionVerb} ${kw} — guide for ${aud} to ${ben}.`,
+        `${actionVerb} ${kw}: ${shortTitle} helps ${aud} ${ben}.`,
+        `${actionVerb} ${kw} — helps ${aud} ${ben}.`,
       ])),
       tone: "Action",
     },
     {
       text: buildDescription(pick(curiosityPool, [
-        `Need stronger ${kw}? ${title} helps ${aud} ${ben}.`,
-        `Struggling with ${kw}? ${title} guides ${aud} to ${ben}.`,
+        `Need stronger ${kw}? ${shortTitle} helps ${aud} ${ben}.`,
+        `Struggling with ${kw}? Helps ${aud} ${ben}.`,
       ])),
       tone: "Curiosity",
     },
