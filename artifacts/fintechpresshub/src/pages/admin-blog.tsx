@@ -5,6 +5,7 @@ import {
   useListBlogPosts,
   usePublishBlogPost,
   useUpdateBlogPost,
+  updateBlogPost,
   useDeleteBlogPost,
   useRepingBlogPostIndexNow,
   useBulkNoIndexBlogPosts,
@@ -3918,90 +3919,191 @@ export default function AdminBlog() {
             {!scheduledLoading && scheduledPosts && scheduledPosts.length > 0 && (
               <>
                 <p className="text-xs text-muted-foreground mb-2">
-                  Sorted by publish date — earliest first. Use{" "}
+                  Sorted by publish date — earliest first. Drag{" "}
+                  <GripVertical className="inline w-3 h-3" /> to reprioritize
+                  order; the publish timestamp updates automatically. Use{" "}
                   <strong>Publish now</strong> to make any post live immediately.
                 </p>
-                {scheduledPosts.map((p) => (
-                  <Card key={p.id} id={`admin-post-${p.id}`}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold truncate">{p.title}</div>
-                          <div className="text-sm text-muted-foreground truncate">
-                            {p.excerpt}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            slug: <code>{p.slug}</code> · {p.category} ·{" "}
-                            {p.featured ? "★ featured · " : ""}
-                            {p.readingMinutes} min read
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Preview ${p.title}`}
-                          >
-                            <a
-                              href={`/blog/${p.slug}`}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              setEditingId(editingId === p.id ? null : p.id)
-                            }
-                            aria-label={
-                              editingId === p.id
-                                ? "Close editor"
-                                : `Edit ${p.title}`
-                            }
-                          >
-                            {editingId === p.id ? (
-                              <X className="w-4 h-4" />
-                            ) : (
-                              <Pencil className="w-4 h-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(p)}
-                            disabled={deleteMut.isPending}
-                            aria-label={`Remove ${p.title} from queue`}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      {/* Countdown panel — the centrepiece of the scheduled tab */}
-                      <ScheduledPostPanel
-                        post={p}
-                        onPublished={() => {
+                {scheduledPosts.map((p, idx) => {
+                  const isDragging = dragSrcIdx === idx;
+                  const isDropTarget = dragOverIdx === idx && dragSrcIdx !== idx;
+                  return (
+                    <div
+                      key={p.id}
+                      draggable
+                      onDragStart={(e) => {
+                        setDragSrcIdx(idx);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (dragOverIdx !== idx) setDragOverIdx(idx);
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverIdx === idx) setDragOverIdx(null);
+                      }}
+                      onDragEnd={() => {
+                        setDragSrcIdx(null);
+                        setDragOverIdx(null);
+                      }}
+                      onDrop={async (e) => {
+                        e.preventDefault();
+                        const src = dragSrcIdx;
+                        const dest = idx;
+                        setDragSrcIdx(null);
+                        setDragOverIdx(null);
+                        if (src === null || src === dest) return;
+                        if (!scheduledPosts) return;
+
+                        // Build the new ordering: remove src, insert at dest.
+                        const posts = [...scheduledPosts];
+                        const [moved] = posts.splice(src, 1);
+                        posts.splice(dest, 0, moved);
+
+                        // Compute the new publishedAt for the moved post so it
+                        // sits between its new neighbours and stays in the future.
+                        const now = Date.now();
+                        const ONE_HOUR = 60 * 60 * 1000;
+                        let newPublishedAt: number;
+                        if (posts.length === 1) {
+                          newPublishedAt = Math.max(
+                            new Date(moved.publishedAt).getTime(),
+                            now + ONE_HOUR,
+                          );
+                        } else if (dest === 0) {
+                          newPublishedAt = Math.max(
+                            new Date(posts[1].publishedAt).getTime() - ONE_HOUR,
+                            now + 60_000,
+                          );
+                        } else if (dest === posts.length - 1) {
+                          newPublishedAt =
+                            new Date(posts[dest - 1].publishedAt).getTime() +
+                            ONE_HOUR;
+                        } else {
+                          const before = new Date(posts[dest - 1].publishedAt).getTime();
+                          const after = new Date(posts[dest + 1].publishedAt).getTime();
+                          newPublishedAt = Math.max(
+                            Math.round((before + after) / 2),
+                            now + 60_000,
+                          );
+                        }
+
+                        setReorderPending(true);
+                        try {
+                          await updateBlogPost({
+                            slug: moved.slug,
+                            data: { publishedAt: new Date(newPublishedAt).toISOString() },
+                          });
+                          toast.success(`"${moved.title}" rescheduled.`);
                           invalidate();
-                          setActiveTab("published");
-                        }}
-                      />
-                      {editingId === p.id && (
-                        <PostEditor
-                          post={p}
-                          onCancel={() => setEditingId(null)}
-                          onSaved={() => {
-                            setEditingId(null);
-                            invalidate();
-                          }}
-                        />
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+                        } catch {
+                          toast.error("Could not update schedule order.");
+                        } finally {
+                          setReorderPending(false);
+                        }
+                      }}
+                      className={[
+                        "transition-opacity",
+                        isDragging ? "opacity-40" : "opacity-100",
+                        isDropTarget ? "ring-2 ring-blue-400 ring-offset-1 rounded-lg" : "",
+                      ].join(" ")}
+                    >
+                      <Card id={`admin-post-${p.id}`}>
+                        <CardContent className="pt-6">
+                          <div className="flex items-start justify-between gap-4">
+                            {/* Drag handle */}
+                            <div
+                              className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground mt-0.5 shrink-0 self-center"
+                              title="Drag to reorder"
+                            >
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold truncate">{p.title}</div>
+                              <div className="text-sm text-muted-foreground truncate">
+                                {p.excerpt}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                slug: <code>{p.slug}</code> · {p.category} ·{" "}
+                                {p.featured ? "★ featured · " : ""}
+                                {p.readingMinutes} min read
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button
+                                asChild
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Preview ${p.title}`}
+                              >
+                                <a
+                                  href={`/blog/${p.slug}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </a>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  setEditingId(editingId === p.id ? null : p.id)
+                                }
+                                aria-label={
+                                  editingId === p.id
+                                    ? "Close editor"
+                                    : `Edit ${p.title}`
+                                }
+                              >
+                                {editingId === p.id ? (
+                                  <X className="w-4 h-4" />
+                                ) : (
+                                  <Pencil className="w-4 h-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(p)}
+                                disabled={deleteMut.isPending}
+                                aria-label={`Remove ${p.title} from queue`}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          {/* Countdown panel */}
+                          <ScheduledPostPanel
+                            post={p}
+                            onPublished={() => {
+                              invalidate();
+                              setActiveTab("published");
+                            }}
+                          />
+                          {editingId === p.id && (
+                            <PostEditor
+                              post={p}
+                              onCancel={() => setEditingId(null)}
+                              onSaved={() => {
+                                setEditingId(null);
+                                invalidate();
+                              }}
+                            />
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                })}
+                {reorderPending && (
+                  <p className="text-xs text-muted-foreground text-center py-1">
+                    <RefreshCw className="inline w-3 h-3 mr-1 animate-spin" />
+                    Saving new order…
+                  </p>
+                )}
               </>
             )}
           </div>

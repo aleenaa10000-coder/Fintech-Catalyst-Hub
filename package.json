@@ -10,7 +10,8 @@
     "seed:auto": "pnpm --filter @workspace/scripts run seed:auto",
     "seed:reset": "pnpm --filter @workspace/scripts run seed:reset --",
     "setup:check": "pnpm --filter @workspace/scripts run setup:check",
-    "bootstrap": "bash scripts/bootstrap.sh"
+    "bootstrap": "bash scripts/bootstrap.sh",
+    "setup": "bash scripts/setup.sh"
   },
   "private": true,
   "devDependencies": {
