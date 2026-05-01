@@ -80,6 +80,7 @@ import {
   LayoutList,
   CalendarDays,
   ArrowUpDown,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -3189,6 +3190,84 @@ function defaultPreviewAtLocal(): string {
   return new Date(future.getTime() - tzOffsetMs).toISOString().slice(0, 16);
 }
 
+const HARDEST_POSTS_TOP_N = 5;
+
+/**
+ * Spotlight panel listing the top-N published posts with the highest
+ * Flesch-Kincaid grade levels. Gives editors an instant shortlist of
+ * articles that need a readability rewrite, ranked worst-first.
+ */
+function HardestPostsSpotlight({
+  posts,
+  onJumpToPost,
+}: {
+  posts: BlogPost[];
+  onJumpToPost: (id: number) => void;
+}) {
+  const ranked = useMemo(() => {
+    return posts
+      .map((p) => ({ post: p, grade: fleschKincaidGrade(p.content ?? "") }))
+      .filter((x): x is { post: BlogPost; grade: number } => x.grade !== null)
+      .sort((a, b) => b.grade - a.grade)
+      .slice(0, HARDEST_POSTS_TOP_N);
+  }, [posts]);
+
+  if (ranked.length === 0) return null;
+
+  return (
+    <div className="mb-6 rounded-lg border border-red-200 bg-red-50/50" data-testid="hardest-posts-spotlight">
+      <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-red-100">
+        <BookOpen className="w-4 h-4 text-red-600 shrink-0" />
+        <h2 className="text-sm font-semibold text-red-900">
+          Hardest posts — readability spotlight
+        </h2>
+        <span className="ml-auto text-xs text-red-600/70">
+          Top {ranked.length} by FK grade · needs rewrite
+        </span>
+      </div>
+      <ol className="divide-y divide-red-100">
+        {ranked.map(({ post, grade }, i) => {
+          const gradeBg =
+            grade > 12
+              ? "bg-red-100 text-red-800"
+              : "bg-amber-100 text-amber-800";
+          return (
+            <li
+              key={post.id}
+              className="flex items-center gap-3 px-4 py-2.5"
+              data-testid={`hardest-post-row-${post.slug}`}
+            >
+              <span className="text-xs font-bold text-red-300 w-4 shrink-0 tabular-nums text-right">
+                {i + 1}
+              </span>
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold shrink-0 ${gradeBg}`}
+                title={`Flesch-Kincaid grade level ≈ ${grade}`}
+              >
+                Grade {grade}
+              </span>
+              <span className="flex-1 min-w-0 text-sm font-medium text-foreground truncate">
+                {post.title}
+              </span>
+              <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
+                {post.category}
+              </span>
+              <button
+                type="button"
+                onClick={() => onJumpToPost(post.id)}
+                className="shrink-0 text-xs font-medium text-red-700 hover:text-red-900 underline underline-offset-2 whitespace-nowrap"
+                data-testid={`hardest-post-edit-${post.slug}`}
+              >
+                Open editor
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 export default function AdminBlog() {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } =
     useAuth();
@@ -3320,6 +3399,22 @@ export default function AdminBlog() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: getListBlogPostsQueryKey() });
     void refetchScheduled();
+  };
+
+  /**
+   * Called from HardestPostsSpotlight when an editor clicks "Open editor".
+   * Switches to the Published tab, clears the readability filter so the post
+   * is visible, opens its inline edit form, and scrolls it into view.
+   */
+  const handleJumpToPost = (id: number) => {
+    setActiveTab("published");
+    setReadabilityFilter("all");
+    setEditingId(id);
+    setTimeout(() => {
+      document
+        .getElementById(`admin-post-${id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
   };
 
   // Ordered list for the scheduled queue — reflects local drag order before save.
@@ -4035,6 +4130,13 @@ export default function AdminBlog() {
         </Card>
 
         <SitemapHealthPanel />
+
+        {posts && posts.length > 0 && !previewMode && (
+          <HardestPostsSpotlight
+            posts={posts}
+            onJumpToPost={handleJumpToPost}
+          />
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           {/* Tab switcher */}
