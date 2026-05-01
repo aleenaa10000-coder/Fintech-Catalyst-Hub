@@ -59,6 +59,7 @@ const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
 const AdminAuthorPhotos = lazy(() => import("@/pages/admin-author-photos"));
 const AdminAuthors = lazy(() => import("@/pages/admin-authors"));
 const AdminPricing = lazy(() => import("@/pages/admin-pricing"));
+const AdminAnalytics = lazy(() => import("@/pages/admin-analytics"));
 
 function RouteFallback() {
   // The previous page's content stays mounted by Suspense's transition
@@ -178,6 +179,7 @@ function Router() {
           <Route path="/admin/pricing" component={AdminPricing} />
           <Route path="/admin/audit-log" component={AdminAuditLog} />
           <Route path="/admin/notifications" component={AdminNotifications} />
+          <Route path="/admin/analytics" component={AdminAnalytics} />
           <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
           </Switch>

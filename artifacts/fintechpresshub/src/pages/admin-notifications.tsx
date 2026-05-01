@@ -508,6 +508,63 @@ export default function AdminNotifications() {
         </CardContent>
       </Card>
 
+      <Card className="mb-4">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <Mail className="w-6 h-6 text-sky-600" />
+            <div className="flex-1">
+              <h2 className="font-semibold">Scheduled post auto-publish email</h2>
+              <p className="text-sm text-muted-foreground">
+                Receive an email each time a scheduled post goes live — useful
+                for verifying the page before sharing on social media.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="publish-notify-email">Recipient email address</Label>
+            <Input
+              id="publish-notify-email"
+              type="email"
+              placeholder="editor@example.com"
+              value={publishNotifyEmail}
+              onChange={(e) => {
+                setPublishNotifyEmail(e.target.value);
+                setDirty(true);
+              }}
+              data-testid="notifications-publish-email-input"
+              autoComplete="email"
+            />
+            <p className="text-xs text-muted-foreground">
+              The notification is sent via your configured SMTP or Resend
+              transport. Leave blank to disable.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <div>
+              <Label htmlFor="publish-notify-toggle" className="font-medium">
+                Enable publish notifications
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                An email is sent at the next hourly check after the post's
+                scheduled time passes. Requires an email address above.
+              </p>
+            </div>
+            <Switch
+              id="publish-notify-toggle"
+              checked={publishNotifyEnabled}
+              onCheckedChange={(v) => {
+                setPublishNotifyEnabled(v);
+                setDirty(true);
+              }}
+              disabled={publishNotifyEmail.trim() === ""}
+              data-testid="notifications-publish-notify-toggle"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="pt-6 text-sm space-y-2 text-muted-foreground">
           <p className="font-medium text-foreground">What gets posted</p>

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { PageMeta } from "@/components/PageMeta";
 import { useAuth } from "@workspace/replit-auth-web";
 import { Button } from "@/components/ui/button";
@@ -118,6 +118,43 @@ function formToPayload(f: FormState) {
   };
 }
 
+type FormErrors = Partial<Record<keyof FormState, string>>;
+
+function validateForm(f: FormState): FormErrors {
+  const errors: FormErrors = {};
+  if (!f.name.trim()) {
+    errors.name = "Plan name is required.";
+  } else if (f.name.trim().length < 2) {
+    errors.name = "Plan name must be at least 2 characters.";
+  }
+  if (!f.tagline.trim()) {
+    errors.tagline = "Tagline is required.";
+  }
+  const price = Number(f.priceMonthly);
+  if (f.priceMonthly === "" || f.priceMonthly === null) {
+    errors.priceMonthly = "Price is required.";
+  } else if (Number.isNaN(price) || price < 0) {
+    errors.priceMonthly = "Price must be a non-negative number.";
+  }
+  if (!f.description.trim()) {
+    errors.description = "Description is required.";
+  }
+  const features = f.features.split("\n").map((s) => s.trim()).filter(Boolean);
+  if (features.length === 0) {
+    errors.features = "Add at least one feature.";
+  }
+  const sort = Number(f.sortOrder);
+  if (f.sortOrder !== "" && !Number.isInteger(sort)) {
+    errors.sortOrder = "Sort order must be a whole number.";
+  }
+  return errors;
+}
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="text-xs text-rose-600 mt-1">{msg}</p>;
+}
+
 function PlanForm({
   title,
   form,
@@ -138,8 +175,21 @@ function PlanForm({
   const set = (k: keyof FormState, v: string | boolean) =>
     setForm({ ...form, [k]: v });
 
+  const [tried, setTried] = useState(false);
+  const errors = useMemo(() => validateForm(form), [form]);
+  const hasErrors = Object.keys(errors).length > 0;
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setTried(true);
+    if (hasErrors) return;
+    onSubmit(e);
+  }
+
+  const e = tried ? errors : {};
+
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <h2 className="text-lg font-semibold flex items-center gap-2">
         {title}
       </h2>
@@ -151,8 +201,10 @@ function PlanForm({
             value={form.name}
             onChange={(e) => set("name", e.target.value)}
             placeholder="e.g. Growth"
-            required
+            aria-invalid={!!e.name}
+            className={e.name ? "border-rose-400 focus-visible:ring-rose-300" : ""}
           />
+          <FieldError msg={e.name} />
         </div>
         <div>
           <Label htmlFor="pf-tagline">Tagline</Label>
@@ -161,8 +213,10 @@ function PlanForm({
             value={form.tagline}
             onChange={(e) => set("tagline", e.target.value)}
             placeholder="One-liner for the plan"
-            required
+            aria-invalid={!!e.tagline}
+            className={e.tagline ? "border-rose-400 focus-visible:ring-rose-300" : ""}
           />
+          <FieldError msg={e.tagline} />
         </div>
         <div>
           <Label htmlFor="pf-price">Price (monthly, USD)</Label>
@@ -173,8 +227,10 @@ function PlanForm({
             value={form.priceMonthly}
             onChange={(e) => set("priceMonthly", e.target.value)}
             placeholder="2500"
-            required
+            aria-invalid={!!e.priceMonthly}
+            className={e.priceMonthly ? "border-rose-400 focus-visible:ring-rose-300" : ""}
           />
+          <FieldError msg={e.priceMonthly} />
         </div>
         <div>
           <Label htmlFor="pf-unit">Price unit</Label>
@@ -201,7 +257,10 @@ function PlanForm({
             type="number"
             value={form.sortOrder}
             onChange={(e) => set("sortOrder", e.target.value)}
+            aria-invalid={!!e.sortOrder}
+            className={e.sortOrder ? "border-rose-400 focus-visible:ring-rose-300" : ""}
           />
+          <FieldError msg={e.sortOrder} />
         </div>
       </div>
       <div>
@@ -211,8 +270,10 @@ function PlanForm({
           rows={3}
           value={form.description}
           onChange={(e) => set("description", e.target.value)}
-          required
+          aria-invalid={!!e.description}
+          className={e.description ? "border-rose-400 focus-visible:ring-rose-300" : ""}
         />
+        <FieldError msg={e.description} />
       </div>
       <div>
         <Label htmlFor="pf-features">Features (one per line)</Label>
@@ -222,7 +283,10 @@ function PlanForm({
           placeholder={"4 long-form articles/month\nSEO keyword research\n..."}
           value={form.features}
           onChange={(e) => set("features", e.target.value)}
+          aria-invalid={!!e.features}
+          className={e.features ? "border-rose-400 focus-visible:ring-rose-300" : ""}
         />
+        <FieldError msg={e.features} />
       </div>
       <div className="flex items-center gap-3">
         <input
@@ -239,7 +303,7 @@ function PlanForm({
       <div className="flex items-center gap-3 pt-2">
         <Button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || (tried && hasErrors)}
           className="bg-[#0052FF] hover:bg-[#0040CC]"
         >
           {isPending ? "Saving…" : submitLabel}

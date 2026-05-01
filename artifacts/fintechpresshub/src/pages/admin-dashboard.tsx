@@ -28,6 +28,7 @@ import {
   Camera,
   UserCog,
   DollarSign,
+  BarChart2,
 } from "lucide-react";
 
 function timeAgo(iso: string): string {
@@ -590,6 +591,7 @@ export default function AdminDashboard() {
                   { label: "Pricing", icon: DollarSign, href: "/admin/pricing", badge: 0 },
                   { label: "Audit log", icon: ScrollText, href: "/admin/audit-log", badge: 0 },
                   { label: "Notifications", icon: Bell, href: "/admin/notifications", badge: 0 },
+                  { label: "Analytics", icon: BarChart2, href: "/admin/analytics", badge: 0 },
                 ].map(({ label, icon: Icon, href, badge }) => (
                   <Link
                     key={href}
