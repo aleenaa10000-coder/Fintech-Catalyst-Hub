@@ -415,6 +415,67 @@ function ReadabilityBadge({ content }: { content: string }) {
   );
 }
 
+type ReadabilityBand = "all" | "elementary" | "middle" | "high" | "college";
+
+const READABILITY_BANDS: {
+  value: ReadabilityBand;
+  label: string;
+  colorClass: string;
+}[] = [
+  { value: "all", label: "All grades", colorClass: "bg-muted text-muted-foreground" },
+  { value: "elementary", label: "≤ 5 Elementary", colorClass: "bg-green-100 text-green-800" },
+  { value: "middle", label: "6–8 Middle", colorClass: "bg-blue-100 text-blue-800" },
+  { value: "high", label: "9–12 High school", colorClass: "bg-amber-100 text-amber-800" },
+  { value: "college", label: "13+ College", colorClass: "bg-red-100 text-red-800" },
+];
+
+/**
+ * Row of pill buttons that let editors filter posts by Flesch-Kincaid
+ * grade band. When a band is selected, a count badge shows how many posts
+ * are visible out of the total.
+ */
+function ReadabilityFilterPills({
+  value,
+  onChange,
+  totalCount,
+  filteredCount,
+}: {
+  value: ReadabilityBand;
+  onChange: (v: ReadabilityBand) => void;
+  totalCount: number;
+  filteredCount: number;
+}) {
+  if (totalCount === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-xs text-muted-foreground mr-0.5">Readability:</span>
+      {READABILITY_BANDS.map((band) => {
+        const active = value === band.value;
+        return (
+          <button
+            key={band.value}
+            type="button"
+            onClick={() => onChange(band.value)}
+            className={[
+              "text-[11px] font-medium px-2 py-0.5 rounded-full border transition-all",
+              active
+                ? `${band.colorClass} border-current ring-1 ring-current`
+                : "border-transparent bg-muted/40 text-muted-foreground hover:bg-muted",
+            ].join(" ")}
+          >
+            {band.label}
+          </button>
+        );
+      })}
+      {value !== "all" && (
+        <span className="text-[11px] text-muted-foreground tabular-nums">
+          {filteredCount} of {totalCount}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /**
  * Per-row "Re-ping IndexNow" button. Mirrors the publish notification
  * flow without changing any post fields, so admins can resubmit a stale
@@ -3212,6 +3273,12 @@ export default function AdminBlog() {
     "published",
   );
 
+  // Readability grade-level filter shared by both tabs.
+  // "all" = no filter; other values correspond to FK grade bands.
+  const [readabilityFilter, setReadabilityFilter] = useState<
+    "all" | "elementary" | "middle" | "high" | "college"
+  >("all");
+
   // Drag-to-reorder state for the Scheduled tab.
   const [dragSrcIdx, setDragSrcIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
@@ -3272,6 +3339,32 @@ export default function AdminBlog() {
     const byId = new Map(scheduledPosts.map((p) => [p.id, p]));
     return localQueueOrder.map((id) => byId.get(id)).filter(Boolean) as typeof scheduledPosts;
   }, [scheduledPosts, localQueueOrder]);
+
+  /** Helper: does a post's content match the active readability filter? */
+  const matchesReadabilityFilter = (content: string) => {
+    if (readabilityFilter === "all") return true;
+    const grade = fleschKincaidGrade(content);
+    if (grade === null) return false;
+    if (readabilityFilter === "elementary") return grade <= 5;
+    if (readabilityFilter === "middle") return grade > 5 && grade <= 8;
+    if (readabilityFilter === "high") return grade > 8 && grade <= 12;
+    if (readabilityFilter === "college") return grade > 12;
+    return true;
+  };
+
+  /** Published posts narrowed by the active readability filter. */
+  const filteredPosts = useMemo(
+    () => (posts ?? []).filter((p) => matchesReadabilityFilter(p.content)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [posts, readabilityFilter],
+  );
+
+  /** Scheduled posts narrowed by the active readability filter. */
+  const filteredScheduledPosts = useMemo(
+    () => displayedScheduledPosts.filter((p) => matchesReadabilityFilter(p.content)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [displayedScheduledPosts, readabilityFilter],
+  );
 
   // True when the local drag order differs from the server order.
   const hasQueueChanges = useMemo(
@@ -4046,6 +4139,14 @@ export default function AdminBlog() {
               <BulkProbeButton posts={posts ?? []} />
             </div>
           )}
+          {activeTab === "published" && (
+            <ReadabilityFilterPills
+              value={readabilityFilter}
+              onChange={setReadabilityFilter}
+              totalCount={posts?.length ?? 0}
+              filteredCount={filteredPosts.length}
+            />
+          )}
           {activeTab === "published" && !previewMode && posts && posts.length > 0 && (
             <div className="flex items-center gap-2 text-sm">
               <Checkbox
@@ -4687,6 +4788,16 @@ export default function AdminBlog() {
                   </div>
                 )}
 
+                {/* Readability filter */}
+                {!calendarView && (
+                  <ReadabilityFilterPills
+                    value={readabilityFilter}
+                    onChange={setReadabilityFilter}
+                    totalCount={displayedScheduledPosts.length}
+                    filteredCount={filteredScheduledPosts.length}
+                  />
+                )}
+
                 {/* Calendar view */}
                 {calendarView && (
                   <ScheduledCalendar
@@ -4711,15 +4822,23 @@ export default function AdminBlog() {
 
                 {/* List view */}
                 {!calendarView && <>
-                {displayedScheduledPosts.map((p, idx) => {
-                  const isDragging = dragSrcIdx === idx;
-                  const isDropTarget = dragOverIdx === idx && dragSrcIdx !== idx;
+                {filteredScheduledPosts.length === 0 && displayedScheduledPosts.length > 0 && (
+                  <p className="text-center text-sm text-muted-foreground py-6">
+                    No posts match the selected readability filter.
+                  </p>
+                )}
+                {filteredScheduledPosts.map((p, idx) => {
+                  // Drag-to-reorder is disabled while a readability filter is active
+                  // because the filtered indices would not match the server order.
+                  const dragEnabled = readabilityFilter === "all";
+                  const isDragging = dragEnabled && dragSrcIdx === idx;
+                  const isDropTarget = dragEnabled && dragOverIdx === idx && dragSrcIdx !== idx;
                   // A post is "moved" if it sits in a different position than the server order.
                   const serverIdx = scheduledPosts?.findIndex((sp) => sp.id === p.id) ?? idx;
-                  const isMoved = serverIdx !== idx;
+                  const isMoved = dragEnabled && serverIdx !== idx;
 
                   // Gap detector: compute hours since the previous post.
-                  const prevPost = idx > 0 ? displayedScheduledPosts[idx - 1] : null;
+                  const prevPost = idx > 0 ? filteredScheduledPosts[idx - 1] : null;
                   const gapMs = prevPost
                     ? new Date(p.publishedAt).getTime() - new Date(prevPost.publishedAt).getTime()
                     : 0;
@@ -4767,24 +4886,24 @@ export default function AdminBlog() {
                         </div>
                       )}
                     <div
-                      draggable
-                      onDragStart={(e) => {
+                      draggable={dragEnabled}
+                      onDragStart={dragEnabled ? (e) => {
                         setDragSrcIdx(idx);
                         e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onDragOver={(e) => {
+                      } : undefined}
+                      onDragOver={dragEnabled ? (e) => {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = "move";
                         if (dragOverIdx !== idx) setDragOverIdx(idx);
-                      }}
-                      onDragLeave={() => {
+                      } : undefined}
+                      onDragLeave={dragEnabled ? () => {
                         if (dragOverIdx === idx) setDragOverIdx(null);
-                      }}
-                      onDragEnd={() => {
+                      } : undefined}
+                      onDragEnd={dragEnabled ? () => {
                         setDragSrcIdx(null);
                         setDragOverIdx(null);
-                      }}
-                      onDrop={(e) => {
+                      } : undefined}
+                      onDrop={dragEnabled ? (e) => {
                         e.preventDefault();
                         const src = dragSrcIdx;
                         const dest = idx;
@@ -4797,7 +4916,7 @@ export default function AdminBlog() {
                         const [movedId] = nextIds.splice(src, 1);
                         nextIds.splice(dest, 0, movedId);
                         setLocalQueueOrder(nextIds);
-                      }}
+                      } : undefined}
                       className={[
                         "transition-opacity",
                         isDragging ? "opacity-40" : "opacity-100",
@@ -4926,7 +5045,12 @@ export default function AdminBlog() {
           <p className="text-muted-foreground">Loading…</p>
         ) : activeTab === "published" && (
           <div className="space-y-3">
-            {posts?.map((p) => {
+            {filteredPosts.length === 0 && (posts?.length ?? 0) > 0 && (
+              <p className="text-center text-sm text-muted-foreground py-6">
+                No posts match the selected readability filter.
+              </p>
+            )}
+            {filteredPosts.map((p) => {
               const isEditing = editingId === p.id;
               const isSelected = selectedSlugs.has(p.slug);
               // In preview mode, suppress the "scheduled" badge for any
