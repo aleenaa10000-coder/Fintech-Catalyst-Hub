@@ -861,42 +861,6 @@ export default function BlogPost() {
                       dangerouslySetInnerHTML={{ __html: firstHalfHtml }}
                     />
 
-                    {/* Inline Lead Magnet CTA */}
-                    {secondHalfHtml ? (
-                      <aside
-                        className="my-12 rounded-2xl border border-blue-200 bg-blue-50/70 p-6 sm:p-8 shadow-sm"
-                        aria-label="Lead magnet call to action"
-                      >
-                        <div className="flex items-start gap-4 flex-col sm:flex-row sm:items-center">
-                          <div className="shrink-0 w-12 h-12 rounded-xl bg-[#0052FF] text-white flex items-center justify-center shadow-md">
-                            <Sparkles className="w-6 h-6" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-xs font-semibold uppercase tracking-wider text-[#0052FF] mb-1">
-                              Free Strategy Session
-                            </div>
-                            <h4 className="text-lg sm:text-xl font-bold text-slate-900 mb-1">
-                              Want a custom plan for your fintech brand?
-                            </h4>
-                            <p className="text-sm text-slate-600">
-                              Get a complimentary audit of your current SEO,
-                              content, and link profile from our team.
-                            </p>
-                          </div>
-                          <Link href="/contact" className="w-full sm:w-auto">
-                            <Button
-                              size="lg"
-                              className="w-full sm:w-auto bg-[#0052FF] hover:bg-[#0040CC] text-white"
-                              data-testid="cta-lead-magnet"
-                            >
-                              Schedule Your SEO Audit
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            </Button>
-                          </Link>
-                        </div>
-                      </aside>
-                    ) : null}
-
                     <div
                       className={proseClass}
                       dangerouslySetInnerHTML={{ __html: secondHalfHtml }}
