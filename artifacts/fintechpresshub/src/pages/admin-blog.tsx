@@ -1384,6 +1384,17 @@ function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
                   : result
                     ? `Status ${result.statusCode ?? "—"}`
                     : "Request failed";
+                const grade = fleschKincaidGrade(post.content);
+                const gradeLabel =
+                  grade === null
+                    ? null
+                    : grade <= 5
+                      ? { text: `Gr.${grade}`, cls: "text-green-700 border-green-200" }
+                      : grade <= 8
+                        ? { text: `Gr.${grade}`, cls: "text-blue-700 border-blue-200" }
+                        : grade <= 12
+                          ? { text: `Gr.${grade}`, cls: "text-amber-700 border-amber-300" }
+                          : { text: `Gr.${grade}`, cls: "text-red-700 border-red-200" };
                 return (
                   <a
                     key={post.slug}
@@ -1400,7 +1411,7 @@ function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
                         });
                       }
                     }}
-                    title={`${tooltip} — click to scroll to this post`}
+                    title={`${tooltip}${grade !== null ? ` · FK grade ${grade}` : ""} — click to scroll to this post`}
                     className="inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-amber-900 hover:bg-amber-100"
                     data-testid={`bulk-probe-broken-chip-${post.slug}`}
                   >
@@ -1408,6 +1419,14 @@ function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
                     <span className="truncate max-w-[16rem]">
                       {post.slug}
                     </span>
+                    {gradeLabel && (
+                      <span
+                        className={`border-l pl-1 font-medium text-[10px] ${gradeLabel.cls}`}
+                        aria-label={`Flesch-Kincaid grade ${grade}`}
+                      >
+                        {gradeLabel.text}
+                      </span>
+                    )}
                   </a>
                 );
               })}
@@ -2638,14 +2657,18 @@ function buildImpactCsv(impacted: BlogPost[]): string {
  * Excel happy on the receiving end.
  */
 function buildBulkProbeCsv(broken: BulkProbeRowResult[]): string {
-  const header = ["slug", "url", "status_code", "error", "checked_at"];
-  const rows = broken.map(({ post, result }) => [
-    post.slug,
-    result?.url ?? "",
-    result?.statusCode ?? "",
-    result?.error ?? "",
-    result?.checkedAt ?? "",
-  ]);
+  const header = ["slug", "url", "status_code", "error", "fk_grade", "checked_at"];
+  const rows = broken.map(({ post, result }) => {
+    const grade = fleschKincaidGrade(post.content);
+    return [
+      post.slug,
+      result?.url ?? "",
+      result?.statusCode ?? "",
+      result?.error ?? "",
+      grade !== null ? String(grade) : "",
+      result?.checkedAt ?? "",
+    ];
+  });
   const lines = [header, ...rows].map((r) => r.map(csvEscape).join(","));
   return "\ufeff" + lines.join("\r\n") + "\r\n";
 }
@@ -2676,7 +2699,7 @@ function mdEscapeCell(value: string | number | null | undefined): string {
  * glance how big the failure set is and when it was generated.
  */
 function buildBulkProbeMarkdown(broken: BulkProbeRowResult[]): string {
-  const header = ["#", "Slug", "URL", "Status", "Error", "Checked at"];
+  const header = ["#", "Slug", "URL", "Status", "Error", "FK Grade", "Checked at"];
   const lines: string[] = [];
   lines.push(
     `**Bulk URL probe — ${broken.length} broken URL${broken.length === 1 ? "" : "s"}** (${new Date().toISOString()})`,
@@ -2685,12 +2708,14 @@ function buildBulkProbeMarkdown(broken: BulkProbeRowResult[]): string {
   lines.push(`| ${header.join(" | ")} |`);
   lines.push(`| ${header.map(() => "---").join(" | ")} |`);
   broken.forEach(({ post, result }, i) => {
+    const grade = fleschKincaidGrade(post.content);
     const row = [
       String(i + 1),
       mdEscapeCell(post.slug),
       mdEscapeCell(result?.url ?? ""),
       mdEscapeCell(result?.statusCode ?? "ERR"),
       mdEscapeCell(result?.error ?? ""),
+      grade !== null ? mdEscapeCell(grade) : "—",
       mdEscapeCell(result?.checkedAt ?? ""),
     ];
     lines.push(`| ${row.join(" | ")} |`);
