@@ -4433,6 +4433,103 @@ export default function AdminBlog() {
                   </div>
                 )}
 
+                {/* Save order bar — visible when the admin has dragged posts into a new order */}
+                {hasQueueChanges && !calendarView && (
+                  <div className="mb-3 flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40 px-3 py-2 text-xs text-blue-800 dark:text-blue-300">
+                    <ArrowUpDown className="w-3.5 h-3.5 shrink-0" />
+                    <span className="flex-1">
+                      Queue reordered — timestamps will redistribute to fill the original slots.
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 text-xs px-2 text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900"
+                      disabled={reorderSavePending}
+                      onClick={() => setLocalQueueOrder(null)}
+                    >
+                      Reset
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-6 text-xs px-3 bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={reorderSavePending}
+                      onClick={async () => {
+                        if (!scheduledPosts || !localQueueOrder) return;
+                        setReorderSavePending(true);
+                        const snapshot = scheduledPosts.map((p) => ({
+                          slug: p.slug,
+                          publishedAt: p.publishedAt,
+                        }));
+                        try {
+                          // Each post in the new display order inherits the slot's original timestamp.
+                          const byId = new Map(scheduledPosts.map((p) => [p.id, p]));
+                          const reordered = localQueueOrder
+                            .map((id) => byId.get(id))
+                            .filter(Boolean) as typeof scheduledPosts;
+                          const patches = reordered.map((p, i) => ({
+                            slug: p.slug,
+                            publishedAt: scheduledPosts[i].publishedAt,
+                          }));
+                          const result = await bulkRescheduleBlogPosts({ posts: patches });
+                          toast.success(
+                            `Queue reordered — ${result.updatedCount} post${result.updatedCount === 1 ? "" : "s"} rescheduled.`,
+                          );
+                          setReorderUndoSnapshot(snapshot);
+                          setLocalQueueOrder(null);
+                          invalidate();
+                        } catch {
+                          toast.error("Could not save the new order. Try again.");
+                        } finally {
+                          setReorderSavePending(false);
+                        }
+                      }}
+                    >
+                      {reorderSavePending ? "Saving…" : "Save order"}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Undo reorder bar — visible after saving a new queue order */}
+                {reorderUndoSnapshot && !hasQueueChanges && !calendarView && (
+                  <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                    <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                    <span className="flex-1">Queue order saved. You can undo this reorder.</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-xs px-2 border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900"
+                      disabled={reorderUndoPending}
+                      onClick={async () => {
+                        if (!reorderUndoSnapshot) return;
+                        setReorderUndoPending(true);
+                        try {
+                          const result = await bulkRescheduleBlogPosts({ posts: reorderUndoSnapshot });
+                          toast.success(
+                            `Restored previous order for ${result.updatedCount} post${result.updatedCount === 1 ? "" : "s"}.`,
+                          );
+                          setReorderUndoSnapshot(null);
+                          invalidate();
+                        } catch {
+                          toast.error("Could not undo the reorder. Try again.");
+                        } finally {
+                          setReorderUndoPending(false);
+                        }
+                      }}
+                    >
+                      {reorderUndoPending ? "Undoing…" : "Undo"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900"
+                      onClick={() => setReorderUndoSnapshot(null)}
+                      aria-label="Dismiss"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+
                 {/* Calendar view */}
                 {calendarView && (
                   <ScheduledCalendar
@@ -4457,9 +4554,12 @@ export default function AdminBlog() {
 
                 {/* List view */}
                 {!calendarView && <>
-                {scheduledPosts.map((p, idx) => {
+                {displayedScheduledPosts.map((p, idx) => {
                   const isDragging = dragSrcIdx === idx;
                   const isDropTarget = dragOverIdx === idx && dragSrcIdx !== idx;
+                  // A post is "moved" if it sits in a different position than the server order.
+                  const serverIdx = scheduledPosts?.findIndex((sp) => sp.id === p.id) ?? idx;
+                  const isMoved = serverIdx !== idx;
                   return (
                     <div
                       key={p.id}
@@ -4480,65 +4580,19 @@ export default function AdminBlog() {
                         setDragSrcIdx(null);
                         setDragOverIdx(null);
                       }}
-                      onDrop={async (e) => {
+                      onDrop={(e) => {
                         e.preventDefault();
                         const src = dragSrcIdx;
                         const dest = idx;
                         setDragSrcIdx(null);
                         setDragOverIdx(null);
-                        if (src === null || src === dest) return;
-                        if (!scheduledPosts) return;
-
-                        // Build the new ordering: remove src, insert at dest.
-                        const posts = [...scheduledPosts];
-                        const [moved] = posts.splice(src, 1);
-                        posts.splice(dest, 0, moved);
-
-                        // Compute the new publishedAt for the moved post so it
-                        // sits between its new neighbours and stays in the future.
-                        const now = Date.now();
-                        const ONE_HOUR = 60 * 60 * 1000;
-                        let newPublishedAt: number;
-                        if (posts.length === 1) {
-                          newPublishedAt = Math.max(
-                            new Date(moved.publishedAt).getTime(),
-                            now + ONE_HOUR,
-                          );
-                        } else if (dest === 0) {
-                          newPublishedAt = Math.max(
-                            new Date(posts[1].publishedAt).getTime() - ONE_HOUR,
-                            now + 60_000,
-                          );
-                        } else if (dest === posts.length - 1) {
-                          newPublishedAt =
-                            new Date(posts[dest - 1].publishedAt).getTime() +
-                            ONE_HOUR;
-                        } else {
-                          const before = new Date(posts[dest - 1].publishedAt).getTime();
-                          const after = new Date(posts[dest + 1].publishedAt).getTime();
-                          newPublishedAt = Math.max(
-                            Math.round((before + after) / 2),
-                            now + 60_000,
-                          );
-                        }
-
-                        setReorderPending(true);
-                        try {
-                          await bulkRescheduleBlogPosts({
-                            posts: [
-                              {
-                                slug: moved.slug,
-                                publishedAt: new Date(newPublishedAt).toISOString(),
-                              },
-                            ],
-                          });
-                          toast.success(`"${moved.title}" rescheduled.`);
-                          invalidate();
-                        } catch {
-                          toast.error("Could not update schedule order.");
-                        } finally {
-                          setReorderPending(false);
-                        }
+                        if (src === null || src === dest || !scheduledPosts) return;
+                        // Build the new ID ordering locally — no API call yet.
+                        const currentIds = localQueueOrder ?? scheduledPosts.map((sp) => sp.id);
+                        const nextIds = [...currentIds];
+                        const [movedId] = nextIds.splice(src, 1);
+                        nextIds.splice(dest, 0, movedId);
+                        setLocalQueueOrder(nextIds);
                       }}
                       className={[
                         "transition-opacity",
@@ -4549,15 +4603,27 @@ export default function AdminBlog() {
                       <Card id={`admin-post-${p.id}`}>
                         <CardContent className="pt-6">
                           <div className="flex items-start justify-between gap-4">
-                            {/* Drag handle */}
-                            <div
-                              className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground mt-0.5 shrink-0 self-center"
-                              title="Drag to reorder"
-                            >
-                              <GripVertical className="w-4 h-4" />
+                            {/* Drag handle + slot number */}
+                            <div className="flex flex-col items-center gap-0.5 shrink-0 self-center">
+                              <div
+                                className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground"
+                                title="Drag to reorder"
+                              >
+                                <GripVertical className="w-4 h-4" />
+                              </div>
+                              <span className="text-[10px] font-mono text-muted-foreground/60 leading-none">
+                                {idx + 1}
+                              </span>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="font-semibold truncate">{p.title}</div>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-semibold truncate">{p.title}</span>
+                                {isMoved && (
+                                  <span className="shrink-0 text-[10px] font-semibold px-1 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-700">
+                                    moved
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-sm text-muted-foreground truncate">
                                 {p.excerpt}
                               </div>
