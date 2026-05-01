@@ -127,8 +127,8 @@ export function SchedulePicker({
       {!isScheduled && (
         <p className="text-xs text-muted-foreground">
           {mode === "edit"
-            ? "Post is live. Click "Schedule" to move it to a future publish time."
-            : "Post goes live as soon as you save. Click "Schedule" to pick a future time."}
+            ? <>Post is live. Click <strong>Schedule</strong> to move it to a future publish time.</>
+            : <>Post goes live as soon as you save. Click <strong>Schedule</strong> to pick a future time.</>}
         </p>
       )}
 
