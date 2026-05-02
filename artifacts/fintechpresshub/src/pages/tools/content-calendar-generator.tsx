@@ -1190,6 +1190,81 @@ const ROI_MQL_TO_OPP_RATE       = 0.25;   // 25%  lead             → opportuni
 const ROI_CLOSE_RATE            = 0.20;   // 20%  opportunity      → closed-won
 const ROI_AVG_DEAL_VALUE        = 15000;  // $15 K average ARR per deal
 
+// ─── Publish-Ready Score ──────────────────────────────────────────────────────
+// Five criteria, each 0–20 pts, summing to a 0–100 readiness score per entry.
+
+const VOLUME_SEO_POINTS: Record<string, number> = {
+  "50K–200K+": 8,
+  "10K–50K":   6,
+  "1K–10K":    4,
+  "100–1K":    2,
+  "<100":      0,
+};
+
+function scoreSeoReadiness(e: CalendarEntry): number {
+  const vol  = VOLUME_SEO_POINTS[e.searchVolume] ?? 2;
+  const diff =
+    e.topicDifficulty < 30 ? 12 :
+    e.topicDifficulty < 50 ? 8  :
+    e.topicDifficulty < 70 ? 4  : 0;
+  return Math.min(20, vol + diff);
+}
+
+function scoreAudienceFit(e: CalendarEntry): number {
+  if (e.searchIntent === "SEO Intent") {
+    if (e.type === "blog" || e.type === "guide") return 20;
+    if (e.type === "case-study" || e.type === "roundup") return 14;
+    return 6;
+  }
+  // Engagement Intent
+  if (e.type === "linkedin")    return 20;
+  if (e.type === "case-study")  return 16;
+  return 10;
+}
+
+function scoreDistributionCoverage(e: CalendarEntry): number {
+  const matched = DISTRIBUTION_CHANNELS.filter(
+    (ch) =>
+      (ch.matchTypes.includes(e.type) ||
+        ch.matchArchetypes.includes(e.archetype)) &&
+      e.priorityScore >= ch.minPriorityScore,
+  ).length;
+  return Math.min(20, matched * 4);
+}
+
+function scoreArchetypeStrength(e: CalendarEntry): number {
+  const MANDATORY = [
+    "The Case Study",
+    "The Contrarian",
+    "The Data Dive",
+    "The Blueprint",
+  ];
+  return MANDATORY.includes(e.archetype) ? 20 : 10;
+}
+
+function computePublishReadyScore(e: CalendarEntry): {
+  total: number;
+  seo: number;
+  audience: number;
+  distribution: number;
+  archetype: number;
+  priority: number;
+} {
+  const seo          = scoreSeoReadiness(e);
+  const audience     = scoreAudienceFit(e);
+  const distribution = scoreDistributionCoverage(e);
+  const archetype    = scoreArchetypeStrength(e);
+  const priority     = Math.round(e.priorityScore / 5);
+  return { total: seo + audience + distribution + archetype + priority, seo, audience, distribution, archetype, priority };
+}
+
+function publishReadyLabel(score: number): { label: string; color: string } {
+  if (score >= 80) return { label: "Production ready", color: "text-emerald-700 bg-emerald-50 border-emerald-200" };
+  if (score >= 60) return { label: "Strong",           color: "text-blue-700 bg-blue-50 border-blue-200" };
+  if (score >= 40) return { label: "Average",          color: "text-amber-700 bg-amber-50 border-amber-200" };
+  return                  { label: "Needs work",       color: "text-rose-700 bg-rose-50 border-rose-200" };
+}
+
 // ─── Per-format publish-ready checklist items ─────────────────────────────────
 // Each content type has its own 6-7 step production checklist. Items are
 // intentionally short so they fit on a single line in the collapsed badge.
@@ -1889,6 +1964,12 @@ export default function ContentCalendarGenerator() {
   const maxTopicPipeline = Math.max(1, ...roiData.map((r) => r.pipeline));
 
   // Content type breakdown for the mix chart
+  // ── Publish-Ready Score ──────────────────────────────────────────────────
+  const publishReadyEntries = calendar
+    .map((e) => ({ entry: e, scores: computePublishReadyScore(e) }))
+    .sort((a, b) => b.scores.total - a.scores.total)
+    .slice(0, 5);
+
   const typeCounts = (Object.keys(FORMAT_LABEL) as ContentType[])
     .map((type) => ({
       type,
@@ -3739,6 +3820,109 @@ export default function ContentCalendarGenerator() {
                           mid-market B2B SaaS benchmarks.
                         </p>
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* ── Publish-Ready Score ─────────────────────────────────── */}
+                {publishReadyEntries.length > 0 && (
+                  <Card className="border border-slate-100 shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                            <Check className="w-3.5 h-3.5 text-indigo-500" />
+                            Publish-Ready Score
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Top 5 entries ranked by production readiness across
+                            SEO, audience fit, distribution, archetype, and
+                            priority.
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-semibold text-muted-foreground shrink-0 pt-0.5 whitespace-nowrap">
+                          Top 5 of {calendar.length}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-5">
+                        {publishReadyEntries.map(
+                          ({ entry: e, scores }, i) => {
+                            const { label, color } = publishReadyLabel(
+                              scores.total,
+                            );
+                            const criteria = [
+                              { key: "SEO",    val: scores.seo,          max: 20 },
+                              { key: "Fit",    val: scores.audience,     max: 20 },
+                              { key: "Reach",  val: scores.distribution, max: 20 },
+                              { key: "Arc.",   val: scores.archetype,    max: 20 },
+                              { key: "Pri.",   val: scores.priority,     max: 20 },
+                            ];
+                            return (
+                              <div key={i} className="space-y-2">
+                                {/* Entry header */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[11px] font-semibold text-slate-800 leading-snug line-clamp-2">
+                                      {e.angle}
+                                    </p>
+                                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                      <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">
+                                        {FORMAT_LABEL[e.type]}
+                                      </span>
+                                      <span className="text-[9px] text-muted-foreground">
+                                        Wk {e.week} · {e.topic}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right shrink-0 ml-2">
+                                    <p className="text-[20px] font-bold text-slate-800 leading-none">
+                                      {scores.total}
+                                    </p>
+                                    <span
+                                      className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${color}`}
+                                    >
+                                      {label}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* 5 criteria mini-bars */}
+                                <div className="grid grid-cols-5 gap-1.5">
+                                  {criteria.map(({ key, val, max }) => (
+                                    <div key={key} className="space-y-0.5">
+                                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                          className="h-full rounded-full bg-indigo-400 transition-all"
+                                          style={{
+                                            width: `${(val / max) * 100}%`,
+                                          }}
+                                        />
+                                      </div>
+                                      <p className="text-[8px] text-center text-muted-foreground leading-none">
+                                        {key}
+                                      </p>
+                                      <p className="text-[9px] text-center font-semibold text-slate-600 leading-none">
+                                        {val}/{max}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {i < publishReadyEntries.length - 1 && (
+                                  <div className="border-b border-slate-100 pt-1" />
+                                )}
+                              </div>
+                            );
+                          },
+                        )}
+                      </div>
+
+                      <p className="text-[10px] text-muted-foreground mt-4 leading-relaxed border-t border-slate-100 pt-3">
+                        Score = SEO readiness + audience fit + distribution
+                        reach + archetype strength + priority. Max 100 — start
+                        production with the highest scorers first.
+                      </p>
                     </CardContent>
                   </Card>
                 )}
