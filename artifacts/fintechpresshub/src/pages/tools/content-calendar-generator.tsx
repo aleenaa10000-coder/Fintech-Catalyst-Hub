@@ -745,6 +745,57 @@ function buildCalendar(form: FormState): CalendarEntry[] {
   return entries;
 }
 
+// ─── Single-entry builder (used by gap-fill action) ──────────────────────────
+
+const GAP_PREFERRED_ARCHETYPE: Partial<Record<ContentType, string>> = {
+  guide:          "The Authority Guide",
+  "case-study":   "The Case Study",
+  roundup:        "The Listicle",
+  linkedin:       "The Insider",
+  blog:           "The Blueprint",
+};
+
+function buildSingleEntry(
+  topic: string,
+  type: ContentType,
+  existingCount: number,
+): CalendarEntry {
+  const preferred = GAP_PREFERRED_ARCHETYPE[type];
+  const arch =
+    (preferred ? ARCHETYPES.find((a) => a.name === preferred) : null) ??
+    ARCHETYPES[existingCount % ARCHETYPES.length];
+
+  const isLinkedIn = type === "linkedin";
+  const publishYear = new Date().getFullYear();
+  const angle = buildTitle(arch, topic, publishYear, type, isLinkedIn);
+
+  // Schedule ~2 weeks from now, always on a Monday
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const dow = d.getDay();
+  const daysUntilMonday = dow === 0 ? 1 : dow === 1 ? 0 : 8 - dow;
+  d.setDate(d.getDate() + daysUntilMonday + 7);
+
+  const vol = getSearchVolume(topic);
+  return {
+    week: Math.floor(existingCount / 4) + 1,
+    date: d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
+    topic,
+    angle,
+    archetype: arch.name,
+    type,
+    cta: resolveCta(type, existingCount),
+    searchIntent: resolveSearchIntent(topic, type, isLinkedIn),
+    searchVolume: vol.range,
+    topicDifficulty: vol.difficulty,
+    priorityScore: computePriorityScore(vol.tier, vol.difficulty),
+  };
+}
+
 // ─── CSV export ───────────────────────────────────────────────────────────────
 
 function exportCSV(entries: CalendarEntry[], companyName: string) {
@@ -1105,6 +1156,7 @@ export default function ContentCalendarGenerator() {
   const [showPresets, setShowPresets] = useState(() => loadPresets().length > 0);
   const [savingPreset, setSavingPreset] = useState(false);
   const [presetName, setPresetName] = useState("");
+  const [filledGaps, setFilledGaps] = useState<Set<string>>(new Set());
 
   const entryKey = (e: { date: string; type: string; topic: string }) =>
     `${e.date}|${e.type}|${e.topic}`;
@@ -1194,6 +1246,14 @@ export default function ContentCalendarGenerator() {
     const updated = presets.filter((p) => p.id !== id);
     setPresets(updated);
     savePresetsToStorage(updated);
+  };
+
+  const fillGap = (gap: ContentGap) => {
+    const key = `${gap.topic}|${gap.missingType}`;
+    if (filledGaps.has(key)) return;
+    const entry = buildSingleEntry(gap.topic, gap.missingType, calendar.length);
+    setCalendar((prev) => [...prev, entry]);
+    setFilledGaps((prev) => new Set([...prev, key]));
   };
 
   const generate = () => {
@@ -2425,7 +2485,7 @@ export default function ContentCalendarGenerator() {
                                 {GAP_REASON[gap.missingType]}
                               </p>
                             </div>
-                            {/* Vol + KD chips */}
+                            {/* Vol + KD chips + Fill button */}
                             <div className="flex flex-col gap-1 items-end shrink-0 pt-0.5">
                               <span
                                 className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${TIER_STYLE[gap.vol.tier]}`}
@@ -2438,6 +2498,21 @@ export default function ContentCalendarGenerator() {
                               >
                                 KD {gap.vol.difficulty}
                               </span>
+                              {filledGaps.has(
+                                `${gap.topic}|${gap.missingType}`,
+                              ) ? (
+                                <span className="flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 mt-0.5">
+                                  <Check className="w-3 h-3" /> Added
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => fillGap(gap)}
+                                  className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 transition-colors mt-0.5 whitespace-nowrap"
+                                >
+                                  + Fill this gap
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}
