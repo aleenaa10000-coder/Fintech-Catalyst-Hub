@@ -291,90 +291,107 @@ function isHighSearchIntent(topic: string): boolean {
 
 type Archetype = {
   name: string;
-  seo: string;      // used for blog / guide / roundup / case-study
-  hook: string;     // used for linkedin
+  seo: string;       // used for blog / roundup / case-study
+  hook: string;      // used for linkedin
+  guide?: string;    // used for in-depth guides — authoritative, comprehensive language
 };
 
 const ARCHETYPES: Archetype[] = [
   {
     name: "The Blueprint",
-    seo: "A Framework for {topic}: The Step-by-Step Playbook Fintech Teams Use in {year}",
+    seo: "A Practical Framework for {topic}: The Step-by-Step Playbook Fintech Teams Use in {year}",
     hook: "Most fintechs over-complicate {topic}. Here's the exact framework:",
+    guide: "The Definitive {topic} Playbook: A Practical, Step-by-Step Framework for Fintech Leaders in {year}",
   },
   {
     name: "The Comparison",
-    seo: "{topic} vs. Traditional Approaches: What Founders Need to Know in {year}",
+    seo: "{topic} vs. the Alternatives: Which Wins for Fintech Brands in {year}?",
     hook: "I compared {topic} to the old playbook. The gap surprised me:",
+    guide: "The Comprehensive {year} Comparison Guide: {topic} vs. the Alternatives — A Framework for Fintech Decision-Makers",
   },
   {
-    name: "The Trend Analysis",
-    seo: "Why {topic} is the Key to Fintech Growth in {year}",
-    hook: "{topic} will define fintech in {year}. Here's the data:",
+    name: "The Trendsetter",
+    seo: "The Future of {topic} in Fintech: What to Expect by Q4 {year}",
+    hook: "{topic} is evolving fast. Here's what's coming by Q4 {year}:",
+    guide: "The Complete {year} {topic} Trends Report: A Comprehensive Look at What's Shaping Fintech Next",
   },
   {
     name: "The Data Dive",
-    seo: "Breaking Down the ROI of {topic} for Fintech Brands in {year}",
+    seo: "Breaking Down the ROI of {topic} for Fintech SMEs in {year}",
     hook: "We analysed 50+ fintech brands on {topic}. The ROI numbers:",
+    guide: "The {year} {topic} ROI Intelligence Report: A Comprehensive, Data-Driven Analysis for Fintech SMEs",
   },
   {
     name: "The Contrarian",
-    seo: "Why {topic} Is Being Disrupted — And What Smart Fintechs Are Doing About It in {year}",
+    seo: "Why {topic} Is Failing Fintech Founders — And What the Smart Ones Do Instead in {year}",
     hook: "Unpopular opinion: most fintechs get {topic} completely wrong.",
+    guide: "The Contrarian's Complete Guide to {topic} in {year}: A Comprehensive Breakdown of What Actually Works",
   },
   {
     name: "The How-To",
     seo: "How to Leverage {topic} to Scale Your Fintech in {year}",
     hook: "{topic} drove 10K+ organic visits. Here are the exact steps:",
+    guide: "The Complete How-To Guide for {topic}: A Step-by-Step Blueprint for Fintech Growth in {year}",
   },
   {
     name: "The Listicle",
     seo: "7 Ways {topic} Is Reshaping Fintech in {year} — and What CMOs Must Do Now",
     hook: "7 things I wish I knew about {topic} before we started.",
+    guide: "The Authoritative {year} List: 12 Ways {topic} Is Reshaping High-Growth Fintech Brands",
   },
   {
     name: "The Deep Dive",
     seo: "The State of {topic} in {year}: What High-Authority Fintechs Already Know",
     hook: "I spent 3 months studying how elite fintechs use {topic}. Here's what I found:",
+    guide: "The Authoritative {year} Deep Dive into {topic}: Everything High-Growth Fintech Brands Need to Know",
   },
   {
     name: "The Warning",
     seo: "The Biggest {topic} Mistakes Fintechs Make in {year} — and How to Avoid Them",
     hook: "Most fintechs make this {topic} mistake. Are you?",
+    guide: "The Comprehensive {topic} Risk Report {year}: Critical Mistakes Fintech Brands Must Avoid",
   },
   {
     name: "The Future",
     seo: "The Future of {topic} in Fintech: Predictions and Opportunities for {year}",
     hook: "{topic} is changing fast. 3 things that will matter most in {year}:",
+    guide: "The Definitive {year} {topic} Outlook: A Comprehensive Analysis of Predictions and Opportunities for Fintech",
   },
   {
     name: "The Authority Guide",
     seo: "The Complete {year} Guide to {topic} for Ambitious Fintech Brands",
     hook: "Everything you need to know about {topic}, in one post. Save this:",
+    guide: "The Complete {year} {topic} Reference Guide: The Authoritative Resource for Ambitious Fintech Brands",
   },
   {
     name: "The Case Study",
     seo: "Case Study: How a Series B Fintech 3× Their Pipeline Using {topic} in {year}",
     hook: "We helped a fintech 3× their pipeline with {topic}. The exact playbook:",
+    guide: "In-Depth Case Study Analysis: How High-Growth Fintechs Are Scaling {topic} in {year}",
   },
   {
     name: "The Why Now",
     seo: "Why {topic} Matters More Than Ever for Fintech Brands in {year}",
     hook: "Why {topic} matters right now — and what most brands are missing:",
+    guide: "The Comprehensive {year} {topic} Urgency Report: Why Now Is the Decisive Moment for Fintech Brands",
   },
   {
     name: "The Insider",
     seo: "What Elite Fintech Brands Know About {topic} That Others Don't ({year})",
     hook: "The {topic} insight top fintech teams don't talk about publicly:",
+    guide: "The Insider's Complete {year} Guide to {topic}: Authoritative Strategies Only Elite Fintechs Use",
   },
   {
     name: "The Opportunity",
     seo: "The Hidden {topic} Opportunity Every Fintech Brand Should Target in {year}",
     hook: "There's a {topic} opportunity most fintechs are completely ignoring:",
+    guide: "The Definitive {year} {topic} Opportunity Report: A Comprehensive Blueprint for Fintech Growth",
   },
   {
     name: "The Benchmark",
     seo: "{topic} Benchmarks for Fintech in {year}: Where Does Your Brand Stand?",
     hook: "{topic} benchmarks for fintech are out. Here's how to read them:",
+    guide: "The Complete {year} {topic} Benchmark Report: A Comprehensive Analysis of Where Fintech Brands Stand",
   },
 ];
 
@@ -382,40 +399,40 @@ const ARCHETYPES: Archetype[] = [
 
 const CTAS_BY_TYPE: Record<ContentType, string[]> = {
   blog: [
-    "Link to your services page",
-    "Promote your newsletter",
-    "Book a free strategy call",
-    "Link to a related case study",
-    "Offer a free content audit",
-    "Link to your pricing page",
+    "Explore our fintech content services",
+    "Subscribe to the FintechPressHub weekly digest",
+    "Book a free 30-minute strategy call",
+    "Read the full case study",
+    "Request your free fintech content audit",
+    "View content retainer pricing",
   ],
   guide: [
     "Download the full whitepaper",
-    "Gated content link",
-    "Offer a free audit",
+    "Download the companion content toolkit",
+    "Request a free editorial strategy audit",
     "Request a personalised content brief",
     "Book a strategy workshop",
-    "Access the template library",
+    "Download our free content brief templates",
   ],
   roundup: [
-    "Subscribe to the weekly digest",
-    "Promote your newsletter",
-    "Link to your services page",
-    "Invite guest post pitches",
+    "Subscribe to the weekly editorial digest",
+    "Join 2,000+ fintech marketers — subscribe free",
+    "Explore our content marketing services",
+    "Submit a guest post pitch",
   ],
   "case-study": [
     "Book a free strategy call",
-    "Link to your services page",
+    "See how we build content strategies that convert",
     "See similar client results",
-    "Offer a free content audit",
+    "Request your free content growth audit",
   ],
   linkedin: [
-    "Invite readers to comment",
-    "Ask a poll question",
+    "Invite readers to share their take in the comments",
+    "Run a LinkedIn poll on this topic",
     "Tag a founder who needs to see this",
     "Share your experience in the comments",
     "Follow for weekly fintech growth insights",
-    "DM for the full breakdown",
+    "DM to access the full data breakdown",
   ],
 };
 
@@ -445,7 +462,17 @@ function buildTitle(
 ): string {
   const useHook =
     forceHook || type === "linkedin" || (!isHighSearchIntent(topic) && type === "blog");
-  const template = useHook ? archetype.hook : archetype.seo;
+  // In-Depth Guides get their own authoritative template when one exists.
+  // This guarantees "comprehensive / definitive / complete" language on every
+  // guide headline without forcing awkward prefixes onto blog or LinkedIn copy.
+  let template: string;
+  if (type === "guide" && archetype.guide) {
+    template = archetype.guide;
+  } else if (useHook) {
+    template = archetype.hook;
+  } else {
+    template = archetype.seo;
+  }
   return template
     .replace(/\{topic\}/gi, topic)
     .replace(/\{year\}/gi, String(year));
@@ -803,7 +830,7 @@ const CHECKLIST_ITEMS: Record<ContentType, string[]> = {
 const ARCHETYPE_COLOR: Record<string, string> = {
   "The Blueprint": "text-indigo-500",
   "The Comparison": "text-violet-500",
-  "The Trend Analysis": "text-cyan-600",
+  "The Trendsetter": "text-cyan-600",
   "The Data Dive": "text-emerald-600",
   "The Contrarian": "text-rose-500",
   "The How-To": "text-orange-500",
