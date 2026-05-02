@@ -609,6 +609,7 @@ export default function ContentCalendarGenerator() {
   const [generated, setGenerated] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sortByPriority, setSortByPriority] = useState(false);
+  const [filterTopic, setFilterTopic] = useState<string>("all");
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -639,6 +640,7 @@ export default function ContentCalendarGenerator() {
     setCalendar([]);
     setGenerated(false);
     setSortByPriority(false);
+    setFilterTopic("all");
   };
 
   const generate = () => {
@@ -670,6 +672,24 @@ export default function ContentCalendarGenerator() {
 
   // Sorted flat list for priority view
   const prioritySortedCalendar = [...calendar].sort(
+    (a, b) => b.priorityScore - a.priorityScore,
+  );
+
+  // Topic filter — "all" means no filter
+  const calendarTopics = [...new Set(calendar.map((e) => e.topic))].sort();
+  const filteredCalendar =
+    filterTopic === "all" ? calendar : calendar.filter((e) => e.topic === filterTopic);
+
+  const filteredGroupedByWeek = filteredCalendar.reduce<Record<number, CalendarEntry[]>>(
+    (acc, entry) => {
+      if (!acc[entry.week]) acc[entry.week] = [];
+      acc[entry.week].push(entry);
+      return acc;
+    },
+    {},
+  );
+
+  const filteredPrioritySorted = [...filteredCalendar].sort(
     (a, b) => b.priorityScore - a.priorityScore,
   );
 
@@ -968,8 +988,12 @@ export default function ContentCalendarGenerator() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                      Your {form.timeframe}-Day Calendar — {calendar.length}{" "}
-                      pieces of content
+                      Your {form.timeframe}-Day Calendar —{" "}
+                      {filterTopic === "all" ? (
+                        <>{calendar.length} pieces of content</>
+                      ) : (
+                        <>{filteredCalendar.length} of {calendar.length} pieces · <span className="text-indigo-500">{filterTopic}</span></>
+                      )}
                     </h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {archetypesUsed} distinct headline archetypes ·{" "}
@@ -1027,16 +1051,51 @@ export default function ContentCalendarGenerator() {
                   </div>
                 </div>
 
+                {/* Topic filter bar — only shown when the calendar covers multiple topics */}
+                {calendarTopics.length > 1 && (
+                  <div className="flex flex-wrap items-center gap-1.5 py-1">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-0.5">
+                      Topic:
+                    </span>
+                    <button
+                      onClick={() => setFilterTopic("all")}
+                      className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors ${
+                        filterTopic === "all"
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                      }`}
+                    >
+                      All
+                    </button>
+                    {calendarTopics.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setFilterTopic(filterTopic === t ? "all" : t)}
+                        className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors ${
+                          filterTopic === t
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {/* Calendar rows — date order or priority order */}
                 {sortByPriority ? (
                   /* ── Priority-sorted flat list ─────────────────────────── */
                   <div>
                     <p className="text-[10px] text-muted-foreground px-1 mb-2">
-                      Showing all {calendar.length} pieces ranked highest → lowest SEO opportunity. Toggle back to restore date order.
+                      {filterTopic === "all"
+                        ? `Showing all ${filteredCalendar.length} pieces ranked highest → lowest SEO opportunity.`
+                        : `Showing ${filteredCalendar.length} pieces for "${filterTopic}", ranked highest → lowest.`}{" "}
+                      Toggle back to restore date order.
                     </p>
                     <Card className="border border-emerald-100 shadow-sm overflow-hidden">
                       <div className="divide-y divide-slate-50">
-                        {prioritySortedCalendar.map((entry, i) => (
+                        {filteredPrioritySorted.map((entry, i) => (
                           <motion.div
                             key={i}
                             initial={{ opacity: 0 }}
@@ -1120,7 +1179,7 @@ export default function ContentCalendarGenerator() {
                 ) : (
                   /* ── Date-ordered week groups (default) ───────────────── */
                   <>
-                    {Object.entries(groupedByWeek).map(([week, entries]) => (
+                    {Object.entries(filteredGroupedByWeek).map(([week, entries]) => (
                       <div key={week}>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">
                           Week {week}
