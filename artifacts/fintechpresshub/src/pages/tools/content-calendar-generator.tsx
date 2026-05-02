@@ -1823,6 +1823,28 @@ export default function ContentCalendarGenerator() {
   // Count unique archetypes used — shown as a quality signal
   const archetypesUsed = new Set(calendar.map((e) => e.archetype)).size;
 
+  // ── Topic Colour Legend — per-topic aggregate stats ──────────────────────
+  const topicLegend = form.topics.map((topic) => {
+    const topicEntries = calendar.filter((e) => e.topic === topic);
+    const pieces = topicEntries.length;
+    const avgPriority =
+      pieces > 0
+        ? Math.round(topicEntries.reduce((s, e) => s + e.priorityScore, 0) / pieces)
+        : 0;
+    const typeBucket: Partial<Record<ContentType, number>> = {};
+    for (const e of topicEntries) typeBucket[e.type] = (typeBucket[e.type] ?? 0) + 1;
+    const topType = (
+      Object.entries(typeBucket).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0]?.[0] ?? "blog"
+    ) as ContentType;
+    return {
+      topic,
+      pieces,
+      avgPriority,
+      topType,
+      colorStyle: topicColorStyle(topic, form.topics),
+    };
+  });
+
   // ── Content gap finder ──────────────────────────────────────────────────────
   const coveredByTopic = new Map<string, Set<ContentType>>();
   for (const entry of calendar) {
@@ -2587,6 +2609,102 @@ export default function ContentCalendarGenerator() {
                         {t}
                       </button>
                     ))}
+                  </div>
+                )}
+
+                {/* ── Topic Colour Legend ─────────────────────────────────── */}
+                {topicLegend.length > 0 && (
+                  <div
+                    className={`grid gap-2 ${
+                      topicLegend.length === 1
+                        ? "grid-cols-1"
+                        : topicLegend.length === 2
+                          ? "grid-cols-2"
+                          : "grid-cols-2 sm:grid-cols-3"
+                    }`}
+                  >
+                    {topicLegend.map(
+                      ({ topic, pieces, avgPriority, topType, colorStyle }) => (
+                        <button
+                          key={topic}
+                          type="button"
+                          onClick={() =>
+                            setFilterTopic(filterTopic === topic ? "all" : topic)
+                          }
+                          title={`Click to filter by ${topic}`}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all hover:shadow-sm"
+                          style={{
+                            backgroundColor: colorStyle.backgroundColor,
+                            borderColor:
+                              filterTopic === topic
+                                ? colorStyle.color
+                                : colorStyle.borderColor,
+                            boxShadow:
+                              filterTopic === topic
+                                ? `0 0 0 2px ${colorStyle.borderColor}`
+                                : undefined,
+                          }}
+                        >
+                          {/* Color dot */}
+                          <div
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: colorStyle.borderColor }}
+                          />
+
+                          {/* Topic name + top format */}
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className="text-[11px] font-bold leading-none truncate mb-0.5"
+                              style={{ color: colorStyle.color }}
+                            >
+                              {topic}
+                            </p>
+                            <p
+                              className="text-[9px] leading-none"
+                              style={{ color: colorStyle.color, opacity: 0.65 }}
+                            >
+                              Top: {FORMAT_LABEL[topType]}
+                            </p>
+                          </div>
+
+                          {/* Stats */}
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            <div className="text-center">
+                              <p
+                                className="text-[15px] font-bold leading-none"
+                                style={{ color: colorStyle.color }}
+                              >
+                                {pieces}
+                              </p>
+                              <p
+                                className="text-[8px] leading-none mt-0.5"
+                                style={{ color: colorStyle.color, opacity: 0.55 }}
+                              >
+                                pieces
+                              </p>
+                            </div>
+                            <div
+                              className="w-px h-5 rounded-full opacity-20"
+                              style={{ backgroundColor: colorStyle.color }}
+                            />
+                            <div className="text-center">
+                              <p
+                                className="text-[15px] font-bold leading-none"
+                                style={{ color: colorStyle.color }}
+                              >
+                                {avgPriority}
+                              </p>
+                              <p
+                                className="text-[8px] leading-none mt-0.5"
+                                style={{ color: colorStyle.color, opacity: 0.55 }}
+                              >
+                                avg pri.
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ),
+                    )}
                   </div>
                 )}
 
