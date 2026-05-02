@@ -1164,6 +1164,21 @@ const DISTRIBUTION_CHANNELS: Array<{
   },
 ];
 
+// ─── Reach estimates by search volume tier ────────────────────────────────────
+// Organic readers/mo per piece assumes ~5% average CTR from search ranking.
+// LinkedIn impressions use a 3,500/post baseline for a mid-size B2B account.
+// Email opens assume a 21% open rate on a per-send basis.
+
+const ORGANIC_REACH_BY_TIER: Record<string, number> = {
+  "50K–200K+": 7500,
+  "10K–50K":   2200,
+  "1K–10K":    450,
+  "100–1K":    85,
+  "<100":      15,
+};
+const LINKEDIN_IMPRESSIONS_PER_POST = 3500;
+const EMAIL_OPENS_PER_PIECE_PER_1K_SUBS = 210;
+
 // ─── Per-format publish-ready checklist items ─────────────────────────────────
 // Each content type has its own 6-7 step production checklist. Items are
 // intentionally short so they fit on a single line in the collapsed badge.
@@ -1802,6 +1817,41 @@ export default function ContentCalendarGenerator() {
     return { ...ch, matches, preview, overflow, pct };
   }).filter((ch) => ch.matches.length > 0);
 
+  // ── Estimated Reach Calculator ────────────────────────────────────────────
+  const reachData = form.topics.map((topic) => {
+    const entries = calendar.filter((e) => e.topic === topic);
+    const organicEntries = entries.filter((e) => e.type !== "linkedin");
+    const linkedInEntries = entries.filter((e) => e.type === "linkedin");
+    const emailEntries = entries.filter((e) =>
+      (["blog", "guide", "case-study", "roundup"] as ContentType[]).includes(
+        e.type,
+      ),
+    );
+    const organicReach = organicEntries.reduce(
+      (sum, e) => sum + (ORGANIC_REACH_BY_TIER[e.searchVolume] ?? 85),
+      0,
+    );
+    const linkedInImpressions =
+      linkedInEntries.length * LINKEDIN_IMPRESSIONS_PER_POST;
+    const emailOpens = emailEntries.length * EMAIL_OPENS_PER_PIECE_PER_1K_SUBS;
+    return {
+      topic,
+      entryCount: entries.length,
+      organicReach,
+      linkedInImpressions,
+      emailOpens,
+    };
+  });
+  const totalOrganicReach = reachData.reduce(
+    (s, r) => s + r.organicReach,
+    0,
+  );
+  const totalLinkedInImpressions = reachData.reduce(
+    (s, r) => s + r.linkedInImpressions,
+    0,
+  );
+  const totalEmailOpens = reachData.reduce((s, r) => s + r.emailOpens, 0);
+
   // Content type breakdown for the mix chart
   const typeCounts = (Object.keys(FORMAT_LABEL) as ContentType[])
     .map((type) => ({
@@ -1959,6 +2009,29 @@ export default function ContentCalendarGenerator() {
                       if (e.key === "Enter") {
                         e.preventDefault();
                         addTopic();
+                      }
+                    }}
+                    onPaste={(e) => {
+                      const text = e.clipboardData.getData("text");
+                      const parts = text
+                        .split(/[\n,]+/)
+                        .map((s) => s.trim())
+                        .filter((s) => s.length > 0 && s.length <= 80);
+                      if (parts.length > 1) {
+                        e.preventDefault();
+                        setForm((prev) => {
+                          const existing = new Set(
+                            prev.topics.map((t) => t.toLowerCase()),
+                          );
+                          const toAdd = parts
+                            .filter((p) => !existing.has(p.toLowerCase()))
+                            .slice(0, 12 - prev.topics.length);
+                          return {
+                            ...prev,
+                            topics: [...prev.topics, ...toAdd],
+                            topicInput: "",
+                          };
+                        });
                       }
                     }}
                     className="h-10"
@@ -3357,6 +3430,133 @@ export default function ContentCalendarGenerator() {
                           ),
                         )}
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* ── Estimated Reach Calculator ──────────────────────────── */}
+                {reachData.length > 0 && (
+                  <Card className="border border-slate-100 shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                            Estimated Reach Calculator
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Projected monthly audience potential by channel,
+                            based on search volume tier and content mix.
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-semibold text-muted-foreground shrink-0 pt-0.5 whitespace-nowrap">
+                          {form.timeframe}-day plan
+                        </span>
+                      </div>
+
+                      {/* Aggregate 3-column metrics */}
+                      <div className="grid grid-cols-3 gap-px mb-5 rounded-lg overflow-hidden border border-slate-100">
+                        <div className="bg-slate-50 px-3 py-3 text-center">
+                          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                            Organic Readers
+                          </p>
+                          <p className="text-[17px] font-bold text-indigo-600 leading-none">
+                            {totalOrganicReach.toLocaleString()}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">
+                            per month
+                          </p>
+                        </div>
+                        <div className="bg-slate-50 px-3 py-3 text-center border-x border-slate-100">
+                          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                            LinkedIn Impressions
+                          </p>
+                          <p className="text-[17px] font-bold text-blue-600 leading-none">
+                            {totalLinkedInImpressions > 0
+                              ? totalLinkedInImpressions.toLocaleString()
+                              : "—"}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">
+                            per month
+                          </p>
+                        </div>
+                        <div className="bg-slate-50 px-3 py-3 text-center">
+                          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                            Email Opens
+                          </p>
+                          <p className="text-[17px] font-bold text-purple-600 leading-none">
+                            {totalEmailOpens.toLocaleString()}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">
+                            per 1K subscribers
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Per-topic breakdown */}
+                      <div className="flex flex-col gap-3.5">
+                        {reachData.map(
+                          (
+                            {
+                              topic,
+                              entryCount,
+                              organicReach,
+                              linkedInImpressions,
+                              emailOpens,
+                            },
+                            i,
+                          ) => (
+                            <div key={i} className="space-y-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-[12px] font-semibold text-slate-800 truncate min-w-0">
+                                  {topic}
+                                </p>
+                                <span className="text-[10px] text-muted-foreground shrink-0">
+                                  {entryCount} piece
+                                  {entryCount !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="text-center py-1.5 px-1 rounded-md bg-indigo-50">
+                                  <p className="text-[11px] font-bold text-indigo-700 leading-none">
+                                    {organicReach.toLocaleString()}
+                                  </p>
+                                  <p className="text-[9px] text-indigo-400 mt-0.5">
+                                    organic/mo
+                                  </p>
+                                </div>
+                                <div className="text-center py-1.5 px-1 rounded-md bg-blue-50">
+                                  <p className="text-[11px] font-bold text-blue-700 leading-none">
+                                    {linkedInImpressions > 0
+                                      ? linkedInImpressions.toLocaleString()
+                                      : "—"}
+                                  </p>
+                                  <p className="text-[9px] text-blue-400 mt-0.5">
+                                    impressions
+                                  </p>
+                                </div>
+                                <div className="text-center py-1.5 px-1 rounded-md bg-purple-50">
+                                  <p className="text-[11px] font-bold text-purple-700 leading-none">
+                                    {emailOpens.toLocaleString()}
+                                  </p>
+                                  <p className="text-[9px] text-purple-400 mt-0.5">
+                                    opens/1K
+                                  </p>
+                                </div>
+                              </div>
+                              {i < reachData.length - 1 && (
+                                <div className="border-b border-slate-100 pt-1" />
+                              )}
+                            </div>
+                          ),
+                        )}
+                      </div>
+
+                      <p className="text-[10px] text-muted-foreground mt-4 leading-relaxed border-t border-slate-100 pt-3">
+                        Organic estimates assume ~5% CTR from search ranking.
+                        LinkedIn uses a 3,500 impressions/post baseline. Email
+                        opens use a 21% open rate per send.
+                      </p>
                     </CardContent>
                   </Card>
                 )}
