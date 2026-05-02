@@ -744,7 +744,18 @@ function buildCalendar(form: FormState): CalendarEntry[] {
       // Year is always derived from the actual publish date — locks {year}
       // placeholders to the calendar's real timeframe (e.g. 2026 or 2027).
       const publishYear = d.getFullYear();
-      const topic = topics[postCount % topics.length];
+
+      // ── Interleaved topic assignment ──────────────────────────────────────
+      // With multiple topics we rotate round-robin but ensure no two
+      // consecutive slots share the same topic (swap forward if needed).
+      let topicIndex = postCount % topics.length;
+      if (topics.length > 1 && postCount > 0) {
+        const prevTopic = entries[entries.length - 1]?.topic;
+        if (topics[topicIndex] === prevTopic) {
+          topicIndex = (topicIndex + 1) % topics.length;
+        }
+      }
+      const topic = topics[topicIndex];
 
       // Archetype rotates through the full set across a 30-post cycle
       const cyclePosition = postCount % CYCLE_SIZE;
@@ -955,14 +966,39 @@ function buildSingleEntry(
   };
 }
 
+// ─── Topic color palette (consistent hex per topic, cycling across 10 slots) ──
+
+const TOPIC_HEX_PALETTE = [
+  { bg: "#ecfdf5", border: "#6ee7b7", text: "#065f46" }, // emerald
+  { bg: "#eff6ff", border: "#93c5fd", text: "#1e40af" }, // sapphire/blue
+  { bg: "#fdf4ff", border: "#e879f9", text: "#86198f" }, // fuchsia
+  { bg: "#fff7ed", border: "#fb923c", text: "#9a3412" }, // orange
+  { bg: "#f0fdf4", border: "#86efac", text: "#166534" }, // green
+  { bg: "#fefce8", border: "#fde047", text: "#854d0e" }, // yellow
+  { bg: "#f0f9ff", border: "#7dd3fc", text: "#075985" }, // sky
+  { bg: "#faf5ff", border: "#c084fc", text: "#6b21a8" }, // purple
+  { bg: "#fff1f2", border: "#fda4af", text: "#9f1239" }, // rose
+  { bg: "#f8fafc", border: "#94a3b8", text: "#334155" }, // slate
+];
+
+function topicColorStyle(
+  topic: string,
+  topicList: string[],
+): { backgroundColor: string; borderColor: string; color: string } {
+  const idx = topicList.indexOf(topic);
+  const slot = (idx < 0 ? 0 : idx) % TOPIC_HEX_PALETTE.length;
+  const { bg, border, text } = TOPIC_HEX_PALETTE[slot];
+  return { backgroundColor: bg, borderColor: border, color: text };
+}
+
 // ─── CSV export ───────────────────────────────────────────────────────────────
 
 function exportCSV(entries: CalendarEntry[], companyName: string) {
-  const header = "Week,Date,Topic,Est. Monthly Search Volume,Topic Difficulty (KD),Priority Score,Working Title,Archetype,Content Type,Search Intent,CTA\n";
+  const header = "Week,Date,Topic,Est. Monthly Search Volume,KD (numeric),Topic Difficulty Label,Priority Score (numeric),Priority Label,Working Title,Archetype,Content Type,Search Intent,CTA\n";
   const rows = entries
     .map(
       (e) =>
-        `${e.week},"${e.date}","${e.topic}","${e.searchVolume}","${e.topicDifficulty} / 100 — ${kdLabel(e.topicDifficulty)}","${e.priorityScore} / 100 — ${priorityLabel(e.priorityScore)}","${e.angle}","${e.archetype}","${FORMAT_LABEL[e.type]}","${e.searchIntent}","${e.cta}"`,
+        `${e.week},"${e.date}","${e.topic}","${e.searchVolume}",${e.topicDifficulty},"${kdLabel(e.topicDifficulty)}",${e.priorityScore},"${priorityLabel(e.priorityScore)}","${e.angle}","${e.archetype}","${FORMAT_LABEL[e.type]}","${e.searchIntent}","${e.cta}"`,
     )
     .join("\n");
   const blob = new Blob([header + rows], { type: "text/csv" });
@@ -2759,11 +2795,11 @@ export default function ContentCalendarGenerator() {
                                   {entry.archetype}
                                 </span>
                                 <span className="text-muted-foreground text-[10px]">·</span>
-                                <span className="text-xs text-muted-foreground">
-                                  Topic:{" "}
-                                  <span className="font-medium text-slate-600">
-                                    {entry.topic}
-                                  </span>
+                                <span
+                                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border"
+                                  style={topicColorStyle(entry.topic, form.topics)}
+                                >
+                                  {entry.topic}
                                 </span>
                                 <span className="text-muted-foreground text-[10px]">·</span>
                                 <span
@@ -2805,10 +2841,11 @@ export default function ContentCalendarGenerator() {
                               </span>
                               <button
                                 onClick={() => setBriefEntry(entry)}
-                                title="Open editorial brief"
-                                className="text-slate-300 hover:text-indigo-500 transition-colors"
+                                title="Generate Content Brief"
+                                className="flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors whitespace-nowrap"
                               >
-                                <FileText className="w-3.5 h-3.5" />
+                                <FileText className="w-3 h-3" />
+                                Brief
                               </button>
                             </div>
                           </motion.div>
@@ -2860,11 +2897,11 @@ export default function ContentCalendarGenerator() {
                                       {entry.searchIntent === "SEO Intent" ? "📈 SEO Intent" : "💬 Engagement Intent"}
                                     </span>
                                     <span className="text-muted-foreground text-[10px]">·</span>
-                                    <span className="text-xs text-muted-foreground">
-                                      Topic:{" "}
-                                      <span className="font-medium text-slate-600">
-                                        {entry.topic}
-                                      </span>
+                                    <span
+                                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border"
+                                      style={topicColorStyle(entry.topic, form.topics)}
+                                    >
+                                      {entry.topic}
                                     </span>
                                     <span className="text-muted-foreground text-[10px]">·</span>
                                     <span
@@ -2913,10 +2950,11 @@ export default function ContentCalendarGenerator() {
                                   </span>
                                   <button
                                     onClick={() => setBriefEntry(entry)}
-                                    title="Open editorial brief"
-                                    className="text-slate-300 hover:text-indigo-500 transition-colors"
+                                    title="Generate Content Brief"
+                                    className="flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors whitespace-nowrap"
                                   >
-                                    <FileText className="w-3.5 h-3.5" />
+                                    <FileText className="w-3 h-3" />
+                                    Brief
                                   </button>
                                 </div>
                               </motion.div>
@@ -2927,6 +2965,17 @@ export default function ContentCalendarGenerator() {
                     ))}
                   </>
                 )}
+
+                {/* ── Strategy Summary ────────────────────────────────────── */}
+                <div className="flex items-center gap-3 pt-2">
+                  <div className="h-px flex-1 bg-slate-100" />
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                      Strategy Summary
+                    </span>
+                  </div>
+                  <div className="h-px flex-1 bg-slate-100" />
+                </div>
 
                 {/* ── Content Type Breakdown ──────────────────────────────── */}
                 <Card className="border border-slate-100 shadow-sm">
@@ -4021,25 +4070,35 @@ export default function ContentCalendarGenerator() {
                   </CardContent>
                 </Card>
 
-                <Card className="border border-indigo-100 bg-indigo-50 shadow-sm">
-                  <CardContent className="p-4">
-                    <p className="text-xs text-indigo-800 leading-relaxed">
-                      Need a team to execute this calendar?{" "}
-                      <Link
-                        href="/services"
-                        className="font-semibold underline underline-offset-2 hover:text-indigo-900"
-                      >
-                        See our content services
-                      </Link>{" "}
-                      or{" "}
+                <Card className="border border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 shadow-sm">
+                  <CardContent className="p-5">
+                    <p className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest mb-1">
+                      Ready to execute?
+                    </p>
+                    <p className="text-base font-bold text-indigo-900 leading-snug mb-2">
+                      {form.topics.length > 0
+                        ? `Want to dominate the ${form.topics[0]} niche? Let's talk strategy.`
+                        : "Want to dominate your fintech niche? Let's talk strategy."}
+                    </p>
+                    <p className="text-[11px] text-indigo-700 leading-relaxed mb-3">
+                      This calendar is your blueprint — FintechPressHub turns it
+                      into published, ranked, lead-generating content. No guesswork,
+                      no wasted budget.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
                       <Link
                         href="/contact"
-                        className="font-semibold underline underline-offset-2 hover:text-indigo-900"
+                        className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
                       >
-                        get a free strategy call
+                        Book a free strategy call →
                       </Link>
-                      .
-                    </p>
+                      <Link
+                        href="/services"
+                        className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-4 py-2 rounded-lg border border-indigo-300 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                      >
+                        See content services
+                      </Link>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
