@@ -177,6 +177,44 @@ function kdLabel(kd: number): string {
   return "Very Easy";
 }
 
+// ─── Priority Score ───────────────────────────────────────────────────────────
+// Composite SEO opportunity score (0–100) that weights search volume (65%) and
+// ranking ease (35%). High volume + low KD = top priority; low volume + high
+// KD = avoid until you've built authority.
+
+const VOLUME_POINTS: Record<VolumeTier, number> = {
+  high:    100,
+  medium:  55,
+  low:     25,
+  unknown: 10,
+};
+
+function computePriorityScore(tier: VolumeTier, kd: number): number {
+  const ease = (100 - kd) / 100;
+  return Math.round(VOLUME_POINTS[tier] * 0.65 + ease * 35);
+}
+
+function priorityStyle(score: number): string {
+  if (score >= 80) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (score >= 60) return "bg-blue-50 text-blue-700 border-blue-200";
+  if (score >= 40) return "bg-amber-50 text-amber-700 border-amber-200";
+  return "bg-slate-50 text-slate-500 border-slate-200";
+}
+
+function priorityLabel(score: number): string {
+  if (score >= 80) return "Hot Pick";
+  if (score >= 60) return "Strong";
+  if (score >= 40) return "Moderate";
+  return "Low";
+}
+
+function priorityEmoji(score: number): string {
+  if (score >= 80) return "🔥";
+  if (score >= 60) return "✅";
+  if (score >= 40) return "⚡";
+  return "🧊";
+}
+
 const CADENCE_POSTS_PER_WEEK: Record<Cadence, number> = {
   weekly: 1,
   "2x-week": 2,
@@ -220,6 +258,7 @@ type CalendarEntry = {
   searchIntent: SearchIntent;
   searchVolume: string;
   topicDifficulty: number;
+  priorityScore: number;
 };
 
 // ─── Topics flagged as high search-intent (SEO-driven titles preferred) ──────
@@ -505,6 +544,7 @@ function buildCalendar(form: FormState): CalendarEntry[] {
         searchIntent: resolveSearchIntent(topic, type, isLinkedIn),
         searchVolume: vol.range,
         topicDifficulty: vol.difficulty,
+        priorityScore: computePriorityScore(vol.tier, vol.difficulty),
       });
 
       postCount++;
@@ -518,11 +558,11 @@ function buildCalendar(form: FormState): CalendarEntry[] {
 // ─── CSV export ───────────────────────────────────────────────────────────────
 
 function exportCSV(entries: CalendarEntry[], companyName: string) {
-  const header = "Week,Date,Topic,Est. Monthly Search Volume,Topic Difficulty (KD),Working Title,Archetype,Content Type,Search Intent,CTA\n";
+  const header = "Week,Date,Topic,Est. Monthly Search Volume,Topic Difficulty (KD),Priority Score,Working Title,Archetype,Content Type,Search Intent,CTA\n";
   const rows = entries
     .map(
       (e) =>
-        `${e.week},"${e.date}","${e.topic}","${e.searchVolume}","${e.topicDifficulty} / 100 — ${kdLabel(e.topicDifficulty)}","${e.angle}","${e.archetype}","${FORMAT_LABEL[e.type]}","${e.searchIntent}","${e.cta}"`,
+        `${e.week},"${e.date}","${e.topic}","${e.searchVolume}","${e.topicDifficulty} / 100 — ${kdLabel(e.topicDifficulty)}","${e.priorityScore} / 100 — ${priorityLabel(e.priorityScore)}","${e.angle}","${e.archetype}","${FORMAT_LABEL[e.type]}","${e.searchIntent}","${e.cta}"`,
     )
     .join("\n");
   const blob = new Blob([header + rows], { type: "text/csv" });
@@ -607,7 +647,7 @@ export default function ContentCalendarGenerator() {
     const text = calendar
       .map(
         (e) =>
-          `Week ${e.week} | ${e.date} | ${e.topic} | Vol: ${e.searchVolume} | KD: ${e.topicDifficulty}/100 (${kdLabel(e.topicDifficulty)}) | ${e.angle} | ${FORMAT_LABEL[e.type]} | Intent: ${e.searchIntent} | CTA: ${e.cta}`,
+          `Week ${e.week} | ${e.date} | ${e.topic} | Vol: ${e.searchVolume} | KD: ${e.topicDifficulty}/100 (${kdLabel(e.topicDifficulty)}) | Priority: ${e.priorityScore}/100 (${priorityLabel(e.priorityScore)}) | ${e.angle} | ${FORMAT_LABEL[e.type]} | Intent: ${e.searchIntent} | CTA: ${e.cta}`,
       )
       .join("\n");
     navigator.clipboard.writeText(text);
@@ -842,25 +882,27 @@ export default function ContentCalendarGenerator() {
                   <div className="flex items-center gap-1.5 mb-3">
                     <TrendingUp className="w-4 h-4 text-indigo-600 shrink-0" />
                     <span className="text-sm font-semibold text-indigo-900">
-                      Search Volume &amp; Difficulty Estimates
+                      Search Volume, Difficulty &amp; Priority
                     </span>
                     <span className="text-[11px] text-indigo-500 ml-1">
                       — monthly global, sourced from public SEO tools
                     </span>
                   </div>
                   {/* Column headers */}
-                  <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 mb-1.5">
+                  <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 px-3 mb-1.5">
                     <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide">Topic</span>
                     <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide text-right">Monthly Vol.</span>
                     <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide text-right">KD Score</span>
+                    <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide text-right">Priority</span>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {form.topics.map((t) => {
                       const vol = getSearchVolume(t);
+                      const priority = computePriorityScore(vol.tier, vol.difficulty);
                       return (
                         <div
                           key={t}
-                          className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-center rounded-lg bg-white border border-indigo-100 px-3 py-2"
+                          className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center rounded-lg bg-white border border-indigo-100 px-3 py-2"
                         >
                           <span className="text-xs font-medium text-slate-700 truncate">
                             {t}
@@ -876,14 +918,21 @@ export default function ContentCalendarGenerator() {
                           >
                             {vol.difficulty}
                             <span className="font-normal opacity-70">/ 100</span>
-                            <span className="hidden sm:inline">· {kdLabel(vol.difficulty)}</span>
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${priorityStyle(priority)}`}
+                            title={`SEO priority score: ${priority}/100 — ${priorityLabel(priority)}`}
+                          >
+                            {priorityEmoji(priority)}
+                            <span>{priority}</span>
+                            <span className="hidden sm:inline font-normal">· {priorityLabel(priority)}</span>
                           </span>
                         </div>
                       );
                     })}
                   </div>
                   <p className="text-[10px] text-indigo-400 mt-2.5 leading-relaxed">
-                    Volume estimates are indicative ranges. KD scores (0–100) reflect estimated ranking competition — lower is easier to rank for. Use as directional signals when prioritising topics.
+                    Volume estimates are indicative ranges. KD (0–100) reflects estimated ranking competition. Priority combines volume + ease of ranking into a single SEO opportunity score — higher is better.
                   </p>
                 </div>
               )}
@@ -1012,6 +1061,13 @@ export default function ContentCalendarGenerator() {
                                   title={`Topic difficulty: ${kdLabel(entry.topicDifficulty)}`}
                                 >
                                   KD {entry.topicDifficulty}
+                                </span>
+                                <span className="text-muted-foreground text-[10px]">·</span>
+                                <span
+                                  className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${priorityStyle(entry.priorityScore)}`}
+                                  title={`Priority score: ${entry.priorityScore}/100 — ${priorityLabel(entry.priorityScore)}`}
+                                >
+                                  {priorityEmoji(entry.priorityScore)} {entry.priorityScore}
                                 </span>
                                 <span className="text-muted-foreground text-[10px]">·</span>
                                 <span className="text-xs text-muted-foreground">
