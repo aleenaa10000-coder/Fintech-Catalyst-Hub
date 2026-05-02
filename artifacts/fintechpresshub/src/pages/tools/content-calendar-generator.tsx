@@ -1179,6 +1179,17 @@ const ORGANIC_REACH_BY_TIER: Record<string, number> = {
 const LINKEDIN_IMPRESSIONS_PER_POST = 3500;
 const EMAIL_OPENS_PER_PIECE_PER_1K_SUBS = 210;
 
+// ─── Content ROI Estimator — B2B conversion assumptions ───────────────────────
+// Industry-standard SaaS / fintech B2B content funnel benchmarks.
+// All rates are conservative mid-market estimates — easily editable per client.
+
+const ROI_CONTENT_TO_LEAD_RATE  = 0.02;   // 2%   organic reader  → lead
+const ROI_LINKEDIN_TO_LEAD_RATE = 0.005;  // 0.5% impression      → lead
+const ROI_EMAIL_TO_LEAD_RATE    = 0.03;   // 3%   email open       → lead
+const ROI_MQL_TO_OPP_RATE       = 0.25;   // 25%  lead             → opportunity
+const ROI_CLOSE_RATE            = 0.20;   // 20%  opportunity      → closed-won
+const ROI_AVG_DEAL_VALUE        = 15000;  // $15 K average ARR per deal
+
 // ─── Per-format publish-ready checklist items ─────────────────────────────────
 // Each content type has its own 6-7 step production checklist. Items are
 // intentionally short so they fit on a single line in the collapsed badge.
@@ -1851,6 +1862,31 @@ export default function ContentCalendarGenerator() {
     0,
   );
   const totalEmailOpens = reachData.reduce((s, r) => s + r.emailOpens, 0);
+
+  // ── Content ROI Estimator ─────────────────────────────────────────────────
+  const roiData = reachData.map(
+    ({ topic, organicReach, linkedInImpressions, emailOpens, entryCount }) => {
+      const organicLeads  = Math.round(organicReach       * ROI_CONTENT_TO_LEAD_RATE);
+      const linkedInLeads = Math.round(linkedInImpressions * ROI_LINKEDIN_TO_LEAD_RATE);
+      const emailLeads    = Math.round(emailOpens          * ROI_EMAIL_TO_LEAD_RATE);
+      const totalLeads    = organicLeads + linkedInLeads + emailLeads;
+      const pipeline      = Math.round(
+        totalLeads * ROI_MQL_TO_OPP_RATE * ROI_CLOSE_RATE * ROI_AVG_DEAL_VALUE,
+      );
+      return {
+        topic,
+        entryCount,
+        organicLeads,
+        linkedInLeads,
+        emailLeads,
+        totalLeads,
+        pipeline,
+      };
+    },
+  );
+  const totalRoiLeads    = roiData.reduce((s, r) => s + r.totalLeads, 0);
+  const totalRoiPipeline = roiData.reduce((s, r) => s + r.pipeline, 0);
+  const maxTopicPipeline = Math.max(1, ...roiData.map((r) => r.pipeline));
 
   // Content type breakdown for the mix chart
   const typeCounts = (Object.keys(FORMAT_LABEL) as ContentType[])
@@ -3557,6 +3593,152 @@ export default function ContentCalendarGenerator() {
                         LinkedIn uses a 3,500 impressions/post baseline. Email
                         opens use a 21% open rate per send.
                       </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* ── Content ROI Estimator ───────────────────────────────── */}
+                {roiData.length > 0 && (
+                  <Card className="border border-slate-100 shadow-sm">
+                    <CardContent className="p-5">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                            <TrendingUp className="w-3.5 h-3.5 text-indigo-500" />
+                            Content ROI Estimator
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Projected leads and pipeline value from your content
+                            plan using industry-standard B2B funnel rates.
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-semibold text-muted-foreground shrink-0 pt-0.5 whitespace-nowrap">
+                          {form.timeframe}-day plan
+                        </span>
+                      </div>
+
+                      {/* Aggregate headline metrics */}
+                      <div className="grid grid-cols-2 gap-px mb-5 rounded-lg overflow-hidden border border-slate-100">
+                        <div className="bg-slate-50 px-4 py-3 text-center">
+                          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                            Total Leads Generated
+                          </p>
+                          <p className="text-[22px] font-bold text-indigo-600 leading-none">
+                            {totalRoiLeads.toLocaleString()}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">
+                            across all channels
+                          </p>
+                        </div>
+                        <div className="bg-emerald-50 px-4 py-3 text-center border-l border-slate-100">
+                          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                            Pipeline Value
+                          </p>
+                          <p className="text-[22px] font-bold text-emerald-600 leading-none">
+                            ${totalRoiPipeline.toLocaleString()}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">
+                            estimated ARR potential
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Per-topic rows */}
+                      <div className="flex flex-col gap-4">
+                        {roiData.map(
+                          (
+                            {
+                              topic,
+                              entryCount,
+                              organicLeads,
+                              linkedInLeads,
+                              emailLeads,
+                              totalLeads,
+                              pipeline,
+                            },
+                            i,
+                          ) => {
+                            const barPct = Math.round(
+                              (pipeline / maxTopicPipeline) * 100,
+                            );
+                            return (
+                              <div key={i} className="space-y-2">
+                                {/* Topic + pipeline value */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="text-[12px] font-semibold text-slate-800 truncate">
+                                      {topic}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {entryCount} piece
+                                      {entryCount !== 1 ? "s" : ""} ·{" "}
+                                      {totalLeads} lead
+                                      {totalLeads !== 1 ? "s" : ""}
+                                    </p>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <p className="text-[13px] font-bold text-emerald-600 leading-none">
+                                      ${pipeline.toLocaleString()}
+                                    </p>
+                                    <p className="text-[9px] text-muted-foreground mt-0.5">
+                                      pipeline
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Pipeline bar */}
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full bg-emerald-400 transition-all"
+                                      style={{ width: `${barPct}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground tabular-nums w-8 text-right">
+                                    {barPct}%
+                                  </span>
+                                </div>
+
+                                {/* Lead source breakdown */}
+                                <div className="flex flex-wrap gap-1.5">
+                                  {organicLeads > 0 && (
+                                    <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                      🔍 {organicLeads} organic
+                                    </span>
+                                  )}
+                                  {linkedInLeads > 0 && (
+                                    <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                                      💼 {linkedInLeads} LinkedIn
+                                    </span>
+                                  )}
+                                  {emailLeads > 0 && (
+                                    <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100">
+                                      📧 {emailLeads} email
+                                    </span>
+                                  )}
+                                </div>
+
+                                {i < roiData.length - 1 && (
+                                  <div className="border-b border-slate-100 pt-1" />
+                                )}
+                              </div>
+                            );
+                          },
+                        )}
+                      </div>
+
+                      {/* Assumptions footnote */}
+                      <div className="mt-4 pt-3 border-t border-slate-100 space-y-0.5">
+                        <p className="text-[10px] font-semibold text-slate-500">
+                          Conversion assumptions
+                        </p>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                          Organic 2% → lead · LinkedIn 0.5% · Email 3% · 25%
+                          lead→opp · 20% close · $15K avg deal. Conservative
+                          mid-market B2B SaaS benchmarks.
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
