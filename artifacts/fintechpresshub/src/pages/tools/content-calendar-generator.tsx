@@ -30,6 +30,7 @@ import {
   ScanSearch,
   Table2,
   FileText,
+  LayoutGrid,
 } from "lucide-react";
 
 type Cadence = "weekly" | "2x-week" | "3x-week" | "daily";
@@ -1073,6 +1074,7 @@ export default function ContentCalendarGenerator() {
   const [expandedChecklists, setExpandedChecklists] = useState<Set<string>>(new Set());
   const [briefEntry, setBriefEntry] = useState<CalendarEntry | null>(null);
   const [copiedBrief, setCopiedBrief] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   const entryKey = (e: { date: string; type: string; topic: string }) =>
     `${e.date}|${e.type}|${e.topic}`;
@@ -1125,6 +1127,7 @@ export default function ContentCalendarGenerator() {
     setCheckedItems({});
     setExpandedChecklists(new Set());
     setBriefEntry(null);
+    setShowHeatmap(false);
   };
 
   const generate = () => {
@@ -1614,6 +1617,16 @@ export default function ContentCalendarGenerator() {
                     </Button>
                     <Button
                       size="sm"
+                      variant={showHeatmap ? "default" : "outline"}
+                      onClick={() => setShowHeatmap((h) => !h)}
+                      className={`gap-1.5 ${showHeatmap ? "bg-indigo-600 hover:bg-indigo-700 border-indigo-600 text-white" : ""}`}
+                      title="Toggle priority heatmap — see gaps and high-value slots at a glance"
+                    >
+                      <LayoutGrid className="w-4 h-4" />
+                      Heatmap
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={copyAsText}
                       className="gap-1.5"
@@ -1703,8 +1716,162 @@ export default function ContentCalendarGenerator() {
                   </div>
                 )}
 
-                {/* Calendar rows — date order or priority order */}
-                {sortByPriority ? (
+                {/* Calendar rows — date order, priority order, or heatmap */}
+                {showHeatmap ? (
+                  /* ── Priority Heatmap ─────────────────────────────────── */
+                  <div className="space-y-3">
+                    {/* Legend */}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1">
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide shrink-0">
+                        Priority Score
+                      </span>
+                      {[
+                        { bg: "bg-slate-50 border-dashed border-slate-200", label: "Gap" },
+                        { bg: "bg-slate-100 border-slate-200",              label: "0–39" },
+                        { bg: "bg-amber-100 border-amber-200",              label: "40–54" },
+                        { bg: "bg-amber-300 border-amber-300",              label: "55–69" },
+                        { bg: "bg-emerald-200 border-emerald-300",          label: "70–84" },
+                        { bg: "bg-emerald-500 border-emerald-400",          label: "85–100" },
+                      ].map(({ bg, label }) => (
+                        <span key={label} className="flex items-center gap-1.5">
+                          <span className={`w-3.5 h-3.5 rounded border inline-block ${bg}`} />
+                          <span className="text-[10px] text-slate-500">{label}</span>
+                        </span>
+                      ))}
+                      <span className="text-[10px] text-slate-400">
+                        · Click any cell to open the editorial brief
+                      </span>
+                    </div>
+
+                    {/* Grid */}
+                    <div className="overflow-x-auto rounded-lg border border-slate-100 shadow-sm">
+                      {(() => {
+                        const heatTypes: ContentType[] = [
+                          "blog", "guide", "roundup", "case-study", "linkedin",
+                        ];
+                        const weeks = [
+                          ...new Set(filteredCalendar.map((e) => e.week)),
+                        ].sort((a, b) => a - b);
+                        const cellEntries = (type: ContentType, week: number) =>
+                          filteredCalendar.filter(
+                            (e) => e.type === type && e.week === week,
+                          );
+                        const cellStyle = (entries: CalendarEntry[]) => {
+                          if (!entries.length)
+                            return {
+                              bg: "bg-slate-50",
+                              border: "border-dashed border-slate-200",
+                              text: "text-slate-300",
+                            };
+                          const s = Math.max(
+                            ...entries.map((e) => e.priorityScore),
+                          );
+                          if (s >= 85)
+                            return { bg: "bg-emerald-500", border: "border-transparent", text: "text-white" };
+                          if (s >= 70)
+                            return { bg: "bg-emerald-200", border: "border-transparent", text: "text-emerald-900" };
+                          if (s >= 55)
+                            return { bg: "bg-amber-300",   border: "border-transparent", text: "text-amber-900" };
+                          if (s >= 40)
+                            return { bg: "bg-amber-100",   border: "border-transparent", text: "text-amber-800" };
+                          return { bg: "bg-slate-100", border: "border-transparent", text: "text-slate-600" };
+                        };
+                        return (
+                          <table className="w-full border-collapse bg-white">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-[10px] font-semibold text-slate-400 text-left px-4 py-3 w-28 whitespace-nowrap">
+                                  Format
+                                </th>
+                                {weeks.map((w) => (
+                                  <th
+                                    key={w}
+                                    className="text-[10px] font-semibold text-slate-400 text-center px-2 py-3 whitespace-nowrap"
+                                  >
+                                    Week {w}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {heatTypes.map((type, ri) => (
+                                <tr
+                                  key={type}
+                                  className={
+                                    ri < heatTypes.length - 1
+                                      ? "border-b border-slate-100"
+                                      : ""
+                                  }
+                                >
+                                  <td className="px-4 py-2.5">
+                                    <span
+                                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${TYPE_COLOR[type]}`}
+                                    >
+                                      {FORMAT_LABEL[type]}
+                                    </span>
+                                  </td>
+                                  {weeks.map((week) => {
+                                    const entries = cellEntries(type, week);
+                                    const { bg, border, text } = cellStyle(entries);
+                                    const top = [...entries].sort(
+                                      (a, b) => b.priorityScore - a.priorityScore,
+                                    )[0];
+                                    return (
+                                      <td key={week} className="px-1.5 py-2">
+                                        <div
+                                          className={`rounded-lg border ${border} ${bg} h-14 flex flex-col items-center justify-center transition-opacity ${entries.length ? "cursor-pointer hover:opacity-75" : ""}`}
+                                          style={{ minWidth: "58px" }}
+                                          onClick={() =>
+                                            top && setBriefEntry(top)
+                                          }
+                                          title={
+                                            top
+                                              ? `${top.angle} — Priority ${top.priorityScore}/100. Click to open brief.`
+                                              : "No content scheduled this week"
+                                          }
+                                        >
+                                          {entries.length === 0 ? (
+                                            <span
+                                              className={`text-xl font-light ${text}`}
+                                            >
+                                              —
+                                            </span>
+                                          ) : (
+                                            <>
+                                              <span
+                                                className={`text-base font-bold leading-none ${text}`}
+                                              >
+                                                {Math.max(
+                                                  ...entries.map(
+                                                    (e) => e.priorityScore,
+                                                  ),
+                                                )}
+                                              </span>
+                                              <span
+                                                className={`text-[9px] mt-0.5 leading-tight text-center px-1 ${text} opacity-80`}
+                                              >
+                                                {entries.length > 1
+                                                  ? `${entries.length} posts`
+                                                  : entries[0].topic
+                                                      .split(" ")
+                                                      .slice(0, 2)
+                                                      .join(" ")}
+                                              </span>
+                                            </>
+                                          )}
+                                        </div>
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                ) : sortByPriority ? (
                   /* ── Priority-sorted flat list ─────────────────────────── */
                   <div>
                     <p className="text-[10px] text-muted-foreground px-1 mb-2">
