@@ -75,59 +75,76 @@ type VolumeTier = "high" | "medium" | "low" | "unknown";
 type VolumeEntry = {
   range: string;
   tier: VolumeTier;
+  difficulty: number; // KD score 0–100
 };
 
 const SEARCH_VOLUME_TABLE: Record<string, VolumeEntry> = {
-  "embedded finance":        { range: "5K–12K/mo",   tier: "medium" },
-  "open banking":            { range: "18K–40K/mo",  tier: "high"   },
-  "fintech regulation":      { range: "3K–8K/mo",    tier: "medium" },
-  "crypto & web3":           { range: "50K–150K/mo", tier: "high"   },
-  "crypto":                  { range: "200K+/mo",    tier: "high"   },
-  "web3":                    { range: "40K–90K/mo",  tier: "high"   },
-  "bnpl trends":             { range: "2K–6K/mo",    tier: "low"    },
-  "bnpl":                    { range: "8K–20K/mo",   tier: "medium" },
-  "buy now pay later":       { range: "10K–25K/mo",  tier: "high"   },
-  "neobanks":                { range: "8K–20K/mo",   tier: "medium" },
-  "neobank":                 { range: "10K–25K/mo",  tier: "high"   },
-  "payments innovation":     { range: "1K–3K/mo",    tier: "low"    },
-  "digital payments":        { range: "30K–70K/mo",  tier: "high"   },
-  "ai in lending":           { range: "2K–5K/mo",    tier: "low"    },
-  "ai in fintech":           { range: "8K–18K/mo",   tier: "medium" },
-  "financial inclusion":     { range: "4K–10K/mo",   tier: "medium" },
-  "insurtech":               { range: "6K–15K/mo",   tier: "medium" },
-  "regtech":                 { range: "3K–7K/mo",    tier: "medium" },
-  "defi":                    { range: "40K–100K/mo", tier: "high"   },
-  "decentralized finance":   { range: "12K–30K/mo",  tier: "high"   },
-  "fintech seo":             { range: "500–2K/mo",   tier: "low"    },
-  "content marketing":       { range: "30K–80K/mo",  tier: "high"   },
-  "link building":           { range: "20K–50K/mo",  tier: "high"   },
-  "fintech marketing":       { range: "3K–8K/mo",    tier: "medium" },
-  "challenger bank":         { range: "5K–12K/mo",   tier: "medium" },
-  "payment gateway":         { range: "40K–90K/mo",  tier: "high"   },
-  "blockchain":              { range: "100K+/mo",    tier: "high"   },
-  "wealthtech":              { range: "2K–5K/mo",    tier: "low"    },
-  "robo advisor":            { range: "12K–30K/mo",  tier: "high"   },
-  "lendtech":                { range: "1K–3K/mo",    tier: "low"    },
-  "paytech":                 { range: "1K–3K/mo",    tier: "low"    },
-  "banking as a service":    { range: "6K–14K/mo",   tier: "medium" },
-  "baas":                    { range: "4K–9K/mo",    tier: "medium" },
-  "kyc compliance":          { range: "8K–18K/mo",   tier: "medium" },
-  "aml compliance":          { range: "10K–22K/mo",  tier: "high"   },
-  "fraud prevention":        { range: "15K–35K/mo",  tier: "high"   },
-  "api banking":             { range: "3K–7K/mo",    tier: "medium" },
-  "fintech startup":         { range: "8K–18K/mo",   tier: "medium" },
-  "digital banking":         { range: "25K–60K/mo",  tier: "high"   },
-  "cross-border payments":   { range: "5K–12K/mo",   tier: "medium" },
-  "cbdc":                    { range: "10K–25K/mo",  tier: "high"   },
-  "stablecoin":              { range: "20K–50K/mo",  tier: "high"   },
-  "lending technology":      { range: "3K–7K/mo",    tier: "medium" },
-  "alternative lending":     { range: "4K–9K/mo",    tier: "medium" },
-  "financial technology":    { range: "20K–50K/mo",  tier: "high"   },
+  "embedded finance":        { range: "5K–12K/mo",   tier: "medium", difficulty: 45 },
+  "open banking":            { range: "18K–40K/mo",  tier: "high",   difficulty: 68 },
+  "fintech regulation":      { range: "3K–8K/mo",    tier: "medium", difficulty: 42 },
+  "crypto & web3":           { range: "50K–150K/mo", tier: "high",   difficulty: 82 },
+  "crypto":                  { range: "200K+/mo",    tier: "high",   difficulty: 95 },
+  "web3":                    { range: "40K–90K/mo",  tier: "high",   difficulty: 80 },
+  "bnpl trends":             { range: "2K–6K/mo",    tier: "low",    difficulty: 28 },
+  "bnpl":                    { range: "8K–20K/mo",   tier: "medium", difficulty: 55 },
+  "buy now pay later":       { range: "10K–25K/mo",  tier: "high",   difficulty: 62 },
+  "neobanks":                { range: "8K–20K/mo",   tier: "medium", difficulty: 52 },
+  "neobank":                 { range: "10K–25K/mo",  tier: "high",   difficulty: 58 },
+  "payments innovation":     { range: "1K–3K/mo",    tier: "low",    difficulty: 35 },
+  "digital payments":        { range: "30K–70K/mo",  tier: "high",   difficulty: 72 },
+  "ai in lending":           { range: "2K–5K/mo",    tier: "low",    difficulty: 32 },
+  "ai in fintech":           { range: "8K–18K/mo",   tier: "medium", difficulty: 55 },
+  "financial inclusion":     { range: "4K–10K/mo",   tier: "medium", difficulty: 48 },
+  "insurtech":               { range: "6K–15K/mo",   tier: "medium", difficulty: 50 },
+  "regtech":                 { range: "3K–7K/mo",    tier: "medium", difficulty: 44 },
+  "defi":                    { range: "40K–100K/mo", tier: "high",   difficulty: 78 },
+  "decentralized finance":   { range: "12K–30K/mo",  tier: "high",   difficulty: 65 },
+  "fintech seo":             { range: "500–2K/mo",   tier: "low",    difficulty: 38 },
+  "content marketing":       { range: "30K–80K/mo",  tier: "high",   difficulty: 85 },
+  "link building":           { range: "20K–50K/mo",  tier: "high",   difficulty: 80 },
+  "fintech marketing":       { range: "3K–8K/mo",    tier: "medium", difficulty: 45 },
+  "challenger bank":         { range: "5K–12K/mo",   tier: "medium", difficulty: 48 },
+  "payment gateway":         { range: "40K–90K/mo",  tier: "high",   difficulty: 78 },
+  "blockchain":              { range: "100K+/mo",    tier: "high",   difficulty: 92 },
+  "wealthtech":              { range: "2K–5K/mo",    tier: "low",    difficulty: 30 },
+  "robo advisor":            { range: "12K–30K/mo",  tier: "high",   difficulty: 60 },
+  "lendtech":                { range: "1K–3K/mo",    tier: "low",    difficulty: 22 },
+  "paytech":                 { range: "1K–3K/mo",    tier: "low",    difficulty: 25 },
+  "banking as a service":    { range: "6K–14K/mo",   tier: "medium", difficulty: 52 },
+  "baas":                    { range: "4K–9K/mo",    tier: "medium", difficulty: 40 },
+  "kyc compliance":          { range: "8K–18K/mo",   tier: "medium", difficulty: 55 },
+  "aml compliance":          { range: "10K–22K/mo",  tier: "high",   difficulty: 60 },
+  "fraud prevention":        { range: "15K–35K/mo",  tier: "high",   difficulty: 72 },
+  "api banking":             { range: "3K–7K/mo",    tier: "medium", difficulty: 42 },
+  "fintech startup":         { range: "8K–18K/mo",   tier: "medium", difficulty: 58 },
+  "digital banking":         { range: "25K–60K/mo",  tier: "high",   difficulty: 75 },
+  "cross-border payments":   { range: "5K–12K/mo",   tier: "medium", difficulty: 50 },
+  "cbdc":                    { range: "10K–25K/mo",  tier: "high",   difficulty: 62 },
+  "stablecoin":              { range: "20K–50K/mo",  tier: "high",   difficulty: 70 },
+  "lending technology":      { range: "3K–7K/mo",    tier: "medium", difficulty: 35 },
+  "alternative lending":     { range: "4K–9K/mo",    tier: "medium", difficulty: 40 },
+  "financial technology":    { range: "20K–50K/mo",  tier: "high",   difficulty: 80 },
 };
+
+function estimateTopicDifficulty(topic: string): number {
+  const words = topic.toLowerCase().trim().split(/\s+/);
+  let score = 50;
+  if (words.length === 1) score += 30;
+  else if (words.length === 2) score += 15;
+  else if (words.length === 3) score += 5;
+  else score -= 10;
+  return Math.max(5, Math.min(95, score));
+}
 
 function getSearchVolume(topic: string): VolumeEntry {
   const key = topic.toLowerCase().trim();
-  return SEARCH_VOLUME_TABLE[key] ?? { range: "< 500/mo", tier: "unknown" };
+  return (
+    SEARCH_VOLUME_TABLE[key] ?? {
+      range: "< 500/mo",
+      tier: "unknown",
+      difficulty: estimateTopicDifficulty(topic),
+    }
+  );
 }
 
 const TIER_STYLE: Record<VolumeTier, string> = {
@@ -143,6 +160,22 @@ const TIER_LABEL: Record<VolumeTier, string> = {
   low:     "Low volume",
   unknown: "Custom topic",
 };
+
+function kdStyle(kd: number): string {
+  if (kd >= 75) return "bg-red-50 text-red-700 border-red-200";
+  if (kd >= 55) return "bg-orange-50 text-orange-700 border-orange-200";
+  if (kd >= 35) return "bg-amber-50 text-amber-700 border-amber-200";
+  if (kd >= 20) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  return "bg-green-50 text-green-700 border-green-200";
+}
+
+function kdLabel(kd: number): string {
+  if (kd >= 75) return "Very Hard";
+  if (kd >= 55) return "Hard";
+  if (kd >= 35) return "Medium";
+  if (kd >= 20) return "Easy";
+  return "Very Easy";
+}
 
 const CADENCE_POSTS_PER_WEEK: Record<Cadence, number> = {
   weekly: 1,
@@ -186,6 +219,7 @@ type CalendarEntry = {
   cta: string;
   searchIntent: SearchIntent;
   searchVolume: string;
+  topicDifficulty: number;
 };
 
 // ─── Topics flagged as high search-intent (SEO-driven titles preferred) ──────
@@ -455,6 +489,7 @@ function buildCalendar(form: FormState): CalendarEntry[] {
 
       usedTitlesGlobal.add(title.toLowerCase());
 
+      const vol = getSearchVolume(topic);
       entries.push({
         week: Math.floor(postCount / postsPerWeek) + 1,
         date: d.toLocaleDateString("en-GB", {
@@ -468,7 +503,8 @@ function buildCalendar(form: FormState): CalendarEntry[] {
         type,
         cta: resolveCta(type, postCount),
         searchIntent: resolveSearchIntent(topic, type, isLinkedIn),
-        searchVolume: getSearchVolume(topic).range,
+        searchVolume: vol.range,
+        topicDifficulty: vol.difficulty,
       });
 
       postCount++;
@@ -482,11 +518,11 @@ function buildCalendar(form: FormState): CalendarEntry[] {
 // ─── CSV export ───────────────────────────────────────────────────────────────
 
 function exportCSV(entries: CalendarEntry[], companyName: string) {
-  const header = "Week,Date,Topic,Est. Monthly Search Volume,Working Title,Archetype,Content Type,Search Intent,CTA\n";
+  const header = "Week,Date,Topic,Est. Monthly Search Volume,Topic Difficulty (KD),Working Title,Archetype,Content Type,Search Intent,CTA\n";
   const rows = entries
     .map(
       (e) =>
-        `${e.week},"${e.date}","${e.topic}","${e.searchVolume}","${e.angle}","${e.archetype}","${FORMAT_LABEL[e.type]}","${e.searchIntent}","${e.cta}"`,
+        `${e.week},"${e.date}","${e.topic}","${e.searchVolume}","${e.topicDifficulty} / 100 — ${kdLabel(e.topicDifficulty)}","${e.angle}","${e.archetype}","${FORMAT_LABEL[e.type]}","${e.searchIntent}","${e.cta}"`,
     )
     .join("\n");
   const blob = new Blob([header + rows], { type: "text/csv" });
@@ -571,7 +607,7 @@ export default function ContentCalendarGenerator() {
     const text = calendar
       .map(
         (e) =>
-          `Week ${e.week} | ${e.date} | ${e.topic} | ${e.angle} | ${FORMAT_LABEL[e.type]} | Intent: ${e.searchIntent} | CTA: ${e.cta}`,
+          `Week ${e.week} | ${e.date} | ${e.topic} | Vol: ${e.searchVolume} | KD: ${e.topicDifficulty}/100 (${kdLabel(e.topicDifficulty)}) | ${e.angle} | ${FORMAT_LABEL[e.type]} | Intent: ${e.searchIntent} | CTA: ${e.cta}`,
       )
       .join("\n");
     navigator.clipboard.writeText(text);
@@ -800,47 +836,54 @@ export default function ContentCalendarGenerator() {
                 )}
               </div>
 
-              {/* ── Search Volume Estimator panel ─────────────────────── */}
+              {/* ── Search Volume & Difficulty Estimator panel ────────── */}
               {form.topics.length > 0 && (
                 <div className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
                   <div className="flex items-center gap-1.5 mb-3">
                     <TrendingUp className="w-4 h-4 text-indigo-600 shrink-0" />
                     <span className="text-sm font-semibold text-indigo-900">
-                      Search Volume Estimates
+                      Search Volume &amp; Difficulty Estimates
                     </span>
                     <span className="text-[11px] text-indigo-500 ml-1">
                       — monthly global, sourced from public SEO tools
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {/* Column headers */}
+                  <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 mb-1.5">
+                    <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide">Topic</span>
+                    <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide text-right">Monthly Vol.</span>
+                    <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide text-right">KD Score</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
                     {form.topics.map((t) => {
                       const vol = getSearchVolume(t);
                       return (
                         <div
                           key={t}
-                          className="flex items-center justify-between gap-2 rounded-lg bg-white border border-indigo-100 px-3 py-2"
+                          className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-center rounded-lg bg-white border border-indigo-100 px-3 py-2"
                         >
                           <span className="text-xs font-medium text-slate-700 truncate">
                             {t}
                           </span>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span
-                              className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border ${TIER_STYLE[vol.tier]}`}
-                            >
-                              {vol.range}
-                            </span>
-                            <span className="text-[10px] text-slate-400 hidden sm:inline">
-                              {TIER_LABEL[vol.tier]}
-                            </span>
-                          </div>
+                          <span
+                            className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${TIER_STYLE[vol.tier]}`}
+                          >
+                            {vol.range}
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${kdStyle(vol.difficulty)}`}
+                            title={`Keyword difficulty: ${kdLabel(vol.difficulty)}`}
+                          >
+                            {vol.difficulty}
+                            <span className="font-normal opacity-70">/ 100</span>
+                            <span className="hidden sm:inline">· {kdLabel(vol.difficulty)}</span>
+                          </span>
                         </div>
                       );
                     })}
                   </div>
                   <p className="text-[10px] text-indigo-400 mt-2.5 leading-relaxed">
-                    Estimates are indicative ranges, not guaranteed figures. Actual
-                    search volume varies by region, seasonality, and keyword match
-                    type. Use as a directional signal when prioritising topics.
+                    Volume estimates are indicative ranges. KD scores (0–100) reflect estimated ranking competition — lower is easier to rank for. Use as directional signals when prioritising topics.
                   </p>
                 </div>
               )}
@@ -962,6 +1005,13 @@ export default function ContentCalendarGenerator() {
                                 >
                                   <TrendingUp className="w-2.5 h-2.5" />
                                   {entry.searchVolume}
+                                </span>
+                                <span className="text-muted-foreground text-[10px]">·</span>
+                                <span
+                                  className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${kdStyle(entry.topicDifficulty)}`}
+                                  title={`Topic difficulty: ${kdLabel(entry.topicDifficulty)}`}
+                                >
+                                  KD {entry.topicDifficulty}
                                 </span>
                                 <span className="text-muted-foreground text-[10px]">·</span>
                                 <span className="text-xs text-muted-foreground">
