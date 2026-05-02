@@ -277,7 +277,7 @@ const FORMAT_LABEL: Record<ContentType, string> = {
   guide: "In-Depth Guide",
 };
 
-type SearchIntent = "SEO" | "Engagement";
+type SearchIntent = "SEO Intent" | "Engagement Intent";
 
 type CalendarEntry = {
   week: number;
@@ -423,48 +423,197 @@ const ARCHETYPES: Archetype[] = [
   },
 ];
 
-// ─── Format-specific CTAs ─────────────────────────────────────────────────────
+// ─── Format-specific archetype pools ─────────────────────────────────────────
+// Each content type has a preferred archetype set matching its editorial goal.
+// The engine tries candidates from this pool first within each priority group,
+// then falls back to the full set — the mandatory-mix guarantee is preserved.
 
-const CTAS_BY_TYPE: Record<ContentType, string[]> = {
+const TYPE_ARCHETYPES: Record<ContentType, string[]> = {
   blog: [
-    "Explore our fintech content services",
-    "Subscribe to the FintechPressHub weekly digest",
-    "Book a free 30-minute strategy call",
-    "Read the full case study",
-    "Request your free fintech content audit",
-    "View content retainer pricing",
+    "The Blueprint",
+    "The Contrarian",
+    "The Future",
+    "The Data Dive",
+    "The How-To",
+    "The Warning",
+    "The Why Now",
+    "The Deep Dive",
+    "The Trendsetter",
+    "The Opportunity",
+    "The Comparison",
+    "The Benchmark",
   ],
   guide: [
-    "Download the full whitepaper",
-    "Download the companion content toolkit",
-    "Request a free editorial strategy audit",
-    "Request a personalised content brief",
-    "Book a strategy workshop",
-    "Download our free content brief templates",
-  ],
-  roundup: [
-    "Subscribe to the weekly editorial digest",
-    "Join 2,000+ fintech marketers — subscribe free",
-    "Explore our content marketing services",
-    "Submit a guest post pitch",
-  ],
-  "case-study": [
-    "Book a free strategy call",
-    "See how we build content strategies that convert",
-    "See similar client results",
-    "Request your free content growth audit",
+    "The Authority Guide",
+    "The Blueprint",
+    "The Case Study",
+    "The Deep Dive",
+    "The Data Dive",
+    "The How-To",
+    "The Listicle",
+    "The Insider",
   ],
   linkedin: [
-    "Invite readers to share their take in the comments",
-    "Run a LinkedIn poll on this topic",
-    "Tag a founder who needs to see this",
-    "Share your experience in the comments",
-    "Follow for weekly fintech growth insights",
-    "DM to access the full data breakdown",
+    "The Insider",
+    "The Why Now",
+    "The Contrarian",
+    "The Opportunity",
+    "The Trendsetter",
+    "The Warning",
+    "The Future",
+    "The Data Dive",
+  ],
+  roundup: [
+    "The Listicle",
+    "The Benchmark",
+    "The Trendsetter",
+    "The Comparison",
+    "The Opportunity",
+  ],
+  "case-study": [
+    "The Case Study",
+    "The Data Dive",
+    "The Benchmark",
+    "The Blueprint",
+    "The Insider",
   ],
 };
 
-function resolveCta(type: ContentType, index: number): string {
+// ─── Context-aware CTAs ───────────────────────────────────────────────────────
+// When a topic contains a recognised fintech keyword the engine returns a CTA
+// tailored to that niche. Generic pools below act as the catch-all fallback.
+
+type TopicCtaEntry = { keywords: string[]; ctas: Record<ContentType, string> };
+
+const TOPIC_CTA_OVERRIDES: TopicCtaEntry[] = [
+  {
+    keywords: ["regtech", "regulation", "compliance", "kyc", "aml"],
+    ctas: {
+      blog:         "Request a compliance-focused content audit.",
+      guide:        "Download the RegTech compliance content playbook.",
+      "case-study": "See how we help RegTech brands build regulatory authority.",
+      roundup:      "Subscribe for weekly RegTech intelligence.",
+      linkedin:     "DM us to audit your compliance content strategy.",
+    },
+  },
+  {
+    keywords: ["embedded finance", "embedded"],
+    ctas: {
+      blog:         "Explore our embedded finance content strategy services.",
+      guide:        "Download the embedded finance content blueprint.",
+      "case-study": "See how embedded finance brands build authority with content.",
+      roundup:      "Subscribe for embedded finance insights every week.",
+      linkedin:     "DM us to see the full ROI data breakdown.",
+    },
+  },
+  {
+    keywords: ["open banking", "open finance"],
+    ctas: {
+      blog:         "Request an open banking content strategy session.",
+      guide:        "Download the open banking authority content guide.",
+      "case-study": "See how open banking brands win with thought leadership.",
+      roundup:      "Subscribe for open banking updates from FintechPressHub.",
+      linkedin:     "DM us to discuss your open banking content pipeline.",
+    },
+  },
+  {
+    keywords: ["crypto", "web3", "defi", "blockchain"],
+    ctas: {
+      blog:         "Explore our Web3 and crypto content strategy services.",
+      guide:        "Download the crypto content authority guide.",
+      "case-study": "See how crypto-native brands build trust with content.",
+      roundup:      "Subscribe for weekly Web3 content intelligence.",
+      linkedin:     "DM us for the full crypto content performance data.",
+    },
+  },
+  {
+    keywords: ["payment", "payments"],
+    ctas: {
+      blog:         "Book a payments content strategy consultation.",
+      guide:        "Download the definitive payments content playbook.",
+      "case-study": "See how payments brands scale pipeline with content.",
+      roundup:      "Subscribe for payments industry intelligence.",
+      linkedin:     "DM us to benchmark your payments content against the market.",
+    },
+  },
+  {
+    keywords: ["insurtech", "insurance"],
+    ctas: {
+      blog:         "Request an insurtech content strategy review.",
+      guide:        "Download the insurtech authority content guide.",
+      "case-study": "See how insurtech brands build authority with thought leadership.",
+      roundup:      "Subscribe for weekly insurtech intelligence.",
+      linkedin:     "DM us to see our insurtech content performance data.",
+    },
+  },
+  {
+    keywords: ["lending", "credit", "loan"],
+    ctas: {
+      blog:         "Book a fintech lending content strategy consultation.",
+      guide:        "Download the fintech lending content playbook.",
+      "case-study": "See how lending brands convert with strategic content.",
+      roundup:      "Subscribe for fintech lending market insights.",
+      linkedin:     "DM us to see the AI-in-lending ROI breakdown.",
+    },
+  },
+  {
+    keywords: ["wealth", "wealthtech", "investment"],
+    ctas: {
+      blog:         "Request a wealthtech content strategy audit.",
+      guide:        "Download the wealthtech content authority guide.",
+      "case-study": "See how wealthtech brands build trust with content.",
+      roundup:      "Subscribe for wealthtech content insights.",
+      linkedin:     "DM us to see how top wealthtech brands use content to convert.",
+    },
+  },
+];
+
+const CTAS_BY_TYPE: Record<ContentType, string[]> = {
+  blog: [
+    "Request your free fintech content audit.",
+    "Subscribe to the FintechPressHub weekly digest.",
+    "Book a free 30-minute strategy call.",
+    "Explore our fintech content services.",
+    "View content retainer pricing.",
+    "Download the companion strategy guide.",
+  ],
+  guide: [
+    "Download the full whitepaper.",
+    "Request a free editorial strategy audit.",
+    "Request a personalised content brief.",
+    "Book a strategy workshop.",
+    "Download our free content brief templates.",
+    "Download the companion content toolkit.",
+  ],
+  roundup: [
+    "Subscribe to the weekly editorial digest.",
+    "Join 2,000+ fintech marketers — subscribe free.",
+    "Explore our content marketing services.",
+    "Submit a guest post pitch.",
+  ],
+  "case-study": [
+    "Book a free strategy call.",
+    "See how we build content strategies that convert.",
+    "Request your free content growth audit.",
+    "See similar client results.",
+  ],
+  linkedin: [
+    "DM us to access the full data breakdown.",
+    "Follow for weekly fintech growth insights.",
+    "Tag a founder who needs to see this.",
+    "Share your experience in the comments.",
+    "Run a LinkedIn poll on this topic.",
+    "Invite readers to share their take in the comments.",
+  ],
+};
+
+function resolveCta(type: ContentType, topic: string, index: number): string {
+  const topicLower = topic.toLowerCase();
+  for (const entry of TOPIC_CTA_OVERRIDES) {
+    if (entry.keywords.some((kw) => topicLower.includes(kw))) {
+      return entry.ctas[type];
+    }
+  }
   const pool = CTAS_BY_TYPE[type];
   return pool[index % pool.length];
 }
@@ -478,7 +627,7 @@ function resolveSearchIntent(
 ): SearchIntent {
   const useHook =
     forceHook || type === "linkedin" || (!isHighSearchIntent(topic) && type === "blog");
-  return useHook ? "Engagement" : "SEO";
+  return useHook ? "Engagement Intent" : "SEO Intent";
 }
 
 function buildTitle(
@@ -671,9 +820,19 @@ function buildCalendar(form: FormState): CalendarEntry[] {
         ...otherArchetypes.slice(archetypeIndex % otherArchetypes.length),
         ...otherArchetypes.slice(0, archetypeIndex % otherArchetypes.length),
       ];
+      // Within each priority group prefer archetypes suited to the current
+      // content type. Applied as a stable sort so mandatory-mix is preserved:
+      // if a mandatory archetype is type-appropriate it stays at front; if not,
+      // it falls behind type-matched candidates but is still tried before any
+      // type-unmatched non-mandatory candidates.
+      const typePool = TYPE_ARCHETYPES[type];
+      const reorderByType = (arr: Archetype[]) => [
+        ...arr.filter((a) => typePool.includes(a.name)),
+        ...arr.filter((a) => !typePool.includes(a.name)),
+      ];
       const searchOrder = mustUseMandatory
-        ? mandatoryArchetypes
-        : [...mandatoryArchetypes, ...rotatedOthers];
+        ? reorderByType(mandatoryArchetypes)
+        : [...reorderByType(mandatoryArchetypes), ...reorderByType(rotatedOthers)];
 
       let title = "";
       let chosenArchetype = ARCHETYPES[archetypeIndex];
@@ -730,7 +889,7 @@ function buildCalendar(form: FormState): CalendarEntry[] {
         angle: title,
         archetype: chosenArchetype.name,
         type,
-        cta: resolveCta(type, postCount),
+        cta: resolveCta(type, topic, postCount),
         searchIntent: resolveSearchIntent(topic, type, isLinkedIn),
         searchVolume: vol.range,
         topicDifficulty: vol.difficulty,
@@ -788,7 +947,7 @@ function buildSingleEntry(
     angle,
     archetype: arch.name,
     type,
-    cta: resolveCta(type, existingCount),
+    cta: resolveCta(type, topic, existingCount),
     searchIntent: resolveSearchIntent(topic, type, isLinkedIn),
     searchVolume: vol.range,
     topicDifficulty: vol.difficulty,
@@ -2262,12 +2421,12 @@ export default function ContentCalendarGenerator() {
                                     <span className="text-muted-foreground text-[10px]">·</span>
                                     <span
                                       className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
-                                        entry.searchIntent === "SEO"
+                                        entry.searchIntent === "SEO Intent"
                                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                           : "bg-orange-50 text-orange-600 border-orange-200"
                                       }`}
                                     >
-                                      {entry.searchIntent === "SEO" ? "📈 SEO" : "💬 Engagement"}
+                                      {entry.searchIntent === "SEO Intent" ? "📈 SEO Intent" : "💬 Engagement Intent"}
                                     </span>
                                     <span className="text-muted-foreground text-[10px]">·</span>
                                     <span className="text-xs text-muted-foreground">
