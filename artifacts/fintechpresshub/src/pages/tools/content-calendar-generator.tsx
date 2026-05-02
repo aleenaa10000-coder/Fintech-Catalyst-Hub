@@ -27,6 +27,7 @@ import {
   TrendingUp,
   ArrowDownUp,
   CalendarClock,
+  ScanSearch,
 } from "lucide-react";
 
 type Cadence = "weekly" | "2x-week" | "3x-week" | "daily";
@@ -594,6 +595,31 @@ const TYPE_BAR_COLOR: Record<ContentType, string> = {
   guide: "bg-green-500",
 };
 
+// ─── Content Gap Finder ───────────────────────────────────────────────────────
+
+type ContentGap = {
+  topic: string;
+  missingType: ContentType;
+  vol: VolumeEntry;
+  opportunityScore: number;
+};
+
+const GAP_REASON: Record<ContentType, string> = {
+  blog:          "Best format for capturing organic search traffic",
+  guide:         "Pillar content that ranks for entire keyword clusters",
+  "case-study":  "High-converting proof for bottom-of-funnel queries",
+  roundup:       "Earns backlinks and builds industry authority",
+  linkedin:      "Extends reach to decision-makers and practitioners",
+};
+
+const GAP_TYPE_WEIGHT: Record<ContentType, number> = {
+  blog:         1.00,
+  guide:        0.95,
+  "case-study": 0.85,
+  roundup:      0.70,
+  linkedin:     0.60,
+};
+
 const ARCHETYPE_COLOR: Record<string, string> = {
   "The Blueprint": "text-indigo-500",
   "The Comparison": "text-violet-500",
@@ -712,6 +738,28 @@ export default function ContentCalendarGenerator() {
 
   // Count unique archetypes used — shown as a quality signal
   const archetypesUsed = new Set(calendar.map((e) => e.archetype)).size;
+
+  // ── Content gap finder ──────────────────────────────────────────────────────
+  const coveredByTopic = new Map<string, Set<ContentType>>();
+  for (const entry of calendar) {
+    if (!coveredByTopic.has(entry.topic)) coveredByTopic.set(entry.topic, new Set());
+    coveredByTopic.get(entry.topic)!.add(entry.type);
+  }
+  const allContentGaps: ContentGap[] = [];
+  for (const topic of form.topics) {
+    const covered = coveredByTopic.get(topic) ?? new Set<ContentType>();
+    const vol = getSearchVolume(topic);
+    const base = computePriorityScore(vol.tier, vol.difficulty);
+    for (const type of Object.keys(FORMAT_LABEL) as ContentType[]) {
+      if (!covered.has(type)) {
+        const score = Math.round(base * GAP_TYPE_WEIGHT[type]);
+        if (score >= 25)
+          allContentGaps.push({ topic, missingType: type, vol, opportunityScore: score });
+      }
+    }
+  }
+  allContentGaps.sort((a, b) => b.opportunityScore - a.opportunityScore);
+  const topGaps = allContentGaps.slice(0, 10);
 
   // Content type breakdown for the mix chart
   const typeCounts = (Object.keys(FORMAT_LABEL) as ContentType[])
@@ -1395,6 +1443,85 @@ export default function ContentCalendarGenerator() {
                         </div>
                       ))}
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* ── Content Gap Finder ──────────────────────────────────── */}
+                <Card className="border border-slate-100 shadow-sm">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <ScanSearch className="w-4 h-4 text-indigo-500 shrink-0" />
+                      <p className="text-xs font-semibold text-slate-700">
+                        Content Gap Finder
+                      </p>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mb-4">
+                      Topic × format combinations missing from this calendar, ranked by SEO opportunity. Add them to a future sprint to plug the gaps.
+                    </p>
+
+                    {topGaps.length === 0 ? (
+                      <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3">
+                        <span className="text-base">✅</span>
+                        <p className="text-xs text-emerald-700 font-medium">
+                          Great coverage — no high-opportunity gaps found across your selected topics and formats.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {topGaps.map((gap, i) => (
+                          <div
+                            key={i}
+                            className="grid grid-cols-[auto_auto_1fr_auto] gap-3 items-start rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3 hover:bg-white transition-colors"
+                          >
+                            {/* Opportunity score */}
+                            <div className="pt-0.5">
+                              <span
+                                className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${priorityStyle(gap.opportunityScore)}`}
+                                title={`Gap opportunity score: ${gap.opportunityScore}/100`}
+                              >
+                                {priorityEmoji(gap.opportunityScore)} {gap.opportunityScore}
+                              </span>
+                            </div>
+                            {/* Missing format badge */}
+                            <div className="pt-0.5">
+                              <span
+                                className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${TYPE_COLOR[gap.missingType]}`}
+                              >
+                                {FORMAT_LABEL[gap.missingType]}
+                              </span>
+                            </div>
+                            {/* Topic + reason */}
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-slate-800 truncate">
+                                {gap.topic}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+                                {GAP_REASON[gap.missingType]}
+                              </p>
+                            </div>
+                            {/* Vol + KD chips */}
+                            <div className="flex flex-col gap-1 items-end shrink-0 pt-0.5">
+                              <span
+                                className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${TIER_STYLE[gap.vol.tier]}`}
+                              >
+                                <TrendingUp className="w-2.5 h-2.5" />
+                                {gap.vol.range}
+                              </span>
+                              <span
+                                className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${kdStyle(gap.vol.difficulty)}`}
+                              >
+                                KD {gap.vol.difficulty}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        {allContentGaps.length > 10 && (
+                          <p className="text-[10px] text-muted-foreground text-center pt-1">
+                            +{allContentGaps.length - 10} more gaps not shown — add more topics or expand your timeframe to cover them.
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
