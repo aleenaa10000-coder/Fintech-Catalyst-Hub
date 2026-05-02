@@ -586,6 +586,14 @@ const TYPE_COLOR: Record<ContentType, string> = {
   guide: "bg-green-50 text-green-700 border-green-200",
 };
 
+const TYPE_BAR_COLOR: Record<ContentType, string> = {
+  blog: "bg-blue-500",
+  linkedin: "bg-sky-400",
+  roundup: "bg-purple-400",
+  "case-study": "bg-amber-400",
+  guide: "bg-green-500",
+};
+
 const ARCHETYPE_COLOR: Record<string, string> = {
   "The Blueprint": "text-indigo-500",
   "The Comparison": "text-violet-500",
@@ -649,6 +657,15 @@ export default function ContentCalendarGenerator() {
     setGenerated(true);
   };
 
+  const rebalance = (newFormat: Format) => {
+    const updated = { ...form, format: newFormat };
+    setForm(updated);
+    const result = buildCalendar(updated);
+    setCalendar(result);
+    setFilterTopic("all");
+    setSortByPriority(false);
+  };
+
   const copyAsText = () => {
     const text = calendar
       .map(
@@ -695,6 +712,20 @@ export default function ContentCalendarGenerator() {
 
   // Count unique archetypes used — shown as a quality signal
   const archetypesUsed = new Set(calendar.map((e) => e.archetype)).size;
+
+  // Content type breakdown for the mix chart
+  const typeCounts = (Object.keys(FORMAT_LABEL) as ContentType[])
+    .map((type) => ({
+      type,
+      count: calendar.filter((e) => e.type === type).length,
+      pct:
+        calendar.length > 0
+          ? Math.round(
+              (calendar.filter((e) => e.type === type).length / calendar.length) * 100,
+            )
+          : 0,
+    }))
+    .filter((t) => t.count > 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -1272,6 +1303,100 @@ export default function ContentCalendarGenerator() {
                     ))}
                   </>
                 )}
+
+                {/* ── Content Type Breakdown ──────────────────────────────── */}
+                <Card className="border border-slate-100 shadow-sm">
+                  <CardContent className="p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                      <div>
+                        <p className="text-xs font-semibold text-slate-700">
+                          Content Type Breakdown
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {calendar.length} pieces across {typeCounts.length} format
+                          {typeCounts.length !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                      {/* Rebalance quick-actions */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0">
+                          Rebalance:
+                        </span>
+                        <button
+                          onClick={() => rebalance("blog")}
+                          className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors ${
+                            form.format === "blog"
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600"
+                          }`}
+                          title="Regenerate as blog-only"
+                        >
+                          Blog-Heavy
+                        </button>
+                        <button
+                          onClick={() => rebalance("mixed")}
+                          className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors ${
+                            form.format === "mixed"
+                              ? "bg-indigo-600 text-white border-indigo-600"
+                              : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                          }`}
+                          title="Regenerate as balanced blog + LinkedIn mix"
+                        >
+                          Balanced
+                        </button>
+                        <button
+                          onClick={() => rebalance("linkedin")}
+                          className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors ${
+                            form.format === "linkedin"
+                              ? "bg-sky-500 text-white border-sky-500"
+                              : "bg-white text-slate-600 border-slate-200 hover:border-sky-300 hover:text-sky-600"
+                          }`}
+                          title="Regenerate as LinkedIn-only"
+                        >
+                          LinkedIn-Heavy
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Stacked proportion bar */}
+                    <div className="flex h-3 rounded-full overflow-hidden mb-4 gap-px">
+                      {typeCounts.map(({ type, pct }) => (
+                        <div
+                          key={type}
+                          className={`${TYPE_BAR_COLOR[type]} transition-all first:rounded-l-full last:rounded-r-full`}
+                          style={{ width: `${pct}%` }}
+                          title={`${FORMAT_LABEL[type]}: ${pct}%`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Per-type detail rows */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5">
+                      {typeCounts.map(({ type, count, pct }) => (
+                        <div key={type} className="flex items-center gap-2.5">
+                          <div
+                            className={`w-2 h-2 rounded-full ${TYPE_BAR_COLOR[type]} shrink-0`}
+                          />
+                          <span className="text-xs text-slate-600 flex-1 truncate">
+                            {FORMAT_LABEL[type]}
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-700 tabular-nums">
+                            {count}
+                          </span>
+                          <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${TYPE_BAR_COLOR[type]}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground tabular-nums w-7 text-right">
+                            {pct}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <Card className="border border-indigo-100 bg-indigo-50 shadow-sm">
                   <CardContent className="p-4">
