@@ -25,6 +25,8 @@ import {
   Tag,
   X,
   TrendingUp,
+  ArrowDownUp,
+  CalendarClock,
 } from "lucide-react";
 
 type Cadence = "weekly" | "2x-week" | "3x-week" | "daily";
@@ -606,6 +608,7 @@ export default function ContentCalendarGenerator() {
   const [calendar, setCalendar] = useState<CalendarEntry[]>([]);
   const [generated, setGenerated] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sortByPriority, setSortByPriority] = useState(false);
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -635,6 +638,7 @@ export default function ContentCalendarGenerator() {
     setForm(DEFAULTS);
     setCalendar([]);
     setGenerated(false);
+    setSortByPriority(false);
   };
 
   const generate = () => {
@@ -662,6 +666,11 @@ export default function ContentCalendarGenerator() {
       return acc;
     },
     {},
+  );
+
+  // Sorted flat list for priority view
+  const prioritySortedCalendar = [...calendar].sort(
+    (a, b) => b.priorityScore - a.priorityScore,
   );
 
   // Count unique archetypes used — shown as a quality signal
@@ -971,6 +980,25 @@ export default function ContentCalendarGenerator() {
                   <div className="flex gap-2">
                     <Button
                       size="sm"
+                      variant={sortByPriority ? "default" : "outline"}
+                      onClick={() => setSortByPriority((p) => !p)}
+                      className={`gap-1.5 ${sortByPriority ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-white" : ""}`}
+                      title={sortByPriority ? "Switch to date order" : "Sort by SEO priority score"}
+                    >
+                      {sortByPriority ? (
+                        <>
+                          <ArrowDownUp className="w-4 h-4" />
+                          By Priority
+                        </>
+                      ) : (
+                        <>
+                          <CalendarClock className="w-4 h-4" />
+                          By Date
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={copyAsText}
                       className="gap-1.5"
@@ -999,25 +1027,37 @@ export default function ContentCalendarGenerator() {
                   </div>
                 </div>
 
-                {/* Calendar rows grouped by week */}
-                {Object.entries(groupedByWeek).map(([week, entries]) => (
-                  <div key={week}>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">
-                      Week {week}
+                {/* Calendar rows — date order or priority order */}
+                {sortByPriority ? (
+                  /* ── Priority-sorted flat list ─────────────────────────── */
+                  <div>
+                    <p className="text-[10px] text-muted-foreground px-1 mb-2">
+                      Showing all {calendar.length} pieces ranked highest → lowest SEO opportunity. Toggle back to restore date order.
                     </p>
-                    <Card className="border border-slate-100 shadow-sm overflow-hidden">
+                    <Card className="border border-emerald-100 shadow-sm overflow-hidden">
                       <div className="divide-y divide-slate-50">
-                        {entries.map((entry, i) => (
+                        {prioritySortedCalendar.map((entry, i) => (
                           <motion.div
                             key={i}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            transition={{ delay: i * 0.04 }}
-                            className="grid grid-cols-[auto_1fr_auto] gap-4 items-start px-5 py-4 hover:bg-slate-50/60 transition-colors"
+                            transition={{ delay: i * 0.025 }}
+                            className="grid grid-cols-[auto_auto_1fr_auto] gap-4 items-start px-5 py-4 hover:bg-slate-50/60 transition-colors"
                           >
-                            <div className="min-w-[80px] pt-0.5">
-                              <span className="text-xs font-semibold text-slate-500">
-                                {entry.date}
+                            {/* Rank */}
+                            <div className="pt-0.5 min-w-[28px] text-right">
+                              <span className="text-[11px] font-bold text-slate-400">
+                                #{i + 1}
+                              </span>
+                            </div>
+                            {/* Priority score badge — prominent in this view */}
+                            <div className="pt-0.5">
+                              <span
+                                className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${priorityStyle(entry.priorityScore)}`}
+                                title={`Priority score: ${entry.priorityScore}/100 — ${priorityLabel(entry.priorityScore)}`}
+                              >
+                                {priorityEmoji(entry.priorityScore)}
+                                <span>{entry.priorityScore}</span>
                               </span>
                             </div>
                             <div className="space-y-1">
@@ -1025,20 +1065,14 @@ export default function ContentCalendarGenerator() {
                                 {entry.angle}
                               </p>
                               <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                <span className="text-[10px] text-slate-400">
+                                  Wk {entry.week} · {entry.date}
+                                </span>
+                                <span className="text-muted-foreground text-[10px]">·</span>
                                 <span
                                   className={`text-[10px] font-semibold ${ARCHETYPE_COLOR[entry.archetype] ?? "text-slate-400"}`}
                                 >
                                   {entry.archetype}
-                                </span>
-                                <span className="text-muted-foreground text-[10px]">·</span>
-                                <span
-                                  className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
-                                    entry.searchIntent === "SEO"
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                      : "bg-orange-50 text-orange-600 border-orange-200"
-                                  }`}
-                                >
-                                  {entry.searchIntent === "SEO" ? "📈 SEO" : "💬 Engagement"}
                                 </span>
                                 <span className="text-muted-foreground text-[10px]">·</span>
                                 <span className="text-xs text-muted-foreground">
@@ -1063,13 +1097,6 @@ export default function ContentCalendarGenerator() {
                                   KD {entry.topicDifficulty}
                                 </span>
                                 <span className="text-muted-foreground text-[10px]">·</span>
-                                <span
-                                  className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${priorityStyle(entry.priorityScore)}`}
-                                  title={`Priority score: ${entry.priorityScore}/100 — ${priorityLabel(entry.priorityScore)}`}
-                                >
-                                  {priorityEmoji(entry.priorityScore)} {entry.priorityScore}
-                                </span>
-                                <span className="text-muted-foreground text-[10px]">·</span>
                                 <span className="text-xs text-muted-foreground">
                                   CTA:{" "}
                                   <span className="font-medium text-slate-600">
@@ -1090,7 +1117,102 @@ export default function ContentCalendarGenerator() {
                       </div>
                     </Card>
                   </div>
-                ))}
+                ) : (
+                  /* ── Date-ordered week groups (default) ───────────────── */
+                  <>
+                    {Object.entries(groupedByWeek).map(([week, entries]) => (
+                      <div key={week}>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">
+                          Week {week}
+                        </p>
+                        <Card className="border border-slate-100 shadow-sm overflow-hidden">
+                          <div className="divide-y divide-slate-50">
+                            {entries.map((entry, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: i * 0.04 }}
+                                className="grid grid-cols-[auto_1fr_auto] gap-4 items-start px-5 py-4 hover:bg-slate-50/60 transition-colors"
+                              >
+                                <div className="min-w-[80px] pt-0.5">
+                                  <span className="text-xs font-semibold text-slate-500">
+                                    {entry.date}
+                                  </span>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm font-semibold text-slate-900 leading-snug">
+                                    {entry.angle}
+                                  </p>
+                                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                    <span
+                                      className={`text-[10px] font-semibold ${ARCHETYPE_COLOR[entry.archetype] ?? "text-slate-400"}`}
+                                    >
+                                      {entry.archetype}
+                                    </span>
+                                    <span className="text-muted-foreground text-[10px]">·</span>
+                                    <span
+                                      className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
+                                        entry.searchIntent === "SEO"
+                                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                          : "bg-orange-50 text-orange-600 border-orange-200"
+                                      }`}
+                                    >
+                                      {entry.searchIntent === "SEO" ? "📈 SEO" : "💬 Engagement"}
+                                    </span>
+                                    <span className="text-muted-foreground text-[10px]">·</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      Topic:{" "}
+                                      <span className="font-medium text-slate-600">
+                                        {entry.topic}
+                                      </span>
+                                    </span>
+                                    <span className="text-muted-foreground text-[10px]">·</span>
+                                    <span
+                                      className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${TIER_STYLE[getSearchVolume(entry.topic).tier]}`}
+                                      title="Estimated monthly search volume"
+                                    >
+                                      <TrendingUp className="w-2.5 h-2.5" />
+                                      {entry.searchVolume}
+                                    </span>
+                                    <span className="text-muted-foreground text-[10px]">·</span>
+                                    <span
+                                      className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${kdStyle(entry.topicDifficulty)}`}
+                                      title={`Topic difficulty: ${kdLabel(entry.topicDifficulty)}`}
+                                    >
+                                      KD {entry.topicDifficulty}
+                                    </span>
+                                    <span className="text-muted-foreground text-[10px]">·</span>
+                                    <span
+                                      className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${priorityStyle(entry.priorityScore)}`}
+                                      title={`Priority score: ${entry.priorityScore}/100 — ${priorityLabel(entry.priorityScore)}`}
+                                    >
+                                      {priorityEmoji(entry.priorityScore)} {entry.priorityScore}
+                                    </span>
+                                    <span className="text-muted-foreground text-[10px]">·</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      CTA:{" "}
+                                      <span className="font-medium text-slate-600">
+                                        {entry.cta}
+                                      </span>
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="pt-0.5">
+                                  <span
+                                    className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 whitespace-nowrap ${TYPE_COLOR[entry.type]}`}
+                                  >
+                                    {FORMAT_LABEL[entry.type]}
+                                  </span>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </Card>
+                      </div>
+                    ))}
+                  </>
+                )}
 
                 <Card className="border border-indigo-100 bg-indigo-50 shadow-sm">
                   <CardContent className="p-4">
