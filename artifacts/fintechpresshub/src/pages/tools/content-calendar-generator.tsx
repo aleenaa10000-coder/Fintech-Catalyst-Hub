@@ -497,11 +497,27 @@ function buildCalendar(form: FormState): CalendarEntry[] {
   // ── Deduplication ──────────────────────────────────────────────────────────
   const usedTitlesGlobal = new Set<string>();
 
-  // ── Prefix diversity guard ─────────────────────────────────────────────────
-  // No headline opening phrase (first 4 words) may repeat more than twice
-  // across the entire calendar — enforces a human editorial style guide.
-  const prefixCount = new Map<string, number>();
-  const MAX_PREFIX_REPEATS = 2;
+  // ── Prefix diversity guard — per 30-post cycle ────────────────────────────
+  // Within each 30-post cycle a headline opening phrase (first 4 words) may
+  // not repeat more than MAX_PREFIX_REPEATS times. The map resets at every
+  // cycle boundary so a 60- or 90-day calendar is not penalised for variety
+  // choices made in earlier months.
+  let prefixCount = new Map<string, number>();
+  const MAX_PREFIX_REPEATS = 3;
+
+  // ── Mandatory archetype mix — per 30-post cycle ───────────────────────────
+  // Every 30-post cycle must contain at least one piece framed through each
+  // of these four cornerstone archetypes. Together they guarantee the
+  // editorial breadth a senior content strategist expects: proof via case
+  // study, intellectual challenge via contrarian angle, credibility via data,
+  // and actionability via step-by-step blueprint.
+  const MANDATORY_ARCHETYPES = [
+    "The Case Study",   // social proof / bottom-of-funnel
+    "The Contrarian",   // opinion / thought leadership
+    "The Data Dive",    // data-led / authoritative
+    "The Blueprint",    // actionable / step-by-step
+  ];
+  let mandatoryUsedThisCycle = new Set<string>();
 
   // ── Strategic guide spacing ────────────────────────────────────────────────
   // In-Depth Guides must be spaced ≥ 3 calendar days apart to reflect a
@@ -529,6 +545,14 @@ function buildCalendar(form: FormState): CalendarEntry[] {
       // Archetype rotates through the full set across a 30-post cycle
       const cyclePosition = postCount % CYCLE_SIZE;
       const archetypeIndex = cyclePosition % ARCHETYPES.length;
+
+      // ── Reset per-cycle trackers at every cycle boundary ─────────────────
+      // This scopes both the prefix-diversity rule and mandatory-mix rule to
+      // individual 30-day windows rather than the entire calendar span.
+      if (cyclePosition === 0 && postCount > 0) {
+        prefixCount = new Map<string, number>();
+        mandatoryUsedThisCycle = new Set<string>();
+      }
 
       // ── Determine content type ────────────────────────────────────────────
       let type: ContentType;
@@ -562,16 +586,44 @@ function buildCalendar(form: FormState): CalendarEntry[] {
 
       const isLinkedIn = type === "linkedin";
 
-      // ── Title selection: prefix-diversity + dedup guards ──────────────────
-      // Walk all archetypes starting from the scheduled index. Accept the
-      // first candidate that (a) is not an exact duplicate AND (b) whose
-      // first-4-word prefix hasn't appeared ≥ MAX_PREFIX_REPEATS times yet.
+      // ── Title selection: mandatory-mix + prefix-diversity + dedup ────────
+      // Candidate archetypes are ranked so that:
+      //   1. Mandatory archetypes not yet used this cycle appear first.
+      //   2. If the number of remaining slots in the cycle equals the number
+      //      of still-missing mandatory archetypes (hard-reserve trigger), the
+      //      engine ONLY considers mandatory candidates for this slot — this
+      //      guarantees full coverage even in dense calendars.
+      //   3. Within each group the normal cycle-position rotation applies.
+      //   4. Prefix diversity (≤ MAX_PREFIX_REPEATS per 30-post window) and
+      //      global deduplication are still enforced as gates.
+      const mandatoryMissing = MANDATORY_ARCHETYPES.filter(
+        (n) => !mandatoryUsedThisCycle.has(n),
+      );
+      const remainingInCycle = CYCLE_SIZE - cyclePosition;
+      const mustUseMandatory = mandatoryMissing.length > 0 &&
+        remainingInCycle <= mandatoryMissing.length;
+
+      // Build a search order: mandatory-missing archetypes first (preserving
+      // their internal order), then all others starting from archetypeIndex.
+      const mandatoryArchetypes = ARCHETYPES.filter((a) =>
+        mandatoryMissing.includes(a.name),
+      );
+      const otherArchetypes = ARCHETYPES.filter(
+        (a) => !mandatoryMissing.includes(a.name),
+      );
+      // Rotate others so the scheduled archetype index leads.
+      const rotatedOthers = [
+        ...otherArchetypes.slice(archetypeIndex % otherArchetypes.length),
+        ...otherArchetypes.slice(0, archetypeIndex % otherArchetypes.length),
+      ];
+      const searchOrder = mustUseMandatory
+        ? mandatoryArchetypes
+        : [...mandatoryArchetypes, ...rotatedOthers];
+
       let title = "";
       let chosenArchetype = ARCHETYPES[archetypeIndex];
 
-      for (let offset = 0; offset < ARCHETYPES.length; offset++) {
-        const idx = (archetypeIndex + offset) % ARCHETYPES.length;
-        const arch = ARCHETYPES[idx];
+      for (const arch of searchOrder) {
         const candidate = buildTitle(arch, topic, publishYear, type, isLinkedIn);
 
         if (usedTitlesGlobal.has(candidate.toLowerCase())) continue;
@@ -582,18 +634,28 @@ function buildCalendar(form: FormState): CalendarEntry[] {
         title = candidate;
         chosenArchetype = arch;
         prefixCount.set(prefix, (prefixCount.get(prefix) ?? 0) + 1);
+        if (MANDATORY_ARCHETYPES.includes(arch.name)) {
+          mandatoryUsedThisCycle.add(arch.name);
+        }
         break;
       }
 
-      // Final fallback: volume suffix guarantees uniqueness even when all
-      // archetypes are exhausted for a given topic.
+      // Final fallback: prefer a missing mandatory archetype if possible so
+      // the coverage guarantee degrades gracefully rather than silently fails.
       if (!title) {
-        const base = buildTitle(
-          ARCHETYPES[archetypeIndex], topic, publishYear, type, isLinkedIn,
-        );
+        const fallbackArch =
+          mandatoryMissing.length > 0
+            ? (ARCHETYPES.find((a) => a.name === mandatoryMissing[0]) ??
+              ARCHETYPES[archetypeIndex])
+            : ARCHETYPES[archetypeIndex];
+        const base = buildTitle(fallbackArch, topic, publishYear, type, isLinkedIn);
         title = `${base} — Vol. ${Math.floor(postCount / ARCHETYPES.length) + 2}`;
+        chosenArchetype = fallbackArch;
         const prefix = extractPrefix(title);
         prefixCount.set(prefix, (prefixCount.get(prefix) ?? 0) + 1);
+        if (MANDATORY_ARCHETYPES.includes(fallbackArch.name)) {
+          mandatoryUsedThisCycle.add(fallbackArch.name);
+        }
       }
 
       usedTitlesGlobal.add(title.toLowerCase());
