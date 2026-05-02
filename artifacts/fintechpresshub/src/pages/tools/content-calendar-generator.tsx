@@ -28,6 +28,7 @@ import {
   ArrowDownUp,
   CalendarClock,
   ScanSearch,
+  Table2,
 } from "lucide-react";
 
 type Cadence = "weekly" | "2x-week" | "3x-week" | "daily";
@@ -642,6 +643,7 @@ export default function ContentCalendarGenerator() {
   const [calendar, setCalendar] = useState<CalendarEntry[]>([]);
   const [generated, setGenerated] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedNotion, setCopiedNotion] = useState(false);
   const [sortByPriority, setSortByPriority] = useState(false);
   const [filterTopic, setFilterTopic] = useState<string>("all");
 
@@ -675,6 +677,7 @@ export default function ContentCalendarGenerator() {
     setGenerated(false);
     setSortByPriority(false);
     setFilterTopic("all");
+    setCopiedNotion(false);
   };
 
   const generate = () => {
@@ -702,6 +705,32 @@ export default function ContentCalendarGenerator() {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyAsNotion = () => {
+    const toRow = (cols: string[]) => `| ${cols.join(" | ")} |`;
+    const headers = [
+      "#", "Week", "Date", "Topic", "Working Title",
+      "Format", "Search Intent", "Volume", "KD Score", "Priority", "CTA",
+    ];
+    const sep = headers.map(() => "---");
+    const rows = calendar.map((e, i) => [
+      String(i + 1),
+      `Week ${e.week}`,
+      e.date,
+      e.topic,
+      e.angle,
+      FORMAT_LABEL[e.type],
+      e.searchIntent,
+      e.searchVolume,
+      `${e.topicDifficulty}/100 · ${kdLabel(e.topicDifficulty)}`,
+      `${e.priorityScore}/100 · ${priorityLabel(e.priorityScore)}`,
+      e.cta,
+    ]);
+    const table = [toRow(headers), toRow(sep), ...rows.map(toRow)].join("\n");
+    navigator.clipboard.writeText(table);
+    setCopiedNotion(true);
+    setTimeout(() => setCopiedNotion(false), 2500);
   };
 
   const groupedByWeek = calendar.reduce<Record<number, CalendarEntry[]>>(
@@ -1115,6 +1144,25 @@ export default function ContentCalendarGenerator() {
                         <>
                           <Copy className="w-4 h-4" />
                           Copy
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={copyAsNotion}
+                      className="gap-1.5"
+                      title="Copy as a Markdown table — paste directly into any Notion page or database"
+                    >
+                      {copiedNotion ? (
+                        <>
+                          <Check className="w-4 h-4 text-green-600" />
+                          Pasted!
+                        </>
+                      ) : (
+                        <>
+                          <Table2 className="w-4 h-4" />
+                          Notion
                         </>
                       )}
                     </Button>
