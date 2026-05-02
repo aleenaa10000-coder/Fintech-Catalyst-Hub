@@ -1180,6 +1180,42 @@ export default function ContentCalendarGenerator() {
     setTimeout(() => setCopiedNotion(false), 2500);
   };
 
+  const exportAllBriefs = () => {
+    const dateStr = new Date().toISOString().split("T")[0];
+    const companySlug = (form.companyName || "calendar")
+      .replace(/\s+/g, "-")
+      .toLowerCase();
+
+    const docHeader = [
+      `# ${form.companyName || "Content Calendar"} — Full Editorial Brief Pack`,
+      ``,
+      `**Generated:** ${dateStr}`,
+      `**Total entries:** ${calendar.length}`,
+      `**Timeframe:** ${form.timeframe} days | **Cadence:** ${form.cadence}`,
+      `**Topics:** ${form.topics.join(", ")}`,
+      ``,
+      `---`,
+      ``,
+    ].join("\n");
+
+    const allBriefs = calendar
+      .map(
+        (e, i) =>
+          `## Entry ${i + 1} of ${calendar.length}\n\n${generateBrief(e)}`,
+      )
+      .join("\n\n---\n\n");
+
+    const blob = new Blob([docHeader + allBriefs], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `editorial-briefs-${companySlug}-${dateStr}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const groupedByWeek = calendar.reduce<Record<number, CalendarEntry[]>>(
     (acc, entry) => {
       if (!acc[entry.week]) acc[entry.week] = [];
@@ -1621,6 +1657,16 @@ export default function ContentCalendarGenerator() {
                     >
                       <Download className="w-4 h-4" />
                       Export CSV
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={exportAllBriefs}
+                      className="gap-1.5"
+                      title="Download all editorial briefs as a single Notion-ready markdown file"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Export Briefs
                     </Button>
                   </div>
                 </div>
