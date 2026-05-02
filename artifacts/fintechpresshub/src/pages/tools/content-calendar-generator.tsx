@@ -1092,6 +1092,78 @@ function clusterStatus(count: number): {
   };
 }
 
+// ─── Distribution channel definitions ─────────────────────────────────────────
+// Each channel specifies which content types and archetypes map to it, an
+// optional minimum priority score gate, and a one-line distribution tip.
+
+const DISTRIBUTION_CHANNELS: Array<{
+  id: string;
+  label: string;
+  icon: string;
+  colorClasses: string;
+  barColor: string;
+  matchTypes: ContentType[];
+  matchArchetypes: string[];
+  minPriorityScore: number;
+  tip: string;
+}> = [
+  {
+    id: "email",
+    label: "Email Newsletter",
+    icon: "📧",
+    colorClasses: "text-purple-700 bg-purple-50 border-purple-200",
+    barColor: "bg-purple-400",
+    matchTypes: ["blog", "guide", "case-study", "roundup"],
+    matchArchetypes: ["The Data Dive", "The Blueprint", "The Case Study"],
+    minPriorityScore: 0,
+    tip: "Lead with a strong hook line and a single CTA link to the full piece.",
+  },
+  {
+    id: "linkedin",
+    label: "LinkedIn",
+    icon: "💼",
+    colorClasses: "text-blue-700 bg-blue-50 border-blue-200",
+    barColor: "bg-blue-400",
+    matchTypes: ["linkedin", "case-study"],
+    matchArchetypes: ["The Contrarian", "The Trendsetter", "The Case Study"],
+    minPriorityScore: 0,
+    tip: "Open with a one-line provocation; end with a question to drive comments.",
+  },
+  {
+    id: "seo",
+    label: "Organic Search",
+    icon: "🔍",
+    colorClasses: "text-emerald-700 bg-emerald-50 border-emerald-200",
+    barColor: "bg-emerald-400",
+    matchTypes: ["blog", "guide"],
+    matchArchetypes: ["The Data Dive", "The Blueprint"],
+    minPriorityScore: 0,
+    tip: "Publish, request indexing, then add 2–3 internal links from existing pages.",
+  },
+  {
+    id: "paid",
+    label: "Paid Amplification",
+    icon: "📣",
+    colorClasses: "text-orange-700 bg-orange-50 border-orange-200",
+    barColor: "bg-orange-400",
+    matchTypes: ["case-study", "guide"],
+    matchArchetypes: ["The Data Dive", "The Blueprint"],
+    minPriorityScore: 65,
+    tip: "Reserve budget for priority score 65+; retarget engaged readers with a follow-up offer.",
+  },
+  {
+    id: "community",
+    label: "Community & Forums",
+    icon: "🗣️",
+    colorClasses: "text-rose-700 bg-rose-50 border-rose-200",
+    barColor: "bg-rose-400",
+    matchTypes: ["blog", "roundup"],
+    matchArchetypes: ["The Contrarian", "The Data Dive", "The Blueprint"],
+    minPriorityScore: 0,
+    tip: "Post a summary thread on relevant Slack groups or subreddits; link to the full piece.",
+  },
+];
+
 // ─── Per-format publish-ready checklist items ─────────────────────────────────
 // Each content type has its own 6-7 step production checklist. Items are
 // intentionally short so they fit on a single line in the collapsed badge.
@@ -1712,6 +1784,23 @@ export default function ContentCalendarGenerator() {
       status: clusterStatus(clusterEntries.length),
     };
   });
+
+  // ── Distribution Channels Planner ─────────────────────────────────────────
+  const channelBreakdown = DISTRIBUTION_CHANNELS.map((ch) => {
+    const matches = calendar.filter(
+      (e) =>
+        (ch.matchTypes.includes(e.type) ||
+          ch.matchArchetypes.includes(e.archetype)) &&
+        e.priorityScore >= ch.minPriorityScore,
+    );
+    const preview = matches.slice(0, 3);
+    const overflow = matches.length - preview.length;
+    const pct =
+      calendar.length > 0
+        ? Math.round((matches.length / calendar.length) * 100)
+        : 0;
+    return { ...ch, matches, preview, overflow, pct };
+  }).filter((ch) => ch.matches.length > 0);
 
   // Content type breakdown for the mix chart
   const typeCounts = (Object.keys(FORMAT_LABEL) as ContentType[])
@@ -3151,6 +3240,121 @@ export default function ContentCalendarGenerator() {
                               </div>
                             );
                           },
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* ── Distribution Channels Planner ───────────────────────── */}
+                {channelBreakdown.length > 0 && (
+                  <Card className="border border-slate-100 shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                            <ArrowDownUp className="w-3.5 h-3.5 text-indigo-500" />
+                            Distribution Channels Planner
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Recommended promotion channels matched to your
+                            content by type and archetype, with distribution
+                            briefs.
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-semibold text-muted-foreground shrink-0 pt-0.5 whitespace-nowrap">
+                          {channelBreakdown.length} channel
+                          {channelBreakdown.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-5">
+                        {channelBreakdown.map(
+                          (
+                            {
+                              id,
+                              label,
+                              icon,
+                              colorClasses,
+                              barColor,
+                              preview,
+                              overflow,
+                              pct,
+                              tip,
+                              matches,
+                            },
+                            i,
+                          ) => (
+                            <div key={id} className="space-y-2">
+                              {/* Channel header */}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[13px] leading-none">
+                                    {icon}
+                                  </span>
+                                  <span
+                                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${colorClasses}`}
+                                  >
+                                    {label}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] font-bold text-slate-700 tabular-nums shrink-0">
+                                  {matches.length} piece
+                                  {matches.length !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+
+                              {/* Coverage bar */}
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${barColor} transition-all`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] text-muted-foreground tabular-nums w-8 text-right">
+                                  {pct}%
+                                </span>
+                              </div>
+
+                              {/* Example entries */}
+                              <div className="space-y-1">
+                                {preview.map((e, j) => (
+                                  <div
+                                    key={j}
+                                    className="flex items-start gap-2"
+                                  >
+                                    <span className="shrink-0 mt-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 whitespace-nowrap">
+                                      {FORMAT_LABEL[e.type]}
+                                    </span>
+                                    <p className="text-[11px] text-slate-700 leading-snug line-clamp-1">
+                                      {e.angle}
+                                    </p>
+                                  </div>
+                                ))}
+                                {overflow > 0 && (
+                                  <p className="text-[10px] text-muted-foreground pl-0.5">
+                                    + {overflow} more piece
+                                    {overflow !== 1 ? "s" : ""}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Distribution tip */}
+                              <div className="flex items-start gap-1.5 p-2.5 rounded-md bg-slate-50 border border-slate-100">
+                                <span className="text-[11px] shrink-0 mt-0.5">
+                                  💡
+                                </span>
+                                <p className="text-[10px] text-slate-600 leading-relaxed">
+                                  {tip}
+                                </p>
+                              </div>
+
+                              {i < channelBreakdown.length - 1 && (
+                                <div className="border-b border-slate-100 pt-1" />
+                              )}
+                            </div>
+                          ),
                         )}
                       </div>
                     </CardContent>
