@@ -31,6 +31,7 @@ import {
   Table2,
   FileText,
   LayoutGrid,
+  Bookmark,
 } from "lucide-react";
 
 type Cadence = "weekly" | "2x-week" | "3x-week" | "daily";
@@ -54,6 +55,31 @@ const DEFAULTS: FormState = {
   topics: [],
   topicInput: "",
 };
+
+// ─── Saved Templates (localStorage) ──────────────────────────────────────────
+
+const PRESET_KEY = "fph_calendar_presets";
+const MAX_PRESETS = 10;
+
+type Preset = {
+  id: string;
+  name: string;
+  savedAt: string;
+  form: FormState;
+};
+
+function loadPresets(): Preset[] {
+  try {
+    const raw = localStorage.getItem(PRESET_KEY);
+    return raw ? (JSON.parse(raw) as Preset[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePresetsToStorage(presets: Preset[]): void {
+  localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+}
 
 const SUGGESTED_TOPICS = [
   "Embedded finance",
@@ -1075,6 +1101,10 @@ export default function ContentCalendarGenerator() {
   const [briefEntry, setBriefEntry] = useState<CalendarEntry | null>(null);
   const [copiedBrief, setCopiedBrief] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [presets, setPresets] = useState<Preset[]>(() => loadPresets());
+  const [showPresets, setShowPresets] = useState(() => loadPresets().length > 0);
+  const [savingPreset, setSavingPreset] = useState(false);
+  const [presetName, setPresetName] = useState("");
 
   const entryKey = (e: { date: string; type: string; topic: string }) =>
     `${e.date}|${e.type}|${e.topic}`;
@@ -1128,6 +1158,42 @@ export default function ContentCalendarGenerator() {
     setExpandedChecklists(new Set());
     setBriefEntry(null);
     setShowHeatmap(false);
+  };
+
+  const saveAsTemplate = () => {
+    const name =
+      presetName.trim() ||
+      `${form.companyName || "Calendar"} — ${form.timeframe}d ${form.cadence}`;
+    const newPreset: Preset = {
+      id: Date.now().toString(),
+      name,
+      savedAt: new Date().toISOString().split("T")[0],
+      form: { ...form },
+    };
+    const updated = [newPreset, ...presets].slice(0, MAX_PRESETS);
+    setPresets(updated);
+    savePresetsToStorage(updated);
+    setSavingPreset(false);
+    setPresetName("");
+    setShowPresets(true);
+  };
+
+  const loadPreset = (preset: Preset) => {
+    setForm(preset.form);
+    setCalendar([]);
+    setGenerated(false);
+    setFilterTopic("all");
+    setSortByPriority(false);
+    setShowHeatmap(false);
+    setCheckedItems({});
+    setExpandedChecklists(new Set());
+    setBriefEntry(null);
+  };
+
+  const deletePreset = (id: string) => {
+    const updated = presets.filter((p) => p.id !== id);
+    setPresets(updated);
+    savePresetsToStorage(updated);
   };
 
   const generate = () => {
@@ -1559,6 +1625,128 @@ export default function ContentCalendarGenerator() {
                   </p>
                 </div>
               )}
+
+              {/* ── Saved Templates ──────────────────────────────────── */}
+              <div className="mb-4 rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setShowPresets((p) => !p)}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-indigo-600 transition-colors"
+                  >
+                    <Bookmark className="w-3.5 h-3.5" />
+                    Saved Templates
+                    {presets.length > 0 && (
+                      <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        {presets.length}
+                      </span>
+                    )}
+                    <span className="text-slate-300 text-[10px] ml-0.5">
+                      {showPresets ? "▲" : "▼"}
+                    </span>
+                  </button>
+                  {!savingPreset && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSavingPreset(true);
+                        setPresetName(
+                          form.companyName
+                            ? `${form.companyName} — ${form.timeframe}d ${form.cadence}`
+                            : `Calendar — ${form.timeframe}d ${form.cadence}`,
+                        );
+                        setShowPresets(true);
+                      }}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
+                    >
+                      <span className="text-sm leading-none font-bold">+</span>{" "}
+                      Save as Template
+                    </button>
+                  )}
+                </div>
+
+                {/* Inline save input */}
+                {savingPreset && (
+                  <div className="flex items-center gap-2 mt-2.5 p-2.5 bg-white rounded-lg border border-indigo-100 shadow-sm">
+                    <input
+                      autoFocus
+                      value={presetName}
+                      onChange={(e) => setPresetName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveAsTemplate();
+                        if (e.key === "Escape") setSavingPreset(false);
+                      }}
+                      placeholder="Template name…"
+                      className="flex-1 text-[12px] bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-300 text-slate-700 min-w-0"
+                    />
+                    <button
+                      type="button"
+                      onClick={saveAsTemplate}
+                      className="text-[11px] font-semibold px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors shrink-0"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSavingPreset(false)}
+                      className="text-slate-400 hover:text-slate-600 transition-colors p-0.5 shrink-0"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Preset list */}
+                {showPresets && (
+                  <div className="mt-2.5 space-y-1.5">
+                    {presets.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground py-1 px-0.5 leading-relaxed">
+                        No templates yet. Configure the form above and click{" "}
+                        <span className="font-semibold text-indigo-600">
+                          Save as Template
+                        </span>{" "}
+                        to save your first one.
+                      </p>
+                    ) : (
+                      presets.map((preset) => (
+                        <div
+                          key={preset.id}
+                          className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white border border-slate-100 hover:border-indigo-200 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[12px] font-semibold text-slate-700 truncate">
+                              {preset.name}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {preset.form.topics.length} topic
+                              {preset.form.topics.length !== 1 ? "s" : ""} ·{" "}
+                              {preset.form.timeframe}d · {preset.form.cadence}{" "}
+                              · {preset.form.format} · saved {preset.savedAt}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => loadPreset(preset)}
+                              className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-50 transition-colors"
+                            >
+                              Load
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deletePreset(preset.id)}
+                              title="Delete template"
+                              className="text-slate-300 hover:text-rose-500 transition-colors p-1 rounded"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
 
               <Button
                 onClick={generate}
