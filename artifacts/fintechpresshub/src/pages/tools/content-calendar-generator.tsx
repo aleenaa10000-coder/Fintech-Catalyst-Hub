@@ -93,6 +93,8 @@ const FORMAT_LABEL: Record<ContentType, string> = {
   guide: "In-Depth Guide",
 };
 
+type SearchIntent = "SEO" | "Engagement";
+
 type CalendarEntry = {
   week: number;
   date: string;
@@ -101,6 +103,7 @@ type CalendarEntry = {
   archetype: string;
   type: ContentType;
   cta: string;
+  searchIntent: SearchIntent;
 };
 
 // ─── Topics flagged as high search-intent (SEO-driven titles preferred) ──────
@@ -244,6 +247,16 @@ function resolveCta(type: ContentType, index: number): string {
 
 // ─── Title builder ────────────────────────────────────────────────────────────
 
+function resolveSearchIntent(
+  topic: string,
+  type: ContentType,
+  forceHook: boolean,
+): SearchIntent {
+  const useHook =
+    forceHook || type === "linkedin" || (!isHighSearchIntent(topic) && type === "blog");
+  return useHook ? "Engagement" : "SEO";
+}
+
 function buildTitle(
   archetype: Archetype,
   topic: string,
@@ -372,6 +385,7 @@ function buildCalendar(form: FormState): CalendarEntry[] {
         archetype: chosenArchetype.name,
         type,
         cta: resolveCta(type, postCount),
+        searchIntent: resolveSearchIntent(topic, type, isLinkedIn),
       });
 
       postCount++;
@@ -385,11 +399,11 @@ function buildCalendar(form: FormState): CalendarEntry[] {
 // ─── CSV export ───────────────────────────────────────────────────────────────
 
 function exportCSV(entries: CalendarEntry[], companyName: string) {
-  const header = "Week,Date,Topic,Working Title,Archetype,Content Type,CTA\n";
+  const header = "Week,Date,Topic,Working Title,Archetype,Content Type,Search Intent,CTA\n";
   const rows = entries
     .map(
       (e) =>
-        `${e.week},"${e.date}","${e.topic}","${e.angle}","${e.archetype}","${FORMAT_LABEL[e.type]}","${e.cta}"`,
+        `${e.week},"${e.date}","${e.topic}","${e.angle}","${e.archetype}","${FORMAT_LABEL[e.type]}","${e.searchIntent}","${e.cta}"`,
     )
     .join("\n");
   const blob = new Blob([header + rows], { type: "text/csv" });
@@ -474,7 +488,7 @@ export default function ContentCalendarGenerator() {
     const text = calendar
       .map(
         (e) =>
-          `Week ${e.week} | ${e.date} | ${e.topic} | ${e.angle} | ${FORMAT_LABEL[e.type]} | CTA: ${e.cta}`,
+          `Week ${e.week} | ${e.date} | ${e.topic} | ${e.angle} | ${FORMAT_LABEL[e.type]} | Intent: ${e.searchIntent} | CTA: ${e.cta}`,
       )
       .join("\n");
     navigator.clipboard.writeText(text);
@@ -795,6 +809,16 @@ export default function ContentCalendarGenerator() {
                                   className={`text-[10px] font-semibold ${ARCHETYPE_COLOR[entry.archetype] ?? "text-slate-400"}`}
                                 >
                                   {entry.archetype}
+                                </span>
+                                <span className="text-muted-foreground text-[10px]">·</span>
+                                <span
+                                  className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
+                                    entry.searchIntent === "SEO"
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                      : "bg-orange-50 text-orange-600 border-orange-200"
+                                  }`}
+                                >
+                                  {entry.searchIntent === "SEO" ? "📈 SEO" : "💬 Engagement"}
                                 </span>
                                 <span className="text-muted-foreground text-[10px]">·</span>
                                 <span className="text-xs text-muted-foreground">
