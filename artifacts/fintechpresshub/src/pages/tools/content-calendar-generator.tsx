@@ -2369,17 +2369,17 @@ export default function ContentCalendarGenerator() {
                       variant="outline"
                       onClick={copyAsNotion}
                       className="gap-1.5"
-                      title="Copy as a Markdown table — paste directly into any Notion page or database"
+                      title="Copies a markdown table to your clipboard — open Notion, create a new page, then press Ctrl+V (or Cmd+V) to paste"
                     >
                       {copiedNotion ? (
                         <>
                           <Check className="w-4 h-4 text-green-600" />
-                          Pasted!
+                          Copied! Now paste in Notion
                         </>
                       ) : (
                         <>
                           <Table2 className="w-4 h-4" />
-                          Notion
+                          Copy for Notion
                         </>
                       )}
                     </Button>
