@@ -690,6 +690,54 @@ const GAP_TYPE_WEIGHT: Record<ContentType, number> = {
   linkedin:     0.60,
 };
 
+// ─── Per-format publish-ready checklist items ─────────────────────────────────
+// Each content type has its own 6-7 step production checklist. Items are
+// intentionally short so they fit on a single line in the collapsed badge.
+
+const CHECKLIST_ITEMS: Record<ContentType, string[]> = {
+  blog: [
+    "Target keyword confirmed",
+    "Title tag & meta description drafted",
+    "Internal links mapped (≥ 2)",
+    "Featured image briefed",
+    "CTA link verified",
+    "Editor review completed",
+  ],
+  guide: [
+    "Outline approved by editor",
+    "Target keyword confirmed",
+    "SME source or data study secured",
+    "Internal links mapped (≥ 3)",
+    "Downloadable asset ready (if gated)",
+    "Meta description drafted",
+    "Editor & legal review completed",
+  ],
+  "case-study": [
+    "Client approval obtained",
+    "Key metrics confirmed & verified",
+    "Pull quote selected",
+    "Internal link to services page added",
+    "CTA link verified",
+    "Editor review completed",
+  ],
+  roundup: [
+    "Sources curated & links verified",
+    "All outbound links open in new tab",
+    "Subscribe CTA added",
+    "Roundup image designed",
+    "Internal link to hub page added",
+    "Editor review completed",
+  ],
+  linkedin: [
+    "Opening hook ≤ 2 lines confirmed",
+    "Poll or CTA question drafted",
+    "3–5 hashtags selected",
+    "Optimal post time confirmed",
+    "Native image or carousel prepared",
+    "Reply strategy planned",
+  ],
+};
+
 const ARCHETYPE_COLOR: Record<string, string> = {
   "The Blueprint": "text-indigo-500",
   "The Comparison": "text-violet-500",
@@ -709,6 +757,76 @@ const ARCHETYPE_COLOR: Record<string, string> = {
   "The Benchmark": "text-sky-600",
 };
 
+// ─── Publish-Ready Checklist sub-component ────────────────────────────────────
+
+function PublishChecklist({
+  entryKey,
+  type,
+  checked,
+  isExpanded,
+  onToggleItem,
+  onToggleExpand,
+}: {
+  entryKey: string;
+  type: ContentType;
+  checked: string[];
+  isExpanded: boolean;
+  onToggleItem: (key: string, item: string) => void;
+  onToggleExpand: (key: string) => void;
+}) {
+  const items = CHECKLIST_ITEMS[type];
+  const doneCount = checked.length;
+  const totalCount = items.length;
+  const allDone = doneCount === totalCount;
+
+  return (
+    <div className="mt-2 pt-2 border-t border-slate-100">
+      <button
+        onClick={() => onToggleExpand(entryKey)}
+        className="flex items-center gap-2 text-[10px] font-semibold text-slate-400 hover:text-indigo-600 transition-colors"
+      >
+        <span
+          className={`inline-flex items-center justify-center min-w-[2.5rem] text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
+            allDone
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : "bg-slate-50 text-slate-500 border-slate-200"
+          }`}
+        >
+          {allDone ? "✓ done" : `${doneCount}/${totalCount}`}
+        </span>
+        <span>Publish Checklist</span>
+        <span className="text-slate-300">{isExpanded ? "▲" : "▼"}</span>
+      </button>
+      {isExpanded && (
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {items.map((item) => {
+            const isChecked = checked.includes(item);
+            return (
+              <label key={item} className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => onToggleItem(entryKey, item)}
+                  className="w-3.5 h-3.5 rounded accent-indigo-600 flex-shrink-0"
+                />
+                <span
+                  className={`text-[11px] leading-tight transition-colors ${
+                    isChecked
+                      ? "line-through text-slate-400"
+                      : "text-slate-600 group-hover:text-indigo-600"
+                  }`}
+                >
+                  {item}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ContentCalendarGenerator() {
@@ -719,6 +837,25 @@ export default function ContentCalendarGenerator() {
   const [copiedNotion, setCopiedNotion] = useState(false);
   const [sortByPriority, setSortByPriority] = useState(false);
   const [filterTopic, setFilterTopic] = useState<string>("all");
+  const [checkedItems, setCheckedItems] = useState<Record<string, string[]>>({});
+  const [expandedChecklists, setExpandedChecklists] = useState<Set<string>>(new Set());
+
+  const entryKey = (e: { date: string; type: string; topic: string }) =>
+    `${e.date}|${e.type}|${e.topic}`;
+
+  const toggleChecklistItem = (key: string, item: string) =>
+    setCheckedItems((prev) => {
+      const current = prev[key] ?? [];
+      const already = current.includes(item);
+      return { ...prev, [key]: already ? current.filter((i) => i !== item) : [...current, item] };
+    });
+
+  const toggleChecklistExpanded = (key: string) =>
+    setExpandedChecklists((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -751,6 +888,8 @@ export default function ContentCalendarGenerator() {
     setSortByPriority(false);
     setFilterTopic("all");
     setCopiedNotion(false);
+    setCheckedItems({});
+    setExpandedChecklists(new Set());
   };
 
   const generate = () => {
@@ -1363,6 +1502,14 @@ export default function ContentCalendarGenerator() {
                                   </span>
                                 </span>
                               </div>
+                              <PublishChecklist
+                                entryKey={entryKey(entry)}
+                                type={entry.type}
+                                checked={checkedItems[entryKey(entry)] ?? []}
+                                isExpanded={expandedChecklists.has(entryKey(entry))}
+                                onToggleItem={toggleChecklistItem}
+                                onToggleExpand={toggleChecklistExpanded}
+                              />
                             </div>
                             <div className="pt-0.5">
                               <span
@@ -1456,6 +1603,14 @@ export default function ContentCalendarGenerator() {
                                       </span>
                                     </span>
                                   </div>
+                                  <PublishChecklist
+                                    entryKey={entryKey(entry)}
+                                    type={entry.type}
+                                    checked={checkedItems[entryKey(entry)] ?? []}
+                                    isExpanded={expandedChecklists.has(entryKey(entry))}
+                                    onToggleItem={toggleChecklistItem}
+                                    onToggleExpand={toggleChecklistExpanded}
+                                  />
                                 </div>
                                 <div className="pt-0.5">
                                   <span
