@@ -1017,6 +1017,39 @@ const GAP_TYPE_WEIGHT: Record<ContentType, number> = {
   linkedin:     0.60,
 };
 
+// ─── Industry average priority benchmarks ─────────────────────────────────────
+// Calibrated estimates of typical competitor SEO priority scores per niche.
+// Higher avg = more competitive niche; lower avg = easier to outrank incumbents.
+
+const INDUSTRY_BENCHMARK_OVERRIDES: Array<{
+  keywords: string[];
+  avg: number;
+  label: string;
+}> = [
+  { keywords: ["payment", "payments"],                              avg: 62, label: "Payments" },
+  { keywords: ["crypto", "web3", "defi", "blockchain"],            avg: 60, label: "Crypto & Web3" },
+  { keywords: ["lending", "credit", "loan"],                       avg: 58, label: "Lending & Credit" },
+  { keywords: ["ai in lending", "ai in finance"],                  avg: 57, label: "AI in Finance" },
+  { keywords: ["open banking", "open finance"],                    avg: 55, label: "Open Banking" },
+  { keywords: ["regtech", "regulation", "compliance", "kyc", "aml"], avg: 52, label: "RegTech" },
+  { keywords: ["wealthtech", "wealth", "investment"],              avg: 50, label: "WealthTech" },
+  { keywords: ["embedded finance", "embedded"],                    avg: 48, label: "Embedded Finance" },
+  { keywords: ["fintech seo", "seo"],                              avg: 45, label: "Fintech SEO" },
+  { keywords: ["content marketing"],                               avg: 44, label: "Content Marketing" },
+  { keywords: ["insurtech", "insurance"],                          avg: 42, label: "InsurTech" },
+  { keywords: ["financial inclusion"],                             avg: 40, label: "Financial Inclusion" },
+];
+
+const INDUSTRY_BENCHMARK_DEFAULT_AVG = 47;
+
+function getIndustryBenchmark(topic: string): { avg: number; label: string } {
+  const lower = topic.toLowerCase();
+  for (const { keywords, avg, label } of INDUSTRY_BENCHMARK_OVERRIDES) {
+    if (keywords.some((kw) => lower.includes(kw))) return { avg, label };
+  }
+  return { avg: INDUSTRY_BENCHMARK_DEFAULT_AVG, label: "Fintech (General)" };
+}
+
 // ─── Per-format publish-ready checklist items ─────────────────────────────────
 // Each content type has its own 6-7 step production checklist. Items are
 // intentionally short so they fit on a single line in the collapsed badge.
@@ -1560,6 +1593,22 @@ export default function ContentCalendarGenerator() {
   }
   allContentGaps.sort((a, b) => b.opportunityScore - a.opportunityScore);
   const topGaps = allContentGaps.slice(0, 10);
+
+  // ── Competitive Benchmark ──────────────────────────────────────────────────
+  const benchmarkData = form.topics
+    .map((topic) => {
+      const entries = calendar.filter((e) => e.topic === topic);
+      if (entries.length === 0) return null;
+      const avgScore = Math.round(
+        entries.reduce((sum, e) => sum + e.priorityScore, 0) / entries.length,
+      );
+      const { avg: industryAvg, label: nicheLabel } = getIndustryBenchmark(topic);
+      const upside = avgScore - industryAvg;
+      return { topic, avgScore, industryAvg, nicheLabel, upside };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null)
+    .sort((a, b) => b.upside - a.upside)
+    .slice(0, 3);
 
   // Content type breakdown for the mix chart
   const typeCounts = (Object.keys(FORMAT_LABEL) as ContentType[])
@@ -2590,6 +2639,121 @@ export default function ContentCalendarGenerator() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* ── Competitive Benchmark ───────────────────────────────── */}
+                {benchmarkData.length > 0 && (
+                  <Card className="border border-slate-100 shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                            <TrendingUp className="w-3.5 h-3.5 text-indigo-500" />
+                            Competitive Benchmark
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Your average SEO priority score vs. estimated niche
+                            competitor average — top 3 highest-upside topics.
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-semibold text-muted-foreground shrink-0 pt-0.5 whitespace-nowrap">
+                          Your Score vs. Market
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-5">
+                        {benchmarkData.map(
+                          (
+                            { topic, avgScore, industryAvg, nicheLabel, upside },
+                            i,
+                          ) => {
+                            const upsideLabel =
+                              upside >= 10
+                                ? "🚀 Strong advantage"
+                                : upside >= 1
+                                  ? "📈 Above market"
+                                  : upside >= -9
+                                    ? "⚖️ On par"
+                                    : "⚡ Competitive pressure";
+                            const upsideColor =
+                              upside >= 10
+                                ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                                : upside >= 1
+                                  ? "text-blue-700 bg-blue-50 border-blue-200"
+                                  : upside >= -9
+                                    ? "text-amber-700 bg-amber-50 border-amber-200"
+                                    : "text-rose-700 bg-rose-50 border-rose-200";
+                            const barColor =
+                              upside >= 0 ? "bg-indigo-500" : "bg-slate-400";
+
+                            return (
+                              <div key={i} className="space-y-2">
+                                {/* Topic + badge */}
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="text-[12px] font-semibold text-slate-800 truncate">
+                                      {topic}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {nicheLabel} niche
+                                    </p>
+                                  </div>
+                                  <span
+                                    className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${upsideColor}`}
+                                  >
+                                    {upsideLabel}
+                                  </span>
+                                </div>
+
+                                {/* Dual comparison bars */}
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-slate-500 w-[4.5rem] shrink-0">
+                                      Your avg
+                                    </span>
+                                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full ${barColor} transition-all`}
+                                        style={{ width: `${avgScore}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-[11px] font-bold text-slate-700 tabular-nums w-6 text-right">
+                                      {avgScore}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-slate-400 w-[4.5rem] shrink-0">
+                                      Niche avg
+                                    </span>
+                                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full rounded-full bg-slate-300"
+                                        style={{ width: `${industryAvg}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-[11px] font-semibold text-slate-400 tabular-nums w-6 text-right">
+                                      {industryAvg}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Interpretation line */}
+                                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                                  {upside >= 0
+                                    ? `+${upside} pts above the ${nicheLabel} average — strong position to build authority and outrank competitors on this topic.`
+                                    : `${upside} pts below the ${nicheLabel} average — prioritise differentiated, high-quality content to close the gap.`}
+                                </p>
+
+                                {i < benchmarkData.length - 1 && (
+                                  <div className="border-b border-slate-100 pt-1" />
+                                )}
+                              </div>
+                            );
+                          },
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* ── Content Gap Finder ──────────────────────────────────── */}
                 <Card className="border border-slate-100 shadow-sm">
