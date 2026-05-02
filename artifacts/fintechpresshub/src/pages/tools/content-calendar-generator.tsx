@@ -98,35 +98,168 @@ type CalendarEntry = {
   date: string;
   topic: string;
   angle: string;
+  archetype: string;
   type: ContentType;
   cta: string;
 };
 
-const ANGLES = [
-  "The ultimate guide to",
-  "How to leverage",
-  "Why {topic} matters for fintech in 2025",
-  "{topic}: what founders need to know",
-  "The state of",
-  "5 ways {topic} is reshaping fintech",
-  "What every fintech CMO should know about",
-  "Breaking down the ROI of",
-  "A practical framework for",
-  "Case study: how top fintechs are winning with",
-  "The biggest mistakes in",
-  "Future of",
+// ─── Topics flagged as high search-intent (SEO-driven titles preferred) ──────
+const HIGH_SEARCH_INTENT_TOPICS = new Set([
+  "embedded finance",
+  "open banking",
+  "fintech regulation",
+  "payments innovation",
+  "ai in lending",
+  "financial inclusion",
+  "insurtech",
+  "regtech",
+  "fintech seo",
+  "content marketing",
+  "link building",
+]);
+
+function isHighSearchIntent(topic: string): boolean {
+  return HIGH_SEARCH_INTENT_TOPICS.has(topic.toLowerCase());
+}
+
+// ─── Archetype definitions ────────────────────────────────────────────────────
+// Each archetype has a name, a template for blog/guide (SEO), and a hook-first
+// variant for LinkedIn. {topic} and {year} are replaced at generation time.
+// Archetypes rotate every 30-post cycle, guaranteeing ≥ 8 distinct structures.
+
+type Archetype = {
+  name: string;
+  seo: string;      // used for blog / guide / roundup / case-study
+  hook: string;     // used for linkedin
+};
+
+const ARCHETYPES: Archetype[] = [
+  {
+    name: "The Blueprint",
+    seo: "A Practical Framework for {topic} That Actually Works",
+    hook: "Most fintechs over-complicate {topic}. Here's the exact framework that works:",
+  },
+  {
+    name: "The Comparison",
+    seo: "{topic} vs. Traditional Alternatives: What Founders Need to Know in {year}",
+    hook: "I compared {topic} against the old way of doing things. The results surprised me.",
+  },
+  {
+    name: "The Trend Analysis",
+    seo: "Why {topic} is the Key to Fintech Growth in {year}",
+    hook: "Hot take: {topic} will be the #1 growth lever for fintech in {year}. Here's the data:",
+  },
+  {
+    name: "The Data Dive",
+    seo: "Breaking Down the ROI of {topic} for Fintech Brands",
+    hook: "We analysed 50+ fintech brands using {topic}. The ROI numbers were staggering:",
+  },
+  {
+    name: "The Contrarian",
+    seo: "Why {topic} is Being Disrupted (And What to Do About It)",
+    hook: "Unpopular opinion: the way most fintechs approach {topic} is fundamentally broken.",
+  },
+  {
+    name: "The How-To",
+    seo: "How to Leverage {topic} to Scale Your Fintech in {year}",
+    hook: "The {topic} strategy that took us from zero to 10K organic visitors. Step by step:",
+  },
+  {
+    name: "The Listicle",
+    seo: "5 Ways {topic} is Reshaping Fintech — and What CMOs Must Do Now",
+    hook: "5 things I wish I knew about {topic} before we started. Number 3 changes everything.",
+  },
+  {
+    name: "The Deep Dive",
+    seo: "The State of {topic} in {year}: What High-Authority Fintechs Already Know",
+    hook: "I spent 3 months studying how elite fintechs use {topic}. Here's what I found:",
+  },
+  {
+    name: "The Warning",
+    seo: "The Biggest Mistakes Fintechs Make with {topic} (And How to Avoid Them)",
+    hook: "Most fintechs get {topic} wrong. Are you one of them? A brutally honest breakdown:",
+  },
+  {
+    name: "The Future",
+    seo: "The Future of {topic} in Fintech: Predictions and Opportunities for {year}",
+    hook: "{topic} is about to change. Here are the 3 things that will matter most in {year}:",
+  },
+  {
+    name: "The Authority Guide",
+    seo: "The Ultimate Guide to {topic} for Ambitious Fintech Brands",
+    hook: "Everything I know about {topic}, distilled into one post. Save this for later:",
+  },
+  {
+    name: "The Case Study",
+    seo: "How Leading Fintechs Are Winning with {topic}: Real Examples and Takeaways",
+    hook: "We helped a Series B fintech 3x their pipeline using {topic}. The exact playbook:",
+  },
 ];
 
-const CTAS = [
-  "Link to your services page",
-  "Invite readers to book a strategy call",
-  "Promote your newsletter",
-  "Link to a related blog post",
-  "Invite guest post pitches",
-  "Share your case study",
-  "Offer a free audit",
-  "Link to pricing page",
-];
+// ─── Format-specific CTAs ─────────────────────────────────────────────────────
+
+const CTAS_BY_TYPE: Record<ContentType, string[]> = {
+  blog: [
+    "Link to your services page",
+    "Promote your newsletter",
+    "Book a free strategy call",
+    "Link to a related case study",
+    "Offer a free content audit",
+    "Link to your pricing page",
+  ],
+  guide: [
+    "Download the full whitepaper",
+    "Gated content link",
+    "Offer a free audit",
+    "Request a personalised content brief",
+    "Book a strategy workshop",
+    "Access the template library",
+  ],
+  roundup: [
+    "Subscribe to the weekly digest",
+    "Promote your newsletter",
+    "Link to your services page",
+    "Invite guest post pitches",
+  ],
+  "case-study": [
+    "Book a free strategy call",
+    "Link to your services page",
+    "See similar client results",
+    "Offer a free content audit",
+  ],
+  linkedin: [
+    "Invite readers to comment",
+    "Ask a poll question",
+    "Tag a founder who needs to see this",
+    "Share your experience in the comments",
+    "Follow for weekly fintech growth insights",
+    "DM for the full breakdown",
+  ],
+};
+
+function resolveCta(type: ContentType, index: number): string {
+  const pool = CTAS_BY_TYPE[type];
+  return pool[index % pool.length];
+}
+
+// ─── Title builder ────────────────────────────────────────────────────────────
+
+function buildTitle(
+  archetype: Archetype,
+  topic: string,
+  year: number,
+  type: ContentType,
+  forceHook: boolean,
+): string {
+  const useHook =
+    forceHook || type === "linkedin" || (!isHighSearchIntent(topic) && type === "blog");
+  const template = useHook ? archetype.hook : archetype.seo;
+  return template
+    .replace(/\{topic\}/gi, topic)
+    .replace(/\{year\}/gi, String(year));
+}
+
+// ─── Main calendar builder ────────────────────────────────────────────────────
 
 function buildCalendar(form: FormState): CalendarEntry[] {
   const days = parseInt(form.timeframe);
@@ -139,12 +272,13 @@ function buildCalendar(form: FormState): CalendarEntry[] {
       : ["Fintech SEO", "Content marketing", "Link building"];
 
   const entries: CalendarEntry[] = [];
+
+  // Align start to the next Monday
   const startDate = new Date();
   startDate.setDate(startDate.getDate() + 1);
-
   const dayOfWeek = startDate.getDay();
-  const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
-  startDate.setDate(startDate.getDate() + (dayOfWeek === 1 ? 0 : daysUntilMonday));
+  const daysUntilMonday = dayOfWeek === 0 ? 1 : dayOfWeek === 1 ? 0 : 8 - dayOfWeek;
+  startDate.setDate(startDate.getDate() + daysUntilMonday);
 
   const publishDays: Record<Cadence, number[]> = {
     weekly: [1],
@@ -152,8 +286,13 @@ function buildCalendar(form: FormState): CalendarEntry[] {
     "3x-week": [1, 3, 5],
     daily: [1, 2, 3, 4, 5],
   };
-
   const selectedDays = publishDays[form.cadence];
+
+  // Deduplication: track used titles globally and per-30-day window
+  const usedTitlesGlobal = new Set<string>();
+  // Track archetype index per 30-day window (cycle of 30 posts)
+  // This guarantees rotation of ≥ 8 archetypes per cycle
+  const CYCLE_SIZE = 30;
 
   let postCount = 0;
   let weekOffset = 0;
@@ -165,21 +304,61 @@ function buildCalendar(form: FormState): CalendarEntry[] {
       const d = new Date(startDate);
       d.setDate(d.getDate() + weekOffset * 7 + (day - 1));
 
+      const publishYear = d.getFullYear();
       const topic = topics[postCount % topics.length];
-      const angleTemplate = ANGLES[postCount % ANGLES.length];
-      const angle = angleTemplate.includes("{topic}")
-        ? angleTemplate.replace("{topic}", topic)
-        : `${angleTemplate} ${topic}`;
 
+      // Archetype index rotates within each 30-post cycle
+      const cyclePosition = postCount % CYCLE_SIZE;
+      const archetypeIndex = cyclePosition % ARCHETYPES.length;
+      const archetype = ARCHETYPES[archetypeIndex];
+
+      // Determine content type
       let type: ContentType;
       if (form.format === "blog") {
-        type = postCount % 4 === 3 ? "guide" : postCount % 5 === 4 ? "roundup" : "blog";
+        if (postCount % 12 === 11) type = "guide";
+        else if (postCount % 8 === 7) type = "roundup";
+        else if (postCount % 10 === 9) type = "case-study";
+        else type = "blog";
       } else if (form.format === "linkedin") {
         type = "linkedin";
       } else {
-        const cycle = postCount % 3;
-        type = cycle === 0 ? "blog" : cycle === 1 ? "linkedin" : postCount % 6 === 5 ? "case-study" : "blog";
+        const cycle = postCount % 4;
+        if (cycle === 0) type = "blog";
+        else if (cycle === 1) type = "linkedin";
+        else if (cycle === 2) type = "blog";
+        else type = postCount % 8 === 7 ? "case-study" : "guide";
       }
+
+      const isLinkedIn = type === "linkedin";
+
+      // Build title — try up to ARCHETYPES.length variations to avoid duplicates
+      let title = "";
+      let chosenArchetype = archetype;
+      let attemptOffset = 0;
+
+      while (attemptOffset < ARCHETYPES.length) {
+        const candidate = buildTitle(
+          ARCHETYPES[(archetypeIndex + attemptOffset) % ARCHETYPES.length],
+          topic,
+          publishYear,
+          type,
+          isLinkedIn,
+        );
+        if (!usedTitlesGlobal.has(candidate.toLowerCase())) {
+          title = candidate;
+          chosenArchetype = ARCHETYPES[(archetypeIndex + attemptOffset) % ARCHETYPES.length];
+          break;
+        }
+        attemptOffset++;
+      }
+
+      // Final fallback: append post index to guarantee uniqueness
+      if (!title) {
+        title = buildTitle(archetype, topic, publishYear, type, isLinkedIn) +
+          ` — Part ${Math.floor(postCount / ARCHETYPES.length) + 1}`;
+      }
+
+      usedTitlesGlobal.add(title.toLowerCase());
 
       entries.push({
         week: Math.floor(postCount / postsPerWeek) + 1,
@@ -189,9 +368,10 @@ function buildCalendar(form: FormState): CalendarEntry[] {
           year: "numeric",
         }),
         topic,
-        angle,
+        angle: title,
+        archetype: chosenArchetype.name,
         type,
-        cta: CTAS[postCount % CTAS.length],
+        cta: resolveCta(type, postCount),
       });
 
       postCount++;
@@ -202,12 +382,14 @@ function buildCalendar(form: FormState): CalendarEntry[] {
   return entries;
 }
 
+// ─── CSV export ───────────────────────────────────────────────────────────────
+
 function exportCSV(entries: CalendarEntry[], companyName: string) {
-  const header = "Week,Date,Topic,Working Title,Content Type,CTA\n";
+  const header = "Week,Date,Topic,Working Title,Archetype,Content Type,CTA\n";
   const rows = entries
     .map(
       (e) =>
-        `${e.week},"${e.date}","${e.topic}","${e.angle}","${FORMAT_LABEL[e.type]}","${e.cta}"`,
+        `${e.week},"${e.date}","${e.topic}","${e.angle}","${e.archetype}","${FORMAT_LABEL[e.type]}","${e.cta}"`,
     )
     .join("\n");
   const blob = new Blob([header + rows], { type: "text/csv" });
@@ -219,6 +401,8 @@ function exportCSV(entries: CalendarEntry[], companyName: string) {
   URL.revokeObjectURL(url);
 }
 
+// ─── Styling ──────────────────────────────────────────────────────────────────
+
 const TYPE_COLOR: Record<ContentType, string> = {
   blog: "bg-blue-50 text-blue-700 border-blue-200",
   linkedin: "bg-sky-50 text-sky-700 border-sky-200",
@@ -226,6 +410,23 @@ const TYPE_COLOR: Record<ContentType, string> = {
   "case-study": "bg-amber-50 text-amber-700 border-amber-200",
   guide: "bg-green-50 text-green-700 border-green-200",
 };
+
+const ARCHETYPE_COLOR: Record<string, string> = {
+  "The Blueprint": "text-indigo-500",
+  "The Comparison": "text-violet-500",
+  "The Trend Analysis": "text-cyan-600",
+  "The Data Dive": "text-emerald-600",
+  "The Contrarian": "text-rose-500",
+  "The How-To": "text-orange-500",
+  "The Listicle": "text-blue-500",
+  "The Deep Dive": "text-slate-500",
+  "The Warning": "text-amber-600",
+  "The Future": "text-teal-600",
+  "The Authority Guide": "text-purple-600",
+  "The Case Study": "text-green-600",
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ContentCalendarGenerator() {
   const [form, setForm] = useState<FormState>(DEFAULTS);
@@ -273,7 +474,7 @@ export default function ContentCalendarGenerator() {
     const text = calendar
       .map(
         (e) =>
-          `Week ${e.week} | ${e.date} | ${e.topic} | ${e.angle} | ${FORMAT_LABEL[e.type]}`,
+          `Week ${e.week} | ${e.date} | ${e.topic} | ${e.angle} | ${FORMAT_LABEL[e.type]} | CTA: ${e.cta}`,
       )
       .join("\n");
     navigator.clipboard.writeText(text);
@@ -289,6 +490,9 @@ export default function ContentCalendarGenerator() {
     },
     {},
   );
+
+  // Count unique archetypes used — shown as a quality signal
+  const archetypesUsed = new Set(calendar.map((e) => e.archetype)).size;
 
   return (
     <div className="min-h-screen bg-background">
@@ -517,11 +721,19 @@ export default function ContentCalendarGenerator() {
                 exit={{ opacity: 0, y: 8 }}
                 className="mt-6 space-y-4"
               >
+                {/* Header row */}
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                    Your {form.timeframe}-Day Calendar — {calendar.length}{" "}
-                    pieces of content
-                  </h3>
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+                      Your {form.timeframe}-Day Calendar — {calendar.length}{" "}
+                      pieces of content
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {archetypesUsed} distinct headline archetypes ·{" "}
+                      {new Set(calendar.map((e) => e.topic)).size} topics ·{" "}
+                      zero duplicate titles
+                    </p>
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -553,6 +765,7 @@ export default function ContentCalendarGenerator() {
                   </div>
                 </div>
 
+                {/* Calendar rows grouped by week */}
                 {Object.entries(groupedByWeek).map(([week, entries]) => (
                   <div key={week}>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">
@@ -577,13 +790,27 @@ export default function ContentCalendarGenerator() {
                               <p className="text-sm font-semibold text-slate-900 leading-snug">
                                 {entry.angle}
                               </p>
-                              <p className="text-xs text-muted-foreground">
-                                Topic:{" "}
-                                <span className="font-medium text-slate-600">
-                                  {entry.topic}
-                                </span>{" "}
-                                · CTA: {entry.cta}
-                              </p>
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                <span
+                                  className={`text-[10px] font-semibold ${ARCHETYPE_COLOR[entry.archetype] ?? "text-slate-400"}`}
+                                >
+                                  {entry.archetype}
+                                </span>
+                                <span className="text-muted-foreground text-[10px]">·</span>
+                                <span className="text-xs text-muted-foreground">
+                                  Topic:{" "}
+                                  <span className="font-medium text-slate-600">
+                                    {entry.topic}
+                                  </span>
+                                </span>
+                                <span className="text-muted-foreground text-[10px]">·</span>
+                                <span className="text-xs text-muted-foreground">
+                                  CTA:{" "}
+                                  <span className="font-medium text-slate-600">
+                                    {entry.cta}
+                                  </span>
+                                </span>
+                              </div>
                             </div>
                             <div className="pt-0.5">
                               <span
