@@ -235,7 +235,7 @@ router.get("/contact/digest", async (req, res) => {
       )} UTC).`;
     }
     const items = rows
-      .map((r, i) => {
+      .map((r: { name: string; email: string; company?: string | null; phone?: string | null; service?: string | null; budget?: string | null; createdAt: Date; message: string }, i: number) => {
         const meta = [
           r.company ? `Company: ${r.company}` : null,
           r.phone ? `Phone: ${r.phone}` : null,
@@ -278,7 +278,7 @@ router.get("/contact/digest", async (req, res) => {
             ? `<p style="font-size:14px;color:#64748b;margin:0">No new contact submissions in this window. Quiet day!</p>`
             : rows
                 .map(
-                  (r) => `
+                  (r: { name: string; email: string; company?: string | null; phone?: string | null; service?: string | null; budget?: string | null; createdAt: Date; message: string }) => `
             <div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:12px">
               <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
                 <div style="font-weight:700;font-size:15px;color:#0a2540">${escapeHtml(r.name)}</div>

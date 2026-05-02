@@ -140,7 +140,7 @@ export async function runScheduledPostPublishNotify(): Promise<void> {
   }
 
   JOB_LOG.info(
-    { count: posts.length, slugs: posts.map((p) => p.slug) },
+    { count: posts.length, slugs: posts.map((p: { slug: string }) => p.slug) },
     "Found newly auto-published posts — sending email notification",
   );
 

@@ -190,7 +190,7 @@ function AuditRow({
               Affected posts
             </div>
             <ul className="space-y-1.5">
-              {previewPosts.map((p) => (
+              {previewPosts.map((p: PostSnapshot) => (
                 <li
                   key={p.slug}
                   className="text-sm flex items-center justify-between gap-2"
@@ -260,7 +260,20 @@ function Stat({
 
 /* ---------- Compare two batches ----------------------------------- */
 
-interface DiffPost extends BulkNoIndexAuditPostSnapshot {
+/** Local snapshot shape mirrors BulkNoIndexAuditPostSnapshot from the DB schema.
+ *  Declared here so the type is always resolved regardless of whether the
+ *  generated lib dist has been built. */
+interface PostSnapshot {
+  slug: string;
+  title: string;
+  category: string;
+  viewCount: number;
+  featured: boolean;
+  publishedAt: string;
+  wasNoIndex: boolean;
+}
+
+interface DiffPost extends PostSnapshot {
   /** True when this post appears in *both* selected batches. Used to
    *  call out posts whose state was flipped twice (e.g. hidden in A,
    *  re-exposed in B). */
@@ -297,20 +310,20 @@ function diffAuditEntries(
   const aIsOlder = new Date(a.createdAt).getTime() < new Date(b.createdAt).getTime();
   const older = aIsOlder ? a : b;
   const newer = aIsOlder ? b : a;
-  const olderPosts = older.posts ?? [];
-  const newerPosts = newer.posts ?? [];
-  const olderSlugs = new Set(olderPosts.map((p) => p.slug));
-  const newerSlugs = new Set(newerPosts.map((p) => p.slug));
+  const olderPosts = (older.posts ?? []) as PostSnapshot[];
+  const newerPosts = (newer.posts ?? []) as PostSnapshot[];
+  const olderSlugs = new Set(olderPosts.map((p: PostSnapshot) => p.slug));
+  const newerSlugs = new Set(newerPosts.map((p: PostSnapshot) => p.slug));
 
   const onlyInOlder = olderPosts
-    .filter((p) => !newerSlugs.has(p.slug))
-    .map((p) => ({ ...p, inOther: false }));
+    .filter((p: PostSnapshot) => !newerSlugs.has(p.slug))
+    .map((p: PostSnapshot) => ({ ...p, inOther: false }));
   const onlyInNewer = newerPosts
-    .filter((p) => !olderSlugs.has(p.slug))
-    .map((p) => ({ ...p, inOther: false }));
+    .filter((p: PostSnapshot) => !olderSlugs.has(p.slug))
+    .map((p: PostSnapshot) => ({ ...p, inOther: false }));
   const inBoth = newerPosts
-    .filter((p) => olderSlugs.has(p.slug))
-    .map((p) => ({ ...p, inOther: true }));
+    .filter((p: PostSnapshot) => olderSlugs.has(p.slug))
+    .map((p: PostSnapshot) => ({ ...p, inOther: true }));
 
   return { older, newer, onlyInOlder, onlyInNewer, inBoth };
 }
@@ -586,7 +599,7 @@ export default function AdminAuditLog() {
   const entries = useMemo(() => {
     const all = query.data ?? [];
     if (filter === "all") return all;
-    return all.filter((e) => e.mode === filter);
+    return all.filter((e: { mode: string }) => e.mode === filter);
   }, [query.data, filter]);
 
   // The two selected entries, resolved against the live data. Reads from
@@ -597,8 +610,8 @@ export default function AdminAuditLog() {
   >(() => {
     if (compareIds.length !== 2) return null;
     const all = query.data ?? [];
-    const a = all.find((e) => e.id === compareIds[0]);
-    const b = all.find((e) => e.id === compareIds[1]);
+    const a = all.find((e: { id: number }) => e.id === compareIds[0]);
+    const b = all.find((e: { id: number }) => e.id === compareIds[1]);
     if (!a || !b) return null;
     return [a, b];
   }, [compareIds, query.data]);
@@ -608,7 +621,7 @@ export default function AdminAuditLog() {
   useEffect(() => {
     if (!query.data) return;
     setCompareIds((prev) =>
-      prev.filter((id) => query.data!.some((e) => e.id === id)),
+      prev.filter((id: number) => query.data!.some((e: { id: number }) => e.id === id)),
     );
   }, [query.data]);
 
@@ -706,7 +719,7 @@ export default function AdminAuditLog() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {entries.map((e) => (
+          {entries.map((e: { id: number; [key: string]: unknown }) => (
             <AuditRow
               key={e.id}
               entry={e}

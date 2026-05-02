@@ -70,8 +70,13 @@ router.get(
       .where(gte(authorSubscriptionsTable.createdAt, since30d))
       .groupBy(authorSubscriptionsTable.authorSlug);
 
-    const totalsBySlug = new Map(totals.map((r) => [r.authorSlug, r]));
-    const recentsBySlug = new Map(recents.map((r) => [r.authorSlug, r.count]));
+    type TotalRow = { authorSlug: string; count: number; latestSubscribedAt: Date | null };
+    const totalsBySlug = new Map<string, TotalRow>(
+      (totals as TotalRow[]).map((r) => [r.authorSlug, r]),
+    );
+    const recentsBySlug = new Map<string, number>(
+      (recents as { authorSlug: string; count: number }[]).map((r) => [r.authorSlug, r.count]),
+    );
 
     const summary = authors
       .map((a) => {
@@ -117,7 +122,7 @@ async function loadAuthorDetail(slug: string) {
     .orderBy(desc(authorSubscriptionsTable.createdAt));
 
   const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const last30DayCount = rows.filter((r) => r.createdAt >= since30d).length;
+  const last30DayCount = rows.filter((r: { createdAt: Date }) => r.createdAt >= since30d).length;
 
   // Build daily signup buckets: zero-filled for the last 90 calendar days (UTC).
   const buckets = new Map<string, number>();
@@ -144,7 +149,7 @@ async function loadAuthorDetail(slug: string) {
       latestSubscribedAt:
         rows[0]?.createdAt?.toISOString() ?? null,
     },
-    subscribers: rows.map((r) => ({
+    subscribers: rows.map((r: { id: string; email: string | null; createdAt: Date; source: string | null }) => ({
       id: r.id,
       email: r.email,
       createdAt: r.createdAt.toISOString(),
@@ -184,7 +189,7 @@ router.get(
     }
 
     const header = ["email", "subscribed_at", "source"].join(",");
-    const lines = detail.subscribers.map((s) =>
+    const lines = detail.subscribers.map((s: { email: string | null; createdAt: string; source: string | null }) =>
       [escapeCsv(s.email), escapeCsv(s.createdAt), escapeCsv(s.source ?? "")].join(
         ",",
       ),

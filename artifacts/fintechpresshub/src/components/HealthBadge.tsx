@@ -146,7 +146,7 @@ function buildPills(
         <ul className="grid grid-cols-2 gap-x-3 pt-1 text-muted-foreground">
           {Object.entries(counts).map(([table, n]) => (
             <li key={table}>
-              {table}: <span className="text-foreground">{n}</span>
+              {table}: <span className="text-foreground">{String(n)}</span>
             </li>
           ))}
         </ul>

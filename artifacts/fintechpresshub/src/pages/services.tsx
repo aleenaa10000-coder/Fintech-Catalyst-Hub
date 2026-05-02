@@ -58,7 +58,7 @@ export default function Services() {
           {!isLoading && services && services.length > 0 && (
             <div className="mx-auto mb-12 w-fit max-w-full overflow-x-auto rounded-full border border-border/60 bg-background/80 shadow-sm">
               <div className="flex items-center gap-1 p-1.5">
-                {services.map((service) => {
+                {services.map((service: { id: number; name: string; slug: string; tagline: string; description: string; deliverables: string[] }) => {
                   const Icon = getServiceIcon(service.slug);
                   return (
                     <button
@@ -89,7 +89,7 @@ export default function Services() {
                   <div className="flex-1"><Skeleton className="h-48 w-full" /></div>
                 </div>
               ))
-            ) : services?.map((service, index) => {
+            ) : services?.map((service: { id: number; name: string; slug: string; tagline: string; description: string; deliverables: string[] }, index: number) => {
               const DeliverableIcon = getServiceIcon(service.slug);
               return (
               <motion.div
@@ -135,7 +135,7 @@ export default function Services() {
                       <h3 className="font-semibold text-lg text-slate-900 dark:text-foreground">Key Deliverables:</h3>
                     </div>
                     <ul className="space-y-4">
-                      {service.deliverables.map((item, i) => (
+                      {service.deliverables.map((item: string, i: number) => (
                         <li key={i} className="flex items-start gap-3">
                           <DeliverableIcon className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                           <span className="text-slate-700 dark:text-foreground">{item}</span>

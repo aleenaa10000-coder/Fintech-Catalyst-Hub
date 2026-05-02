@@ -326,14 +326,14 @@ export async function getStoredSitemapHealth(): Promise<SitemapHealthReport> {
   const results = rows.map(serialize);
   const generatedAt = rows.length
     ? rows.reduce<Date>(
-        (latest, r) => (r.lastCheckedAt > latest ? r.lastCheckedAt : latest),
+        (latest: Date, r: { lastCheckedAt: Date }) => (r.lastCheckedAt > latest ? r.lastCheckedAt : latest),
         rows[0].lastCheckedAt,
       ).toISOString()
     : null;
   return {
     generatedAt,
     total: results.length,
-    brokenCount: results.filter((r) => r.isBroken).length,
+    brokenCount: results.filter((r: { isBroken: boolean }) => r.isBroken).length,
     results,
     targetSiteUrl: getSiteUrl(),
     dailyJobEnabled: isDailyLinkCheckEnabled(),

@@ -25,7 +25,7 @@ if (Number.isNaN(port) || port <= 0) {
 async function bootstrap() {
   try {
     const report = await runSeed(db);
-    const inserted = Object.entries(report).filter(([, n]) => n > 0);
+    const inserted = Object.entries(report).filter(([, n]) => (n as number) > 0);
     if (inserted.length > 0) {
       logger.info(
         { seeded: Object.fromEntries(inserted) },

@@ -83,7 +83,7 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
       .from(blogPostsTable)
       .where(lte(blogPostsTable.publishedAt, sql`now()`))
       .orderBy(desc(blogPostsTable.publishedAt))
-  ).filter((p) => !p.noIndex);
+  ).filter((p: { noIndex: boolean | null }) => !p.noIndex);
 
   return [
     ...STATIC_ROUTES.map((r) => ({
@@ -96,7 +96,7 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
       priority: r.priority,
       source: "static" as const,
     })),
-    ...posts.map((p) => ({
+    ...posts.map((p: { slug: string; publishedAt: Date }) => ({
       loc: `${siteUrl}/blog/${p.slug}`,
       lastmod: p.publishedAt.toISOString().slice(0, 10),
       changefreq: "monthly",

@@ -64,8 +64,8 @@ export async function buildWeeklyDigestPayload(args: {
   const topByViews: WeeklyDigestTopPost[] = topRows
     // Hide entries with 0 views — surfacing "0 views" in a "top by
     // views" list looks broken; better to render a shorter list.
-    .filter((r) => (r.viewCount ?? 0) > 0)
-    .map((r) => ({
+    .filter((r: { viewCount: number | null; slug: string; title: string }) => (r.viewCount ?? 0) > 0)
+    .map((r: { viewCount: number | null; slug: string; title: string }) => ({
       slug: r.slug,
       title: r.title,
       viewCount: r.viewCount ?? 0,
@@ -75,7 +75,7 @@ export async function buildWeeklyDigestPayload(args: {
     windowStart: since.toISOString(),
     windowEnd: now.toISOString(),
     postsPublishedInWindow: newPosts.length,
-    newPostTitles: newPosts.map((p) => p.title),
+    newPostTitles: newPosts.map((p: { title: string }) => p.title),
     totalLifetimeViews,
     topByViews,
   };

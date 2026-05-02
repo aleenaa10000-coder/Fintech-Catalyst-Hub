@@ -130,7 +130,7 @@ export default function AdminNotifications() {
 
   const updateMutation = useUpdateNotificationSettings({
     mutation: {
-      onSuccess: (data) => {
+      onSuccess: (data: unknown) => {
         queryClient.setQueryData(
           getGetNotificationSettingsQueryKey(),
           data,
@@ -149,7 +149,7 @@ export default function AdminNotifications() {
 
   const sendDigestNowMutation = useSendWeeklyDigestNow({
     mutation: {
-      onSuccess: (result) => {
+      onSuccess: (result: { ok: boolean; error?: string }) => {
         if (result.ok) {
           toast.success(
             "Weekly digest preview sent — check the channel.",
@@ -173,7 +173,7 @@ export default function AdminNotifications() {
 
   const testMutation = useTestSlackNotification({
     mutation: {
-      onSuccess: (result) => {
+      onSuccess: (result: { ok: boolean; error?: string }) => {
         // Re-fetch to pick up the recorded test status.
         void queryClient.invalidateQueries({
           queryKey: getGetNotificationSettingsQueryKey(),

@@ -19,7 +19,7 @@ export function BlogPostNewsletterCta({ postSlug }: Props) {
 
   const subscribeMutation = useSubscribeToNewsletter({
     mutation: {
-      onSuccess: (data) => {
+      onSuccess: (data: { alreadySubscribed: boolean }) => {
         setSubscribed(true);
         setEmail("");
         trackEvent("newsletter_subscribe", {

@@ -373,7 +373,7 @@ export default function Blog() {
 
   const subscribeMutation = useSubscribeToNewsletter({
     mutation: {
-      onSuccess: (data) => {
+      onSuccess: (data: { alreadySubscribed: boolean }) => {
         setSubscribed(true);
         setEmail("");
         toast.success(

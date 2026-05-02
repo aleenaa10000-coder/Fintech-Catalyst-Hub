@@ -101,7 +101,7 @@ export default function AdminAuthorSubscribers() {
 
   const chartData = useMemo(
     () =>
-      (detailQuery.data?.dailySignups ?? []).map((d) => ({
+      (detailQuery.data?.dailySignups ?? []).map((d: { date: string; count: number }) => ({
         date: d.date,
         count: d.count,
       })),
@@ -203,7 +203,7 @@ export default function AdminAuthorSubscribers() {
   const { author, subscribers, dailySignups } = detailQuery.data;
   const last7Total = dailySignups
     .slice(-7)
-    .reduce((s, d) => s + d.count, 0);
+    .reduce((s: number, d: { date: string; count: number }) => s + d.count, 0);
   const csvUrl = `/api/admin/authors/${author.authorSlug}/subscribers.csv`;
 
   return (
@@ -398,7 +398,7 @@ export default function AdminAuthorSubscribers() {
                     </tr>
                   </thead>
                   <tbody>
-                    {subscribers.map((s) => (
+                    {subscribers.map((s: { id: string; email: string | null; createdAt: string; source: string | null }) => (
                       <tr
                         key={s.id}
                         className="border-b last:border-b-0"

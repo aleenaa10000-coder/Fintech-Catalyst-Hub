@@ -810,7 +810,7 @@ function EmailReportCard({
 
   const mutation = useEmailFinancialHealthScoreReport({
     mutation: {
-      onSuccess: (result) => {
+      onSuccess: (result: { delivered: boolean; deliveryStatus?: string; message: string }) => {
         setSubmitted(true);
         if (result.delivered) {
           setStatusKind("success");

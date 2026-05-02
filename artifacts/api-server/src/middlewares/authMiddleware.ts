@@ -1,6 +1,5 @@
 import * as oidc from "openid-client";
 import { type Request, type Response, type NextFunction } from "express";
-import type { AuthUser } from "@workspace/api-zod";
 import {
   clearSession,
   getOidcConfig,
@@ -12,7 +11,14 @@ import {
 
 declare global {
   namespace Express {
-    interface User extends AuthUser {}
+    interface User {
+      id: string;
+      email: string | null;
+      firstName: string | null;
+      lastName: string | null;
+      profileImageUrl: string | null;
+      isAdmin: boolean;
+    }
 
     interface Request {
       isAuthenticated(): this is AuthedRequest;

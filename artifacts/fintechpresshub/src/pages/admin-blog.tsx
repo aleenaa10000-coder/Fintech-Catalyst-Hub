@@ -1094,7 +1094,7 @@ function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
   });
   const slackPostMutation = usePostBrokenUrlsToSlack({
     mutation: {
-      onSuccess: (result) => {
+      onSuccess: (result: { ok: boolean; posted?: number; error?: string }) => {
         if (result.ok) {
           toast.success(
             `Posted ${result.posted ?? "list"} to Slack — check the channel.`,
@@ -1632,7 +1632,7 @@ function PostEditor({
           category: draft.category.trim(),
           tags: draft.tags
             .split(",")
-            .map((t) => t.trim())
+            .map((t: string) => t.trim())
             .filter(Boolean),
           coverImage: draft.coverImage.trim(),
           readingMinutes,
@@ -2072,7 +2072,7 @@ function SitemapHealthPanel() {
 }
 
 function SitemapHealthBody({ report }: { report: SitemapHealthReport }) {
-  const broken = report.results.filter((r) => r.isBroken);
+  const broken = report.results.filter((r: { isBroken: boolean }) => r.isBroken);
   const lastRun = report.generatedAt
     ? new Date(report.generatedAt as unknown as string).toLocaleString()
     : "never";
@@ -2162,7 +2162,7 @@ function SitemapHealthBody({ report }: { report: SitemapHealthReport }) {
             <AlertTriangle className="w-4 h-4 text-amber-600" /> Broken URLs
           </h3>
           <div className="border rounded-md divide-y">
-            {broken.map((row) => (
+            {broken.map((row: { url: string; lastStatusCode?: number | null; lastError?: string | null; lastCheckedAt?: string | null }) => (
               <div
                 key={row.url}
                 className="px-3 py-2 text-xs grid grid-cols-[1fr_auto_auto] gap-3 items-center"
@@ -3439,7 +3439,7 @@ export default function AdminBlog() {
 
   /** Published posts narrowed by the active readability filter. */
   const filteredPosts = useMemo(
-    () => (posts ?? []).filter((p) => matchesReadabilityFilter(p.content)),
+    () => (posts ?? []).filter((p: { content: string; [key: string]: unknown }) => matchesReadabilityFilter(p.content as string)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [posts, readabilityFilter],
   );
@@ -3480,7 +3480,7 @@ export default function AdminBlog() {
       return;
     }
 
-    const match = posts.find((p) => p.slug === targetSlug);
+    const match = posts.find((p: { slug: string; id: number }) => p.slug === targetSlug);
     if (match) {
       setEditingId(match.id);
       // Wait one tick so the editor card has rendered before scrolling.
@@ -4253,7 +4253,7 @@ export default function AdminBlog() {
                 }
                 onCheckedChange={(v) => {
                   if (v === true) {
-                    setSelectedSlugs(new Set(posts.map((p) => p.slug)));
+                    setSelectedSlugs(new Set(posts.map((p: { slug: string }) => p.slug)));
                   } else {
                     setSelectedSlugs(new Set());
                   }
@@ -4281,7 +4281,7 @@ export default function AdminBlog() {
           const previewDate = new Date(previewAsOfIso);
           const visibleCount = posts?.length ?? 0;
           const newlyVisible = (posts ?? []).filter(
-            (p) => new Date(p.publishedAt).getTime() > Date.now(),
+            (p: { publishedAt: string }) => new Date(p.publishedAt).getTime() > Date.now(),
           ).length;
           return (
             <div
@@ -4491,7 +4491,7 @@ export default function AdminBlog() {
               // below fires the inverse mutation against exactly the same
               // set, even if the admin starts re-selecting other posts
               // while the toast is still on screen.
-              const undoSlugs = result.posts.map((p) => p.slug);
+              const undoSlugs = result.posts.map((p: { slug: string }) => p.slug);
               const undoNoIndex = !wantHidden;
               const undoVerbed = wantHidden ? "re-exposed" : "no-indexed";
               const message = wantHidden
@@ -5142,7 +5142,7 @@ export default function AdminBlog() {
                 No posts match the selected readability filter.
               </p>
             )}
-            {filteredPosts.map((p) => {
+            {filteredPosts.map((p: { id: number; slug: string; title: string; publishedAt: string; excerpt: string; category: string; featured: boolean; noIndex: boolean; noindexUntil?: string | null; lastSeoPingAt?: string | null; lastSeoPingStatus?: string | null; content: string; [key: string]: unknown }) => {
               const isEditing = editingId === p.id;
               const isSelected = selectedSlugs.has(p.slug);
               // In preview mode, suppress the "scheduled" badge for any

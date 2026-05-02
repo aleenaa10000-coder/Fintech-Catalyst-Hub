@@ -37,7 +37,7 @@ export function AuthorSubscribeCard({ author, className }: Props) {
 
   const mutation = useSubscribeToAuthor({
     mutation: {
-      onSuccess: (data) => {
+      onSuccess: (data: { alreadySubscribed: boolean }) => {
         setDone({ alreadySubscribed: data.alreadySubscribed });
         setEmail("");
         toast.success(

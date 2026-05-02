@@ -590,15 +590,15 @@ router.post(
       // Only the rows whose `noIndex` flag actually flipped count as
       // "impacted" — posts already in the target state get filtered out
       // so the audit log mirrors what the admin saw in the impact preview.
-      const updatedSlugs = new Set(updated.map((p) => p.slug));
+      const updatedSlugs = new Set(updated.map((p: { slug: string }) => p.slug));
       const impactedBefore = before.filter(
-        (p) => updatedSlugs.has(p.slug) && p.noIndex !== body.noIndex,
+        (p: { slug: string; noIndex: boolean | null }) => updatedSlugs.has(p.slug) && p.noIndex !== body.noIndex,
       );
 
       let auditId: number | null = null;
       if (impactedBefore.length > 0) {
         const snapshot: BulkNoIndexAuditPostSnapshot[] = impactedBefore.map(
-          (p) => ({
+          (p: { slug: string; title: string; category: string; viewCount: number | null; featured: boolean | null; publishedAt: Date; noIndex: boolean | null }) => ({
             slug: p.slug,
             title: p.title,
             category: p.category,
@@ -676,7 +676,7 @@ router.post(
 
       const updated: (typeof blogPostsTable.$inferSelect)[] = [];
 
-      await db.transaction(async (tx) => {
+      await db.transaction(async (tx: typeof db) => {
         for (const item of body.posts) {
           const [row] = await tx
             .update(blogPostsTable)

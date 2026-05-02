@@ -287,7 +287,7 @@ export default function StatusPage() {
                 {Object.entries(data.seedData.counts).map(([table, n]) => (
                   <li key={table} className="flex items-center justify-between">
                     <span className="text-muted-foreground">{table}</span>
-                    <span className="font-medium tabular-nums">{n}</span>
+                    <span className="font-medium tabular-nums">{String(n)}</span>
                   </li>
                 ))}
               </ul>

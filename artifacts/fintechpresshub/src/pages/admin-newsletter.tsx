@@ -88,7 +88,7 @@ export default function AdminNewsletter() {
 
   const chartData = useMemo(
     () =>
-      (detailQuery.data?.dailySignups ?? []).map((d) => ({
+      (detailQuery.data?.dailySignups ?? []).map((d: { date: string; count: number }) => ({
         date: d.date,
         count: d.count,
       })),
@@ -354,7 +354,7 @@ export default function AdminNewsletter() {
                     </tr>
                   </thead>
                   <tbody>
-                    {detail.subscribers.map((s) => (
+                    {detail.subscribers.map((s: { id: string; email: string | null; createdAt: string; source: string | null }) => (
                       <tr
                         key={s.id}
                         className="border-b last:border-b-0"

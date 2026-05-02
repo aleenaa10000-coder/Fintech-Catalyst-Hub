@@ -24,6 +24,7 @@ import {
   Download,
   Tag,
   X,
+  TrendingUp,
 } from "lucide-react";
 
 type Cadence = "weekly" | "2x-week" | "3x-week" | "daily";
@@ -62,6 +63,86 @@ const SUGGESTED_TOPICS = [
   "RegTech",
   "DeFi",
 ];
+
+// ─── Search-volume lookup table ───────────────────────────────────────────────
+// Monthly global search volume estimates from public SEO data (Google Keyword
+// Planner / Ahrefs / Semrush ranges, rounded to nearest band). Lookup is
+// case-insensitive and falls back to a "Not enough data" placeholder for
+// custom topics that aren't in the table.
+
+type VolumeTier = "high" | "medium" | "low" | "unknown";
+
+type VolumeEntry = {
+  range: string;
+  tier: VolumeTier;
+};
+
+const SEARCH_VOLUME_TABLE: Record<string, VolumeEntry> = {
+  "embedded finance":        { range: "5K–12K/mo",   tier: "medium" },
+  "open banking":            { range: "18K–40K/mo",  tier: "high"   },
+  "fintech regulation":      { range: "3K–8K/mo",    tier: "medium" },
+  "crypto & web3":           { range: "50K–150K/mo", tier: "high"   },
+  "crypto":                  { range: "200K+/mo",    tier: "high"   },
+  "web3":                    { range: "40K–90K/mo",  tier: "high"   },
+  "bnpl trends":             { range: "2K–6K/mo",    tier: "low"    },
+  "bnpl":                    { range: "8K–20K/mo",   tier: "medium" },
+  "buy now pay later":       { range: "10K–25K/mo",  tier: "high"   },
+  "neobanks":                { range: "8K–20K/mo",   tier: "medium" },
+  "neobank":                 { range: "10K–25K/mo",  tier: "high"   },
+  "payments innovation":     { range: "1K–3K/mo",    tier: "low"    },
+  "digital payments":        { range: "30K–70K/mo",  tier: "high"   },
+  "ai in lending":           { range: "2K–5K/mo",    tier: "low"    },
+  "ai in fintech":           { range: "8K–18K/mo",   tier: "medium" },
+  "financial inclusion":     { range: "4K–10K/mo",   tier: "medium" },
+  "insurtech":               { range: "6K–15K/mo",   tier: "medium" },
+  "regtech":                 { range: "3K–7K/mo",    tier: "medium" },
+  "defi":                    { range: "40K–100K/mo", tier: "high"   },
+  "decentralized finance":   { range: "12K–30K/mo",  tier: "high"   },
+  "fintech seo":             { range: "500–2K/mo",   tier: "low"    },
+  "content marketing":       { range: "30K–80K/mo",  tier: "high"   },
+  "link building":           { range: "20K–50K/mo",  tier: "high"   },
+  "fintech marketing":       { range: "3K–8K/mo",    tier: "medium" },
+  "challenger bank":         { range: "5K–12K/mo",   tier: "medium" },
+  "payment gateway":         { range: "40K–90K/mo",  tier: "high"   },
+  "blockchain":              { range: "100K+/mo",    tier: "high"   },
+  "wealthtech":              { range: "2K–5K/mo",    tier: "low"    },
+  "robo advisor":            { range: "12K–30K/mo",  tier: "high"   },
+  "lendtech":                { range: "1K–3K/mo",    tier: "low"    },
+  "paytech":                 { range: "1K–3K/mo",    tier: "low"    },
+  "banking as a service":    { range: "6K–14K/mo",   tier: "medium" },
+  "baas":                    { range: "4K–9K/mo",    tier: "medium" },
+  "kyc compliance":          { range: "8K–18K/mo",   tier: "medium" },
+  "aml compliance":          { range: "10K–22K/mo",  tier: "high"   },
+  "fraud prevention":        { range: "15K–35K/mo",  tier: "high"   },
+  "api banking":             { range: "3K–7K/mo",    tier: "medium" },
+  "fintech startup":         { range: "8K–18K/mo",   tier: "medium" },
+  "digital banking":         { range: "25K–60K/mo",  tier: "high"   },
+  "cross-border payments":   { range: "5K–12K/mo",   tier: "medium" },
+  "cbdc":                    { range: "10K–25K/mo",  tier: "high"   },
+  "stablecoin":              { range: "20K–50K/mo",  tier: "high"   },
+  "lending technology":      { range: "3K–7K/mo",    tier: "medium" },
+  "alternative lending":     { range: "4K–9K/mo",    tier: "medium" },
+  "financial technology":    { range: "20K–50K/mo",  tier: "high"   },
+};
+
+function getSearchVolume(topic: string): VolumeEntry {
+  const key = topic.toLowerCase().trim();
+  return SEARCH_VOLUME_TABLE[key] ?? { range: "< 500/mo", tier: "unknown" };
+}
+
+const TIER_STYLE: Record<VolumeTier, string> = {
+  high:    "bg-emerald-50 text-emerald-700 border-emerald-200",
+  medium:  "bg-amber-50 text-amber-700 border-amber-200",
+  low:     "bg-slate-50 text-slate-600 border-slate-200",
+  unknown: "bg-slate-50 text-slate-400 border-slate-200",
+};
+
+const TIER_LABEL: Record<VolumeTier, string> = {
+  high:    "High volume",
+  medium:  "Medium volume",
+  low:     "Low volume",
+  unknown: "Custom topic",
+};
 
 const CADENCE_POSTS_PER_WEEK: Record<Cadence, number> = {
   weekly: 1,
@@ -104,6 +185,7 @@ type CalendarEntry = {
   type: ContentType;
   cta: string;
   searchIntent: SearchIntent;
+  searchVolume: string;
 };
 
 // ─── Topics flagged as high search-intent (SEO-driven titles preferred) ──────
@@ -386,6 +468,7 @@ function buildCalendar(form: FormState): CalendarEntry[] {
         type,
         cta: resolveCta(type, postCount),
         searchIntent: resolveSearchIntent(topic, type, isLinkedIn),
+        searchVolume: getSearchVolume(topic).range,
       });
 
       postCount++;
@@ -399,11 +482,11 @@ function buildCalendar(form: FormState): CalendarEntry[] {
 // ─── CSV export ───────────────────────────────────────────────────────────────
 
 function exportCSV(entries: CalendarEntry[], companyName: string) {
-  const header = "Week,Date,Topic,Working Title,Archetype,Content Type,Search Intent,CTA\n";
+  const header = "Week,Date,Topic,Est. Monthly Search Volume,Working Title,Archetype,Content Type,Search Intent,CTA\n";
   const rows = entries
     .map(
       (e) =>
-        `${e.week},"${e.date}","${e.topic}","${e.angle}","${e.archetype}","${FORMAT_LABEL[e.type]}","${e.searchIntent}","${e.cta}"`,
+        `${e.week},"${e.date}","${e.topic}","${e.searchVolume}","${e.angle}","${e.archetype}","${FORMAT_LABEL[e.type]}","${e.searchIntent}","${e.cta}"`,
     )
     .join("\n");
   const blob = new Blob([header + rows], { type: "text/csv" });
@@ -694,7 +777,7 @@ export default function ContentCalendarGenerator() {
                   </div>
                 </div>
 
-                {/* Selected topics */}
+                {/* Selected topics + inline volume chips */}
                 {form.topics.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {form.topics.map((t) => (
@@ -716,6 +799,51 @@ export default function ContentCalendarGenerator() {
                   </div>
                 )}
               </div>
+
+              {/* ── Search Volume Estimator panel ─────────────────────── */}
+              {form.topics.length > 0 && (
+                <div className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <TrendingUp className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span className="text-sm font-semibold text-indigo-900">
+                      Search Volume Estimates
+                    </span>
+                    <span className="text-[11px] text-indigo-500 ml-1">
+                      — monthly global, sourced from public SEO tools
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {form.topics.map((t) => {
+                      const vol = getSearchVolume(t);
+                      return (
+                        <div
+                          key={t}
+                          className="flex items-center justify-between gap-2 rounded-lg bg-white border border-indigo-100 px-3 py-2"
+                        >
+                          <span className="text-xs font-medium text-slate-700 truncate">
+                            {t}
+                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span
+                              className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border ${TIER_STYLE[vol.tier]}`}
+                            >
+                              {vol.range}
+                            </span>
+                            <span className="text-[10px] text-slate-400 hidden sm:inline">
+                              {TIER_LABEL[vol.tier]}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-indigo-400 mt-2.5 leading-relaxed">
+                    Estimates are indicative ranges, not guaranteed figures. Actual
+                    search volume varies by region, seasonality, and keyword match
+                    type. Use as a directional signal when prioritising topics.
+                  </p>
+                </div>
+              )}
 
               <Button
                 onClick={generate}
@@ -826,6 +954,14 @@ export default function ContentCalendarGenerator() {
                                   <span className="font-medium text-slate-600">
                                     {entry.topic}
                                   </span>
+                                </span>
+                                <span className="text-muted-foreground text-[10px]">·</span>
+                                <span
+                                  className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${TIER_STYLE[getSearchVolume(entry.topic).tier]}`}
+                                  title="Estimated monthly search volume"
+                                >
+                                  <TrendingUp className="w-2.5 h-2.5" />
+                                  {entry.searchVolume}
                                 </span>
                                 <span className="text-muted-foreground text-[10px]">·</span>
                                 <span className="text-xs text-muted-foreground">

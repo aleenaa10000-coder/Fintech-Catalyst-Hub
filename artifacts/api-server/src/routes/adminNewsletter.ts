@@ -53,8 +53,8 @@ async function loadDetail() {
   const since90d = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
   since90d.setUTCHours(0, 0, 0, 0);
 
-  const last30DayCount = rows.filter((r) => r.createdAt >= since30d).length;
-  const last7DayCount = rows.filter((r) => r.createdAt >= since7d).length;
+  const last30DayCount = rows.filter((r: { createdAt: Date }) => r.createdAt >= since30d).length;
+  const last7DayCount = rows.filter((r: { createdAt: Date }) => r.createdAt >= since7d).length;
 
   // Build daily signup buckets: zero-filled for the last 90 calendar days (UTC).
   const buckets = new Map<string, number>();
@@ -74,7 +74,7 @@ async function loadDetail() {
     last30DayCount,
     last7DayCount,
     latestSubscribedAt: rows[0]?.createdAt?.toISOString() ?? null,
-    subscribers: rows.map((r) => ({
+    subscribers: rows.map((r: { id: string; email: string | null; createdAt: Date; source: string | null }) => ({
       id: r.id,
       email: r.email,
       createdAt: r.createdAt.toISOString(),
@@ -100,7 +100,7 @@ router.get(
     const detail = await loadDetail();
 
     const header = ["email", "subscribed_at", "source"].join(",");
-    const lines = detail.subscribers.map((s) =>
+    const lines = detail.subscribers.map((s: { email: string | null; createdAt: string; source: string | null }) =>
       [
         escapeCsv(s.email),
         escapeCsv(s.createdAt),

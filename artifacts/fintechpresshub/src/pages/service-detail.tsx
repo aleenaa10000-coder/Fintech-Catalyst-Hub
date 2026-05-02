@@ -47,12 +47,13 @@ export default function ServiceDetail() {
     );
   }
 
-  const service = services?.find((s) => s.slug === slug);
+  type ServiceShape = { id: number; name: string; slug: string; tagline: string; description: string; deliverables: string[] };
+  const service = services?.find((s: ServiceShape) => s.slug === slug);
   if (!service) return <NotFound />;
 
   const Icon = getServiceIcon(service.slug);
   const shortLabel = serviceShortLabelBySlug[service.slug] ?? service.name;
-  const otherServices = (services ?? []).filter((s) => s.slug !== service.slug);
+  const otherServices = (services ?? []).filter((s: ServiceShape) => s.slug !== service.slug);
 
   const seoTitle = `${service.name} | FintechPressHub`;
   const seoDescription = service.tagline;
@@ -147,7 +148,7 @@ export default function ServiceDetail() {
                   <h3 className="font-semibold text-lg">What's included</h3>
                 </div>
                 <ul className="space-y-3">
-                  {service.deliverables.map((item, i) => (
+                  {service.deliverables.map((item: string, i: number) => (
                     <li key={i} className="flex items-start gap-3">
                       <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                       <span className="text-sm text-foreground/90 leading-relaxed">
@@ -181,7 +182,7 @@ export default function ServiceDetail() {
               </Link>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {otherServices.map((other) => {
+              {otherServices.map((other: { id: number; name: string; slug: string; tagline: string }) => {
                 const OtherIcon = getServiceIcon(other.slug);
                 return (
                   <Link

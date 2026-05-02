@@ -115,7 +115,7 @@ export async function runIndexNowDaily(): Promise<void> {
     return;
   }
 
-  const urlList = recentPosts.map((p) => `${config.siteUrl}/blog/${p.slug}`);
+  const urlList = recentPosts.map((p: { slug: string }) => `${config.siteUrl}/blog/${p.slug}`);
 
   JOB_LOG.info(
     { count: urlList.length, since: since.toISOString(), host: config.host },

@@ -437,7 +437,7 @@ function CommissioningTopicsBoard({
 
       {topics.length > 1 ? (
         <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {topics.map((t, i) => (
+          {topics.map((t: { id: number; title: string; category: string }, i: number) => (
             <li key={t.id}>
               <button
                 type="button"

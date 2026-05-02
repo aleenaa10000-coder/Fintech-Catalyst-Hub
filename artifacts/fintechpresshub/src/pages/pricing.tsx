@@ -66,7 +66,7 @@ export default function Pricing() {
                   <CardContent><Skeleton className="h-16 w-1/3 mb-8" /><Skeleton className="h-40 w-full" /></CardContent>
                 </Card>
               ))
-            ) : plans?.map((plan, i) => (
+            ) : plans?.map((plan: { id: number; name: string; tagline: string; description: string; priceMonthly: number; priceUnit: string; highlighted: boolean; features: string[]; ctaLabel: string; ctaHref: string }, i: number) => (
               <motion.div
                 key={plan.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -98,7 +98,7 @@ export default function Pricing() {
                     </div>
                     <p className="text-sm text-center text-muted-foreground mb-6">{plan.description}</p>
                     <div className="space-y-4 flex-1">
-                      {plan.features.map((feature, i) => (
+                      {plan.features.map((feature: string, i: number) => (
                         <div key={i} className="flex items-start gap-3">
                           <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                           <span className="text-sm text-foreground">{feature}</span>
