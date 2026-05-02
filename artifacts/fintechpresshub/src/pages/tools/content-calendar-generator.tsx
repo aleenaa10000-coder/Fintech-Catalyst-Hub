@@ -29,6 +29,7 @@ import {
   CalendarClock,
   ScanSearch,
   Table2,
+  FileText,
 } from "lucide-react";
 
 type Cadence = "weekly" | "2x-week" | "3x-week" | "daily";
@@ -846,6 +847,148 @@ const ARCHETYPE_COLOR: Record<string, string> = {
   "The Benchmark": "text-sky-600",
 };
 
+// ─── Archetype rationales ─────────────────────────────────────────────────────
+// One-sentence editorial rationale per archetype — surfaced in the brief modal
+// so writers understand the strategic intent behind each headline structure.
+
+const ARCHETYPE_RATIONALE: Record<string, string> = {
+  "The Blueprint":      "Establish authority with actionable frameworks — converts readers into leads who trust your process",
+  "The Comparison":     "Capture high-intent 'vs' and 'alternative' searches — ideal for decision-stage buyers",
+  "The Trendsetter":    "Rank for forward-looking queries and position the brand as ahead of the curve",
+  "The Data Dive":      "Build credibility with proprietary data — earns backlinks and drives SME decision-maker traffic",
+  "The Contrarian":     "Generate shares by challenging conventional wisdom — strong for brand differentiation",
+  "The How-To":         "Capture 'how to' search volume — high conversion rate for bottom-of-funnel readers",
+  "The Listicle":       "Earn featured snippets and social shares — skimmable format drives high dwell time",
+  "The Deep Dive":      "Own long-tail authority queries — signals expertise to Google and readers alike",
+  "The Warning":        "Capture risk-aware searchers — strong for top-of-funnel brand awareness",
+  "The Future":         "Rank for prediction and outlook queries — positions the brand as an industry oracle",
+  "The Authority Guide":"Build topical authority and internal link equity — cornerstone content for the pillar strategy",
+  "The Case Study":     "Convert bottom-of-funnel traffic with proof — highest-converting format for services businesses",
+  "The Why Now":        "Capture urgency-driven searches — strong for seasonal or trend-driven topics",
+  "The Insider":        "Differentiate with proprietary knowledge — builds loyal readership and email sign-ups",
+  "The Opportunity":    "Surface untapped angles for strategic readers — strong for newsletter and lead growth",
+  "The Benchmark":      "Own benchmark and comparison queries — earns citations from industry publications",
+};
+
+// ─── Word-count targets by content type ───────────────────────────────────────
+
+const WORD_COUNT_BY_TYPE: Record<ContentType, string> = {
+  blog:          "1,200–1,800 words",
+  guide:         "3,500–5,000 words",
+  roundup:       "1,500–2,500 words",
+  "case-study":  "1,200–2,000 words",
+  linkedin:      "150–300 words",
+};
+
+// ─── Editorial brief generator ────────────────────────────────────────────────
+// Produces a Notion-ready markdown string for a single calendar entry.
+// Paste directly into a new Notion page — all formatting renders correctly.
+
+function generateBrief(entry: CalendarEntry): string {
+  const rationale =
+    ARCHETYPE_RATIONALE[entry.archetype] ??
+    "Build authority and drive organic traffic";
+  const wordCount = WORD_COUNT_BY_TYPE[entry.type];
+  const formatLabel = FORMAT_LABEL[entry.type];
+  const isLinkedIn = entry.type === "linkedin";
+
+  const internalLinks = isLinkedIn
+    ? [
+        `Tag or mention a relevant thought leader in ${entry.topic}`,
+        `Reference a recent FintechPressHub article on ${entry.topic}`,
+        `Link to the most recent guide or whitepaper on ${entry.topic}`,
+      ]
+    : [
+        `Link to the most recent ${entry.topic} case study on the site`,
+        `Link to the services page most closely covering ${entry.topic}`,
+        `Link to the topic hub or pillar page for ${entry.topic}`,
+        `Link to a related roundup or data post on ${entry.topic}`,
+      ];
+
+  const writerNotes =
+    isLinkedIn
+      ? [
+          "Keep the opening hook to 1–2 lines before the 'see more' break",
+          "Use short paragraphs — 1–2 sentences max for mobile readability",
+          "Include a direct question or prompt to drive comment engagement",
+          `Execute CTA: *${entry.cta}*`,
+        ]
+      : entry.type === "guide"
+      ? [
+          "Open with a clear statement of who the guide is for and what problem it solves",
+          "Structure with H2 sections and H3 sub-sections for scannability",
+          "Include at least 3 original data points, charts, or proprietary insights",
+          "Add a downloadable asset or gated resource to support the CTA",
+          "Include a pull quote formatted for LinkedIn repurposing",
+          "Minimum internal links: 3 — see targets below",
+          `Close with CTA: *${entry.cta}*`,
+        ]
+      : entry.type === "case-study"
+      ? [
+          "Lead with the headline result (the key metric) in the opening paragraph",
+          "Structure: Challenge → Approach → Results → Takeaways",
+          "Include at least 2 specific, verifiable metrics with source attribution",
+          "Add a client pull quote if available",
+          `Close with CTA: *${entry.cta}*`,
+        ]
+      : entry.type === "roundup"
+      ? [
+          "Curate 8–12 high-quality sources with brief editorial commentary on each",
+          "Open with a strong editorial take — not a generic list introduction",
+          "Verify all outbound links open and are not behind paywalls",
+          "Add at least one proprietary insight or original data point to differentiate",
+          `Close with CTA: *${entry.cta}*`,
+        ]
+      : [
+          "Open with a strong hook that states the reader's specific problem",
+          "Use H2 subheadings — aim for 4–6 sections minimum",
+          "Include at least 1 original data point, stat, or proprietary insight",
+          "Add a pull quote formatted for LinkedIn repurposing",
+          `Close with CTA: *${entry.cta}*`,
+        ];
+
+  return [
+    `# ${entry.angle}`,
+    ``,
+    `## 📋 Editorial Brief`,
+    ``,
+    `| Field | Value |`,
+    `|---|---|`,
+    `| **Content Type** | ${formatLabel} |`,
+    `| **Archetype** | ${entry.archetype} |`,
+    `| **Publish Date** | ${entry.date} — Week ${entry.week} |`,
+    `| **Topic / Target Keyword** | ${entry.topic} |`,
+    `| **Search Intent** | ${entry.searchIntent} |`,
+    `| **Priority Score** | ${entry.priorityScore} / 100 |`,
+    `| **Est. Monthly Search Volume** | ${entry.searchVolume} |`,
+    `| **Topic Difficulty (KD)** | ${entry.topicDifficulty} / 100 |`,
+    `| **Suggested Word Count** | ${wordCount} |`,
+    `| **CTA** | ${entry.cta} |`,
+    ``,
+    `---`,
+    ``,
+    `## 🎯 Archetype Rationale`,
+    ``,
+    `**${entry.archetype}** — ${rationale}`,
+    ``,
+    `---`,
+    ``,
+    `## 🔗 Internal Link Targets`,
+    ``,
+    ...internalLinks.map((link) => `- [ ] ${link}`),
+    ``,
+    `---`,
+    ``,
+    `## 📝 Writer Notes`,
+    ``,
+    ...writerNotes.map((note) => `- ${note}`),
+    ``,
+    `---`,
+    ``,
+    `*Generated by FintechPressHub Content Calendar Generator*`,
+  ].join("\n");
+}
+
 // ─── Publish-Ready Checklist sub-component ────────────────────────────────────
 
 function PublishChecklist({
@@ -928,6 +1071,8 @@ export default function ContentCalendarGenerator() {
   const [filterTopic, setFilterTopic] = useState<string>("all");
   const [checkedItems, setCheckedItems] = useState<Record<string, string[]>>({});
   const [expandedChecklists, setExpandedChecklists] = useState<Set<string>>(new Set());
+  const [briefEntry, setBriefEntry] = useState<CalendarEntry | null>(null);
+  const [copiedBrief, setCopiedBrief] = useState(false);
 
   const entryKey = (e: { date: string; type: string; topic: string }) =>
     `${e.date}|${e.type}|${e.topic}`;
@@ -979,6 +1124,7 @@ export default function ContentCalendarGenerator() {
     setCopiedNotion(false);
     setCheckedItems({});
     setExpandedChecklists(new Set());
+    setBriefEntry(null);
   };
 
   const generate = () => {
@@ -1600,12 +1746,19 @@ export default function ContentCalendarGenerator() {
                                 onToggleExpand={toggleChecklistExpanded}
                               />
                             </div>
-                            <div className="pt-0.5">
+                            <div className="pt-0.5 flex flex-col items-end gap-1.5">
                               <span
                                 className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 whitespace-nowrap ${TYPE_COLOR[entry.type]}`}
                               >
                                 {FORMAT_LABEL[entry.type]}
                               </span>
+                              <button
+                                onClick={() => setBriefEntry(entry)}
+                                title="Open editorial brief"
+                                className="text-slate-300 hover:text-indigo-500 transition-colors"
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </motion.div>
                         ))}
@@ -1701,12 +1854,19 @@ export default function ContentCalendarGenerator() {
                                     onToggleExpand={toggleChecklistExpanded}
                                   />
                                 </div>
-                                <div className="pt-0.5">
+                                <div className="pt-0.5 flex flex-col items-end gap-1.5">
                                   <span
                                     className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 whitespace-nowrap ${TYPE_COLOR[entry.type]}`}
                                   >
                                     {FORMAT_LABEL[entry.type]}
                                   </span>
+                                  <button
+                                    onClick={() => setBriefEntry(entry)}
+                                    title="Open editorial brief"
+                                    className="text-slate-300 hover:text-indigo-500 transition-colors"
+                                  >
+                                    <FileText className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
                               </motion.div>
                             ))}
@@ -1916,6 +2076,73 @@ export default function ContentCalendarGenerator() {
           </AnimatePresence>
         </div>
       </section>
+
+      {/* ── Editorial Brief Modal ──────────────────────────────────────────── */}
+      {briefEntry && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setBriefEntry(null);
+          }}
+        >
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
+                <span className="text-sm font-semibold text-slate-800 shrink-0">
+                  Editorial Brief
+                </span>
+                <span
+                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ml-1 shrink-0 ${TYPE_COLOR[briefEntry.type]}`}
+                >
+                  {FORMAT_LABEL[briefEntry.type]}
+                </span>
+                <span className="text-[11px] text-slate-400 truncate ml-1">
+                  — {briefEntry.archetype}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 ml-3">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(generateBrief(briefEntry));
+                    setCopiedBrief(true);
+                    setTimeout(() => setCopiedBrief(false), 2000);
+                  }}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                >
+                  {copiedBrief ? (
+                    <Check className="w-3 h-3" />
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
+                  {copiedBrief ? "Copied!" : "Copy to Notion"}
+                </button>
+                <button
+                  onClick={() => setBriefEntry(null)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Subheader hint */}
+            <div className="px-6 pt-3 pb-0">
+              <p className="text-[10.5px] text-slate-400 font-medium tracking-wide">
+                Paste directly into a new Notion page — all markdown renders natively
+              </p>
+            </div>
+
+            {/* Scrollable brief body */}
+            <div className="overflow-y-auto flex-1 px-6 py-4">
+              <pre className="text-[11.5px] leading-relaxed text-slate-700 font-mono whitespace-pre-wrap bg-slate-50 border border-slate-100 rounded-lg p-4">
+                {generateBrief(briefEntry)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
