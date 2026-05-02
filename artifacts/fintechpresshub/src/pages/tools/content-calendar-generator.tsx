@@ -298,38 +298,38 @@ type Archetype = {
 const ARCHETYPES: Archetype[] = [
   {
     name: "The Blueprint",
-    seo: "A Practical Framework for {topic} That Actually Works",
-    hook: "Most fintechs over-complicate {topic}. Here's the exact framework that works:",
+    seo: "A Framework for {topic}: The Step-by-Step Playbook Fintech Teams Use in {year}",
+    hook: "Most fintechs over-complicate {topic}. Here's the exact framework:",
   },
   {
     name: "The Comparison",
-    seo: "{topic} vs. Traditional Alternatives: What Founders Need to Know in {year}",
-    hook: "I compared {topic} against the old way of doing things. The results surprised me.",
+    seo: "{topic} vs. Traditional Approaches: What Founders Need to Know in {year}",
+    hook: "I compared {topic} to the old playbook. The gap surprised me:",
   },
   {
     name: "The Trend Analysis",
     seo: "Why {topic} is the Key to Fintech Growth in {year}",
-    hook: "Hot take: {topic} will be the #1 growth lever for fintech in {year}. Here's the data:",
+    hook: "{topic} will define fintech in {year}. Here's the data:",
   },
   {
     name: "The Data Dive",
-    seo: "Breaking Down the ROI of {topic} for Fintech Brands",
-    hook: "We analysed 50+ fintech brands using {topic}. The ROI numbers were staggering:",
+    seo: "Breaking Down the ROI of {topic} for Fintech Brands in {year}",
+    hook: "We analysed 50+ fintech brands on {topic}. The ROI numbers:",
   },
   {
     name: "The Contrarian",
-    seo: "Why {topic} is Being Disrupted (And What to Do About It)",
-    hook: "Unpopular opinion: the way most fintechs approach {topic} is fundamentally broken.",
+    seo: "Why {topic} Is Being Disrupted — And What Smart Fintechs Are Doing About It in {year}",
+    hook: "Unpopular opinion: most fintechs get {topic} completely wrong.",
   },
   {
     name: "The How-To",
     seo: "How to Leverage {topic} to Scale Your Fintech in {year}",
-    hook: "The {topic} strategy that took us from zero to 10K organic visitors. Step by step:",
+    hook: "{topic} drove 10K+ organic visits. Here are the exact steps:",
   },
   {
     name: "The Listicle",
-    seo: "5 Ways {topic} is Reshaping Fintech — and What CMOs Must Do Now",
-    hook: "5 things I wish I knew about {topic} before we started. Number 3 changes everything.",
+    seo: "7 Ways {topic} Is Reshaping Fintech in {year} — and What CMOs Must Do Now",
+    hook: "7 things I wish I knew about {topic} before we started.",
   },
   {
     name: "The Deep Dive",
@@ -338,23 +338,43 @@ const ARCHETYPES: Archetype[] = [
   },
   {
     name: "The Warning",
-    seo: "The Biggest Mistakes Fintechs Make with {topic} (And How to Avoid Them)",
-    hook: "Most fintechs get {topic} wrong. Are you one of them? A brutally honest breakdown:",
+    seo: "The Biggest {topic} Mistakes Fintechs Make in {year} — and How to Avoid Them",
+    hook: "Most fintechs make this {topic} mistake. Are you?",
   },
   {
     name: "The Future",
     seo: "The Future of {topic} in Fintech: Predictions and Opportunities for {year}",
-    hook: "{topic} is about to change. Here are the 3 things that will matter most in {year}:",
+    hook: "{topic} is changing fast. 3 things that will matter most in {year}:",
   },
   {
     name: "The Authority Guide",
-    seo: "The Ultimate Guide to {topic} for Ambitious Fintech Brands",
-    hook: "Everything I know about {topic}, distilled into one post. Save this for later:",
+    seo: "The Complete {year} Guide to {topic} for Ambitious Fintech Brands",
+    hook: "Everything you need to know about {topic}, in one post. Save this:",
   },
   {
     name: "The Case Study",
-    seo: "How Leading Fintechs Are Winning with {topic}: Real Examples and Takeaways",
-    hook: "We helped a Series B fintech 3x their pipeline using {topic}. The exact playbook:",
+    seo: "Case Study: How a Series B Fintech 3× Their Pipeline Using {topic} in {year}",
+    hook: "We helped a fintech 3× their pipeline with {topic}. The exact playbook:",
+  },
+  {
+    name: "The Why Now",
+    seo: "Why {topic} Matters More Than Ever for Fintech Brands in {year}",
+    hook: "Why {topic} matters right now — and what most brands are missing:",
+  },
+  {
+    name: "The Insider",
+    seo: "What Elite Fintech Brands Know About {topic} That Others Don't ({year})",
+    hook: "The {topic} insight top fintech teams don't talk about publicly:",
+  },
+  {
+    name: "The Opportunity",
+    seo: "The Hidden {topic} Opportunity Every Fintech Brand Should Target in {year}",
+    hook: "There's a {topic} opportunity most fintechs are completely ignoring:",
+  },
+  {
+    name: "The Benchmark",
+    seo: "{topic} Benchmarks for Fintech in {year}: Where Does Your Brand Stand?",
+    hook: "{topic} benchmarks for fintech are out. Here's how to read them:",
   },
 ];
 
@@ -431,6 +451,20 @@ function buildTitle(
     .replace(/\{year\}/gi, String(year));
 }
 
+// ─── Prefix key extraction ────────────────────────────────────────────────────
+// Returns the first 4 significant words of a title, lowercased and stripped of
+// punctuation — used by the prefix-diversity guard to prevent repetitive openers.
+
+function extractPrefix(title: string): string {
+  return title
+    .split(/\s+/)
+    .slice(0, 4)
+    .join(" ")
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, "")
+    .trim();
+}
+
 // ─── Main calendar builder ────────────────────────────────────────────────────
 
 function buildCalendar(form: FormState): CalendarEntry[] {
@@ -460,10 +494,21 @@ function buildCalendar(form: FormState): CalendarEntry[] {
   };
   const selectedDays = publishDays[form.cadence];
 
-  // Deduplication: track used titles globally and per-30-day window
+  // ── Deduplication ──────────────────────────────────────────────────────────
   const usedTitlesGlobal = new Set<string>();
-  // Track archetype index per 30-day window (cycle of 30 posts)
-  // This guarantees rotation of ≥ 8 archetypes per cycle
+
+  // ── Prefix diversity guard ─────────────────────────────────────────────────
+  // No headline opening phrase (first 4 words) may repeat more than twice
+  // across the entire calendar — enforces a human editorial style guide.
+  const prefixCount = new Map<string, number>();
+  const MAX_PREFIX_REPEATS = 2;
+
+  // ── Strategic guide spacing ────────────────────────────────────────────────
+  // In-Depth Guides must be spaced ≥ 3 calendar days apart to reflect a
+  // realistic high-authority editorial workflow.
+  let lastGuideDate: Date | null = null;
+  const MIN_GUIDE_GAP_DAYS = 3;
+
   const CYCLE_SIZE = 30;
 
   let postCount = 0;
@@ -476,15 +521,16 @@ function buildCalendar(form: FormState): CalendarEntry[] {
       const d = new Date(startDate);
       d.setDate(d.getDate() + weekOffset * 7 + (day - 1));
 
+      // Year is always derived from the actual publish date — locks {year}
+      // placeholders to the calendar's real timeframe (e.g. 2026 or 2027).
       const publishYear = d.getFullYear();
       const topic = topics[postCount % topics.length];
 
-      // Archetype index rotates within each 30-post cycle
+      // Archetype rotates through the full set across a 30-post cycle
       const cyclePosition = postCount % CYCLE_SIZE;
       const archetypeIndex = cyclePosition % ARCHETYPES.length;
-      const archetype = ARCHETYPES[archetypeIndex];
 
-      // Determine content type
+      // ── Determine content type ────────────────────────────────────────────
       let type: ContentType;
       if (form.format === "blog") {
         if (postCount % 12 === 11) type = "guide";
@@ -501,36 +547,59 @@ function buildCalendar(form: FormState): CalendarEntry[] {
         else type = postCount % 8 === 7 ? "case-study" : "guide";
       }
 
-      const isLinkedIn = type === "linkedin";
-
-      // Build title — try up to ARCHETYPES.length variations to avoid duplicates
-      let title = "";
-      let chosenArchetype = archetype;
-      let attemptOffset = 0;
-
-      while (attemptOffset < ARCHETYPES.length) {
-        const candidate = buildTitle(
-          ARCHETYPES[(archetypeIndex + attemptOffset) % ARCHETYPES.length],
-          topic,
-          publishYear,
-          type,
-          isLinkedIn,
+      // ── Strategic guide spacing enforcement ───────────────────────────────
+      // Downgrade a guide to a regular blog post if the last published guide
+      // was fewer than MIN_GUIDE_GAP_DAYS ago — mirrors a real editorial queue
+      // where back-to-back long-form pieces exhaust the production capacity.
+      if (type === "guide" && lastGuideDate !== null) {
+        const daysSinceLast = Math.round(
+          (d.getTime() - lastGuideDate.getTime()) / 86_400_000,
         );
-        if (!usedTitlesGlobal.has(candidate.toLowerCase())) {
-          title = candidate;
-          chosenArchetype = ARCHETYPES[(archetypeIndex + attemptOffset) % ARCHETYPES.length];
-          break;
+        if (daysSinceLast < MIN_GUIDE_GAP_DAYS) {
+          type = "blog";
         }
-        attemptOffset++;
       }
 
-      // Final fallback: append post index to guarantee uniqueness
+      const isLinkedIn = type === "linkedin";
+
+      // ── Title selection: prefix-diversity + dedup guards ──────────────────
+      // Walk all archetypes starting from the scheduled index. Accept the
+      // first candidate that (a) is not an exact duplicate AND (b) whose
+      // first-4-word prefix hasn't appeared ≥ MAX_PREFIX_REPEATS times yet.
+      let title = "";
+      let chosenArchetype = ARCHETYPES[archetypeIndex];
+
+      for (let offset = 0; offset < ARCHETYPES.length; offset++) {
+        const idx = (archetypeIndex + offset) % ARCHETYPES.length;
+        const arch = ARCHETYPES[idx];
+        const candidate = buildTitle(arch, topic, publishYear, type, isLinkedIn);
+
+        if (usedTitlesGlobal.has(candidate.toLowerCase())) continue;
+
+        const prefix = extractPrefix(candidate);
+        if ((prefixCount.get(prefix) ?? 0) >= MAX_PREFIX_REPEATS) continue;
+
+        title = candidate;
+        chosenArchetype = arch;
+        prefixCount.set(prefix, (prefixCount.get(prefix) ?? 0) + 1);
+        break;
+      }
+
+      // Final fallback: volume suffix guarantees uniqueness even when all
+      // archetypes are exhausted for a given topic.
       if (!title) {
-        title = buildTitle(archetype, topic, publishYear, type, isLinkedIn) +
-          ` — Part ${Math.floor(postCount / ARCHETYPES.length) + 1}`;
+        const base = buildTitle(
+          ARCHETYPES[archetypeIndex], topic, publishYear, type, isLinkedIn,
+        );
+        title = `${base} — Vol. ${Math.floor(postCount / ARCHETYPES.length) + 2}`;
+        const prefix = extractPrefix(title);
+        prefixCount.set(prefix, (prefixCount.get(prefix) ?? 0) + 1);
       }
 
       usedTitlesGlobal.add(title.toLowerCase());
+
+      // Record guide publish date for spacing enforcement on the next guide
+      if (type === "guide") lastGuideDate = new Date(d);
 
       const vol = getSearchVolume(topic);
       entries.push({
@@ -634,6 +703,10 @@ const ARCHETYPE_COLOR: Record<string, string> = {
   "The Future": "text-teal-600",
   "The Authority Guide": "text-purple-600",
   "The Case Study": "text-green-600",
+  "The Why Now": "text-pink-600",
+  "The Insider": "text-fuchsia-600",
+  "The Opportunity": "text-lime-600",
+  "The Benchmark": "text-sky-600",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
