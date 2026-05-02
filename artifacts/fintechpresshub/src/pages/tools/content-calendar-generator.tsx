@@ -1050,6 +1050,19 @@ function getIndustryBenchmark(topic: string): { avg: number; label: string } {
   return { avg: INDUSTRY_BENCHMARK_DEFAULT_AVG, label: "Fintech (General)" };
 }
 
+// ─── Authority target by niche competitiveness ────────────────────────────────
+// Estimated total quality content pieces needed to reach first-page authority,
+// calibrated by competitor benchmark avg. Higher competition = more pieces.
+
+function getAuthorityTarget(industryAvg: number): number {
+  if (industryAvg >= 60) return 36;
+  if (industryAvg >= 55) return 28;
+  if (industryAvg >= 50) return 22;
+  if (industryAvg >= 45) return 16;
+  if (industryAvg >= 40) return 12;
+  return 10;
+}
+
 // ─── Per-format publish-ready checklist items ─────────────────────────────────
 // Each content type has its own 6-7 step production checklist. Items are
 // intentionally short so they fit on a single line in the collapsed badge.
@@ -1609,6 +1622,37 @@ export default function ContentCalendarGenerator() {
     .filter((x): x is NonNullable<typeof x> => x !== null)
     .sort((a, b) => b.upside - a.upside)
     .slice(0, 3);
+
+  // ── Content Velocity Planner ──────────────────────────────────────────────
+  const timeframeWeeks = Math.max(1, parseInt(form.timeframe) / 7);
+  const velocityData = form.topics.map((topic) => {
+    const plannedCount = calendar.filter((e) => e.topic === topic).length;
+    const { avg: industryAvg, label: nicheLabel } = getIndustryBenchmark(topic);
+    const authorityTarget = getAuthorityTarget(industryAvg);
+    const remaining = Math.max(0, authorityTarget - plannedCount);
+    const progressPct = Math.min(100, Math.round((plannedCount / authorityTarget) * 100));
+    const totalNeededRate =
+      Math.round((authorityTarget / timeframeWeeks) * 10) / 10;
+    const plannedRate = Math.round((plannedCount / timeframeWeeks) * 10) / 10;
+    return {
+      topic,
+      nicheLabel,
+      authorityTarget,
+      plannedCount,
+      remaining,
+      progressPct,
+      totalNeededRate,
+      plannedRate,
+    };
+  });
+  const totalCurrentRate =
+    Math.round((calendar.length / timeframeWeeks) * 10) / 10;
+  const totalTargetRate =
+    Math.round(
+      (velocityData.reduce((s, v) => s + v.authorityTarget, 0) / timeframeWeeks) * 10,
+    ) / 10;
+  const velocityGap =
+    Math.round((totalTargetRate - totalCurrentRate) * 10) / 10;
 
   // Content type breakdown for the mix chart
   const typeCounts = (Object.keys(FORMAT_LABEL) as ContentType[])
@@ -2751,6 +2795,150 @@ export default function ContentCalendarGenerator() {
                           },
                         )}
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* ── Content Velocity Planner ────────────────────────────── */}
+                {velocityData.length > 0 && (
+                  <Card className="border border-slate-100 shadow-sm">
+                    <CardContent className="p-5">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                            <CalendarClock className="w-3.5 h-3.5 text-indigo-500" />
+                            Content Velocity Planner
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Pieces per week needed to reach first-page authority
+                            in each niche within your {form.timeframe}-day plan.
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[10px] text-muted-foreground leading-none mb-0.5">
+                            Target weekly output
+                          </p>
+                          <p className="text-xl font-bold text-indigo-600 leading-none">
+                            {totalTargetRate}
+                            <span className="text-[11px] font-normal text-muted-foreground ml-0.5">
+                              /wk
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Summary strip */}
+                      <div className="grid grid-cols-3 gap-px mb-5 rounded-lg overflow-hidden border border-slate-100">
+                        <div className="bg-slate-50 px-3 py-2.5 text-center">
+                          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                            Planned
+                          </p>
+                          <p className="text-[15px] font-bold text-slate-700 leading-none">
+                            {totalCurrentRate}
+                            <span className="text-[10px] font-normal ml-0.5">
+                              /wk
+                            </span>
+                          </p>
+                        </div>
+                        <div className="bg-slate-50 px-3 py-2.5 text-center border-x border-slate-100">
+                          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                            Target
+                          </p>
+                          <p className="text-[15px] font-bold text-indigo-600 leading-none">
+                            {totalTargetRate}
+                            <span className="text-[10px] font-normal ml-0.5">
+                              /wk
+                            </span>
+                          </p>
+                        </div>
+                        <div className="bg-slate-50 px-3 py-2.5 text-center">
+                          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                            Gap
+                          </p>
+                          <p
+                            className={`text-[15px] font-bold leading-none ${
+                              velocityGap > 0
+                                ? "text-amber-600"
+                                : "text-emerald-600"
+                            }`}
+                          >
+                            {velocityGap > 0 ? `+${velocityGap}` : "✓"}
+                            <span className="text-[10px] font-normal ml-0.5">
+                              {velocityGap > 0 ? "/wk" : " on track"}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Per-topic rows */}
+                      <div className="flex flex-col gap-4">
+                        {velocityData.map(
+                          (
+                            {
+                              topic,
+                              nicheLabel,
+                              plannedCount,
+                              authorityTarget,
+                              remaining,
+                              totalNeededRate,
+                              progressPct,
+                            },
+                            i,
+                          ) => (
+                            <div key={i} className="space-y-1.5">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-[12px] font-semibold text-slate-800 truncate">
+                                    {topic}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {nicheLabel} · {plannedCount} planned /{" "}
+                                    {authorityTarget} needed for authority
+                                  </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-[11px] font-bold text-indigo-600 leading-none">
+                                    {totalNeededRate}/wk
+                                  </p>
+                                  <p
+                                    className={`text-[10px] mt-0.5 font-medium ${remaining === 0 ? "text-emerald-600" : "text-amber-600"}`}
+                                  >
+                                    {remaining === 0
+                                      ? "✓ Covered"
+                                      : `${remaining} more needed`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${
+                                      progressPct >= 100
+                                        ? "bg-emerald-500"
+                                        : "bg-indigo-400"
+                                    }`}
+                                    style={{ width: `${progressPct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] font-semibold text-slate-500 tabular-nums w-8 text-right">
+                                  {progressPct}%
+                                </span>
+                              </div>
+                              {i < velocityData.length - 1 && (
+                                <div className="border-b border-slate-100 pt-1" />
+                              )}
+                            </div>
+                          ),
+                        )}
+                      </div>
+
+                      <p className="text-[10px] text-muted-foreground mt-4 leading-relaxed border-t border-slate-100 pt-3">
+                        Authority targets are calibrated by niche
+                        competitiveness. To close a gap, increase your cadence
+                        in the form above or extend your timeframe to 60 or 90
+                        days.
+                      </p>
                     </CardContent>
                   </Card>
                 )}
