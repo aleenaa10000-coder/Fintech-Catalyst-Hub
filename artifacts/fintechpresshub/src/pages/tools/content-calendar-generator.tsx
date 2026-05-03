@@ -1615,6 +1615,21 @@ function getTopicTrend(topic: string): {
   return { momentum: 62, direction: "steady", velocity: "+5% MoM", trigger: "Stable fintech audience interest — niche but engaged readership" };
 }
 
+// ─── Content Cluster Strength Meter ──────────────────────────────────────────
+const PILLAR_TYPES = new Set<ContentType>(["guide", "case-study"]);
+
+function scoreCluster(pillarCount: number, supportingCount: number): number {
+  if (pillarCount >= 1 && supportingCount >= 4) return Math.min(100, 90 + (supportingCount - 4) * 2);
+  if (pillarCount >= 1 && supportingCount === 3) return 88;
+  if (pillarCount >= 1 && supportingCount === 2) return 76;
+  if (pillarCount >= 1 && supportingCount === 1) return 62;
+  if (pillarCount >= 1 && supportingCount === 0) return 42;
+  if (pillarCount === 0 && supportingCount >= 4) return 56;
+  if (pillarCount === 0 && supportingCount === 3) return 50;
+  if (pillarCount === 0 && supportingCount === 2) return 38;
+  return 24;
+}
+
 // ─── Seasonal Publishing Pulse ───────────────────────────────────────────────
 const FINTECH_MONTHLY_DEMAND: Record<number, { demand: number; peaks: string[]; suggest: string }> = {
   1:  { demand: 75, peaks: ["RegTech & Compliance",    "Year-End Reporting"],          suggest: "AML/KYC compliance checklist or regulatory reporting guide"                          },
@@ -5470,6 +5485,130 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Cluster Strength Meter ──────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  type ClusterStatus = "strong" | "needs-depth" | "needs-pillar" | "thin";
+
+                  const STATUS_CFG: Record<ClusterStatus, { label: string; icon: string; bg: string; border: string; text: string; tip: string }> = {
+                    "strong":       { label: "Strong",       icon: "💪", bg: "bg-emerald-50",  border: "border-emerald-200", text: "text-emerald-700", tip: "Healthy pillar-to-cluster ratio — focus on interlinks between pieces"         },
+                    "needs-depth":  { label: "Needs Depth",  icon: "📝", bg: "bg-amber-50",    border: "border-amber-200",   text: "text-amber-700",   tip: "Add 2–3 supporting blog posts, LinkedIn posts, or infographics to build cluster depth"  },
+                    "needs-pillar": { label: "Needs Pillar", icon: "🏛️", bg: "bg-violet-50",  border: "border-violet-200",  text: "text-violet-700",  tip: "Anchor this cluster with a comprehensive guide or case study as the pillar piece"       },
+                    "thin":         { label: "Thin",         icon: "⚠️", bg: "bg-rose-50",    border: "border-rose-200",    text: "text-rose-700",    tip: "Start with a pillar guide, then add 2–3 supporting posts to establish topical authority" },
+                  };
+
+                  const clusterOf = (topic: string): { pillar: number; supporting: number } => {
+                    const entries = calendar.filter((e) => e.topic === topic);
+                    return {
+                      pillar:     entries.filter((e) => PILLAR_TYPES.has(e.type)).length,
+                      supporting: entries.filter((e) => !PILLAR_TYPES.has(e.type)).length,
+                    };
+                  };
+
+                  const clusterData = calendarTopics.map((topic) => {
+                    const { pillar, supporting } = clusterOf(topic);
+                    const score  = scoreCluster(pillar, supporting);
+                    const status: ClusterStatus =
+                      pillar > 0 && score >= 80 ? "strong"
+                      : pillar > 0              ? "needs-depth"
+                      : supporting >= 2         ? "needs-pillar"
+                      :                           "thin";
+                    return { topic, pillar, supporting, score, status };
+                  }).sort((a, b) => a.score - b.score);
+
+                  const avgScore    = Math.round(clusterData.reduce((s, c) => s + c.score, 0) / (clusterData.length || 1));
+                  const strongCount = clusterData.filter((c) => c.status === "strong").length;
+                  const weakCount   = clusterData.filter((c) => c.status === "thin" || c.status === "needs-pillar").length;
+
+                  const scoreBar = (s: number) =>
+                    s >= 80 ? "bg-emerald-400" : s >= 60 ? "bg-blue-400" : s >= 40 ? "bg-amber-400" : "bg-rose-400";
+                  const authorityLabel = (s: number) =>
+                    s >= 80 ? { label: "High Authority",   text: "text-emerald-700", bg: "bg-emerald-100" }
+                    : s >= 60 ? { label: "Building",        text: "text-blue-600",    bg: "bg-blue-100"    }
+                    : s >= 40 ? { label: "Early Stage",     text: "text-amber-700",   bg: "bg-amber-100"   }
+                    :           { label: "Thin Coverage",   text: "text-rose-700",    bg: "bg-rose-100"    };
+                  const auth = authorityLabel(avgScore);
+
+                  return (
+                    <Card className="border border-orange-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🏗️</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Cluster Strength Meter</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {strongCount > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                {strongCount} strong
+                              </span>
+                            )}
+                            {weakCount > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {weakCount} weak
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Pillar (guide/case study) to supporting content ratio per topic — a healthy cluster needs 1 pillar + 3 or more supporting pieces to build topical authority.
+                        </p>
+
+                        {/* Topical authority score */}
+                        <div className={`flex items-center justify-between px-3.5 py-3 rounded-xl border mb-4 ${auth.bg} border-opacity-60`}>
+                          <div>
+                            <p className="text-[9px] text-slate-500 mb-0.5">Overall Topical Authority Score</p>
+                            <p className={`text-lg font-black tabular-nums leading-none ${auth.text}`}>{avgScore}<span className="text-xs font-semibold opacity-60">/100</span></p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full ${auth.bg} ${auth.text} border border-current border-opacity-30`}>
+                            {auth.label}
+                          </span>
+                        </div>
+
+                        {/* Cluster rows */}
+                        <div className="space-y-3">
+                          {clusterData.map(({ topic, pillar, supporting, score, status }) => {
+                            const cfg = STATUS_CFG[status];
+                            return (
+                              <div key={topic} className={`rounded-xl border ${cfg.border} overflow-hidden`}>
+                                {/* Row header */}
+                                <div className={`flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 ${cfg.bg}`}>
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <span className="text-[10px] font-bold text-slate-700 truncate">{topic}</span>
+                                    <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${cfg.border} ${cfg.text} bg-white/60`}>
+                                      {cfg.icon} {cfg.label}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2.5 shrink-0 text-[8.5px] text-slate-500">
+                                    <span>🏛️ {pillar} pillar{pillar !== 1 ? "s" : ""}</span>
+                                    <span>📄 {supporting} supporting</span>
+                                    <span className={`font-bold tabular-nums ${cfg.text}`}>{score}/100</span>
+                                  </div>
+                                </div>
+                                {/* Strength bar */}
+                                <div className="h-1.5 bg-slate-100">
+                                  <div className={`h-full ${scoreBar(score)} transition-all`} style={{ width: `${score}%` }} />
+                                </div>
+                                {/* Tip */}
+                                {status !== "strong" && (
+                                  <div className="px-3.5 py-1.5">
+                                    <p className="text-[8.5px] text-slate-500 leading-snug">→ {cfg.tip}</p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Ideal ratio note */}
+                        <p className="text-[8.5px] text-slate-400 mt-3 text-center italic">
+                          Ideal ratio: 1 pillar (guide/case study) + 3–5 supporting pieces per topic cluster
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Seasonal Publishing Pulse ───────────────────────────── */}
                 {calendar.length > 0 && (() => {
