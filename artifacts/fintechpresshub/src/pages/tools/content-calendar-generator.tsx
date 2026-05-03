@@ -1696,6 +1696,76 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content Debt Tracker ────────────────────────────────────────────────────
+// Identifies past-due entries, content decay risk, sequencing inversions,
+// and clusters missing a foundational piece
+
+const DEBT_REGULATORY_SIGNALS = [
+  "regulat","complian","gdpr","psd2","directive","legislation","policy",
+  "sanction","basel","aml","kyc","dora","mica","psr","open banking","fca",
+];
+const DEBT_DATA_SIGNALS = [
+  "statistic","data report","survey","benchmark","annual report","research finds",
+  "percentage","growth rate","market share","industry data","report reveals","by the numbers",
+];
+const DEBT_TREND_SIGNALS = [
+  "trend","predict","forecast","outlook","year ahead","in 2025","in 2026",
+  "next year","emerging","what to expect","future of","evolution of","state of",
+];
+const DEBT_CASESTUDY_SIGNALS = [
+  "case study","case: how","how they","how we","achieved","reduced by","increased by",
+  "saves ","saved ","cut by","implementation at","deployed at","lessons from",
+];
+
+type DebtType = "past-due" | "decay-risk" | "sequence-inversion" | "missing-foundation";
+
+interface DebtItem {
+  date:        string;
+  topic:       string;
+  angle:       string;
+  type:        ContentType;
+  debtTypes:   DebtType[];
+  daysOverdue: number;
+  shelfLife:   number;
+  decayPct:    number;
+  severity:    "critical" | "serious" | "minor" | "none";
+}
+
+function debtShelfLifeDays(topic: string, angle: string): number {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  if (DEBT_REGULATORY_SIGNALS.some((s) => hay.includes(s))) return 180;
+  if (DEBT_DATA_SIGNALS.some((s)        => hay.includes(s))) return 270;
+  if (DEBT_TREND_SIGNALS.some((s)       => hay.includes(s))) return 365;
+  if (DEBT_CASESTUDY_SIGNALS.some((s)   => hay.includes(s))) return 540;
+  return 720;
+}
+
+function assessDebt(
+  entry: { date: string; topic: string; angle: string; type: ContentType },
+  today: Date,
+  clusterInverted: boolean,
+  clusterMissingFoundation: boolean,
+): DebtItem {
+  const pubDate     = new Date(entry.date);
+  const daysOverdue = Math.max(0, Math.floor((today.getTime() - pubDate.getTime()) / 86_400_000));
+  const shelfLife   = debtShelfLifeDays(entry.topic, entry.angle);
+  const decayPct    = daysOverdue > 0 ? Math.round((daysOverdue / shelfLife) * 100) : 0;
+
+  const debtTypes: DebtType[] = [];
+  if (daysOverdue > 0)          debtTypes.push("past-due");
+  if (decayPct >= 75)           debtTypes.push("decay-risk");
+  if (clusterInverted)          debtTypes.push("sequence-inversion");
+  if (clusterMissingFoundation) debtTypes.push("missing-foundation");
+
+  const severity: DebtItem["severity"] =
+    debtTypes.length === 0 ? "none" :
+    daysOverdue > 60 || decayPct >= 100 || debtTypes.length >= 3 ? "critical" :
+    daysOverdue > 30 || decayPct >= 75  || clusterInverted        ? "serious"  :
+    "minor";
+
+  return { ...entry, debtTypes, daysOverdue, shelfLife, decayPct, severity };
+}
+
 // ─── Internal Linking Architecture Planner ───────────────────────────────────
 // Generates a recommended internal link map from topic clusters, editorial stages,
 // and commercial intent hierarchy — turns the calendar into a site architecture blueprint
@@ -8196,6 +8266,324 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Debt Tracker ─────────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+
+                  // Build cluster maps to detect inversions and missing foundations
+                  const clusterMap = new Map<string, typeof calendar>();
+                  calendar.forEach((e) => {
+                    const k = e.topic.toLowerCase().trim();
+                    if (!clusterMap.has(k)) clusterMap.set(k, []);
+                    clusterMap.get(k)!.push(e);
+                  });
+
+                  // Per-topic: is the cluster inverted? missing foundation?
+                  const invertedTopics    = new Set<string>();
+                  const noFoundTopics     = new Set<string>();
+
+                  clusterMap.forEach((entries, key) => {
+                    if (entries.length < 2) return;
+                    const sorted  = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+                    const staged  = sorted.map((e) => ({ ...e, stage: detectArcStage(e.angle) }));
+                    const hasFoundation = staged.some((e) => e.stage === "awareness" || e.stage === "education");
+                    if (!hasFoundation) noFoundTopics.add(key);
+                    // Inversion: any Implementation/Advanced entry scheduled before the earliest foundation entry
+                    const foundEntries = staged.filter((e) => e.stage === "awareness" || e.stage === "education");
+                    const advEntries   = staged.filter((e) => e.stage === "implementation" || e.stage === "advanced");
+                    if (foundEntries.length > 0 && advEntries.length > 0) {
+                      const earliestFound = foundEntries[0].date;
+                      const hasEarlyAdv   = advEntries.some((a) => a.date < earliestFound);
+                      if (hasEarlyAdv) invertedTopics.add(key);
+                    }
+                  });
+
+                  // Assess debt for every entry
+                  const debtItems: DebtItem[] = calendar.map((e) => {
+                    const k = e.topic.toLowerCase().trim();
+                    return assessDebt(
+                      e, today,
+                      invertedTopics.has(k),
+                      noFoundTopics.has(k) && (clusterMap.get(k)?.length ?? 1) >= 2,
+                    );
+                  });
+
+                  const n           = debtItems.length;
+                  const withDebt    = debtItems.filter((d) => d.severity !== "none");
+                  const critical    = debtItems.filter((d) => d.severity === "critical");
+                  const serious     = debtItems.filter((d) => d.severity === "serious");
+                  const minor       = debtItems.filter((d) => d.severity === "minor");
+
+                  const pastDue     = debtItems.filter((d) => d.debtTypes.includes("past-due"));
+                  const decayRisk   = debtItems.filter((d) => d.debtTypes.includes("decay-risk"));
+                  const inversions  = debtItems.filter((d) => d.debtTypes.includes("sequence-inversion"));
+                  const noFound     = debtItems.filter((d) => d.debtTypes.includes("missing-foundation"));
+
+                  const multiClusters = [...clusterMap.values()].filter((c) => c.length >= 2).length;
+
+                  // Portfolio Debt Score (0-100): 100 = zero debt, 0 = maximally indebted
+                  const s1 = n > 0 ? Math.round(((n - pastDue.length)   / n) * 40) : 40;
+                  const s2 = n > 0 ? Math.round(((n - decayRisk.length) / n) * 30) : 30;
+                  const s3 = multiClusters > 0 ? Math.round(((multiClusters - invertedTopics.size) / multiClusters) * 20) : 20;
+                  const s4 = multiClusters > 0 ? Math.round(((multiClusters - noFoundTopics.size)  / multiClusters) * 10) : 10;
+                  const debtScore = s1 + s2 + s3 + s4;
+
+                  const dCfg =
+                    debtScore >= 85 ? { label: "Low debt — calendar is current and structurally sound",     color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    debtScore >= 60 ? { label: "Moderate debt — some overdue or structurally weak entries", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"  } :
+                    debtScore >= 35 ? { label: "High debt — significant backlog and decay risk building",   color: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-100" } :
+                                      { label: "Critical debt — calendar requires immediate remediation",    color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"   };
+
+                  const DEBT_TYPE_CFG: Record<DebtType, { label: string; icon: string; pill: string }> = {
+                    "past-due":            { label: "Past-due",              icon: "📅", pill: "bg-rose-100 text-rose-700 border-rose-200"      },
+                    "decay-risk":          { label: "Decay risk",            icon: "📉", pill: "bg-red-100 text-red-700 border-red-200"          },
+                    "sequence-inversion":  { label: "Sequence inversion",    icon: "↕️", pill: "bg-violet-100 text-violet-700 border-violet-200" },
+                    "missing-foundation":  { label: "Missing foundation",    icon: "🏗️", pill: "bg-blue-100 text-blue-700 border-blue-200"       },
+                  };
+
+                  const SEV_CFG = {
+                    critical: { label: "Critical", color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-200",   pill: "bg-rose-100 text-rose-700 border-rose-200",     bar: "bg-rose-400"   },
+                    serious:  { label: "Serious",  color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", pill: "bg-orange-100 text-orange-700 border-orange-200", bar: "bg-orange-400" },
+                    minor:    { label: "Minor",    color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-200",  pill: "bg-amber-100 text-amber-700 border-amber-200",   bar: "bg-amber-300"  },
+                    none:     { label: "Clean",    color: "text-emerald-700",bg: "bg-emerald-50",border: "border-emerald-100",pill: "bg-emerald-100 text-emerald-700 border-emerald-200",bar: "bg-emerald-300"},
+                  };
+
+                  const SHELF_LABEL: Record<number, string> = {
+                    180: "Regulatory (6 mo)", 270: "Data/stats (9 mo)",
+                    365: "Trend (12 mo)", 540: "Case study (18 mo)", 720: "Evergreen (24 mo)",
+                  };
+
+                  const fmtDays = (d: number) =>
+                    d >= 365 ? `${(d/365).toFixed(1)}y` : d >= 30 ? `${Math.round(d/30)}mo` : `${d}d`;
+
+                  return (
+                    <Card className="border border-amber-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">⏰</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Debt Tracker</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${dCfg.color} ${dCfg.bg} ${dCfg.border}`}>
+                            {debtScore}/100 · {dCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Tracks four types of editorial debt that compound silently if left unmanaged: (1) <strong>Past-due entries</strong> whose scheduled publication date has passed — each represents production backlog and a missed SEO opportunity window. (2) <strong>Content decay risk</strong> where the piece has been overdue long enough that the topic has likely changed — regulatory content decays in ~6 months, data/statistics in ~9 months, trend forecasts in ~12 months, case studies in ~18 months, evergreen guides in ~24 months. (3) <strong>Sequencing inversions</strong> where Implementation or Advanced entries in a cluster are scheduled before the foundational Awareness entry, breaking the editorial narrative and internal link dependency chain. (4) <strong>Missing cluster foundations</strong> where a multi-entry topic cluster has no Awareness or Education stage entry, meaning all content assumes context the reader may never acquire.
+                        </p>
+
+                        {/* Portfolio Debt Score */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${dCfg.bg} ${dCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${dCfg.color}`}>{debtScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Publication backlog",    val: s1, max: 40, desc: `${pastDue.length}/${n} entries are past their scheduled date — target: 0 overdue` },
+                              { label: "Decay-risk-free",        val: s2, max: 30, desc: `${decayRisk.length}/${n} entries at ≥75% through shelf-life — target: 0 decaying` },
+                              { label: "Sequence integrity",     val: s3, max: 20, desc: `${invertedTopics.size}/${multiClusters} multi-entry clusters have inverted publication order` },
+                              { label: "Foundation coverage",    val: s4, max: 10, desc: `${noFoundTopics.size}/${multiClusters} multi-entry clusters lack a foundational entry` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${dCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Debt summary cards */}
+                        <div className="grid grid-cols-4 gap-1.5 mb-4">
+                          {(["past-due","decay-risk","sequence-inversion","missing-foundation"] as DebtType[]).map((t) => {
+                            const cfg = DEBT_TYPE_CFG[t];
+                            const count = debtItems.filter((d) => d.debtTypes.includes(t)).length;
+                            return (
+                              <div key={t} className={`rounded-lg border px-2 py-1.5 text-center ${count > 0 ? "bg-rose-50 border-rose-100" : "bg-emerald-50 border-emerald-100"}`}>
+                                <p className="text-[6px] text-slate-400 mb-0.5">{cfg.icon} {cfg.label}</p>
+                                <p className={`text-[15px] font-black leading-none ${count > 0 ? "text-rose-700" : "text-emerald-600"}`}>{count}</p>
+                                <p className="text-[6px] text-slate-400 mt-0.5">{count === 0 ? "✓ clear" : "entries"}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Critical and serious debt items */}
+                        {[...critical, ...serious].length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">
+                              {critical.length + serious.length} item{critical.length + serious.length !== 1 ? "s" : ""} requiring immediate attention:
+                            </p>
+                            <div className="space-y-1.5 mb-4">
+                              {[...critical, ...serious].map((d, i) => {
+                                const sc = SEV_CFG[d.severity];
+                                return (
+                                  <div key={i} className={`rounded-lg border px-2.5 py-2 ${sc.bg} ${sc.border}`}>
+                                    <div className="flex items-start gap-1.5">
+                                      <span className={`text-[6px] font-black px-1.5 py-0.5 rounded-full border shrink-0 ${sc.pill}`}>{sc.label}</span>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1 flex-wrap mb-0.5">
+                                          <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[d.type]}`}>{FORMAT_LABEL[d.type]}</span>
+                                          <span className="text-[7.5px] font-semibold text-slate-700 truncate">{d.angle.slice(0,35)}{d.angle.length > 35 ? "…" : ""}</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1 mb-1">
+                                          {d.debtTypes.map((t) => (
+                                            <span key={t} className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${DEBT_TYPE_CFG[t].pill}`}>
+                                              {DEBT_TYPE_CFG[t].icon} {DEBT_TYPE_CFG[t].label}
+                                            </span>
+                                          ))}
+                                        </div>
+                                        <div className="flex items-center gap-2 text-[6.5px] text-slate-500 flex-wrap">
+                                          {d.daysOverdue > 0 && (
+                                            <span>📅 {fmtDays(d.daysOverdue)} overdue (scheduled {d.date})</span>
+                                          )}
+                                          {d.daysOverdue > 0 && (
+                                            <span>📉 {d.decayPct}% through {SHELF_LABEL[d.shelfLife] ?? `${fmtDays(d.shelfLife)} shelf-life`}</span>
+                                          )}
+                                          <span className="text-slate-400 italic">{d.topic}</span>
+                                        </div>
+                                        {d.decayPct >= 100 && (
+                                          <p className="text-[6.5px] text-red-600 font-bold mt-0.5">⚠ Content has exceeded its estimated shelf-life — refresh before publishing or rankings will suffer immediately on indexing</p>
+                                        )}
+                                        {d.debtTypes.includes("sequence-inversion") && (
+                                          <p className="text-[6.5px] text-violet-600 mt-0.5">↕ An advanced entry in this cluster is scheduled before the foundational entry — readers and crawlers will encounter advanced content before the prerequisite exists</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Minor debt */}
+                        {minor.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🟡</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{minor.length} minor debt item{minor.length !== 1 ? "s" : ""} — monitor and address in next editorial pass</p>
+                              <div className="flex flex-wrap gap-1">
+                                {minor.map((d, i) => (
+                                  <span key={i} className={`text-[6.5px] px-1.5 py-0.5 rounded-full border font-semibold ${TYPE_COLOR[d.type]}`}>
+                                    {d.angle.slice(0,20)}{d.angle.length > 20 ? "…" : ""} <span className="text-slate-400">({fmtDays(d.daysOverdue)} overdue)</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Clean confirmation */}
+                        {withDebt.length === 0 && (
+                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-100 mb-4">
+                            <span className="text-[10px]">✅</span>
+                            <p className="text-[8px] font-bold text-emerald-700">Zero content debt detected — all entries are future-dated, structurally sequenced correctly, and every multi-entry cluster has a foundational piece. Maintain this standard as new entries are added.</p>
+                          </div>
+                        )}
+
+                        {/* Sequencing inversion details */}
+                        {invertedTopics.size > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-violet-50 border border-violet-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">↕️</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-violet-800 mb-1">{invertedTopics.size} topic cluster{invertedTopics.size !== 1 ? "s" : ""} with inverted publication sequence</p>
+                              <div className="flex flex-wrap gap-1 mb-1.5">
+                                {[...invertedTopics].map((t) => (
+                                  <span key={t} className="text-[7px] font-semibold px-2 py-0.5 rounded-full border bg-violet-100 text-violet-700 border-violet-200">{t}</span>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-violet-700 leading-snug">Advanced entries in these clusters are currently scheduled to publish before the foundational Awareness or Education entries exist. This creates three problems: (1) readers arriving via search land on advanced content they lack the context to evaluate; (2) the internal links from spoke-to-pillar don't yet have a target when the spoke publishes; (3) search engines see a cluster where the advanced content predates the foundational content, which is a weak topical authority signal. Fix by either moving foundation entries earlier, adding a new foundational entry dated before the advanced entries, or splitting the cluster into two separate topic threads.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Missing foundation details */}
+                        {noFoundTopics.size > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🏗️</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-blue-800 mb-1">{noFoundTopics.size} multi-entry cluster{noFoundTopics.size !== 1 ? "s" : ""} missing a foundational entry</p>
+                              <div className="flex flex-wrap gap-1 mb-1.5">
+                                {[...noFoundTopics].map((t) => (
+                                  <span key={t} className="text-[7px] font-semibold px-2 py-0.5 rounded-full border bg-blue-100 text-blue-700 border-blue-200">{t}</span>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-blue-700 leading-snug">These clusters contain multiple entries but none at the Awareness or Education editorial stage — all pieces assume background the reader may never acquire in this editorial journey. Without a foundational piece, there is also no pillar for spoke-to-pillar internal linking, meaning topical authority will not consolidate onto a canonical URL. Add one foundational explainer per cluster to unlock both benefits.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Full debt table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — debt assessment:</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[6.5px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-14">Severity</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-12">Overdue</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Shelf-life decay</th>
+                                <th className="text-left text-slate-400 font-normal pb-1 pl-1">Debt types</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...debtItems].sort((a, b) => {
+                                const sevOrder = { critical: 0, serious: 1, minor: 2, none: 3 };
+                                return sevOrder[a.severity] - sevOrder[b.severity] || b.daysOverdue - a.daysOverdue;
+                              }).map((d, i) => {
+                                const sc = SEV_CFG[d.severity];
+                                return (
+                                  <tr key={i} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[d.type]}`}>{FORMAT_LABEL[d.type]}</span>
+                                      <span className="text-slate-600">{d.angle.slice(0,22)}{d.angle.length > 22 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6px] font-black px-1 py-0.5 rounded-full border ${sc.pill}`}>{sc.label}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1 tabular-nums text-slate-500">
+                                      {d.daysOverdue > 0 ? <span className="text-rose-600 font-bold">{fmtDays(d.daysOverdue)}</span> : <span className="text-emerald-600">future</span>}
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      {d.daysOverdue > 0 ? (
+                                        <div className="flex items-center gap-1">
+                                          <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                            <div className={`h-full rounded-full ${d.decayPct >= 100 ? "bg-red-500" : d.decayPct >= 75 ? "bg-orange-400" : "bg-amber-300"}`} style={{ width: `${Math.min(100, d.decayPct)}%` }} />
+                                          </div>
+                                          <span className={`tabular-nums text-[6px] font-bold shrink-0 ${d.decayPct >= 100 ? "text-red-600" : d.decayPct >= 75 ? "text-orange-600" : "text-amber-600"}`}>{d.decayPct}%</span>
+                                        </div>
+                                      ) : <span className="text-slate-300">—</span>}
+                                    </td>
+                                    <td className="py-0.5 pl-1">
+                                      <div className="flex flex-wrap gap-0.5">
+                                        {d.debtTypes.length === 0
+                                          ? <span className="text-[6px] text-emerald-600 font-bold">✓ clean</span>
+                                          : d.debtTypes.map((t) => (
+                                              <span key={t} className={`text-[5.5px] font-bold px-1 py-0.5 rounded-full border ${DEBT_TYPE_CFG[t].pill}`}>
+                                                {DEBT_TYPE_CFG[t].icon}
+                                              </span>
+                                            ))}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="text-[7px] text-slate-400 mt-2">Shelf-life: Regulatory 6mo · Data/stats 9mo · Trend 12mo · Case study 18mo · Evergreen 24mo · Decay % = days overdue / shelf-life days · Severity: Critical = &gt;60d overdue or ≥3 debt types, Serious = &gt;30d or ≥75% decay or inversion, Minor = &lt;30d overdue</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Internal Linking Architecture Planner ────────────────── */}
                 {calendar.length > 0 && (() => {
