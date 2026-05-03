@@ -1696,6 +1696,110 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Internal Linking Architecture Planner ───────────────────────────────────
+// Generates a recommended internal link map from topic clusters, editorial stages,
+// and commercial intent hierarchy — turns the calendar into a site architecture blueprint
+
+type LinkType     = "pillar-spoke" | "next-step-cta" | "stage-progression" | "commercial-cross";
+type LinkPriority = "high" | "medium";
+
+interface LinkRec {
+  fromAngle: string; fromTopic: string; fromType: ContentType; fromStage: ArcStage;
+  toAngle:   string; toTopic:   string; toType:   ContentType; toStage:   ArcStage;
+  linkType:  LinkType;
+  priority:  LinkPriority;
+  reason:    string;
+}
+
+const LINK_TYPE_CFG: Record<LinkType, { label: string; icon: string; color: string; bg: string; border: string; pill: string }> = {
+  "pillar-spoke":      { label: "Spoke → Pillar",         icon: "🏛️", color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-100",  pill: "bg-violet-100 text-violet-700 border-violet-200"  },
+  "next-step-cta":     { label: "Pillar → Next step",     icon: "➡️", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", pill: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  "stage-progression": { label: "Stage progression",      icon: "🔗", color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100",    pill: "bg-blue-100 text-blue-700 border-blue-200"        },
+  "commercial-cross":  { label: "Commercial cross-link",  icon: "💼", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   pill: "bg-amber-100 text-amber-700 border-amber-200"     },
+};
+
+function buildLinkArchitecture(
+  entries: Array<{ date: string; topic: string; angle: string; type: ContentType }>,
+): LinkRec[] {
+  const links: LinkRec[] = [];
+
+  // Group by topic (case-insensitive)
+  const topicMap = new Map<string, typeof entries>();
+  entries.forEach((e) => {
+    const k = e.topic.toLowerCase().trim();
+    if (!topicMap.has(k)) topicMap.set(k, []);
+    topicMap.get(k)!.push(e);
+  });
+
+  topicMap.forEach((cluster) => {
+    if (cluster.length < 2) return;
+
+    const sorted = [...cluster].sort((a, b) => a.date.localeCompare(b.date));
+    const staged = sorted.map((e) => ({ ...e, stage: detectArcStage(e.angle), intent: dominantIntent(e.topic, e.angle) }));
+
+    // Pillar = earliest awareness/education entry; fallback = first entry
+    const foundations = staged.filter((e) => e.stage === "awareness" || e.stage === "education");
+    const pillar      = foundations.length > 0 ? foundations[0] : staged[0];
+    const spokes      = staged.filter((e) => e !== pillar);
+
+    // Rule 1: Every spoke → pillar (high priority — core topical authority)
+    spokes.forEach((s) => {
+      links.push({
+        fromAngle: s.angle, fromTopic: s.topic, fromType: s.type, fromStage: s.stage,
+        toAngle:   pillar.angle, toTopic: pillar.topic, toType: pillar.type, toStage: pillar.stage,
+        linkType: "pillar-spoke", priority: "high",
+        reason: `Cite cluster pillar to consolidate topical authority signals onto one canonical page`,
+      });
+    });
+
+    // Rule 2: Pillar → up to 3 spokes (medium priority — next-step CTA chain)
+    spokes.slice(0, 3).forEach((s) => {
+      links.push({
+        fromAngle: pillar.angle, fromTopic: pillar.topic, fromType: pillar.type, fromStage: pillar.stage,
+        toAngle:   s.angle, toTopic: s.topic, toType: s.type, toStage: s.stage,
+        linkType: "next-step-cta", priority: "medium",
+        reason: `Distribute pillar link equity to high-value spokes and keep readers in the editorial ecosystem`,
+      });
+    });
+
+    // Rule 3: Advanced entries → foundation entries (stage-progression context links)
+    const advEntries  = staged.filter((e) => e.stage === "implementation" || e.stage === "advanced");
+    const foundEntries = staged.filter((e) => e.stage === "awareness" || e.stage === "education");
+    advEntries.forEach((adv) => {
+      foundEntries.filter((f) => f !== adv && f !== pillar).slice(0, 1).forEach((f) => {
+        links.push({
+          fromAngle: adv.angle, fromTopic: adv.topic, fromType: adv.type, fromStage: adv.stage,
+          toAngle:   f.angle,   toTopic:   f.topic,   toType:   f.type,   toStage:   f.stage,
+          linkType: "stage-progression", priority: "medium",
+          reason: `Advanced content should contextually reference foundational content for readers who may lack background`,
+        });
+      });
+    });
+  });
+
+  // Rule 4: Commercial/transactional cross-topic links (high priority — revenue network)
+  const commEntries = entries
+    .map((e) => ({ ...e, intent: dominantIntent(e.topic, e.angle), stage: detectArcStage(e.angle) }))
+    .filter((e) => e.intent === "commercial" || e.intent === "transactional");
+
+  let crossCount = 0;
+  for (let i = 0; i < commEntries.length - 1 && crossCount < 12; i++) {
+    for (let j = i + 1; j < commEntries.length && crossCount < 12; j++) {
+      const a = commEntries[i]; const b = commEntries[j];
+      if (a.topic.toLowerCase().trim() === b.topic.toLowerCase().trim()) continue;
+      links.push({
+        fromAngle: a.angle, fromTopic: a.topic, fromType: a.type, fromStage: a.stage,
+        toAngle:   b.angle, toTopic:   b.topic, toType:   b.type, toStage:   b.stage,
+        linkType: "commercial-cross", priority: "high",
+        reason: `Commercial pages on related topics should link to each other — buyers evaluating one service often evaluate adjacent services`,
+      });
+      crossCount++;
+    }
+  }
+
+  return links;
+}
+
 // ─── Headline Engagement Predictor ───────────────────────────────────────────
 // Scores each entry's angle on six proven click-trigger categories and estimates
 // CTR lift relative to a neutral informational headline
@@ -8092,6 +8196,254 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Internal Linking Architecture Planner ────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const links = buildLinkArchitecture(calendar);
+                  const n     = calendar.length;
+
+                  const pillarLinks  = links.filter((l) => l.linkType === "pillar-spoke");
+                  const nextLinks    = links.filter((l) => l.linkType === "next-step-cta");
+                  const stageLinks   = links.filter((l) => l.linkType === "stage-progression");
+                  const commLinks    = links.filter((l) => l.linkType === "commercial-cross");
+                  const highLinks    = links.filter((l) => l.priority === "high");
+
+                  // Unique topics with pillar coverage
+                  const topicMap2 = new Map<string, number>();
+                  calendar.forEach((e) => topicMap2.set(e.topic.toLowerCase().trim(), (topicMap2.get(e.topic.toLowerCase().trim()) ?? 0) + 1));
+                  const multiEntryTopics  = [...topicMap2.entries()].filter(([, c]) => c >= 2);
+                  const topicsWithPillar  = new Set(pillarLinks.map((l) => l.toTopic.toLowerCase().trim())).size;
+
+                  // Commercial entries linked
+                  const allCommAngles   = new Set(
+                    calendar.filter((e) => { const i = dominantIntent(e.topic, e.angle); return i === "commercial" || i === "transactional"; }).map((e) => e.angle)
+                  );
+                  const linkedCommAngles = new Set([...commLinks.map((l) => l.fromAngle), ...commLinks.map((l) => l.toAngle)]);
+                  const commCoverage    = allCommAngles.size > 0 ? linkedCommAngles.size / allCommAngles.size : 1;
+
+                  // Clusters with stage-chain links
+                  const topicsWithStageLinks = new Set([...stageLinks, ...nextLinks].map((l) => l.fromTopic.toLowerCase().trim())).size;
+                  const multiStageTopics     = multiEntryTopics.length;
+
+                  // Portfolio Internal Linking Score (0-100)
+                  const pillarScore  = multiEntryTopics.length > 0 ? Math.round((topicsWithPillar    / multiEntryTopics.length) * 40) : 40;
+                  const commScore    = Math.round(Math.min(1, commCoverage)  * 30);
+                  const stageScore   = multiStageTopics > 0 ? Math.round(Math.min(1, topicsWithStageLinks / multiStageTopics) * 20) : 20;
+                  const densityScore = Math.round(Math.min(1, links.length / Math.max(n * 1.5, 1)) * 10);
+                  const linkScore    = pillarScore + commScore + stageScore + densityScore;
+
+                  const lCfg =
+                    linkScore >= 80 ? { label: "Strong link architecture — pillar-spoke network established",  color: "text-sky-700",    bg: "bg-sky-50",    border: "border-sky-100"    } :
+                    linkScore >= 55 ? { label: "Partial architecture — coverage gaps in cluster linking",      color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100"   } :
+                    linkScore >= 30 ? { label: "Weak architecture — most clusters not linked internally",      color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100"  } :
+                                      { label: "No link architecture — each page ranks as an isolated island", color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100"   };
+
+                  // Group links by fromTopic for the cluster map
+                  const byFromTopic = new Map<string, LinkRec[]>();
+                  links.forEach((l) => {
+                    const k = l.fromTopic.toLowerCase().trim();
+                    if (!byFromTopic.has(k)) byFromTopic.set(k, []);
+                    byFromTopic.get(k)!.push(l);
+                  });
+
+                  const LINK_TYPES: LinkType[] = ["pillar-spoke","commercial-cross","next-step-cta","stage-progression"];
+                  const linkCounts: Record<LinkType, number> = {
+                    "pillar-spoke":      pillarLinks.length,
+                    "next-step-cta":     nextLinks.length,
+                    "stage-progression": stageLinks.length,
+                    "commercial-cross":  commLinks.length,
+                  };
+
+                  return (
+                    <Card className="border border-sky-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🕸️</span>
+                            <p className="text-xs font-semibold text-slate-700">Internal Linking Architecture Planner</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${lCfg.color} ${lCfg.bg} ${lCfg.border}`}>
+                            {linkScore}/100 · {lCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Generates a complete internal link recommendation map from four rules: (1) every spoke page in a topic cluster should cite the cluster pillar — the foundational Awareness or Education entry — to consolidate topical authority signals; (2) every pillar should link forward to its top spokes via next-step CTAs to distribute link equity and keep readers in the editorial ecosystem; (3) Implementation and Advanced entries should contextually reference foundational entries for readers who lack background; (4) commercial and transactional intent pages across different topic clusters should link to each other to form a revenue conversion network. Together these four rules turn the calendar into a site architecture blueprint.
+                        </p>
+
+                        {/* Portfolio score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${lCfg.bg} ${lCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${lCfg.color}`}>{linkScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Pillar coverage",      val: pillarScore,  max: 40, desc: `${topicsWithPillar}/${multiEntryTopics.length} multi-entry clusters have a designated pillar with spoke-to-pillar links` },
+                              { label: "Commercial density",   val: commScore,    max: 30, desc: `${Math.round(commCoverage*100)}% of commercial/transactional entries linked into the revenue cross-link network` },
+                              { label: "Stage chain coverage", val: stageScore,   max: 20, desc: `${topicsWithStageLinks}/${multiStageTopics} multi-entry topics have stage-progression or next-step links` },
+                              { label: "Link density",         val: densityScore, max: 10, desc: `${links.length} total link recommendations across ${n} entries — target ≥1.5 links per entry` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${lCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Link type summary */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Link recommendations by type ({links.length} total):</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-4">
+                          {LINK_TYPES.map((t) => {
+                            const cfg = LINK_TYPE_CFG[t];
+                            return (
+                              <div key={t} className={`rounded-lg border px-2 py-1.5 ${cfg.bg} ${cfg.border}`}>
+                                <p className="text-[6.5px] text-slate-500 mb-0.5">{cfg.icon} {cfg.label}</p>
+                                <p className={`text-[14px] font-black leading-none ${cfg.color}`}>{linkCounts[t]}</p>
+                                <p className="text-[6px] text-slate-400 mt-0.5">recommendations</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Why it matters */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">🏗️</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">Why internal link architecture determines topical authority in fintech search:</span> Search engines use internal link structure as a primary signal for understanding which pages are most important within a topic — a cluster of 5 pieces on "payment orchestration" where every spoke links to one canonical pillar will rank the pillar dramatically higher than 5 isolated pieces with no links between them. <span className="font-bold">The pillar-spoke model is the single most consistently replicated technique across high-ranking fintech publishers</span> — Stripe, Adyen, and similar operators build deliberate internal link networks where every educational piece channels authority toward the product/solution pages that drive conversion. Without this architecture, even excellent individual pieces plateau at mid-page-1 positions because they receive no topical authority reinforcement from their cluster siblings.
+                          </p>
+                        </div>
+
+                        {/* High-priority links */}
+                        {highLinks.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">
+                              High-priority links ({highLinks.length}) — implement these first:
+                            </p>
+                            <div className="space-y-1.5 mb-4">
+                              {highLinks.slice(0, 10).map((l, i) => {
+                                const cfg = LINK_TYPE_CFG[l.linkType];
+                                return (
+                                  <div key={i} className={`rounded-lg border px-2.5 py-1.5 ${cfg.bg} ${cfg.border}`}>
+                                    <div className="flex items-start gap-1.5 mb-0.5">
+                                      <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${cfg.pill}`}>{cfg.icon} {cfg.label}</span>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1 flex-wrap">
+                                          <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[l.fromType]}`}>{FORMAT_LABEL[l.fromType]}</span>
+                                          <span className="text-[7px] text-slate-700 truncate">"{l.fromAngle.slice(0,22)}{l.fromAngle.length > 22 ? "…" : ""}"</span>
+                                          <span className="text-[7px] text-slate-400 shrink-0">→ links to →</span>
+                                          <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[l.toType]}`}>{FORMAT_LABEL[l.toType]}</span>
+                                          <span className="text-[7px] text-slate-700 truncate">"{l.toAngle.slice(0,22)}{l.toAngle.length > 22 ? "…" : ""}"</span>
+                                        </div>
+                                        <p className="text-[6.5px] text-slate-500 mt-0.5 italic">{l.reason}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              {highLinks.length > 10 && (
+                                <p className="text-[7px] text-slate-400 text-center">+{highLinks.length - 10} more high-priority links shown in full table below</p>
+                              )}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Per-cluster link map */}
+                        {byFromTopic.size > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Link map by source entry:</p>
+                            <div className="space-y-2 mb-4">
+                              {[...byFromTopic.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 8).map(([topicKey, topicLinks]) => {
+                                const displayTopic = topicLinks[0].fromTopic;
+                                const grouped = LINK_TYPES.reduce<Partial<Record<LinkType, LinkRec[]>>>((acc, t) => {
+                                  const tl = topicLinks.filter((l) => l.linkType === t);
+                                  if (tl.length > 0) acc[t] = tl;
+                                  return acc;
+                                }, {});
+                                return (
+                                  <div key={topicKey} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                                    <p className="text-[8px] font-bold text-slate-700 mb-1.5">📌 {displayTopic} <span className="text-slate-400 font-normal">({topicLinks.length} link{topicLinks.length !== 1 ? "s" : ""})</span></p>
+                                    <div className="space-y-1">
+                                      {LINK_TYPES.filter((t) => grouped[t]).map((t) => {
+                                        const cfg = LINK_TYPE_CFG[t];
+                                        return (
+                                          <div key={t} className="flex items-start gap-1.5">
+                                            <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${cfg.pill}`}>{cfg.icon} {cfg.label} ({grouped[t]!.length})</span>
+                                            <div className="flex flex-wrap gap-0.5">
+                                              {grouped[t]!.map((l, i) => (
+                                                <span key={i} className={`text-[6px] px-1 py-0.5 rounded border ${TYPE_COLOR[l.toType]}`}>
+                                                  {l.toAngle.slice(0,18)}{l.toAngle.length > 18 ? "…" : ""}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              {byFromTopic.size > 8 && (
+                                <p className="text-[7px] text-slate-400 text-center">+{byFromTopic.size - 8} more source topics in full table below</p>
+                              )}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Full link table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All {links.length} link recommendations:</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[6.5px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-1 w-5">Pri</th>
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">From (source page)</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-20">Link type</th>
+                                <th className="text-left text-slate-400 font-normal pb-1 pl-2">To (target page)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {links.map((l, i) => {
+                                const cfg = LINK_TYPE_CFG[l.linkType];
+                                return (
+                                  <tr key={i} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-1">
+                                      <span className={`text-[5.5px] font-black px-1 py-0.5 rounded-full border ${l.priority === "high" ? "bg-rose-50 text-rose-600 border-rose-200" : "bg-slate-100 text-slate-400 border-slate-200"}`}>
+                                        {l.priority === "high" ? "HI" : "MED"}
+                                      </span>
+                                    </td>
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[l.fromType]}`}>{FORMAT_LABEL[l.fromType]}</span>
+                                      <span className="text-slate-600">{l.fromAngle.slice(0,22)}{l.fromAngle.length > 22 ? "…" : ""}</span>
+                                      <span className="text-slate-400 ml-1 italic text-[5.5px]">({l.fromTopic.slice(0,14)})</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${cfg.pill}`}>{cfg.icon} {cfg.label.split(" ").slice(0,2).join(" ")}</span>
+                                    </td>
+                                    <td className="py-0.5 pl-2">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[l.toType]}`}>{FORMAT_LABEL[l.toType]}</span>
+                                      <span className="text-slate-600">{l.toAngle.slice(0,22)}{l.toAngle.length > 22 ? "…" : ""}</span>
+                                      <span className="text-slate-400 ml-1 italic text-[5.5px]">({l.toTopic.slice(0,14)})</span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          {links.length === 0 && (
+                            <p className="text-[8px] text-slate-400 italic text-center py-3">No link recommendations generated — add entries with shared topic keys to enable cluster linking analysis</p>
+                          )}
+                        </div>
+                        <p className="text-[7px] text-slate-400 mt-2">HI = implement immediately · MED = implement in next editorial pass · Pillar = earliest Awareness/Education entry per cluster (fallback: first by date) · Commercial cross-links capped at 12 pairs to avoid link spam signals</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Headline Engagement Predictor ────────────────────────── */}
                 {calendar.length > 0 && (() => {
