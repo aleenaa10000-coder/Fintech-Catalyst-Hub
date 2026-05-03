@@ -1731,6 +1731,118 @@ const DISTRIBUTION_PLAN_BY_TYPE: Record<
   ],
 };
 
+// ─── Brief AI Scoring ─────────────────────────────────────────────────────────
+interface BriefScores {
+  seo:             number;
+  audience:        number;
+  differentiation: number;
+  distribution:    number;
+  conversion:      number;
+}
+
+const SCORE_DIMENSION_META: {
+  key:      keyof BriefScores;
+  label:    string;
+  icon:     string;
+  color:    string;
+  feedback: (s: number) => string;
+}[] = [
+  {
+    key:   "seo",
+    label: "SEO Alignment",
+    icon:  "🔍",
+    color: "bg-blue-500",
+    feedback: (s) =>
+      s >= 80 ? "Strong search demand with manageable competition" :
+      s >= 55 ? "Solid opportunity — consider tightening the target keyword" :
+                "Low volume or high KD — consider a narrower long-tail angle",
+  },
+  {
+    key:   "audience",
+    label: "Audience Specificity",
+    icon:  "🎯",
+    color: "bg-violet-500",
+    feedback: (s) =>
+      s >= 80 ? "Archetype is sharply defined — reader knows this is for them" :
+      s >= 60 ? "Good focus — add a persona-specific hook in the intro" :
+                "Sharpen the archetype to better target a specific reader type",
+  },
+  {
+    key:   "differentiation",
+    label: "Competitive Diff.",
+    icon:  "⚡",
+    color: "bg-amber-500",
+    feedback: (s) =>
+      s >= 80 ? "Under-served angle in your calendar — strong gap-fill opportunity" :
+      s >= 60 ? "Moderate differentiation — lean into a proprietary data point" :
+                "Multiple similar pieces planned — sharpen the unique angle",
+  },
+  {
+    key:   "distribution",
+    label: "Distribution Readiness",
+    icon:  "📡",
+    color: "bg-emerald-500",
+    feedback: (s) =>
+      s >= 80 ? "Multi-channel plan covers primary and secondary touchpoints" :
+      s >= 60 ? "Good coverage — consider adding a sales enablement touchpoint" :
+                "Expand distribution — repurpose for at least one more channel",
+  },
+  {
+    key:   "conversion",
+    label: "Conversion Potential",
+    icon:  "💰",
+    color: "bg-rose-500",
+    feedback: (s) =>
+      s >= 80 ? "High priority score + strong intent signal = conversion-ready" :
+      s >= 60 ? "Solid potential — ensure the CTA is specific and time-bound" :
+                "Lower intent match — add a gated asset or stronger CTA",
+  },
+];
+
+function computeBriefScores(
+  entry:      CalendarEntry,
+  allEntries: CalendarEntry[],
+): BriefScores {
+  // 1 — SEO Alignment: search volume + KD bonus
+  const volPts  = VOLUME_SEO_POINTS[entry.searchVolume] ?? 2;  // 0–8
+  const kdBonus =
+    entry.topicDifficulty < 30 ? 20 :
+    entry.topicDifficulty < 50 ? 13 :
+    entry.topicDifficulty < 70 ?  6 : 0;
+  const seo = Math.min(100, Math.round((volPts / 8) * 80 + kdBonus));
+
+  // 2 — Audience Specificity: archetype sharpness
+  const archetypeSharpness: Record<string, number> = {
+    "The Challenger": 92, "The Expert": 87, "The Insider":  90,
+    "The Guide":      78, "The Contrarian": 84, "The Analyst": 82,
+    "The Benchmark":  79, "The Why Now":    74, "The Opportunity": 72,
+  };
+  const audience = archetypeSharpness[entry.archetype] ?? 70;
+
+  // 3 — Competitive Differentiation: unique type×topic combos score higher
+  const sameTypeTopic = allEntries.filter(
+    (e) => e.topic === entry.topic && e.type === entry.type,
+  ).length;
+  const diffBase      = sameTypeTopic === 1 ? 90 : sameTypeTopic === 2 ? 74 : 58;
+  const differentiation = Math.min(100, diffBase + (entry.priorityScore > 70 ? 8 : 0));
+
+  // 4 — Distribution Readiness: channels in the type's plan
+  const channelCount  = DISTRIBUTION_PLAN_BY_TYPE[entry.type].length;
+  const distribution  = Math.min(100, 40 + channelCount * 13);
+
+  // 5 — Conversion Potential: priorityScore + search intent
+  const intentBonus: Record<string, number> = {
+    Transactional: 22, Commercial: 16, Informational: 6, Navigational: 0,
+  };
+  const conversion = Math.min(
+    100,
+    Math.round(entry.priorityScore * 0.65) +
+      (intentBonus[entry.searchIntent] ?? 6) + 8,
+  );
+
+  return { seo, audience, differentiation, distribution, conversion };
+}
+
 // ─── Editorial brief generator ────────────────────────────────────────────────
 // Produces a Notion-ready markdown string for a single calendar entry.
 // Paste directly into a new Notion page — all formatting renders correctly.
@@ -5511,6 +5623,172 @@ export default function ContentCalendarGenerator() {
 
                 return (
                   <>
+                    {/* ── Brief AI Score ── */}
+                    {(() => {
+                      const scores = computeBriefScores(bp, calendar);
+                      const dimKeys: (keyof BriefScores)[] = [
+                        "seo", "audience", "differentiation", "distribution", "conversion",
+                      ];
+                      const N   = 5;
+                      const cx  = 100, cy = 100, R = 68;
+                      const angles = Array.from(
+                        { length: N },
+                        (_, i) => -Math.PI / 2 + i * (2 * Math.PI / N),
+                      );
+                      const outerPts = angles.map(
+                        (a) => [cx + R * Math.cos(a), cy + R * Math.sin(a)] as [number, number],
+                      );
+                      const scorePts = angles.map(
+                        (a, i) => [
+                          cx + (scores[dimKeys[i]] / 100) * R * Math.cos(a),
+                          cy + (scores[dimKeys[i]] / 100) * R * Math.sin(a),
+                        ] as [number, number],
+                      );
+                      const toPoints = (pts: [number, number][]) =>
+                        pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+                      const gridPts  = (pct: number) =>
+                        angles.map(
+                          (a) => [cx + pct * R * Math.cos(a), cy + pct * R * Math.sin(a)] as [number, number],
+                        );
+                      const overallScore = Math.round(
+                        dimKeys.reduce((sum, k) => sum + scores[k], 0) / N,
+                      );
+                      const scoreLabel =
+                        overallScore >= 80 ? "Publish-Ready" :
+                        overallScore >= 65 ? "Needs Review"  : "Needs Work";
+                      const scoreLabelCls =
+                        overallScore >= 80 ? "bg-emerald-100 text-emerald-700" :
+                        overallScore >= 65 ? "bg-amber-100 text-amber-700"     : "bg-rose-100 text-rose-600";
+                      const scoreNumCls  =
+                        overallScore >= 80 ? "text-emerald-600" :
+                        overallScore >= 65 ? "text-amber-600"   : "text-rose-600";
+
+                      return (
+                        <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-violet-50/30 overflow-hidden">
+                          {/* Score header */}
+                          <div className="flex items-center justify-between px-4 py-2.5 border-b border-indigo-100 bg-white/80">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm leading-none">📊</span>
+                              <span className="text-[11px] font-bold text-slate-700">
+                                Brief Score
+                              </span>
+                              <span className="text-[9px] text-slate-400">
+                                — editorial readiness across 5 dimensions
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[12px] font-bold tabular-nums ${scoreNumCls}`}>
+                                {overallScore}/100
+                              </span>
+                              <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${scoreLabelCls}`}>
+                                {scoreLabel}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Radar + bars */}
+                          <div className="flex gap-4 p-4 items-center">
+                            {/* SVG radar */}
+                            <svg
+                              viewBox="0 0 200 200"
+                              className="w-32 h-32 shrink-0"
+                              aria-hidden="true"
+                            >
+                              {/* Reference grid */}
+                              {([0.33, 0.66, 1] as number[]).map((pct, gi) => (
+                                <polygon
+                                  key={gi}
+                                  points={toPoints(gridPts(pct))}
+                                  fill="none"
+                                  stroke={pct === 1 ? "#c7d2fe" : "#e0e7ff"}
+                                  strokeWidth={pct === 1 ? "1" : "0.7"}
+                                />
+                              ))}
+                              {/* Axis lines */}
+                              {outerPts.map(([x, y], i) => (
+                                <line
+                                  key={i}
+                                  x1={cx}
+                                  y1={cy}
+                                  x2={x.toFixed(1)}
+                                  y2={y.toFixed(1)}
+                                  stroke="#e0e7ff"
+                                  strokeWidth="0.7"
+                                />
+                              ))}
+                              {/* Score polygon */}
+                              <polygon
+                                points={toPoints(scorePts)}
+                                fill="rgba(99,102,241,0.18)"
+                                stroke="rgb(99,102,241)"
+                                strokeWidth="1.5"
+                                strokeLinejoin="round"
+                              />
+                              {/* Score dots */}
+                              {scorePts.map(([x, y], i) => (
+                                <circle
+                                  key={i}
+                                  cx={x.toFixed(1)}
+                                  cy={y.toFixed(1)}
+                                  r="3"
+                                  fill="rgb(99,102,241)"
+                                />
+                              ))}
+                              {/* Icon labels on axes */}
+                              {outerPts.map(([x, y], i) => {
+                                const offset = 13;
+                                const lx = cx + (R + offset) * Math.cos(angles[i]);
+                                const ly = cy + (R + offset) * Math.sin(angles[i]);
+                                return (
+                                  <text
+                                    key={i}
+                                    x={lx.toFixed(1)}
+                                    y={ly.toFixed(1)}
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                    fontSize="11"
+                                  >
+                                    {SCORE_DIMENSION_META[i].icon}
+                                  </text>
+                                );
+                              })}
+                            </svg>
+
+                            {/* Dimension rows */}
+                            <div className="flex-1 flex flex-col gap-2.5 min-w-0">
+                              {SCORE_DIMENSION_META.map((dim) => {
+                                const s = scores[dim.key];
+                                const barCls =
+                                  s >= 80 ? "text-emerald-600" :
+                                  s >= 60 ? "text-amber-600"   : "text-rose-500";
+                                return (
+                                  <div key={dim.key}>
+                                    <div className="flex items-center justify-between mb-0.5">
+                                      <span className="text-[9.5px] font-bold text-slate-600">
+                                        {dim.label}
+                                      </span>
+                                      <span className={`text-[9px] font-bold tabular-nums ${barCls}`}>
+                                        {s}
+                                      </span>
+                                    </div>
+                                    <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full ${dim.color} transition-all`}
+                                        style={{ width: `${s}%` }}
+                                      />
+                                    </div>
+                                    <p className="text-[8.5px] text-slate-400 mt-0.5 leading-snug">
+                                      {dim.feedback(s)}
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* Working title */}
                     <div className="px-1">
                       <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
