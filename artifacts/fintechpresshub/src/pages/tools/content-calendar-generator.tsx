@@ -1808,6 +1808,105 @@ function analyzeMonthlyNarrative(calendar: ContentEntry[]): MonthCoherence[] {
     });
 }
 
+// ─── Keyword Gap & Coverage Mapper ────────────────────────────────────────
+
+const FINTECH_KEYWORDS: Record<string, { label: string; desc: string; importance: "core" | "high" | "moderate" }> = {
+  "psd2":          { label: "PSD2",          desc: "Payment Services Directive 2 — EU regulation that opened banking APIs", importance: "core" },
+  "mica":          { label: "MiCA",          desc: "Markets in Crypto-Assets Regulation — EU crypto/token regulation", importance: "core" },
+  "open banking":  { label: "Open Banking",  desc: "API-based third-party access to bank accounts and services", importance: "high" },
+  "real-time":     { label: "Real-time payments", desc: "Instant or near-instant payment rails (FASTER Payments, SEPA Instant)", importance: "high" },
+  "bnpl":          { label: "BNPL",          desc: "Buy Now Pay Later — point-of-sale credit products", importance: "high" },
+  "embedded finance": { label: "Embedded finance", desc: "Financial services embedded in non-financial platforms", importance: "high" },
+  "api":           { label: "API",           desc: "Application Programming Interface — core integration technology", importance: "moderate" },
+  "microservices": { label: "Microservices", desc: "Architecture pattern for scalable fintech systems", importance: "moderate" },
+  "iso 20022":     { label: "ISO 20022",     desc: "New payment messaging standard replacing legacy protocols", importance: "high" },
+  "compliance":    { label: "Compliance",    desc: "Regulatory adherence and risk management", importance: "core" },
+  "kyc":           { label: "KYC",           desc: "Know Your Customer — identity verification and due diligence", importance: "core" },
+  "aml":           { label: "AML",           desc: "Anti-Money Laundering — fraud and sanctions monitoring", importance: "core" },
+  "dora":          { label: "DORA",          desc: "Digital Operational Resilience Act — cybersecurity and resilience regulation", importance: "core" },
+  "payment processor": { label: "Payment processor", desc: "Third-party payment authorization and settlement", importance: "moderate" },
+  "card scheme":   { label: "Card scheme",   desc: "Visa, Mastercard, Amex — payment network operators", importance: "moderate" },
+  "webhook":       { label: "Webhook",       desc: "HTTP callback for real-time event notifications", importance: "moderate" },
+  "orchestration": { label: "Payment orchestration", desc: "Multi-route payment processing and routing", importance: "high" },
+  "neobank":       { label: "Neobank",       desc: "Digital-first bank without physical branches", importance: "high" },
+  "challenger bank": { label: "Challenger bank", desc: "Fintech bank competing with incumbent banks", importance: "high" },
+  "treasury":      { label: "Treasury management", desc: "Corporate cash flow, liquidity, and risk management", importance: "core" },
+  "lending":       { label: "Lending",       desc: "Credit origination and loan management", importance: "high" },
+  "fca":           { label: "FCA",           desc: "Financial Conduct Authority — UK financial regulator", importance: "core" },
+  "cross-border":  { label: "Cross-border payments", desc: "International money transfer and settlement", importance: "high" },
+  "tokenisation":  { label: "Tokenisation",  desc: "Converting physical or digital assets into blockchain tokens", importance: "high" },
+  "open finance":  { label: "Open finance",  desc: "Broader extension of open banking beyond payments", importance: "high" },
+  "integration":   { label: "Integration",   desc: "Connecting fintech solutions with existing systems", importance: "moderate" },
+  "latency":       { label: "Latency",       desc: "Response time performance for payment processing", importance: "moderate" },
+  "basis points":  { label: "Basis points",  desc: "0.01% unit for pricing financial products", importance: "moderate" },
+  "settlement":    { label: "Settlement",    desc: "Final transfer of funds and assets", importance: "core" },
+};
+
+interface KeywordAnalysis {
+  coverageScore: number;
+  coveredKeywords: Array<{ keyword: string; label: string; desc: string; importance: string; coverage: number; entries: string[]; isCannibalized: boolean }>;
+  gapKeywords: Array<{ keyword: string; label: string; desc: string; importance: string }>;
+  cannibalizedKeywords: Array<{ keyword: string; label: string; coverage: number; entries: string[]; isCannibalized: boolean }>;
+  gapCount: number;
+}
+
+function analyzeKeywordGaps(calendar: ContentEntry[]): KeywordAnalysis {
+  const keywordMap: Record<string, { entries: Set<string>; label: string; desc: string; importance: string }> = {};
+  
+  // Initialize all keywords
+  Object.entries(FINTECH_KEYWORDS).forEach(([kw, meta]) => {
+    keywordMap[kw] = { entries: new Set(), label: meta.label, desc: meta.desc, importance: meta.importance };
+  });
+
+  // Scan calendar for keyword signals
+  calendar.forEach((e) => {
+    const hay = `${e.topic} ${e.angle}`.toLowerCase();
+    Object.keys(FINTECH_KEYWORDS).forEach((kw) => {
+      if (hay.includes(kw)) {
+        keywordMap[kw].entries.add(entryKey(e));
+      }
+    });
+  });
+
+  // Categorize into covered, gap, and cannibalized
+  const covered: Array<{ keyword: string; label: string; desc: string; importance: string; coverage: number; entries: string[]; isCannibalized: boolean }> = [];
+  const gaps: Array<{ keyword: string; label: string; desc: string; importance: string }> = [];
+  const cannibalized: Array<{ keyword: string; label: string; coverage: number; entries: string[]; isCannibalized: boolean }> = [];
+
+  Object.entries(keywordMap).forEach(([kw, data]) => {
+    const count = data.entries.size;
+    const meta = FINTECH_KEYWORDS[kw];
+    const entryKeys = Array.from(data.entries);
+
+    if (count === 0) {
+      gaps.push({ keyword: kw, label: meta.label, desc: meta.desc, importance: meta.importance });
+    } else if (count >= 2) {
+      covered.push({ keyword: kw, label: meta.label, desc: meta.desc, importance: meta.importance, coverage: count, entries: entryKeys, isCannibalized: true });
+      cannibalized.push({ keyword: kw, label: meta.label, coverage: count, entries: entryKeys, isCannibalized: true });
+    } else {
+      covered.push({ keyword: kw, label: meta.label, desc: meta.desc, importance: meta.importance, coverage: count, entries: entryKeys, isCannibalized: false });
+    }
+  });
+
+  // Calculate coverage score
+  const coreKeywords = Object.values(FINTECH_KEYWORDS).filter((v) => v.importance === "core");
+  const highKeywords = Object.values(FINTECH_KEYWORDS).filter((v) => v.importance === "high");
+  const coreCovered = covered.filter((c) => c.importance === "core").length;
+  const highCovered = covered.filter((c) => c.importance === "high").length;
+  const coreScore = coreKeywords.length > 0 ? Math.round((coreCovered / coreKeywords.length) * 40) : 40;
+  const highScore = highKeywords.length > 0 ? Math.round((highCovered / highKeywords.length) * 40) : 40;
+  const cannibalPenalty = Math.max(0, 20 - cannibalized.length * 5);
+  const coverageScore = coreScore + highScore + cannibalPenalty;
+
+  return {
+    coverageScore,
+    coveredKeywords: covered,
+    gapKeywords: gaps,
+    cannibalizedKeywords: cannibalized,
+    gapCount: gaps.filter((g) => g.importance === "core" || g.importance === "high").length,
+  };
+}
+
 // ─── Content Sequencing & Momentum Analyzer ────────────────────────────────
 
 interface SeriesCluster {
@@ -8804,6 +8903,215 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Keyword Gap & Coverage Mapper ────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const analysis = analyzeKeywordGaps(calendar);
+
+                  const kCfg =
+                    analysis.coverageScore >= 75 ? { label: "Strong keyword coverage — core + high-value fintech terms well-represented", color: "text-green-700", bg: "bg-green-50", border: "border-green-100" } :
+                    analysis.coverageScore >= 50 ? { label: "Moderate coverage — some high-value keywords missing or cannibalized", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" } :
+                    analysis.coverageScore >= 25 ? { label: "Weak coverage — significant gaps in core fintech topics", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" } :
+                                                    { label: "Poor coverage — most fintech keywords unaddressed", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-100" };
+
+                  const IMPORTANCE_PILL: Record<string, string> = {
+                    core:     "bg-rose-100 text-rose-700 border-rose-200",
+                    high:     "bg-orange-100 text-orange-700 border-orange-200",
+                    moderate: "bg-slate-100 text-slate-500 border-slate-200",
+                  };
+
+                  const IMPORTANCE_DESC: Record<string, string> = {
+                    core:     "Regulatory foundation — must cover for fintech audience trust",
+                    high:     "Strategic growth area — covers emerging rails/technologies",
+                    moderate: "Foundational knowledge — covers implementation details",
+                  };
+
+                  return (
+                    <Card className="border border-green-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🔑</span>
+                            <p className="text-xs font-semibold text-slate-700">Keyword Gap & Coverage Mapper</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${kCfg.color} ${kCfg.bg} ${kCfg.border}`}>
+                            {analysis.coverageScore}/100 · {kCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Scans all entries for coverage of 30+ high-value fintech keywords grouped by importance tier: Core (regulatory foundations like PSD2, MiCA, compliance), High (strategic growth areas like open banking, real-time payments, BNPL), and Moderate (implementation details like microservices, API, webhooks). Identifies keywords with zero content (gaps that represent ranking opportunities), keywords covered only once (single-point-of-failure topics), and keywords covered by multiple entries (potential cannibalization where entries compete for the same ranking). A calendar should have every core keyword covered at least once, strategic high-value keywords covered 2–3 times, and no entry left orphaned on a high-value topic.
+                        </p>
+
+                        {/* Portfolio coverage score */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${kCfg.bg} ${kCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${kCfg.color}`}>{analysis.coverageScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Core keyword coverage", val: analysis.coveredKeywords.filter((k) => k.importance === "core").length, max: Object.values(FINTECH_KEYWORDS).filter((v) => v.importance === "core").length, desc: "Core regulatory keywords covered — target: 100% (every entry should address at least one core keyword or risk low fintech credibility)" },
+                              { label: "High-value coverage",   val: analysis.coveredKeywords.filter((k) => k.importance === "high").length, max: Object.values(FINTECH_KEYWORDS).filter((v) => v.importance === "high").length, desc: "High-importance strategic keywords covered — target: ≥80% (emerging rails, new platforms, regulatory transitions)" },
+                              { label: "Gap keywords",         val: analysis.gapCount, max: 0, desc: `${analysis.gapCount} core/high keywords with ZERO coverage — immediate ranking opportunities` },
+                              { label: "Cannibalization-free", val: analysis.cannibalizedKeywords.length === 0 ? 1 : 0, max: 1, desc: analysis.cannibalizedKeywords.length === 0 ? "No keyword overlap — clean coverage" : `${analysis.cannibalizedKeywords.length} keywords covered by 2+ entries — consolidate or differentiate` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                {max > 0 && (
+                                  <>
+                                    <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                      <div className={`h-full rounded-full ${kCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                    </div>
+                                    <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                  </>
+                                )}
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Importance tier legend */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {(["core","high","moderate"] as const).map((imp) => (
+                            <div key={imp} className="flex items-center gap-1.5">
+                              <span className={`text-[6px] font-bold px-1.5 py-0.5 rounded-full border ${IMPORTANCE_PILL[imp]}`}>{imp.charAt(0).toUpperCase() + imp.slice(1)}</span>
+                              <span className="text-[6px] text-slate-500">{IMPORTANCE_DESC[imp]}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Gap keywords — immediate action */}
+                        {analysis.gapKeywords.filter((g) => g.importance === "core" || g.importance === "high").length > 0 && (
+                          <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border mb-3 bg-rose-50 border-rose-100`}>
+                            <span className="text-[10px] shrink-0 mt-0.5">🚨</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1.5">
+                                {analysis.gapKeywords.filter((g) => g.importance === "core").length > 0
+                                  ? `${analysis.gapKeywords.filter((g) => g.importance === "core").length} CORE keywords with zero coverage`
+                                  : `${analysis.gapKeywords.filter((g) => g.importance === "high").length} HIGH-VALUE keywords with zero coverage`}
+                              </p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                {analysis.gapKeywords.filter((g) => g.importance === "core" || g.importance === "high").map((gap) => (
+                                  <div key={gap.keyword} className="rounded border border-rose-200 bg-white/60 px-2 py-1.5">
+                                    <p className="text-[7px] font-bold text-rose-700 mb-0.5">{gap.label}</p>
+                                    <p className="text-[6.5px] text-rose-600 mb-1 leading-snug">{gap.desc}</p>
+                                    <p className="text-[6px] text-rose-500 italic">→ Write 1–2 entries targeting this keyword before next publishing cycle</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Cannibalized keywords */}
+                        {analysis.cannibalizedKeywords.length > 0 && (
+                          <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border mb-3 bg-amber-50 border-amber-100`}>
+                            <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1.5">{analysis.cannibalizedKeywords.length} keywords covered by multiple entries — potential cannibalization</p>
+                              <div className="space-y-1">
+                                {analysis.cannibalizedKeywords.map((cann) => (
+                                  <div key={cann.keyword} className="rounded border border-amber-200 bg-white/60 px-2 py-1">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                      <p className="text-[7px] font-bold text-amber-700">{cann.label}</p>
+                                      <span className="text-[6px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-bold">×{cann.coverage}</span>
+                                    </div>
+                                    <p className="text-[6.5px] text-amber-600">{cann.entries.length} entries compete for this keyword. When readers search '{cann.keyword}', search engines will rank only the strongest entry, leaving {cann.entries.length - 1} entries invisible.</p>
+                                    <p className="text-[6px] text-amber-500 italic mt-0.5">→ Either (a) consolidate into one comprehensive entry, or (b) differentiate: each entry targets a different angle/persona/stage for the keyword.</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Covered keywords summary */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Covered keywords ({analysis.coveredKeywords.length}):</p>
+                        <div className="space-y-2 mb-4">
+                          {(["core","high","moderate"] as const).map((imp) => {
+                            const filtered = analysis.coveredKeywords.filter((k) => k.importance === imp);
+                            if (filtered.length === 0) return null;
+                            return (
+                              <div key={imp}>
+                                <p className="text-[6.5px] font-bold text-slate-600 mb-1 uppercase">{imp} importance ({filtered.length})</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {filtered.map((kw) => (
+                                    <span key={kw.keyword} className={`text-[6px] font-bold px-1.5 py-0.5 rounded-full border ${IMPORTANCE_PILL[imp]}`} title={kw.desc}>
+                                      {kw.label} ·1
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Gap keywords remaining */}
+                        {analysis.gapKeywords.filter((g) => g.importance === "moderate").length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">📋</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-slate-700 mb-1">{analysis.gapKeywords.filter((g) => g.importance === "moderate").length} moderate-importance keywords with zero coverage:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {analysis.gapKeywords.filter((g) => g.importance === "moderate").map((gap) => (
+                                  <span key={gap.keyword} className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${IMPORTANCE_PILL.moderate}`}>{gap.label}</span>
+                                ))}
+                              </div>
+                              <p className="text-[6.5px] text-slate-600 mt-1.5 leading-snug">These are lower-priority topics. Plan to cover them when they naturally fit into article angles, but don't prioritise at the expense of core keywords.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Keyword coverage matrix */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Keyword-to-entry mapping — coverage matrix:</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[6px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Keyword</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-12">Tier</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-12">Count</th>
+                                <th className="text-left text-slate-400 font-normal pb-1 pl-2">Entries covering this keyword</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {analysis.coveredKeywords.concat(analysis.cannibalizedKeywords).map((kw) => (
+                                <tr key={kw.keyword} className="border-t border-slate-50">
+                                  <td className="py-0.5 pr-2 font-bold text-slate-700">{kw.label}</td>
+                                  <td className="text-center py-0.5 px-1">
+                                    <span className={`text-[5.5px] font-bold px-0.5 py-0.5 rounded-full border ${IMPORTANCE_PILL[kw.importance]}`}>{kw.importance.slice(0,1).toUpperCase()}</span>
+                                  </td>
+                                  <td className="text-center py-0.5 px-1">
+                                    <span className={`font-bold ${kw.isCannibalized ? "text-rose-600" : "text-emerald-700"}`}>{kw.coverage}</span>
+                                  </td>
+                                  <td className="py-0.5 pl-2 text-slate-600 text-[6px]">
+                                    {kw.entries.length > 0 ? (
+                                      <div className="flex flex-wrap gap-1">
+                                        {kw.entries.map((ek) => {
+                                          const e = calendar.find((ce) => entryKey(ce) === ek);
+                                          return e ? (
+                                            <span key={ek} className={`px-1 py-0.5 rounded border text-[5.5px] ${TYPE_COLOR[e.type]}`}>
+                                              {e.angle.slice(0,20)}{e.angle.length > 20 ? "…" : ""}
+                                            </span>
+                                          ) : null;
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <span className="italic text-slate-400">No coverage</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="text-[7px] text-slate-400 mt-2">Tier: C=Core, H=High, M=Moderate · Count: 1 = safe, 2+ = potential cannibalization, 0 = gap · Entries shows which calendar entries carry each keyword signal</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Sequencing & Momentum Analyzer ──────────────── */}
                 {calendar.length > 0 && (() => {
