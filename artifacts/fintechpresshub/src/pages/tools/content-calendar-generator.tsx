@@ -1615,6 +1615,87 @@ function getTopicTrend(topic: string): {
   return { momentum: 62, direction: "steady", velocity: "+5% MoM", trigger: "Stable fintech audience interest — niche but engaged readership" };
 }
 
+// ─── Readability & Format Fit Score ──────────────────────────────────────────
+interface HeadlineScore {
+  specificity:      number; // 0–25
+  powerWords:       number; // 0–25
+  keywordPlacement: number; // 0–25
+  formatFit:        number; // 0–25
+  total:            number; // 0–100
+  rewrite:          string;
+}
+
+const HEADLINE_POWER_WORDS = [
+  "ultimate","complete","definitive","essential","proven","expert","insider","secret",
+  "hidden","overlooked","surprising","critical","key","top","best","biggest","fastest",
+  "easiest","simple","quick","new","exclusive","revealed","warning","mistake","wrong",
+  "truth","myth","reality","boost","grow","increase","reduce","cut","save","future",
+  "trend","rise","fall","shift","transform","everything","never","always",
+];
+
+const HEADLINE_FORMAT_PATTERNS: Partial<Record<ContentType, RegExp[]>> = {
+  guide:          [/^how to/i, /\bguide\b/i, /step[- ]by[- ]step/i, /\b\d+\s+ways?\b/i, /\b\d+\s+steps?\b/i],
+  "case-study":   [/how .+ (achieved|grew|scaled|reduced|increased|saved)/i, /lessons? from/i, /inside .+:/i, /what .* learned/i],
+  "blog-post":    [/^why /i, /^what /i, /^how /i, /\d+\s+(reasons?|ways?|tips?|things?|mistakes?)/i],
+  linkedin:       [/\d+\s+(lessons?|insights?|things?|tips?|mistakes?)/i, /thread/i, /unpopular opinion/i, /nobody .*(talks|knows)/i],
+  newsletter:     [/this week/i, /what .* means for/i, /the .* you need/i, /\bbreaking\b/i],
+  webinar:        [/live:/i, /how to .+ in \d+/i, /masterclass/i, /workshop/i, /join us/i],
+  infographic:    [/\d+\s+.*(stats?|facts?|figures?|numbers?|data)/i, /visual guide/i, /by the numbers/i, /at a glance/i],
+  checklist:      [/\d+[- ]point/i, /complete checklist/i, /before you/i, /checklist:/i],
+  podcast:        [/episode:/i, /ep\.?\s*\d+/i, /interview/i, /with [A-Z]/],
+  "video-script": [/explained/i, /breakdown/i, /deep.?dive/i, /in \d+ minutes?/i, /\bwatch\b/i],
+};
+
+function scoreHeadline(angle: string, type: ContentType, topic: string): HeadlineScore {
+  const a = angle.toLowerCase();
+
+  // Specificity: numbers, %, year, ideal word length
+  const hasNumber  = /\d/.test(angle);
+  const hasPct     = /%/.test(angle) || /percent/i.test(angle);
+  const hasYear    = /20\d{2}/.test(angle);
+  const wc         = angle.trim().split(/\s+/).length;
+  const goodLength = wc >= 5 && wc <= 15;
+  const specificity = Math.min(25, (hasNumber ? 12 : 0) + (hasPct ? 5 : 0) + (hasYear ? 3 : 0) + (goodLength ? 5 : 0));
+
+  // Power words
+  const pw = HEADLINE_POWER_WORDS.filter((w) => a.includes(w)).length;
+  const powerWords = pw >= 3 ? 25 : pw === 2 ? 20 : pw === 1 ? 14 : 5;
+
+  // Keyword placement — topic words in first 60 chars
+  const topicWords  = topic.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+  const first60     = a.slice(0, 60);
+  const kwFront     = topicWords.some((w) => first60.includes(w));
+  const kwAnywhere  = topicWords.some((w) => a.includes(w));
+  const keywordPlacement = kwFront ? 25 : kwAnywhere ? 15 : 5;
+
+  // Format fit — pattern match + structural signals
+  const patterns  = HEADLINE_FORMAT_PATTERNS[type] ?? [];
+  const matched   = patterns.some((p) => p.test(angle));
+  const hasBrack  = /\[|\(/.test(angle);
+  const hasColon  = /:/.test(angle);
+  const formatFit = matched ? 23 : (hasBrack || hasColon) ? 17 : 10;
+
+  const total = specificity + powerWords + keywordPlacement + formatFit;
+
+  const slug = topic.split(" ").slice(0, 4).join(" ");
+  const yr   = new Date().getFullYear();
+  const REWRITES: Partial<Record<ContentType, string>> = {
+    guide:          `The Complete ${slug} Guide: ${yr} Edition [+ Free Checklist]`,
+    "case-study":   `How [Client] Achieved [Result] with ${slug} — 7 Key Lessons`,
+    "blog-post":    `7 Proven ${slug} Strategies Every Fintech Leader Needs in ${yr}`,
+    linkedin:       `5 ${slug} insights nobody is talking about (thread 🧵)`,
+    newsletter:     `${slug}: What This Week's News Means for Your Business`,
+    webinar:        `Live Masterclass: How to Win with ${slug} in 60 Minutes`,
+    infographic:    `${slug} by the Numbers: 12 Stats That Will Change How You Think`,
+    checklist:      `The 10-Point ${slug} Checklist: Don't Launch Without It`,
+    podcast:        `Ep. XX: The Insider's Guide to ${slug} with [Expert Name]`,
+    "video-script": `${slug} Explained in 5 Minutes (${yr} Deep Dive)`,
+  };
+  const rewrite = REWRITES[type] ?? `The Complete ${slug} Breakdown: Everything You Need to Know in ${yr}`;
+
+  return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
+}
+
 // ─── Content Cluster Strength Meter ──────────────────────────────────────────
 const PILLAR_TYPES = new Set<ContentType>(["guide", "case-study"]);
 
@@ -6022,6 +6103,162 @@ export default function ContentCalendarGenerator() {
                             {needsWork.length > 6 && (
                               <p className="text-[9px] text-slate-400 text-center">
                                 +{needsWork.length - 6} more entries need CTA attention
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
+                {/* ── Readability & Format Fit Score ──────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const DIM_META: { key: keyof Omit<HeadlineScore, "total" | "rewrite">; label: string; icon: string }[] = [
+                    { key: "specificity",      label: "Specificity",       icon: "🔢" },
+                    { key: "powerWords",       label: "Power Words",       icon: "⚡" },
+                    { key: "keywordPlacement", label: "Keyword Placement", icon: "🎯" },
+                    { key: "formatFit",        label: "Format Fit",        icon: "📐" },
+                  ];
+
+                  const scored = calendar.map((entry) => ({
+                    entry,
+                    score: scoreHeadline(entry.angle, entry.type, entry.topic),
+                  }));
+
+                  const poor      = scored.filter((s) => s.score.total < 50);
+                  const fair      = scored.filter((s) => s.score.total >= 50 && s.score.total < 70);
+                  const good      = scored.filter((s) => s.score.total >= 70 && s.score.total < 85);
+                  const excellent = scored.filter((s) => s.score.total >= 85);
+                  const needsWork = scored.filter((s) => s.score.total < 70);
+                  const shown     = [...needsWork].sort((a, b) => a.score.total - b.score.total).slice(0, 6);
+                  const avgScore  = Math.round(scored.reduce((s, e) => s + e.score.total, 0) / (scored.length || 1));
+
+                  const tierCfg = (v: number) =>
+                    v >= 85 ? { bg: "bg-cyan-100",    text: "text-cyan-700",    label: "Excellent" }
+                    : v >= 70 ? { bg: "bg-emerald-100", text: "text-emerald-700", label: "Good"      }
+                    : v >= 50 ? { bg: "bg-amber-100",   text: "text-amber-700",   label: "Fair"      }
+                    :           { bg: "bg-rose-100",    text: "text-rose-700",    label: "Poor"      };
+                  const dimBar = (v: number) =>
+                    v >= 20 ? "bg-emerald-400" : v >= 12 ? "bg-amber-400" : "bg-rose-400";
+                  const avgCfg = tierCfg(avgScore);
+
+                  return (
+                    <Card className="border border-sky-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">✍️</span>
+                            <p className="text-xs font-semibold text-slate-700">Readability & Format Fit Score</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {needsWork.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                {needsWork.length} title{needsWork.length !== 1 ? "s" : ""} need work
+                              </span>
+                            )}
+                            {excellent.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-700 border border-cyan-200">
+                                {excellent.length} excellent
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Each working title scored on Specificity, Power Words, Keyword Placement & Format Fit (max 100) — weakest titles shown first with a headline rewrite.
+                        </p>
+
+                        {/* Overall score */}
+                        <div className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-4 ${avgCfg.bg}`}>
+                          <div>
+                            <p className="text-[9px] text-slate-500 mb-0.5">Average Headline Quality Score</p>
+                            <p className={`text-lg font-black tabular-nums leading-none ${avgCfg.text}`}>
+                              {avgScore}<span className="text-xs font-semibold opacity-60">/100</span>
+                            </p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full ${avgCfg.bg} ${avgCfg.text}`}>
+                            {avgCfg.label}
+                          </span>
+                        </div>
+
+                        {/* Distribution bar */}
+                        <div className="mb-4">
+                          <div className="flex h-2 rounded-full overflow-hidden gap-px">
+                            {poor.length      > 0 && <div className="bg-rose-400"    style={{ width: `${(poor.length      / scored.length) * 100}%` }} />}
+                            {fair.length      > 0 && <div className="bg-amber-400"   style={{ width: `${(fair.length      / scored.length) * 100}%` }} />}
+                            {good.length      > 0 && <div className="bg-emerald-400" style={{ width: `${(good.length      / scored.length) * 100}%` }} />}
+                            {excellent.length > 0 && <div className="bg-cyan-400"    style={{ width: `${(excellent.length / scored.length) * 100}%` }} />}
+                          </div>
+                          <div className="flex flex-wrap gap-3 mt-1.5">
+                            {[{ label: "Poor",      bg: "bg-rose-400",    count: poor.length      },
+                              { label: "Fair",      bg: "bg-amber-400",   count: fair.length      },
+                              { label: "Good",      bg: "bg-emerald-400", count: good.length      },
+                              { label: "Excellent", bg: "bg-cyan-400",    count: excellent.length }]
+                              .filter((t) => t.count > 0)
+                              .map((t) => (
+                                <span key={t.label} className="text-[8.5px] text-slate-400 flex items-center gap-1">
+                                  <span className={`inline-block w-2 h-2 rounded-full ${t.bg}`} />
+                                  {t.label} ({t.count})
+                                </span>
+                              ))}
+                          </div>
+                        </div>
+
+                        {needsWork.length === 0 ? (
+                          <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-sm">✅</span>
+                            <p className="text-[10px] font-semibold text-emerald-700">
+                              All headlines score 70 or above — your working titles are specific, powerful, and format-aligned.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3.5">
+                            {shown.map(({ entry, score }) => {
+                              const tc = tierCfg(score.total);
+                              return (
+                                <div key={entryKey(entry)} className="rounded-xl border border-slate-100 bg-slate-50 overflow-hidden">
+                                  {/* Header */}
+                                  <div className="flex flex-wrap items-start justify-between gap-2 px-3.5 py-2 border-b border-slate-100 bg-white">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[10px] font-bold text-slate-700 line-clamp-2 leading-snug">
+                                        {entry.angle}
+                                      </p>
+                                      <p className="text-[8.5px] text-slate-400 mt-0.5">
+                                        {entry.topic} · {FORMAT_LABEL[entry.type]} · Wk {entry.week}
+                                      </p>
+                                    </div>
+                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${tc.bg} ${tc.text}`}>
+                                      {score.total} · {tc.label}
+                                    </span>
+                                  </div>
+
+                                  {/* Dimension bars */}
+                                  <div className="px-3.5 py-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
+                                    {DIM_META.map(({ key, label, icon }) => (
+                                      <div key={key}>
+                                        <div className="flex items-center justify-between mb-0.5">
+                                          <span className="text-[8.5px] text-slate-500">{icon} {label}</span>
+                                          <span className="text-[8.5px] font-bold text-slate-600">{score[key]}/25</span>
+                                        </div>
+                                        <div className="h-1 rounded-full bg-slate-200 overflow-hidden">
+                                          <div className={`h-full rounded-full ${dimBar(score[key])}`} style={{ width: `${(score[key] / 25) * 100}%` }} />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  {/* Rewrite */}
+                                  <div className="mx-3.5 mb-2.5 px-3 py-2 rounded-lg bg-sky-50 border border-sky-100">
+                                    <p className="text-[8.5px] text-sky-700 font-semibold mb-0.5">✏️ Suggested headline</p>
+                                    <p className="text-[9px] text-sky-900 italic leading-snug">"{score.rewrite}"</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {needsWork.length > 6 && (
+                              <p className="text-[9px] text-slate-400 text-center">
+                                +{needsWork.length - 6} more titles need improvement
                               </p>
                             )}
                           </div>
