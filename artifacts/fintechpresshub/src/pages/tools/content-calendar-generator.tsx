@@ -1696,6 +1696,53 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Lead Generation Potential Score ─────────────────────────────────────────
+const LEAD_GATE: Record<ContentType, number> = {
+  guide: 24, "case-study": 20, "blog-post": 8, linkedin: 0,
+  newsletter: 18, webinar: 25, infographic: 10, checklist: 22,
+  "video-script": 8, podcast: 5,
+};
+const LEAD_CTA: Record<ContentType, number> = {
+  guide: 20, "case-study": 22, "blog-post": 10, linkedin: 8,
+  newsletter: 15, webinar: 25, infographic: 8, checklist: 22,
+  "video-script": 10, podcast: 8,
+};
+const LEAD_FUNNEL: Record<ContentType, number> = {
+  guide: 20, "case-study": 23, "blog-post": 12, linkedin: 10,
+  newsletter: 15, webinar: 24, infographic: 8, checklist: 21,
+  "video-script": 12, podcast: 10,
+};
+const LEAD_COMMERCIAL_SIGNALS = [
+  "roi","revenue","cost","pricing","price","budget","reduce","increase","save","profit",
+  "loss","risk","fraud","compliance","regulation","penalty","audit","integration","api",
+  "platform","solution","vendor","benchmark","comparison","alternative","implement",
+  "deploy","scale","growth","conversion","acquire","retain","churn","automation",
+];
+const LEAD_PROMO_TIP: Record<ContentType, string> = {
+  guide:          "Gate with a form → promote via LinkedIn Docs + retarget visitors with LinkedIn Ads",
+  "case-study":   "Add to sales email sequences + feature in bottom-funnel LinkedIn Ads by job title",
+  "blog-post":    "Add a content upgrade offer within the post to capture emails at point of consumption",
+  linkedin:       "Boost as LinkedIn Sponsored Content to a lookalike audience of your ICP",
+  newsletter:     "LinkedIn teaser post + paid Subscribe CTA ad targeting decision-makers",
+  webinar:        "LinkedIn Event Ads targeting VP/Director/C-suite 2–3 weeks before registration close",
+  infographic:    "LinkedIn Document post (native PDF) + paid boost to target persona audience",
+  checklist:      "LinkedIn Lead Gen Form campaign — checklists convert at 3× the rate of blog posts",
+  "video-script": "Retarget video viewers (50%+ watch time) with a follow-up case study or webinar ad",
+  podcast:        "Clip the strongest 60-second insight → run as a LinkedIn video awareness ad",
+};
+
+function scoreLeadGen(type: ContentType, topic: string, angle: string): {
+  gate: number; cta: number; funnel: number; commercial: number; total: number;
+} {
+  const combined = `${topic} ${angle}`.toLowerCase();
+  const hits     = LEAD_COMMERCIAL_SIGNALS.filter((s) => combined.includes(s)).length;
+  const commercial = Math.min(25, hits >= 4 ? 25 : hits === 3 ? 21 : hits === 2 ? 16 : hits === 1 ? 10 : 4);
+  const gate   = LEAD_GATE[type];
+  const cta    = LEAD_CTA[type];
+  const funnel = LEAD_FUNNEL[type];
+  return { gate, cta, funnel, commercial, total: gate + cta + funnel + commercial };
+}
+
 // ─── Content Velocity Tracker ────────────────────────────────────────────────
 const CADENCE_BY_TYPE: Record<ContentType, { min: number; ideal: number; unit: string; rationale: string }> = {
   guide:          { min: 1,  ideal: 2,  unit: "1–2/mo",   rationale: "1–2 comprehensive guides/month builds topical authority without diluting depth" },
@@ -5634,6 +5681,154 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Lead Generation Potential Score ──────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const DIM_LG: { key: keyof ReturnType<typeof scoreLeadGen>; label: string; icon: string }[] = [
+                    { key: "gate",       label: "Gate-ability",    icon: "🔒" },
+                    { key: "cta",        label: "CTA Strength",    icon: "📣" },
+                    { key: "funnel",     label: "Funnel Stage",    icon: "🎯" },
+                    { key: "commercial", label: "Buyer Intent",    icon: "💰" },
+                  ];
+
+                  const scored = calendar.map((e) => ({ e, lg: scoreLeadGen(e.type, e.topic, e.angle) }));
+                  scored.sort((a, b) => b.lg.total - a.lg.total);
+
+                  const elite  = scored.filter((s) => s.lg.total >= 85);
+                  const high   = scored.filter((s) => s.lg.total >= 70 && s.lg.total < 85);
+                  const medium = scored.filter((s) => s.lg.total >= 50 && s.lg.total < 70);
+                  const low    = scored.filter((s) => s.lg.total < 50);
+                  const avgLG  = Math.round(scored.reduce((s, e) => s + e.lg.total, 0) / (scored.length || 1));
+                  const top6   = scored.slice(0, 6);
+
+                  const tierCfg = (v: number) =>
+                    v >= 85 ? { bg: "bg-emerald-100", text: "text-emerald-700", bar: "bg-emerald-400", label: "Elite"   }
+                    : v >= 70 ? { bg: "bg-blue-100",   text: "text-blue-700",   bar: "bg-blue-400",   label: "High"    }
+                    : v >= 50 ? { bg: "bg-amber-100",  text: "text-amber-700",  bar: "bg-amber-400",  label: "Medium"  }
+                    :           { bg: "bg-rose-100",   text: "text-rose-700",   bar: "bg-rose-300",   label: "Low"     };
+                  const dimBar = (v: number) =>
+                    v >= 20 ? "bg-emerald-400" : v >= 12 ? "bg-blue-400" : v >= 7 ? "bg-amber-400" : "bg-rose-300";
+                  const avgCfg = tierCfg(avgLG);
+
+                  return (
+                    <Card className="border border-emerald-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">💎</span>
+                            <p className="text-xs font-semibold text-slate-700">Lead Generation Potential Score</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {elite.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                {elite.length} elite
+                              </span>
+                            )}
+                            {low.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {low.length} low potential
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Each entry rated on Gate-ability, CTA Strength, Funnel Stage & Buyer Intent (max 100) — top pieces to prioritise for promotion budget shown first.
+                        </p>
+
+                        {/* Average score */}
+                        <div className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-4 ${avgCfg.bg}`}>
+                          <div>
+                            <p className="text-[9px] text-slate-500 mb-0.5">Portfolio Lead-Gen Score</p>
+                            <p className={`text-lg font-black tabular-nums leading-none ${avgCfg.text}`}>
+                              {avgLG}<span className="text-xs font-semibold opacity-60">/100</span>
+                            </p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full ${avgCfg.bg} ${avgCfg.text}`}>
+                            {avgCfg.label} potential
+                          </span>
+                        </div>
+
+                        {/* Distribution bar */}
+                        <div className="mb-4">
+                          <div className="flex h-2 rounded-full overflow-hidden gap-px">
+                            {low.length    > 0 && <div className="bg-rose-300"    style={{ width: `${(low.length    / scored.length) * 100}%` }} />}
+                            {medium.length > 0 && <div className="bg-amber-400"   style={{ width: `${(medium.length / scored.length) * 100}%` }} />}
+                            {high.length   > 0 && <div className="bg-blue-400"    style={{ width: `${(high.length   / scored.length) * 100}%` }} />}
+                            {elite.length  > 0 && <div className="bg-emerald-400" style={{ width: `${(elite.length  / scored.length) * 100}%` }} />}
+                          </div>
+                          <div className="flex flex-wrap gap-3 mt-1.5">
+                            {[{ label: "Low",    bg: "bg-rose-300",    count: low.length    },
+                              { label: "Medium", bg: "bg-amber-400",   count: medium.length },
+                              { label: "High",   bg: "bg-blue-400",    count: high.length   },
+                              { label: "Elite",  bg: "bg-emerald-400", count: elite.length  }]
+                              .filter((t) => t.count > 0)
+                              .map((t) => (
+                                <span key={t.label} className="text-[8.5px] text-slate-400 flex items-center gap-1">
+                                  <span className={`inline-block w-2 h-2 rounded-full ${t.bg}`} />
+                                  {t.label} ({t.count})
+                                </span>
+                              ))}
+                          </div>
+                        </div>
+
+                        {/* Top 6 entries */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Top pieces to promote:</p>
+                        <div className="space-y-3">
+                          {top6.map(({ e, lg }, idx) => {
+                            const tc = tierCfg(lg.total);
+                            return (
+                              <div key={entryKey(e)} className="rounded-xl border border-slate-100 bg-slate-50 overflow-hidden">
+                                {/* Entry header */}
+                                <div className="flex flex-wrap items-start justify-between gap-2 px-3.5 py-2 bg-white border-b border-slate-100">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                      <span className="text-[8px] font-black text-slate-300">#{idx + 1}</span>
+                                      <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>
+                                        {FORMAT_LABEL[e.type]}
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] font-bold text-slate-700 line-clamp-2 leading-snug">{e.angle}</p>
+                                    <p className="text-[8.5px] text-slate-400 mt-0.5">{e.topic} · Wk {e.week}</p>
+                                  </div>
+                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${tc.bg} ${tc.text}`}>
+                                    {lg.total} · {tc.label}
+                                  </span>
+                                </div>
+
+                                {/* Dimension bars */}
+                                <div className="px-3.5 py-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
+                                  {DIM_LG.filter((d) => d.key !== "total").map(({ key, label, icon }) => (
+                                    <div key={key}>
+                                      <div className="flex items-center justify-between mb-0.5">
+                                        <span className="text-[8.5px] text-slate-500">{icon} {label}</span>
+                                        <span className="text-[8.5px] font-bold text-slate-600">{lg[key]}/25</span>
+                                      </div>
+                                      <div className="h-1 rounded-full bg-slate-200 overflow-hidden">
+                                        <div className={`h-full rounded-full ${dimBar(lg[key])}`} style={{ width: `${(lg[key] / 25) * 100}%` }} />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Promotion tip */}
+                                <div className="mx-3.5 mb-2.5 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                  <p className="text-[8.5px] text-emerald-700 font-semibold mb-0.5">📣 Promotion strategy</p>
+                                  <p className="text-[9px] text-emerald-900 leading-snug">{LEAD_PROMO_TIP[e.type]}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {scored.length > 6 && (
+                            <p className="text-[9px] text-slate-400 text-center">
+                              +{scored.length - 6} more entries · score them all by generating the calendar
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Velocity Tracker ─────────────────────────────── */}
                 {calendar.length > 0 && (() => {
