@@ -1696,6 +1696,87 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Buyer Journey Stage Mapper ──────────────────────────────────────────────
+// Classifies each entry by which B2B buyer stage it targets and scores funnel balance
+
+const STAGE_SIGNALS = {
+  awareness: [
+    "what is ","introduction to","the future of ","the rise of ","emerging ","landscape",
+    "market overview","state of ","trends in","thought leadership","industry trends",
+    "what you need to know","understanding ","explainer","primer"," 101 ","overview of",
+    "ecosystem","an overview","why fintech","innovation in","the role of","deep dive into",
+  ],
+  consideration: [
+    "how to choose","buyer's guide","selection criteria","requirements for","framework for",
+    " vs "," or ","alternatives to","which is better","evaluating ","benchmark",
+    "pros and cons","trade-offs","when to use","should you","is it right","cost-benefit",
+    "business case","roi","return on investment","use case","making the case","compare",
+  ],
+  evaluation: [
+    "case study","customer story","implementation","how we ","in production","at scale",
+    "real-world","worked example","technical deep","architecture","security review",
+    "proof of concept","pilot","achieved","reduced by","increased by","measurable",
+    "integration guide","api integration","configuration","deployment","migration path",
+    "hands-on","in the field","lessons learned","what we learned","worked example",
+  ],
+  decision: [
+    "pricing","total cost of ownership","tco","procurement","rfp","sla ","onboarding",
+    "time to value","due diligence","reference customer","testimonial","switching cost",
+    "migration from","replacing ","build vs buy","vendor selection","contract",
+    "pilot programme","deployment timeline","go-live","sign-off","budget approval",
+  ],
+} as const;
+
+type BuyerStage = "awareness" | "consideration" | "evaluation" | "decision";
+
+interface StageResult {
+  awarenessScore:     number;
+  considerationScore: number;
+  evaluationScore:    number;
+  decisionScore:      number;
+  stage:              BuyerStage;
+  confidence:         "high" | "medium" | "low";
+}
+
+function classifyStage(topic: string, angle: string): StageResult {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  const awarenessScore     = STAGE_SIGNALS.awareness.filter((s)     => hay.includes(s)).length;
+  const considerationScore = STAGE_SIGNALS.consideration.filter((s) => hay.includes(s)).length;
+  const evaluationScore    = STAGE_SIGNALS.evaluation.filter((s)    => hay.includes(s)).length;
+  const decisionScore      = STAGE_SIGNALS.decision.filter((s)      => hay.includes(s)).length;
+
+  // Iterate in stage order so later (higher-value) stages win on equal score
+  const stageScores: [BuyerStage, number][] = [
+    ["awareness",     awarenessScore],
+    ["consideration", considerationScore],
+    ["evaluation",    evaluationScore],
+    ["decision",      decisionScore],
+  ];
+  const [stage, topScore] = stageScores.reduce<[BuyerStage, number]>(
+    (best, curr) => curr[1] >= best[1] ? curr : best,
+    ["awareness", 0]
+  );
+  const confidence: StageResult["confidence"] =
+    topScore >= 3 ? "high" : topScore >= 1 ? "medium" : "low";
+
+  return { awarenessScore, considerationScore, evaluationScore, decisionScore, stage, confidence };
+}
+
+// Ideal stage distribution for fintech B2B content
+const BUYER_STAGE_IDEAL: Record<BuyerStage, { min: number; max: number; mid: number }> = {
+  awareness:     { min: 30, max: 40, mid: 35 },
+  consideration: { min: 30, max: 35, mid: 32 },
+  evaluation:    { min: 20, max: 25, mid: 22 },
+  decision:      { min: 10, max: 15, mid: 12 },
+};
+
+const STAGE_FILL_TIPS: Record<BuyerStage, { formats: string; examples: string[] }> = {
+  awareness:     { formats: "Blog posts, LinkedIn articles, trend roundups, thought leadership",          examples: ["State of [topic] in [year]", "Why [market force] is reshaping [category]", "What [regulation] means for [persona]"]                                              },
+  consideration: { formats: "Buyer's guides, comparison pieces, ROI frameworks, build vs buy analyses",  examples: ["How to choose a [category] solution: 5 criteria for [persona]", "The business case for [solution]: a CFO-ready framework", "[Topic] build vs buy: the real trade-offs for [persona]"]    },
+  evaluation:    { formats: "Case studies, implementation guides, technical deep-dives, security reviews",examples: ["How [company type] implemented [solution] in [timeframe]: lessons learned", "The technical architecture of [solution] for [use case]", "[Solution] security and compliance: what [persona] needs to know"] },
+  decision:      { formats: "TCO analyses, RFP templates, pricing guides, onboarding roadmaps",          examples: ["The total cost of [solution]: a complete [persona] guide", "How to build an RFP for [category]: a procurement template", "From contract to go-live: what to expect when implementing [solution]"] },
+};
+
 // ─── Competitive Differentiation Index ───────────────────────────────────────
 // Detects commodity angles and scores proprietary-perspective signals per entry
 
@@ -7126,6 +7207,278 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Buyer Journey Stage Mapper ───────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const classified = calendar.map((e) => ({ entry: e, stage: classifyStage(e.topic, e.angle) }));
+                  const n = classified.length;
+
+                  const byStage = (s: BuyerStage) => classified.filter((c) => c.stage.stage === s);
+                  const awareness     = byStage("awareness");
+                  const consideration = byStage("consideration");
+                  const evaluation    = byStage("evaluation");
+                  const decision      = byStage("decision");
+
+                  const counts = { awareness: awareness.length, consideration: consideration.length, evaluation: evaluation.length, decision: decision.length };
+                  const rates  = { awareness: n > 0 ? counts.awareness / n : 0, consideration: n > 0 ? counts.consideration / n : 0, evaluation: n > 0 ? counts.evaluation / n : 0, decision: n > 0 ? counts.decision / n : 0 };
+
+                  const stagesPresent = (Object.values(counts) as number[]).filter((c) => c > 0).length;
+
+                  // ── Portfolio Funnel Balance Score (0-100) ─────────────────
+                  const coverageScore  = Math.round((stagesPresent / 4) * 30);
+
+                  const awarenessRate  = rates.awareness;
+                  const awarenessAdh   = awarenessRate <= 0.40 ? 30 : awarenessRate <= 0.60 ? Math.round((0.60 - awarenessRate) / 0.20 * 30) : 0;
+
+                  const midBottomRate  = rates.consideration + rates.evaluation + rates.decision;
+                  const midBottomScore = Math.round(Math.min(1, midBottomRate / 0.60) * 25);
+
+                  const decisionAdh    = rates.decision >= 0.10 ? 15 : rates.decision > 0 ? Math.round((rates.decision / 0.10) * 15) : 0;
+
+                  const funnelScore    = coverageScore + awarenessAdh + midBottomScore + decisionAdh;
+
+                  const funnelCfg =
+                    funnelScore >= 75 ? { label: "Well-balanced funnel coverage",           color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    funnelScore >= 50 ? { label: "Moderate balance — mid-funnel gaps",       color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    funnelScore >= 25 ? { label: "Awareness-heavy — bottom-funnel deficit",  color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                        { label: "Top-of-funnel only — no conversion path",  color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  const STAGE_CFG: Record<BuyerStage, { label: string; icon: string; color: string; bg: string; border: string; bar: string; pill: string; buyer: string }> = {
+                    awareness:     { label: "Awareness",     icon: "🌱", color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100",    bar: "bg-blue-400",    pill: "bg-blue-100 text-blue-700 border-blue-200",    buyer: "Prospect doesn't yet know they have a problem or that solutions exist — needs education and category creation"              },
+                    consideration: { label: "Consideration", icon: "🔍", color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-100",  bar: "bg-violet-400",  pill: "bg-violet-100 text-violet-700 border-violet-200",  buyer: "Prospect knows they have a problem and is researching solution categories — needs frameworks, criteria, and category differentiation" },
+                    evaluation:    { label: "Evaluation",    icon: "⚖️", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   bar: "bg-amber-400",   pill: "bg-amber-100 text-amber-700 border-amber-200",   buyer: "Prospect is actively comparing specific vendors — needs proof, case studies, technical depth, and security/compliance reassurance"   },
+                    decision:      { label: "Decision",      icon: "✍️", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", bar: "bg-emerald-400", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", buyer: "Prospect is ready to buy and needs final reassurance — needs TCO, RFP help, procurement guidance, and onboarding clarity"        },
+                  };
+
+                  const STAGES: BuyerStage[] = ["awareness","consideration","evaluation","decision"];
+
+                  // Ideal vs actual gap analysis — sorted by largest under-representation
+                  const stageGaps = STAGES.map((s) => {
+                    const actual    = Math.round(rates[s] * 100);
+                    const ideal     = BUYER_STAGE_IDEAL[s];
+                    const status    = actual < ideal.min ? "under" : actual > ideal.max ? "over" : "on-target";
+                    const gapPct    = actual < ideal.min ? ideal.min - actual : actual > ideal.max ? actual - ideal.max : 0;
+                    return { stage: s, actual, ideal, status, gapPct };
+                  }).sort((a, b) => (a.status === "under" ? -a.gapPct : a.gapPct) - (b.status === "under" ? -b.gapPct : b.gapPct));
+
+                  const underStages = stageGaps.filter((g) => g.status === "under");
+
+                  return (
+                    <Card className="border border-rose-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🗺️</span>
+                            <p className="text-xs font-semibold text-slate-700">Buyer Journey Stage Mapper</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${funnelCfg.color} ${funnelCfg.bg} ${funnelCfg.border}`}>
+                            {funnelScore}/100 · {funnelCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Classifies each calendar entry by the fintech B2B buying stage it targets — Awareness, Consideration, Evaluation, or Decision — using keyword signal detection across topic and angle fields. Scores the portfolio's stage distribution against research-backed ideal ratios for fintech B2B content, and flags when the calendar over-invests in top-of-funnel awareness while leaving the mid and bottom-funnel stages that convert prospects into clients severely under-served.
+                        </p>
+
+                        {/* Portfolio Funnel Balance Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${funnelCfg.bg} ${funnelCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${funnelCfg.color}`}>{funnelScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Stage coverage",       val: coverageScore,  max: 30, desc: `${stagesPresent}/4 buyer stages represented in the calendar`                                      },
+                              { label: "Awareness cap",        val: awarenessAdh,   max: 30, desc: `awareness = ${Math.round(awarenessRate*100)}% — ideal ≤40%; >60% scores 0`                        },
+                              { label: "Mid+bottom funnel",    val: midBottomScore, max: 25, desc: `consideration+evaluation+decision = ${Math.round(midBottomRate*100)}% — target ≥60%`              },
+                              { label: "Decision stage",       val: decisionAdh,    max: 15, desc: `decision content = ${Math.round(rates.decision*100)}% — ideal ≥10% for a complete conversion path`},
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${funnelCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Stage distribution — visual stacked bar */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Current stage distribution:</p>
+                        <div className="flex h-5 w-full rounded-lg overflow-hidden mb-1">
+                          {STAGES.map((s) => {
+                            const pct = Math.round(rates[s] * 100);
+                            return pct > 0 ? (
+                              <div key={s} className={`flex items-center justify-center text-[6.5px] font-bold text-white ${STAGE_CFG[s].bar}`} style={{ width: `${pct}%` }} title={`${STAGE_CFG[s].label}: ${pct}%`}>
+                                {pct >= 8 ? `${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="flex gap-2 mb-4 flex-wrap">
+                          {STAGES.map((s) => (
+                            <div key={s} className="flex items-center gap-1">
+                              <div className={`w-2 h-2 rounded-full ${STAGE_CFG[s].bar}`} />
+                              <span className="text-[7px] text-slate-500">{STAGE_CFG[s].icon} {STAGE_CFG[s].label} ({Math.round(rates[s]*100)}%)</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Ideal vs actual comparison table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Stage distribution vs fintech B2B ideal ratios:</p>
+                        <div className="rounded-xl border border-slate-100 overflow-hidden mb-4">
+                          <table className="w-full text-[7.5px] border-collapse">
+                            <thead className="bg-slate-50">
+                              <tr>
+                                <th className="text-left text-slate-500 font-semibold px-3 py-1.5">Stage</th>
+                                <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Ideal range</th>
+                                <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Your calendar</th>
+                                <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Entries</th>
+                                <th className="text-left text-slate-500 font-semibold px-3 py-1.5">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {STAGES.map((s) => {
+                                const cfg   = STAGE_CFG[s];
+                                const ideal = BUYER_STAGE_IDEAL[s];
+                                const actual= Math.round(rates[s] * 100);
+                                const under = actual < ideal.min;
+                                const over  = actual > ideal.max;
+                                return (
+                                  <tr key={s} className="border-t border-slate-50">
+                                    <td className="px-3 py-1.5">
+                                      <div className="flex items-center gap-1.5">
+                                        <span>{cfg.icon}</span>
+                                        <span className={`font-bold ${cfg.color}`}>{cfg.label}</span>
+                                      </div>
+                                    </td>
+                                    <td className="text-center px-3 py-1.5 text-slate-500">{ideal.min}–{ideal.max}%</td>
+                                    <td className="text-center px-3 py-1.5">
+                                      <span className={`font-black tabular-nums ${under ? "text-rose-600" : over ? "text-amber-600" : "text-emerald-600"}`}>{actual}%</span>
+                                    </td>
+                                    <td className="text-center px-3 py-1.5 text-slate-500 tabular-nums">{counts[s]}</td>
+                                    <td className="px-3 py-1.5">
+                                      {under ? (
+                                        <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100">↓ Under by {ideal.min - actual}pp</span>
+                                      ) : over ? (
+                                        <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">↑ Over by {actual - ideal.max}pp</span>
+                                      ) : (
+                                        <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">✓ On target</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100">
+                            <p className="text-[7px] text-slate-400">Ideal ratios reflect fintech B2B content benchmarks — awareness-heavy calendars fail to move prospects through the funnel and generate disproportionately low pipeline contribution despite high content volume.</p>
+                          </div>
+                        </div>
+
+                        {/* Under-represented stage gap cards */}
+                        {underStages.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Under-represented stages — content gaps to close:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {underStages.map(({ stage: s, actual, ideal, gapPct }) => {
+                                const cfg  = STAGE_CFG[s];
+                                const tips = STAGE_FILL_TIPS[s];
+                                const needed = n > 0 ? Math.ceil((ideal.min / 100) * n) - counts[s] : 0;
+                                return (
+                                  <div key={s} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                    <div className={`flex items-center justify-between px-3.5 py-2 ${cfg.bg}`}>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[10px]">{cfg.icon}</span>
+                                        <span className={`text-[8.5px] font-bold ${cfg.color}`}>{cfg.label}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100">↓ {actual}% vs {ideal.min}–{ideal.max}% ideal</span>
+                                        <span className="text-[7px] text-slate-400">≈{needed > 0 ? needed : 1} piece{needed !== 1 ? "s" : ""} needed</span>
+                                      </div>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-2">
+                                      <p className="text-[7.5px] text-slate-500 leading-snug">{cfg.buyer}</p>
+                                      <div className="px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                        <p className="text-[7.5px] font-bold text-slate-700 mb-0.5">Formats that work for this stage:</p>
+                                        <p className="text-[7.5px] text-slate-600">{tips.formats}</p>
+                                      </div>
+                                      <div className="px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                        <p className="text-[7.5px] font-bold text-slate-700 mb-1">Angle templates for fintech {cfg.label.toLowerCase()} content:</p>
+                                        <ul className="space-y-0.5">
+                                          {tips.examples.map((ex) => (
+                                            <li key={ex} className="text-[7.5px] text-slate-600 flex items-start gap-1.5">
+                                              <span className="shrink-0 text-slate-400 mt-0.5">·</span>{ex}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Per-entry stage classification table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — stage classification:</p>
+                        <div className="overflow-x-auto mb-3">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-24">Stage</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Confidence</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-8">Aw</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-8">Co</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-8">Ev</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-8">De</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {classified.map(({ entry: e, stage: st }) => {
+                                const cfg = STAGE_CFG[st.stage];
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,26)}{e.angle.length > 26 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.pill}`}>{cfg.icon} {cfg.label}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6.5px] font-bold tabular-nums ${st.confidence === "high" ? "text-emerald-600" : st.confidence === "medium" ? "text-amber-600" : "text-slate-400"}`}>{st.confidence}</span>
+                                    </td>
+                                    {(["awarenessScore","considerationScore","evaluationScore","decisionScore"] as const).map((k) => (
+                                      <td key={k} className="text-center py-0.5 px-0.5">
+                                        <span className={`tabular-nums font-bold text-[6.5px] ${st[k] === 0 ? "text-slate-300" : k === `${st.stage}Score` ? "text-slate-800" : "text-slate-400"}`}>{st[k]}</span>
+                                      </td>
+                                    ))}
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <p className="text-[7px] text-slate-400 mt-1">Aw=Awareness · Co=Consideration · Ev=Evaluation · De=Decision · Signal hit counts — bold = winning stage</p>
+                        </div>
+
+                        {/* Awareness over-concentration warning */}
+                        {rates.awareness > 0.55 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                            <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+                            <p className="text-[7.5px] text-amber-800 leading-snug">
+                              <span className="font-bold">{Math.round(rates.awareness * 100)}% of the calendar is awareness-stage content</span> — well above the 30-40% ideal. Awareness content generates impressions and organic traffic but does not move informed prospects toward a purchase decision. Fintech B2B buyers in the evaluation and decision stages actively seek specific proof points, implementation detail, and procurement guidance; without that content, the calendar creates reach without pipeline contribution.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Competitive Differentiation Index ───────────────────── */}
                 {calendar.length > 0 && (() => {
