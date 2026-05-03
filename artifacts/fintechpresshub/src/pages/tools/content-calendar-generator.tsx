@@ -1615,6 +1615,23 @@ function getTopicTrend(topic: string): {
   return { momentum: 62, direction: "steady", velocity: "+5% MoM", trigger: "Stable fintech audience interest — niche but engaged readership" };
 }
 
+// ─── Seasonal Publishing Pulse ───────────────────────────────────────────────
+const FINTECH_MONTHLY_DEMAND: Record<number, { demand: number; peaks: string[]; suggest: string }> = {
+  1:  { demand: 75, peaks: ["RegTech & Compliance",    "Year-End Reporting"],          suggest: "AML/KYC compliance checklist or regulatory reporting guide"                          },
+  2:  { demand: 65, peaks: ["Digital Transformation",  "AI in Finance"],               suggest: "thought-leadership piece on AI adoption or digital banking trends"                   },
+  3:  { demand: 72, peaks: ["Q1 Regulatory Deadlines", "Open Banking Updates"],        suggest: "Open Banking or DORA deadline explainer and action checklist"                        },
+  4:  { demand: 68, peaks: ["Embedded Finance",        "Payments Innovation"],         suggest: "embedded finance case study or payments innovation infographic"                      },
+  5:  { demand: 70, peaks: ["AI/LLM in FS",            "WealthTech"],                  suggest: "AI in financial services deep-dive or WealthTech feature comparison"                 },
+  6:  { demand: 80, peaks: ["Conference Season",       "H1 Close", "FinTech Funding"], suggest: "industry event round-up, H1 trend report, or funding landscape guide"               },
+  7:  { demand: 60, peaks: ["Crypto & DeFi",           "Summer WealthTech"],           suggest: "crypto regulatory update or retail investing guide for summer audiences"             },
+  8:  { demand: 58, peaks: ["Research Reports",        "Thought Leadership"],          suggest: "original research report or authoritative thought-leadership piece"                  },
+  9:  { demand: 74, peaks: ["Back-to-Business",        "Q3 Payments Surge"],           suggest: "payments roadmap or cross-border expansion guide ahead of Q4 budgeting"             },
+  10: { demand: 82, peaks: ["Budget Season",           "Compliance Planning"],         suggest: "FinTech budget planning guide or compliance audit checklist for Q1"                  },
+  11: { demand: 88, peaks: ["B2B Peak Season",         "Open Banking Deadlines"],      suggest: "lead-gen webinar, comparison guide, or 'State of FinTech' annual report"            },
+  12: { demand: 65, peaks: ["Year-End Planning",       "Predictions Content"],         suggest: "year-in-review round-up or fintech predictions post for the coming year"            },
+};
+const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 // ─── Audience Intent Heatmap ─────────────────────────────────────────────────
 const INTENT_TYPE_BASE: Record<ContentType, number> = {
   "blog-post": 20, guide: 25, infographic: 15, linkedin: 30, newsletter: 25,
@@ -5453,6 +5470,153 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Seasonal Publishing Pulse ───────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Group calendar entries by month number (1-12)
+                  const coverageByMonth: Record<number, number> = {};
+                  calendar.forEach((e) => {
+                    const m = new Date(e.date).getMonth() + 1;
+                    if (!isNaN(m)) coverageByMonth[m] = (coverageByMonth[m] ?? 0) + 1;
+                  });
+
+                  // Determine which months to show: covered months ± 1, capped to 1-12
+                  const coveredMonths = Object.keys(coverageByMonth).map(Number);
+                  const minM = Math.max(1, Math.min(...coveredMonths) - 1);
+                  const maxM = Math.min(12, Math.max(...coveredMonths) + 1);
+                  const months = Array.from({ length: maxM - minM + 1 }, (_, i) => minM + i);
+
+                  // Average entries per covered month (for gap threshold)
+                  const avgCoverage = coveredMonths.length > 0
+                    ? coveredMonths.reduce((s, m) => s + coverageByMonth[m], 0) / coveredMonths.length
+                    : 1;
+
+                  const demandColor = (d: number) =>
+                    d >= 80 ? "bg-rose-400" : d >= 70 ? "bg-amber-400" : d >= 60 ? "bg-blue-400" : "bg-slate-300";
+                  const demandLabel = (d: number) =>
+                    d >= 80 ? "text-rose-600" : d >= 70 ? "text-amber-600" : d >= 60 ? "text-blue-500" : "text-slate-400";
+
+                  // Gap months: demand ≥ 68 but coverage below half average
+                  const gaps = months.filter((m) => {
+                    const d = FINTECH_MONTHLY_DEMAND[m]?.demand ?? 60;
+                    const c = coverageByMonth[m] ?? 0;
+                    return d >= 68 && c < avgCoverage * 0.6;
+                  });
+
+                  // Peak month overall (highest demand in view)
+                  const peakMonth = months.reduce((best, m) =>
+                    (FINTECH_MONTHLY_DEMAND[m]?.demand ?? 0) > (FINTECH_MONTHLY_DEMAND[best]?.demand ?? 0) ? m : best,
+                    months[0],
+                  );
+
+                  return (
+                    <Card className="border border-fuchsia-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📅</span>
+                            <p className="text-xs font-semibold text-slate-700">Seasonal Publishing Pulse</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {gaps.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                {gaps.length} demand gap{gaps.length !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                              Peak: {MONTH_LABELS[peakMonth - 1]}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-5">
+                          Fintech industry search demand by month overlaid with your publish schedule — amber and rose bars are high-demand windows worth filling.
+                        </p>
+
+                        {/* Bar chart */}
+                        <div className="flex items-end gap-1.5 mb-2" style={{ height: 72 }}>
+                          {months.map((m) => {
+                            const { demand } = FINTECH_MONTHLY_DEMAND[m] ?? { demand: 60 };
+                            const coverage  = coverageByMonth[m] ?? 0;
+                            const barH      = Math.round(demand * 0.68);
+                            const isGap     = gaps.includes(m);
+                            return (
+                              <div key={m} className="flex-1 flex flex-col items-center gap-1">
+                                {/* Coverage badge */}
+                                <div className={`text-[8px] font-bold px-1 py-0.5 rounded min-w-[18px] text-center leading-none ${
+                                  coverage === 0 && isGap
+                                    ? "bg-rose-100 text-rose-600"
+                                    : coverage === 0
+                                    ? "bg-slate-100 text-slate-400"
+                                    : coverage === 1
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-emerald-100 text-emerald-700"
+                                }`}>
+                                  {coverage === 0 ? "–" : coverage}
+                                </div>
+                                {/* Demand bar */}
+                                <div
+                                  className={`w-full rounded-t ${demandColor(demand)} ${isGap ? "ring-1 ring-amber-400 ring-offset-0" : ""}`}
+                                  style={{ height: barH }}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Month labels */}
+                        <div className="flex gap-1.5 mb-1">
+                          {months.map((m) => (
+                            <div key={m} className={`flex-1 text-center text-[7.5px] font-semibold ${demandLabel(FINTECH_MONTHLY_DEMAND[m]?.demand ?? 60)}`}>
+                              {MONTH_LABELS[m - 1]}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Legend */}
+                        <div className="flex flex-wrap items-center gap-3 mt-2 mb-4">
+                          <span className="text-[8px] text-slate-400 flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-rose-400" /> Peak demand ≥80</span>
+                          <span className="text-[8px] text-slate-400 flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-400" /> Elevated ≥70</span>
+                          <span className="text-[8px] text-slate-400 flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-400" /> Moderate ≥60</span>
+                          <span className="text-[8px] text-slate-400 flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-400 rounded-sm" /> badge = entries scheduled</span>
+                        </div>
+
+                        {/* Gap callouts */}
+                        {gaps.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-[9.5px] font-semibold text-slate-600">High-demand months with thin coverage:</p>
+                            {gaps.map((m) => {
+                              const data = FINTECH_MONTHLY_DEMAND[m];
+                              return (
+                                <div key={m} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                  <span className="text-sm shrink-0 mt-0.5 leading-none">⚡</span>
+                                  <div>
+                                    <p className="text-[9.5px] font-bold text-amber-800">
+                                      {MONTH_LABELS[m - 1]} — demand {data.demand}/100 · {coverageByMonth[m] ?? 0} {coverageByMonth[m] === 1 ? "entry" : "entries"} scheduled
+                                    </p>
+                                    <p className="text-[8.5px] text-amber-700 mt-0.5">
+                                      Peak topics: {data.peaks.join(" · ")}
+                                    </p>
+                                    <p className="text-[8.5px] text-amber-600 mt-0.5 italic">
+                                      Add: {data.suggest}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-sm">✅</span>
+                            <p className="text-[10px] font-semibold text-emerald-700">
+                              Good seasonal coverage — your calendar aligns well with fintech demand peaks.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Audience Intent Heatmap ─────────────────────────────── */}
                 {calendar.length > 0 && (() => {
