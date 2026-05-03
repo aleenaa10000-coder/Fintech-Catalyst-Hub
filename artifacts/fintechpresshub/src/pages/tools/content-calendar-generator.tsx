@@ -1028,6 +1028,96 @@ const TYPE_BAR_COLOR: Record<ContentType, string> = {
   guide: "bg-green-500",
 };
 
+// ─── Competitor Gap Analysis ──────────────────────────────────────────────────
+// Maps fintech niche keywords → content formats competitors most commonly
+// publish. Any format absent from the user's calendar is flagged as a gap.
+
+type CompetitorThreat = "High" | "Medium" | "Low";
+
+const COMPETITOR_FORMAT_PRIORITY: {
+  keywords: string[];
+  priority: Partial<Record<ContentType, CompetitorThreat>>;
+  insight: string;
+}[] = [
+  {
+    keywords: ["regtech", "compliance", "regulation", "kyc", "aml", "gdpr"],
+    priority: { guide: "High", "case-study": "High", blog: "Medium", roundup: "Low" },
+    insight: "RegTech audiences trust long-form compliance guides and vendor case studies above all else.",
+  },
+  {
+    keywords: ["open banking", "psd2", "api banking", "open finance"],
+    priority: { guide: "High", blog: "High", "case-study": "Medium", roundup: "Medium" },
+    insight: "Open Banking wins with technical guides and developer-focused blog posts.",
+  },
+  {
+    keywords: ["defi", "decentralized finance", "crypto", "web3", "blockchain"],
+    priority: { blog: "High", roundup: "High", guide: "Medium", linkedin: "Medium" },
+    insight: "DeFi audiences consume fast-moving roundups and explainer blogs — velocity matters.",
+  },
+  {
+    keywords: ["payment", "embedded finance", "payment gateway", "acquiring"],
+    priority: { guide: "High", blog: "High", "case-study": "High", roundup: "Medium" },
+    insight: "Payments is crowded — case studies and in-depth guides cut through commodity content.",
+  },
+  {
+    keywords: ["insurtech", "insurance"],
+    priority: { guide: "High", "case-study": "High", blog: "Medium" },
+    insight: "Insurtech buyers research heavily — case studies and implementation guides drive conversions.",
+  },
+  {
+    keywords: ["lending", "credit", "loan", "bnpl", "buy now pay later"],
+    priority: { blog: "High", guide: "High", "case-study": "Medium", linkedin: "Medium" },
+    insight: "Lending content wins with risk and ROI data — guides and blog posts dominate SERPs.",
+  },
+  {
+    keywords: ["wealthtech", "wealth management", "robo-advisor", "investment"],
+    priority: { guide: "High", blog: "High", linkedin: "High", "case-study": "Medium" },
+    insight: "WealthTech relies on thought leadership — LinkedIn and long-form guides build advisor trust.",
+  },
+  {
+    keywords: ["neobank", "challenger bank", "digital bank", "banking"],
+    priority: { blog: "High", "case-study": "High", guide: "Medium", roundup: "Medium" },
+    insight: "Neobanking audiences compare options — roundups and case studies perform well.",
+  },
+  {
+    keywords: ["ai", "artificial intelligence", "machine learning", "llm"],
+    priority: { blog: "High", guide: "High", roundup: "High", linkedin: "Medium" },
+    insight: "AI in fintech moves fast — timely blog posts and roundups capture emerging search demand.",
+  },
+  {
+    keywords: ["fintech", "financial technology", "financial services", ""],
+    priority: { guide: "High", blog: "High", "case-study": "Medium", roundup: "Medium", linkedin: "Medium" },
+    insight: "Evergreen fintech content benefits from a balanced mix of guides, blogs, and case studies.",
+  },
+];
+
+function getCompetitorPriority(
+  topic: string,
+): (typeof COMPETITOR_FORMAT_PRIORITY)[0] {
+  const lower = topic.toLowerCase();
+  return (
+    COMPETITOR_FORMAT_PRIORITY.find((entry) =>
+      entry.keywords.some((kw) => kw && lower.includes(kw)),
+    ) ?? COMPETITOR_FORMAT_PRIORITY[COMPETITOR_FORMAT_PRIORITY.length - 1]
+  );
+}
+
+const COMPETITOR_ANGLE_BY_TYPE: Record<ContentType, string> = {
+  guide:        "The Definitive [Topic] Guide for 2026: Strategy, Tools & ROI",
+  blog:         "How [Topic] Is Reshaping Enterprise Finance in 2026",
+  "case-study": "[Client] Cut Costs 40% with [Topic]: A Full Case Study",
+  roundup:      "12 Best [Topic] Solutions Compared: 2026 Buyer's Guide",
+  linkedin:     "5 [Topic] predictions every CFO needs to see before Q3 2026",
+};
+
+const DEPTH_BY_TYPE_LABEL: Record<ContentType, string> = {
+  guide:        "4,000–8,000 words · schema markup",
+  blog:         "1,500–2,500 words · internal links",
+  "case-study": "1,200–2,000 words · metrics + quotes",
+  roundup:      "2,000–4,000 words · comparison tables",
+  linkedin:     "Short-form · 3–5 key points",
+};
+
 // ─── Content Gap Finder ───────────────────────────────────────────────────────
 
 type ContentGap = {
@@ -1866,6 +1956,52 @@ export default function ContentCalendarGenerator() {
   }
   allContentGaps.sort((a, b) => b.opportunityScore - a.opportunityScore);
   const topGaps = allContentGaps.slice(0, 10);
+
+  // ── Competitor Gap Analysis ───────────────────────────────────────────────
+  type CompetitorGapEntry = {
+    topic: string;
+    type: ContentType;
+    threat: CompetitorThreat;
+    exampleAngle: string;
+    depth: string;
+    insight: string;
+  };
+  const THREAT_ORDER: CompetitorThreat[] = ["High", "Medium", "Low"];
+  const allCompetitorGaps: CompetitorGapEntry[] = [];
+  for (const topic of form.topics) {
+    const covered = new Set(
+      calendar.filter((e) => e.topic === topic).map((e) => e.type),
+    );
+    const niche = getCompetitorPriority(topic);
+    const topicWord = topic.split(" ")[0];
+    for (const threat of THREAT_ORDER) {
+      for (const [rawType, t] of Object.entries(niche.priority)) {
+        const type = rawType as ContentType;
+        if (t === threat && !covered.has(type)) {
+          allCompetitorGaps.push({
+            topic,
+            type,
+            threat,
+            exampleAngle: COMPETITOR_ANGLE_BY_TYPE[type].replace(
+              /\[Topic\]|\[Client\]/g,
+              topicWord,
+            ),
+            depth: DEPTH_BY_TYPE_LABEL[type],
+            insight: niche.insight,
+          });
+        }
+      }
+    }
+  }
+  const competitorGapsByTopic = form.topics
+    .map((topic) => ({
+      topic,
+      gaps: allCompetitorGaps.filter((g) => g.topic === topic).slice(0, 3),
+    }))
+    .filter((t) => t.gaps.length > 0);
+  const highThreatGapCount = allCompetitorGaps.filter(
+    (g) => g.threat === "High",
+  ).length;
 
   // ── Competitive Benchmark ──────────────────────────────────────────────────
   const benchmarkData = form.topics
@@ -4241,6 +4377,137 @@ export default function ContentCalendarGenerator() {
                         Score = SEO readiness + audience fit + distribution
                         reach + archetype strength + priority. Max 100 — start
                         production with the highest scorers first.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* ── Competitor Gap Analysis ─────────────────────────────── */}
+                {competitorGapsByTopic.length > 0 && (
+                  <Card className="border border-rose-100 shadow-sm">
+                    <CardContent className="p-5">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                            <ScanSearch className="w-3.5 h-3.5 text-rose-500" />
+                            Competitor Gap Analysis
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Content formats competitors are likely publishing in
+                            your niches — and you're not yet.
+                          </p>
+                        </div>
+                        {highThreatGapCount > 0 && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 shrink-0 whitespace-nowrap">
+                            ⚠ {highThreatGapCount} high-threat gap
+                            {highThreatGapCount !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Per-topic sections */}
+                      <div className="space-y-5">
+                        {competitorGapsByTopic.map(({ topic, gaps }, ti) => (
+                          <div key={ti}>
+                            {/* Topic badge + niche insight */}
+                            <div className="flex items-start gap-2 mb-2.5 flex-wrap">
+                              <span
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0"
+                                style={topicColorStyle(topic, form.topics)}
+                              >
+                                {topic}
+                              </span>
+                              <p className="text-[10px] text-muted-foreground leading-snug">
+                                {getCompetitorPriority(topic).insight}
+                              </p>
+                            </div>
+
+                            {/* Gap rows */}
+                            <div className="space-y-2">
+                              {gaps.map((gap, gi) => {
+                                const threatStyle =
+                                  gap.threat === "High"
+                                    ? "bg-rose-50 text-rose-700 border-rose-200"
+                                    : gap.threat === "Medium"
+                                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                                      : "bg-slate-50 text-slate-600 border-slate-200";
+                                const threatIcon =
+                                  gap.threat === "High"
+                                    ? "⚠"
+                                    : gap.threat === "Medium"
+                                      ? "●"
+                                      : "○";
+                                const gapVol = getSearchVolume(gap.topic);
+                                return (
+                                  <div
+                                    key={gi}
+                                    className="flex items-start gap-3 px-3 py-2.5 rounded-lg border border-slate-100 bg-slate-50/50"
+                                  >
+                                    <div className="flex-1 min-w-0 space-y-1.5">
+                                      {/* Badges row */}
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <span
+                                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${threatStyle}`}
+                                        >
+                                          {threatIcon}{" "}
+                                          {gap.threat === "High"
+                                            ? "High threat"
+                                            : gap.threat}
+                                        </span>
+                                        <span
+                                          className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${TYPE_COLOR[gap.type]}`}
+                                        >
+                                          {FORMAT_LABEL[gap.type]}
+                                        </span>
+                                        <span className="text-[9px] text-muted-foreground">
+                                          {gap.depth}
+                                        </span>
+                                      </div>
+
+                                      {/* Example angle */}
+                                      <p className="text-[11px] font-semibold text-slate-700 leading-snug">
+                                        "{gap.exampleAngle}"
+                                      </p>
+                                    </div>
+
+                                    {/* Add-to-plan button */}
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        fillGap({
+                                          topic: gap.topic,
+                                          missingType: gap.type,
+                                          vol: gapVol,
+                                          opportunityScore:
+                                            computePriorityScore(
+                                              gapVol.tier,
+                                              gapVol.difficulty,
+                                            ),
+                                        })
+                                      }
+                                      className="shrink-0 text-[9px] font-semibold px-2 py-1 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors whitespace-nowrap mt-0.5"
+                                    >
+                                      + Add to plan
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {ti < competitorGapsByTopic.length - 1 && (
+                              <div className="border-b border-slate-100 mt-4" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Footer note */}
+                      <p className="text-[10px] text-muted-foreground mt-4 pt-3 border-t border-slate-100 leading-relaxed">
+                        Format priorities sourced from fintech niche SERP
+                        analysis. High-threat gaps are formats that consistently
+                        rank on page 1 in your category and are absent from your
+                        current plan.
                       </p>
                     </CardContent>
                   </Card>
