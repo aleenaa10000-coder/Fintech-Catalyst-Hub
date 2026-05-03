@@ -1696,6 +1696,18 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Topic Saturation & Originality Check ────────────────────────────────────
+const ANGLE_DIFFERENTIATION_STRATEGIES = [
+  "Target a different persona — switch from CFO to compliance officer, or product manager to developer",
+  "Flip the funnel stage — if existing pieces are awareness-level, add a decision-stage BOFU angle",
+  "Use a contrarian take — challenge the conventional wisdom or a widely held assumption on this topic",
+  "Zoom into a sub-topic — narrow from 'Open Banking' to 'Open Banking APIs for UK SMEs specifically'",
+  "Add a regional or regulatory lens — UK/EU differences, APAC market dynamics, or US vs global comparison",
+  "Apply a data lens — original stat, survey, or benchmark creates a unique data story no one else has",
+  "Write from the customer's viewpoint — a jobs-to-be-done, day-in-the-life, or buyer regret angle",
+  "Combine adjacent topics — 'Embedded Finance + ESG Reporting' creates an unexplored intersection",
+];
+
 // ─── Publishing Risk & Compliance Flags ──────────────────────────────────────
 interface ComplianceRule {
   category: string;
@@ -5798,6 +5810,203 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Topic Saturation & Originality Check ─────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const total = calendar.length;
+
+                  // Build per-topic profile
+                  type TopicProfile = {
+                    topic:   string;
+                    count:   number;
+                    pct:     number;
+                    weeks:   number[];
+                    types:   Set<ContentType>;
+                    angles:  string[];
+                    proxPairs: number; // consecutive-week pairs
+                    typeDups:  number; // same type repeated
+                  };
+
+                  const profileMap = new Map<string, TopicProfile>();
+                  for (const e of calendar) {
+                    if (!profileMap.has(e.topic)) {
+                      profileMap.set(e.topic, { topic: e.topic, count: 0, pct: 0, weeks: [], types: new Set(), angles: [], proxPairs: 0, typeDups: 0 });
+                    }
+                    const p = profileMap.get(e.topic)!;
+                    p.count++;
+                    p.weeks.push(e.week);
+                    p.types.add(e.type);
+                    p.angles.push(e.angle);
+                  }
+
+                  // Compute proximity pairs and type duplicates per topic
+                  for (const p of profileMap.values()) {
+                    p.pct = Math.round((p.count / total) * 100);
+                    p.weeks.sort((a, b) => a - b);
+                    // Consecutive-week pairs: weeks ≤1 apart
+                    for (let i = 1; i < p.weeks.length; i++) {
+                      if (p.weeks[i] - p.weeks[i - 1] <= 1) p.proxPairs++;
+                    }
+                    // Type duplicates: types used more than once relative to unique types
+                    const typeArr = [...p.types];
+                    const typeCounts = calendar
+                      .filter((e) => e.topic === p.topic)
+                      .reduce<Partial<Record<ContentType, number>>>((acc, e) => ({ ...acc, [e.type]: (acc[e.type] ?? 0) + 1 }), {});
+                    p.typeDups = Object.values(typeCounts).filter((c) => (c ?? 0) > 1).length;
+                  }
+
+                  // Sort: most saturated first
+                  const profiles = [...profileMap.values()].sort((a, b) => b.pct - a.pct);
+                  const saturated = profiles.filter((p) => p.pct > 20);
+                  const heavy     = profiles.filter((p) => p.pct > 12 && p.pct <= 20);
+                  const proxWarn  = profiles.filter((p) => p.proxPairs > 0);
+
+                  // Overall originality score
+                  const satPenalty  = saturated.reduce((s, p) => s + (p.pct - 20) * 2, 0);
+                  const proxPenalty = proxWarn.reduce((s, p) => s + p.proxPairs * 5, 0);
+                  const origScore   = Math.max(0, Math.min(100, 100 - satPenalty - proxPenalty));
+
+                  const scoreCfg = (v: number) =>
+                    v >= 80 ? { bg: "bg-emerald-50",  text: "text-emerald-700", badge: "bg-emerald-100 text-emerald-700 border-emerald-200", label: "High originality"   }
+                    : v >= 60 ? { bg: "bg-blue-50",    text: "text-blue-700",    badge: "bg-blue-100 text-blue-700 border-blue-200",           label: "Good variety"      }
+                    : v >= 40 ? { bg: "bg-amber-50",   text: "text-amber-700",   badge: "bg-amber-100 text-amber-700 border-amber-200",         label: "Some repetition"   }
+                    :           { bg: "bg-rose-50",    text: "text-rose-700",    badge: "bg-rose-100 text-rose-700 border-rose-200",            label: "Over-saturated"    };
+                  const satBadge = (pct: number) =>
+                    pct > 30 ? { bg: "bg-rose-100",  text: "text-rose-700",  label: "Over-saturated" }
+                    : pct > 20 ? { bg: "bg-amber-100", text: "text-amber-700", label: "Heavy coverage"  }
+                    : pct > 12 ? { bg: "bg-blue-100",  text: "text-blue-600",  label: "Moderate"        }
+                    :            { bg: "bg-emerald-100",text:"text-emerald-700",label: "Balanced"         };
+                  const sc = scoreCfg(origScore);
+
+                  const flaggedTopics = [...saturated, ...heavy.filter((p) => p.proxPairs > 0)].filter(
+                    (p, i, arr) => arr.findIndex((x) => x.topic === p.topic) === i,
+                  );
+
+                  return (
+                    <Card className="border border-purple-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🔍</span>
+                            <p className="text-xs font-semibold text-slate-700">Topic Saturation & Originality Check</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {saturated.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {saturated.length} saturated
+                              </span>
+                            )}
+                            {proxWarn.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                {proxWarn.length} clustered
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Detects topic over-coverage, consecutive-week clustering, and repeated content type angles — with differentiation suggestions to avoid audience fatigue.
+                        </p>
+
+                        {/* Originality score */}
+                        <div className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-4 ${sc.bg}`}>
+                          <div>
+                            <p className="text-[9px] text-slate-500 mb-0.5">Calendar Originality Score</p>
+                            <p className={`text-lg font-black tabular-nums leading-none ${sc.text}`}>
+                              {origScore}<span className="text-xs font-semibold opacity-60">/100</span>
+                            </p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full border ${sc.badge}`}>
+                            {sc.label}
+                          </span>
+                        </div>
+
+                        {/* Topic distribution table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Topic coverage breakdown:</p>
+                        <div className="space-y-1.5 mb-4">
+                          {profiles.map((p, idx) => {
+                            const sb = satBadge(p.pct);
+                            return (
+                              <div key={p.topic} className="flex items-center gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className="text-[9px] font-semibold text-slate-700 truncate">{p.topic}</span>
+                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                      <span className="text-[8px] text-slate-400 tabular-nums">{p.count} entries · {p.pct}%</span>
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full ${sb.bg} ${sb.text}`}>{sb.label}</span>
+                                    </div>
+                                  </div>
+                                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full transition-all ${p.pct > 30 ? "bg-rose-400" : p.pct > 20 ? "bg-amber-400" : p.pct > 12 ? "bg-blue-400" : "bg-emerald-400"}`}
+                                      style={{ width: `${p.pct}%` }}
+                                    />
+                                  </div>
+                                  {p.proxPairs > 0 && (
+                                    <p className="text-[7.5px] text-amber-600 mt-0.5">
+                                      ⚠️ {p.proxPairs} consecutive-week pair{p.proxPairs !== 1 ? "s" : ""} — too close together
+                                    </p>
+                                  )}
+                                  {p.typeDups > 0 && (
+                                    <p className="text-[7.5px] text-slate-400 mt-0.5">
+                                      🔁 {p.typeDups} content type{p.typeDups !== 1 ? "s" : ""} repeated for this topic
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Differentiation suggestions for flagged topics */}
+                        {flaggedTopics.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Differentiation suggestions:</p>
+                            <div className="space-y-2">
+                              {flaggedTopics.slice(0, 5).map((p, idx) => {
+                                const strategy = ANGLE_DIFFERENTIATION_STRATEGIES[idx % ANGLE_DIFFERENTIATION_STRATEGIES.length];
+                                const sb = satBadge(p.pct);
+                                return (
+                                  <div key={p.topic} className="rounded-xl border border-slate-100 bg-slate-50 overflow-hidden">
+                                    <div className="flex items-center justify-between px-3.5 py-2 bg-white border-b border-slate-100">
+                                      <p className="text-[9.5px] font-bold text-slate-700 truncate">{p.topic}</p>
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ml-2 ${sb.bg} ${sb.text}`}>
+                                        {p.count}× · {p.pct}%
+                                      </span>
+                                    </div>
+                                    <div className="px-3.5 py-2 space-y-1.5">
+                                      <div className="flex flex-wrap gap-1 mb-1">
+                                        {[...p.types].map((t) => (
+                                          <span key={t} className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[t]}`}>
+                                            {FORMAT_LABEL[t]}
+                                          </span>
+                                        ))}
+                                        <span className="text-[7.5px] text-slate-400 self-center">types used</span>
+                                      </div>
+                                      <div className="flex items-start gap-2 px-2.5 py-2 rounded-lg bg-purple-50 border border-purple-100">
+                                        <span className="text-xs shrink-0 leading-none mt-0.5">💡</span>
+                                        <p className="text-[8.5px] text-purple-800 leading-snug">{strategy}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {flaggedTopics.length === 0 && proxWarn.length === 0 && (
+                          <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-sm">✅</span>
+                            <p className="text-[10px] font-semibold text-emerald-700">
+                              Excellent topic variety — no saturation or clustering detected across the calendar.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Publishing Risk & Compliance Flags ───────────────────── */}
                 {calendar.length > 0 && (() => {
