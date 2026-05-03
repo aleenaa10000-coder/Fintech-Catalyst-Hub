@@ -1696,6 +1696,42 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Seasonal Relevance Mapper ────────────────────────────────────────────────
+interface SeasonalEvent {
+  id:         string;
+  name:       string;
+  months:     number[];      // calendar months (1-12) when the window is active
+  peakMonth:  number;        // month of peak search/content demand
+  icon:       string;
+  color:      string;
+  bg:         string;
+  border:     string;
+  description:string;
+  signals:    string[];      // keywords in topic/angle text that flag topical relevance
+  importance: "high" | "medium" | "low";
+  contentTip: string;        // recommended content type when the event is uncovered
+}
+
+const SEASONAL_EVENTS: SeasonalEvent[] = [
+  { id: "budget-planning",  name: "Budget & Planning Season",              months: [10,11,12,1], peakMonth: 11, icon: "💰", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", description: "Finance and technology teams finalise budgets and investment decisions — highest-intent buying period for fintech vendors; decision-makers actively researching and shortlisting.",                                                                                       signals: ["budget","planning","investment","forecast","next year","2026","2027","roadmap","strategy","priorit","spend","allocated","business case"],                                                                                                    importance: "high",   contentTip: "Publish a 'fintech investment priorities for [year]' guide or a 'how to build the business case for [category]' post — these perform exceptionally well with budget holders in Q4 and are frequently bookmarked and shared internally during planning cycles." },
+  { id: "q1-reporting",     name: "Q1 Regulatory Reporting Season",        months: [1,2,3],      peakMonth: 2,  icon: "🏛️", color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100",    description: "Annual reports, regulatory submissions, and compliance disclosures peak in Q1 — high demand for reporting automation, compliance workflow optimisation, and data management.",                                                                                      signals: ["annual report","regulatory filing","compliance deadline","reporting requirement","disclosure","audit","year-end","financial results","q4 results","full year"],                                                                            importance: "high",   contentTip: "Publish a compliance checklist or regulatory reporting automation guide in January — teams are deep in reporting mode and actively searching for efficiency tools and vendor solutions to close their current-year gaps." },
+  { id: "money2020-eu",     name: "Money20/20 Europe (June)",              months: [5,6,7],      peakMonth: 6,  icon: "🎪", color: "text-purple-700",  bg: "bg-purple-50",  border: "border-purple-100",  description: "Europe's largest fintech conference — preview pieces pre-conference, hot takes during, and trend roundups post-conference all drive high organic and social traffic from the global fintech audience.",                                                              signals: ["money20/20","money 20/20","conference","amsterdam","fintech summit","keynote","panel","expo","fintech week","innovation award","event preview","event roundup"],                                                                           importance: "high",   contentTip: "Publish a 'what to watch at Money20/20 Europe' preview in May and a 'key takeaways' roundup in July — both generate strong distribution through attendee sharing and link well to any thought leadership positioning." },
+  { id: "money2020-us",     name: "Money20/20 USA (October)",              months: [9,10,11],    peakMonth: 10, icon: "🎪", color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-100",  description: "North America's flagship fintech event — peak content consumption for North American fintech audiences and C-suite buyers; conference-adjacent content earns above-average engagement.",                                                                             signals: ["money20/20","money 20/20","las vegas","conference","keynote","fintech week","north america","us fintech"],                                                                                                                                importance: "high",   contentTip: "Publish a trends preview in September and a takeaways roundup in November — US attendees actively share and engage with conference-adjacent content during the 6-week window around the event." },
+  { id: "sibos",            name: "Sibos (September–October)",             months: [9,10],       peakMonth: 9,  icon: "🏦", color: "text-indigo-700",  bg: "bg-indigo-50",  border: "border-indigo-100",  description: "Swift's global financial services conference — major moment for B2B payments, correspondent banking, ISO 20022 migration, and trade finance content targeting banking and enterprise buyers.",                                                                        signals: ["sibos","swift","correspondent banking","trade finance","cross-border","iso 20022","payments infrastructure","gpi","cbdc","interoperability"],                                                                                             importance: "high",   contentTip: "Publish an ISO 20022 readiness guide or cross-border payments trends piece in August — these terms spike sharply in the 4 weeks before Sibos and the content earns strong backlinks from banking media." },
+  { id: "gdpr-anniversary", name: "GDPR / Data Privacy Season (May–June)", months: [5,6],        peakMonth: 5,  icon: "🔒", color: "text-slate-700",   bg: "bg-slate-50",   border: "border-slate-200",   description: "GDPR anniversary in May and subsequent ICO/DPA enforcement actions drive data privacy content consumption peaks — high-visibility moment for compliance and data management positioning.",                                                                          signals: ["gdpr","data privacy","data protection","personal data","consent","privacy regulation","dpa","enforcement action","ico","right to erasure","legitimate interest","data breach"],                                                           importance: "medium", contentTip: "Publish a 'state of data privacy enforcement in fintech' piece in April/May — teams are reviewing their programmes ahead of the GDPR anniversary and enforcement action spike that follows each major fine cycle." },
+  { id: "tax-season",       name: "Tax Season (January–April)",            months: [1,2,3,4],    peakMonth: 3,  icon: "📋", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   description: "Self-assessment deadlines and corporate tax filing drive searches around tax automation, accounting software, and financial compliance tooling — accountants are the most engaged audience during this window.",                                                      signals: ["tax","self-assessment","hmrc","irs","vat","filing","accounting","fiscal","deduction","corporate tax","tax automation","tax compliance","bookkeeping"],                                                                                    importance: "medium", contentTip: "Publish a 'fintech tools for tax season' roundup or 'how to automate [tax process]' guide in February — accountants and finance teams are actively searching for efficiency gains during the filing crunch." },
+  { id: "open-banking",     name: "Open Banking / PSD3 Regulation Cycle",  months: [3,4,9,10],   peakMonth: 3,  icon: "🔓", color: "text-teal-700",    bg: "bg-teal-50",    border: "border-teal-100",    description: "Regulatory review cycles for open banking frameworks (PSD3, FCA Consumer Duty, CDR) drive advisory and compliance commentary spikes twice yearly — strong backlink opportunity from legal and compliance publishers.",                                                  signals: ["open banking","psd2","psd3","fca review","api standard","cma","consumer duty","access to account","aisp","pisp","third party provider","variable recurring payment","vrp"],                                                              importance: "medium", contentTip: "Publish a 'what PSD3 means for [persona]' guide or regulatory update round-up ahead of the March and September peaks — these formats consistently earn strong inbound links from legal, compliance, and banking media." },
+  { id: "eba-stress-test",  name: "EBA Stress Test Season (Jan–Feb, Jul)", months: [1,2,7,8],    peakMonth: 7,  icon: "🧪", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100",    description: "EBA publishes stress test methodologies in Q1 and results in Q3 — major moment for risk management, capital adequacy, DORA operational resilience, and regulatory capital content targeting banking risk teams.",                                                     signals: ["eba","stress test","capital requirement","pillar","basel","crd","crr","risk weight","regulatory capital","srep","dora","operational resilience","systemic risk"],                                                                        importance: "medium", contentTip: "Publish a 'how banks are preparing for EBA stress tests' guide in December or June — methodologies publish shortly after and banking risk teams are actively researching approaches and vendor tooling." },
+];
+
+// Month distance helper — handles year wraparound
+function seasonMonthDistance(entryMonth: number, eventMonths: number[]): number {
+  return Math.min(...eventMonths.map((em) => {
+    const d = Math.abs(entryMonth - em);
+    return Math.min(d, 12 - d);
+  }));
+}
+
 // ─── Publishing Cadence Stress Tester ────────────────────────────────────────
 // Production effort units per content type — relative cost for a 2-3 person fintech editorial team
 const EFFORT_WEIGHT: Record<ContentType, number> = {
@@ -6925,6 +6961,260 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Seasonal Relevance Mapper ────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Extract month (1-12) from each entry's date string
+                  const getMonth = (dateStr: string): number => {
+                    const d = new Date(dateStr);
+                    return isNaN(d.getTime()) ? 0 : d.getMonth() + 1;
+                  };
+
+                  const enriched = calendar.map((e) => ({
+                    entry: e,
+                    month: getMonth(e.date),
+                    hay:   `${e.topic} ${e.angle}`.toLowerCase(),
+                  }));
+
+                  // Timing score: how close is an entry's month to the event window
+                  const timingScore = (entryMonth: number, ev: SeasonalEvent): number => {
+                    if (entryMonth === 0) return 0;
+                    const dist = seasonMonthDistance(entryMonth, ev.months);
+                    return dist === 0 ? 1.0 : dist === 1 ? 0.70 : dist === 2 ? 0.40 : 0;
+                  };
+
+                  // Per-event matching
+                  interface EventMatch {
+                    event:           SeasonalEvent;
+                    matched:         { entry: typeof calendar[number]; signalHits: number; month: number; tScore: number }[];
+                    bestTScore:      number;
+                    status:          "well-covered" | "partial" | "uncovered";
+                  }
+
+                  const eventMatches: EventMatch[] = SEASONAL_EVENTS.map((ev) => {
+                    const matched = enriched
+                      .map(({ entry: e, month, hay }) => ({
+                        entry: e, month,
+                        signalHits: ev.signals.filter((s) => hay.includes(s)).length,
+                        tScore:     timingScore(month, ev),
+                      }))
+                      .filter((m) => m.signalHits >= 1)
+                      .sort((a, b) => b.tScore - a.tScore || b.signalHits - a.signalHits);
+
+                    const bestTScore = matched.length > 0 ? matched[0].tScore : 0;
+                    const status: EventMatch["status"] =
+                      bestTScore >= 0.70 ? "well-covered" :
+                      matched.length > 0 ? "partial"      :
+                                           "uncovered";
+                    return { event: ev, matched, bestTScore, status };
+                  });
+
+                  // Coverage groups
+                  const wellCovered = eventMatches.filter((m) => m.status === "well-covered");
+                  const partial     = eventMatches.filter((m) => m.status === "partial");
+                  const uncovered   = eventMatches.filter((m) => m.status === "uncovered");
+
+                  // High / medium split
+                  const highEvs   = eventMatches.filter((m) => m.event.importance === "high");
+                  const medEvs    = eventMatches.filter((m) => m.event.importance === "medium");
+
+                  const highWell  = highEvs.filter((m) => m.status === "well-covered").length;
+                  const highPart  = highEvs.filter((m) => m.status === "partial").length;
+                  const medWell   = medEvs.filter((m) => m.status === "well-covered").length;
+                  const medPart   = medEvs.filter((m) => m.status === "partial").length;
+
+                  // ── Portfolio Seasonal Alignment Score (0-100) ─────────────
+                  const highScore = highEvs.length > 0
+                    ? Math.round(((highWell + highPart * 0.5) / highEvs.length) * 50) : 50;
+                  const medScore  = medEvs.length > 0
+                    ? Math.round(((medWell + medPart * 0.5) / medEvs.length) * 30) : 30;
+                  const coveredForTiming = eventMatches.filter((m) => m.matched.length > 0);
+                  const avgTScore = coveredForTiming.length > 0
+                    ? coveredForTiming.reduce((s, m) => s + m.bestTScore, 0) / coveredForTiming.length : 0;
+                  const timingPts = Math.round(avgTScore * 20);
+
+                  const seasonScore = highScore + medScore + timingPts;
+
+                  const sznCfg =
+                    seasonScore >= 80 ? { label: "Well-aligned to seasonal moments",    color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    seasonScore >= 55 ? { label: "Partial seasonal coverage",           color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    seasonScore >= 30 ? { label: "Significant seasonal gaps",           color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                        { label: "Calendar misses most peak moments",   color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  // Month coverage heatmap data
+                  const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                  const monthCounts  = Array.from({ length: 12 }, (_, i) =>
+                    enriched.filter((e) => e.month === i + 1).length
+                  );
+                  const maxMonthCount = Math.max(...monthCounts, 1);
+
+                  return (
+                    <Card className="border border-red-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🗓️</span>
+                            <p className="text-xs font-semibold text-slate-700">Seasonal Relevance Mapper</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${sznCfg.color} ${sznCfg.bg} ${sznCfg.border}`}>
+                            {seasonScore}/100 · {sznCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Cross-references each calendar entry's topic and angle against 9 fintech-specific seasonal events — flagging pieces perfectly timed for peak relevance windows (budget season, regulatory deadlines, conference cycles, compliance anniversaries) and identifying high-importance gaps where no content is scheduled around high-traffic moments. Timing is scored by calendar month proximity to each event's peak, matched by keyword signal detection in topic and angle fields.
+                        </p>
+
+                        {/* Portfolio Seasonal Alignment Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${sznCfg.bg} ${sznCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${sznCfg.color}`}>{seasonScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "High-importance events", val: highScore,  max: 50, desc: `${highWell} well-covered + ${highPart} partial of ${highEvs.length} high-importance fintech seasonal events`  },
+                              { label: "Medium-importance events",val: medScore,   max: 30, desc: `${medWell} well-covered + ${medPart} partial of ${medEvs.length} medium-importance seasonal events`            },
+                              { label: "Timing quality",         val: timingPts,  max: 20, desc: `avg timing score ${avgTScore.toFixed(2)} — how close matching entries are to each event's peak month`          },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-32 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${sznCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Summary stats */}
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          {[
+                            { label: "Well-covered", val: wellCovered.length, sub: "matching entry ≤1 month from peak",  color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+                            { label: "Partial",      val: partial.length,     sub: "match exists but poorly timed",      color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   },
+                            { label: "Uncovered",    val: uncovered.length,   sub: "no signal-matched entry found",      color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    },
+                          ].map(({ label, val, sub, color, bg, border }) => (
+                            <div key={label} className={`rounded-lg border px-2 py-1.5 text-center ${bg} ${border}`}>
+                              <p className="text-[7.5px] text-slate-400 mb-0.5">{label}</p>
+                              <p className={`text-[13px] font-black leading-none ${color}`}>{val}</p>
+                              <p className="text-[6.5px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Month distribution heatmap */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Content volume by calendar month:</p>
+                        <div className="flex gap-1 mb-1">
+                          {MONTH_LABELS.map((lbl, i) => {
+                            const cnt    = monthCounts[i];
+                            const fillPct = Math.round((cnt / maxMonthCount) * 100);
+                            const hasEvent = SEASONAL_EVENTS.some((ev) => ev.months.includes(i + 1));
+                            return (
+                              <div key={lbl} className="flex-1 text-center">
+                                <div className="relative h-8 rounded bg-slate-100 overflow-hidden mb-0.5">
+                                  <div className={`absolute bottom-0 left-0 right-0 rounded ${cnt > 0 ? "bg-blue-400" : "bg-transparent"}`} style={{ height: `${fillPct}%` }} />
+                                  {hasEvent && <div className="absolute top-0 left-0 right-0 h-0.5 bg-amber-400" />}
+                                </div>
+                                <p className="text-[6px] text-slate-400">{lbl}</p>
+                                <p className="text-[6.5px] font-bold text-slate-500 tabular-nums">{cnt > 0 ? cnt : "·"}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[7px] text-slate-400 mb-4">Orange top stripe = month is within a seasonal event window · Blue bar = content volume that month</p>
+
+                        {/* Uncovered and partial events — detailed cards */}
+                        {(uncovered.length > 0 || partial.length > 0) && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Seasonal gaps — events with missing or poorly-timed content:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {[...uncovered, ...partial]
+                                .sort((a, b) => {
+                                  const imp = { high: 0, medium: 1, low: 2 };
+                                  return imp[a.event.importance] - imp[b.event.importance] || a.bestTScore - b.bestTScore;
+                                })
+                                .map((em) => (
+                                  <div key={em.event.id} className={`rounded-xl border overflow-hidden ${em.event.border}`}>
+                                    {/* Event header */}
+                                    <div className={`flex items-center justify-between px-3.5 py-2 ${em.event.bg}`}>
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-[10px] shrink-0">{em.event.icon}</span>
+                                        <span className={`text-[8.5px] font-bold truncate ${em.event.color}`}>{em.event.name}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${
+                                          em.event.importance === "high" ? "bg-rose-100 text-rose-700 border-rose-200" : "bg-amber-100 text-amber-700 border-amber-200"
+                                        }`}>{em.event.importance === "high" ? "🔴 High" : "🟡 Medium"}</span>
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${
+                                          em.status === "uncovered" ? "bg-rose-50 text-rose-700 border-rose-100" : "bg-amber-50 text-amber-700 border-amber-100"
+                                        }`}>{em.status === "uncovered" ? "No coverage" : "Poorly timed"}</span>
+                                        <span className="text-[7px] text-slate-400">Peak: {["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][em.event.peakMonth]}</span>
+                                      </div>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-2">
+                                      <p className="text-[7.5px] text-slate-500 leading-snug">{em.event.description}</p>
+                                      {/* Partial match — show what was found and why it's not enough */}
+                                      {em.status === "partial" && em.matched.length > 0 && (
+                                        <div className="px-2 py-1.5 rounded-lg bg-amber-50 border border-amber-100">
+                                          <p className="text-[7.5px] font-bold text-amber-800 mb-1">Found {em.matched.length} loosely-matched piece{em.matched.length !== 1 ? "s" : ""} — but timing score is low (best: {em.bestTScore.toFixed(2)}/1.0):</p>
+                                          <div className="flex flex-wrap gap-1">
+                                            {em.matched.slice(0,4).map((m) => (
+                                              <span key={entryKey(m.entry)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[14rem] ${TYPE_COLOR[m.entry.type]}`} title={m.entry.angle}>
+                                                {m.entry.angle.slice(0,28)}{m.entry.angle.length > 28 ? "…" : ""} <span className="opacity-60">(mo {m.month}, t={m.tScore.toFixed(2)})</span>
+                                              </span>
+                                            ))}
+                                          </div>
+                                          <p className="text-[7px] text-amber-700 mt-1">Move these entries closer to {["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][em.event.peakMonth]} or add a new entry specifically targeting this seasonal window.</p>
+                                        </div>
+                                      )}
+                                      {/* Content recommendation */}
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                        <span className="text-[9px] shrink-0">✏️</span>
+                                        <p className="text-[7.5px] text-slate-700 leading-snug">{em.event.contentTip}</p>
+                                      </div>
+                                      {/* Signal keywords that would match */}
+                                      <p className="text-[7px] text-slate-400 leading-snug">Match signals: {em.event.signals.slice(0,6).join(" · ")}{em.event.signals.length > 6 ? "…" : ""}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Well-covered events — compact positive callout */}
+                        {wellCovered.length > 0 && (
+                          <div className={`rounded-xl border overflow-hidden border-emerald-100`}>
+                            <div className="px-3.5 py-2 bg-emerald-50">
+                              <p className="text-[8.5px] font-bold text-emerald-800">✅ {wellCovered.length} seasonal event{wellCovered.length !== 1 ? "s" : ""} well-covered — matching entry within ±1 month of peak:</p>
+                            </div>
+                            <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                              {wellCovered.map((em) => (
+                                <div key={em.event.id} className="flex items-start gap-2">
+                                  <span className="text-[9px] shrink-0 mt-0.5">{em.event.icon}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className={`text-[7.5px] font-bold ${em.event.color}`}>{em.event.name}</span>
+                                      <span className="text-[7px] text-slate-400 shrink-0">t={em.bestTScore.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1 mt-0.5">
+                                      {em.matched.slice(0,3).map((m) => (
+                                        <span key={entryKey(m.entry)} className={`text-[6.5px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[14rem] ${TYPE_COLOR[m.entry.type]}`}>
+                                          {m.entry.angle.slice(0,26)}{m.entry.angle.length > 26 ? "…" : ""}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Publishing Cadence Stress Tester ────────────────────── */}
                 {calendar.length > 0 && (() => {
