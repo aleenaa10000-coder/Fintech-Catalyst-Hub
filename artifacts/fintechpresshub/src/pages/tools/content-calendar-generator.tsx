@@ -2141,6 +2141,84 @@ export default function ContentCalendarGenerator() {
     URL.revokeObjectURL(url);
   };
 
+  // ── Publish Queue export ──────────────────────────────────────────────────
+  const exportPublishQueue = () => {
+    const dateStr    = new Date().toISOString().split("T")[0];
+    const companySlug = (form.companyName || "calendar")
+      .replace(/\s+/g, "-")
+      .toLowerCase();
+
+    const queueEntries = calendar
+      .filter((e) => {
+        const s = entryStatuses[entryKey(e)] ?? "not-started";
+        return s === "published" || s === "review";
+      })
+      .sort((a, b) => {
+        const aS = entryStatuses[entryKey(a)] ?? "not-started";
+        const bS = entryStatuses[entryKey(b)] ?? "not-started";
+        // Published first, then In Review; within each group sort by week/date
+        if (aS !== bS) return aS === "published" ? -1 : 1;
+        return a.week !== b.week ? a.week - b.week : a.date.localeCompare(b.date);
+      });
+
+    if (queueEntries.length === 0) return;
+
+    const publishedCount = queueEntries.filter(
+      (e) => (entryStatuses[entryKey(e)] ?? "not-started") === "published",
+    ).length;
+    const reviewCount    = queueEntries.length - publishedCount;
+    const topicsCovered  = [...new Set(queueEntries.map((e) => e.topic))].join(", ");
+    const weeksCovered   = [...new Set(queueEntries.map((e) => e.week))]
+      .sort((a, b) => a - b)
+      .map((w) => `Wk ${w}`)
+      .join(", ");
+
+    // Summary block — prefixed with # so most CSV apps treat it as a comment
+    const summary = [
+      `# PUBLISH QUEUE — ${(form.companyName || "Content Calendar").toUpperCase()}`,
+      `# Generated: ${dateStr}  |  Cadence: ${form.cadence}  |  Timeframe: ${form.timeframe} days`,
+      `# In queue: ${queueEntries.length} entries  (${publishedCount} Published · ${reviewCount} In Review)`,
+      `# Topics: ${topicsCovered}`,
+      `# Weeks: ${weeksCovered}`,
+      `# ——————————————————————————————————————————————`,
+      `#`,
+    ].join("\n");
+
+    const header =
+      "Status,Week,Date,Topic,Content Type,Archetype,Working Title," +
+      "Search Intent,Priority Score,Est. Search Volume,KD,CTA\n";
+
+    const rows = queueEntries
+      .map((e) => {
+        const statusLabel = STATUS_CONFIG[entryStatuses[entryKey(e)] as ContentStatus].label;
+        return (
+          `"${statusLabel}",` +
+          `${e.week},` +
+          `"${e.date}",` +
+          `"${e.topic}",` +
+          `"${FORMAT_LABEL[e.type]}",` +
+          `"${e.archetype}",` +
+          `"${e.angle}",` +
+          `"${e.searchIntent}",` +
+          `${e.priorityScore},` +
+          `"${e.searchVolume}",` +
+          `${e.topicDifficulty},` +
+          `"${e.cta}"`
+        );
+      })
+      .join("\n");
+
+    const blob = new Blob([summary + "\n" + header + rows], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement("a");
+    a.href     = url;
+    a.download = `publish-queue-${companySlug}-${dateStr}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const groupedByWeek = calendar.reduce<Record<number, CalendarEntry[]>>(
     (acc, entry) => {
       if (!acc[entry.week]) acc[entry.week] = [];
@@ -2976,6 +3054,34 @@ export default function ContentCalendarGenerator() {
                       <FileText className="w-4 h-4" />
                       Export Briefs
                     </Button>
+                    {(() => {
+                      const qCount = calendar.filter((e) => {
+                        const s = entryStatuses[entryKey(e)] ?? "not-started";
+                        return s === "published" || s === "review";
+                      }).length;
+                      return (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={exportPublishQueue}
+                          disabled={qCount === 0}
+                          title={
+                            qCount === 0
+                              ? "Mark entries as 'In Review' or 'Published' in the tracker to build the queue"
+                              : `Export ${qCount} queued ${qCount === 1 ? "entry" : "entries"} to CSV`
+                          }
+                          className={`gap-1.5 ${qCount > 0 ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50" : ""}`}
+                        >
+                          <Download className="w-4 h-4" />
+                          Publish Queue
+                          {qCount > 0 && (
+                            <span className="ml-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                              {qCount}
+                            </span>
+                          )}
+                        </Button>
+                      );
+                    })()}
                   </div>
                 </div>
 
