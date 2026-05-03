@@ -1696,6 +1696,57 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Audience Lifecycle Stage Mapper ─────────────────────────────────────────
+type LifecycleStage = "unaware" | "aware" | "evaluating" | "loyal";
+
+// Signals that place a piece in each buyer lifecycle stage
+const LIFECYCLE_SIGNALS: Record<LifecycleStage, string[]> = {
+  unaware:    ["why fintech","future of banking","digital transformation","industry trend","market shift","emerging","state of fintech","this year in","what's changing","the shift to","disruption","innovation in","the rise of","landscape","megatrend","report reveals","industry outlook","big picture","macro","paradigm shift","sector overview","year ahead"],
+  aware:      ["how to","what is","guide to","introduction to","beginner","explained","primer on","step by step","common mistakes","challenges of","the problem with","why most","what's wrong with","the real cost of","pain point","struggle with","barrier to","obstacle","misconception","hidden cost","why it fails","the trap of","underestimated"],
+  evaluating: [" vs ","comparison","case study","roi of","results","how we achieved","benchmark","cost of","vendor","platform","alternative to","why we chose","before and after","proof of","metrics","revenue impact","time to value","conversion","payback period","shortlist","selection criteria","due diligence","make the case","business case","justify","decision guide"],
+  loyal:      ["advanced","insider","deep dive","power user","best practices for","community","new feature","changelog","roadmap","how to get more from","maximise","optimize your","for existing","retention","advocacy","referral","customer success","renewal","upgrade","expand","scale your","veteran","seasoned","experienced","alumni"],
+};
+
+interface LifecycleScore {
+  unaware:    number;
+  aware:      number;
+  evaluating: number;
+  loyal:      number;
+  dominant:   LifecycleStage;
+}
+
+function scoreLifecycle(e: { type: ContentType; topic: string; angle: string }): LifecycleScore {
+  const hay = `${e.topic} ${e.angle}`.toLowerCase();
+
+  const raw: Record<LifecycleStage, number> = {
+    unaware:    Math.min(10, LIFECYCLE_SIGNALS.unaware.filter((s)    => hay.includes(s)).length * 2),
+    aware:      Math.min(10, LIFECYCLE_SIGNALS.aware.filter((s)      => hay.includes(s)).length * 2),
+    evaluating: Math.min(10, LIFECYCLE_SIGNALS.evaluating.filter((s) => hay.includes(s)).length * 2),
+    loyal:      Math.min(10, LIFECYCLE_SIGNALS.loyal.filter((s)      => hay.includes(s)).length * 2),
+  };
+
+  // Content-type base nudges — format is a strong prior for lifecycle intent
+  const typeNudge: Record<ContentType, Partial<Record<LifecycleStage, number>>> = {
+    "guide":      { aware: 3 },          // guides primarily serve problem-aware readers
+    "blog":       { unaware: 1 },        // blog posts often pull from broad awareness angles
+    "roundup":    { unaware: 2 },        // roundups are industry landscape / trend aggregations
+    "case-study": { evaluating: 4 },     // case studies are the archetypal evaluation content
+    "linkedin":   { loyal: 2, unaware: 1 }, // LinkedIn posts serve community + trend discussion
+  };
+  (Object.entries(typeNudge[e.type] ?? {}) as [LifecycleStage, number][])
+    .forEach(([stage, val]) => { raw[stage] = Math.min(10, (raw[stage] ?? 0) + val); });
+
+  // Dominant stage — tie-break order: aware > evaluating > unaware > loyal
+  const tieBreak: LifecycleStage[] = ["aware","evaluating","unaware","loyal"];
+  const max = Math.max(raw.unaware, raw.aware, raw.evaluating, raw.loyal);
+  const dominant: LifecycleStage =
+    max === 0
+      ? (e.type === "case-study" ? "evaluating" : "aware")
+      : tieBreak.find((s) => raw[s] === max)!;
+
+  return { ...raw, dominant };
+}
+
 // ─── Distribution Channel Fit Analyser ───────────────────────────────────────
 type ChannelKey = "seo" | "linkedin" | "email" | "podcast" | "twitter" | "pr" | "syndication" | "community";
 
@@ -2775,60 +2826,6 @@ const CADENCE_BY_TYPE: Record<ContentType, { min: number; ideal: number; unit: s
   checklist:      { min: 1,  ideal: 2,  unit: "1–2/mo",   rationale: "Practical tools convert at 3× the rate of blog posts — at least 1 per month recommended" },
   "video-script": { min: 2,  ideal: 4,  unit: "2–4/mo",   rationale: "YouTube rewards channels publishing weekly; below 2/month signals inactivity to the algorithm" },
   podcast:        { min: 4,  ideal: 4,  unit: "4/mo",     rationale: "Weekly episodes are the industry standard — dropping below loses listener retention fast" },
-};
-
-// ─── Distribution Channel Fit Analyser ───────────────────────────────────────
-const CHANNEL_FIT_BY_TYPE: Record<ContentType, { channel: string; fit: number; tip: string }[]> = {
-  guide: [
-    { channel: "Organic Search (SEO)", fit: 95, tip: "Gate with a content upgrade to capture leads at peak intent" },
-    { channel: "Email Newsletter",     fit: 82, tip: "Send as a 'resource drop' — subscribers expect value, not sales" },
-    { channel: "LinkedIn Docs",        fit: 74, tip: "Share as a PDF carousel teaser; put the download link in first comment" },
-  ],
-  "case-study": [
-    { channel: "LinkedIn",             fit: 92, tip: "Lead with the result metric in line 1 to stop the scroll" },
-    { channel: "Email Newsletter",     fit: 85, tip: "Feature in a 'client spotlight' section to build social proof" },
-    { channel: "Industry Press / PR",  fit: 76, tip: "Pitch the headline stat to fintech trade publications as a data story" },
-  ],
-  "blog-post": [
-    { channel: "Organic Search (SEO)", fit: 90, tip: "Build internal links from pillar guides to boost crawl priority" },
-    { channel: "LinkedIn",             fit: 78, tip: "Repurpose the key insight as a native 5-slide carousel" },
-    { channel: "Email Newsletter",     fit: 65, tip: "Include as the 'long read' section of your weekly digest" },
-  ],
-  linkedin: [
-    { channel: "LinkedIn (Organic)",   fit: 98, tip: "Post Tue–Thu 8–10 AM; engage with every comment in the first 60 min" },
-    { channel: "Twitter/X",            fit: 72, tip: "Cross-post an adapted version to reach a broader fintech audience" },
-    { channel: "LinkedIn Newsletter",  fit: 65, tip: "Expand into a LinkedIn article for evergreen discoverability" },
-  ],
-  newsletter: [
-    { channel: "Email Newsletter",     fit: 98, tip: "A/B test subject lines — curiosity gaps outperform plain summaries" },
-    { channel: "LinkedIn",             fit: 70, tip: "Post a teaser excerpt to drive newsletter subscriptions" },
-    { channel: "Referral / Forward",   fit: 55, tip: "Add a 'forward to a colleague' CTA to each issue for organic growth" },
-  ],
-  webinar: [
-    { channel: "LinkedIn",             fit: 90, tip: "Create an Event post 2 weeks out and invite connections directly" },
-    { channel: "Email Newsletter",     fit: 88, tip: "3-email sequence: announce → 24h reminder → on-demand replay link" },
-    { channel: "LinkedIn Ads",         fit: 80, tip: "Run Event Ads targeting decision-makers by job title and seniority" },
-  ],
-  infographic: [
-    { channel: "LinkedIn",             fit: 92, tip: "Upload natively — image posts outperform link posts 4:1" },
-    { channel: "Twitter/X",            fit: 85, tip: "Tweet with a data insight hook in the caption, not just the image" },
-    { channel: "Email Newsletter",     fit: 75, tip: "Embed inline — infographics lift email click-through rates by 42%" },
-  ],
-  checklist: [
-    { channel: "LinkedIn Docs",        fit: 88, tip: "Native PDF document posts get 3× organic reach on LinkedIn" },
-    { channel: "Organic Search (SEO)", fit: 82, tip: "Target 'fintech [topic] checklist' intent queries directly" },
-    { channel: "LinkedIn Ads",         fit: 68, tip: "Use as a lead magnet in a Lead Gen Form campaign" },
-  ],
-  "video-script": [
-    { channel: "YouTube",                 fit: 95, tip: "Optimise title, description, and thumbnail before publishing" },
-    { channel: "LinkedIn (Native Video)", fit: 82, tip: "Upload natively — not a YouTube link — for 5× organic reach" },
-    { channel: "Twitter/X",              fit: 70, tip: "Clip the strongest 30-second segment for Reels / X video" },
-  ],
-  podcast: [
-    { channel: "Podcast Platforms",   fit: 98, tip: "Submit to Apple, Spotify, Google Podcasts, and Pocket Casts simultaneously" },
-    { channel: "LinkedIn",             fit: 80, tip: "Post an audiogram (animated waveform clip) as a native LinkedIn video" },
-    { channel: "Email Newsletter",     fit: 68, tip: "Feature with a 3-sentence episode summary and a direct listen link" },
-  ],
 };
 
 // ─── Content Cluster Strength Meter ──────────────────────────────────────────
@@ -6701,6 +6698,253 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Audience Lifecycle Stage Mapper ──────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar.map((e) => ({ entry: e, lc: scoreLifecycle(e) }));
+
+                  // Stage config
+                  const STAGE_CFG: Record<LifecycleStage, { label: string; icon: string; color: string; bg: string; border: string; bar: string; desc: string; next: string }> = {
+                    unaware:    { label: "Unaware",    icon: "🌱", color: "text-sky-700",     bg: "bg-sky-50",     border: "border-sky-100",     bar: "bg-sky-400",     desc: "Reader doesn't know they have a problem — content sparks awareness of a trend or shift",         next: "Moves reader to Aware by naming the problem the trend creates" },
+                    aware:      { label: "Aware",      icon: "💡", color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-100",  bar: "bg-violet-400",  desc: "Reader knows they have a problem but not the solutions — content frames the challenge",          next: "Moves reader to Evaluating with proof that a solution exists and works" },
+                    evaluating: { label: "Evaluating", icon: "⚖️", color: "text-amber-700",  bg: "bg-amber-50",   border: "border-amber-100",   bar: "bg-amber-400",   desc: "Reader is comparing options — content demonstrates specific outcomes, ROI, and proof",          next: "Moves reader to Loyal by cementing trust post-decision" },
+                    loyal:      { label: "Loyal",      icon: "🤝", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", bar: "bg-emerald-400", desc: "Reader is already a client or advocate — content rewards them with depth, access, and community", next: "Amplifies retention, referral, and expansion revenue" },
+                  };
+                  const STAGE_ORDER: LifecycleStage[] = ["unaware","aware","evaluating","loyal"];
+
+                  // Count by dominant stage
+                  const stageCounts = STAGE_ORDER.reduce<Record<LifecycleStage, number>>(
+                    (acc, s) => ({ ...acc, [s]: scored.filter((x) => x.lc.dominant === s).length }),
+                    { unaware: 0, aware: 0, evaluating: 0, loyal: 0 },
+                  );
+                  const maxCount = Math.max(...Object.values(stageCounts), 1);
+
+                  // ── Lifecycle Balance Score (0-100) ────────────────────────
+                  // Stage coverage (0-40): 10 pts per stage with ≥1 entry
+                  const coveredStages = STAGE_ORDER.filter((s) => stageCounts[s] >= 1).length;
+                  const stageCoverageScore = coveredStages * 10;
+
+                  // Journey flow (0-30): are adjacent stages bridged?
+                  const pairs: [LifecycleStage, LifecycleStage][] = [["unaware","aware"],["aware","evaluating"],["evaluating","loyal"]];
+                  const bridgedPairs = pairs.filter(([a, b]) => stageCounts[a] >= 1 && stageCounts[b] >= 1).length;
+                  const journeyFlowScore = bridgedPairs * 10;
+
+                  // Funnel shape (0-30): mild penalty if the funnel is inverted or single-stage
+                  const total = scored.length;
+                  const [uP, aP, evP, loP] = STAGE_ORDER.map((s) => total > 0 ? stageCounts[s] / total : 0);
+                  // Ideal: gently decreasing; penalise heavy inversion (Loyal > Unaware by >40%) or dominance (>75% single stage)
+                  const inversionPenalty = Math.max(0, (loP - uP) * 40);
+                  const dominancePenalty = Math.max(0, (Math.max(uP, aP, evP, loP) - 0.75) * 60);
+                  const funnelShapeScore = Math.max(0, Math.round(30 - inversionPenalty - dominancePenalty));
+
+                  const lifecycleScore = stageCoverageScore + journeyFlowScore + funnelShapeScore;
+
+                  const lcCfg =
+                    lifecycleScore >= 80 ? { label: "Full-funnel calendar",     color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    lifecycleScore >= 55 ? { label: "Partial funnel",           color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    lifecycleScore >= 30 ? { label: "Funnel gaps present",      color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                           { label: "Single-stage dependency",  color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  // Transition gaps
+                  const transGaps = pairs
+                    .filter(([a, b]) => stageCounts[a] === 0 || stageCounts[b] === 0)
+                    .map(([a, b]) => ({
+                      from: a, to: b,
+                      missing: stageCounts[a] === 0 ? a : b,
+                      reason:
+                        a === "unaware" && b === "aware"      ? "Readers who encounter Unaware content have no 'problem framing' content to progress to — awareness won't convert to consideration without an Aware bridge."   :
+                        a === "aware"   && b === "evaluating" ? "Readers who understand the problem have no proof-of-concept content to push them toward a decision — the educational investment won't close."               :
+                        "Readers who commit don't find community or depth content to reinforce their choice — increasing churn risk and reducing expansion revenue.",
+                      fix:
+                        a === "unaware" && b === "aware"      ? "Add one guide, explainer, or 'how to solve X' blog post to receive readers from awareness content."  :
+                        a === "aware"   && b === "evaluating" ? "Add one case study, benchmark, or ROI-framing piece to convert educated readers into active evaluators." :
+                        "Add one advanced tips, insider, or customer success piece to build loyalty and drive referrals from existing clients.",
+                    }));
+
+                  return (
+                    <Card className="border border-fuchsia-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🔄</span>
+                            <p className="text-xs font-semibold text-slate-700">Audience Lifecycle Stage Mapper</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${lcCfg.color} ${lcCfg.bg} ${lcCfg.border}`}>
+                            {lifecycleScore}/100 · {lcCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Maps each calendar entry against the four buyer lifecycle stages — Unaware, Aware, Evaluating, Loyal — using topic/angle signals and content-type priors. Scores how well the calendar guides a fintech reader through the complete journey, and flags the transition gaps where the funnel drops off.
+                        </p>
+
+                        {/* Lifecycle Balance Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${lcCfg.bg} ${lcCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${lcCfg.color}`}>{lifecycleScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Stage coverage",  val: stageCoverageScore, max: 40, desc: `${coveredStages}/4 lifecycle stages represented`                              },
+                              { label: "Journey flow",    val: journeyFlowScore,   max: 30, desc: `${bridgedPairs}/3 stage-to-stage transitions bridged`                         },
+                              { label: "Funnel shape",    val: funnelShapeScore,   max: 30, desc: inversionPenalty > 5 ? "Inverted funnel — Loyal content outweighs Unaware" : dominancePenalty > 5 ? "Single-stage dominated — diversify across stages" : "Healthy funnel distribution" },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-24 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${lcCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val / max) * 100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Funnel visualisation */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Funnel stage distribution:</p>
+                        <div className="space-y-1.5 mb-4">
+                          {STAGE_ORDER.map((stage) => {
+                            const cfg    = STAGE_CFG[stage];
+                            const count  = stageCounts[stage];
+                            const pct    = total > 0 ? Math.round((count / total) * 100) : 0;
+                            const barPct = maxCount > 0 ? Math.round((count / maxCount) * 100) : 0;
+                            const entries = scored.filter((s) => s.lc.dominant === stage);
+                            return (
+                              <div key={stage}>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className="text-[10px] w-5 shrink-0">{cfg.icon}</span>
+                                  <span className={`text-[8px] font-bold w-20 shrink-0 ${cfg.color}`}>{cfg.label}</span>
+                                  <div className="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                                    <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${barPct}%` }} />
+                                  </div>
+                                  <span className="text-[7.5px] tabular-nums font-bold text-slate-600 shrink-0 w-12 text-right">
+                                    {count > 0 ? `${count} · ${pct}%` : <span className="text-slate-300 font-normal">none</span>}
+                                  </span>
+                                </div>
+                                <p className="text-[7px] text-slate-400 leading-snug pl-7 mb-0.5">{cfg.desc}</p>
+                                {entries.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 pl-7">
+                                    {entries.map(({ entry: e }) => (
+                                      <span key={entryKey(e)} className={`text-[6.5px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[12rem] ${TYPE_COLOR[e.type]}`} title={e.angle}>
+                                        {e.angle.slice(0, 28)}{e.angle.length > 28 ? "…" : ""}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Stage-by-stage detail cards */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Lifecycle stage breakdown — entry scores:</p>
+                        <div className="overflow-x-auto mb-4">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead>
+                              <tr>
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2 w-36">Entry</th>
+                                {STAGE_ORDER.map((s) => (
+                                  <th key={s} className="text-center text-slate-400 font-normal pb-1 px-0.5 w-14" title={STAGE_CFG[s].label}>{STAGE_CFG[s].icon} {STAGE_CFG[s].label}</th>
+                                ))}
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-16">Dominant</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scored.map(({ entry: e, lc }) => (
+                                <tr key={entryKey(e)} className="border-t border-slate-50">
+                                  <td className="py-0.5 pr-2 truncate max-w-[9rem]">
+                                    <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className="text-slate-600 text-[7px]">{e.angle.slice(0,24)}{e.angle.length > 24 ? "…" : ""}</span>
+                                  </td>
+                                  {STAGE_ORDER.map((s) => {
+                                    const v   = lc[s];
+                                    const dom = lc.dominant === s;
+                                    const cls = dom
+                                      ? `${STAGE_CFG[s].bg} ${STAGE_CFG[s].color} font-black`
+                                      : v >= 6 ? "bg-slate-100 text-slate-600 font-semibold"
+                                      : v >= 3 ? "bg-slate-50 text-slate-400"
+                                      :          "bg-white text-slate-200";
+                                    return (
+                                      <td key={s} className="text-center py-0.5 px-0.5">
+                                        <span className={`inline-block w-10 h-4 rounded text-[6.5px] leading-4 tabular-nums ${cls}`}>{v}</span>
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="text-center py-0.5 px-0.5">
+                                    <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${STAGE_CFG[lc.dominant].bg} ${STAGE_CFG[lc.dominant].color} ${STAGE_CFG[lc.dominant].border}`}>
+                                      {STAGE_CFG[lc.dominant].icon} {STAGE_CFG[lc.dominant].label}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Transition gap alerts */}
+                        {transGaps.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">⚠️ Funnel transition gaps — readers have nowhere to go:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {transGaps.map(({ from, to, reason, fix }) => {
+                                const fromCfg = STAGE_CFG[from];
+                                const toCfg   = STAGE_CFG[to];
+                                return (
+                                  <div key={`${from}-${to}`} className="rounded-xl border border-amber-100 overflow-hidden">
+                                    <div className="flex items-center gap-2 px-3.5 py-2 bg-amber-50">
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${fromCfg.bg} ${fromCfg.color} ${fromCfg.border}`}>{fromCfg.icon} {fromCfg.label}</span>
+                                      <span className="text-[8px] text-amber-600">→</span>
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${toCfg.bg} ${toCfg.color} ${toCfg.border}`}>{toCfg.icon} {toCfg.label}</span>
+                                      <span className="text-[7px] text-amber-700 font-semibold ml-1">transition missing</span>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                      <p className="text-[8px] text-slate-700 leading-snug">{reason}</p>
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-sky-50 border border-sky-100">
+                                        <span className="text-[9px] shrink-0">➕</span>
+                                        <p className="text-[8px] text-sky-800 leading-snug font-semibold">{fix}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* What each stage moves readers toward */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Journey progression — how each stage advances the reader:</p>
+                        <div className="grid grid-cols-2 gap-1.5 mb-4">
+                          {STAGE_ORDER.map((stage) => {
+                            const cfg   = STAGE_CFG[stage];
+                            const count = stageCounts[stage];
+                            return (
+                              <div key={stage} className={`rounded-lg border px-2.5 py-2 ${cfg.bg} ${cfg.border}`}>
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="text-[10px]">{cfg.icon}</span>
+                                  <span className={`text-[8px] font-bold ${cfg.color}`}>{cfg.label}</span>
+                                  <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full ml-auto ${count > 0 ? `${cfg.bg} ${cfg.color} border ${cfg.border}` : "bg-slate-100 text-slate-400 border-slate-200"}`}>{count} entr{count !== 1 ? "ies" : "y"}</span>
+                                </div>
+                                <p className="text-[7px] text-slate-600 leading-snug">{cfg.next}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* All-clear */}
+                        {transGaps.length === 0 && coveredStages === 4 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-[9px] shrink-0">✅</span>
+                            <p className="text-[8px] text-emerald-800 leading-snug font-semibold">
+                              Full-funnel calendar — all four lifecycle stages are represented and all three stage-to-stage transitions are bridged. A reader can enter at Unaware and be guided continuously through to Loyal without hitting a dead end.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Distribution Channel Fit Analyser ───────────────────── */}
                 {calendar.length > 0 && (() => {
@@ -12535,116 +12779,6 @@ export default function ContentCalendarGenerator() {
                                 Only {slowest.cnt} {slowest.cnt === 1 ? "piece" : "pieces"} scheduled — consider redistributing content from busier months to maintain consistent publishing momentum and protect algorithmic ranking signals.
                               </p>
                             </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })()}
-
-                {/* ── Distribution Channel Fit Analyser ───────────────────── */}
-                {calendar.length > 0 && (() => {
-                  // Count entries per content type
-                  const typeCounts = calendar.reduce<Partial<Record<ContentType, number>>>(
-                    (acc, e) => ({ ...acc, [e.type]: (acc[e.type] ?? 0) + 1 }),
-                    {},
-                  );
-                  const typesPresent = (Object.entries(typeCounts) as [ContentType, number][])
-                    .sort((a, b) => b[1] - a[1]);
-
-                  const fitBar = (v: number) =>
-                    v >= 85 ? "bg-emerald-400" : v >= 70 ? "bg-blue-400" : v >= 55 ? "bg-amber-400" : "bg-slate-300";
-                  const fitText = (v: number) =>
-                    v >= 85 ? "text-emerald-700" : v >= 70 ? "text-blue-600" : v >= 55 ? "text-amber-700" : "text-slate-500";
-
-                  // Gap analysis: flag missing high-reach channel families
-                  const presentTypeSet = new Set(typesPresent.map(([t]) => t));
-                  const gaps: { channel: string; fix: string }[] = [];
-                  if (!presentTypeSet.has("guide") && !presentTypeSet.has("blog-post"))
-                    gaps.push({ channel: "Organic Search / SEO", fix: "Add a guide or blog post to capture high-intent search traffic" });
-                  if (!presentTypeSet.has("newsletter"))
-                    gaps.push({ channel: "Email Newsletter", fix: "Add a newsletter entry to nurture your existing subscriber base" });
-                  if (!presentTypeSet.has("linkedin"))
-                    gaps.push({ channel: "LinkedIn Organic", fix: "Add a native LinkedIn post for direct B2B decision-maker reach" });
-                  if (!presentTypeSet.has("video-script") && !presentTypeSet.has("podcast"))
-                    gaps.push({ channel: "Video / Audio", fix: "Add a video script or podcast episode to reach audiences who prefer audio-visual content" });
-
-                  return (
-                    <Card className="border border-teal-100 shadow-sm">
-                      <CardContent className="p-5">
-                        {/* Header */}
-                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base leading-none">📡</span>
-                            <p className="text-xs font-semibold text-slate-700">Distribution Channel Fit Analyser</p>
-                          </div>
-                          {gaps.length > 0 ? (
-                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                              {gaps.length} channel gap{gaps.length !== 1 ? "s" : ""}
-                            </span>
-                          ) : (
-                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                              Full channel coverage
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mb-4">
-                          Best-fit distribution channels for each content type in your calendar — with amplification tips and a channel coverage gap check.
-                        </p>
-
-                        {/* Per-type channel cards */}
-                        <div className="space-y-3 mb-4">
-                          {typesPresent.map(([type, count]) => {
-                            const channels = CHANNEL_FIT_BY_TYPE[type] ?? [];
-                            return (
-                              <div key={type} className="rounded-xl border border-slate-100 bg-slate-50 overflow-hidden">
-                                {/* Type header */}
-                                <div className="flex items-center justify-between px-3.5 py-2 bg-white border-b border-slate-100">
-                                  <div className="flex items-center gap-2">
-                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${TYPE_COLOR[type]}`}>
-                                      {FORMAT_LABEL[type]}
-                                    </span>
-                                    <span className="text-[8.5px] text-slate-400">{count} {count === 1 ? "entry" : "entries"}</span>
-                                  </div>
-                                  <span className="text-[8.5px] font-semibold text-teal-600">Top {channels.length} channels</span>
-                                </div>
-
-                                {/* Channel rows */}
-                                <div className="px-3.5 py-2 space-y-2">
-                                  {channels.map(({ channel, fit, tip }, ci) => (
-                                    <div key={channel}>
-                                      <div className="flex items-center justify-between mb-0.5">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-[8px] font-bold text-slate-400">#{ci + 1}</span>
-                                          <span className="text-[9px] font-semibold text-slate-700">{channel}</span>
-                                        </div>
-                                        <span className={`text-[8.5px] font-bold tabular-nums ${fitText(fit)}`}>{fit}%</span>
-                                      </div>
-                                      <div className="h-1 rounded-full bg-slate-200 overflow-hidden mb-0.5">
-                                        <div className={`h-full rounded-full ${fitBar(fit)}`} style={{ width: `${fit}%` }} />
-                                      </div>
-                                      <p className="text-[8px] text-slate-400 leading-snug italic">→ {tip}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Channel gap alerts */}
-                        {gaps.length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-[9.5px] font-semibold text-slate-600">Channel coverage gaps:</p>
-                            {gaps.map(({ channel, fix }) => (
-                              <div key={channel} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
-                                <span className="text-sm shrink-0 mt-0.5 leading-none">⚡</span>
-                                <div>
-                                  <p className="text-[9px] font-bold text-amber-800">{channel} not represented</p>
-                                  <p className="text-[8.5px] text-amber-700 mt-0.5">{fix}</p>
-                                </div>
-                              </div>
-                            ))}
                           </div>
                         )}
                       </CardContent>
