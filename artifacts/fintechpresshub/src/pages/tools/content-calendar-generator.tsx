@@ -1696,6 +1696,115 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Headline Engagement Predictor ───────────────────────────────────────────
+// Scores each entry's angle on six proven click-trigger categories and estimates
+// CTR lift relative to a neutral informational headline
+
+const ENGAGE_URGENCY_SIGNALS = [
+  "before ","deadline","now or never","time is running out","don't miss","act now",
+  "immediately","this year","in 2025","in 2026","by q1","by q2","by q3","by q4",
+  "while you still","running out","at risk of","before it's","urgent","expiring",
+  "last chance","don't wait","no longer","starting now","effective from",
+];
+
+const ENGAGE_SPECIFICITY_SIGNALS = [
+  "ways to","steps to","reasons why","tips for","mistakes to","% faster","% cheaper",
+  "% more","% of banks","% of fintechs","£","$","€","days to","weeks to","in under",
+  "by the numbers","data shows","the numbers behind","proven in","within 30","within 90",
+  "saves ","reduces ","increases ","cuts ","basis points","bps","roi of","x faster",
+];
+
+const ENGAGE_CURIOSITY_SIGNALS = [
+  "you didn't know","why most","the real reason","what nobody tells","the truth about",
+  "surprising","counterintuitive","hidden ","overlooked","underrated","little-known",
+  "most don't","you might not","revealed","secret to","what really","why your",
+  "what happens when","think again","unexpected","what if","rarely discussed",
+];
+
+const ENGAGE_SOCIAL_SIGNALS = [
+  "leading banks","top fintechs","according to","study shows","research finds",
+  "industry leaders","majority of banks","most banks","growing number","proven by",
+  "trusted by","used by","adopted by","case study","case: how","how tier-1",
+  "how challenger","how global","how europe","report by","survey of",
+];
+
+const ENGAGE_LOSS_SIGNALS = [
+  "risk ","avoid ","warning:","danger","costly mistake","don't make","stop doing",
+  "failure to","lose ","missing out","left behind","falling behind","penalty","fined",
+  "breach","without ","if you don't","why you're losing","before you lose",
+  "the cost of","the price of ignoring","non-compliance","regulatory risk",
+];
+
+const ENGAGE_CONTRARIAN_SIGNALS = [
+  "why you shouldn't","case against","overrated","myth ","actually ","contrary to",
+  "not what you think","rethinking","wrong about","reconsidering","the problem with",
+  "challenging the","unpopular opinion","everyone is wrong","stop believing",
+  "time to rethink","isn't working","doesn't work","isn't enough","has failed",
+];
+
+type EngagementTier = "excellent" | "strong" | "moderate" | "weak" | "flat";
+
+interface EngagementResult {
+  urgencyHits:     number;
+  specificityHits: number;
+  curiosityHits:   number;
+  socialHits:      number;
+  lossHits:        number;
+  contrarianHits:  number;
+  categories:      number;
+  score:           number;
+  tier:            EngagementTier;
+  ctrLift:         string;
+}
+
+function scoreEngagement(topic: string, angle: string): EngagementResult {
+  const hay = `${topic} ${angle}`.toLowerCase();
+
+  const urgencyHits     = ENGAGE_URGENCY_SIGNALS.filter((s)     => hay.includes(s)).length;
+  const specificityHits = ENGAGE_SPECIFICITY_SIGNALS.filter((s) => hay.includes(s)).length;
+  const curiosityHits   = ENGAGE_CURIOSITY_SIGNALS.filter((s)   => hay.includes(s)).length;
+  const socialHits      = ENGAGE_SOCIAL_SIGNALS.filter((s)      => hay.includes(s)).length;
+  const lossHits        = ENGAGE_LOSS_SIGNALS.filter((s)        => hay.includes(s)).length;
+  const contrarianHits  = ENGAGE_CONTRARIAN_SIGNALS.filter((s)  => hay.includes(s)).length;
+
+  const categories = [urgencyHits, specificityHits, curiosityHits, socialHits, lossHits, contrarianHits]
+    .filter((h) => h > 0).length;
+
+  // Category presence weights sum to 100 — hitting all six = perfect base score
+  const baseScore =
+    (urgencyHits     > 0 ? 13 : 0) +
+    (specificityHits > 0 ? 18 : 0) +
+    (curiosityHits   > 0 ? 22 : 0) +
+    (socialHits      > 0 ? 10 : 0) +
+    (lossHits        > 0 ? 15 : 0) +
+    (contrarianHits  > 0 ? 22 : 0);
+
+  // Breadth bonus: using multiple trigger types in one headline amplifies engagement
+  const breadthBonus = categories >= 4 ? 15 : categories >= 3 ? 10 : categories >= 2 ? 5 : 0;
+
+  // Multi-hit bonus: multiple signals within same category signals headline density
+  const totalHits   = urgencyHits + specificityHits + curiosityHits + socialHits + lossHits + contrarianHits;
+  const multiBonus  = totalHits >= 6 ? 10 : totalHits >= 4 ? 5 : 0;
+
+  const score = Math.min(100, baseScore + breadthBonus + multiBonus);
+
+  const tier: EngagementTier =
+    score >= 85 ? "excellent" :
+    score >= 65 ? "strong"    :
+    score >= 40 ? "moderate"  :
+    score >= 20 ? "weak"      :
+                  "flat";
+
+  const ctrLift =
+    score >= 85 ? "+45–60% vs neutral" :
+    score >= 65 ? "+20–40% vs neutral" :
+    score >= 40 ? "+5–20% vs neutral"  :
+    score >= 20 ? "0–5% vs neutral"    :
+                  "−5 to 0% vs neutral";
+
+  return { urgencyHits, specificityHits, curiosityHits, socialHits, lossHits, contrarianHits, categories, score, tier, ctrLift };
+}
+
 // ─── Content ROI Forecaster ──────────────────────────────────────────────────
 // Projects monthly organic traffic and pipeline value per entry using a
 // multi-factor model: intent base × format × cluster depth × timing × credibility
@@ -7983,6 +8092,271 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Headline Engagement Predictor ────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar.map((e) => ({ entry: e, eng: scoreEngagement(e.topic, e.angle) }));
+                  const n = scored.length;
+
+                  const byTier = (t: EngagementTier) => scored.filter((s) => s.eng.tier === t);
+                  const excellent = byTier("excellent");
+                  const strong    = byTier("strong");
+                  const moderate  = byTier("moderate");
+                  const weak      = byTier("weak");
+                  const flat      = byTier("flat");
+
+                  const highEng   = [...excellent, ...strong];
+                  const lowEng    = [...weak, ...flat];
+
+                  const avgScore      = n > 0 ? scored.reduce((s, e) => s + e.eng.score, 0) / n : 0;
+                  const highEngRate   = n > 0 ? highEng.length / n : 0;
+                  const flatRate      = n > 0 ? flat.length / n : 0;
+                  const avgCategories = n > 0 ? scored.reduce((s, e) => s + e.eng.categories, 0) / n : 0;
+                  const curiosContRate = n > 0 ? scored.filter((s) => s.eng.curiosityHits > 0 || s.eng.contrarianHits > 0).length / n : 0;
+
+                  // Portfolio Headline Engagement Score (0-100)
+                  const engHigh   = Math.round(Math.min(1, highEngRate    / 0.40) * 40);
+                  const engBreadth = Math.round(Math.min(1, avgCategories / 3.0)  * 30);
+                  const engCurios  = Math.round(Math.min(1, curiosContRate / 0.50) * 20);
+                  const engFlat   = Math.round((1 - Math.min(1, flatRate / 0.20)) * 10);
+                  const engScore  = engHigh + engBreadth + engCurios + engFlat;
+
+                  const eCfg =
+                    engScore >= 75 ? { label: "High headline engagement — strong click-trigger density",   color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-100" } :
+                    engScore >= 50 ? { label: "Moderate engagement — trigger mix has room to improve",     color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100"   } :
+                    engScore >= 25 ? { label: "Weak engagement — most angles lack click-trigger language", color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100"  } :
+                                     { label: "Flat engagement — generic informational angles throughout",  color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100"   };
+
+                  const TIER_ENG_CFG: Record<EngagementTier, { label: string; icon: string; color: string; bg: string; border: string; pill: string; bar: string; desc: string }> = {
+                    excellent: { label: "Excellent",  icon: "🔥", color: "text-yellow-700",  bg: "bg-yellow-50",  border: "border-yellow-100",  pill: "bg-yellow-100 text-yellow-700 border-yellow-200",   bar: "bg-yellow-400",  desc: "+45–60% CTR vs neutral — strong multi-trigger headline that creates urgency, curiosity, or loss aversion in combination"     },
+                    strong:    { label: "Strong",     icon: "💪", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", bar: "bg-emerald-400", desc: "+20–40% CTR — meaningful trigger presence. Would benefit from adding one more category (e.g. specificity or social proof) to amplify further"        },
+                    moderate:  { label: "Moderate",   icon: "🟡", color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100",    pill: "bg-blue-100 text-blue-700 border-blue-200",          bar: "bg-blue-400",    desc: "+5–20% CTR — some emotional signal present but the angle reads as primarily informational. Add a specific number, a counterintuitive claim, or a loss-framed opening to materially improve click-through"   },
+                    weak:      { label: "Weak",       icon: "🟠", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   pill: "bg-amber-100 text-amber-700 border-amber-200",       bar: "bg-amber-400",   desc: "0–5% CTR lift — generic angle with minimal trigger language. Readers have no emotional reason to click over adjacent results. Rewrite to open with a specific claim, a surprising perspective, or a risk frame"      },
+                    flat:      { label: "Flat",       icon: "🔴", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100",    pill: "bg-rose-100 text-rose-700 border-rose-200",          bar: "bg-rose-400",    desc: "−5 to 0% vs neutral — the angle may actively discourage clicks by reading as overly dry or generic. For fintech B2B, even technical audiences respond to specificity and curiosity — reframe urgently"          },
+                  };
+
+                  const TRIGGER_CFG: Array<{ key: string; label: string; icon: string; pill: string; weight: number; tip: string }> = [
+                    { key: "curiosity",   label: "Curiosity gap",   icon: "🔮", pill: "bg-purple-100 text-purple-700 border-purple-200",  weight: 22, tip: "What nobody tells you · The real reason · Surprising · Hidden · Overlooked · Think again" },
+                    { key: "contrarian",  label: "Contrarian",      icon: "↩️", pill: "bg-rose-100 text-rose-700 border-rose-200",        weight: 22, tip: "Why you shouldn't · Case against · Overrated · Myth · Rethinking · Wrong about · The problem with" },
+                    { key: "specificity", label: "Specificity",     icon: "📊", pill: "bg-blue-100 text-blue-700 border-blue-200",        weight: 18, tip: "N ways/steps/reasons · % faster/cheaper/more · £/$/€ · Data shows · In under X days" },
+                    { key: "loss",        label: "Loss aversion",   icon: "⚠️", pill: "bg-amber-100 text-amber-700 border-amber-200",    weight: 15, tip: "Risk · Avoid · Warning · Costly mistake · Missing out · Left behind · Penalty · Breach" },
+                    { key: "urgency",     label: "Urgency/FOMO",    icon: "⏱️", pill: "bg-orange-100 text-orange-700 border-orange-200", weight: 13, tip: "Before · Deadline · By Q1/Q2 · This year · While you still · Starting now · Expiring" },
+                    { key: "social",      label: "Social proof",    icon: "🏆", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", weight: 10, tip: "Leading banks · Study shows · Majority of · Trusted by · Case study · According to" },
+                  ];
+
+                  const getHits = (s: typeof scored[0], key: string): number =>
+                    key === "curiosity" ? s.eng.curiosityHits : key === "contrarian" ? s.eng.contrarianHits :
+                    key === "specificity" ? s.eng.specificityHits : key === "loss" ? s.eng.lossHits :
+                    key === "urgency" ? s.eng.urgencyHits : s.eng.socialHits;
+
+                  const TIERS: EngagementTier[] = ["excellent","strong","moderate","weak","flat"];
+                  const tierCounts: Record<EngagementTier, number> = { excellent: excellent.length, strong: strong.length, moderate: moderate.length, weak: weak.length, flat: flat.length };
+
+                  return (
+                    <Card className="border border-yellow-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🎯</span>
+                            <p className="text-xs font-semibold text-slate-700">Headline Engagement Predictor</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${eCfg.color} ${eCfg.bg} ${eCfg.border}`}>
+                            {engScore}/100 · {eCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Scores each entry's angle on six proven click-trigger categories — curiosity gap (22pts), contrarianism (22pts), specificity (18pts), loss aversion (15pts), urgency/FOMO (13pts), social proof (10pts) — and applies a breadth bonus for combining multiple trigger types in one headline. Predicts estimated click-through rate lift relative to a neutral informational headline of the same topic, for use in newsletter subject lines, social distribution copy, and organic search result snippet writing.
+                        </p>
+
+                        {/* Portfolio score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${eCfg.bg} ${eCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${eCfg.color}`}>{engScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "High-engagement rate", val: engHigh,    max: 40, desc: `${highEng.length}/${n} entries score Excellent or Strong — target ≥40%; avg score ${avgScore.toFixed(0)}/100` },
+                              { label: "Trigger breadth",       val: engBreadth, max: 30, desc: `avg ${avgCategories.toFixed(1)} trigger categories per angle — target ≥3 categories per headline` },
+                              { label: "Curiosity/contrarian",  val: engCurios,  max: 20, desc: `${Math.round(curiosContRate*100)}% of angles contain curiosity or contrarian trigger — highest-impact categories` },
+                              { label: "Flat-headline-free",    val: engFlat,    max: 10, desc: `${flat.length} completely flat angles with no trigger language — each is a missed distribution opportunity` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${eCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Tier distribution bar */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Engagement tier distribution:</p>
+                        <div className="flex h-5 w-full rounded-lg overflow-hidden mb-1.5">
+                          {TIERS.map((t) => {
+                            const pct = n > 0 ? Math.round((tierCounts[t] / n) * 100) : 0;
+                            const cfg = TIER_ENG_CFG[t];
+                            return pct > 0 ? (
+                              <div key={t} className={`flex items-center justify-center text-[6.5px] font-bold text-white ${cfg.bar}`} style={{ width: `${pct}%` }} title={`${cfg.label}: ${tierCounts[t]} entries`}>
+                                {pct >= 8 ? `${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="grid grid-cols-5 gap-1 mb-4">
+                          {TIERS.map((t) => {
+                            const cfg = TIER_ENG_CFG[t];
+                            return (
+                              <div key={t} className={`rounded-lg border px-1.5 py-1 text-center ${cfg.bg} ${cfg.border}`}>
+                                <p className="text-[6px] text-slate-400 mb-0.5">{cfg.icon} {cfg.label}</p>
+                                <p className={`text-[12px] font-black leading-none ${cfg.color}`}>{tierCounts[t]}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Trigger category coverage map */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Trigger category coverage across calendar:</p>
+                        <div className="space-y-1.5 mb-4">
+                          {TRIGGER_CFG.map(({ key, label, icon, pill, weight, tip }) => {
+                            const hitsEntries = scored.filter((s) => getHits(s, key) > 0);
+                            const pct = n > 0 ? Math.round((hitsEntries.length / n) * 100) : 0;
+                            return (
+                              <div key={key} className="flex items-center gap-2">
+                                <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 w-28 text-center ${pill}`}>{icon} {label} ({weight}pts)</span>
+                                <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                                  <div className="h-full rounded-full bg-slate-400 transition-all" style={{ width: `${pct}%`, backgroundColor: pct >= 50 ? "#4ade80" : pct >= 25 ? "#facc15" : "#f87171" }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-600 font-bold w-8 text-right shrink-0">{pct}%</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0 truncate max-w-[12rem]">{tip}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Why it matters */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">📣</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">Why headline engagement determines content distribution ROI:</span> A piece with excellent SEO rankings but a flat, generic angle ("Open Banking Compliance Guide") will consistently underperform a piece with the same ranking but an emotionally-triggered angle ("Why Most Banks' Open Banking Compliance Approach is Quietly Failing Them") across every distribution channel — newsletter open rates, LinkedIn organic reach, referral click-throughs, and even organic CTR from search result snippets. <span className="font-bold">Curiosity gap and contrarian angles are the two highest-performing trigger types for fintech B2B content</span> — they create a cognitive itch that information-driven professionals feel compelled to resolve. Specificity (concrete numbers, timeframes) is the most reliable trust-builder. Loss aversion and urgency work well for regulatory and compliance topics where inaction has real consequences.
+                          </p>
+                        </div>
+
+                        {/* Flat headlines — most urgent rewrite target */}
+                        {flat.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-rose-50 border border-rose-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🔴</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1">{flat.length} flat angle{flat.length !== 1 ? "s" : ""} — no click-trigger language detected</p>
+                              <div className="space-y-1 mb-1.5">
+                                {flat.map(({ entry: e }) => (
+                                  <div key={entryKey(e)} className="flex items-center gap-1.5">
+                                    <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className="text-[7px] text-rose-700 flex-1">"{e.angle.slice(0,38)}{e.angle.length > 38 ? "…" : ""}"</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-rose-700 leading-snug">These angles read as topic labels rather than click-triggers — they describe what the piece is about without giving the reader an emotional reason to choose it over adjacent results. Even a single rewrite addition transforms performance: turn "Payment Orchestration Guide" into "Why Most Fintechs' Payment Orchestration Architecture Costs Them 30% More Than It Should" — same topic, 45-60% more clicks.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Weak angles — high-leverage rewrite opportunity */}
+                        {weak.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🟠</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{weak.length} weak-engagement angle{weak.length !== 1 ? "s" : ""} — minimal trigger language, quick wins available</p>
+                              <div className="flex flex-wrap gap-1">
+                                {weak.map(({ entry: e }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,24)}{e.angle.length > 24 ? "…" : ""}
+                                  </span>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-amber-700 mt-1 leading-snug">Adding a specific number (the highest-trust specificity signal) or a counterintuitive sub-claim to any of these angles would move them from Weak to Moderate or Strong with a single sentence of revision — the highest-leverage editorial improvement available in the calendar.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Excellent angles callout */}
+                        {excellent.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-yellow-50 border border-yellow-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🔥</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-yellow-800 mb-1">{excellent.length} excellent-engagement angle{excellent.length !== 1 ? "s" : ""} — these are your distribution anchors</p>
+                              <div className="flex flex-wrap gap-1">
+                                {excellent.map(({ entry: e, eng }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,26)}{e.angle.length > 26 ? "…" : ""} <span className="opacity-60">({eng.score}pts · {eng.categories} triggers)</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Per-entry engagement table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — engagement score (sorted best-to-worst):</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Score</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-28">Tier / CTR lift</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-5" title="Curiosity">🔮</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-5" title="Contrarian">↩️</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-5" title="Specificity">📊</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-5" title="Loss aversion">⚠️</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-5" title="Urgency">⏱️</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-5" title="Social proof">🏆</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...scored].sort((a, b) => b.eng.score - a.eng.score).map(({ entry: e, eng }) => {
+                                const cfg = TIER_ENG_CFG[eng.tier];
+                                const hit = (h: number) => h === 0
+                                  ? <span className="text-slate-300">·</span>
+                                  : <span className="font-black text-emerald-600">{h}</span>;
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,24)}{e.angle.length > 24 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <div className="flex items-center gap-1">
+                                        <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${eng.score}%` }} />
+                                        </div>
+                                        <span className={`tabular-nums font-black shrink-0 text-[6.5px] ${cfg.color}`}>{eng.score}</span>
+                                      </div>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${cfg.pill}`}>{cfg.icon} {eng.ctrLift}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-0.5 text-[6.5px]">{hit(eng.curiosityHits)}</td>
+                                    <td className="text-center py-0.5 px-0.5 text-[6.5px]">{hit(eng.contrarianHits)}</td>
+                                    <td className="text-center py-0.5 px-0.5 text-[6.5px]">{hit(eng.specificityHits)}</td>
+                                    <td className="text-center py-0.5 px-0.5 text-[6.5px]">{hit(eng.lossHits)}</td>
+                                    <td className="text-center py-0.5 px-0.5 text-[6.5px]">{hit(eng.urgencyHits)}</td>
+                                    <td className="text-center py-0.5 px-0.5 text-[6.5px]">{hit(eng.socialHits)}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <p className="text-[7px] text-slate-400 mt-1">🔮 Curiosity · ↩️ Contrarian · 📊 Specificity · ⚠️ Loss aversion · ⏱️ Urgency · 🏆 Social proof · Numbers = hits per category · · = no signal detected</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content ROI Forecaster ───────────────────────────────── */}
                 {calendar.length > 0 && (() => {
