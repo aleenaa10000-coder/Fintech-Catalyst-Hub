@@ -1696,6 +1696,60 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Topical Authority Velocity Tracker ──────────────────────────────────────
+// Format depth weights — how strongly each content type signals topical authority to search
+const AUTHORITY_DEPTH_WEIGHT: Record<ContentType, number> = {
+  "guide":      5,   // comprehensive guide = highest authority signal per piece
+  "case-study": 4,   // proof-driven case study = strong credibility anchor
+  "blog":       3,   // substantive blog post = solid recurring signal
+  "roundup":    2,   // curated roundup = lighter but contributes to topic density
+  "linkedin":   1,   // social post = minimal authority contribution; thin for SEO
+};
+
+const AUTHORITY_THRESHOLD = 5;   // pieces per topic needed for a meaningful topical authority signal
+const CLUSTER_MIN         = 3;   // minimum pieces for a viable anchor cluster (guide + 2 support)
+
+interface TopicVelocity {
+  topic:          string;
+  count:          number;
+  types:          ContentType[];
+  distinctWeeks:  number;
+  depthTotal:     number;
+  freqScore:      number;   // 0-40
+  depthScore:     number;   // 0-30
+  spreadScore:    number;   // 0-30
+  velocityScore:  number;   // 0-100 composite
+  status:         "authority-building" | "momentum" | "burst-only" | "thin";
+  hasAnchor:      boolean;  // has at least one guide or case-study
+  anchorTypes:    ContentType[];
+}
+
+function computeTopicVelocity(
+  topic:   string,
+  entries: { type: ContentType; week: number }[],
+): TopicVelocity {
+  const count         = entries.length;
+  const types         = [...new Set(entries.map((e) => e.type))] as ContentType[];
+  const distinctWeeks = new Set(entries.map((e) => e.week)).size;
+  const depthTotal    = entries.reduce((s, e) => s + AUTHORITY_DEPTH_WEIGHT[e.type], 0);
+
+  const freqScore     = Math.min(40, count * 8);
+  const depthScore    = Math.min(30, Math.round(depthTotal * 2.0));
+  const spreadScore   = Math.min(30, distinctWeeks * 10);
+  const velocityScore = freqScore + depthScore + spreadScore;
+
+  const hasAnchor   = entries.some((e) => e.type === "guide" || e.type === "case-study");
+  const anchorTypes = types.filter((t) => t === "guide" || t === "case-study");
+
+  const status: TopicVelocity["status"] =
+    velocityScore >= 70 ? "authority-building" :
+    velocityScore >= 40 ? "momentum"           :
+    count >= 2 && distinctWeeks === 1 ? "burst-only" :
+    "thin";
+
+  return { topic, count, types, distinctWeeks, depthTotal, freqScore, depthScore, spreadScore, velocityScore, status, hasAnchor, anchorTypes };
+}
+
 // ─── Audience Lifecycle Stage Mapper ─────────────────────────────────────────
 type LifecycleStage = "unaware" | "aware" | "evaluating" | "loyal";
 
@@ -6698,6 +6752,255 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Topical Authority Velocity Tracker ───────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Group entries by topic
+                  const topicMap = new Map<string, { type: ContentType; week: number; angle: string }[]>();
+                  calendar.forEach((e) => {
+                    if (!topicMap.has(e.topic)) topicMap.set(e.topic, []);
+                    topicMap.get(e.topic)!.push({ type: e.type, week: e.week, angle: e.angle });
+                  });
+
+                  const velocities = [...topicMap.entries()]
+                    .map(([topic, entries]) => computeTopicVelocity(topic, entries))
+                    .sort((a, b) => b.velocityScore - a.velocityScore);
+
+                  const totalTopics = velocities.length;
+
+                  // Status groups
+                  const authBuilding = velocities.filter((v) => v.status === "authority-building");
+                  const momentum     = velocities.filter((v) => v.status === "momentum");
+                  const burstOnly    = velocities.filter((v) => v.status === "burst-only");
+                  const thin         = velocities.filter((v) => v.status === "thin");
+                  const orphans      = velocities.filter((v) => v.count === 1);
+                  const noAnchor     = velocities.filter((v) => !v.hasAnchor && v.count >= CLUSTER_MIN);
+
+                  // ── Portfolio Authority Velocity Score (0-100) ─────────────
+                  // Threshold rate (0-40): % of topics that reach AUTHORITY_THRESHOLD
+                  const atThreshold    = velocities.filter((v) => v.count >= AUTHORITY_THRESHOLD).length;
+                  const thresholdScore = totalTopics > 0 ? Math.round((atThreshold / totalTopics) * 40) : 0;
+
+                  // Average depth score across topics (already 0-30 scale)
+                  const avgDepth       = totalTopics > 0 ? velocities.reduce((s, v) => s + v.depthScore, 0) / totalTopics : 0;
+                  const portfolioDepth = Math.round(avgDepth);
+
+                  // Average spread score across topics (already 0-30 scale)
+                  const avgSpread       = totalTopics > 0 ? velocities.reduce((s, v) => s + v.spreadScore, 0) / totalTopics : 0;
+                  const portfolioSpread = Math.round(avgSpread);
+
+                  const portfolioScore = thresholdScore + portfolioDepth + portfolioSpread;
+
+                  const portCfg =
+                    portfolioScore >= 75 ? { label: "Strong authority trajectory",  color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    portfolioScore >= 50 ? { label: "Building momentum",            color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    portfolioScore >= 25 ? { label: "Authority at risk",            color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                           { label: "Insufficient coverage depth",  color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  // Status config
+                  const STATUS_CFG = {
+                    "authority-building": { label: "Authority building", icon: "🚀", color: "text-emerald-700", bg: "bg-emerald-50",  border: "border-emerald-100", bar: "bg-emerald-400", desc: "Sufficient frequency, depth, and spread to send a topical authority signal"     },
+                    "momentum":           { label: "Momentum",           icon: "📈", color: "text-blue-700",    bg: "bg-blue-50",     border: "border-blue-100",    bar: "bg-blue-400",    desc: "Decent coverage — add 1-2 more pieces with an anchor format to accelerate"    },
+                    "burst-only":         { label: "Burst only",         icon: "💥", color: "text-amber-700",   bg: "bg-amber-50",    border: "border-amber-100",   bar: "bg-amber-400",   desc: "Multiple pieces in one week — sustained spread across weeks builds more authority" },
+                    "thin":               { label: "Thin",               icon: "⚠️", color: "text-rose-700",   bg: "bg-rose-50",     border: "border-rose-100",    bar: "bg-rose-400",    desc: "Too few pieces to signal topical expertise — needs ≥3 pieces minimum"         },
+                  } as const;
+
+                  // Concentration check
+                  const topTopic     = velocities[0];
+                  const topPct       = topTopic && calendar.length > 0 ? topTopic.count / calendar.length : 0;
+                  const spreadThin   = velocities.filter((v) => v.count <= 2).length / Math.max(1, totalTopics);
+
+                  return (
+                    <Card className="border border-lime-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">⚡</span>
+                            <p className="text-xs font-semibold text-slate-700">Topical Authority Velocity Tracker</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${portCfg.color} ${portCfg.bg} ${portCfg.border}`}>
+                            {portfolioScore}/100 · {portCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Measures how quickly the calendar is building topical authority signals in each topic cluster — scoring every topic on frequency (how often it's covered), depth (how authoritative the formats are), and spread (how consistently coverage recurs across weeks). Identifies which topics are on track to earn topical authority in search and which are being covered too lightly to matter.
+                        </p>
+
+                        {/* Portfolio Authority Velocity Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${portCfg.bg} ${portCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${portCfg.color}`}>{portfolioScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Threshold rate",   val: thresholdScore,  max: 40, desc: `${atThreshold}/${totalTopics} topics reach ≥${AUTHORITY_THRESHOLD} pieces (the authority signal threshold)` },
+                              { label: "Portfolio depth",  val: portfolioDepth,  max: 30, desc: `avg depth score ${avgDepth.toFixed(1)}/30 — weighted by format authority (Guide=5, Case Study=4, Blog=3…)` },
+                              { label: "Coverage spread",  val: portfolioSpread, max: 30, desc: `avg spread score ${avgSpread.toFixed(1)}/30 — consistent multi-week coverage vs single-week bursts`          },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-24 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${portCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Portfolio stats row */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Authority building", val: authBuilding.length, sub: `≥70 velocity score`,        color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+                            { label: "Momentum",           val: momentum.length,     sub: `40-69 velocity score`,       color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    },
+                            { label: "Burst only",         val: burstOnly.length,    sub: `multi-piece, 1 week only`,   color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   },
+                            { label: "Thin",               val: thin.length,         sub: `<40 velocity, low coverage`, color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    },
+                          ].map(({ label, val, sub, color, bg, border }) => (
+                            <div key={label} className={`rounded-lg border px-2 py-1.5 text-center ${bg} ${border}`}>
+                              <p className="text-[7.5px] text-slate-400 mb-0.5">{label}</p>
+                              <p className={`text-[13px] font-black leading-none ${color}`}>{val}</p>
+                              <p className="text-[6.5px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Per-topic velocity cards */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Topic-by-topic authority velocity:</p>
+                        <div className="space-y-2.5 mb-4">
+                          {velocities.map((v) => {
+                            const sCfg = STATUS_CFG[v.status];
+                            return (
+                              <div key={v.topic} className={`rounded-xl border overflow-hidden ${sCfg.border}`}>
+                                {/* Topic header */}
+                                <div className={`flex items-center justify-between px-3.5 py-2 ${sCfg.bg}`}>
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-[10px] shrink-0">{sCfg.icon}</span>
+                                    <span className={`text-[9px] font-bold truncate ${sCfg.color}`}>{v.topic}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                                    <span className="text-[7px] text-slate-400">{v.count} piece{v.count !== 1 ? "s" : ""} · {v.distinctWeeks} week{v.distinctWeeks !== 1 ? "s" : ""}</span>
+                                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border tabular-nums ${sCfg.bg} ${sCfg.color} ${sCfg.border}`}>{v.velocityScore}/100</span>
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${sCfg.bg} ${sCfg.color} ${sCfg.border}`}>{sCfg.label}</span>
+                                  </div>
+                                </div>
+
+                                {/* Scores + formats */}
+                                <div className="px-3.5 py-2.5 bg-white">
+                                  {/* Three dimension bars */}
+                                  <div className="space-y-1 mb-2">
+                                    {[
+                                      { label: "Frequency", val: v.freqScore,  max: 40, bar: "bg-slate-400", tip: `${v.count} piece${v.count !== 1 ? "s" : ""} (need ${AUTHORITY_THRESHOLD}+ for authority threshold)` },
+                                      { label: "Depth",     val: v.depthScore, max: 30, bar: "bg-indigo-400",tip: `depth total ${v.depthTotal} pts · formats: ${v.types.map((t) => FORMAT_LABEL[t]).join(", ")}` },
+                                      { label: "Spread",    val: v.spreadScore,max: 30, bar: "bg-teal-400",  tip: `${v.distinctWeeks} distinct week${v.distinctWeeks !== 1 ? "s" : ""} (10pts each, max 30)` },
+                                    ].map(({ label, val, max, bar, tip }) => (
+                                      <div key={label} className="flex items-center gap-2">
+                                        <span className="text-[7px] text-slate-400 w-14 shrink-0">{label}</span>
+                                        <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className={`h-full rounded-full ${bar}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                        </div>
+                                        <span className="text-[7px] tabular-nums text-slate-400 shrink-0 w-8 text-right">{val}/{max}</span>
+                                        <span className="text-[7px] text-slate-300 shrink-0 hidden sm:inline truncate max-w-[14rem]">{tip}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  {/* Format badges */}
+                                  <div className="flex flex-wrap gap-1 mb-1.5">
+                                    {v.types.map((t) => (
+                                      <span key={t} className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[t]}`}>{FORMAT_LABEL[t]}</span>
+                                    ))}
+                                    {!v.hasAnchor && (
+                                      <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200">⚠️ No anchor</span>
+                                    )}
+                                  </div>
+
+                                  {/* Status description + fix */}
+                                  <p className="text-[7.5px] text-slate-500 leading-snug mb-1">{sCfg.desc}</p>
+                                  {v.status !== "authority-building" && (
+                                    <div className="flex items-start gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100">
+                                      <span className="text-[8px] shrink-0">→</span>
+                                      <p className="text-[7.5px] text-slate-600 leading-snug">
+                                        {v.status === "thin" && !v.hasAnchor && `Add a Guide or Case Study to anchor this topic cluster, then add ${Math.max(0, CLUSTER_MIN - v.count)} more supporting pieces (Blog/Roundup/LinkedIn) to reach the ${CLUSTER_MIN}-piece cluster minimum.`}
+                                        {v.status === "thin" && v.hasAnchor  && `Topic has an anchor format — add ${Math.max(0, AUTHORITY_THRESHOLD - v.count)} more supporting pieces spread across different weeks to reach the ${AUTHORITY_THRESHOLD}-piece authority threshold.`}
+                                        {v.status === "burst-only"           && `${v.count} pieces all published in week ${[...new Set(topicMap.get(v.topic)?.map((x) => x.week) ?? [])].join(", ")} — redistribute at least 1 piece to a different week to build sustained coverage signal.`}
+                                        {v.status === "momentum"             && `${AUTHORITY_THRESHOLD - v.count > 0 ? `Add ${AUTHORITY_THRESHOLD - v.count} more piece${AUTHORITY_THRESHOLD - v.count !== 1 ? "s" : ""} to cross the authority threshold. ` : ""}${!v.hasAnchor ? "No anchor format yet — a Guide or Case Study would significantly increase the depth score." : "Keep the publication cadence consistent to build the spread score further."}`}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Orphan signals */}
+                        {orphans.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-rose-50 border border-rose-100 mb-3">
+                            <span className="text-[10px] shrink-0 mt-0.5">🏝️</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1">{orphans.length} orphan topic{orphans.length !== 1 ? "s" : ""} — single pieces with no cluster</p>
+                              <div className="flex flex-wrap gap-1 mb-1">
+                                {orphans.map((v) => (
+                                  <span key={v.topic} className="text-[7.5px] font-semibold px-1.5 py-0.5 rounded-full border bg-rose-100 text-rose-700 border-rose-200">{v.topic}</span>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-rose-700 leading-snug">A single piece on a topic is an isolated signal that won't build topical authority. Either add supporting content to grow these into clusters or consolidate the angle into an existing topic to increase its frequency score.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Anchor gaps */}
+                        {noAnchor.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100 mb-3">
+                            <span className="text-[10px] shrink-0 mt-0.5">⚓</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{noAnchor.length} topic cluster{noAnchor.length !== 1 ? "s" : ""} with no anchor piece (Guide or Case Study)</p>
+                              <div className="flex flex-wrap gap-1 mb-1">
+                                {noAnchor.map((v) => (
+                                  <span key={v.topic} className="text-[7.5px] font-semibold px-1.5 py-0.5 rounded-full border bg-amber-100 text-amber-700 border-amber-200">{v.topic} ({v.count} pieces)</span>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-amber-700 leading-snug">Topical authority clusters without an anchor format (Guide or Case Study) have high entry counts but low depth scores. Add a comprehensive guide or a proof-driven case study to each cluster — it's the highest-leverage single action for improving depth score and search authority signal.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Concentration analysis */}
+                        {topPct > 0.40 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-indigo-50 border border-indigo-100 mb-3">
+                            <span className="text-[10px] shrink-0 mt-0.5">🎯</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-indigo-800 mb-0.5">Over-concentrated — "{topTopic.topic}" holds {Math.round(topPct * 100)}% of all entries</p>
+                              <p className="text-[7.5px] text-indigo-700 leading-snug">Heavy concentration on one topic signals deep expertise to search in that area but leaves other clusters thin. Consider redistributing 2-3 pieces to secondary topics to avoid building a single-topic dependency — especially important if that topic is volatile or competitive.</p>
+                            </div>
+                          </div>
+                        )}
+                        {spreadThin > 0.5 && orphans.length >= 3 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 mb-3">
+                            <span className="text-[10px] shrink-0 mt-0.5">🌊</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-slate-700 mb-0.5">Spread too thin — {Math.round(spreadThin * 100)}% of topics have ≤2 pieces</p>
+                              <p className="text-[7.5px] text-slate-600 leading-snug">The calendar covers many topics superficially rather than a few topics authoritatively. Search engines reward depth over breadth — 5 topics with 5+ pieces each will outperform 15 topics with 1-2 pieces each. Consolidate the weakest topics into the strongest clusters.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* All-clear */}
+                        {authBuilding.length > 0 && orphans.length === 0 && !noAnchor.length && topPct <= 0.40 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-[9px] shrink-0">✅</span>
+                            <p className="text-[8px] text-emerald-800 leading-snug font-semibold">
+                              {authBuilding.length} topic cluster{authBuilding.length !== 1 ? "s" : ""} on the authority-building trajectory — each has sufficient frequency, depth, and multi-week spread to send a meaningful topical authority signal. Maintain consistent coverage cadence to sustain and grow the authority position.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Audience Lifecycle Stage Mapper ──────────────────────── */}
                 {calendar.length > 0 && (() => {
