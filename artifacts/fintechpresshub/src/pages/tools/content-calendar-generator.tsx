@@ -1535,6 +1535,86 @@ const REPURPOSE_DERIVATIVES: Record<
   ],
 };
 
+// ─── Trending Topics Radar ─────────────────────────────────────────────────────
+const FINTECH_TREND_SIGNALS: {
+  keywords:  string[];
+  momentum:  number;
+  direction: "surging" | "rising" | "steady" | "cooling";
+  velocity:  string;
+  trigger:   string;
+}[] = [
+  {
+    keywords:  ["ai", "artificial intelligence", "llm", "generative", "automation", "machine learning", "agentic"],
+    momentum:  96, direction: "surging", velocity: "+42% MoM",
+    trigger:   "LLM adoption accelerating across all financial services verticals",
+  },
+  {
+    keywords:  ["embedded finance", "embedded banking", "embedded payments", "embedded lending"],
+    momentum:  88, direction: "rising",  velocity: "+28% MoM",
+    trigger:   "Platform economy expansion driving non-financial brands into FS",
+  },
+  {
+    keywords:  ["stablecoin", "cbdc", "central bank digital", "tokenisation", "tokenization", "rwa", "real world asset"],
+    momentum:  85, direction: "rising",  velocity: "+31% MoM",
+    trigger:   "Regulatory frameworks crystallising; institutional adoption accelerating",
+  },
+  {
+    keywords:  ["open banking", "open finance", "psd2", "fdata", "api banking", "open data"],
+    momentum:  79, direction: "rising",  velocity: "+18% MoM",
+    trigger:   "FCA Variable Recurring Payments & EU FIDA deadlines approaching",
+  },
+  {
+    keywords:  ["crypto", "bitcoin", "defi", "blockchain", "web3"],
+    momentum:  76, direction: "rising",  velocity: "+19% MoM",
+    trigger:   "ETF approvals and institutional custody driving renewed search demand",
+  },
+  {
+    keywords:  ["payments", "cross-border", "remittance", "swift", "iso 20022", "faster payments", "real-time payments", "rtp"],
+    momentum:  74, direction: "steady",  velocity: "+11% MoM",
+    trigger:   "Real-time rails expanding globally; ISO 20022 migration in progress",
+  },
+  {
+    keywords:  ["regtech", "compliance", "regulation", "kyc", "aml", "gdpr", "regulatory"],
+    momentum:  73, direction: "steady",  velocity: "+8% MoM",
+    trigger:   "Perpetual burden — Basel IV, DORA, and AML reform driving B2B demand",
+  },
+  {
+    keywords:  ["wealthtech", "wealth management", "robo", "invest", "portfolio", "asset management"],
+    momentum:  70, direction: "rising",  velocity: "+14% MoM",
+    trigger:   "Retail democratisation + intergenerational wealth transfer narrative",
+  },
+  {
+    keywords:  ["neobank", "challenger bank", "digital bank", "fintech bank"],
+    momentum:  65, direction: "steady",  velocity: "+5% MoM",
+    trigger:   "Maturing market — profitability narrative replacing growth story",
+  },
+  {
+    keywords:  ["insurtech", "insurance", "parametric", "underwriting"],
+    momentum:  64, direction: "steady",  velocity: "+6% MoM",
+    trigger:   "Climate risk and AI underwriting innovation driving B2B interest",
+  },
+  {
+    keywords:  ["lending", "credit", "loan", "mortgage", "fintech lending", "buy now pay later", "bnpl"],
+    momentum:  60, direction: "cooling", velocity: "−5% MoM",
+    trigger:   "High-rate environment dampening origination; BNPL regulatory headwinds",
+  },
+];
+
+function getTopicTrend(topic: string): {
+  momentum:  number;
+  direction: "surging" | "rising" | "steady" | "cooling";
+  velocity:  string;
+  trigger:   string;
+} {
+  const t = topic.toLowerCase();
+  for (const sig of FINTECH_TREND_SIGNALS) {
+    if (sig.keywords.some((kw) => t.includes(kw))) {
+      return { momentum: sig.momentum, direction: sig.direction, velocity: sig.velocity, trigger: sig.trigger };
+    }
+  }
+  return { momentum: 62, direction: "steady", velocity: "+5% MoM", trigger: "Stable fintech audience interest — niche but engaged readership" };
+}
+
 // ─── Brief Template Generator — personas, objectives, outlines, distribution ──
 
 const PERSONA_BY_NICHE: {
@@ -5283,6 +5363,96 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Trending Topics Radar ───────────────────────────────── */}
+                {calendarTopics.length > 0 && (() => {
+                  const DIRECTION_CONFIG = {
+                    surging: { label: "Surging", icon: "🔥", badge: "bg-rose-100 text-rose-700 border-rose-200",       bar: "bg-rose-500"    },
+                    rising:  { label: "Rising",  icon: "↑",  badge: "bg-emerald-100 text-emerald-700 border-emerald-200", bar: "bg-emerald-500" },
+                    steady:  { label: "Steady",  icon: "→",  badge: "bg-slate-100 text-slate-600 border-slate-200",     bar: "bg-slate-400"   },
+                    cooling: { label: "Cooling", icon: "↓",  badge: "bg-blue-50 text-blue-500 border-blue-200",         bar: "bg-blue-400"    },
+                  } as const;
+
+                  const trendData = calendarTopics
+                    .map((topic) => ({ topic, ...getTopicTrend(topic) }))
+                    .sort((a, b) => b.momentum - a.momentum);
+
+                  const topTopic   = trendData[0];
+                  const nudgeIt    = topTopic &&
+                    (topTopic.direction === "surging" || topTopic.direction === "rising");
+
+                  return (
+                    <Card className="border border-cyan-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📡</span>
+                            <p className="text-xs font-semibold text-slate-700">
+                              Trending Topics Radar
+                            </p>
+                          </div>
+                          <span className="text-[9px] text-slate-400 italic">
+                            Based on fintech industry trend patterns · cross-reference with Google Trends for live data
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Momentum scores for each topic in your calendar — prioritise high-velocity pieces in your next sprint.
+                        </p>
+
+                        {/* Sprint nudge for top topic */}
+                        {nudgeIt && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100 mb-4">
+                            <span className="text-sm shrink-0 mt-0.5 leading-none">
+                              {topTopic.direction === "surging" ? "🔥" : "↑"}
+                            </span>
+                            <p className="text-[9.5px] text-emerald-800 leading-snug">
+                              <span className="font-bold">{topTopic.topic}</span> is your highest-momentum topic ({topTopic.velocity}) — consider moving its earliest entry into your current sprint week.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Topic rows */}
+                        <div className="space-y-3.5">
+                          {trendData.map(({ topic, momentum, direction, velocity, trigger }) => {
+                            const cfg = DIRECTION_CONFIG[direction];
+                            return (
+                              <div key={topic}>
+                                <div className="flex items-center justify-between mb-1 gap-2">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <span className="text-[10px] font-bold text-slate-700 truncate">
+                                      {topic}
+                                    </span>
+                                    <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${cfg.badge}`}>
+                                      {cfg.icon} {cfg.label}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-[9px] font-semibold text-cyan-600 tabular-nums whitespace-nowrap">
+                                      {velocity}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-slate-500 tabular-nums w-6 text-right">
+                                      {momentum}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-1">
+                                  <div
+                                    className={`h-full rounded-full ${cfg.bar} transition-all`}
+                                    style={{ width: `${momentum}%` }}
+                                  />
+                                </div>
+                                <p className="text-[8.5px] text-slate-400 leading-snug">
+                                  {trigger}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Competitor Gap Analysis ─────────────────────────────── */}
                 {competitorGapsByTopic.length > 0 && (
