@@ -1696,6 +1696,62 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Search Intent Alignment Score ───────────────────────────────────────────
+type SearchIntent = "informational" | "commercial" | "transactional" | "navigational";
+interface IntentDef {
+  id:          SearchIntent;
+  label:       string;
+  emoji:       string;
+  signals:     string[];
+  idealMin:    number;  // % of calendar
+  idealMax:    number;
+  color:       string;
+  barColor:    string;
+  description: string;
+  tip:         string;
+}
+const INTENT_DEFS: IntentDef[] = [
+  {
+    id: "informational", label: "Informational", emoji: "📖", idealMin: 35, idealMax: 55,
+    signals: ["what is","how to","guide","explained","introduction","overview","why","history","learn","basics","101","primer","meaning","difference between","understanding","deep dive","beginner","fundamentals","everything you need","complete guide","ultimate guide","explainer","breakdown","insight","trend","future of","state of","report","survey","research","analysis"],
+    color: "bg-sky-100 text-sky-700 border-sky-200", barColor: "bg-sky-400",
+    description: "Awareness-stage content targeting 'what' and 'how' queries. Builds organic traffic and topical authority.",
+    tip: "Informational content drives 70%+ of B2B organic entry points — but convert it with embedded CTAs and gated companion assets.",
+  },
+  {
+    id: "commercial", label: "Commercial Investigation", emoji: "🔍", idealMin: 25, idealMax: 40,
+    signals: ["best","top","vs","versus","comparison","compare","review","alternative","alternatives","benchmark","benchmarking","which","ranked","ranking","options","choose","pick","pros and cons","advantages","disadvantages","shortlist","evaluation","criteria","checklist for choosing","buyer guide","vendor","platform","solution","provider","software","tool for","service for"],
+    color: "bg-violet-100 text-violet-700 border-violet-200", barColor: "bg-violet-400",
+    description: "Consideration-stage content targeting buyers actively comparing options. High commercial value and conversion intent.",
+    tip: "Commercial-intent content converts at 3–5× the rate of informational — every calendar should have at least one comparison or buyer guide per quarter.",
+  },
+  {
+    id: "transactional", label: "Transactional", emoji: "⚡", idealMin: 10, idealMax: 25,
+    signals: ["template","checklist","calculator","tool","download","free","pricing","cost","demo","trial","get started","sign up","hire","buy","access","request","book a","schedule","apply","launch","build","deploy","implement","install","migrate","onboard","integrate","step-by-step","how to set up","how to build","playbook","script","framework","worksheet"],
+    color: "bg-emerald-100 text-emerald-700 border-emerald-200", barColor: "bg-emerald-400",
+    description: "Decision-stage content with direct conversion actions — templates, tools, trials. Lowest volume, highest MQL rate.",
+    tip: "Transactional content closes the loop on your SEO funnel. Pair every pillar guide with a downloadable template or calculator to capture bottom-of-funnel demand.",
+  },
+  {
+    id: "navigational", label: "Navigational", emoji: "🧭", idealMin: 0, idealMax: 10,
+    signals: ["login","official","website","portal","brand","company","[brand name]","homepage","contact","about","careers","pricing page","support","documentation","changelog"],
+    color: "bg-slate-100 text-slate-600 border-slate-200", barColor: "bg-slate-400",
+    description: "Brand-search content — useful for retention but rarely generates new organic demand. Keep minimal.",
+    tip: "Navigational content serves existing customers, not new prospects. Invest here only after your informational and commercial content is well-established.",
+  },
+];
+
+function detectIntent(topic: string, angle: string): IntentDef {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  let best: IntentDef = INTENT_DEFS[0]; // default: informational
+  let bestScore = 0;
+  for (const def of INTENT_DEFS) {
+    const score = def.signals.filter((s) => hay.includes(s)).length;
+    if (score > bestScore) { bestScore = score; best = def; }
+  }
+  return best;
+}
+
 // ─── Persona-to-Content Mapping Matrix ───────────────────────────────────────
 interface PersonaDef {
   id:      string;
@@ -5897,6 +5953,223 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Search Intent Alignment Score ────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const total = calendar.length;
+
+                  // Classify each entry
+                  const classified = calendar.map((e) => ({ entry: e, intent: detectIntent(e.topic, e.angle) }));
+
+                  // Count per intent
+                  const counts = new Map<SearchIntent, { def: IntentDef; count: number; entries: typeof calendar }>();
+                  for (const def of INTENT_DEFS) counts.set(def.id, { def, count: 0, entries: [] });
+                  for (const { entry, intent } of classified) {
+                    const c = counts.get(intent.id)!;
+                    c.count++;
+                    c.entries.push(entry);
+                  }
+
+                  // Gap flags
+                  type IntentFlag = { def: IntentDef; pct: number; kind: "over" | "under" | "missing" };
+                  const flags: IntentFlag[] = [];
+                  for (const def of INTENT_DEFS) {
+                    const { count } = counts.get(def.id)!;
+                    const pct = Math.round((count / total) * 100);
+                    if (count === 0 && def.idealMin > 0)      flags.push({ def, pct, kind: "missing" });
+                    else if (pct < def.idealMin)              flags.push({ def, pct, kind: "under"   });
+                    else if (pct > def.idealMax + 10)         flags.push({ def, pct, kind: "over"    });
+                  }
+                  const criticalFlags = flags.filter((f) => f.def.id === "commercial" || f.def.id === "transactional");
+
+                  // Overall balance score: penalise each flag
+                  const balancePenalty = flags.reduce((s, f) => {
+                    const { count } = counts.get(f.def.id)!;
+                    const pct = Math.round((count / total) * 100);
+                    const gap = f.kind === "over"  ? pct - (f.def.idealMax + 10)
+                               : f.kind === "under"  ? f.def.idealMin - pct
+                               :                      f.def.idealMin;
+                    return s + gap * 1.5;
+                  }, 0);
+                  const balanceScore = Math.max(0, Math.min(100, Math.round(100 - balancePenalty)));
+
+                  const scoreCfg = (v: number) =>
+                    v >= 80 ? { bg: "bg-emerald-50", text: "text-emerald-700", badge: "bg-emerald-100 text-emerald-700 border-emerald-200", label: "Well-balanced" }
+                    : v >= 60 ? { bg: "bg-blue-50",   text: "text-blue-700",   badge: "bg-blue-100 text-blue-700 border-blue-200",           label: "Mostly balanced" }
+                    : v >= 40 ? { bg: "bg-amber-50",  text: "text-amber-700",  badge: "bg-amber-100 text-amber-700 border-amber-200",         label: "Intent gaps" }
+                    :           { bg: "bg-rose-50",   text: "text-rose-700",   badge: "bg-rose-100 text-rose-700 border-rose-200",            label: "Funnel imbalance" };
+                  const sc = scoreCfg(balanceScore);
+
+                  // Per-week intent heatmap data
+                  const weekIntents = new Map<number, Map<SearchIntent, number>>();
+                  for (const { entry, intent } of classified) {
+                    if (!weekIntents.has(entry.week)) weekIntents.set(entry.week, new Map());
+                    const wm = weekIntents.get(entry.week)!;
+                    wm.set(intent.id, (wm.get(intent.id) ?? 0) + 1);
+                  }
+                  const sortedWeeks = [...weekIntents.entries()].sort(([a], [b]) => a - b);
+
+                  return (
+                    <Card className="border border-sky-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🎯</span>
+                            <p className="text-xs font-semibold text-slate-700">Search Intent Alignment Score</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {criticalFlags.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {criticalFlags.length} critical gap{criticalFlags.length !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${sc.badge}`}>
+                              {balanceScore}/100
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Classifies each entry by Google's four search intent types — showing how the calendar maps to the buyer journey and flagging conversion-stage gaps.
+                        </p>
+
+                        {/* Balance score */}
+                        <div className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-4 ${sc.bg}`}>
+                          <div>
+                            <p className="text-[9px] text-slate-500 mb-0.5">Intent Balance Score</p>
+                            <p className={`text-lg font-black tabular-nums leading-none ${sc.text}`}>
+                              {balanceScore}<span className="text-xs font-semibold opacity-60">/100</span>
+                            </p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full border ${sc.badge}`}>{sc.label}</span>
+                        </div>
+
+                        {/* Intent distribution bars */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Intent type distribution:</p>
+                        <div className="space-y-2.5 mb-4">
+                          {INTENT_DEFS.map((def) => {
+                            const { count } = counts.get(def.id)!;
+                            const pct = Math.round((count / total) * 100);
+                            const flag = flags.find((f) => f.def.id === def.id);
+                            const idealLabel = `Ideal: ${def.idealMin}–${def.idealMax}%`;
+                            return (
+                              <div key={def.id}>
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] leading-none">{def.emoji}</span>
+                                    <span className="text-[8.5px] font-semibold text-slate-700">{def.label}</span>
+                                    {flag && (
+                                      <span className={`text-[7px] font-bold px-1 py-0.5 rounded ${flag.kind === "missing" ? "bg-rose-100 text-rose-700" : flag.kind === "under" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
+                                        {flag.kind === "missing" ? "missing" : flag.kind === "under" ? "below ideal" : "above ideal"}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className="text-[7.5px] text-slate-400">{idealLabel}</span>
+                                    <span className="text-[8px] font-bold text-slate-600 tabular-nums">{count} · {pct}%</span>
+                                  </div>
+                                </div>
+                                {/* Stacked bar: actual vs ideal range marker */}
+                                <div className="relative h-2 rounded-full bg-slate-100 overflow-hidden">
+                                  <div className={`h-full rounded-full ${def.barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                                  {/* Ideal min marker */}
+                                  <div className="absolute top-0 bottom-0 w-px bg-slate-400 opacity-30" style={{ left: `${def.idealMin}%` }} />
+                                  {/* Ideal max marker */}
+                                  <div className="absolute top-0 bottom-0 w-px bg-slate-400 opacity-30" style={{ left: `${Math.min(def.idealMax, 99)}%` }} />
+                                </div>
+                                <p className="text-[7px] text-slate-400 italic mt-0.5">{def.description}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[7.5px] text-slate-400 italic mb-4">
+                          Faint vertical lines show the ideal range per intent type. Bars outside the range are flagged above.
+                        </p>
+
+                        {/* Gap flag cards */}
+                        {flags.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Intent gaps to address:</p>
+                            <div className="space-y-2 mb-4">
+                              {flags
+                                .sort((a, b) => (b.def.id === "commercial" || b.def.id === "transactional" ? 1 : 0) - (a.def.id === "commercial" || a.def.id === "transactional" ? 1 : 0))
+                                .map(({ def, kind, pct }) => {
+                                  const isCritical = def.id === "commercial" || def.id === "transactional";
+                                  return (
+                                    <div key={def.id} className={`rounded-xl border overflow-hidden ${isCritical ? "border-rose-100" : "border-amber-100"}`}>
+                                      <div className={`flex items-center justify-between px-3.5 py-2 ${isCritical ? "bg-rose-50" : "bg-amber-50"}`}>
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[11px]">{def.emoji}</span>
+                                          <p className={`text-[9px] font-bold ${isCritical ? "text-rose-800" : "text-amber-800"}`}>{def.label}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                          <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${isCritical ? "bg-rose-100 text-rose-700 border-rose-200" : "bg-amber-100 text-amber-700 border-amber-200"}`}>
+                                            {kind === "missing" ? "0% — not present" : kind === "under" ? `${pct}% — below ${def.idealMin}% ideal` : `${pct}% — above ${def.idealMax}% ideal`}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="px-3.5 py-2 bg-white">
+                                        <p className="text-[8.5px] text-slate-600 leading-snug">{def.tip}</p>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Weekly intent heatmap */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Weekly intent breakdown:</p>
+                        <div className="space-y-1 mb-2">
+                          {sortedWeeks.map(([week, intentMap]) => {
+                            const weekTotal = [...intentMap.values()].reduce((s, v) => s + v, 0);
+                            return (
+                              <div key={week} className="flex items-center gap-2">
+                                <span className="text-[8px] font-bold text-slate-500 shrink-0 w-9">Wk {week}</span>
+                                <div className="flex-1 flex h-3 rounded-full overflow-hidden gap-px">
+                                  {INTENT_DEFS.map((def) => {
+                                    const c = intentMap.get(def.id) ?? 0;
+                                    const pct = Math.round((c / weekTotal) * 100);
+                                    return pct > 0 ? (
+                                      <div
+                                        key={def.id}
+                                        className={`h-full ${def.barColor}`}
+                                        style={{ width: `${pct}%` }}
+                                        title={`${def.label}: ${c} piece${c !== 1 ? "s" : ""} (${pct}%)`}
+                                      />
+                                    ) : null;
+                                  })}
+                                </div>
+                                <div className="flex gap-1 shrink-0">
+                                  {INTENT_DEFS.filter((def) => (intentMap.get(def.id) ?? 0) > 0).map((def) => (
+                                    <span key={def.id} className="text-[8px]" title={def.label}>{def.emoji}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-1">
+                          {INTENT_DEFS.map((def) => (
+                            <div key={def.id} className="flex items-center gap-1">
+                              <div className={`w-2 h-2 rounded-full ${def.barColor}`} />
+                              <span className="text-[7.5px] text-slate-500">{def.label}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {flags.length === 0 && (
+                          <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100 mt-3">
+                            <span className="text-sm">✅</span>
+                            <p className="text-[10px] font-semibold text-emerald-700">
+                              All four intent types are within their ideal ranges — the calendar maps cleanly across the full buyer journey.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Persona-to-Content Mapping Matrix ────────────────────── */}
                 {calendar.length > 0 && (() => {
