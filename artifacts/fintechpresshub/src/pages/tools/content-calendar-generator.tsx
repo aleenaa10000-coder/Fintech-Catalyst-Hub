@@ -1696,6 +1696,34 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Narrative Arc Analyser ──────────────────────────────────────────────────
+const NARRATIVE_REGISTER: Record<ContentType, string> = {
+  "guide":      "educational",
+  "blog":       "analytical",
+  "case-study": "proof",
+  "roundup":    "curatorial",
+  "linkedin":   "conversational",
+};
+
+// 0 = smooth transition · 1 = noticeable · 2 = jarring voice shift
+const REGISTER_CLASH: Record<string, Record<string, number>> = {
+  educational:    { educational: 0, analytical: 1, proof: 1, curatorial: 2, conversational: 2 },
+  analytical:     { educational: 1, analytical: 0, proof: 1, curatorial: 1, conversational: 2 },
+  proof:          { educational: 1, analytical: 1, proof: 0, curatorial: 2, conversational: 1 },
+  curatorial:     { educational: 2, analytical: 1, proof: 2, curatorial: 0, conversational: 1 },
+  conversational: { educational: 2, analytical: 2, proof: 1, curatorial: 1, conversational: 0 },
+};
+
+// Tokens for narrative continuity (reuses cannibal tokeniser — already declared)
+function narrativeOverlap(a: { topic: string; angle: string }, b: { topic: string; angle: string }): number {
+  const tokA = new Set(cannibalTokens(`${a.topic} ${a.angle}`));
+  const tokB = new Set(cannibalTokens(`${b.topic} ${b.angle}`));
+  const union = new Set([...tokA, ...tokB]);
+  if (union.size === 0) return 0;
+  const shared = [...tokA].filter((t) => tokB.has(t)).length;
+  return shared / union.size; // Jaccard 0-1
+}
+
 // ─── Content Seasonality Mapper ──────────────────────────────────────────────
 type SeasonEventType = "regulatory" | "reporting" | "event" | "market";
 
@@ -6340,6 +6368,290 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Narrative Arc Analyser ───────────────────────────────── */}
+                {calendar.length > 1 && (() => {
+                  // Sort calendar by week for sequential analysis
+                  const seq = [...calendar].sort((a, b) => a.week - b.week);
+
+                  // ── 1. Pairwise continuity between consecutive entries ──────
+                  type PairLink = { overlap: number; clash: number; isBreak: boolean; isJarring: boolean };
+                  const links: PairLink[] = seq.slice(0, -1).map((e, i) => {
+                    const next    = seq[i + 1];
+                    const overlap = narrativeOverlap(e, next);
+                    const regA    = NARRATIVE_REGISTER[e.type]    ?? "analytical";
+                    const regB    = NARRATIVE_REGISTER[next.type] ?? "analytical";
+                    const clash   = REGISTER_CLASH[regA]?.[regB] ?? 1;
+                    return { overlap, clash, isBreak: overlap < 0.08, isJarring: clash === 2 };
+                  });
+
+                  // ── 2. Thread extraction ───────────────────────────────────
+                  // A thread = maximal run where every consecutive pair has overlap ≥ 0.10
+                  const threads: { entries: typeof seq; avgOverlap: number }[] = [];
+                  let run: typeof seq = [seq[0]];
+                  let overlapSum = 0;
+                  for (let i = 0; i < links.length; i++) {
+                    if (links[i].overlap >= 0.10) {
+                      run.push(seq[i + 1]);
+                      overlapSum += links[i].overlap;
+                    } else {
+                      threads.push({ entries: run, avgOverlap: run.length > 1 ? overlapSum / (run.length - 1) : 0 });
+                      run = [seq[i + 1]];
+                      overlapSum = 0;
+                    }
+                  }
+                  threads.push({ entries: run, avgOverlap: run.length > 1 ? overlapSum / (run.length - 1) : 0 });
+
+                  // ── 3. Narrative gap detection ─────────────────────────────
+                  // A gap = a break link (overlap < 0.08) between threads of ≥2 entries
+                  const gaps = links
+                    .map((l, i) => ({ ...l, idx: i }))
+                    .filter((l) => l.isBreak && (seq[l.idx] !== undefined && seq[l.idx + 1] !== undefined));
+
+                  // ── 4. Funnel arc shape ────────────────────────────────────
+                  // Split calendar into thirds and measure TOFU/MOFU/BOFU distribution
+                  const third  = Math.ceil(seq.length / 3);
+                  const thirds = [seq.slice(0, third), seq.slice(third, third * 2), seq.slice(third * 2)];
+                  const stageOf = (e: (typeof seq)[0]): FunnelStage => {
+                    const hay = `${e.topic} ${e.angle}`.toLowerCase();
+                    const b = RA_BOFU_SIGNALS.filter((s) => hay.includes(s)).length;
+                    const m = RA_MOFU_SIGNALS.filter((s) => hay.includes(s)).length;
+                    const t = RA_TOFU_SIGNALS.filter((s) => hay.includes(s)).length;
+                    return b > 0 ? "BOFU" : m >= t && m > 0 ? "MOFU" : "TOFU";
+                  };
+                  const thirdStages = thirds.map((slice) => {
+                    const bofu = slice.filter((e) => stageOf(e) === "BOFU").length;
+                    const mofu = slice.filter((e) => stageOf(e) === "MOFU").length;
+                    const tofu = slice.filter((e) => stageOf(e) === "TOFU").length;
+                    return { bofu, mofu, tofu, total: slice.length };
+                  });
+
+                  const arcShape = (() => {
+                    const [t1, t2, t3] = thirdStages;
+                    const tofuDeclines  = t1.tofu >= t2.tofu && t2.tofu >= t3.tofu;
+                    const bofuGrows     = t1.bofu <= t2.bofu && t2.bofu <= t3.bofu;
+                    const bofuEarly     = t1.bofu > t3.bofu;
+                    const flat          = Math.abs((t1.tofu / t1.total || 0) - (t3.tofu / t3.total || 0)) < 0.15;
+                    if (tofuDeclines && bofuGrows) return { label: "Linear build",   icon: "📈", desc: "Calendar progresses cleanly from awareness through to decision — this is the optimal fintech editorial arc.", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" };
+                    if (bofuEarly)                 return { label: "Inverted funnel", icon: "📉", desc: "Decision-stage content appears before enough awareness has been built. Buyers need education before they're ready for proof assets — move case studies later.", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+                    if (flat)                       return { label: "Flat arc",        icon: "➡️", desc: "The funnel stage mix is roughly the same across all three phases. Readers get no sense of editorial momentum — gradually shift toward MOFU and BOFU as the calendar progresses.", color: "text-amber-700",  bg: "bg-amber-50",   border: "border-amber-100"   };
+                    return                                { label: "Fragmented arc",   icon: "🔀", desc: "No consistent progression pattern detected. The calendar jumps between funnel stages without a clear editorial logic — readers can't follow a developing narrative.", color: "text-orange-700", bg: "bg-orange-50",  border: "border-orange-100"  };
+                  })();
+
+                  // ── 5. Editorial coherence score (0-100) ──────────────────
+                  const continuityScore = links.length > 0
+                    ? Math.round((links.filter((l) => !l.isBreak).length / links.length) * 40)
+                    : 40;
+                  const arcScore = arcShape.label === "Linear build" ? 30 : arcShape.label === "Flat arc" ? 15 : arcShape.label === "Inverted funnel" ? 5 : 10;
+                  const voiceScore = links.length > 0
+                    ? Math.round(((links.length - links.filter((l) => l.isJarring).length) / links.length) * 30)
+                    : 30;
+                  const coherenceScore = continuityScore + arcScore + voiceScore;
+
+                  const coherenceCfg =
+                    coherenceScore >= 75 ? { label: "Strong narrative",   color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    coherenceScore >= 50 ? { label: "Developing arc",     color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    coherenceScore >= 30 ? { label: "Fragmented",         color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                           { label: "Incoherent sequence", color: "text-rose-700",   bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  const stageFillColor: Record<FunnelStage, string> = { TOFU: "bg-sky-400", MOFU: "bg-violet-400", BOFU: "bg-emerald-500" };
+                  const stageTextColor: Record<FunnelStage, string> = { TOFU: "text-sky-700", MOFU: "text-violet-700", BOFU: "text-emerald-700" };
+
+                  return (
+                    <Card className="border border-teal-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📖</span>
+                            <p className="text-xs font-semibold text-slate-700">Narrative Arc Analyser</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${coherenceCfg.color} ${coherenceCfg.bg} ${coherenceCfg.border.replace("border-","border-")}`}>
+                              {coherenceScore}/100 · {coherenceCfg.label}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Treats the calendar as an editorial sequence — maps narrative threads, detects topic continuity breaks between consecutive entries, measures funnel arc progression, and flags jarring voice shifts between content registers.
+                        </p>
+
+                        {/* Coherence score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${coherenceCfg.bg} ${coherenceCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${coherenceCfg.color}`}>{coherenceScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Thread continuity",  val: continuityScore, max: 40, desc: "consecutive pairs sharing topic territory"      },
+                              { label: "Funnel arc shape",   val: arcScore,        max: 30, desc: `${arcShape.label} — ${arcShape.icon}`           },
+                              { label: "Voice consistency",  val: voiceScore,      max: 30, desc: "register shifts between consecutive entries"     },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-24 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${coherenceCfg.color.replace("text-", "bg-")}`} style={{ width: `${Math.round((val / max) * 100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Arc shape */}
+                        <div className={`flex items-start gap-2 px-3.5 py-2.5 rounded-xl border mb-4 ${arcShape.bg} ${arcShape.border}`}>
+                          <span className="text-lg shrink-0">{arcShape.icon}</span>
+                          <div>
+                            <p className={`text-[9px] font-bold mb-0.5 ${arcShape.color}`}>Arc shape: {arcShape.label}</p>
+                            <p className={`text-[8px] leading-snug ${arcShape.color} opacity-90`}>{arcShape.desc}</p>
+                          </div>
+                        </div>
+
+                        {/* Funnel stage by third visualisation */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Funnel stage progression across calendar thirds:</p>
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          {thirdStages.map((t, i) => {
+                            const tofuPct = t.total > 0 ? Math.round((t.tofu / t.total) * 100) : 0;
+                            const mofuPct = t.total > 0 ? Math.round((t.mofu / t.total) * 100) : 0;
+                            const bofuPct = t.total > 0 ? Math.round((t.bofu / t.total) * 100) : 0;
+                            return (
+                              <div key={i} className="rounded-lg border border-slate-100 bg-slate-50 p-2">
+                                <p className="text-[8px] font-bold text-slate-500 mb-1.5">{i === 0 ? "Early" : i === 1 ? "Mid" : "Late"} (wks {thirds[i][0]?.week}–{thirds[i].at(-1)?.week})</p>
+                                <div className="flex gap-px h-3 rounded overflow-hidden mb-1">
+                                  {tofuPct > 0 && <div className="bg-sky-400 h-full"     style={{ width: `${tofuPct}%` }} />}
+                                  {mofuPct > 0 && <div className="bg-violet-400 h-full"  style={{ width: `${mofuPct}%` }} />}
+                                  {bofuPct > 0 && <div className="bg-emerald-500 h-full" style={{ width: `${bofuPct}%` }} />}
+                                </div>
+                                <div className="space-y-0.5">
+                                  {[["TOFU","bg-sky-400","text-sky-700",tofuPct],["MOFU","bg-violet-400","text-violet-700",mofuPct],["BOFU","bg-emerald-500","text-emerald-700",bofuPct]].map(([s, bg, tc, pct]) =>
+                                    (pct as number) > 0 ? (
+                                      <div key={s as string} className="flex items-center gap-1">
+                                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${bg}`} />
+                                        <span className={`text-[7px] font-bold ${tc}`}>{s}</span>
+                                        <span className="text-[7px] text-slate-400">{pct}%</span>
+                                      </div>
+                                    ) : null
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Sequential entry strip */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Week-by-week sequence — continuity between entries:</p>
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {seq.map((e, i) => {
+                            const stage   = stageOf(e);
+                            const link    = links[i];
+                            const isBreak = link?.isBreak;
+                            const isJar   = link?.isJarring && !isBreak;
+                            return (
+                              <div key={entryKey(e)} className="flex items-center gap-0.5">
+                                <div className={`flex flex-col items-center rounded px-1.5 py-1 border text-center ${
+                                  isBreak ? "border-rose-200 bg-rose-50" : isJar ? "border-amber-200 bg-amber-50" : "border-slate-100 bg-slate-50"
+                                }`}>
+                                  <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full ${stageFillColor[stage]} text-white`}>{stage}</span>
+                                  <span className={`text-[7px] font-semibold mt-0.5 ${TYPE_COLOR[e.type].split(" ")[1] ?? "text-slate-600"}`}>{FORMAT_LABEL[e.type]}</span>
+                                  <span className="text-[6px] text-slate-400">Wk {e.week}</span>
+                                </div>
+                                {i < seq.length - 1 && (
+                                  <span className={`text-[8px] mx-0.5 ${isBreak ? "text-rose-400 font-bold" : isJar ? "text-amber-400" : "text-slate-300"}`}>
+                                    {isBreak ? "⛔" : isJar ? "⚠️" : "→"}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mb-4">
+                          <span className="text-[7px] text-slate-400">⛔ topic break · ⚠️ voice shift · → smooth transition</span>
+                        </div>
+
+                        {/* Narrative threads */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">
+                          Narrative threads — {threads.length} editorial thread{threads.length !== 1 ? "s" : ""} detected:
+                        </p>
+                        <div className="space-y-1.5 mb-4">
+                          {threads.map((thread, ti) => {
+                            const strength = thread.avgOverlap >= 0.25 ? "Strong" : thread.avgOverlap >= 0.12 ? "Moderate" : "Loose";
+                            const strCfg   = strength === "Strong" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : strength === "Moderate" ? "bg-blue-100 text-blue-700 border-blue-200" : "bg-slate-100 text-slate-600 border-slate-200";
+                            return (
+                              <div key={ti} className="flex items-start gap-2 px-2.5 py-2 rounded-lg bg-slate-50 border border-slate-100">
+                                <span className="text-[8px] font-black text-slate-400 shrink-0 mt-0.5">T{ti + 1}</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${strCfg}`}>{strength} thread</span>
+                                    <span className="text-[7.5px] text-slate-500">{thread.entries.length} piece{thread.entries.length !== 1 ? "s" : ""} · Wks {thread.entries[0].week}–{thread.entries.at(-1)!.week}</span>
+                                    {thread.avgOverlap > 0 && <span className="text-[7px] text-slate-400">avg {Math.round(thread.avgOverlap * 100)}% topic overlap</span>}
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {thread.entries.map((e) => (
+                                      <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[12rem] ${TYPE_COLOR[e.type]}`}>{e.angle}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Voice shift alerts */}
+                        {links.filter((l) => l.isJarring).length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">⚠️ Voice shift alerts — jarring register changes:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {links.map((l, i) => !l.isJarring ? null : (
+                                <div key={i} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                  <span className="text-sm shrink-0">⚠️</span>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[8px] font-semibold text-amber-800 mb-0.5">
+                                      Wk {seq[i].week} → Wk {seq[i + 1].week}: <span className="capitalize">{NARRATIVE_REGISTER[seq[i].type]}</span> → <span className="capitalize">{NARRATIVE_REGISTER[seq[i + 1].type]}</span>
+                                    </p>
+                                    <p className="text-[7.5px] text-amber-700 leading-snug">
+                                      Jumping from a <span className="font-semibold">{FORMAT_LABEL[seq[i].type]}</span> ("{seq[i].angle.slice(0, 45)}{seq[i].angle.length > 45 ? "…" : ""}") to a <span className="font-semibold">{FORMAT_LABEL[seq[i + 1].type]}</span> creates a jarring editorial shift. Consider inserting a bridging piece or reordering to group similar registers together.
+                                    </p>
+                                  </div>
+                                </div>
+                              )).filter(Boolean)}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Narrative gaps */}
+                        {gaps.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">⛔ Narrative gaps — topic continuity breaks:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {gaps.slice(0, 5).map((g) => (
+                                <div key={g.idx} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-100">
+                                  <span className="text-sm shrink-0">⛔</span>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[8px] font-semibold text-rose-800 mb-0.5">
+                                      Gap between Wk {seq[g.idx].week} and Wk {seq[g.idx + 1].week} — {Math.round(g.overlap * 100)}% topic overlap
+                                    </p>
+                                    <p className="text-[7.5px] text-rose-700 leading-snug">
+                                      "<span className="font-semibold">{seq[g.idx].angle.slice(0, 40)}{seq[g.idx].angle.length > 40 ? "…" : ""}</span>" shares almost no keyword territory with "<span className="font-semibold">{seq[g.idx + 1].angle.slice(0, 40)}{seq[g.idx + 1].angle.length > 40 ? "…" : ""}</span>". Readers following the editorial thread will feel the jump. Consider inserting a bridging piece or resequencing to cluster related topics.
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {gaps.length === 0 && links.filter((l) => l.isJarring).length === 0 && (
+                          <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-teal-50 border border-teal-100">
+                            <span className="text-sm">📖</span>
+                            <p className="text-[9px] font-semibold text-teal-700">Strong narrative cohesion — no topic breaks or jarring voice shifts detected between consecutive entries. The calendar reads as a coherent editorial sequence.</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Seasonality Mapper ───────────────────────────── */}
                 {calendar.length > 0 && (() => {
