@@ -8591,6 +8591,295 @@ export default function ContentCalendarGenerator() {
                   </Card>
                 )}
 
+                {/* ── Competitive Differentiation Radar ───────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar.map((e) => ({ entry: e, diff: scoreDifferentiation(e.topic, e.angle) }));
+                  const n      = scored.length;
+
+                  const byTier = (t: DiffTier) => scored.filter((s) => s.diff.tier === t);
+                  const distinctive  = byTier("distinctive");
+                  const aboveAvg     = byTier("above-average");
+                  const generic      = byTier("generic");
+                  const commodity    = byTier("commodity");
+
+                  // Per-dimension coverage (entries reaching ≥8/20 = meaningful signal)
+                  const dimCovPct = (key: DiffDimension) => {
+                    const count = scored.filter((s) => s.diff[key] >= 8).length;
+                    return n > 0 ? Math.round((count / n) * 100) : 0;
+                  };
+
+                  const contPct  = dimCovPct("contrarianism");
+                  const specPct  = dimCovPct("specificity");
+                  const practPct = dimCovPct("practitioner");
+                  const audPct   = dimCovPct("audienceFocus");
+                  const freshPct = dimCovPct("freshness");
+                  const avgDimPct = Math.round((contPct + specPct + practPct + audPct + freshPct) / 5);
+
+                  // Portfolio Competitive Differentiation Score (0-100)
+                  const d1 = n > 0 ? Math.round(((distinctive.length + aboveAvg.length) / n) * 50) : 50;
+                  const d2 = n > 0 ? Math.round(((n - commodity.length) / n) * 30) : 30;
+                  const d3 = n > 0 ? Math.round((scored.filter((s) => s.diff.contrarianism >= 8).length / n) * 20) : 20;
+                  const diffScore = d1 + d2 + d3;
+
+                  const dCfg =
+                    diffScore >= 75 ? { label: "Strongly differentiated — most angles stand out from the competitive field",  color: "text-lime-700",  bg: "bg-lime-50",  border: "border-lime-100"  } :
+                    diffScore >= 50 ? { label: "Moderately differentiated — some angles compete on positioning alone",         color: "text-blue-700",  bg: "bg-blue-50",  border: "border-blue-100"  } :
+                    diffScore >= 25 ? { label: "Weakly differentiated — most content blends into the competitive landscape",   color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" } :
+                                      { label: "Undifferentiated — most entries are indistinguishable from competitor content", color: "text-rose-700",  bg: "bg-rose-50",  border: "border-rose-100"  };
+
+                  const TIER_D: Record<DiffTier, { label: string; icon: string; pill: string; bar: string; color: string; bg: string; border: string }> = {
+                    "distinctive":   { label: "Distinctive",   icon: "🏆", pill: "bg-lime-100 text-lime-700 border-lime-200",      bar: "bg-lime-400",   color: "text-lime-700",  bg: "bg-lime-50",  border: "border-lime-100"  },
+                    "above-average": { label: "Above average", icon: "🟢", pill: "bg-blue-100 text-blue-700 border-blue-200",      bar: "bg-blue-400",   color: "text-blue-700",  bg: "bg-blue-50",  border: "border-blue-100"  },
+                    "generic":       { label: "Generic",       icon: "🟡", pill: "bg-amber-100 text-amber-700 border-amber-200",   bar: "bg-amber-400",  color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" },
+                    "commodity":     { label: "Commodity",     icon: "🔴", pill: "bg-rose-100 text-rose-700 border-rose-200",      bar: "bg-rose-400",   color: "text-rose-700",  bg: "bg-rose-50",  border: "border-rose-100"  },
+                  };
+
+                  const DIM_D: Record<DiffDimension, { label: string; icon: string; pill: string; bar: string; desc: string; tip: string }> = {
+                    contrarianism: { label: "Contrarianism",   icon: "⚡", pill: "bg-violet-100 text-violet-700 border-violet-200", bar: "bg-violet-400", desc: "Angles that challenge consensus — 'wrong', 'myth', 'overlooked', 'rethink', 'avoid', 'stop'", tip: "The single highest-leverage differentiator — most fintech content confirms rather than challenges" },
+                    specificity:   { label: "Specificity",     icon: "🎯", pill: "bg-blue-100 text-blue-700 border-blue-200",       bar: "bg-blue-400",   desc: "Precise scope — named institution types, measurable outcomes, exact timeframes, technical terms", tip: "Specific angles rank for longer, less competitive queries with higher conversion intent" },
+                    practitioner:  { label: "Practitioner",    icon: "🔧", pill: "bg-orange-100 text-orange-700 border-orange-200", bar: "bg-orange-400", desc: "Implementation-led voice — 'how to', 'deploy', 'configure', 'step-by-step', 'trade-off', 'vs'", tip: "Implementation content earns backlinks from dev/ops teams and fintech practitioners" },
+                    audienceFocus: { label: "Audience focus",  icon: "👤", pill: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200", bar: "bg-fuchsia-400", desc: "Named audience — specific role, institution type, or fintech sub-sector in the angle", tip: "Named-audience angles repel irrelevant readers and attract high-intent prospects who self-identify" },
+                    freshness:     { label: "Freshness",       icon: "🗓️", pill: "bg-teal-100 text-teal-700 border-teal-200",      bar: "bg-teal-400",   desc: "Timely anchors — regulatory events (DORA, MiCA), technology shifts (ISO 20022, AI), year markers", tip: "Timely angles capture backlinks from news coverage and rank for trending queries" },
+                  };
+
+                  const DIMS: DiffDimension[] = ["contrarianism","specificity","practitioner","audienceFocus","freshness"];
+                  const TIERS: DiffTier[] = ["distinctive","above-average","generic","commodity"];
+                  const dimPcts: Record<DiffDimension, number> = { contrarianism: contPct, specificity: specPct, practitioner: practPct, audienceFocus: audPct, freshness: freshPct };
+
+                  // Most common weakest dimension
+                  const weakestCounts: Partial<Record<DiffDimension, number>> = {};
+                  scored.filter((s) => s.diff.tier !== "distinctive").forEach((s) => {
+                    weakestCounts[s.diff.weakestDim] = (weakestCounts[s.diff.weakestDim] ?? 0) + 1;
+                  });
+                  const portfolioWeakest = (Object.entries(weakestCounts) as [DiffDimension, number][])
+                    .sort((a, b) => b[1] - a[1])[0]?.[0];
+
+                  return (
+                    <Card className="border border-lime-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📡</span>
+                            <p className="text-xs font-semibold text-slate-700">Competitive Differentiation Radar</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${dCfg.color} ${dCfg.bg} ${dCfg.border}`}>
+                            {diffScore}/100 · {dCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Scores each entry across five competitive positioning dimensions — Contrarianism (⚡ challenges prevailing beliefs vs confirms them), Specificity (🎯 precise scenario vs generic topic), Practitioner voice (🔧 implementation-led vs conceptual), Audience focus (👤 named segment vs everyone), and Freshness (🗓️ timely anchors vs evergreen generalism) — then classifies each angle as Distinctive · Above Average · Generic · Commodity. Commodity content is indistinguishable from the average fintech article in search results: it competes on domain authority alone and consistently ranks below its quality ceiling. The five dimensions are scored independently so the panel can isolate exactly which positioning lever needs to be pulled for each specific entry.
+                        </p>
+
+                        {/* Portfolio score */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${dCfg.bg} ${dCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${dCfg.color}`}>{diffScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Differentiated-tier rate",  val: d1, max: 50, desc: `${distinctive.length + aboveAvg.length}/${n} entries are Distinctive or Above Average — target ≥60%` },
+                              { label: "Commodity-free rate",        val: d2, max: 30, desc: `${commodity.length}/${n} commodity entries — each competes on authority alone, not on angle quality` },
+                              { label: "Contrarianism coverage",     val: d3, max: 20, desc: `${scored.filter((s) => s.diff.contrarianism >= 8).length}/${n} entries challenge assumptions — the single strongest differentiator in fintech content` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-32 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${dCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Tier distribution bar */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Differentiation tier distribution:</p>
+                        <div className="flex h-4 w-full rounded-lg overflow-hidden mb-1.5">
+                          {TIERS.map((t) => {
+                            const count = byTier(t).length;
+                            const pct   = n > 0 ? Math.round((count / n) * 100) : 0;
+                            const cfg   = TIER_D[t];
+                            return pct > 0 ? (
+                              <div key={t} className={`flex items-center justify-center text-[6.5px] font-bold text-white ${cfg.bar}`} style={{ width: `${pct}%` }}>
+                                {pct >= 12 ? `${cfg.label} ${pct}%` : pct >= 7 ? `${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5 mb-4">
+                          {TIERS.map((t) => {
+                            const count = byTier(t).length;
+                            const cfg   = TIER_D[t];
+                            return (
+                              <div key={t} className={`rounded-lg border px-2 py-1.5 text-center ${cfg.bg} ${cfg.border}`}>
+                                <p className="text-[6px] text-slate-400 mb-0.5">{cfg.icon} {cfg.label}</p>
+                                <p className={`text-[13px] font-black leading-none ${cfg.color}`}>{count}</p>
+                                <p className="text-[6px] text-slate-400 mt-0.5">{n > 0 ? Math.round((count/n)*100) : 0}%</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Per-dimension radar bars */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Dimension coverage (% of calendar with meaningful signal ≥8/20, avg: {avgDimPct}%):</p>
+                        <div className="space-y-2 mb-4">
+                          {DIMS.map((dim) => {
+                            const cfg = DIM_D[dim];
+                            const pct = dimPcts[dim];
+                            return (
+                              <div key={dim}>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${cfg.pill}`}>{cfg.icon} {cfg.label}</span>
+                                  <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                                    <div className={`h-full rounded-full transition-all ${cfg.bar}`}
+                                      style={{ width: `${pct}%`, opacity: pct < 20 ? 0.5 : 1 }} />
+                                  </div>
+                                  <span className={`text-[7px] font-bold tabular-nums w-8 text-right shrink-0 ${pct < 20 ? "text-rose-500" : pct < 40 ? "text-amber-600" : "text-lime-700"}`}>{pct}%</span>
+                                </div>
+                                <div className="flex gap-4 pl-[5rem]">
+                                  <p className="text-[6px] text-slate-400">{cfg.desc}</p>
+                                  <p className="text-[6px] text-slate-500 italic shrink-0">{cfg.tip}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Portfolio weakest dimension callout */}
+                        {portfolioWeakest && (
+                          <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border mb-4 ${DIM_D[portfolioWeakest].pill.replace("text-","bg-").replace("bg-","bg-").split(" ")[0].replace("100","50")} border-slate-100`}>
+                            <span className="text-[10px] shrink-0 mt-0.5">📌</span>
+                            <p className="text-[7.5px] text-slate-700 leading-snug">
+                              <span className="font-bold">Portfolio's single weakest dimension: {DIM_D[portfolioWeakest].icon} {DIM_D[portfolioWeakest].label}</span>
+                              {" — "}{weakestCounts[portfolioWeakest]}/{n - distinctive.length} non-distinctive entries have this as their primary gap.
+                              {" "}{DIM_D[portfolioWeakest].tip}.{" "}
+                              {DIM_D[portfolioWeakest].label === "Contrarianism" && "The fastest fix: pick the top 3 commodity or generic entries and rewrite each angle to start with a challenge — 'Why your [X] strategy is leaving value on the table', 'The [prevailing belief] myth in fintech', 'Stop [common practice] — here's what works instead'."}
+                              {DIM_D[portfolioWeakest].label === "Specificity" && "Immediately add a qualifier to each generic angle — an institution type, a measurable threshold, or an exact timeframe — even small additions ('for tier-2 banks processing >£5M/month') move an entry from generic to targeted."}
+                              {DIM_D[portfolioWeakest].label === "Practitioner" && "Reframe as 'how to' or 'step-by-step' — practitioner angles signal implementation intent to search engines and attract readers closer to the buying decision."}
+                              {DIM_D[portfolioWeakest].label === "Audience focus" && "Add the named reader to each angle — content that says 'for compliance teams at payment processors' immediately outranks 'for fintechs' which outranks generic content for the specific reader it names."}
+                              {DIM_D[portfolioWeakest].label === "Freshness" && "Tie the top 3 generic entries to a current regulatory or technology event — DORA, MiCA, ISO 20022, or AI in payments — to convert evergreen generalism into timely relevance."}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Commodity entries — immediate action */}
+                        {commodity.length > 0 && (
+                          <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border mb-3 ${TIER_D.commodity.bg} ${TIER_D.commodity.border}`}>
+                            <span className="text-[10px] shrink-0 mt-0.5">🔴</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1">{commodity.length} commodity entr{commodity.length !== 1 ? "ies" : "y"} — no meaningful differentiation signal detected across all 5 dimensions</p>
+                              <div className="space-y-1 mb-1.5">
+                                {commodity.map(({ entry: e, diff }) => (
+                                  <div key={entryKey(e)} className="rounded border border-rose-100 bg-white/60 px-2 py-1">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-[7px] text-rose-700 flex-1">"{e.angle.slice(0,36)}{e.angle.length > 36 ? "…" : ""}"</span>
+                                      <span className="text-[6px] tabular-nums text-rose-400 shrink-0">{diff.total}/100</span>
+                                    </div>
+                                    <p className="text-[6.5px] text-rose-600 italic leading-snug">{diff.recommendation.slice(0,90)}{diff.recommendation.length > 90 ? "…" : ""}</p>
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-rose-700 leading-snug">These entries compete purely on domain authority. In a fintech niche where established publishers have stronger domains, zero-differentiation content will rank below its content quality ceiling regardless of how well it is written.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Generic entries — quick wins */}
+                        {generic.length > 0 && (
+                          <div className={`flex items-start gap-2 px-3 py-2 rounded-lg border mb-4 ${TIER_D.generic.bg} ${TIER_D.generic.border}`}>
+                            <span className="text-[10px] shrink-0 mt-0.5">🟡</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{generic.length} generic entr{generic.length !== 1 ? "ies" : "y"} — one dimension lift would move each to Above Average</p>
+                              <div className="flex flex-wrap gap-1">
+                                {generic.map(({ entry: e, diff }) => (
+                                  <span key={entryKey(e)} className={`text-[6.5px] font-semibold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,18)}{e.angle.length > 18 ? "…" : ""} <span className="opacity-50">({diff.total}/100 · fix: {diff.weakestDim.slice(0,6)})</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Per-entry table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — differentiation scores (sorted by total):</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[6.5px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-18">Tier</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-14">Total</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-7" title="Contrarianism">⚡</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-7" title="Specificity">🎯</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-7" title="Practitioner">🔧</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-7" title="Audience">👤</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-7" title="Freshness">🗓️</th>
+                                <th className="text-left text-slate-400 font-normal pb-1 pl-1.5">Weakest dim</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...scored].sort((a,b) => b.diff.total - a.diff.total).map(({ entry: e, diff }) => {
+                                const tc  = TIER_D[diff.tier];
+                                const dimBar = (val: number) => {
+                                  const pct = Math.round((val / 20) * 100);
+                                  const col = val >= 8 ? "#84cc16" : val >= 4 ? "#f59e0b" : "#f87171";
+                                  return (
+                                    <td className="text-center py-0.5 px-0.5">
+                                      <div className="flex flex-col items-center gap-0.5">
+                                        <div className="w-4 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: col }} />
+                                        </div>
+                                        <span className={`tabular-nums text-[5.5px] ${val >= 8 ? "text-lime-700 font-bold" : val >= 4 ? "text-amber-500" : "text-rose-400"}`}>{val}</span>
+                                      </div>
+                                    </td>
+                                  );
+                                };
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,22)}{e.angle.length > 22 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${tc.pill}`}>{tc.icon} {tc.label}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <div className="flex items-center gap-0.5">
+                                        <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className={`h-full rounded-full ${tc.bar}`} style={{ width: `${diff.total}%` }} />
+                                        </div>
+                                        <span className={`text-[6.5px] font-black tabular-nums shrink-0 ${tc.color}`}>{diff.total}</span>
+                                      </div>
+                                    </td>
+                                    {dimBar(diff.contrarianism)}
+                                    {dimBar(diff.specificity)}
+                                    {dimBar(diff.practitioner)}
+                                    {dimBar(diff.audienceFocus)}
+                                    {dimBar(diff.freshness)}
+                                    <td className="py-0.5 pl-1.5">
+                                      {diff.tier !== "distinctive" && (
+                                        <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${DIM_D[diff.weakestDim].pill}`}>
+                                          {DIM_D[diff.weakestDim].icon} {DIM_D[diff.weakestDim].label}
+                                        </span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="text-[7px] text-slate-400 mt-2">⚡ Contrarianism · 🎯 Specificity · 🔧 Practitioner voice · 👤 Audience focus · 🗓️ Freshness · Each dimension max 20 · Total max 100 · Meaningful signal ≥8 (lime) · Partial ≥4 (amber) · None (rose) · Tiers: Distinctive ≥72 · Above Average ≥50 · Generic ≥28 · Commodity &lt;28</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
                 {/* ── E-E-A-T Signal Scorer ────────────────────────────────── */}
                 {calendar.length > 0 && (() => {
                   const scored = calendar.map((e) => ({ entry: e, eeat: scoreEEAT(e.topic, e.angle) }));
