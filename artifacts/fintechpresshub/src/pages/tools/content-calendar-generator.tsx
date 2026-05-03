@@ -1696,6 +1696,60 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Distribution Channel Fit Analyser ───────────────────────────────────────
+const CHANNEL_FIT_BY_TYPE: Record<ContentType, { channel: string; fit: number; tip: string }[]> = {
+  guide: [
+    { channel: "Organic Search (SEO)", fit: 95, tip: "Gate with a content upgrade to capture leads at peak intent" },
+    { channel: "Email Newsletter",     fit: 82, tip: "Send as a 'resource drop' — subscribers expect value, not sales" },
+    { channel: "LinkedIn Docs",        fit: 74, tip: "Share as a PDF carousel teaser; put the download link in first comment" },
+  ],
+  "case-study": [
+    { channel: "LinkedIn",             fit: 92, tip: "Lead with the result metric in line 1 to stop the scroll" },
+    { channel: "Email Newsletter",     fit: 85, tip: "Feature in a 'client spotlight' section to build social proof" },
+    { channel: "Industry Press / PR",  fit: 76, tip: "Pitch the headline stat to fintech trade publications as a data story" },
+  ],
+  "blog-post": [
+    { channel: "Organic Search (SEO)", fit: 90, tip: "Build internal links from pillar guides to boost crawl priority" },
+    { channel: "LinkedIn",             fit: 78, tip: "Repurpose the key insight as a native 5-slide carousel" },
+    { channel: "Email Newsletter",     fit: 65, tip: "Include as the 'long read' section of your weekly digest" },
+  ],
+  linkedin: [
+    { channel: "LinkedIn (Organic)",   fit: 98, tip: "Post Tue–Thu 8–10 AM; engage with every comment in the first 60 min" },
+    { channel: "Twitter/X",            fit: 72, tip: "Cross-post an adapted version to reach a broader fintech audience" },
+    { channel: "LinkedIn Newsletter",  fit: 65, tip: "Expand into a LinkedIn article for evergreen discoverability" },
+  ],
+  newsletter: [
+    { channel: "Email Newsletter",     fit: 98, tip: "A/B test subject lines — curiosity gaps outperform plain summaries" },
+    { channel: "LinkedIn",             fit: 70, tip: "Post a teaser excerpt to drive newsletter subscriptions" },
+    { channel: "Referral / Forward",   fit: 55, tip: "Add a 'forward to a colleague' CTA to each issue for organic growth" },
+  ],
+  webinar: [
+    { channel: "LinkedIn",             fit: 90, tip: "Create an Event post 2 weeks out and invite connections directly" },
+    { channel: "Email Newsletter",     fit: 88, tip: "3-email sequence: announce → 24h reminder → on-demand replay link" },
+    { channel: "LinkedIn Ads",         fit: 80, tip: "Run Event Ads targeting decision-makers by job title and seniority" },
+  ],
+  infographic: [
+    { channel: "LinkedIn",             fit: 92, tip: "Upload natively — image posts outperform link posts 4:1" },
+    { channel: "Twitter/X",            fit: 85, tip: "Tweet with a data insight hook in the caption, not just the image" },
+    { channel: "Email Newsletter",     fit: 75, tip: "Embed inline — infographics lift email click-through rates by 42%" },
+  ],
+  checklist: [
+    { channel: "LinkedIn Docs",        fit: 88, tip: "Native PDF document posts get 3× organic reach on LinkedIn" },
+    { channel: "Organic Search (SEO)", fit: 82, tip: "Target 'fintech [topic] checklist' intent queries directly" },
+    { channel: "LinkedIn Ads",         fit: 68, tip: "Use as a lead magnet in a Lead Gen Form campaign" },
+  ],
+  "video-script": [
+    { channel: "YouTube",                 fit: 95, tip: "Optimise title, description, and thumbnail before publishing" },
+    { channel: "LinkedIn (Native Video)", fit: 82, tip: "Upload natively — not a YouTube link — for 5× organic reach" },
+    { channel: "Twitter/X",              fit: 70, tip: "Clip the strongest 30-second segment for Reels / X video" },
+  ],
+  podcast: [
+    { channel: "Podcast Platforms",   fit: 98, tip: "Submit to Apple, Spotify, Google Podcasts, and Pocket Casts simultaneously" },
+    { channel: "LinkedIn",             fit: 80, tip: "Post an audiogram (animated waveform clip) as a native LinkedIn video" },
+    { channel: "Email Newsletter",     fit: 68, tip: "Feature with a 3-sentence episode summary and a direct listen link" },
+  ],
+};
+
 // ─── Content Cluster Strength Meter ──────────────────────────────────────────
 const PILLAR_TYPES = new Set<ContentType>(["guide", "case-study"]);
 
@@ -5566,6 +5620,116 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Distribution Channel Fit Analyser ───────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Count entries per content type
+                  const typeCounts = calendar.reduce<Partial<Record<ContentType, number>>>(
+                    (acc, e) => ({ ...acc, [e.type]: (acc[e.type] ?? 0) + 1 }),
+                    {},
+                  );
+                  const typesPresent = (Object.entries(typeCounts) as [ContentType, number][])
+                    .sort((a, b) => b[1] - a[1]);
+
+                  const fitBar = (v: number) =>
+                    v >= 85 ? "bg-emerald-400" : v >= 70 ? "bg-blue-400" : v >= 55 ? "bg-amber-400" : "bg-slate-300";
+                  const fitText = (v: number) =>
+                    v >= 85 ? "text-emerald-700" : v >= 70 ? "text-blue-600" : v >= 55 ? "text-amber-700" : "text-slate-500";
+
+                  // Gap analysis: flag missing high-reach channel families
+                  const presentTypeSet = new Set(typesPresent.map(([t]) => t));
+                  const gaps: { channel: string; fix: string }[] = [];
+                  if (!presentTypeSet.has("guide") && !presentTypeSet.has("blog-post"))
+                    gaps.push({ channel: "Organic Search / SEO", fix: "Add a guide or blog post to capture high-intent search traffic" });
+                  if (!presentTypeSet.has("newsletter"))
+                    gaps.push({ channel: "Email Newsletter", fix: "Add a newsletter entry to nurture your existing subscriber base" });
+                  if (!presentTypeSet.has("linkedin"))
+                    gaps.push({ channel: "LinkedIn Organic", fix: "Add a native LinkedIn post for direct B2B decision-maker reach" });
+                  if (!presentTypeSet.has("video-script") && !presentTypeSet.has("podcast"))
+                    gaps.push({ channel: "Video / Audio", fix: "Add a video script or podcast episode to reach audiences who prefer audio-visual content" });
+
+                  return (
+                    <Card className="border border-teal-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📡</span>
+                            <p className="text-xs font-semibold text-slate-700">Distribution Channel Fit Analyser</p>
+                          </div>
+                          {gaps.length > 0 ? (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                              {gaps.length} channel gap{gaps.length !== 1 ? "s" : ""}
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                              Full channel coverage
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Best-fit distribution channels for each content type in your calendar — with amplification tips and a channel coverage gap check.
+                        </p>
+
+                        {/* Per-type channel cards */}
+                        <div className="space-y-3 mb-4">
+                          {typesPresent.map(([type, count]) => {
+                            const channels = CHANNEL_FIT_BY_TYPE[type] ?? [];
+                            return (
+                              <div key={type} className="rounded-xl border border-slate-100 bg-slate-50 overflow-hidden">
+                                {/* Type header */}
+                                <div className="flex items-center justify-between px-3.5 py-2 bg-white border-b border-slate-100">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${TYPE_COLOR[type]}`}>
+                                      {FORMAT_LABEL[type]}
+                                    </span>
+                                    <span className="text-[8.5px] text-slate-400">{count} {count === 1 ? "entry" : "entries"}</span>
+                                  </div>
+                                  <span className="text-[8.5px] font-semibold text-teal-600">Top {channels.length} channels</span>
+                                </div>
+
+                                {/* Channel rows */}
+                                <div className="px-3.5 py-2 space-y-2">
+                                  {channels.map(({ channel, fit, tip }, ci) => (
+                                    <div key={channel}>
+                                      <div className="flex items-center justify-between mb-0.5">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[8px] font-bold text-slate-400">#{ci + 1}</span>
+                                          <span className="text-[9px] font-semibold text-slate-700">{channel}</span>
+                                        </div>
+                                        <span className={`text-[8.5px] font-bold tabular-nums ${fitText(fit)}`}>{fit}%</span>
+                                      </div>
+                                      <div className="h-1 rounded-full bg-slate-200 overflow-hidden mb-0.5">
+                                        <div className={`h-full rounded-full ${fitBar(fit)}`} style={{ width: `${fit}%` }} />
+                                      </div>
+                                      <p className="text-[8px] text-slate-400 leading-snug italic">→ {tip}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Channel gap alerts */}
+                        {gaps.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-[9.5px] font-semibold text-slate-600">Channel coverage gaps:</p>
+                            {gaps.map(({ channel, fix }) => (
+                              <div key={channel} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                <span className="text-sm shrink-0 mt-0.5 leading-none">⚡</span>
+                                <div>
+                                  <p className="text-[9px] font-bold text-amber-800">{channel} not represented</p>
+                                  <p className="text-[8.5px] text-amber-700 mt-0.5">{fix}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Cluster Strength Meter ──────────────────────── */}
                 {calendar.length > 0 && (() => {
