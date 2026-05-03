@@ -3587,8 +3587,6 @@ function scoreLongevity(topic: string, angle: string): LongevityResult {
 // ─── Persona Targeting Density Mapper ────────────────────────────────────────
 // Detects which fintech B2B buying-committee personas each entry targets
 
-type PersonaKey = "compliance" | "cto" | "cfo" | "product" | "operations" | "ceo";
-
 const PERSONA_SIGNALS: Record<PersonaKey, string[]> = {
   compliance: [
     "compliance","risk officer","ciso","chief risk","regulatory","audit trail",
@@ -3780,8 +3778,6 @@ const DIFF_INSIDER_SIGNALS = [
   "time to value","time to implement","failure mode","edge case","corner case",
   "architecture decision","team structure","skill gap","procurement","due diligence",
 ];
-
-type DiffTier = "strongly-differentiated" | "differentiated" | "commodity-risk" | "commodity";
 
 interface DiffEntry {
   commodityHits:    number;
@@ -4494,8 +4490,6 @@ const DEBT_DATE_SIGNALS       = ["2023","2024","2025","2026","2027","q1 ","q2 ",
 const DEBT_STAT_SIGNALS       = ["% of","percent","statistics","study shows","according to","survey found","report found","data shows","research shows","found that","measured","tracked","n=","sample of","respondents","benchmark data"];
 const DEBT_MARKET_SIGNALS     = ["interest rate","inflation","valuation","funding round","market cap","share price","stock","ipo","unicorn","series a","series b","series c","venture","investment round","raise"];
 const DEBT_EVERGREEN_SIGNALS  = ["how to","what is","guide to","framework","principles","fundamentals","definition","basics","introduction to","explained","understanding","always","never changes","timeless","primer"];
-
-type DebtType = "regulatory" | "date" | "statistical" | "market" | "evergreen";
 
 interface DebtEntry {
   score:        number;           // 0-100, higher = more maintenance urgency
@@ -9326,7 +9320,7 @@ export default function ContentCalendarGenerator() {
                         {cadence.longestGap > 2 && (
                           <div className="flex items-start gap-2 px-3 py-2 rounded-lg border mb-3 bg-rose-50 border-rose-100">
                             <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
-                            <p className="text-[7.5px] text-rose-800 leading-snug">Extended gap detected — {cadence.longestGap} months without entries. Long gaps suppress reader return visits and may reduce domain freshness signals. Plan to eliminate gaps >1 month.</p>
+                            <p className="text-[7.5px] text-rose-800 leading-snug">Extended gap detected — {cadence.longestGap} months without entries. Long gaps suppress reader return visits and may reduce domain freshness signals. Plan to eliminate gaps {'>'} 1 month.</p>
                           </div>
                         )}
 
@@ -16679,7 +16673,7 @@ export default function ContentCalendarGenerator() {
                           <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-100">
                             <span className="text-[10px] shrink-0 mt-0.5">🌲</span>
                             <div>
-                              <p className="text-[8.5px] font-bold text-emerald-800 mb-1">{evergreen.length} evergreen asset{evergreen.length !== 1 ? "s" : ""} — no scheduled review required (>24-month half-life)</p>
+                              <p className="text-[8.5px] font-bold text-emerald-800 mb-1">{evergreen.length} evergreen asset{evergreen.length !== 1 ? "s" : ""} — no scheduled review required ({'>'}24-month half-life)</p>
                               <div className="flex flex-wrap gap-1">
                                 {evergreen.map(({ entry: e, decay: d }) => (
                                   <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[12rem] ${TYPE_COLOR[e.type]}`}>
