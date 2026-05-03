@@ -1696,6 +1696,20 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content Velocity Tracker ────────────────────────────────────────────────
+const CADENCE_BY_TYPE: Record<ContentType, { min: number; ideal: number; unit: string; rationale: string }> = {
+  guide:          { min: 1,  ideal: 2,  unit: "1–2/mo",   rationale: "1–2 comprehensive guides/month builds topical authority without diluting depth" },
+  "case-study":   { min: 1,  ideal: 1,  unit: "1/mo",     rationale: "Monthly case studies maintain social proof pipeline and sales enablement library" },
+  "blog-post":    { min: 4,  ideal: 6,  unit: "4–6/mo",   rationale: "Google rewards consistent publishing — below 4/month loses algorithmic ranking momentum" },
+  linkedin:       { min: 12, ideal: 16, unit: "12–16/mo",  rationale: "LinkedIn algorithm favours accounts posting 3–4× per week without gaps" },
+  newsletter:     { min: 4,  ideal: 4,  unit: "4/mo",     rationale: "Weekly cadence is the minimum subscribers expect — anything less raises unsubscribes" },
+  webinar:        { min: 1,  ideal: 2,  unit: "1–2/mo",   rationale: "Monthly webinars sustain pipeline engagement without fatiguing the audience" },
+  infographic:    { min: 2,  ideal: 4,  unit: "2–4/mo",   rationale: "Visual content amplifies other posts — 2+ per month ensures consistent social coverage" },
+  checklist:      { min: 1,  ideal: 2,  unit: "1–2/mo",   rationale: "Practical tools convert at 3× the rate of blog posts — at least 1 per month recommended" },
+  "video-script": { min: 2,  ideal: 4,  unit: "2–4/mo",   rationale: "YouTube rewards channels publishing weekly; below 2/month signals inactivity to the algorithm" },
+  podcast:        { min: 4,  ideal: 4,  unit: "4/mo",     rationale: "Weekly episodes are the industry standard — dropping below loses listener retention fast" },
+};
+
 // ─── Distribution Channel Fit Analyser ───────────────────────────────────────
 const CHANNEL_FIT_BY_TYPE: Record<ContentType, { channel: string; fit: number; tip: string }[]> = {
   guide: [
@@ -5620,6 +5634,172 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Velocity Tracker ─────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const getMonthKey = (date: string) => {
+                    const d = new Date(date);
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+                  };
+                  const MO_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                  const fmtMo = (key: string) => {
+                    const [yr, mo] = key.split("-");
+                    return `${MO_SHORT[parseInt(mo) - 1]} '${yr.slice(2)}`;
+                  };
+
+                  // Build type → month → count map
+                  const typeMonthMap: Partial<Record<ContentType, Record<string, number>>> = {};
+                  const monthSet = new Set<string>();
+                  for (const e of calendar) {
+                    const mk = getMonthKey(e.date);
+                    monthSet.add(mk);
+                    if (!typeMonthMap[e.type]) typeMonthMap[e.type] = {};
+                    typeMonthMap[e.type]![mk] = (typeMonthMap[e.type]![mk] ?? 0) + 1;
+                  }
+                  const months       = [...monthSet].sort();
+                  const typesPresent = [...new Set(calendar.map((e) => e.type))].sort();
+
+                  // Velocity health score — % of (type × month) cells meeting min cadence
+                  let cellsMet = 0, cellsTotal = 0;
+                  for (const t of typesPresent) {
+                    for (const mo of months) {
+                      cellsTotal++;
+                      if ((typeMonthMap[t]?.[mo] ?? 0) >= CADENCE_BY_TYPE[t].min) cellsMet++;
+                    }
+                  }
+                  const velocityScore = Math.round((cellsMet / (cellsTotal || 1)) * 100);
+
+                  // Slowest month — lowest total entries across all types
+                  const monthTotals = months.map((mo) => ({
+                    mo,
+                    cnt: typesPresent.reduce((s, t) => s + (typeMonthMap[t]?.[mo] ?? 0), 0),
+                  }));
+                  const slowest = months.length > 1
+                    ? monthTotals.reduce((a, b) => (b.cnt < a.cnt ? b : a))
+                    : null;
+
+                  const scoreCfg = (v: number) =>
+                    v >= 80 ? { bg: "bg-emerald-50",  text: "text-emerald-700", badge: "bg-emerald-100 text-emerald-700 border-emerald-200", label: "Strong" }
+                    : v >= 60 ? { bg: "bg-blue-50",    text: "text-blue-700",    badge: "bg-blue-100 text-blue-700 border-blue-200",       label: "Healthy" }
+                    : v >= 40 ? { bg: "bg-amber-50",   text: "text-amber-700",   badge: "bg-amber-100 text-amber-700 border-amber-200",    label: "Inconsistent" }
+                    :           { bg: "bg-rose-50",    text: "text-rose-700",    badge: "bg-rose-100 text-rose-700 border-rose-200",       label: "Low" };
+                  const sc = scoreCfg(velocityScore);
+
+                  const velSt = (count: number, type: ContentType) => {
+                    const { min, ideal } = CADENCE_BY_TYPE[type];
+                    if (count === 0)        return { bar: "bg-rose-300",    text: "text-rose-500",    label: "None"     };
+                    if (count >= ideal)     return { bar: "bg-emerald-400", text: "text-emerald-700", label: "On Track" };
+                    if (count >= min)       return { bar: "bg-blue-400",    text: "text-blue-600",    label: "Healthy"  };
+                    return                         { bar: "bg-amber-400",   text: "text-amber-600",   label: "Low"      };
+                  };
+
+                  return (
+                    <Card className="border border-violet-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">⚡</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Velocity Tracker</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${sc.badge}`}>
+                            {cellsMet}/{cellsTotal} cadence targets met
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Monthly output per content type vs. recommended publishing cadence — bars turn amber when below the minimum needed to build algorithmic momentum.
+                        </p>
+
+                        {/* Velocity health score */}
+                        <div className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-4 ${sc.bg}`}>
+                          <div>
+                            <p className="text-[9px] text-slate-500 mb-0.5">Velocity Health Score</p>
+                            <p className={`text-lg font-black tabular-nums leading-none ${sc.text}`}>
+                              {velocityScore}<span className="text-xs font-semibold opacity-60">%</span>
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={`text-[8.5px] font-bold px-2 py-0.5 rounded-full border ${sc.badge}`}>{sc.label}</span>
+                            <p className="text-[8px] text-slate-400">of type×month cells</p>
+                          </div>
+                        </div>
+
+                        {/* Per-type velocity rows */}
+                        <div className="space-y-3 mb-4">
+                          {typesPresent.map((type) => {
+                            const { min, ideal, unit, rationale } = CADENCE_BY_TYPE[type];
+                            const monthData   = months.map((mo) => ({ mo, count: typeMonthMap[type]?.[mo] ?? 0 }));
+                            const totalCount  = monthData.reduce((s, m) => s + m.count, 0);
+                            const avgPerMonth = months.length ? Math.round((totalCount / months.length) * 10) / 10 : 0;
+                            const avgSt       = velSt(avgPerMonth, type);
+                            const maxBarVal   = Math.max(ideal * 1.5, ...monthData.map((m) => m.count), 1);
+
+                            return (
+                              <div key={type} className="rounded-xl border border-slate-100 bg-slate-50 overflow-hidden">
+                                {/* Row header */}
+                                <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-white border-b border-slate-100">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${TYPE_COLOR[type]}`}>
+                                      {FORMAT_LABEL[type]}
+                                    </span>
+                                    <span className="text-[8.5px] text-slate-400">Target: {unit}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[8.5px] text-slate-500">Avg {avgPerMonth}/mo</span>
+                                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${avgSt.bar === "bg-emerald-400" ? "bg-emerald-100 text-emerald-700" : avgSt.bar === "bg-blue-400" ? "bg-blue-100 text-blue-600" : avgSt.bar === "bg-amber-400" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-500"}`}>
+                                      {avgSt.label}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Monthly bar chart */}
+                                <div className="px-3.5 pt-2.5 pb-2">
+                                  <div className="flex items-end gap-1.5">
+                                    {monthData.map(({ mo, count }) => {
+                                      const st  = velSt(count, type);
+                                      const pct = Math.max(6, Math.round((count / maxBarVal) * 100));
+                                      return (
+                                        <div key={mo} className="flex-1 flex flex-col items-center gap-0.5">
+                                          <span className={`text-[8px] font-bold tabular-nums ${st.text}`}>{count}</span>
+                                          <div className="w-full h-10 flex items-end bg-slate-100 rounded-sm overflow-hidden">
+                                            <div className={`w-full rounded-sm transition-all ${st.bar}`} style={{ height: `${pct}%` }} />
+                                          </div>
+                                          <span className="text-[7.5px] text-slate-400 whitespace-nowrap">{fmtMo(mo)}</span>
+                                        </div>
+                                      );
+                                    })}
+                                    {/* Min reference */}
+                                    <div className="flex flex-col items-center gap-0.5 shrink-0 w-6">
+                                      <span className="text-[7px] font-bold text-violet-500">min</span>
+                                      <div className="w-full h-10 flex flex-col justify-end">
+                                        <div className="w-full border-t border-dashed border-violet-300" style={{ marginBottom: `${Math.max(0, Math.round((min / maxBarVal) * 100) - 4)}%` }} />
+                                      </div>
+                                      <span className="text-[7.5px] text-violet-400 font-semibold">{min}</span>
+                                    </div>
+                                  </div>
+                                  <p className="text-[7.5px] text-slate-400 mt-1.5 italic leading-snug">{rationale}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Slowest month callout */}
+                        {slowest && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-violet-50 border border-violet-100">
+                            <span className="text-sm shrink-0 leading-none mt-0.5">🐌</span>
+                            <div>
+                              <p className="text-[9px] font-bold text-violet-800">Slowest month: {fmtMo(slowest.mo)}</p>
+                              <p className="text-[8.5px] text-violet-700 mt-0.5">
+                                Only {slowest.cnt} {slowest.cnt === 1 ? "piece" : "pieces"} scheduled — consider redistributing content from busier months to maintain consistent publishing momentum and protect algorithmic ranking signals.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Distribution Channel Fit Analyser ───────────────────── */}
                 {calendar.length > 0 && (() => {
