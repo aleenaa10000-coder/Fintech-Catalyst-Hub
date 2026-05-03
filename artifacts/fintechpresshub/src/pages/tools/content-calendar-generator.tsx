@@ -1808,6 +1808,274 @@ function analyzeMonthlyNarrative(calendar: ContentEntry[]): MonthCoherence[] {
     });
 }
 
+// ─── Content Cannibalization & Targeting Overlap Detector ─────────────────
+// Finds entries competing for the same reader, intent, keyword, and persona;
+// scores overlap severity and recommends consolidation or differentiation
+
+interface CannibalEntry {
+  entry: ContentEntry;
+  intent: string;
+  persona: string;
+  stage: ArcStage;
+  topicSig: string;
+}
+
+interface CannibalGroup {
+  groupKey: string;
+  entries: CannibalEntry[];
+  overlapType: "intent" | "persona" | "topic" | "stage" | "multi";
+  severity: "critical" | "serious" | "minor";
+  recommendation: string;
+}
+
+function detectCannibalization(calendar: ContentEntry[]): CannibalGroup[] {
+  const tagged = calendar.map((e) => ({
+    entry: e,
+    intent: dominantIntent(e.topic, e.angle),
+    persona: detectPersona(e.topic, e.angle).primaryPersona,
+    stage: detectArcStage(e.angle),
+    topicSig: e.topic.toLowerCase().slice(0, 20),
+  }));
+
+  const groups: Record<string, CannibalEntry[]> = {};
+  const processed = new Set<string>();
+
+  for (let i = 0; i < tagged.length; i++) {
+    const t1 = tagged[i];
+    const k1 = entryKey(t1.entry);
+    if (processed.has(k1)) continue;
+
+    const cluster = [t1];
+    processed.add(k1);
+
+    for (let j = i + 1; j < tagged.length; j++) {
+      const t2 = tagged[j];
+      const k2 = entryKey(t2.entry);
+      if (processed.has(k2)) continue;
+
+      // Same intent + same persona = critical cannibalization
+      // Same intent + same stage = serious
+      // Same topic + different stage = minor
+      const sameIntent = t1.intent === t2.intent;
+      const samePersona = t1.persona === t2.persona && t1.persona !== "general";
+      const sameTopic = topicSimilarity(t1.entry.topic, t2.entry.topic) >= 0.7;
+      const sameStage = t1.stage === t2.stage;
+
+      if ((sameIntent && samePersona) || (sameTopic && sameIntent)) {
+        cluster.push(t2);
+        processed.add(k2);
+      }
+    }
+
+    if (cluster.length >= 2) {
+      const key = cluster.map((c) => entryKey(c.entry)).sort().join("|");
+      groups[key] = cluster;
+    }
+  }
+
+  // Categorize and score
+  return Object.entries(groups).map(([key, entries]) => {
+    const t0 = entries[0];
+    const allSameIntent = entries.every((e) => e.intent === t0.intent);
+    const allSamePersona = entries.every((e) => e.persona === t0.persona);
+    const allSameTopic = entries.every((e) => topicSimilarity(t0.entry.topic, e.entry.topic) >= 0.7);
+    const allSameStage = entries.every((e) => e.stage === t0.stage);
+
+    let overlapType: "intent" | "persona" | "topic" | "stage" | "multi" = "topic";
+    let severity: "critical" | "serious" | "minor" = "minor";
+
+    if (allSameIntent && allSamePersona) {
+      overlapType = "intent";
+      severity = "critical";
+    } else if (allSameIntent && allSameStage) {
+      overlapType = "intent";
+      severity = "serious";
+    } else if (allSamePersona && allSameTopic) {
+      overlapType = "persona";
+      severity = "serious";
+    } else if (allSameTopic && allSameStage) {
+      overlapType = "topic";
+      severity = "minor";
+    } else if (allSameIntent || allSamePersona || allSameTopic || allSameStage) {
+      overlapType = "multi";
+      severity = "minor";
+    }
+
+    const groupKey = `${t0.intent}/${t0.persona}/${t0.topicSig}`;
+    const recommendation =
+      severity === "critical"
+        ? `These entries target IDENTICAL intent/persona. Consolidate into one comprehensive piece covering multiple angles, or split into a multi-part series with clear stage progression (awareness → implementation).`
+        : severity === "serious"
+        ? `Intent and stage match but angles differ. Either consolidate with differentiated sub-headings, or commit one entry to a different stage/persona.`
+        : `Minor overlap — same topic but different intent/stage. Clarify each entry's angle to reduce search engine confusion about which entry to rank.`;
+
+    return { groupKey, entries, overlapType, severity, recommendation };
+  });
+}
+
+// ─── Content Velocity & Cadence Analyzer ────────────────────────────────────
+// Measures publishing frequency, consistency, gaps, and seasonal patterns;
+// scores predictability for reader return visits
+
+interface CadenceMonth {
+  month: string;
+  entryCount: number;
+  daysSpanned: number;
+  isGap: boolean;
+}
+
+interface CadenceAnalysis {
+  totalEntries: number;
+  monthsCovered: number;
+  monthsEmpty: number;
+  avgPerMonth: number;
+  cadenceScore: number;
+  consistency: number;
+  longestGap: number;
+  isSeasonalPattern: boolean;
+}
+
+function analyzeCadence(calendar: ContentEntry[]): CadenceAnalysis {
+  if (calendar.length === 0) return { totalEntries: 0, monthsCovered: 0, monthsEmpty: 0, avgPerMonth: 0, cadenceScore: 0, consistency: 0, longestGap: 0, isSeasonalPattern: false };
+
+  const byMonth: Record<string, ContentEntry[]> = {};
+  calendar.forEach((e) => {
+    const mk = getMonthKey(e.date);
+    byMonth[mk] = (byMonth[mk] ?? []).concat([e]);
+  });
+
+  const sortedMonths = Object.keys(byMonth).sort();
+  const monthsCovered = sortedMonths.length;
+  const allMonths = new Set<string>();
+  let minDate = calendar[0].date;
+  let maxDate = calendar[0].date;
+  calendar.forEach((e) => {
+    if (e.date < minDate) minDate = e.date;
+    if (e.date > maxDate) maxDate = e.date;
+  });
+
+  const [minY, minM] = minDate.split("-");
+  const [maxY, maxM] = maxDate.split("-");
+  const minMonthNum = parseInt(minY) * 12 + parseInt(minM);
+  const maxMonthNum = parseInt(maxY) * 12 + parseInt(maxM);
+  const totalMonthSpan = maxMonthNum - minMonthNum + 1;
+  const monthsEmpty = totalMonthSpan - monthsCovered;
+
+  const counts = sortedMonths.map((m) => byMonth[m].length);
+  const avgPerMonth = Math.round(counts.reduce((s, c) => s + c, 0) / monthsCovered);
+  const variance = counts.reduce((s, c) => s + Math.pow(c - avgPerMonth, 2), 0) / monthsCovered;
+  const stdDev = Math.sqrt(variance);
+  const consistency = Math.max(0, 100 - Math.round((stdDev / Math.max(1, avgPerMonth)) * 100));
+
+  // Longest gap in months
+  let longestGap = 0;
+  for (let i = 1; i < sortedMonths.length; i++) {
+    const [y1, m1] = sortedMonths[i - 1].split("-");
+    const [y2, m2] = sortedMonths[i].split("-");
+    const gap = (parseInt(y2) * 12 + parseInt(m2)) - (parseInt(y1) * 12 + parseInt(m1)) - 1;
+    if (gap > longestGap) longestGap = gap;
+  }
+
+  // Check for seasonal pattern (Q4 surge, summer drop, etc.)
+  const quarterCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  sortedMonths.forEach((m) => {
+    const q = Math.ceil(parseInt(m.split("-")[1]) / 3);
+    quarterCounts[q] = (quarterCounts[q] ?? 0) + byMonth[m].length;
+  });
+  const qValues = Object.values(quarterCounts);
+  const qMax = Math.max(...qValues);
+  const qMin = Math.min(...qValues);
+  const isSeasonalPattern = qMax > qMin * 1.5; // >50% variance between quarters
+
+  const cadenceScore =
+    (monthsCovered / totalMonthSpan > 0.9 ? 40 : monthsCovered / totalMonthSpan > 0.7 ? 25 : 10) +
+    (avgPerMonth >= 4 ? 30 : avgPerMonth >= 2 ? 20 : 10) +
+    (consistency >= 70 ? 20 : consistency >= 50 ? 12 : 5) +
+    (longestGap <= 1 ? 10 : longestGap <= 3 ? 5 : 0);
+
+  return { totalEntries: calendar.length, monthsCovered, monthsEmpty, avgPerMonth, cadenceScore: Math.min(100, cadenceScore), consistency, longestGap, isSeasonalPattern };
+}
+
+// ─── Author/Voice Diversity & Credibility Mapper ──────────────────────────
+// Tracks if entries have identified authors, scores voice diversity, and flags
+// if calendar is dominated by a single author/voice
+
+interface AuthorProfile {
+  author: string;
+  entryCount: number;
+  percentage: number;
+  personas: Set<PersonaKey | "general">;
+  intents: Set<string>;
+  formats: Set<ContentType>;
+}
+
+interface AuthorAnalysis {
+  diversityScore: number;
+  authorCount: number;
+  topAuthor: AuthorProfile | null;
+  isDominated: boolean;
+  voiceDistribution: AuthorProfile[];
+  recommendation: string;
+}
+
+function detectAuthorVoice(topic: string, angle: string): string {
+  // Simple heuristic: first-person markers indicate identified author
+  const hay = `${topic} ${angle}`.toLowerCase();
+  const firstPersonMarkers = ["i ", "i've", "we ", "our ", "my ", "my team", "from my", "in my experience"];
+  const hasFirstPerson = firstPersonMarkers.some((m) => hay.includes(m));
+  if (hasFirstPerson) return "identified-voice";
+
+  // Check for specific fintech expert personas or company signals
+  const expertMarkers = ["founder", "cto", "analyst", "researcher", "economist", "banking expert"];
+  const hasExpert = expertMarkers.some((m) => hay.includes(m));
+  if (hasExpert) return "expert-attributed";
+
+  return "generic-voice";
+}
+
+function analyzeAuthorDiversity(calendar: ContentEntry[]): AuthorAnalysis {
+  const authorMap: Record<string, AuthorProfile> = {};
+
+  calendar.forEach((e) => {
+    const author = detectAuthorVoice(e.topic, e.angle);
+    if (!authorMap[author]) {
+      authorMap[author] = { author, entryCount: 0, percentage: 0, personas: new Set(), intents: new Set(), formats: new Set() };
+    }
+    const profile = authorMap[author];
+    profile.entryCount += 1;
+    profile.personas.add(detectPersona(e.topic, e.angle).primaryPersona);
+    profile.intents.add(dominantIntent(e.topic, e.angle));
+    profile.formats.add(e.type);
+  });
+
+  const n = calendar.length;
+  const voiceDistribution = Object.values(authorMap)
+    .map((p) => ({ ...p, percentage: Math.round((p.entryCount / n) * 100) }))
+    .sort((a, b) => b.entryCount - a.entryCount);
+
+  const topAuthor = voiceDistribution[0] || null;
+  const isDominated = topAuthor && topAuthor.percentage > 60;
+  const authorCount = voiceDistribution.length;
+
+  const identifiedCount = (authorMap["identified-voice"]?.entryCount ?? 0) + (authorMap["expert-attributed"]?.entryCount ?? 0);
+  const diversityScore = Math.round(
+    (identifiedCount / n) * 50 +
+    (Math.min(authorCount, 3) / 3) * 30 +
+    (isDominated ? 0 : 20)
+  );
+
+  const recommendation =
+    diversityScore >= 75
+      ? "Strong voice diversity — calendar has multiple identified authors with distinct perspectives, builds reader trust in editorial authority"
+      : diversityScore >= 50
+      ? "Moderate diversity — some identified voices but room for more expert attribution or diverse perspectives"
+      : isDominated && topAuthor
+      ? `Calendar is heavily skewed toward one voice (${topAuthor.author}: ${topAuthor.percentage}%). Add 2–3 guest author entries to diversify authority and reach new audiences.`
+      : "Low voice diversity — most entries lack author attribution. Add bylines, author bios, and expert quotes to build credibility.";
+
+  return { diversityScore, authorCount, topAuthor, isDominated, voiceDistribution, recommendation };
+}
+
 // ─── Keyword Gap & Coverage Mapper ────────────────────────────────────────
 
 const FINTECH_KEYWORDS: Record<string, { label: string; desc: string; importance: "core" | "high" | "moderate" }> = {
@@ -8903,6 +9171,253 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Cannibalization & Targeting Overlap Detector ─ */}
+                {calendar.length > 0 && (() => {
+                  const cannibalGroups = detectCannibalization(calendar);
+                  const critical = cannibalGroups.filter((g) => g.severity === "critical");
+                  const serious = cannibalGroups.filter((g) => g.severity === "serious");
+                  const minor = cannibalGroups.filter((g) => g.severity === "minor");
+
+                  const cannibalScore = 100 -
+                    (critical.length * 25) -
+                    (serious.length * 15) -
+                    (minor.length * 5);
+
+                  const cCfg =
+                    cannibalScore >= 85 ? { label: "No cannibalization — each entry occupies unique positioning", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    cannibalScore >= 70 ? { label: "Minor overlap — some entries share intent but differ on angle", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" } :
+                    cannibalScore >= 50 ? { label: "Significant overlap — multiple entries compete for same reader", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" } :
+                                          { label: "Critical cannibalization — entries directly compete, suppressing rankings", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-100" };
+
+                  return (
+                    <Card className="border border-red-200 shadow-sm">
+                      <CardContent className="p-5">
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🎯</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Cannibalization & Overlap Detector</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${cCfg.color} ${cCfg.bg} ${cCfg.border}`}>
+                            {cannibalScore}/100 · {cCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Detects entries that compete for the same reader by analyzing intent (informational/commercial/etc), persona (CTO/CFO/CCO/etc), topic similarity, and arc stage. When two entries target identical intent + persona, search engines can rank only one, leaving the other invisible despite quality. Cannibalization is scored by severity: Critical (same intent + persona), Serious (same intent + stage, or same persona + topic), Minor (shared topic but different positioning). Recommendation: consolidate critical/serious overlaps into multi-part series or differentiate angles.
+                        </p>
+
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${cCfg.bg} ${cCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${cCfg.color}`}>{cannibalScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Critical overlaps",  val: critical.length, severity: "🔴" },
+                              { label: "Serious overlaps",   val: serious.length, severity: "🟠" },
+                              { label: "Minor overlaps",     val: minor.length, severity: "🟡" },
+                              { label: "Unique entries",     val: calendar.length - cannibalGroups.reduce((s,g) => s + (g.entries.length - 1), 0), severity: "✓" },
+                            ].map(({ label, val, severity }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-20 shrink-0">{severity} {label}</span>
+                                <span className={`text-[13px] font-black tabular-nums ${val > 0 && severity !== "✓" ? "text-rose-600" : "text-emerald-700"}`}>{val}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {critical.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg border mb-3 bg-rose-50 border-rose-100">
+                            <span className="text-[10px] shrink-0 mt-0.5">🔴</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1.5">{critical.length} CRITICAL cannibalisation — entries target identical intent + persona</p>
+                              <div className="space-y-1.5">
+                                {critical.map((group, idx) => (
+                                  <div key={idx} className="rounded border border-rose-200 bg-white/60 px-2 py-1.5">
+                                    <p className="text-[7px] font-bold text-rose-700 mb-0.5">{group.entries.length} entries: {group.groupKey}</p>
+                                    <div className="flex flex-wrap gap-1 mb-1">
+                                      {group.entries.map((e) => (
+                                        <span key={entryKey(e.entry)} className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${TYPE_COLOR[e.entry.type]}`}>
+                                          {e.entry.angle.slice(0,18)}…
+                                        </span>
+                                      ))}
+                                    </div>
+                                    <p className="text-[6.5px] text-rose-700">{group.recommendation}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {serious.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg border mb-3 bg-amber-50 border-amber-100">
+                            <span className="text-[10px] shrink-0 mt-0.5">🟠</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{serious.length} SERIOUS overlap — same intent+stage or persona+topic</p>
+                              <div className="flex flex-wrap gap-1">
+                                {serious.map((group, idx) => (
+                                  <span key={idx} className="text-[6.5px] px-1.5 py-0.5 rounded-full border bg-white border-amber-200">
+                                    {group.entries.length}× {group.overlapType}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <p className="text-[7px] text-slate-400">When multiple entries target the same reader (same intent + persona), search engines rank only the strongest. The others become invisible, wasting content effort. Consolidate critical overlaps into comprehensive pieces or differentiate by angle/format.</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
+                {/* ── Content Velocity & Cadence Analyzer ──────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const cadence = analyzeCadence(calendar);
+
+                  const caCfg =
+                    cadence.cadenceScore >= 80 ? { label: "Strong cadence — regular, predictable publishing builds reader habits", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" } :
+                    cadence.cadenceScore >= 60 ? { label: "Moderate cadence — some gaps but generally consistent", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" } :
+                    cadence.cadenceScore >= 40 ? { label: "Weak cadence — irregular publishing or extended gaps", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-100" } :
+                                                  { label: "Poor cadence — unpredictable or very sparse publishing", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-100" };
+
+                  return (
+                    <Card className="border border-orange-100 shadow-sm">
+                      <CardContent className="p-5">
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📊</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Velocity & Cadence Analyzer</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${caCfg.color} ${caCfg.bg} ${caCfg.border}`}>
+                            {cadence.cadenceScore}/100 · {caCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Analyzes publishing frequency, consistency, seasonal patterns, and gaps. A regular cadence (2–4 entries/month, ±1 entry variance, no 2+ month gaps) trains readers to return visits and signals to search engines that your site is actively maintained. Erratic publishing (big gaps, seasonal surges) suppresses return traffic and ranking gains. Scores on: frequency coverage (% of months with entries, target 90%+), average velocity (2–4/month), consistency (low variance, target σ &lt;1), and longest gap (target ≤1 month).
+                        </p>
+
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${caCfg.bg} ${caCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${caCfg.color}`}>{cadence.cadenceScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Coverage", val: Math.round((cadence.monthsCovered / (cadence.monthsCovered + cadence.monthsEmpty)) * 100), desc: `${cadence.monthsCovered} of ${cadence.monthsCovered + cadence.monthsEmpty} months have entries` },
+                              { label: "Avg/month", val: cadence.avgPerMonth, desc: `Target 2–4 entries/month` },
+                              { label: "Consistency", val: cadence.consistency, desc: `Variance: ${cadence.consistency}% aligned — higher = steadier cadence` },
+                              { label: "Longest gap", val: cadence.longestGap, desc: `${cadence.longestGap} months without entries — target ≤1` },
+                            ].map(({ label, val, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-20 shrink-0">{label}</span>
+                                <span className={`text-[13px] font-black tabular-nums ${val >= 80 || (label === "Longest gap" && val <= 1) ? "text-blue-700" : val >= 60 || (label === "Longest gap" && val <= 2) ? "text-amber-600" : "text-rose-600"}`}>{val}{label === "Consistency" ? "%" : ""}</span>
+                                <span className="text-[6.5px] text-slate-400">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {cadence.isSeasonalPattern && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg border mb-3 bg-amber-50 border-amber-100">
+                            <span className="text-[10px] shrink-0 mt-0.5">🗓️</span>
+                            <p className="text-[7.5px] text-amber-800 leading-snug">Seasonal pattern detected — publishing varies significantly by quarter. Consider whether this is intentional (marketing calendar) or unplanned (summer slowdown). Consistent year-round publishing builds stronger reader habits.</p>
+                          </div>
+                        )}
+
+                        {cadence.longestGap > 2 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg border mb-3 bg-rose-50 border-rose-100">
+                            <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+                            <p className="text-[7.5px] text-rose-800 leading-snug">Extended gap detected — {cadence.longestGap} months without entries. Long gaps suppress reader return visits and may reduce domain freshness signals. Plan to eliminate gaps >1 month.</p>
+                          </div>
+                        )}
+
+                        <p className="text-[7px] text-slate-400">Strong cadence = reader habit formation. If readers know you publish 2–3 times/month without fail, they visit more frequently and stay longer. Erratic cadence trains readers to check back "eventually if they remember".</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
+                {/* ── Author/Voice Diversity & Credibility Mapper ────────── */}
+                {calendar.length > 0 && (() => {
+                  const authors = analyzeAuthorDiversity(calendar);
+
+                  const aCfg =
+                    authors.diversityScore >= 75 ? { label: "Strong voice diversity — multiple identified authors build credibility", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-100" } :
+                    authors.diversityScore >= 50 ? { label: "Moderate diversity — some identified voices, room for guest authors", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" } :
+                    authors.diversityScore >= 25 ? { label: "Low diversity — most entries lack author attribution", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" } :
+                                                    { label: "Poor diversity — calendar reads as single generic voice", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-100" };
+
+                  const VOICE_PILL: Record<string, string> = {
+                    "identified-voice": "bg-teal-100 text-teal-700 border-teal-200",
+                    "expert-attributed": "bg-blue-100 text-blue-700 border-blue-200",
+                    "generic-voice": "bg-slate-100 text-slate-500 border-slate-200",
+                  };
+
+                  return (
+                    <Card className="border border-teal-100 shadow-sm">
+                      <CardContent className="p-5">
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">👥</span>
+                            <p className="text-xs font-semibold text-slate-700">Author/Voice Diversity & Credibility Mapper</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${aCfg.color} ${aCfg.bg} ${aCfg.border}`}>
+                            {authors.diversityScore}/100 · {aCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Detects whether entries have identified authors (first-person markers like "I", "we", "my experience") or expert attribution (founder, CTO, analyst credentials). Single-author calendars feel like a thought leader's personal blog; multi-author calendars feel like a credible publication with access to diverse expertise. Scores on: % identified voice (target 60%+), author count (target 3–5 distinct voices), and absence of single-voice dominance (target &lt;50%). Diverse voices attract different reader segments and improve E-E-A-T signals.
+                        </p>
+
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${aCfg.bg} ${aCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${aCfg.color}`}>{authors.diversityScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Identified voices", val: authors.voiceDistribution.filter((v) => v.author !== "generic-voice").reduce((s, v) => s + v.entryCount, 0), max: calendar.length, desc: "First-person or expert-attributed entries" },
+                              { label: "Voice types", val: authors.authorCount, max: 3, desc: "Distinct voice categories detected" },
+                              { label: "Top voice %", val: authors.topAuthor?.percentage ?? 0, max: 100, desc: authors.isDominated ? "⚠️ Dominated by single voice" : "✓ Distributed across voices" },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${aCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}</span>
+                                <span className="text-[6.5px] text-slate-400">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {authors.isDominated && authors.topAuthor && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg border mb-3 bg-amber-50 border-amber-100">
+                            <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+                            <p className="text-[7.5px] text-amber-800 leading-snug">Single-voice dominance: {authors.topAuthor.author} represents {authors.topAuthor.percentage}% of entries. Consider adding 2–3 guest author pieces to diversify authority and reach new audiences through their networks.</p>
+                          </div>
+                        )}
+
+                        <p className="text-[7px] text-slate-400 mb-3">Author strategy: Identified voice (first-person) ≈ thought leadership. Expert-attributed (credentials) ≈ authority. Generic voice (no byline) ≈ institutional blog. Mix all three for credibility across different reader trust models.</p>
+
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          {authors.voiceDistribution.map((v) => (
+                            <div key={v.author} className={`rounded-lg border px-2 py-2 text-center ${v.author === "identified-voice" ? "bg-teal-50 border-teal-100" : v.author === "expert-attributed" ? "bg-blue-50 border-blue-100" : "bg-slate-50 border-slate-100"}`}>
+                              <p className={`text-[6.5px] font-bold mb-0.5 ${v.author === "identified-voice" ? "text-teal-700" : v.author === "expert-attributed" ? "text-blue-700" : "text-slate-600"}`}>
+                                {v.author === "identified-voice" ? "Identified" : v.author === "expert-attributed" ? "Expert" : "Generic"}
+                              </p>
+                              <p className="text-[13px] font-black leading-none">{v.entryCount}</p>
+                              <p className="text-[6px] text-slate-400 mt-0.5">{v.percentage}%</p>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Keyword Gap & Coverage Mapper ────────────────────────── */}
                 {calendar.length > 0 && (() => {
