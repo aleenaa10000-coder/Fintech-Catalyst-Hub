@@ -1696,6 +1696,59 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Search Intent Alignment Scorer ──────────────────────────────────────────
+// Classifies each entry by Google search intent and scores organic-demand alignment
+
+type SearchIntent = "informational" | "commercial" | "transactional" | "navigational";
+
+const INTENT_SIGNALS: Record<SearchIntent, string[]> = {
+  informational: [
+    "what is ","how does","why is ","explained","overview of","introduction to",
+    "guide to ","the basics of","understanding ","what are ","primer on","fundamentals",
+    "deep dive into","anatomy of","mechanics of","history of","evolution of",
+    "a guide to","an introduction","the role of","how it works","explainer","101 ",
+  ],
+  commercial: [
+    "best ","top ","vs ","alternative","comparison","how to choose","buyer's guide",
+    "selection guide","for banks","for fintech","evaluation","benchmark","which is better",
+    "should you","pros and cons","trade-off","shortlist","picking the right",
+    "compared","evaluating","criteria for","what to look for","vendor selection",
+  ],
+  transactional: [
+    "template","calculator","download","checklist","toolkit","workbook","free ",
+    "worksheet","framework download","spreadsheet","cheat sheet","script","sample ",
+    "fill-in","ready-to-use","plug-and-play","boilerplate","starter kit",
+    "quick-start","step-by-step guide","how to apply","action plan","playbook",
+  ],
+  navigational: [
+    "resources for","tools for","where to find","directory","resource guide",
+    "glossary","database","registry","index of","hub for","list of","round-up of",
+    "the best sources","finding the right","curated list","resource centre",
+  ],
+};
+
+const INTENT_CFG: Record<SearchIntent, { label: string; icon: string; color: string; bg: string; border: string; bar: string; pill: string; queryExample: string; conversionValue: string; idealMin: number; idealMax: number; underTip: string }> = {
+  informational:  { label: "Informational",  icon: "📖", color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100",    bar: "bg-blue-400",    pill: "bg-blue-100 text-blue-700 border-blue-200",         queryExample: '"what is embedded finance", "how does open banking work", "guide to payment orchestration"',         conversionValue: "Low direct / high long-term",  idealMin: 38, idealMax: 58, underTip: "Increase evergreen how-to and explainer posts on core fintech topics — informational content is your organic reach engine and compounds over 12–36 months"          },
+  commercial:     { label: "Commercial Inv.", icon: "🔬", color: "text-purple-700",  bg: "bg-purple-50",  border: "border-purple-100",  bar: "bg-purple-400",  pill: "bg-purple-100 text-purple-700 border-purple-200",   queryExample: '"best KYC platforms 2025", "core banking vs BaaS", "how to choose a payment orchestrator"',          conversionValue: "High — in-market buyers",      idealMin: 22, idealMax: 35, underTip: "Add comparison, 'best X for [institution]', and 'how to choose' pieces — these target active shortlisters and drive the highest-quality inbound leads from organic"   },
+  transactional:  { label: "Transactional",  icon: "⬇️", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", bar: "bg-emerald-400", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", queryExample: '"AML compliance checklist", "RFP template for core banking", "payment reconciliation spreadsheet"', conversionValue: "Very high — lead generation",  idealMin: 10, idealMax: 20, underTip: "Gated templates, calculators, and checklists convert organic traffic directly to leads — even one downloadable asset per month compounds over the quarter"              },
+  navigational:   { label: "Navigational",   icon: "🗺️", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   bar: "bg-amber-400",   pill: "bg-amber-100 text-amber-700 border-amber-200",      queryExample: '"fintech compliance tools directory", "open banking vendor list", "payment API resource hub"',      conversionValue: "Low — backlink / brand",       idealMin: 0,  idealMax: 10, underTip: "Navigational content (vendor directories, resource hubs, curated tool lists) earns inbound backlinks and recurring referral traffic from curated resource pages"   },
+};
+
+function detectIntent(topic: string, angle: string): Partial<Record<SearchIntent, number>> {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  const result: Partial<Record<SearchIntent, number>> = {};
+  (["informational","commercial","transactional","navigational"] as SearchIntent[]).forEach((intent) => {
+    const hits = INTENT_SIGNALS[intent].filter((s) => hay.includes(s)).length;
+    if (hits > 0) result[intent] = hits;
+  });
+  return result;
+}
+
+function dominantIntent(ps: Partial<Record<SearchIntent, number>>): SearchIntent {
+  const INTENTS: SearchIntent[] = ["informational","commercial","transactional","navigational"];
+  return INTENTS.reduce((best, i) => (ps[i] ?? 0) > (ps[best] ?? 0) ? i : best, "informational" as SearchIntent);
+}
+
 // ─── Emotional Register Calibrator ───────────────────────────────────────────
 // Analyses each entry's angle for dominant emotional tone and scores portfolio variety
 
@@ -7436,6 +7489,268 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Search Intent Alignment Scorer ───────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const INTENTS: SearchIntent[] = ["informational","commercial","transactional","navigational"];
+
+                  const detected = calendar.map((e) => {
+                    const intents = detectIntent(e.topic, e.angle);
+                    return { entry: e, intents, dominant: dominantIntent(intents) };
+                  });
+                  const n = detected.length;
+
+                  // Dominant-intent counts and rates
+                  const domCount = {} as Record<SearchIntent, number>;
+                  INTENTS.forEach((i) => { domCount[i] = detected.filter((d) => d.dominant === i).length; });
+                  const domRate  = {} as Record<SearchIntent, number>;
+                  INTENTS.forEach((i) => { domRate[i]  = n > 0 ? domCount[i] / n : 0; });
+
+                  // Any-presence counts and rates (≥1 signal hit)
+                  const anyCount = {} as Record<SearchIntent, number>;
+                  INTENTS.forEach((i) => { anyCount[i] = detected.filter((d) => i in d.intents).length; });
+                  const anyRate  = {} as Record<SearchIntent, number>;
+                  INTENTS.forEach((i) => { anyRate[i]  = n > 0 ? anyCount[i] / n : 0; });
+
+                  // ── Portfolio Search Intent Score (0-100) ──────────────────
+                  // Commercial Investigation (0-40): most under-served, highest conversion value
+                  const commScore = Math.round(Math.min(1, anyRate.commercial / 0.22) * 40);
+
+                  // Informational balance (0-30): target 38-58%; too high = no conversion; too low = no reach
+                  const infoR   = anyRate.informational;
+                  const infoScore = infoR >= 0.38 && infoR <= 0.58 ? 30
+                    : infoR < 0.38  ? Math.round((infoR  / 0.38) * 30)
+                    : Math.round(Math.max(0, (0.75 - infoR) / 0.17) * 30);
+
+                  // Transactional coverage (0-20): gated assets, chronically missing
+                  const tranScore = Math.round(Math.min(1, anyRate.transactional / 0.10) * 20);
+
+                  // Intent spread (0-10): reward having all four intents represented
+                  const spreadScore = Math.round((INTENTS.filter((i) => anyCount[i] > 0).length / 4) * 10);
+
+                  const intentScore = commScore + infoScore + tranScore + spreadScore;
+
+                  const iCfg =
+                    intentScore >= 75 ? { label: "Strong intent alignment — organic demand matched", color: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-100" } :
+                    intentScore >= 50 ? { label: "Moderate alignment — conversion intent gaps",      color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100"   } :
+                    intentScore >= 25 ? { label: "Informational-heavy — low conversion signal",      color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100"  } :
+                                         { label: "Misaligned — missing in-market buyer content",    color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100"   };
+
+                  // Under-served intents (any-presence below ideal min)
+                  const underIntent = INTENTS
+                    .filter((i) => INTENT_CFG[i].idealMin > 0)
+                    .map((i) => ({ i, anyPct: Math.round(anyRate[i] * 100), cfg: INTENT_CFG[i] }))
+                    .filter(({ anyPct, cfg }) => anyPct < cfg.idealMin)
+                    .sort((a, b) => (b.cfg.idealMin - b.anyPct) - (a.cfg.idealMin - a.anyPct));
+
+                  return (
+                    <Card className="border border-indigo-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🔍</span>
+                            <p className="text-xs font-semibold text-slate-700">Search Intent Alignment Scorer</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${iCfg.color} ${iCfg.bg} ${iCfg.border}`}>
+                            {intentScore}/100 · {iCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Classifies each calendar entry against the four primary Google search intents — Informational ("I want to learn"), Commercial Investigation ("I want to compare options"), Transactional ("I want a resource or tool"), and Navigational ("I want to find a specific source") — using keyword signal detection across topic and angle fields. Scores the portfolio's intent distribution against organic demand patterns for fintech B2B, and flags the two intents most commonly neglected in planned content calendars: Commercial Investigation (the highest-conversion organic traffic) and Transactional (direct lead-generation content).
+                        </p>
+
+                        {/* Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${iCfg.bg} ${iCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${iCfg.color}`}>{intentScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Commercial Inv.",  val: commScore,   max: 40, desc: `commercial any-presence ${Math.round(anyRate.commercial*100)}% — target ≥22% (highest-value organic traffic in fintech)` },
+                              { label: "Info balance",     val: infoScore,   max: 30, desc: `informational ${Math.round(infoR*100)}% — ideal 38–58%; outside this range reduces overall conversion rate`             },
+                              { label: "Transactional",   val: tranScore,   max: 20, desc: `transactional ${Math.round(anyRate.transactional*100)}% — target ≥10% (gated assets convert organic traffic to leads)`   },
+                              { label: "Intent spread",   val: spreadScore, max: 10, desc: `${INTENTS.filter((i) => anyCount[i] > 0).length}/4 intent types covered in calendar`                                    },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-24 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${iCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Distribution bar + chips */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Dominant intent distribution:</p>
+                        <div className="flex h-5 w-full rounded-lg overflow-hidden mb-1.5">
+                          {INTENTS.map((i) => {
+                            const pct = Math.round(domRate[i] * 100);
+                            return pct > 0 ? (
+                              <div key={i} className={`flex items-center justify-center text-[6.5px] font-bold text-white ${INTENT_CFG[i].bar}`} style={{ width: `${pct}%` }} title={`${INTENT_CFG[i].label}: ${pct}%`}>
+                                {pct >= 8 ? `${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                          {INTENTS.map((i) => {
+                            const cfg = INTENT_CFG[i];
+                            const pct = Math.round(domRate[i] * 100);
+                            const any = Math.round(anyRate[i] * 100);
+                            const atRisk = any < cfg.idealMin && cfg.idealMin > 0;
+                            return (
+                              <div key={i} className={`rounded-lg border px-2.5 py-2 ${cfg.bg} ${cfg.border}`}>
+                                <p className="text-[6.5px] text-slate-400 mb-0.5">{cfg.icon} {cfg.label}</p>
+                                <p className={`text-[13px] font-black leading-none ${atRisk ? "text-rose-600" : cfg.color}`}>{pct}%</p>
+                                <p className="text-[6px] text-slate-400 mt-0.5">any-signal: {any}%</p>
+                                <p className="text-[6px] text-slate-400">ideal: {cfg.idealMin}{cfg.idealMax > 0 ? `–${cfg.idealMax}` : "+"}%</p>
+                                <p className="text-[6px] text-slate-400 italic mt-0.5">{cfg.conversionValue}</p>
+                                {atRisk && <p className="text-[6px] text-rose-500 font-bold mt-0.5">↓ {cfg.idealMin - any}pp below</p>}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Organic demand context */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">📈</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">Fintech B2B search intent distribution:</span> Across core fintech B2B keyword sets, approximately 60–65% of search volume is informational, 25–30% is commercial investigation, 8–12% is transactional, and &lt;5% is navigational. However, commercial investigation queries convert to pipeline at roughly <span className="font-bold">8–12× the rate</span> of informational queries — meaning a calendar that allocates 70%+ of its content to informational intent captures high traffic with low commercial return, while neglecting the queries typed by in-market buyers who are already evaluating vendors and ready to engage a content-qualified lead.
+                          </p>
+                        </div>
+
+                        {/* Ideal vs actual table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Ideal range vs actual:</p>
+                        <div className="rounded-xl border border-slate-100 overflow-hidden mb-4">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead className="bg-slate-50">
+                              <tr>
+                                <th className="text-left text-slate-500 font-semibold px-3 py-1.5">Intent</th>
+                                <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Ideal range</th>
+                                <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Dominant %</th>
+                                <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Any-signal %</th>
+                                <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Entries</th>
+                                <th className="text-left text-slate-500 font-semibold px-3 py-1.5">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {INTENTS.map((i) => {
+                                const cfg    = INTENT_CFG[i];
+                                const dom    = Math.round(domRate[i] * 100);
+                                const any    = Math.round(anyRate[i] * 100);
+                                const status = cfg.idealMin === 0
+                                  ? { label: any <= cfg.idealMax ? "✓ Normal" : `↑ Over by ${any - cfg.idealMax}pp`, cls: any <= cfg.idealMax ? "text-emerald-600 bg-emerald-50 border-emerald-100" : "text-amber-600 bg-amber-50 border-amber-100" }
+                                  : any >= cfg.idealMin && any <= cfg.idealMax ? { label: "✓ On target",               cls: "text-emerald-600 bg-emerald-50 border-emerald-100" }
+                                  : any > cfg.idealMax                        ? { label: `↑ Over by ${any - cfg.idealMax}pp`,  cls: "text-amber-600 bg-amber-50 border-amber-100"   }
+                                  :                                             { label: `↓ Under by ${cfg.idealMin - any}pp`, cls: "text-rose-600 bg-rose-50 border-rose-100"      };
+                                return (
+                                  <tr key={i} className="border-t border-slate-50">
+                                    <td className="px-3 py-1.5">
+                                      <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.pill}`}>{cfg.icon} {cfg.label}</span>
+                                    </td>
+                                    <td className="text-center px-3 py-1.5 text-slate-500">{cfg.idealMin}{cfg.idealMax > 0 ? `–${cfg.idealMax}` : "+"}%</td>
+                                    <td className="text-center px-3 py-1.5"><span className={`font-black tabular-nums ${cfg.color}`}>{dom}%</span></td>
+                                    <td className="text-center px-3 py-1.5 text-slate-500">{any}%</td>
+                                    <td className="text-center px-3 py-1.5 text-slate-500">{anyCount[i]}</td>
+                                    <td className="px-3 py-1.5">
+                                      <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${status.cls}`}>{status.label}</span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <p className="text-[7px] text-slate-400 px-3 py-1.5 bg-slate-50 border-t border-slate-100">Dominant % = entries where this intent has the most signals · Any-signal % = entries with ≥1 intent signal hit</p>
+                        </div>
+
+                        {/* Under-served intent gap cards */}
+                        {underIntent.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Under-served intents — organic demand gaps to fill:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {underIntent.map(({ i, anyPct, cfg }) => {
+                                const gap    = cfg.idealMin - anyPct;
+                                const needed = Math.max(1, Math.ceil((cfg.idealMin / 100) * n) - anyCount[i]);
+                                return (
+                                  <div key={i} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                    <div className={`flex items-center justify-between px-3.5 py-2 ${cfg.bg}`}>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[10px]">{cfg.icon}</span>
+                                        <span className={`text-[8.5px] font-bold ${cfg.color}`}>{cfg.label}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100">{anyPct}% vs ≥{cfg.idealMin}% — {gap}pp gap</span>
+                                        <span className="text-[7px] text-slate-400">≈{needed} piece{needed !== 1 ? "s" : ""} needed</span>
+                                      </div>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                      <div className="text-[7.5px] text-slate-600">
+                                        <span className="font-semibold">Example queries this intent captures:</span> {cfg.queryExample}
+                                      </div>
+                                      <div className="text-[7.5px] text-slate-600">
+                                        <span className="font-semibold">Conversion value:</span> {cfg.conversionValue}
+                                      </div>
+                                      <div className="px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                        <p className="text-[7.5px] text-slate-700 leading-snug">✏️ {cfg.underTip}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Commercial investigation spotlight */}
+                        {anyRate.commercial < 0.15 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-purple-50 border border-purple-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🔬</span>
+                            <p className="text-[7.5px] text-purple-800 leading-snug">
+                              <span className="font-bold">Commercial investigation content is critically under-represented at {Math.round(anyRate.commercial * 100)}%.</span> In fintech B2B, commercial investigation queries ("best [solution] for [institution type]", "[vendor A] vs [vendor B]", "how to choose a [category] provider") are typed by buyers who are already past the awareness stage and are actively building a vendor shortlist. These are the highest-value organic visitors in the entire fintech content funnel — they convert to sales-qualified leads at 8–12× the rate of informational readers. A calendar with &lt;15% commercial investigation content is systematically missing the buyers most ready to engage.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Transactional asset spotlight */}
+                        {anyRate.transactional < 0.08 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">⬇️</span>
+                            <p className="text-[7.5px] text-emerald-800 leading-snug">
+                              <span className="font-bold">No transactional content detected.</span> Downloadable assets — checklists, templates, calculators, RFP frameworks, compliance matrices — are the highest-leverage content type for fintech content agencies because they convert organic search traffic directly into first-party contact data. A single well-positioned gated asset (e.g. "The AML Compliance Checklist for Tier 2 Banks") can generate 50–200 MQL-quality downloads per month from organic alone. Adding one transactional piece per quarter to the calendar creates a compounding lead-generation layer beneath the informational content that supports it.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Per-entry intent display */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Entry search intent classification:</p>
+                        <div className="space-y-0.5">
+                          {detected.map(({ entry: e, intents: ps, dominant: dom }) => {
+                            const cfg     = INTENT_CFG[dom];
+                            const others  = (Object.keys(ps) as SearchIntent[]).filter((i) => i !== dom);
+                            return (
+                              <div key={entryKey(e)} className="flex items-center gap-1.5 py-0.5 border-b border-slate-50">
+                                <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                <span className="text-[7px] text-slate-600 truncate flex-1 min-w-0">{e.angle.slice(0,30)}{e.angle.length > 30 ? "…" : ""}</span>
+                                <div className="flex items-center gap-0.5 shrink-0">
+                                  <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.pill}`}>{cfg.icon} {cfg.label}</span>
+                                  {others.slice(0,1).map((oi) => (
+                                    <span key={oi} className="text-[6.5px] text-slate-400 px-0.5">{INTENT_CFG[oi].icon}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[7px] text-slate-400 mt-2">Dominant intent shown as coloured pill · Secondary intent icons when additional signals detected · Entries with no detected signals default to Informational (the implicit fintech content intent)</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Emotional Register Calibrator ────────────────────────── */}
                 {calendar.length > 0 && (() => {
