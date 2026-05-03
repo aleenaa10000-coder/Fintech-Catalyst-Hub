@@ -1696,6 +1696,72 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content Freshness Decay Predictor ───────────────────────────────────────
+// Signals that accelerate decay (piece will become outdated faster)
+const DECAY_REGULATORY = ["regulation","compliance","directive","psd2","gdpr","aml","kyc","mifid","dora","mica","basel","fca","cfpb","eba","mandatory","enforcement","legislative","fintrac","fatca","sanctions","supervisory","authorisation","licensing","reporting requirement"];
+const DECAY_STATISTICAL = ["statistics","% of companies","% of banks","percent of","survey found","study found","research shows","market size","cagr","adoption rate","growth rate","by 2025","by 2026","by 2027","by 2028","by 2030","projected","estimated at","valued at","according to","report found"];
+const DECAY_MARKET      = ["funding round","investment raised","valuation","unicorn","ipo","deal flow","market cap","series a","series b","series c","venture","startup","raised $","raised £","acquired","merger","exit"];
+const DECAY_TECHNOLOGY  = ["api version","platform update","product release","new feature","changelog","launched","rolled out","going live","integration with","infrastructure change","stack migration","framework upgrade","sdk","deprecat"];
+// Signals that extend half-life (piece stays relevant longer)
+const DECAY_EVERGREEN   = ["how to","what is","principles of","fundamentals","best practices","introduction to","basics of","step by step","timeless","enduring","core concept","mental model","framework for thinking","universal","regardless of"];
+const DECAY_OPINION     = ["opinion","perspective","my view","hot take","unpopular","commentary","thought leadership","why i ","in my experience","from the trenches","we believe","our philosophy","practitioner view","lessons learned"];
+
+// Base content type half-life in months before the piece needs a material review
+const DECAY_BASE_HL: Record<ContentType, number> = {
+  "guide":      18,   // comprehensive guides age well but regulatory/stat content degrades them
+  "blog":       12,   // blog posts have moderate shelf life
+  "case-study": 12,   // case studies stay relevant but outcome data becomes dated
+  "roundup":     6,   // curated roundups go stale as the landscape shifts
+  "linkedin":    3,   // social posts are inherently ephemeral
+};
+
+type DecayClass = "evergreen" | "durable" | "time-sensitive" | "perishable";
+
+interface DecayEntry {
+  halfLifeMonths: number;
+  decayClass:     DecayClass;
+  reviewByMonth:  number;    // calendar months from period start when review is due
+  regHits:        number;
+  statHits:       number;
+  mktHits:        number;
+  techHits:       number;
+  evgHits:        number;
+  opnHits:        number;
+}
+
+function computeDecay(e: { type: ContentType; topic: string; angle: string; week: number }): DecayEntry {
+  const hay = `${e.topic} ${e.angle}`.toLowerCase();
+
+  const regHits  = DECAY_REGULATORY.filter((s)  => hay.includes(s)).length;
+  const statHits = DECAY_STATISTICAL.filter((s) => hay.includes(s)).length;
+  const mktHits  = DECAY_MARKET.filter((s)      => hay.includes(s)).length;
+  const techHits = DECAY_TECHNOLOGY.filter((s)  => hay.includes(s)).length;
+  const evgHits  = DECAY_EVERGREEN.filter((s)   => hay.includes(s)).length;
+  const opnHits  = DECAY_OPINION.filter((s)     => hay.includes(s)).length;
+
+  let hl = DECAY_BASE_HL[e.type];
+  hl *= Math.max(0.15, 1 - regHits  * 0.30);  // regulatory signals compress half-life severely
+  hl *= Math.max(0.40, 1 - statHits * 0.18);  // statistical claims age with each new dataset
+  hl *= Math.max(0.50, 1 - mktHits  * 0.18);  // market data is perishable
+  hl *= Math.max(0.70, 1 - techHits * 0.10);  // technology references age moderately
+  hl *= (1 + Math.min(3, evgHits)  * 0.15);   // evergreen framing extends shelf life
+  hl *= (1 + Math.min(2, opnHits)  * 0.20);   // opinion/perspective doesn't expire
+
+  const halfLifeMonths = Math.max(1, Math.round(hl));
+
+  const decayClass: DecayClass =
+    halfLifeMonths > 24 ? "evergreen"      :
+    halfLifeMonths > 12 ? "durable"        :
+    halfLifeMonths > 6  ? "time-sensitive" :
+                          "perishable";
+
+  // Approximate publication month (week → month within the calendar period)
+  const pubMonth     = Math.max(1, Math.ceil(e.week / 4.33));
+  const reviewByMonth = pubMonth + halfLifeMonths;
+
+  return { halfLifeMonths, decayClass, reviewByMonth, regHits, statHits, mktHits, techHits, evgHits, opnHits };
+}
+
 // ─── Topical Authority Velocity Tracker ──────────────────────────────────────
 // Format depth weights — how strongly each content type signals topical authority to search
 const AUTHORITY_DEPTH_WEIGHT: Record<ContentType, number> = {
@@ -6752,6 +6818,325 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Freshness Decay Predictor ────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const decayed = calendar.map((e) => ({ entry: e, decay: computeDecay(e) }));
+
+                  // Class groups
+                  const byClass = (cls: DecayClass) => decayed.filter((d) => d.decay.decayClass === cls);
+                  const evergreen     = byClass("evergreen");
+                  const durable       = byClass("durable");
+                  const timeSensitive = byClass("time-sensitive");
+                  const perishable    = byClass("perishable");
+
+                  // Perishable clustering — weeks with ≥2 perishable entries (simultaneous update bottleneck)
+                  const perishWeekMap = new Map<number, typeof decayed>();
+                  perishable.forEach((d) => {
+                    const wk = d.entry.week;
+                    if (!perishWeekMap.has(wk)) perishWeekMap.set(wk, []);
+                    perishWeekMap.get(wk)!.push(d);
+                  });
+                  const clusterWeeks = [...perishWeekMap.entries()].filter(([, ds]) => ds.length >= 2).map(([wk]) => wk);
+
+                  // ── Portfolio Freshness Score (0-100) ──────────────────────
+                  const n = decayed.length;
+                  // Evergreen ratio (0-40)
+                  const evgRatioScore = n > 0 ? Math.round((evergreen.length / n) * 40) : 0;
+                  // Durable+ ratio (0-30): % with halfLife > 12 months
+                  const durablePlus       = decayed.filter((d) => d.decay.halfLifeMonths > 12).length;
+                  const durableRatioScore = n > 0 ? Math.round((durablePlus / n) * 30) : 0;
+                  // Perishable clustering penalty (0-30)
+                  const clusterScore = Math.max(0, 30 - clusterWeeks.length * 8);
+
+                  const freshnessScore = evgRatioScore + durableRatioScore + clusterScore;
+
+                  const freshCfg =
+                    freshnessScore >= 75 ? { label: "High-shelf-life portfolio",    color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    freshnessScore >= 50 ? { label: "Balanced decay profile",       color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    freshnessScore >= 25 ? { label: "Significant update burden",    color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                           { label: "High editorial maintenance cost", color: "text-rose-700", bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  const CLASS_CFG: Record<DecayClass, { label: string; icon: string; color: string; bg: string; border: string; bar: string; halfLifeDesc: string }> = {
+                    evergreen:       { label: "Evergreen",       icon: "🌲", color: "text-emerald-700", bg: "bg-emerald-50",  border: "border-emerald-100", bar: "bg-emerald-400", halfLifeDesc: ">24 months"  },
+                    durable:         { label: "Durable",         icon: "🪨", color: "text-blue-700",    bg: "bg-blue-50",     border: "border-blue-100",    bar: "bg-blue-400",    halfLifeDesc: "12–24 months" },
+                    "time-sensitive":{ label: "Time-sensitive",  icon: "⏳", color: "text-amber-700",   bg: "bg-amber-50",    border: "border-amber-100",   bar: "bg-amber-400",   halfLifeDesc: "6–12 months" },
+                    perishable:      { label: "Perishable",      icon: "🍋", color: "text-rose-700",    bg: "bg-rose-50",     border: "border-rose-100",    bar: "bg-rose-400",    halfLifeDesc: "<6 months"   },
+                  };
+                  const CLASS_ORDER: DecayClass[] = ["evergreen","durable","time-sensitive","perishable"];
+                  const maxClassCount = Math.max(...CLASS_ORDER.map((c) => byClass(c).length), 1);
+
+                  // Decay driver labels
+                  const DRIVER_LABEL: { key: keyof DecayEntry; label: string; icon: string; extends: boolean }[] = [
+                    { key: "regHits",  label: "Regulatory citations",   icon: "🏛️", extends: false },
+                    { key: "statHits", label: "Statistical claims",     icon: "📐", extends: false },
+                    { key: "mktHits",  label: "Market data",            icon: "📊", extends: false },
+                    { key: "techHits", label: "Technology references",  icon: "⚙️", extends: false },
+                    { key: "evgHits",  label: "Evergreen framing",      icon: "🌿", extends: true  },
+                    { key: "opnHits",  label: "Opinion/perspective",    icon: "💬", extends: true  },
+                  ];
+
+                  // Review schedule — bucket by reviewByMonth
+                  const REVIEW_BUCKETS = [
+                    { label: "Within 3 months",   min: 0,  max: 3,   color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    },
+                    { label: "3–6 months",         min: 3,  max: 6,   color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   },
+                    { label: "6–12 months",        min: 6,  max: 12,  color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    },
+                    { label: "12–24 months",       min: 12, max: 24,  color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+                    { label: "Beyond 24 months",   min: 24, max: 999, color: "text-slate-500",   bg: "bg-slate-50",   border: "border-slate-100"   },
+                  ];
+
+                  // Average half-life
+                  const avgHalfLife = n > 0 ? Math.round(decayed.reduce((s, d) => s + d.decay.halfLifeMonths, 0) / n) : 0;
+
+                  return (
+                    <Card className="border border-pink-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🕐</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Freshness Decay Predictor</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${freshCfg.color} ${freshCfg.bg} ${freshCfg.border}`}>
+                            {freshnessScore}/100 · {freshCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Models the half-life of each calendar entry's relevance — estimating how quickly it will become outdated based on regulatory citation velocity, statistical claim density, market data exposure, and evergreen or opinion framing that extends shelf life. Produces a predicted review-by schedule and flags perishable clustering weeks where simultaneous update work will create an editorial bottleneck.
+                        </p>
+
+                        {/* Portfolio Freshness Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${freshCfg.bg} ${freshCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${freshCfg.color}`}>{freshnessScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Evergreen ratio",      val: evgRatioScore,   max: 40, desc: `${evergreen.length}/${n} pieces have >24-month half-life — need no scheduled review`                    },
+                              { label: "Durable+ ratio",       val: durableRatioScore,max:30, desc: `${durablePlus}/${n} pieces have >12-month half-life (evergreen + durable classes)`                     },
+                              { label: "Perishable clustering",val: clusterScore,     max: 30, desc: `${clusterWeeks.length} week${clusterWeeks.length !== 1 ? "s" : ""} with 2+ perishable pieces publishing simultaneously` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${freshCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Portfolio summary stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Avg half-life",    val: `${avgHalfLife}mo`,   sub: "calendar average",          color: "text-slate-700",   bg: "bg-slate-50",   border: "border-slate-100"   },
+                            { label: "Perishable",       val: perishable.length,    sub: "<6-month shelf life",        color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    },
+                            { label: "Time-sensitive",   val: timeSensitive.length, sub: "6–12-month shelf life",      color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   },
+                            { label: "Evergreen+",       val: evergreen.length + durable.length, sub: ">12-month shelf life", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+                          ].map(({ label, val, sub, color, bg, border }) => (
+                            <div key={label} className={`rounded-lg border px-2 py-1.5 text-center ${bg} ${border}`}>
+                              <p className="text-[7.5px] text-slate-400 mb-0.5">{label}</p>
+                              <p className={`text-[13px] font-black leading-none ${color}`}>{val}</p>
+                              <p className="text-[6.5px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Decay class distribution bars */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Decay class distribution — shelf-life breakdown:</p>
+                        <div className="space-y-1.5 mb-4">
+                          {CLASS_ORDER.map((cls) => {
+                            const entries = byClass(cls);
+                            const cfg     = CLASS_CFG[cls];
+                            const barPct  = Math.round((entries.length / maxClassCount) * 100);
+                            return (
+                              <div key={cls}>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className="text-[10px] w-5 shrink-0">{cfg.icon}</span>
+                                  <span className={`text-[8px] font-bold w-28 shrink-0 ${cfg.color}`}>{cfg.label}</span>
+                                  <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                                    <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${barPct}%` }} />
+                                  </div>
+                                  <span className="text-[7px] tabular-nums font-bold text-slate-600 shrink-0 w-20 text-right">
+                                    {entries.length > 0
+                                      ? <span>{entries.length} piece{entries.length !== 1 ? "s" : ""} · {cfg.halfLifeDesc}</span>
+                                      : <span className="text-slate-300 font-normal">none</span>}
+                                  </span>
+                                </div>
+                                {entries.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 pl-7">
+                                    {entries.map(({ entry: e }) => (
+                                      <span key={entryKey(e)} className={`text-[6.5px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[12rem] ${TYPE_COLOR[e.type]}`} title={e.angle}>
+                                        {e.angle.slice(0,28)}{e.angle.length > 28 ? "…" : ""}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Per-entry decay table — sorted shortest half-life first */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Entry half-life table — most perishable first:</p>
+                        <div className="overflow-x-auto mb-4">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-14">Half-life</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-20">Class</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Review by</th>
+                                <th className="text-left text-slate-400 font-normal pb-1 px-1">Top decay drivers</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...decayed].sort((a, b) => a.decay.halfLifeMonths - b.decay.halfLifeMonths).map(({ entry: e, decay: d }) => {
+                                const cfg = CLASS_CFG[d.decayClass];
+                                const drivers = DRIVER_LABEL
+                                  .filter((dl) => (d[dl.key] as number) > 0)
+                                  .map((dl) => `${dl.icon} ${dl.label}${dl.extends ? " ↑" : " ↓"}`)
+                                  .slice(0, 3)
+                                  .join(" · ");
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,26)}{e.angle.length > 26 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`font-black tabular-nums ${cfg.color}`}>{d.halfLifeMonths}mo</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.bg} ${cfg.color} ${cfg.border}`}>{cfg.icon} {cfg.label}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1 text-slate-400 tabular-nums">
+                                      mo {d.reviewByMonth}
+                                    </td>
+                                    <td className="py-0.5 px-1 text-slate-400 truncate max-w-[10rem]">{drivers || "—"}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <p className="text-[7px] text-slate-400 mt-1">↓ = shrinks shelf life · ↑ = extends shelf life · "mo N" = calendar month from period start when review is due</p>
+                        </div>
+
+                        {/* Perishable pieces — detailed decay driver cards */}
+                        {perishable.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">🍋 Perishable pieces — build review into the production schedule:</p>
+                            <div className="space-y-2 mb-4">
+                              {[...perishable].sort((a, b) => a.decay.halfLifeMonths - b.decay.halfLifeMonths).slice(0, 5).map(({ entry: e, decay: d }) => (
+                                <div key={entryKey(e)} className="rounded-xl border border-rose-100 overflow-hidden">
+                                  <div className="flex items-center justify-between px-3.5 py-2 bg-rose-50">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-[8.5px] font-bold text-rose-800 truncate">{e.angle}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                      <span className="text-[7px] text-rose-600">Wk {e.week}</span>
+                                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full border bg-rose-100 text-rose-700 border-rose-200 tabular-nums">{d.halfLifeMonths}mo half-life</span>
+                                    </div>
+                                  </div>
+                                  <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                    {/* Decay driver breakdown */}
+                                    <div className="flex flex-wrap gap-1 mb-1">
+                                      {DRIVER_LABEL.filter((dl) => (d[dl.key] as number) > 0).map((dl) => (
+                                        <span key={dl.key} className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${dl.extends ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-rose-50 text-rose-700 border-rose-100"}`}>
+                                          {dl.icon} {dl.label} ×{d[dl.key] as number} {dl.extends ? "↑" : "↓"}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-amber-50 border border-amber-100">
+                                      <span className="text-[9px] shrink-0">📋</span>
+                                      <p className="text-[8px] text-amber-900 leading-snug">
+                                        {d.regHits > 0  && "Schedule a regulatory review at month " + d.reviewByMonth + " — any amendment to cited regulations or guidance will require an immediate update regardless of the planned review date. "}
+                                        {d.statHits > 0 && "Statistical claims will need refreshing when next year's data is published — pre-book a data refresh slot in the editorial calendar. "}
+                                        {d.mktHits > 0  && "Market figures (valuations, funding data, deal volumes) become stale within one funding cycle — flag for update after any major market event. "}
+                                        {d.regHits === 0 && d.statHits === 0 && d.mktHits === 0 && "Short shelf life driven primarily by format ephemera — schedule a content refresh at month " + d.reviewByMonth + " to maintain relevance."}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Perishable clustering warning */}
+                        {clusterWeeks.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">⚠️ Perishable clustering — simultaneous update bottleneck weeks:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {clusterWeeks.map((wk) => {
+                                const wkEntries = perishWeekMap.get(wk)!;
+                                return (
+                                  <div key={wk} className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                                    <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[8px] font-bold text-amber-800 mb-1">Week {wk} — {wkEntries.length} perishable pieces will all require updates at approximately the same time</p>
+                                      <div className="flex flex-wrap gap-1 mb-1">
+                                        {wkEntries.map(({ entry: e }) => (
+                                          <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[12rem] ${TYPE_COLOR[e.type]}`}>{e.angle}</span>
+                                        ))}
+                                      </div>
+                                      <p className="text-[7.5px] text-amber-700 leading-snug">When multiple perishable pieces publish in the same week they'll hit their review dates simultaneously, creating an update crunch. Either stagger their publication across 2–3 weeks or schedule the update work as a dedicated quarterly refresh sprint.</p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Review schedule */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">📅 Predicted review schedule — by calendar month from period start:</p>
+                        <div className="space-y-1.5 mb-4">
+                          {REVIEW_BUCKETS.map(({ label, min, max, color, bg, border }) => {
+                            const bucket = decayed.filter((d) => d.decay.reviewByMonth > min && d.decay.reviewByMonth <= max);
+                            if (bucket.length === 0) return null;
+                            return (
+                              <div key={label} className={`rounded-lg border px-3 py-2 ${bg} ${border}`}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className={`text-[8px] font-bold ${color}`}>{label}</span>
+                                  <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${bg} ${color} ${border}`}>{bucket.length} piece{bucket.length !== 1 ? "s" : ""}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {bucket.sort((a, b) => a.decay.reviewByMonth - b.decay.reviewByMonth).map(({ entry: e, decay: d }) => (
+                                    <span key={entryKey(e)} className={`text-[6.5px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[12rem] ${TYPE_COLOR[e.type]}`} title={`Review by month ${d.reviewByMonth}`}>
+                                      {e.angle.slice(0,28)}{e.angle.length > 28 ? "…" : ""} <span className="opacity-60">(mo {d.reviewByMonth})</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Evergreen assets — worth calling out */}
+                        {evergreen.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-[10px] shrink-0 mt-0.5">🌲</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-emerald-800 mb-1">{evergreen.length} evergreen asset{evergreen.length !== 1 ? "s" : ""} — no scheduled review required (>24-month half-life)</p>
+                              <div className="flex flex-wrap gap-1">
+                                {evergreen.map(({ entry: e, decay: d }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[12rem] ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,30)}{e.angle.length > 30 ? "…" : ""} <span className="opacity-60">({d.halfLifeMonths}mo)</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Topical Authority Velocity Tracker ───────────────────── */}
                 {calendar.length > 0 && (() => {
