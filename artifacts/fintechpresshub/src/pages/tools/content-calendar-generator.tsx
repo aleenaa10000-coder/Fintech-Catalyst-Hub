@@ -305,6 +305,10 @@ type CalendarEntry = {
   priorityScore: number;
 };
 
+// ─── Helper: Generate unique key for calendar entry ───────────────────────────
+const entryKey = (e: { date: string; type: ContentType | string; topic: string }) =>
+  `${e.date}|${e.type}|${e.topic}`;
+
 // ─── Topics flagged as high search-intent (SEO-driven titles preferred) ──────
 const HIGH_SEARCH_INTENT_TOPICS = new Set([
   "embedded finance",
@@ -5850,9 +5854,6 @@ export default function ContentCalendarGenerator() {
     }
     setSprintAssignments((prev) => ({ ...prev, [key]: sprintWeek }));
   };
-
-  const entryKey = (e: { date: string; type: string; topic: string }) =>
-    `${e.date}|${e.type}|${e.topic}`;
 
   const toggleChecklistItem = (key: string, item: string) =>
     setCheckedItems((prev) => {
