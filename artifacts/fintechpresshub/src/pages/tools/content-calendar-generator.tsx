@@ -1696,6 +1696,62 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Angle Differentiation Scorer ────────────────────────────────────────────
+// Common words to strip before computing token-level angle similarity
+const ANGLE_STOP_WORDS = new Set(["the","a","an","of","in","to","for","how","why","what","your","their","its","with","and","or","is","are","be","by","at","from","on","as","that","this","it","we","you","our","these","those","which","will","can","has","have","had","been","was","were","do","does","did","not","but","so","if","when","where","who","more","most","all","any","new","they","them","about","into","than","other","some","my","up","out","get","use","s"]);
+
+// 8 distinct editorial perspective lenses used in fintech content
+const ANGLE_LENSES = [
+  { id: "howto",    label: "How-to",     icon: "🔧", signals: ["how to","step","guide to","implement","build","set up","setting up","achieve","deploy","create","configure","integrate"] },
+  { id: "why",      label: "Why/Case",   icon: "💡", signals: ["why","reason","because","case for","matters","important","should","need to","must","benefit","value of","argument for"] },
+  { id: "what",     label: "What/Intro", icon: "📖", signals: ["what is","introduction","overview","explained","definition","understanding","basics","primer","101","beginner","demystif"] },
+  { id: "proof",    label: "Proof/Data", icon: "📊", signals: ["case study","example","evidence","result","outcome","success","failure","data","roi","measured","achieved","numbers show"] },
+  { id: "trend",    label: "Trend",      icon: "📈", signals: ["trend","future","2025","2026","2027","prediction","emerging","next","outlook","forecast","changing","shift","evolution"] },
+  { id: "contrast", label: "Contrast",   icon: "⚖️", signals: ["vs","versus","compared","comparison","difference","better","worse","alternative","instead","rather","over","not"] },
+  { id: "insider",  label: "Insider",    icon: "🎭", signals: ["behind","inside","real","honest","truth","myth","mistake","lesson","practitioner","confession","actually","hidden","dirty"] },
+  { id: "audience", label: "Audience",   icon: "👥", signals: ["for your","for the","cto","cfo","cpo","developer","engineer","compliance","risk","fintech founder","product team","small bank"] },
+] as const;
+
+type AngleLensId = typeof ANGLE_LENSES[number]["id"];
+
+// Reframe tip for each lens — what to tell the author to pivot toward
+const LENS_REFRAME_TIP: Record<AngleLensId, string> = {
+  howto:    "Reframe as a step-by-step implementation guide — focus on the execution path and specific decisions rather than the concept",
+  "why":    "Reframe as a business case — articulate the cost of not acting and the specific ROI of adopting this approach in measurable terms",
+  what:     "Reframe as an introductory explainer — define the concept plainly for readers encountering it for the first time with no assumed context",
+  proof:    "Reframe as a case study or data-led proof — lead with a specific outcome metric rather than the general principle; readers at the bottom of the funnel need evidence not argument",
+  trend:    "Reframe as a forward-looking market piece — anchor in what's measurably changing and where the industry will be in 12-18 months",
+  contrast: "Reframe as a comparison — directly evaluate two competing approaches, tools, or vendor categories against each other with a clear recommendation",
+  insider:  "Reframe as a practitioner perspective — write from the inside with specifics that only someone who has implemented this would know; challenge the conventional narrative",
+  audience: "Reframe for a specific persona — tailor the angle entirely to one role (e.g. compliance lead, CTO, product manager) and their precise challenge with this topic",
+};
+
+function tokeniseAngle(angle: string): Set<string> {
+  return new Set(
+    angle.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 2 && !ANGLE_STOP_WORDS.has(w)),
+  );
+}
+
+function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 0;
+  let intersection = 0;
+  a.forEach((t) => { if (b.has(t)) intersection++; });
+  const union = a.size + b.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
+function detectLenses(angle: string): AngleLensId[] {
+  const hay = angle.toLowerCase();
+  return ANGLE_LENSES.filter((l) => l.signals.some((s) => hay.includes(s))).map((l) => l.id);
+}
+
+function sharedTokens(a: Set<string>, b: Set<string>): string[] {
+  return [...a].filter((t) => b.has(t));
+}
+
 // ─── Format Saturation Detector ──────────────────────────────────────────────
 // Ideal format share ranges for a balanced fintech editorial calendar (min, max as 0-1 fractions)
 const FORMAT_IDEAL_RANGE: Record<ContentType, [number, number]> = {
@@ -6853,6 +6909,280 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Angle Differentiation Scorer ─────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Group entries by topic and compute angle tokens + lenses for each
+                  const topicMap = new Map<string, { entry: typeof calendar[number]; tokens: Set<string>; lenses: AngleLensId[] }[]>();
+                  calendar.forEach((e) => {
+                    if (!topicMap.has(e.topic)) topicMap.set(e.topic, []);
+                    topicMap.get(e.topic)!.push({ entry: e, tokens: tokeniseAngle(e.angle), lenses: detectLenses(e.angle) });
+                  });
+
+                  // Per-topic analysis
+                  interface TopicDiff {
+                    topic:      string;
+                    items:      typeof topicMap extends Map<string, infer V> ? V : never;
+                    pairs:      { a: number; b: number; jacc: number; shared: string[] }[];
+                    highOverlap: { a: number; b: number; jacc: number; shared: string[] }[];
+                    modOverlap:  { a: number; b: number; jacc: number; shared: string[] }[];
+                    lensesPresent: Set<AngleLensId>;
+                    lensMissing:   AngleLensId[];
+                  }
+
+                  const topicDiffs: TopicDiff[] = [...topicMap.entries()].map(([topic, items]) => {
+                    const pairs: TopicDiff["pairs"] = [];
+                    for (let i = 0; i < items.length - 1; i++) {
+                      for (let j = i + 1; j < items.length; j++) {
+                        const jacc   = jaccardSimilarity(items[i].tokens, items[j].tokens);
+                        const shared = sharedTokens(items[i].tokens, items[j].tokens);
+                        pairs.push({ a: i, b: j, jacc, shared });
+                      }
+                    }
+                    const highOverlap = pairs.filter((p) => p.jacc >= 0.40).sort((x, y) => y.jacc - x.jacc);
+                    const modOverlap  = pairs.filter((p) => p.jacc >= 0.25 && p.jacc < 0.40).sort((x, y) => y.jacc - x.jacc);
+                    const lensesPresent = new Set(items.flatMap((it) => it.lenses));
+                    const lensMissing   = ANGLE_LENSES.map((l) => l.id).filter((id) => !lensesPresent.has(id));
+                    return { topic, items, pairs, highOverlap, modOverlap, lensesPresent, lensMissing };
+                  }).sort((a, b) => b.highOverlap.length - a.highOverlap.length);
+
+                  // Global counts
+                  const totalPairs     = topicDiffs.reduce((s, t) => s + t.pairs.length, 0);
+                  const highOverlapAll = topicDiffs.reduce((s, t) => s + t.highOverlap.length, 0);
+                  const modOverlapAll  = topicDiffs.reduce((s, t) => s + t.modOverlap.length, 0);
+                  const distinctPairs  = totalPairs - highOverlapAll - modOverlapAll;
+
+                  // Topics with at least one high-overlap pair — need attention
+                  const problemTopics  = topicDiffs.filter((t) => t.highOverlap.length > 0);
+                  // Topics with ≥3 lens types — strong angle diversity
+                  const richLensTopics = topicDiffs.filter((t) => t.lensesPresent.size >= 3);
+
+                  // ── Portfolio Angle Differentiation Score (0-100) ──────────
+                  // Distinct pair ratio (0-50): % of within-topic pairs with Jaccard < 0.25
+                  const distinctRatioScore = totalPairs > 0 ? Math.round((distinctPairs / totalPairs) * 50) : 50;
+
+                  // Cross-topic uniqueness (0-30): % of multi-piece topics with zero high-overlap pairs
+                  const multiTopics     = topicDiffs.filter((t) => t.items.length >= 2);
+                  const cleanTopics     = multiTopics.filter((t) => t.highOverlap.length === 0).length;
+                  const cleanRatioScore = multiTopics.length > 0 ? Math.round((cleanTopics / multiTopics.length) * 30) : 30;
+
+                  // Lens diversity (0-20): % of topics using ≥3 distinct lens types
+                  const nonSingle      = topicDiffs.filter((t) => t.items.length >= 2);
+                  const richRatioScore = nonSingle.length > 0 ? Math.round((richLensTopics.length / nonSingle.length) * 20) : 20;
+
+                  const diffScore = distinctRatioScore + cleanRatioScore + richRatioScore;
+
+                  const diffCfg =
+                    diffScore >= 80 ? { label: "Strong angle differentiation",  color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    diffScore >= 55 ? { label: "Moderate overlap detected",     color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    diffScore >= 30 ? { label: "Angle cannibalisation risk",    color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                      { label: "High redundancy — action needed", color: "text-rose-700",  bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  // Overlap severity config
+                  const OVERLAP_CFG = {
+                    high: { label: "High overlap",     color: "text-rose-700",  bg: "bg-rose-50",  border: "border-rose-100",  bar: "bg-rose-400"  },
+                    mod:  { label: "Moderate overlap", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100", bar: "bg-amber-400" },
+                    low:  { label: "Distinct",         color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", bar: "bg-emerald-400" },
+                  } as const;
+
+                  return (
+                    <Card className="border border-purple-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🔭</span>
+                            <p className="text-xs font-semibold text-slate-700">Angle Differentiation Scorer</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${diffCfg.color} ${diffCfg.bg} ${diffCfg.border}`}>
+                            {diffScore}/100 · {diffCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Analyses how distinct each piece's angle is from the others covering the same topic — using token-level Jaccard similarity to detect when multiple entries approach the same subject from near-identical angles. Near-duplicate angles cannibalise each other's search ranking, split the same audience, and signal to readers (and search engines) that the calendar is recycling rather than building on ideas. Flags problem pairs and maps which of the 8 editorial perspective lenses each topic cluster is using vs. missing.
+                        </p>
+
+                        {/* Portfolio Angle Differentiation Score */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${diffCfg.bg} ${diffCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${diffCfg.color}`}>{diffScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Distinct pair ratio",    val: distinctRatioScore, max: 50, desc: `${distinctPairs}/${totalPairs} within-topic pairs are distinct (Jaccard < 0.25)` },
+                              { label: "Cross-topic cleanness",  val: cleanRatioScore,    max: 30, desc: `${cleanTopics}/${multiTopics.length} multi-piece topics have zero high-overlap pairs`    },
+                              { label: "Lens diversity",         val: richRatioScore,     max: 20, desc: `${richLensTopics.length}/${nonSingle.length} topics use ≥3 of the 8 editorial perspective lenses` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${diffCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Summary stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Pair comparisons", val: totalPairs,     sub: "within-topic pairs scored",    color: "text-slate-700",   bg: "bg-slate-50",   border: "border-slate-100"   },
+                            { label: "High overlap",     val: highOverlapAll, sub: "Jaccard ≥0.40 (cannibalise)", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    },
+                            { label: "Moderate overlap", val: modOverlapAll,  sub: "Jaccard 0.25–0.39 (refine)",  color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   },
+                            { label: "Distinct",         val: distinctPairs,  sub: "Jaccard <0.25 (good)",        color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+                          ].map(({ label, val, sub, color, bg, border }) => (
+                            <div key={label} className={`rounded-lg border px-2 py-1.5 text-center ${bg} ${border}`}>
+                              <p className="text-[7.5px] text-slate-400 mb-0.5">{label}</p>
+                              <p className={`text-[13px] font-black leading-none ${color}`}>{val}</p>
+                              <p className="text-[6.5px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Per-topic differentiation cards — sorted worst first */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Topic-by-topic angle analysis — most overlapping first:</p>
+                        <div className="space-y-3 mb-4">
+                          {topicDiffs.filter((t) => t.items.length >= 2).map((td) => {
+                            const worstPair = td.highOverlap[0] ?? td.modOverlap[0];
+                            const overallStatus = td.highOverlap.length > 0 ? "high" : td.modOverlap.length > 0 ? "mod" : "low";
+                            const oCfg = OVERLAP_CFG[overallStatus];
+                            return (
+                              <div key={td.topic} className={`rounded-xl border overflow-hidden ${oCfg.border}`}>
+                                {/* Topic header */}
+                                <div className={`flex items-center justify-between px-3.5 py-2 ${oCfg.bg}`}>
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className={`text-[8.5px] font-bold truncate ${oCfg.color}`}>{td.topic}</span>
+                                    <span className="text-[7px] text-slate-400 shrink-0">{td.items.length} pieces · {td.pairs.length} pair{td.pairs.length !== 1 ? "s" : ""}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    {td.highOverlap.length > 0 && <span className="text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border bg-rose-100 text-rose-700 border-rose-200">{td.highOverlap.length} high-overlap</span>}
+                                    {td.modOverlap.length  > 0 && <span className="text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border bg-amber-100 text-amber-700 border-amber-200">{td.modOverlap.length} mod-overlap</span>}
+                                    {overallStatus === "low"  && <span className="text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border bg-emerald-100 text-emerald-700 border-emerald-200">✓ All distinct</span>}
+                                  </div>
+                                </div>
+
+                                <div className="px-3.5 py-2.5 bg-white space-y-2.5">
+                                  {/* Lens map */}
+                                  <div>
+                                    <p className="text-[7px] text-slate-400 mb-1">Editorial perspective lenses in use:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {ANGLE_LENSES.map((l) => (
+                                        <span key={l.id} className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${
+                                          td.lensesPresent.has(l.id)
+                                            ? "bg-indigo-50 text-indigo-700 border-indigo-100"
+                                            : "bg-slate-50 text-slate-300 border-slate-100"
+                                        }`}>
+                                          {l.icon} {l.label}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    {td.lensesPresent.size < 2 && td.items.length >= 3 && (
+                                      <p className="text-[7px] text-amber-600 font-semibold mt-1">⚠️ Only {td.lensesPresent.size} perspective lens detected across {td.items.length} pieces — add variety by targeting the {ANGLE_LENSES.find((l) => !td.lensesPresent.has(l.id))?.label} or {ANGLE_LENSES.filter((l) => !td.lensesPresent.has(l.id))[1]?.label} lens</p>
+                                    )}
+                                  </div>
+
+                                  {/* All pairs table */}
+                                  {td.pairs.length > 0 && (
+                                    <div className="overflow-x-auto">
+                                      <table className="w-full text-[6.5px] border-collapse">
+                                        <thead>
+                                          <tr className="border-b border-slate-100">
+                                            <th className="text-left text-slate-400 font-normal pb-0.5 pr-1">Piece A</th>
+                                            <th className="text-left text-slate-400 font-normal pb-0.5 pr-1">Piece B</th>
+                                            <th className="text-center text-slate-400 font-normal pb-0.5 px-1 w-12">Jaccard</th>
+                                            <th className="text-center text-slate-400 font-normal pb-0.5 px-1 w-16">Status</th>
+                                            <th className="text-left text-slate-400 font-normal pb-0.5 pl-1">Shared tokens</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {td.pairs.sort((x, y) => y.jacc - x.jacc).map((p) => {
+                                            const pCfg = p.jacc >= 0.40 ? OVERLAP_CFG.high : p.jacc >= 0.25 ? OVERLAP_CFG.mod : OVERLAP_CFG.low;
+                                            return (
+                                              <tr key={`${p.a}-${p.b}`} className="border-t border-slate-50">
+                                                <td className="py-0.5 pr-1 text-slate-500 truncate max-w-[8rem]" title={td.items[p.a].entry.angle}>{td.items[p.a].entry.angle.slice(0,22)}{td.items[p.a].entry.angle.length > 22 ? "…" : ""}</td>
+                                                <td className="py-0.5 pr-1 text-slate-500 truncate max-w-[8rem]" title={td.items[p.b].entry.angle}>{td.items[p.b].entry.angle.slice(0,22)}{td.items[p.b].entry.angle.length > 22 ? "…" : ""}</td>
+                                                <td className="text-center py-0.5 px-1">
+                                                  <div className="flex items-center gap-1">
+                                                    <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                                      <div className={`h-full rounded-full ${pCfg.bar}`} style={{ width: `${Math.round(p.jacc * 100)}%` }} />
+                                                    </div>
+                                                    <span className={`tabular-nums font-bold shrink-0 ${pCfg.color}`}>{(p.jacc * 100).toFixed(0)}%</span>
+                                                  </div>
+                                                </td>
+                                                <td className="text-center py-0.5 px-1">
+                                                  <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${pCfg.bg} ${pCfg.color} ${pCfg.border}`}>{pCfg.label}</span>
+                                                </td>
+                                                <td className="py-0.5 pl-1 text-slate-400 truncate max-w-[8rem]">{p.shared.slice(0,4).join(", ") || "—"}</td>
+                                              </tr>
+                                            );
+                                          })}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+
+                                  {/* Reframe suggestion for worst pair */}
+                                  {worstPair && worstPair.jacc >= 0.25 && (() => {
+                                    const missingLens = td.lensMissing[0] as AngleLensId | undefined;
+                                    const secondLens  = td.lensMissing[1] as AngleLensId | undefined;
+                                    const tipLens     = missingLens ?? "contrast";
+                                    const lensObj     = ANGLE_LENSES.find((l) => l.id === tipLens);
+                                    return (
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                        <span className="text-[9px] shrink-0">✏️</span>
+                                        <div>
+                                          <p className="text-[7.5px] font-bold text-slate-700 mb-0.5">
+                                            Suggested reframe for the later piece using the {lensObj?.icon} {lensObj?.label} lens:
+                                          </p>
+                                          <p className="text-[7.5px] text-slate-600 leading-snug">{LENS_REFRAME_TIP[tipLens]}</p>
+                                          {secondLens && (
+                                            <p className="text-[7px] text-slate-400 mt-0.5">
+                                              Alternative: {ANGLE_LENSES.find((l) => l.id === secondLens)?.icon} {ANGLE_LENSES.find((l) => l.id === secondLens)?.label} lens — {LENS_REFRAME_TIP[secondLens].slice(0, 80)}…
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Rich lens diversity callout */}
+                        {richLensTopics.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-indigo-50 border border-indigo-100 mb-3">
+                            <span className="text-[10px] shrink-0 mt-0.5">🌈</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-indigo-800 mb-1">{richLensTopics.length} topic cluster{richLensTopics.length !== 1 ? "s" : ""} with strong perspective diversity (≥3 editorial lenses)</p>
+                              <div className="flex flex-wrap gap-1">
+                                {richLensTopics.map((t) => (
+                                  <span key={t.topic} className="text-[7.5px] font-semibold px-1.5 py-0.5 rounded-full border bg-indigo-100 text-indigo-700 border-indigo-200">
+                                    {t.topic} ({t.lensesPresent.size} lenses)
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* All-clear */}
+                        {highOverlapAll === 0 && modOverlapAll === 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-[9px] shrink-0">✅</span>
+                            <p className="text-[8px] text-emerald-800 leading-snug font-semibold">
+                              All within-topic angle pairs score below the 0.25 Jaccard overlap threshold — every piece approaches its topic from a sufficiently distinct angle that search engines will treat them as separate keyword targets and readers will see clear reasons to engage with each one individually.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Format Saturation Detector ───────────────────────────── */}
                 {calendar.length > 0 && (() => {
