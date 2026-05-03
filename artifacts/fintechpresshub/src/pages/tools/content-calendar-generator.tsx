@@ -247,6 +247,18 @@ function priorityEmoji(score: number): string {
   return "🧊";
 }
 
+// ─── Content Velocity Tracker ─────────────────────────────────────────────────
+type ContentStatus = "not-started" | "writing" | "review" | "published";
+const STATUS_CONFIG: Record<
+  ContentStatus,
+  { label: string; icon: string; bg: string; text: string; border: string; ring: string; next: ContentStatus }
+> = {
+  "not-started": { label: "Not Started", icon: "○", bg: "bg-slate-50",   text: "text-slate-400",   border: "border-slate-200",  ring: "bg-slate-300",   next: "writing"      },
+  writing:       { label: "Writing",     icon: "✎", bg: "bg-blue-50",    text: "text-blue-600",    border: "border-blue-200",   ring: "bg-blue-400",    next: "review"       },
+  review:        { label: "In Review",   icon: "◎", bg: "bg-amber-50",   text: "text-amber-700",   border: "border-amber-200",  ring: "bg-amber-400",   next: "published"    },
+  published:     { label: "Published",   icon: "✓", bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", ring: "bg-emerald-500", next: "not-started"  },
+};
+
 const CADENCE_POSTS_PER_WEEK: Record<Cadence, number> = {
   weekly: 1,
   "2x-week": 2,
@@ -1932,6 +1944,15 @@ export default function ContentCalendarGenerator() {
   const [savingPreset, setSavingPreset] = useState(false);
   const [presetName, setPresetName] = useState("");
   const [filledGaps, setFilledGaps] = useState<Set<string>>(new Set());
+  const [entryStatuses, setEntryStatuses] = useState<Record<string, ContentStatus>>({});
+
+  const cycleStatus = (key: string) =>
+    setEntryStatuses((prev) => {
+      const cur: ContentStatus = prev[key] ?? "not-started";
+      return { ...prev, [key]: STATUS_CONFIG[cur].next };
+    });
+
+  const resetStatuses = () => setEntryStatuses({});
 
   const entryKey = (e: { date: string; type: string; topic: string }) =>
     `${e.date}|${e.type}|${e.topic}`;
@@ -2990,6 +3011,167 @@ export default function ContentCalendarGenerator() {
                   </div>
                 )}
 
+                {/* ── Content Velocity Tracker ────────────────────────────── */}
+                {(() => {
+                  const statusOrder: ContentStatus[] = [
+                    "not-started", "writing", "review", "published",
+                  ];
+                  const statusCounts: Record<ContentStatus, number> = {
+                    "not-started": 0, writing: 0, review: 0, published: 0,
+                  };
+                  for (const e of calendar) {
+                    const s: ContentStatus =
+                      entryStatuses[entryKey(e)] ?? "not-started";
+                    statusCounts[s]++;
+                  }
+                  const total = calendar.length;
+                  const publishedPct =
+                    total > 0
+                      ? Math.round((statusCounts.published / total) * 100)
+                      : 0;
+                  const inProgressCount =
+                    statusCounts.writing + statusCounts.review;
+                  const hasAnyStatus =
+                    Object.keys(entryStatuses).length > 0;
+                  const weeks = [
+                    ...new Set(calendar.map((e) => e.week)),
+                  ].sort((a, b) => a - b);
+                  return (
+                    <div className="rounded-xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                      {/* Header */}
+                      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50/70 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-slate-700">
+                            Production Tracker
+                          </span>
+                          <span className="text-[9.5px] text-slate-400">
+                            — click a status on any entry to advance it
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {publishedPct > 0 && (
+                            <span className="text-[10px] font-bold text-emerald-600">
+                              {publishedPct}% published
+                            </span>
+                          )}
+                          {inProgressCount > 0 && (
+                            <span className="text-[10px] font-semibold text-amber-600">
+                              {inProgressCount} in progress
+                            </span>
+                          )}
+                          {hasAnyStatus && (
+                            <button
+                              type="button"
+                              onClick={resetStatuses}
+                              className="text-[9px] text-slate-400 hover:text-rose-500 transition-colors ml-1"
+                              title="Reset all statuses"
+                            >
+                              ↺ reset
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Status pills + bar */}
+                      <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+                        {statusOrder.map((s) => {
+                          const cfg = STATUS_CONFIG[s];
+                          return (
+                            <div
+                              key={s}
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.border}`}
+                            >
+                              <span className={`text-[11px] ${cfg.text}`}>
+                                {cfg.icon}
+                              </span>
+                              <span
+                                className={`text-[10px] font-semibold ${cfg.text}`}
+                              >
+                                {cfg.label}
+                              </span>
+                              <span
+                                className={`text-[10px] font-bold tabular-nums ${cfg.text} ml-0.5`}
+                              >
+                                {statusCounts[s]}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {/* Segmented progress bar */}
+                        <div className="flex-1 min-w-[100px] h-1.5 rounded-full bg-slate-100 overflow-hidden flex">
+                          {(
+                            [
+                              { s: "writing"  as ContentStatus, c: "bg-blue-400"    },
+                              { s: "review"   as ContentStatus, c: "bg-amber-400"   },
+                              { s: "published"as ContentStatus, c: "bg-emerald-500" },
+                            ] as { s: ContentStatus; c: string }[]
+                          ).map(({ s, c }) => (
+                            <div
+                              key={s}
+                              className={`h-full ${c} transition-all duration-500`}
+                              style={{
+                                width: `${total > 0 ? (statusCounts[s] / total) * 100 : 0}%`,
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Per-week mini pipeline — only once statuses are set */}
+                      {hasAnyStatus && (
+                        <div className="px-4 pb-3 pt-0">
+                          <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                            Week pipeline
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {weeks.map((wk) => {
+                              const we = calendar.filter(
+                                (e) => e.week === wk,
+                              );
+                              const wc: Record<ContentStatus, number> = {
+                                "not-started": 0, writing: 0, review: 0, published: 0,
+                              };
+                              for (const e of we) {
+                                wc[entryStatuses[entryKey(e)] ?? "not-started"]++;
+                              }
+                              const wTotal = we.length;
+                              const wDone  = wc.published;
+                              const allPub = wDone === wTotal;
+                              return (
+                                <div
+                                  key={wk}
+                                  className={`flex flex-col items-center px-2.5 py-1.5 rounded-lg border min-w-[52px] ${allPub ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-100"}`}
+                                >
+                                  <span className={`text-[9px] font-bold mb-1 ${allPub ? "text-emerald-700" : "text-slate-500"}`}>
+                                    Wk {wk}
+                                  </span>
+                                  <div className="w-full h-1 rounded-full bg-slate-200 overflow-hidden flex mb-1">
+                                    <div
+                                      className="h-full bg-blue-400"
+                                      style={{ width: `${wTotal > 0 ? (wc.writing / wTotal) * 100 : 0}%` }}
+                                    />
+                                    <div
+                                      className="h-full bg-amber-400"
+                                      style={{ width: `${wTotal > 0 ? (wc.review / wTotal) * 100 : 0}%` }}
+                                    />
+                                    <div
+                                      className="h-full bg-emerald-500"
+                                      style={{ width: `${wTotal > 0 ? (wDone / wTotal) * 100 : 0}%` }}
+                                    />
+                                  </div>
+                                  <span className={`text-[9px] ${allPub ? "text-emerald-700 font-bold" : "text-slate-400"}`}>
+                                    {wDone}/{wTotal}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* ── Topic Colour Legend ─────────────────────────────────── */}
                 {topicLegend.length > 0 && (
                   <div
@@ -3495,6 +3677,21 @@ export default function ContentCalendarGenerator() {
                                 <FileText className="w-3 h-3" />
                                 Brief
                               </button>
+                              {(() => {
+                                const k   = entryKey(entry);
+                                const s   = entryStatuses[k] ?? "not-started";
+                                const cfg = STATUS_CONFIG[s];
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => cycleStatus(k)}
+                                    title="Click to advance production status"
+                                    className={`flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-md border whitespace-nowrap transition-colors ${cfg.bg} ${cfg.text} ${cfg.border} hover:opacity-80`}
+                                  >
+                                    {cfg.icon} {cfg.label}
+                                  </button>
+                                );
+                              })()}
                             </div>
                           </motion.div>
                         ))}
@@ -3604,6 +3801,21 @@ export default function ContentCalendarGenerator() {
                                     <FileText className="w-3 h-3" />
                                     Brief
                                   </button>
+                                  {(() => {
+                                    const k   = entryKey(entry);
+                                    const s   = entryStatuses[k] ?? "not-started";
+                                    const cfg = STATUS_CONFIG[s];
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={() => cycleStatus(k)}
+                                        title="Click to advance production status"
+                                        className={`flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-md border whitespace-nowrap transition-colors ${cfg.bg} ${cfg.text} ${cfg.border} hover:opacity-80`}
+                                      >
+                                        {cfg.icon} {cfg.label}
+                                      </button>
+                                    );
+                                  })()}
                                 </div>
                               </motion.div>
                             ))}
