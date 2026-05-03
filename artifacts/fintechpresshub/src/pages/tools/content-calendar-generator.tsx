@@ -1696,6 +1696,39 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Authority Gap Scanner ───────────────────────────────────────────────────
+interface AuthorityCategory {
+  name:        string;
+  keywords:    string[];
+  linkMagnet:  number;           // 0-100, estimated link-earning potential in fintech
+  difficulty:  "quick" | "moderate" | "intensive";
+  icon:        string;
+  why:         string;           // why this category earns links
+}
+
+const AUTHORITY_CATEGORIES: AuthorityCategory[] = [
+  { name: "Original Research & Benchmarks",   keywords: ["original research","benchmark","survey","we surveyed","proprietary data","our study","n=","respondents","report","state of fintech","annual report","index"],                                        linkMagnet: 98, difficulty: "intensive", icon: "📐", why: "Primary data is the single strongest link magnet in B2B publishing — every outlet that covers the topic cites the source"           },
+  { name: "Regulatory Compliance Guides",     keywords: ["psd2","gdpr","aml","kyc","mifid","basel","dodd-frank","fca","cfpb","dora","compliance guide","regulatory guide","how to comply","obligations under","what the regulation requires"],                linkMagnet: 91, difficulty: "moderate",  icon: "⚖️", why: "Compliance teams bookmark and share exhaustive regulatory guides — they earn links from law firms, consultancies, and news outlets" },
+  { name: "Fintech Statistics & Data Hubs",   keywords: ["statistics","stats","fintech stats","data","numbers","figures","market size","adoption rate","growth rate","by the numbers","key metrics","market data","industry figures"],                         linkMagnet: 89, difficulty: "moderate",  icon: "📊", why: "Journalists and bloggers link to statistics pages as source citations — a well-maintained stats hub can earn hundreds of links"    },
+  { name: "Salary & Jobs Data",               keywords: ["salary","compensation","pay","hiring","recruitment","talent","fintech jobs","job market","average salary","pay gap","remuneration","workforce","headcount"],                                         linkMagnet: 86, difficulty: "quick",     icon: "💼", why: "Salary data earns massive organic search volume and press coverage — HR professionals and candidates link to it repeatedly"         },
+  { name: "Failure Post-Mortems",             keywords: ["why failed","failure","collapsed","went bust","lessons from","post-mortem","what went wrong","mistakes made","bankrupt","shutdown","folded","cautionary tale"],                                      linkMagnet: 85, difficulty: "quick",     icon: "💀", why: "Failure analysis is the most-shared content type on LinkedIn — journalists and investors cite fintech failure studies extensively"  },
+  { name: "API & Developer Resources",        keywords: ["api","developer","open banking api","payment api","sdk","webhook","integration","sandbox","documentation","rest api","oauth","developer guide","technical guide"],                                    linkMagnet: 83, difficulty: "intensive", icon: "🔌", why: "Developer-focused content earns strong editorial links from tech publications and is shared virally in developer communities"         },
+  { name: "Vendor / Tool Comparison",         keywords: ["comparison","compare","vs","versus","alternative","best tools","top platforms","which is better","choosing","evaluation","selection guide","ranked","reviewed"],                                      linkMagnet: 82, difficulty: "moderate",  icon: "⚖️", why: "Comparison content earns affiliate links, press mentions, and community shares — buyers in decision mode link to trusted comparisons" },
+  { name: "Investment & Funding Analysis",    keywords: ["funding","investment","venture","vc","series a","series b","series c","raise","investor","portfolio","fintech investment","deal flow","funding round","backed by"],                                   linkMagnet: 80, difficulty: "quick",     icon: "💰", why: "Funding analysis is cited by investors, founders, and analysts — it earns links from financial media and startup ecosystems"        },
+  { name: "Future Predictions & Trends",      keywords: ["predictions","trends","forecast","future of","what to expect","in 2025","in 2026","by 2030","outlook","emerging","next decade","what's coming","strategic forecast","horizon"],                      linkMagnet: 78, difficulty: "quick",     icon: "🔮", why: "Forward-looking pieces are shared at scale at the start of each year and earn citations from strategy teams and consulting reports"  },
+  { name: "Fraud & Cybersecurity Data",       keywords: ["fraud","cybersecurity","security","phishing","data breach","financial crime","scam","money mule","identity theft","account takeover","authorised push payment","app fraud","deepfake"],               linkMagnet: 77, difficulty: "moderate",  icon: "🛡️", why: "Security statistics earn links from insurance, legal, and consulting sectors — fraud data is cited in parliamentary and regulatory submissions" },
+  { name: "Payments Infrastructure",          keywords: ["iso 20022","instant payment","sepa","chaps","faster payments","rtgs","payment rail","swift","real-time payment","clearing","settlement","correspondent banking","cross-border payment"],              linkMagnet: 75, difficulty: "moderate",  icon: "🌐", why: "Infrastructure content earns deep technical links from banks, payment processors, and standards bodies"                              },
+  { name: "Embedded Finance & BaaS",          keywords: ["embedded finance","banking as a service","baas","embedded banking","white label","banking infrastructure","fintech infrastructure","platform banking","api-first bank"],                             linkMagnet: 74, difficulty: "quick",     icon: "🧩", why: "One of the fastest-growing fintech categories — early definitive content earns sustained links as the topic matures"               },
+  { name: "Customer Experience in Banking",   keywords: ["customer experience","cx","onboarding","user experience","ux","digital onboarding","nps","churn","retention","customer journey","friction","ux research","voice of customer"],                       linkMagnet: 71, difficulty: "quick",     icon: "🤝", why: "CX research earns links from marketing and product publications — financial services CX data is scarce and heavily cited"          },
+  { name: "ESG & Sustainable Finance",        keywords: ["esg","sustainable finance","green finance","climate risk","net zero","carbon","sustainable investment","impact investing","green bond","taxonomy","climate disclosure","tcfd","sfdr"],                 linkMagnet: 70, difficulty: "moderate",  icon: "🌱", why: "ESG content earns links from financial regulators, asset managers, and mainstream press — the topic is regulatory-driven and growing" },
+  { name: "Core Banking Modernisation",       keywords: ["core banking","modernisation","legacy system","migration","cloud banking","mainframe","digital transformation","core replacement","banking platform","technology transformation"],                    linkMagnet: 68, difficulty: "intensive", icon: "🏦", why: "Core banking is a high-consideration purchase — vendors and analysts link to authoritative modernisation guides and case studies"    },
+  { name: "BNPL & Consumer Credit",           keywords: ["bnpl","buy now pay later","consumer credit","instalment","credit score","credit risk","consumer lending","retail credit","point of sale credit","open banking credit"],                              linkMagnet: 66, difficulty: "quick",     icon: "💳", why: "BNPL earns consistent consumer and trade press coverage — regulatory developments make any update highly linkable"                  },
+  { name: "Crypto & Digital Assets",          keywords: ["crypto","bitcoin","ethereum","stablecoin","defi","nft","digital asset","tokenisation","cbdc","blockchain","web3","digital currency","on-chain"],                                                     linkMagnet: 65, difficulty: "quick",     icon: "₿",  why: "Crypto coverage earns links from a massive community of authors, forums, and news outlets — even neutral fintech angles get cited"   },
+  { name: "RegTech Tools & Platforms",        keywords: ["regtech","regulatory technology","compliance automation","aml software","kyc platform","compliance tool","surveillance","trade reporting","reg reporting","compliance tech"],                         linkMagnet: 63, difficulty: "moderate",  icon: "🤖", why: "RegTech is a B2B niche with high buyer intent — vendor comparison and tool guides earn strong links from compliance professionals"    },
+  { name: "SME & Business Banking",           keywords: ["sme","small business","business banking","sme lending","trade finance","invoice finance","working capital","cash flow","business account","sme fintech","startup banking"],                          linkMagnet: 61, difficulty: "quick",     icon: "🏪", why: "SME content earns links from accountancy, legal, and government sources — a large addressable audience with high search intent"     },
+  { name: "Open Banking & Data Sharing",      keywords: ["open banking","open finance","data sharing","account aggregation","variable recurring payment","vrp","screen scraping","consent","financial data","pfm","personal finance management"],              linkMagnet: 60, difficulty: "moderate",  icon: "🔓", why: "Open banking earns authoritative links from banks, fintechs, and regulators who cite implementation guides and data-sharing frameworks" },
+];
+
 // ─── Content Debt Register ───────────────────────────────────────────────────
 const DEBT_REGULATION_NAMED  = ["psd2","gdpr","mifid","basel iv","dodd-frank","fatca","fca","cfpb","eba","esma","fintrac","ccar","dora","mica","emir","solvency ii","ifrs 9","ifrs 17","aifmd","ucits","crd","crr"];
 const DEBT_REGULATION_GENERIC = ["regulation","compliance","regulatory","legislation","law","rule","directive","requirement","mandate","obligation","standard","guidance","policy"];
@@ -6432,6 +6465,212 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Authority Gap Scanner ────────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // For each authority category, count how many calendar entries cover it
+                  type Coverage = "gap" | "thin" | "covered";
+                  const evaluated = AUTHORITY_CATEGORIES.map((cat) => {
+                    const covering = calendar.filter((e) => {
+                      const hay = `${e.topic} ${e.angle}`.toLowerCase();
+                      return cat.keywords.some((k) => hay.includes(k));
+                    });
+                    const coverage: Coverage = covering.length === 0 ? "gap" : covering.length === 1 ? "thin" : "covered";
+                    return { cat, covering, coverage };
+                  }).sort((a, b) => {
+                    // Gaps first (sorted by linkMagnet desc), then thin, then covered
+                    const rank = { gap: 0, thin: 1, covered: 2 };
+                    if (rank[a.coverage] !== rank[b.coverage]) return rank[a.coverage] - rank[b.coverage];
+                    return b.cat.linkMagnet - a.cat.linkMagnet;
+                  });
+
+                  const gaps    = evaluated.filter((e) => e.coverage === "gap");
+                  const thin    = evaluated.filter((e) => e.coverage === "thin");
+                  const covered = evaluated.filter((e) => e.coverage === "covered");
+
+                  const totalLinkMagnetMissed = gaps.reduce((s, e) => s + e.cat.linkMagnet, 0);
+                  const avgCoveredMagnet = covered.length
+                    ? Math.round(covered.reduce((s, e) => s + e.cat.linkMagnet, 0) / covered.length)
+                    : 0;
+
+                  const difficultyCfg = {
+                    quick:     { label: "Quick win",  badge: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: "⚡" },
+                    moderate:  { label: "Moderate",   badge: "bg-blue-100 text-blue-700 border-blue-200",          icon: "🔧" },
+                    intensive: { label: "Intensive",  badge: "bg-purple-100 text-purple-700 border-purple-200",    icon: "🏗️" },
+                  } as const;
+
+                  const coverageCfg = {
+                    gap:     { label: "Gap",           bar: "bg-rose-400",    badge: "bg-rose-100 text-rose-700 border-rose-200",         bg: "bg-rose-50",    border: "border-rose-100"    },
+                    thin:    { label: "Thin coverage", bar: "bg-amber-400",   badge: "bg-amber-100 text-amber-700 border-amber-200",       bg: "bg-amber-50",   border: "border-amber-100"   },
+                    covered: { label: "Covered",       bar: "bg-emerald-400", badge: "bg-emerald-100 text-emerald-700 border-emerald-200", bg: "bg-emerald-50", border: "border-emerald-100" },
+                  } as const;
+
+                  return (
+                    <Card className="border border-violet-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🔭</span>
+                            <p className="text-xs font-semibold text-slate-700">Authority Gap Scanner</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                              {gaps.length} gap{gaps.length !== 1 ? "s" : ""} found
+                            </span>
+                            {covered.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                {covered.length} covered
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Maps the calendar against 20 high link-magnet content categories in fintech publishing. Identifies subject areas where the industry's most-linked-to content lives but the calendar has no coverage — surfacing the highest-ROI gaps for new content investment.
+                        </p>
+
+                        {/* Portfolio stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Authority gaps",    val: gaps.length,              sub: "uncovered link magnets"          },
+                            { label: "Link magnet missed",val: totalLinkMagnetMissed,    sub: "combined gap score"              },
+                            { label: "Thin coverage",     val: thin.length,              sub: "only 1 entry per category"       },
+                            { label: "Avg covered score", val: avgCoveredMagnet,         sub: "link magnet of covered cats"     },
+                          ].map(({ label, val, sub }) => (
+                            <div key={label} className="rounded-lg border border-violet-100 bg-violet-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className="text-[11px] font-black leading-none text-violet-700">{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Coverage distribution bar */}
+                        <div className="flex gap-px h-2 rounded-full overflow-hidden mb-1">
+                          {(["gap","thin","covered"] as Coverage[]).map((c) => {
+                            const count = evaluated.filter((e) => e.coverage === c).length;
+                            const pct   = Math.round((count / evaluated.length) * 100);
+                            return pct > 0 ? <div key={c} className={`h-full ${coverageCfg[c].bar}`} style={{ width: `${pct}%` }} /> : null;
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4">
+                          {(["gap","thin","covered"] as Coverage[]).map((c) => {
+                            const count = evaluated.filter((e) => e.coverage === c).length;
+                            return count > 0 ? (
+                              <div key={c} className="flex items-center gap-1">
+                                <div className={`w-2 h-2 rounded-full ${coverageCfg[c].bar}`} />
+                                <span className="text-[8px] text-slate-500">{coverageCfg[c].label} <span className="font-bold text-slate-700">({count})</span></span>
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+
+                        {/* Top authority gaps — sorted by link magnet desc */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">
+                          Highest-ROI authority gaps — publish these to earn the most links:
+                        </p>
+                        <div className="space-y-2.5 mb-4">
+                          {gaps.slice(0, 7).map(({ cat }) => {
+                            const dCfg = difficultyCfg[cat.difficulty];
+                            const barW = Math.round((cat.linkMagnet / 100) * 100);
+                            return (
+                              <div key={cat.name} className="rounded-xl border border-rose-100 overflow-hidden">
+                                <div className="flex items-center justify-between px-3.5 py-2 bg-rose-50">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="text-[11px] shrink-0">{cat.icon}</span>
+                                    <span className="text-[8.5px] font-bold text-rose-800 truncate">{cat.name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${dCfg.badge}`}>{dCfg.icon} {dCfg.label}</span>
+                                    <span className="text-[8px] font-black text-rose-700 tabular-nums">{cat.linkMagnet}/100</span>
+                                  </div>
+                                </div>
+                                <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                  {/* Link magnet bar */}
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[7px] text-slate-400 w-20 shrink-0">Link magnet score</span>
+                                    <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                      <div className="h-full rounded-full bg-violet-400" style={{ width: `${barW}%` }} />
+                                    </div>
+                                    <span className="text-[7px] tabular-nums text-slate-400 shrink-0 w-8 text-right">{cat.linkMagnet}</span>
+                                  </div>
+                                  {/* Why it earns links */}
+                                  <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-violet-50 border border-violet-100">
+                                    <span className="text-[9px] shrink-0">🔗</span>
+                                    <p className="text-[8px] text-violet-900 leading-snug">{cat.why}</p>
+                                  </div>
+                                  {/* Keyword triggers */}
+                                  <div className="flex flex-wrap gap-1">
+                                    <span className="text-[7px] text-slate-400 self-center mr-0.5">Cover:</span>
+                                    {cat.keywords.slice(0, 6).map((k) => (
+                                      <span key={k} className="text-[7px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">{k}</span>
+                                    ))}
+                                    {cat.keywords.length > 6 && <span className="text-[7px] text-slate-400 self-center">+{cat.keywords.length - 6} more triggers</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Thin coverage — needs reinforcing */}
+                        {thin.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Thin coverage — one entry isn't enough to own the category:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {thin.map(({ cat, covering }) => (
+                                <div key={cat.name} className="rounded-xl border border-amber-100 overflow-hidden">
+                                  <div className="flex items-center justify-between px-3.5 py-2 bg-amber-50">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className="text-[10px] shrink-0">{cat.icon}</span>
+                                      <span className="text-[8px] font-bold text-amber-800 truncate">{cat.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${difficultyCfg[cat.difficulty].badge}`}>{difficultyCfg[cat.difficulty].icon} {difficultyCfg[cat.difficulty].label}</span>
+                                      <span className="text-[7.5px] font-bold text-amber-600 tabular-nums">{cat.linkMagnet}/100</span>
+                                    </div>
+                                  </div>
+                                  <div className="px-3.5 py-2 bg-white">
+                                    <p className="text-[7.5px] text-slate-500 mb-1">
+                                      Current coverage: <span className="font-semibold text-slate-700">{covering[0].angle}</span>
+                                    </p>
+                                    <p className="text-[7.5px] text-amber-700">→ Add a second, more comprehensive piece to establish topical authority — one entry signals interest, two signals expertise, three signals ownership.</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Covered categories — authority strengths */}
+                        {covered.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">✅ Authority strengths — categories the calendar owns:</p>
+                            <div className="space-y-1">
+                              {covered.sort((a, b) => b.cat.linkMagnet - a.cat.linkMagnet).map(({ cat, covering }) => (
+                                <div key={cat.name} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                  <span className="text-[10px] shrink-0 mt-0.5">{cat.icon}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                                      <span className="text-[8px] font-bold text-emerald-800">{cat.name}</span>
+                                      <span className="text-[7px] text-emerald-600">{covering.length} piece{covering.length !== 1 ? "s" : ""} · {cat.linkMagnet}/100 magnet</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {covering.slice(0, 3).map((e) => (
+                                        <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[14rem] ${TYPE_COLOR[e.type]}`}>{e.angle}</span>
+                                      ))}
+                                      {covering.length > 3 && <span className="text-[7px] text-emerald-600 self-center">+{covering.length - 3} more</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Debt Register ────────────────────────────────── */}
                 {calendar.length > 0 && (() => {
