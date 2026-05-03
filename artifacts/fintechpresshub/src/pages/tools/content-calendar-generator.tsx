@@ -1696,6 +1696,84 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Emotional Register Calibrator ───────────────────────────────────────────
+// Analyses each entry's angle for dominant emotional tone and scores portfolio variety
+
+type EmotionalRegister = "authoritative" | "alarming" | "optimistic" | "pragmatic" | "contrarian" | "aspirational";
+
+const EMOTIONAL_SIGNALS: Record<EmotionalRegister, string[]> = {
+  authoritative: [
+    "definitive guide","everything you need to know","best practice","the standard",
+    "industry standard","how to ","step by step","complete guide","framework for",
+    "methodology","proven","according to","the right way","must-know","essential guide",
+    "comprehensive","the fundamentals","official","authoritative","reference guide",
+  ],
+  alarming: [
+    "risk","threat","danger","failure","mistake","warning","crisis","breach",
+    "penalty","fine ","violation","compliance failure","what happens when",
+    "the cost of ignoring","red flag","fatal flaw","ticking time bomb","under attack",
+    "exposed","vulnerable","falling behind","left behind","wake-up call","hidden cost",
+  ],
+  optimistic: [
+    "opportunity","growth","future of","innovation","transformation","revolution",
+    "game-changer","unlock","power of","leading the way","ahead of the curve",
+    "winning","advantage","rise of","emerging","next generation","breakthrough",
+    "exciting","thriving","bold new","potential","momentum","accelerate","bright",
+  ],
+  pragmatic: [
+    "in practice","practical","real-world","step by step","hands-on","operational",
+    "what actually works","lessons learned","from the trenches","in plain english",
+    "plain language","no jargon","straightforward","without the hype","honest look",
+    "frank guide","no-nonsense","getting it done","implementation","tactical","reality",
+  ],
+  contrarian: [
+    "why you're wrong","the truth about","myth","misconception","challenging",
+    "unpopular opinion","contrarian","rethinking","think again","everyone is",
+    "not what you think","the real reason","the case against","debunking",
+    "overrated","why most","actually wrong","stop believing","stop doing",
+    "the uncomfortable truth","what nobody tells you","surprising truth","counterintuitive",
+  ],
+  aspirational: [
+    "becoming","transform your","the next ","pioneering","visionary","bold",
+    "audacious","ambition","build the future","world-class","best-in-class",
+    "category leader","market leader","top performer","raising the bar","elite",
+    "redefine","reshape","reinvent","set the standard","lead the industry","inspire",
+  ],
+};
+
+const REGISTER_CFG: Record<EmotionalRegister, { label: string; icon: string; color: string; bg: string; border: string; bar: string; pill: string; audienceEffect: string; overuseTip: string }> = {
+  authoritative: { label: "Authoritative", icon: "📘", color: "text-slate-700",   bg: "bg-slate-50",   border: "border-slate-200",   bar: "bg-slate-500",   pill: "bg-slate-100 text-slate-700 border-slate-200",     audienceEffect: "Builds credibility; positions the brand as the definitive expert. Essential but easily overused — excess reads like a compliance manual that audiences skim rather than absorb.",    overuseTip: "Break the authoritative monotone with a pragmatic or contrarian angle every 3–4 pieces — 'Here's the standard approach and why we recommend a different one in practice'" },
+  alarming:      { label: "Alarming",      icon: "⚠️", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100",    bar: "bg-rose-400",    pill: "bg-rose-100 text-rose-700 border-rose-200",        audienceEffect: "Creates urgency and drives immediate engagement; compliance and risk content naturally lives here. Highly effective in fintech but causes reader fatigue when it exceeds 25% of the calendar.", overuseTip: "Pair every alarming piece with an optimistic or pragmatic counterpart — 'the threat' piece should be quickly followed by 'the framework for addressing it'"              },
+  optimistic:    { label: "Optimistic",    icon: "🌅", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   bar: "bg-amber-400",   pill: "bg-amber-100 text-amber-700 border-amber-200",     audienceEffect: "Attracts early-stage buyers and thought leadership audiences; drives social sharing and brand affinity. Risks feeling ungrounded if not anchored to evidence and concrete specifics.",   overuseTip: "Ground every optimistic piece with a specific data point or case study — 'The opportunity in [category] is £Xbn — here is what the evidence shows'"                      },
+  pragmatic:     { label: "Pragmatic",     icon: "🔧", color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100",    bar: "bg-blue-400",    pill: "bg-blue-100 text-blue-700 border-blue-200",        audienceEffect: "Resonates strongly with operations and engineering personas who are tired of hype; builds a trusted practitioner voice. The most under-represented register in fintech B2B content.",  overuseTip: "Pragmatic pieces earn high long-term readership but lower initial virality — promote them more aggressively at the 2-week mark when launch traffic has settled"            },
+  contrarian:    { label: "Contrarian",    icon: "🎯", color: "text-purple-700",  bg: "bg-purple-50",  border: "border-purple-100",  bar: "bg-purple-400",  pill: "bg-purple-100 text-purple-700 border-purple-200",  audienceEffect: "Highest shareability and discussion of any register; triggers strong reactions that drive algorithmic amplification on LinkedIn and industry newsletters. Chronically under-planned.",    overuseTip: "Contrarian pieces require strong evidence — an unsupported contrarian claim damages credibility faster than any other register. Always back the position with data or research" },
+  aspirational:  { label: "Aspirational",  icon: "🚀", color: "text-fuchsia-700", bg: "bg-fuchsia-50", border: "border-fuchsia-100", bar: "bg-fuchsia-400", pill: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200", audienceEffect: "Strongest with CEO and board audiences who think in terms of market positioning and strategic identity; drives event speaking invitations and partnership enquiries.",          overuseTip: "Aspirational content without evidence is marketing brochure territory — anchor each aspirational piece to a real company or real outcome to maintain credibility"          },
+};
+
+const EMOTIONAL_IDEAL: Record<EmotionalRegister, { min: number; max: number }> = {
+  authoritative: { min: 25, max: 45 },
+  alarming:      { min: 10, max: 25 },
+  optimistic:    { min: 15, max: 30 },
+  pragmatic:     { min: 15, max: 30 },
+  contrarian:    { min: 10, max: 20 },
+  aspirational:  { min: 5,  max: 15 },
+};
+
+function detectRegisters(topic: string, angle: string): Partial<Record<EmotionalRegister, number>> {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  const result: Partial<Record<EmotionalRegister, number>> = {};
+  (Object.keys(EMOTIONAL_SIGNALS) as EmotionalRegister[]).forEach((r) => {
+    const hits = EMOTIONAL_SIGNALS[r].filter((s) => hay.includes(s)).length;
+    if (hits > 0) result[r] = hits;
+  });
+  return result;
+}
+
+function dominantRegister(ps: Partial<Record<EmotionalRegister, number>>): EmotionalRegister {
+  const REGS: EmotionalRegister[] = ["authoritative","alarming","optimistic","pragmatic","contrarian","aspirational"];
+  return REGS.reduce((best, r) => (ps[r] ?? 0) > (ps[best] ?? 0) ? r : best, "authoritative" as EmotionalRegister);
+}
+
 // ─── Content Longevity Predictor ─────────────────────────────────────────────
 // Classifies each entry by expected shelf life and scores portfolio longevity balance
 
@@ -7358,6 +7436,249 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Emotional Register Calibrator ────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const REGS: EmotionalRegister[] = ["authoritative","alarming","optimistic","pragmatic","contrarian","aspirational"];
+
+                  const detected = calendar.map((e) => {
+                    const regs = detectRegisters(e.topic, e.angle);
+                    return { entry: e, regs, dominant: dominantRegister(regs) };
+                  });
+                  const n = detected.length;
+
+                  // Coverage rate = % of entries whose dominant register is each type
+                  const domCount = {} as Record<EmotionalRegister, number>;
+                  REGS.forEach((r) => { domCount[r] = detected.filter((d) => d.dominant === r).length; });
+                  const domRate  = {} as Record<EmotionalRegister, number>;
+                  REGS.forEach((r) => { domRate[r] = n > 0 ? domCount[r] / n : 0; });
+
+                  // Any-presence rate (≥1 signal hit, even if not dominant)
+                  const anyCount = {} as Record<EmotionalRegister, number>;
+                  REGS.forEach((r) => { anyCount[r] = detected.filter((d) => r in d.regs).length; });
+                  const anyRate  = {} as Record<EmotionalRegister, number>;
+                  REGS.forEach((r) => { anyRate[r] = n > 0 ? anyCount[r] / n : 0; });
+
+                  // Portfolio Emotional Balance Score (0-100)
+                  const registersPresent = REGS.filter((r) => anyCount[r] > 0).length;
+                  const breadthScore     = Math.round((registersPresent / 6) * 40);
+
+                  const contraryScore    = Math.round(Math.min(1, anyRate.contrarian / 0.10) * 25);
+
+                  const maxDomRate       = Math.max(...REGS.map((r) => domRate[r]));
+                  const monotoneScore    = maxDomRate <= 0.40 ? 20 : maxDomRate <= 0.65 ? Math.round(((0.65 - maxDomRate) / 0.25) * 20) : 0;
+
+                  const alarmR           = anyRate.alarming;
+                  const alarmScore       = alarmR >= 0.10 && alarmR <= 0.25 ? 15 : alarmR < 0.10 ? Math.round((alarmR / 0.10) * 15) : alarmR <= 0.40 ? Math.round(((0.40 - alarmR) / 0.15) * 15) : 0;
+
+                  const emotionScore     = breadthScore + contraryScore + monotoneScore + alarmScore;
+
+                  const eCfg =
+                    emotionScore >= 75 ? { label: "Well-calibrated emotional range",        color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-100" } :
+                    emotionScore >= 50 ? { label: "Moderate range — some monotone risk",    color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100"   } :
+                    emotionScore >= 25 ? { label: "Narrow register — audience fatigue risk", color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100"  } :
+                                         { label: "Single-register — voices causing fatigue", color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100"   };
+
+                  // Dominant register overall (for monotone warning)
+                  const portfolioDominant = REGS.reduce((best, r) => domRate[r] > domRate[best] ? r : best, "authoritative" as EmotionalRegister);
+                  const isMonotone = domRate[portfolioDominant] > 0.55;
+
+                  // Under-represented registers (any-presence below ideal min)
+                  const underReg = REGS
+                    .map((r) => ({ r, anyPct: Math.round(anyRate[r] * 100), ideal: EMOTIONAL_IDEAL[r] }))
+                    .filter(({ anyPct, ideal }) => anyPct < ideal.min)
+                    .sort((a, b) => (a.ideal.min - a.anyPct) - (b.ideal.min - b.anyPct))
+                    .reverse();
+
+                  return (
+                    <Card className="border border-gray-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🎭</span>
+                            <p className="text-xs font-semibold text-slate-700">Emotional Register Calibrator</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${eCfg.color} ${eCfg.bg} ${eCfg.border}`}>
+                            {emotionScore}/100 · {eCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Analyses the emotional register of each entry across six fintech content voices — Authoritative, Alarming, Optimistic, Pragmatic, Contrarian, and Aspirational — by detecting tone signals in the angle field. Scores portfolio variety against ideal distribution ranges, flags when the calendar is locked into a single register that will cause audience fatigue even with diverse topics, and highlights the chronically under-planned contrarian register that delivers the highest LinkedIn shareability in fintech B2B.
+                        </p>
+
+                        {/* Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${eCfg.bg} ${eCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${eCfg.color}`}>{emotionScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Register breadth",    val: breadthScore,  max: 40, desc: `${registersPresent}/6 registers present in calendar (any-presence ≥1 signal hit)` },
+                              { label: "Contrarian coverage", val: contraryScore, max: 25, desc: `contrarian any-presence = ${Math.round(anyRate.contrarian*100)}% — target ≥10% (highest shareability register)` },
+                              { label: "Non-monotone",        val: monotoneScore, max: 20, desc: `dominant register = ${Math.round(maxDomRate*100)}% — target no single register >40%` },
+                              { label: "Alarm balance",       val: alarmScore,    max: 15, desc: `alarming any-presence = ${Math.round(alarmR*100)}% — ideal 10–25% (creates urgency without fear fatigue)` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${eCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Distribution bar + chips */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Dominant register distribution:</p>
+                        <div className="flex h-5 w-full rounded-lg overflow-hidden mb-1.5">
+                          {REGS.map((r) => {
+                            const pct = Math.round(domRate[r] * 100);
+                            return pct > 0 ? (
+                              <div key={r} className={`flex items-center justify-center text-[6.5px] font-bold text-white ${REGISTER_CFG[r].bar}`} style={{ width: `${pct}%` }} title={`${REGISTER_CFG[r].label}: ${pct}%`}>
+                                {pct >= 8 ? `${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-4">
+                          {REGS.map((r) => {
+                            const cfg = REGISTER_CFG[r];
+                            const ideal = EMOTIONAL_IDEAL[r];
+                            const pct = Math.round(domRate[r] * 100);
+                            const atRisk = pct < ideal.min;
+                            return (
+                              <div key={r} className={`rounded-lg border px-2 py-1.5 text-center ${cfg.bg} ${cfg.border}`}>
+                                <p className="text-[6.5px] text-slate-400 mb-0.5">{cfg.icon} {cfg.label}</p>
+                                <p className={`text-[11px] font-black leading-none ${atRisk ? "text-rose-600" : cfg.color}`}>{pct}%</p>
+                                <p className="text-[6px] text-slate-400 mt-0.5">target {ideal.min}–{ideal.max}%</p>
+                                {atRisk && <p className="text-[6px] text-rose-500 font-bold">↓ under</p>}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Monotone warning */}
+                        {isMonotone && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+                            <p className="text-[7.5px] text-amber-800 leading-snug">
+                              <span className="font-bold">{REGISTER_CFG[portfolioDominant].icon} {REGISTER_CFG[portfolioDominant].label} dominates at {Math.round(domRate[portfolioDominant]*100)}% of entries.</span> A calendar locked into a single emotional register produces audience fatigue independent of topic diversity — readers stop experiencing the content as varied even when the subjects are completely different, because the voice, tone, and implied emotional contract are identical every time. {REGISTER_CFG[portfolioDominant].overuseTip}.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Ideal vs actual table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Ideal range vs actual:</p>
+                        <div className="rounded-xl border border-slate-100 overflow-hidden mb-4">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead className="bg-slate-50">
+                              <tr>
+                                <th className="text-left text-slate-500 font-semibold px-3 py-1.5">Register</th>
+                                <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Ideal range</th>
+                                <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Dominant %</th>
+                                <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Any-presence %</th>
+                                <th className="text-left text-slate-500 font-semibold px-3 py-1.5">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {REGS.map((r) => {
+                                const cfg   = REGISTER_CFG[r];
+                                const ideal = EMOTIONAL_IDEAL[r];
+                                const dom   = Math.round(domRate[r] * 100);
+                                const any   = Math.round(anyRate[r] * 100);
+                                const status =
+                                  any >= ideal.min && any <= ideal.max ? { label: "✓ On target",          cls: "text-emerald-600 bg-emerald-50 border-emerald-100" } :
+                                  any > ideal.max                      ? { label: `↑ Over by ${any - ideal.max}pp`,  cls: "text-amber-600 bg-amber-50 border-amber-100"   } :
+                                                                         { label: `↓ Under by ${ideal.min - any}pp`, cls: "text-rose-600 bg-rose-50 border-rose-100"      };
+                                return (
+                                  <tr key={r} className="border-t border-slate-50">
+                                    <td className="px-3 py-1.5">
+                                      <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.pill}`}>{cfg.icon} {cfg.label}</span>
+                                    </td>
+                                    <td className="text-center px-3 py-1.5 text-slate-500">{ideal.min}–{ideal.max}%</td>
+                                    <td className="text-center px-3 py-1.5"><span className={`font-black tabular-nums ${cfg.color}`}>{dom}%</span></td>
+                                    <td className="text-center px-3 py-1.5 text-slate-500">{any}%</td>
+                                    <td className="px-3 py-1.5">
+                                      <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${status.cls}`}>{status.label}</span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <p className="text-[7px] text-slate-400 px-3 py-1.5 bg-slate-50 border-t border-slate-100">Dominant % = entries where this is the top register · Any-presence % = entries with ≥1 signal hit (entries can carry multiple registers)</p>
+                        </div>
+
+                        {/* Under-represented register gap cards */}
+                        {underReg.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Under-represented registers — content voice gaps to fill:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {underReg.map(({ r, anyPct, ideal }) => {
+                                const cfg = REGISTER_CFG[r];
+                                const gap = ideal.min - anyPct;
+                                const needed = Math.max(1, Math.ceil((ideal.min / 100) * n) - anyCount[r]);
+                                return (
+                                  <div key={r} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                    <div className={`flex items-center justify-between px-3.5 py-2 ${cfg.bg}`}>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[10px]">{cfg.icon}</span>
+                                        <span className={`text-[8.5px] font-bold ${cfg.color}`}>{cfg.label}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100">{anyPct}% vs ≥{ideal.min}% ideal — {gap}pp gap</span>
+                                        <span className="text-[7px] text-slate-400">≈{needed} piece{needed !== 1 ? "s" : ""} needed</span>
+                                      </div>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                      <p className="text-[7.5px] text-slate-600 leading-snug">{cfg.audienceEffect}</p>
+                                      <p className="text-[7.5px] text-slate-500 leading-snug italic">✏️ {cfg.overuseTip}</p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Contrarian spotlight (always shown — too important to hide) */}
+                        {anyCount.contrarian === 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-purple-50 border border-purple-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🎯</span>
+                            <p className="text-[7.5px] text-purple-800 leading-snug">
+                              <span className="font-bold">Zero contrarian content detected.</span> The contrarian register consistently outperforms all other registers for LinkedIn engagement, newsletter sharing, and inbound link acquisition in fintech B2B. Pieces that challenge a dominant industry assumption — "Why most banks are solving the wrong problem with AI", "The myth of the frictionless payment" — generate 3–5× more social amplification than equivalent authoritative guides. Even one well-evidenced contrarian piece per quarter materially shifts content distribution metrics. Contrarian content requires a genuine position backed by data — but the payoff in reach and brand authority is disproportionate to the production investment.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Per-entry register table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Entry emotional register breakdown:</p>
+                        <div className="space-y-0.5">
+                          {detected.map(({ entry: e, regs: ps, dominant: dom }) => {
+                            const allRegs = (Object.keys(ps) as EmotionalRegister[]);
+                            return (
+                              <div key={entryKey(e)} className="flex items-center gap-1.5 py-0.5 border-b border-slate-50">
+                                <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                <span className="text-[7px] text-slate-600 truncate flex-1 min-w-0">{e.angle.slice(0,30)}{e.angle.length > 30 ? "…" : ""}</span>
+                                <div className="flex gap-0.5 shrink-0">
+                                  <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${REGISTER_CFG[dom].pill}`}>{REGISTER_CFG[dom].icon} {REGISTER_CFG[dom].label}</span>
+                                  {allRegs.filter((r) => r !== dom).slice(0,2).map((r) => (
+                                    <span key={r} className="text-[6.5px] text-slate-400 px-1 py-0.5">{REGISTER_CFG[r].icon}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[7px] text-slate-400 mt-2">Dominant register shown as coloured pill · Secondary registers shown as icons · Entries with no detected signals default to Authoritative (the implicit fintech content voice)</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Longevity Predictor ──────────────────────────── */}
                 {calendar.length > 0 && (() => {
