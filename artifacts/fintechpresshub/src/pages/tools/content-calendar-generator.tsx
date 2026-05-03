@@ -1696,6 +1696,73 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Publishing Risk & Compliance Flags ──────────────────────────────────────
+interface ComplianceRule {
+  category: string;
+  level:    "high" | "medium" | "low";
+  signals:  string[];
+  reason:   string;
+  action:   string;
+}
+const COMPLIANCE_RULES: ComplianceRule[] = [
+  {
+    category: "Investment Advice",
+    level:    "high",
+    signals:  ["invest","investment","return on","yield","portfolio","asset allocation","fund","etf","equity","wealth management","financial advice","recommend buying","buy now","sell now"],
+    reason:   "Content may be interpreted as regulated financial advice under FCA/SEC rules",
+    action:   "Add 'This is not financial advice' disclaimer. Submit for legal review before scheduling",
+  },
+  {
+    category: "Crypto Promotion",
+    level:    "high",
+    signals:  ["crypto","bitcoin","ethereum","token","nft","defi","staking","yield farming","digital asset","web3","altcoin"],
+    reason:   "Crypto financial promotions have been FCA-regulated since October 2023",
+    action:   "Must be approved by an FCA-authorised firm before publication — no exceptions",
+  },
+  {
+    category: "Performance Guarantee",
+    level:    "high",
+    signals:  ["guaranteed","guarantee","risk-free","risk free","never lose","always profitable","100% return","zero risk","capital protected"],
+    reason:   "Guarantee language violates FCA Principle 7 and ASA advertising standards",
+    action:   "Remove all guarantee claims. Replace with 'up to' language and add capital-at-risk warning",
+  },
+  {
+    category: "Credit & Lending",
+    level:    "medium",
+    signals:  ["loan","credit","lending","apr","interest rate","borrowing","debt","repayment","mortgage","overdraft","credit score","bnpl","buy now pay later"],
+    reason:   "Credit advertising must include representative APR and meet FCA consumer credit rules",
+    action:   "Include representative APR example if citing rates. Confirm FCA consumer credit permissions",
+  },
+  {
+    category: "Regulatory Claims",
+    level:    "medium",
+    signals:  ["fca regulated","sec approved","gdpr compliant","psd2","aml","kyc","mifid","basel","ifrs","gaap","iso 27001","pci dss","soc 2"],
+    reason:   "Regulatory compliance statements can be misread as official certification or guidance",
+    action:   "Compliance/legal team must verify all regulatory claims for accuracy before publication",
+  },
+  {
+    category: "Data & Privacy",
+    level:    "medium",
+    signals:  ["personal data","user data","data sharing","biometric","open banking data","data collection","tracking","behavioural data","data broker","sell your data"],
+    reason:   "Privacy claims must be legally accurate under GDPR/CCPA — inaccuracy risks ICO complaint",
+    action:   "DPO review required. Verify all data statements reflect current processing practices",
+  },
+  {
+    category: "Insurance Claims",
+    level:    "low",
+    signals:  ["insurance","insured","underwrite","premium","cover","claims","policy","indemnity","reinsurance"],
+    reason:   "Insurance content is FCA/PRA-regulated — factual errors risk enforcement action",
+    action:   "Cross-check all insurance product descriptions with compliance before scheduling",
+  },
+  {
+    category: "Fee & Pricing Claims",
+    level:    "low",
+    signals:  ["no fee","fee-free","no hidden","free transfer","zero commission","no charge","lowest fee","cheapest"],
+    reason:   "Pricing claims must match published terms to avoid CMA/ASA consumer protection issues",
+    action:   "Cross-check all fee claims against current live pricing before publication",
+  },
+];
+
 // ─── Content ROI Projection ───────────────────────────────────────────────────
 const MQL_BASE: Record<ContentType, { low: number; high: number }> = {
   webinar:        { low: 15, high: 40 },
@@ -5731,6 +5798,142 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Publishing Risk & Compliance Flags ───────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Scan each entry's topic + angle against every rule
+                  const flagged = calendar
+                    .map((e) => {
+                      const haystack = `${e.topic} ${e.angle}`.toLowerCase();
+                      const flags = COMPLIANCE_RULES.filter((r) =>
+                        r.signals.some((s) => haystack.includes(s)),
+                      );
+                      return { e, flags };
+                    })
+                    .filter((x) => x.flags.length > 0)
+                    .sort((a, b) => {
+                      const lvl = (f: ComplianceRule[]) =>
+                        f.some((r) => r.level === "high") ? 0
+                        : f.some((r) => r.level === "medium") ? 1 : 2;
+                      return lvl(a.flags) - lvl(b.flags) || b.flags.length - a.flags.length;
+                    });
+
+                  const highCount   = flagged.filter((x) => x.flags.some((f) => f.level === "high")).length;
+                  const mediumCount = flagged.filter((x) => x.flags.every((f) => f.level !== "high") && x.flags.some((f) => f.level === "medium")).length;
+                  const lowCount    = flagged.filter((x) => x.flags.every((f) => f.level === "low")).length;
+
+                  const levelCfg = (l: ComplianceRule["level"]) =>
+                    l === "high"   ? { bg: "bg-rose-100",  text: "text-rose-700",  border: "border-rose-200",  dot: "bg-rose-400",  label: "High risk"   }
+                    : l === "medium" ? { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200", dot: "bg-amber-400", label: "Medium risk" }
+                    :                  { bg: "bg-blue-100",  text: "text-blue-600",  border: "border-blue-200",  dot: "bg-blue-400",  label: "Low risk"    };
+
+                  return (
+                    <Card className="border border-rose-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">⚖️</span>
+                            <p className="text-xs font-semibold text-slate-700">Publishing Risk & Compliance Flags</p>
+                          </div>
+                          {flagged.length === 0 ? (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                              All clear
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              {highCount   > 0 && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100  text-rose-700  border border-rose-200">{highCount} high</span>}
+                              {mediumCount > 0 && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">{mediumCount} medium</span>}
+                              {lowCount    > 0 && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-100  text-blue-600  border border-blue-200">{lowCount} low</span>}
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Scans every entry's topic and angle for signals that typically require legal, regulatory, or compliance review before publication in fintech.
+                        </p>
+
+                        {flagged.length === 0 ? (
+                          <div className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                            <span className="text-xl leading-none">✅</span>
+                            <div>
+                              <p className="text-[10px] font-bold text-emerald-700">No compliance flags detected</p>
+                              <p className="text-[8.5px] text-emerald-600 mt-0.5">
+                                None of the scanned topics or working titles triggered a known regulatory or legal risk signal. Always perform a final human compliance review before publishing.
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {/* Risk legend */}
+                            <div className="flex flex-wrap gap-3 mb-3">
+                              {(["high","medium","low"] as const).map((l) => {
+                                const c = levelCfg(l);
+                                return (
+                                  <span key={l} className="text-[8.5px] text-slate-500 flex items-center gap-1">
+                                    <span className={`inline-block w-2 h-2 rounded-full ${c.dot}`} />
+                                    {c.label}
+                                  </span>
+                                );
+                              })}
+                            </div>
+
+                            {/* Flagged entries */}
+                            <div className="space-y-3">
+                              {flagged.map(({ e, flags }) => {
+                                const topLevel = flags.some((f) => f.level === "high") ? "high"
+                                  : flags.some((f) => f.level === "medium") ? "medium" : "low";
+                                const tc = levelCfg(topLevel);
+                                return (
+                                  <div key={entryKey(e)} className={`rounded-xl border overflow-hidden ${tc.border}`}>
+                                    {/* Entry header */}
+                                    <div className={`flex flex-wrap items-start justify-between gap-2 px-3.5 py-2 border-b ${tc.border} ${tc.bg} bg-opacity-30`}>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                          <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>
+                                            {FORMAT_LABEL[e.type]}
+                                          </span>
+                                          <span className="text-[8px] text-slate-400">Wk {e.week}</span>
+                                        </div>
+                                        <p className="text-[10px] font-bold text-slate-700 line-clamp-2 leading-snug">{e.angle}</p>
+                                        <p className="text-[8.5px] text-slate-500 mt-0.5">{e.topic}</p>
+                                      </div>
+                                      <span className={`text-[8.5px] font-bold px-2 py-0.5 rounded-full shrink-0 ${tc.bg} ${tc.text}`}>
+                                        {flags.length} flag{flags.length !== 1 ? "s" : ""}
+                                      </span>
+                                    </div>
+
+                                    {/* Per-flag rows */}
+                                    <div className="divide-y divide-slate-100 bg-white">
+                                      {flags.map((flag) => {
+                                        const fc = levelCfg(flag.level);
+                                        return (
+                                          <div key={flag.category} className="px-3.5 py-2">
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                              <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${fc.dot}`} />
+                                              <span className={`text-[8.5px] font-bold ${fc.text}`}>{flag.category}</span>
+                                              <span className={`text-[7.5px] px-1 py-0.5 rounded ${fc.bg} ${fc.text} font-semibold`}>{flag.level}</span>
+                                            </div>
+                                            <p className="text-[8.5px] text-slate-500 mb-1 leading-snug">⚠️ {flag.reason}</p>
+                                            <p className="text-[8.5px] text-slate-700 font-semibold leading-snug">→ {flag.action}</p>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Disclaimer */}
+                            <p className="text-[8px] text-slate-400 mt-3 italic text-center">
+                              This is an automated signal scan, not legal advice. Always perform a final human compliance review before publishing.
+                            </p>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content ROI Projection ───────────────────────────────── */}
                 {calendar.length > 0 && (() => {
