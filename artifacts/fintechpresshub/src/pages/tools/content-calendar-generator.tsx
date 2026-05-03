@@ -1696,6 +1696,119 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Narrative Arc Sequencer ─────────────────────────────────────────────────
+// Detects the editorial stage of each entry and flags sequencing inversions
+// within topic clusters — ensures awareness content precedes advanced content
+
+const ARC_AWARENESS_SIGNALS = [
+  "what is ","what are ","introduction to","beginner","overview of","why does",
+  "why is ","what makes","the case for","the basics of"," 101 ","101:","explained",
+  "demystified","everything you need to know","primer","getting to know",
+  "fundamentals of","for beginners","making sense of","making the case",
+];
+
+const ARC_EDUCATION_SIGNALS = [
+  "how does","understanding ","complete guide","definitive guide","deep dive",
+  "anatomy of","inside ","behind the scenes","mechanics of","how it works",
+  "breakdown of","unpacking","dissecting","a closer look","exploring ",
+  "in depth","the truth about","guide to","the full story","comprehensive",
+];
+
+const ARC_CONSIDERATION_SIGNALS = [
+  " vs "," versus ","compared to","comparison","how to choose","evaluating ",
+  "selecting ","options for","alternatives to","checklist","scorecard",
+  "buyer's guide","vendor selection","which ","should you","choosing between",
+  "the right ","trade-off","make the case","build vs buy",
+];
+
+const ARC_IMPLEMENTATION_SIGNALS = [
+  "how to ","step-by-step","getting started","building ","implementing",
+  "setting up","deploying","integrating","migration guide","rollout","launch ",
+  "practical guide","hands-on","in practice","playbook","a framework for",
+  "a process for","workflow for","blueprint","checklist for","guide to building",
+];
+
+const ARC_ADVANCED_SIGNALS = [
+  "advanced","optimising","expert ","mastering","scaling ","troubleshooting",
+  "lessons from","case study","results from","what we learned","post-mortem",
+  "retrospective","maximising","next level","roi of","measuring the impact",
+  "beyond ","after ","once you've","when you've","for teams who",
+];
+
+type ArcStage = "awareness" | "education" | "consideration" | "implementation" | "advanced" | "unknown";
+
+const ARC_STAGE_ORDER: Record<ArcStage, number> = {
+  awareness: 1, education: 2, consideration: 3, implementation: 4, advanced: 5, unknown: 0,
+};
+
+const ARC_STAGE_CFG: Record<ArcStage, { label: string; short: string; icon: string; color: string; bg: string; border: string; pill: string; bar: string }> = {
+  awareness:      { label: "Awareness",      short: "Aware",  icon: "🌱", color: "text-emerald-700", bg: "bg-emerald-50",  border: "border-emerald-100", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", bar: "bg-emerald-400" },
+  education:      { label: "Education",      short: "Edu",    icon: "📚", color: "text-blue-700",    bg: "bg-blue-50",     border: "border-blue-100",    pill: "bg-blue-100 text-blue-700 border-blue-200",          bar: "bg-blue-400"    },
+  consideration:  { label: "Consideration",  short: "Consid", icon: "⚖️", color: "text-violet-700",  bg: "bg-violet-50",   border: "border-violet-100",  pill: "bg-violet-100 text-violet-700 border-violet-200",    bar: "bg-violet-400"  },
+  implementation: { label: "Implementation", short: "Impl",   icon: "🔧", color: "text-amber-700",   bg: "bg-amber-50",    border: "border-amber-100",   pill: "bg-amber-100 text-amber-700 border-amber-200",       bar: "bg-amber-400"   },
+  advanced:       { label: "Advanced",       short: "Adv",    icon: "🚀", color: "text-rose-700",    bg: "bg-rose-50",     border: "border-rose-100",    pill: "bg-rose-100 text-rose-700 border-rose-200",          bar: "bg-rose-400"    },
+  unknown:        { label: "Unclassified",   short: "—",      icon: "⚪", color: "text-slate-400",   bg: "bg-slate-50",    border: "border-slate-100",   pill: "bg-slate-100 text-slate-400 border-slate-200",       bar: "bg-slate-300"   },
+};
+
+function detectArcStage(angle: string): ArcStage {
+  const h = angle.toLowerCase();
+  const scored: [ArcStage, number][] = [
+    ["awareness",      ARC_AWARENESS_SIGNALS.filter((s)      => h.includes(s)).length],
+    ["education",      ARC_EDUCATION_SIGNALS.filter((s)      => h.includes(s)).length],
+    ["consideration",  ARC_CONSIDERATION_SIGNALS.filter((s)  => h.includes(s)).length],
+    ["implementation", ARC_IMPLEMENTATION_SIGNALS.filter((s) => h.includes(s)).length],
+    ["advanced",       ARC_ADVANCED_SIGNALS.filter((s)       => h.includes(s)).length],
+  ];
+  const best = scored.reduce((a, b) => (b[1] > a[1] ? b : a));
+  return best[1] > 0 ? best[0] : "unknown";
+}
+
+interface ArcEntry { date: string; angle: string; type: ContentType; stage: ArcStage; }
+
+interface ArcClusterResult {
+  topic:          string;
+  entries:        ArcEntry[];
+  inversions:     number;
+  gaps:           number;
+  stages:         ArcStage[];
+  hasFoundation:  boolean;
+  hasAdvanced:    boolean;
+  score:          number;
+}
+
+function analyseArcCluster(
+  topic: string,
+  rawEntries: Array<{ date: string; angle: string; type: ContentType }>,
+): ArcClusterResult {
+  const sorted = [...rawEntries].sort((a, b) => a.date.localeCompare(b.date));
+  const stages = sorted.map((e) => detectArcStage(e.angle));
+  const entries: ArcEntry[] = sorted.map((e, i) => ({ ...e, stage: stages[i] }));
+
+  let inversions = 0;
+  let gaps = 0;
+  for (let i = 0; i < stages.length - 1; i++) {
+    const cur  = stages[i];
+    const nxt  = stages[i + 1];
+    if (cur === "unknown" || nxt === "unknown") continue;
+    const diff = ARC_STAGE_ORDER[nxt] - ARC_STAGE_ORDER[cur];
+    if (diff < -1) inversions++;
+    if (diff >  2) gaps++;
+  }
+
+  const known        = stages.filter((s) => s !== "unknown");
+  const hasFoundation = known.some((s) => s === "awareness" || s === "education");
+  const hasAdvanced   = known.some((s) => s === "implementation" || s === "advanced");
+
+  const score = Math.max(0, Math.min(100,
+    100
+    - inversions * 30
+    - gaps       * 15
+    - (hasAdvanced && !hasFoundation ? 25 : 0)
+  ));
+
+  return { topic, entries, inversions, gaps, stages, hasFoundation, hasAdvanced, score };
+}
+
 // ─── Publication Timing Optimiser ────────────────────────────────────────────
 // Scores each entry's publication date against fintech event/regulatory/budget cycles
 
@@ -7721,6 +7834,250 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Narrative Arc Sequencer ──────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Group by topic, same key as cluster cohesion
+                  const topicMap = new Map<string, Array<{ date: string; angle: string; type: ContentType }>>();
+                  calendar.forEach((e) => {
+                    const key = e.topic.toLowerCase().trim();
+                    if (!topicMap.has(key)) topicMap.set(key, []);
+                    topicMap.get(key)!.push({ date: e.date, angle: e.angle, type: e.type });
+                  });
+
+                  // Only clusters with ≥2 entries have meaningful sequences
+                  const clusters: ArcClusterResult[] = [];
+                  topicMap.forEach((entries, key) => {
+                    if (entries.length >= 2) {
+                      const displayTopic = calendar.find((e) => e.topic.toLowerCase().trim() === key)?.topic ?? key;
+                      clusters.push(analyseArcCluster(displayTopic, entries));
+                    }
+                  });
+
+                  // Solo entries (can't form a sequence)
+                  const soloCount = [...topicMap.values()].filter((v) => v.length === 1).length;
+
+                  // All individual entries staged (for the summary table)
+                  const allStaged = calendar.map((e) => ({ entry: e, stage: detectArcStage(e.angle) }));
+                  const stageCounts: Record<ArcStage, number> = { awareness: 0, education: 0, consideration: 0, implementation: 0, advanced: 0, unknown: 0 };
+                  allStaged.forEach(({ stage }) => stageCounts[stage]++);
+
+                  const n = clusters.length;
+
+                  // Portfolio metrics
+                  const invertedClusters   = clusters.filter((c) => c.inversions > 0);
+                  const gapClusters        = clusters.filter((c) => c.gaps > 0);
+                  const advNoFoundation    = clusters.filter((c) => c.hasAdvanced && !c.hasFoundation);
+                  const perfectClusters    = clusters.filter((c) => c.score === 100);
+                  const inversionFreeRate  = n > 0 ? (n - invertedClusters.length) / n : 1;
+                  const foundationFirstRate = n > 0 ? clusters.filter((c) => !c.hasAdvanced || c.hasFoundation).length / n : 1;
+                  const gapFreeRate        = n > 0 ? (n - gapClusters.length) / n : 1;
+                  const spanRate           = n > 0 ? clusters.filter((c) => new Set(c.stages.filter((s) => s !== "unknown")).size >= 3).length / n : 0;
+
+                  // Portfolio Narrative Arc Score (0-100)
+                  const invPScore  = Math.round(inversionFreeRate * 40);
+                  const fndPScore  = Math.round(foundationFirstRate * 30);
+                  const gapPScore  = Math.round(gapFreeRate * 20);
+                  const spanPScore = Math.round(Math.min(1, spanRate / 0.40) * 10);
+                  const arcScore   = invPScore + fndPScore + gapPScore + spanPScore;
+
+                  const arcCfg =
+                    arcScore >= 80 ? { label: "Well-sequenced — logical editorial progression", color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-100" } :
+                    arcScore >= 55 ? { label: "Partial sequence — some arc inversions detected", color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100"   } :
+                    arcScore >= 30 ? { label: "Weak arc — advanced content precedes foundations", color: "text-amber-700", bg: "bg-amber-50",  border: "border-amber-100"  } :
+                                     { label: "Inverted — readers will lack context for content", color: "text-rose-700",  bg: "bg-rose-50",   border: "border-rose-100"   };
+
+                  const ALL_STAGES: ArcStage[] = ["awareness","education","consideration","implementation","advanced","unknown"];
+
+                  return (
+                    <Card className="border border-violet-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🗺️</span>
+                            <p className="text-xs font-semibold text-slate-700">Narrative Arc Sequencer</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${arcCfg.color} ${arcCfg.bg} ${arcCfg.border}`}>
+                            {arcScore}/100 · {arcCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Classifies each entry into one of five editorial stages — Awareness ("What is X?"), Education ("How does X work?"), Consideration ("X vs Y"), Implementation ("How to implement X"), Advanced ("Case study: X results") — then groups entries by topic and checks whether the calendar's date-ordered sequence within each cluster runs in a logical progression. Flags inversions (advanced content scheduled before foundational content on the same topic) and stage gaps (jumping from Awareness directly to Advanced with no bridging Education content).
+                        </p>
+
+                        {/* Portfolio score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${arcCfg.bg} ${arcCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${arcCfg.color}`}>{arcScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Inversion-free",    val: invPScore,  max: 40, desc: `${n - invertedClusters.length}/${n} multi-entry clusters have no backwards stage jumps` },
+                              { label: "Foundation-first",  val: fndPScore,  max: 30, desc: `${clusters.filter((c) => !c.hasAdvanced || c.hasFoundation).length}/${n} clusters that have advanced content also have foundational content` },
+                              { label: "No stage gaps",     val: gapPScore,  max: 20, desc: `${n - gapClusters.length}/${n} clusters with no jumps of 3+ stages (e.g. Awareness → Advanced)` },
+                              { label: "Arc completeness",  val: spanPScore, max: 10, desc: `clusters spanning ≥3 distinct stages — builds a complete reader journey` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${arcCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Portfolio stage distribution */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Portfolio stage distribution ({calendar.length} total entries):</p>
+                        <div className="flex h-6 w-full rounded-lg overflow-hidden mb-1.5">
+                          {ALL_STAGES.map((s) => {
+                            const cnt = stageCounts[s];
+                            const pct = calendar.length > 0 ? Math.round((cnt / calendar.length) * 100) : 0;
+                            return pct > 0 ? (
+                              <div key={s} className={`flex items-center justify-center text-[6px] font-bold text-white ${ARC_STAGE_CFG[s].bar}`} style={{ width: `${pct}%` }} title={`${ARC_STAGE_CFG[s].label}: ${cnt} entries (${pct}%)`}>
+                                {pct >= 8 ? `${ARC_STAGE_CFG[s].short} ${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-4">
+                          {ALL_STAGES.filter((s) => stageCounts[s] > 0).map((s) => {
+                            const cfg = ARC_STAGE_CFG[s];
+                            return (
+                              <span key={s} className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.pill}`}>
+                                {cfg.icon} {cfg.label}: {stageCounts[s]}
+                              </span>
+                            );
+                          })}
+                          {soloCount > 0 && <span className="text-[7px] text-slate-400 px-1.5 py-0.5">({soloCount} solo topic{soloCount !== 1 ? "s" : ""} excluded from sequence analysis)</span>}
+                        </div>
+
+                        {/* Arc inversion context panel */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">🏗️</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">Why editorial stage sequencing matters for fintech content:</span> A fintech reader who encounters an advanced implementation guide ("How to configure your ISO 20022 migration") before ever reading a foundational piece ("What is ISO 20022 and why banks are switching") will lack the context to engage with the advanced content — and will likely bounce. <span className="font-bold">The optimal arc treats the reader as a student: Awareness builds the vocabulary, Education explains the mechanics, Consideration helps them evaluate options, Implementation gives them the playbook, and Advanced content rewards deep engagement with real-world results and case studies.</span> Inversions in this sequence force readers into content above their current understanding — which in fintech, where many readers are highly technical but unfamiliar with specific regulations or systems, is a frequent and damaging mistake.
+                          </p>
+                        </div>
+
+                        {/* Inversion warning */}
+                        {invertedClusters.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-rose-50 border border-rose-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🔴</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1.5">{invertedClusters.length} topic cluster{invertedClusters.length !== 1 ? "s" : ""} with stage inversions — advanced content scheduled before foundational content</p>
+                              {invertedClusters.map((c) => (
+                                <div key={c.topic} className="mb-2 last:mb-0">
+                                  <p className="text-[8px] font-bold text-rose-700 mb-0.5">📌 {c.topic} <span className="font-normal text-rose-500">({c.inversions} inversion{c.inversions !== 1 ? "s" : ""})</span></p>
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    {c.entries.map((e, i) => {
+                                      const cfg = ARC_STAGE_CFG[e.stage];
+                                      const isInverted = i > 0 && e.stage !== "unknown" && c.entries[i-1].stage !== "unknown" && ARC_STAGE_ORDER[e.stage] < ARC_STAGE_ORDER[c.entries[i-1].stage] - 1;
+                                      return (
+                                        <span key={i} className={`flex items-center gap-0.5 ${isInverted ? "ring-1 ring-rose-400 rounded-full" : ""}`}>
+                                          {i > 0 && <span className={`text-[8px] ${isInverted ? "text-rose-500 font-bold" : "text-slate-300"}`}>{isInverted ? "↩" : "→"}</span>}
+                                          <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.pill}`}>{cfg.icon} {cfg.short}</span>
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                  <p className="text-[7px] text-rose-600 mt-0.5 italic">Re-sequence: publish {c.entries.filter((e) => e.stage === "awareness" || e.stage === "education").map((e) => `"${e.angle.slice(0,20)}…"`).join(", ") || "foundational pieces"} first</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Advanced-without-foundation warning */}
+                        {advNoFoundation.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🟠</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{advNoFoundation.length} cluster{advNoFoundation.length !== 1 ? "s" : ""} with implementation/advanced content but no awareness or education anchor</p>
+                              <div className="flex flex-wrap gap-1 mb-1">
+                                {advNoFoundation.map((c) => (
+                                  <span key={c.topic} className="text-[7px] font-bold px-1.5 py-0.5 rounded-full border bg-amber-100 text-amber-700 border-amber-200">{c.topic}</span>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-amber-700 leading-snug">Each of these clusters dives into implementation or advanced content on a topic without first establishing What-is-X or How-does-X-work foundations. Add an Awareness or Education entry to each cluster — it will also create a significantly stronger internal linking structure and give new readers an on-ramp to the deeper content.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Perfect arc clusters */}
+                        {perfectClusters.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-violet-50 border border-violet-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🗺️</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-violet-800 mb-1">{perfectClusters.length} cluster{perfectClusters.length !== 1 ? "s" : ""} with perfect narrative arc (score 100)</p>
+                              <div className="flex flex-wrap gap-1">
+                                {perfectClusters.map((c) => (
+                                  <span key={c.topic} className="text-[7px] font-bold px-1.5 py-0.5 rounded-full border bg-violet-100 text-violet-700 border-violet-200">
+                                    {c.topic} <span className="opacity-60">({c.entries.length} entries)</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Per-cluster arc cards */}
+                        {clusters.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Topic cluster arc sequences (sorted by arc score):</p>
+                            <div className="space-y-2">
+                              {[...clusters].sort((a, b) => b.score - a.score).map((c) => {
+                                const scoreCfg =
+                                  c.score >= 80 ? "text-emerald-700 bg-emerald-50 border-emerald-100" :
+                                  c.score >= 50 ? "text-amber-700 bg-amber-50 border-amber-100"       :
+                                                  "text-rose-700 bg-rose-50 border-rose-100";
+                                return (
+                                  <div key={c.topic} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                                      <p className="text-[8px] font-bold text-slate-700 truncate">{c.topic}</p>
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        {c.inversions > 0 && <span className="text-[6.5px] font-bold px-1 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">↩ {c.inversions} inversion{c.inversions !== 1 ? "s" : ""}</span>}
+                                        {c.gaps > 0 && <span className="text-[6.5px] font-bold px-1 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">⚡ {c.gaps} gap{c.gaps !== 1 ? "s" : ""}</span>}
+                                        <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full border ${scoreCfg}`}>{c.score}/100</span>
+                                      </div>
+                                    </div>
+                                    {/* Sequence flow */}
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                      {c.entries.map((e, i) => {
+                                        const cfg = ARC_STAGE_CFG[e.stage];
+                                        const isInverted = i > 0 && e.stage !== "unknown" && c.entries[i-1].stage !== "unknown" && ARC_STAGE_ORDER[e.stage] < ARC_STAGE_ORDER[c.entries[i-1].stage] - 1;
+                                        const isGap = i > 0 && e.stage !== "unknown" && c.entries[i-1].stage !== "unknown" && ARC_STAGE_ORDER[e.stage] - ARC_STAGE_ORDER[c.entries[i-1].stage] > 2;
+                                        return (
+                                          <span key={i} className="flex items-center gap-0.5">
+                                            {i > 0 && <span className={`text-[8px] ${isInverted ? "text-rose-500 font-bold" : isGap ? "text-amber-500 font-bold" : "text-slate-300"}`}>{isInverted ? "↩" : isGap ? "⚡" : "→"}</span>}
+                                            <span className={`text-[6px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.pill} ${isInverted ? "ring-1 ring-rose-400" : ""}`} title={`${e.angle} (${MONTH_NAMES[new Date(e.date).getMonth()+1] || "?"})`}>
+                                              {cfg.icon} {cfg.short}
+                                            </span>
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                    <p className="text-[6.5px] text-slate-400 mt-1">{c.entries.map((e) => e.angle.slice(0,18)).join(" → ")}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {clusters.length === 0 && (
+                          <p className="text-[8px] text-slate-400 italic text-center py-3">No multi-entry topic clusters detected — add entries sharing a topic key to enable arc sequence analysis</p>
+                        )}
+
+                        <p className="text-[7px] text-slate-400 mt-3">Arc stages: 🌱 Awareness → 📚 Education → ⚖️ Consideration → 🔧 Implementation → 🚀 Advanced · ↩ = inversion (stage regresses) · ⚡ = gap (stage jumps 3+) · Only topics with ≥2 entries are analysed</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Publication Timing Optimiser ─────────────────────────── */}
                 {calendar.length > 0 && (() => {
