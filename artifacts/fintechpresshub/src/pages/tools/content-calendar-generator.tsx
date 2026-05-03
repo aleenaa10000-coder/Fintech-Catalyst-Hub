@@ -1696,6 +1696,38 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content Cluster Cohesion Analyser ───────────────────────────────────────
+// Groups entries by topic, measures pillar depth, format mix, and angle variety
+
+const CLUSTER_STOP_WORDS = new Set([
+  "a","an","the","and","or","but","in","on","of","to","for","with","by",
+  "is","are","was","were","be","been","being","have","has","had","do","does",
+  "did","will","would","could","should","may","might","shall","can","at","from",
+  "as","into","through","how","what","why","when","where","which","that","this",
+]);
+
+function clusterCohesion(entries: Array<{ type: ContentType; angle: string }>): { total: number; depth: number; format: number; angle: number } {
+  const size = entries.length;
+  if (size === 0) return { total: 0, depth: 0, format: 0, angle: 0 };
+
+  // Depth (0-40): 1=0, 2=10, 3=20, 4=30, 5+=40
+  const depth  = Math.min(40, (size - 1) * 10);
+
+  // Format variety (0-30): distinct types / min(5, size) × 30
+  const fmtSet = new Set(entries.map((e) => e.type));
+  const format = Math.round((fmtSet.size / Math.min(5, size)) * 30);
+
+  // Angle richness (0-30): unique meaningful words / total meaningful words
+  const words   = entries.flatMap((e) =>
+    e.angle.toLowerCase().split(/\W+/).filter((w) => w.length > 3 && !CLUSTER_STOP_WORDS.has(w))
+  );
+  const totalW  = words.length;
+  const uniqueW = new Set(words).size;
+  const angle   = totalW > 0 ? Math.round(Math.min(1, (uniqueW / totalW) * 1.5) * 30) : 15;
+
+  return { total: Math.min(100, depth + format + angle), depth, format, angle };
+}
+
 // ─── Search Intent Alignment Scorer ──────────────────────────────────────────
 // Classifies each entry by Google search intent and scores organic-demand alignment
 
@@ -7489,6 +7521,219 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Cluster Cohesion Analyser ────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Group entries by topic (case-insensitive)
+                  const topicMap = new Map<string, typeof calendar>();
+                  calendar.forEach((e) => {
+                    const key = e.topic.toLowerCase().trim();
+                    if (!topicMap.has(key)) topicMap.set(key, []);
+                    topicMap.get(key)!.push(e);
+                  });
+
+                  const clusters = [...topicMap.entries()]
+                    .map(([, entries]) => ({
+                      label:    entries[0].topic,
+                      entries,
+                      cohesion: clusterCohesion(entries.map((e) => ({ type: e.type, angle: e.angle }))),
+                      formats:  [...new Set(entries.map((e) => e.type))] as ContentType[],
+                    }))
+                    .sort((a, b) => b.entries.length - a.entries.length);
+
+                  const T         = clusters.length;
+                  const isolated  = clusters.filter((c) => c.entries.length === 1);
+                  const shallow   = clusters.filter((c) => c.entries.length === 2);
+                  const deep      = clusters.filter((c) => c.entries.length >= 3);
+                  const strongest = clusters.filter((c) => c.cohesion.total >= 60);
+
+                  // ── Portfolio Cluster Cohesion Score (0-100) ───────────────
+                  const deepRatePct     = T > 0 ? deep.length / T : 0;
+                  const isolRatePct     = T > 0 ? isolated.length / T : 0;
+                  const multiFmtCount   = clusters.filter((c) => c.formats.length >= 2).length;
+                  const multiFmtRate    = T > 0 ? multiFmtCount / T : 0;
+
+                  const depthPScore  = Math.round(deepRatePct * 40);
+                  const isolPScore   = Math.round((1 - isolRatePct) * 30);
+                  const fmtPScore    = Math.round(multiFmtRate * 20);
+                  const spreadPScore = Math.min(10, Math.round((Math.min(T, 5) / 5) * 10));
+                  const clusterScore = depthPScore + isolPScore + fmtPScore + spreadPScore;
+
+                  const cCfg =
+                    clusterScore >= 75 ? { label: "Strong pillar structure — authority depth present",  color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-100" } :
+                    clusterScore >= 50 ? { label: "Partial pillar depth — some clusters thin",          color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100"   } :
+                    clusterScore >= 25 ? { label: "Fragmented coverage — few genuine pillars",          color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100"  } :
+                                         { label: "Scattered — no coherent topical authority clusters", color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100"   };
+
+                  return (
+                    <Card className="border border-violet-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🧩</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Cluster Cohesion Analyser</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${cCfg.color} ${cCfg.bg} ${cCfg.border}`}>
+                            {clusterScore}/100 · {cCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Groups all calendar entries by topic and measures how well each topic cluster builds a coherent pillar of authority rather than a collection of disconnected one-off posts. Scores pillar depth (minimum 3-5 entries to signal topical authority to search engines), format variety within each cluster (mixed-format clusters rank more broadly), and angle richness (angles that cover different aspects of the topic rather than near-duplicate takes). Flags isolated one-entry topics that will never accumulate the topical authority needed to outrank established fintech publishers on competitive keywords.
+                        </p>
+
+                        {/* Portfolio score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${cCfg.bg} ${cCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${cCfg.color}`}>{clusterScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Deep clusters (≥3)",   val: depthPScore,  max: 40, desc: `${deep.length}/${T} topics have ≥3 entries — target: majority of topics reaching pillar depth` },
+                              { label: "No isolated topics",   val: isolPScore,   max: 30, desc: `${isolated.length} single-entry topics — each is a dead-end that builds no cluster authority`   },
+                              { label: "Multi-format mix",     val: fmtPScore,    max: 20, desc: `${multiFmtCount}/${T} clusters have 2+ format types — broadens keyword surface area per topic`   },
+                              { label: "Topic spread",         val: spreadPScore, max: 10, desc: `${T} distinct topics — healthy calendars cover 5+ distinct topic pillars`                        },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${cCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Topical authority context */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">📚</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">Why cluster depth determines fintech SEO outcomes:</span> Google's helpful content system rewards demonstrated expertise across a topic, not just individual well-written posts. A fintech publisher that has published 6 pieces on payment orchestration — covering "what is it", "how to choose a vendor", "technical integration guide", "compliance requirements", "cost analysis", and a "case study" — will consistently outrank a publisher with one higher-quality post on the same keyword, because the cluster signals deep institutional knowledge rather than one-off coverage. <span className="font-bold">The minimum viable cluster for competitive fintech keywords is 3-5 pieces</span>; below this threshold a topic is unlikely to achieve page-1 rankings regardless of individual article quality.
+                          </p>
+                        </div>
+
+                        {/* All cluster cards sorted by size */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Topic clusters — pillar depth analysis:</p>
+                        <div className="space-y-2.5 mb-4">
+                          {clusters.map((c) => {
+                            const coh   = c.cohesion;
+                            const size  = c.entries.length;
+                            const tier  = size >= 5 ? { label: "Strong pillar", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: "🌳" }
+                                        : size >= 3 ? { label: "Developing pillar", pill: "bg-blue-100 text-blue-700 border-blue-200",     icon: "🌿" }
+                                        : size >= 2 ? { label: "Shallow cluster",   pill: "bg-amber-100 text-amber-700 border-amber-200",   icon: "🌱" }
+                                        :             { label: "Isolated post",     pill: "bg-rose-100 text-rose-700 border-rose-200",      icon: "🔴" };
+                            return (
+                              <div key={c.label} className="rounded-xl border border-slate-100 overflow-hidden">
+                                {/* Cluster header */}
+                                <div className="flex items-center justify-between px-3.5 py-2 bg-slate-50">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-[9px] shrink-0">{tier.icon}</span>
+                                    <span className="text-[8.5px] font-bold text-slate-700 truncate">{c.label}</span>
+                                    <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${tier.pill}`}>{tier.label}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-[7px] text-slate-400">{size} entr{size !== 1 ? "ies" : "y"}</span>
+                                    <span className={`text-[8px] font-black tabular-nums ${coh.total >= 60 ? "text-emerald-600" : coh.total >= 35 ? "text-amber-600" : "text-rose-600"}`}>{coh.total}/100</span>
+                                  </div>
+                                </div>
+
+                                {/* Cohesion score bars */}
+                                <div className="px-3.5 py-2 border-b border-slate-50 space-y-1">
+                                  {[
+                                    { label: "Depth",   val: coh.depth,  max: 40, tip: "≥5 entries = full depth score" },
+                                    { label: "Formats", val: coh.format, max: 30, tip: "multiple format types per cluster" },
+                                    { label: "Angles",  val: coh.angle,  max: 30, tip: "angle vocabulary richness across entries" },
+                                  ].map(({ label, val, max, tip }) => (
+                                    <div key={label} className="flex items-center gap-2">
+                                      <span className="text-[6.5px] text-slate-400 w-10 shrink-0">{label}</span>
+                                      <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                        <div className="h-full rounded-full bg-violet-300" style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                      </div>
+                                      <span className="text-[6.5px] tabular-nums text-slate-400 w-7 text-right shrink-0">{val}/{max}</span>
+                                      <span className="text-[6.5px] text-slate-300 hidden sm:inline shrink-0">{tip}</span>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Format pills + entries */}
+                                <div className="px-3.5 py-2 bg-white">
+                                  <div className="flex flex-wrap gap-1 mb-1.5">
+                                    {c.formats.map((f) => (
+                                      <span key={f} className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[f]}`}>{FORMAT_LABEL[f]}</span>
+                                    ))}
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {c.entries.map((e) => (
+                                      <span key={entryKey(e)} className="text-[6.5px] text-slate-500 px-1.5 py-0.5 rounded bg-slate-50 border border-slate-100 truncate max-w-[13rem]">
+                                        {e.angle.slice(0,28)}{e.angle.length > 28 ? "…" : ""}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  {size < 3 && (
+                                    <p className="text-[7px] text-amber-600 mt-1.5">
+                                      {size === 1
+                                        ? `⚠ Single post — add 2–4 more pieces on "${c.label}" to begin building topical authority`
+                                        : `⚠ Shallow — add 1–3 more pieces on "${c.label}" to reach the 3-piece minimum for cluster authority`}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Isolated topic spotlight */}
+                        {isolated.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-rose-50 border border-rose-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🔴</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1">{isolated.length} isolated topic{isolated.length !== 1 ? "s" : ""} — single posts building zero cluster authority</p>
+                              <div className="flex flex-wrap gap-1 mb-1.5">
+                                {isolated.map((c) => (
+                                  <span key={c.label} className="text-[7px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">{c.label}</span>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-rose-700 leading-snug">Each isolated topic represents a one-off post that contributes individual article traffic but no compounding topical authority. In competitive fintech keyword sets, single posts rarely reach page 1 against publishers who have entire cluster architectures around the same topic. Either expand each into a 3-piece minimum cluster, or consolidate these topics into existing clusters by reframing the angle to align with a pillar topic that already has depth.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Strong clusters callout */}
+                        {strongest.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-violet-50 border border-violet-100">
+                            <span className="text-[10px] shrink-0 mt-0.5">🧩</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-violet-800 mb-1">{strongest.length} high-cohesion cluster{strongest.length !== 1 ? "s" : ""} — topical authority anchors</p>
+                              <div className="flex flex-wrap gap-1">
+                                {strongest.map((c) => (
+                                  <span key={c.label} className="text-[7px] font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200">
+                                    {c.label} <span className="opacity-60">({c.cohesion.total}pts · {c.entries.length} entries)</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Shallow cluster upgrade tips */}
+                        {shallow.length > 0 && (
+                          <div className="mt-3 flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                            <span className="text-[10px] shrink-0 mt-0.5">🌱</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{shallow.length} shallow cluster{shallow.length !== 1 ? "s" : ""} — one piece away from minimum pillar depth</p>
+                              <p className="text-[7.5px] text-amber-700 leading-snug">
+                                {shallow.map((c) => `"${c.label}"`).join(", ")} each have 2 entries. Adding one more piece to each cluster crosses the 3-entry threshold that begins to signal topical authority to search engines — the highest-leverage addition you can make to these clusters right now.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Search Intent Alignment Scorer ───────────────────────── */}
                 {calendar.length > 0 && (() => {
