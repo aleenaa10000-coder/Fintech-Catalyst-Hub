@@ -2592,6 +2592,41 @@ const PERSONA_CFG: Record<PersonaKey, { label: string; role: string; icon: strin
   cmo: { label: "CMO",  role: "Growth Lead",          icon: "📣",  color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100",   pill: "bg-rose-100 text-rose-700 border-rose-200",     bar: "bg-rose-400"   },
 };
 
+const COHERENCE_TIER: Record<string, { label: string; icon: string; color: string; pill: string }> = {
+  excellent:  { label: "Excellent",  icon: "🎬", color: "text-emerald-700", pill: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  good:       { label: "Good",       icon: "📖", color: "text-blue-700",    pill: "bg-blue-100 text-blue-700 border-blue-200"    },
+  weak:       { label: "Weak",       icon: "🔀", color: "text-amber-700",   pill: "bg-amber-100 text-amber-700 border-amber-200"   },
+  disconnect: { label: "Disconnect", icon: "❌", color: "text-rose-700",    pill: "bg-rose-100 text-rose-700 border-rose-200"    },
+};
+
+const INTENT_PILL_CFG: Record<string, { pill: string; bar: string }> = {
+  informational: { pill: "bg-blue-100 text-blue-700 border-blue-200",     bar: "bg-blue-400"   },
+  commercial:    { pill: "bg-violet-100 text-violet-700 border-violet-200", bar: "bg-violet-400" },
+  transactional: { pill: "bg-rose-100 text-rose-700 border-rose-200",     bar: "bg-rose-400"   },
+  navigational:  { pill: "bg-slate-100 text-slate-500 border-slate-200",  bar: "bg-slate-400"  },
+};
+
+const ALIGN_CFG: Record<IntentAlignment, { label: string; icon: string; pill: string; bar: string; color: string }> = {
+  aligned:    { label: "Aligned",    icon: "✅", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", bar: "bg-emerald-400", color: "text-emerald-700" },
+  partial:    { label: "Partial",    icon: "🟡", pill: "bg-amber-100 text-amber-700 border-amber-200",     bar: "bg-amber-400",   color: "text-amber-700"   },
+  misaligned: { label: "Misaligned", icon: "🔴", pill: "bg-rose-100 text-rose-700 border-rose-200",        bar: "bg-rose-400",    color: "text-rose-700"    },
+};
+
+const STAGE_EXPECTS: Record<ArcStage, string> = {
+  awareness:      "informational / navigational",
+  education:      "informational",
+  consideration:  "commercial / informational",
+  implementation: "commercial / transactional",
+  advanced:       "commercial / transactional",
+};
+
+const INTENT_PILL: Record<string, string> = {
+  commercial:    "bg-violet-100 text-violet-700 border-violet-200",
+  informational: "bg-blue-100 text-blue-700 border-blue-200",
+  transactional: "bg-rose-100 text-rose-700 border-rose-200",
+  navigational:  "bg-slate-100 text-slate-500 border-slate-200",
+};
+
 function detectPersona(topic: string, angle: string): PersonaResult {
   const hay = `${topic} ${angle}`.toLowerCase();
   const scores = (Object.keys(PERSONA_SIGNALS) as PersonaKey[]).reduce<Record<PersonaKey, number>>(
@@ -10493,27 +10528,6 @@ export default function ContentCalendarGenerator() {
                     alignScore >= 30 ? { label: "Weak alignment — widespread intent/format mismatches",            color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
                                         { label: "Poor alignment — most entries have contradictory intent signals", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
 
-                  const ALIGN_CFG: Record<IntentAlignment, { label: string; icon: string; pill: string; bar: string; color: string }> = {
-                    aligned:    { label: "Aligned",    icon: "✅", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", bar: "bg-emerald-400", color: "text-emerald-700" },
-                    partial:    { label: "Partial",    icon: "🟡", pill: "bg-amber-100 text-amber-700 border-amber-200",     bar: "bg-amber-400",   color: "text-amber-700"   },
-                    misaligned: { label: "Misaligned", icon: "🔴", pill: "bg-rose-100 text-rose-700 border-rose-200",        bar: "bg-rose-400",    color: "text-rose-700"    },
-                  };
-
-                  const INTENT_PILL_CFG: Record<string, { pill: string; bar: string }> = {
-                    informational: { pill: "bg-blue-100 text-blue-700 border-blue-200",     bar: "bg-blue-400"   },
-                    commercial:    { pill: "bg-violet-100 text-violet-700 border-violet-200", bar: "bg-violet-400" },
-                    transactional: { pill: "bg-rose-100 text-rose-700 border-rose-200",     bar: "bg-rose-400"   },
-                    navigational:  { pill: "bg-slate-100 text-slate-500 border-slate-200",  bar: "bg-slate-400"  },
-                  };
-
-                  const STAGE_EXPECTS: Record<ArcStage, string> = {
-                    awareness:      "informational / navigational",
-                    education:      "informational",
-                    consideration:  "commercial / informational",
-                    implementation: "commercial / transactional",
-                    advanced:       "commercial / transactional",
-                  };
-
                   return (
                     <Card className="border border-indigo-200 shadow-sm">
                       <CardContent className="p-5">
@@ -11982,13 +11996,6 @@ export default function ContentCalendarGenerator() {
                     high:   { label: "High ROI",   pill: "bg-green-100 text-green-700 border-green-200",  bar: "bg-green-400"  },
                     medium: { label: "Medium ROI",  pill: "bg-blue-100 text-blue-700 border-blue-200",    bar: "bg-blue-400"   },
                     low:    { label: "Low ROI",     pill: "bg-slate-100 text-slate-500 border-slate-200", bar: "bg-slate-300"  },
-                  };
-
-                  const INTENT_PILL: Record<string, string> = {
-                    commercial:    "bg-violet-100 text-violet-700 border-violet-200",
-                    informational: "bg-blue-100 text-blue-700 border-blue-200",
-                    transactional: "bg-rose-100 text-rose-700 border-rose-200",
-                    navigational:  "bg-slate-100 text-slate-500 border-slate-200",
                   };
 
                   return (
