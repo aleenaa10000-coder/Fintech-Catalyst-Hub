@@ -2154,7 +2154,7 @@ function analyzeKeywordGaps(calendar: ContentEntry[]): KeywordAnalysis {
       gaps.push({ keyword: kw, label: meta.label, desc: meta.desc, importance: meta.importance });
     } else if (count >= 2) {
       covered.push({ keyword: kw, label: meta.label, desc: meta.desc, importance: meta.importance, coverage: count, entries: entryKeys, isCannibalized: true });
-      cannibalized.push({ keyword: kw, label: meta.label, coverage: count, entries: entryKeys, isCannibalized: true });
+      cannibalized.push({ keyword: kw, label: meta.label, importance: meta.importance, coverage: count, entries: entryKeys, isCannibalized: true });
     } else {
       covered.push({ keyword: kw, label: meta.label, desc: meta.desc, importance: meta.importance, coverage: count, entries: entryKeys, isCannibalized: false });
     }
