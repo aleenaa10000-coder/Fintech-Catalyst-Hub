@@ -2735,6 +2735,158 @@ export default function ContentCalendarGenerator() {
                       </span>
                     </div>
 
+                    {/* ── Cadence velocity legend ───────────────────────── */}
+                    <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-3">
+                      {/* Key */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide shrink-0">
+                          Weekly Cadence Load
+                        </span>
+                        {(
+                          [
+                            { dot: "bg-emerald-500", label: "Optimal" },
+                            { dot: "bg-amber-400",   label: "Underloaded" },
+                            { dot: "bg-rose-500",    label: "Overloaded" },
+                            { dot: "bg-slate-300",   label: "Empty" },
+                          ] as const
+                        ).map(({ dot, label }) => (
+                          <span key={label} className="flex items-center gap-1.5">
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full inline-block ${dot}`}
+                            />
+                            <span className="text-[10px] text-slate-500">
+                              {label}
+                            </span>
+                          </span>
+                        ))}
+                        <span className="text-[10px] text-slate-400 ml-auto">
+                          Target:{" "}
+                          <span className="font-semibold text-slate-600">
+                            {CADENCE_POSTS_PER_WEEK[form.cadence]}
+                          </span>{" "}
+                          piece
+                          {CADENCE_POSTS_PER_WEEK[form.cadence] !== 1
+                            ? "s"
+                            : ""}
+                          /week
+                        </span>
+                      </div>
+
+                      {/* Per-week dots */}
+                      {(() => {
+                        const target = CADENCE_POSTS_PER_WEEK[form.cadence];
+                        const weeks = [
+                          ...new Set(filteredCalendar.map((e) => e.week)),
+                        ].sort((a, b) => a - b);
+                        type LoadStatus = "optimal" | "over" | "under" | "empty";
+                        const weekLoads = weeks.map((week) => {
+                          const count = filteredCalendar.filter(
+                            (e) => e.week === week,
+                          ).length;
+                          const status: LoadStatus =
+                            count === 0
+                              ? "empty"
+                              : count < target
+                                ? "under"
+                                : count > target
+                                  ? "over"
+                                  : "optimal";
+                          return { week, count, status };
+                        });
+                        const statusStyles: Record<
+                          LoadStatus,
+                          { dot: string; text: string; bg: string }
+                        > = {
+                          optimal: {
+                            dot: "bg-emerald-500",
+                            text: "text-emerald-700",
+                            bg: "bg-emerald-50 border-emerald-200",
+                          },
+                          over: {
+                            dot: "bg-rose-500",
+                            text: "text-rose-700",
+                            bg: "bg-rose-50 border-rose-200",
+                          },
+                          under: {
+                            dot: "bg-amber-400",
+                            text: "text-amber-700",
+                            bg: "bg-amber-50 border-amber-200",
+                          },
+                          empty: {
+                            dot: "bg-slate-300",
+                            text: "text-slate-400",
+                            bg: "bg-slate-50 border-slate-200",
+                          },
+                        };
+                        const optCount = weekLoads.filter(
+                          (w) => w.status === "optimal",
+                        ).length;
+                        const overCount = weekLoads.filter(
+                          (w) => w.status === "over",
+                        ).length;
+                        const underCount = weekLoads.filter(
+                          (w) => w.status === "under",
+                        ).length;
+                        return (
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap gap-1.5">
+                              {weekLoads.map(({ week, count, status }) => {
+                                const s = statusStyles[status];
+                                return (
+                                  <div
+                                    key={week}
+                                    className={`flex flex-col items-center px-2.5 py-1.5 rounded-lg border ${s.bg}`}
+                                    title={`Week ${week}: ${count} piece${count !== 1 ? "s" : ""} scheduled (target ${target})`}
+                                  >
+                                    <div
+                                      className={`w-2 h-2 rounded-full mb-0.5 ${s.dot}`}
+                                    />
+                                    <span
+                                      className={`text-[9px] font-bold leading-none ${s.text}`}
+                                    >
+                                      W{week}
+                                    </span>
+                                    <span
+                                      className={`text-[9px] leading-none mt-0.5 ${s.text} opacity-75`}
+                                    >
+                                      {count}/{target}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <p className="text-[10px] text-slate-500 leading-relaxed">
+                              {optCount > 0 && (
+                                <span className="text-emerald-600 font-semibold">
+                                  {optCount} week
+                                  {optCount !== 1 ? "s" : ""} at target
+                                </span>
+                              )}
+                              {optCount > 0 && overCount + underCount > 0
+                                ? " · "
+                                : ""}
+                              {overCount > 0 && (
+                                <span className="text-rose-600 font-semibold">
+                                  {overCount} overloaded
+                                </span>
+                              )}
+                              {overCount > 0 && underCount > 0 ? " · " : ""}
+                              {underCount > 0 && (
+                                <span className="text-amber-600 font-semibold">
+                                  {underCount} underloaded
+                                </span>
+                              )}
+                              {overCount + underCount > 0
+                                ? " — adjust cadence or add topics to rebalance production load."
+                                : optCount > 0
+                                  ? " — production load is perfectly balanced."
+                                  : ""}
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
                     {/* Grid */}
                     <div className="overflow-x-auto rounded-lg border border-slate-100 shadow-sm">
                       {(() => {
