@@ -5867,6 +5867,257 @@ export default function ContentCalendarGenerator() {
                   </Card>
                 )}
 
+                {/* ── Publishing Cadence Stress Test ───────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const CAPACITY_COMFORTABLE = 32; // hours/week — team ceiling
+                  const CAPACITY_HEAVY       = 48; // hours/week — warning threshold
+
+                  // Group by week and sum hours
+                  type WeekLoad = {
+                    week:     number;
+                    entries:  typeof calendar;
+                    hours:    number;
+                    status:   "light" | "comfortable" | "heavy" | "overloaded";
+                  };
+                  const weekMap = new Map<number, typeof calendar>();
+                  for (const e of calendar) {
+                    if (!weekMap.has(e.week)) weekMap.set(e.week, []);
+                    weekMap.get(e.week)!.push(e);
+                  }
+                  const weeks: WeekLoad[] = [...weekMap.entries()]
+                    .sort(([a], [b]) => a - b)
+                    .map(([week, entries]) => {
+                      const hours = entries.reduce((s, e) => s + (COMPLEXITY_BY_TYPE[e.type]?.hours ?? 4), 0);
+                      const status: WeekLoad["status"] =
+                        hours <= 16 ? "light"
+                        : hours <= CAPACITY_COMFORTABLE ? "comfortable"
+                        : hours <= CAPACITY_HEAVY       ? "heavy"
+                        :                                 "overloaded";
+                      return { week, entries, hours, status };
+                    });
+
+                  const overloaded   = weeks.filter((w) => w.status === "overloaded");
+                  const heavy        = weeks.filter((w) => w.status === "heavy");
+                  const light        = weeks.filter((w) => w.status === "light");
+                  const totalHours   = weeks.reduce((s, w) => s + w.hours, 0);
+                  const avgHours     = weeks.length ? Math.round(totalHours / weeks.length) : 0;
+                  const maxHours     = Math.max(...weeks.map((w) => w.hours), 1);
+
+                  const statusCfg = {
+                    light:       { label: "Light",       bar: "bg-emerald-400", bg: "bg-emerald-50",  border: "border-emerald-100", text: "text-emerald-700", badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+                    comfortable: { label: "Comfortable", bar: "bg-blue-400",    bg: "bg-blue-50",     border: "border-blue-100",    text: "text-blue-700",    badge: "bg-blue-100 text-blue-700 border-blue-200"          },
+                    heavy:       { label: "Heavy",        bar: "bg-amber-400",   bg: "bg-amber-50",    border: "border-amber-100",   text: "text-amber-700",   badge: "bg-amber-100 text-amber-700 border-amber-200"        },
+                    overloaded:  { label: "Overloaded",   bar: "bg-rose-500",    bg: "bg-rose-50",     border: "border-rose-100",    text: "text-rose-700",    badge: "bg-rose-100 text-rose-700 border-rose-200"           },
+                  } as const;
+
+                  // Shift suggestions: for each overloaded week, recommend moving the lightest entry to nearest lighter week
+                  type ShiftSuggestion = {
+                    fromWeek: number;
+                    entry:    typeof calendar[number];
+                    toWeek:   number;
+                    saving:   number;
+                  };
+                  const suggestions: ShiftSuggestion[] = [];
+                  for (const ow of overloaded) {
+                    // Sort entries lightest first
+                    const sorted = [...ow.entries].sort(
+                      (a, b) => (COMPLEXITY_BY_TYPE[a.type]?.hours ?? 4) - (COMPLEXITY_BY_TYPE[b.type]?.hours ?? 4),
+                    );
+                    for (const candidate of sorted.slice(0, 2)) {
+                      // Find nearest week with slack
+                      const candidateH = COMPLEXITY_BY_TYPE[candidate.type]?.hours ?? 4;
+                      const receiver = weeks
+                        .filter((w) => w.week !== ow.week && w.hours + candidateH <= CAPACITY_COMFORTABLE)
+                        .sort((a, b) => Math.abs(a.week - ow.week) - Math.abs(b.week - ow.week))[0];
+                      if (receiver) {
+                        suggestions.push({ fromWeek: ow.week, entry: candidate, toWeek: receiver.week, saving: candidateH });
+                      }
+                    }
+                  }
+
+                  return (
+                    <Card className="border border-teal-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📅</span>
+                            <p className="text-xs font-semibold text-slate-700">Publishing Cadence Stress Test</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {overloaded.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {overloaded.length} overloaded week{overloaded.length !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                            {heavy.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                {heavy.length} heavy
+                              </span>
+                            )}
+                            {overloaded.length === 0 && heavy.length === 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                Schedule balanced
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Week-by-week production load analysis against a {CAPACITY_COMFORTABLE}h team capacity ceiling — with specific shift recommendations to smooth bottlenecks before they hit.
+                        </p>
+
+                        {/* Summary stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Total hours",  val: `${totalHours}h`, sub: `${weeks.length}wk plan`       },
+                            { label: "Weekly avg",   val: `${avgHours}h`,   sub: `vs ${CAPACITY_COMFORTABLE}h cap` },
+                            { label: "Overloaded",   val: overloaded.length, sub: `>${CAPACITY_HEAVY}h weeks`,   warn: overloaded.length > 0 },
+                            { label: "Light weeks",  val: light.length,      sub: "≤16h — under-used"           },
+                          ].map(({ label, val, sub, warn }) => (
+                            <div key={label} className={`rounded-lg border px-2 py-1.5 text-center ${warn ? "bg-rose-50 border-rose-100" : "bg-teal-50 border-teal-100"}`}>
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className={`text-[12px] font-black leading-none ${warn ? "text-rose-700" : "text-teal-700"}`}>{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Week-by-week bar chart */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Weekly production load:</p>
+                        <div className="space-y-1.5 mb-4">
+                          {weeks.map((w) => {
+                            const cfg = statusCfg[w.status];
+                            const barPct = Math.round((w.hours / Math.max(maxHours, CAPACITY_HEAVY + 10)) * 100);
+                            const capPct = Math.round((CAPACITY_COMFORTABLE / Math.max(maxHours, CAPACITY_HEAVY + 10)) * 100);
+                            return (
+                              <div key={w.week}>
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[8.5px] font-bold text-slate-600 w-10 shrink-0">Wk {w.week}</span>
+                                    <span className="text-[7.5px] text-slate-400">{w.entries.length} piece{w.entries.length !== 1 ? "s" : ""}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[8px] tabular-nums text-slate-500">{w.hours}h</span>
+                                    <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.badge}`}>{cfg.label}</span>
+                                  </div>
+                                </div>
+                                <div className="relative h-2 rounded-full bg-slate-100 overflow-hidden">
+                                  <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${barPct}%` }} />
+                                  {/* Capacity marker */}
+                                  <div className="absolute top-0 bottom-0 w-px bg-slate-400 opacity-40" style={{ left: `${capPct}%` }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[7.5px] text-slate-400 italic mb-4">
+                          Vertical line marks the {CAPACITY_COMFORTABLE}h comfortable capacity ceiling. Bars crossing it indicate production risk.
+                        </p>
+
+                        {/* Overloaded week detail + shift suggestions */}
+                        {overloaded.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Overloaded week breakdown:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {overloaded.map((ow) => {
+                                const owSuggestions = suggestions.filter((s) => s.fromWeek === ow.week);
+                                return (
+                                  <div key={ow.week} className="rounded-xl border border-rose-100 overflow-hidden">
+                                    <div className="flex items-center justify-between px-3.5 py-2 bg-rose-50">
+                                      <p className="text-[9.5px] font-bold text-rose-800">Week {ow.week} — {ow.hours}h ({ow.entries.length} pieces)</p>
+                                      <span className="text-[8px] font-bold text-rose-600">{ow.hours - CAPACITY_COMFORTABLE}h over capacity</span>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                      {/* Entries this week */}
+                                      <div className="space-y-1 mb-2">
+                                        {ow.entries
+                                          .sort((a, b) => (COMPLEXITY_BY_TYPE[b.type]?.hours ?? 4) - (COMPLEXITY_BY_TYPE[a.type]?.hours ?? 4))
+                                          .map((e) => {
+                                            const h = COMPLEXITY_BY_TYPE[e.type]?.hours ?? 4;
+                                            return (
+                                              <div key={entryKey(e)} className="flex items-center gap-1.5">
+                                                <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                                <span className="text-[8px] text-slate-700 truncate flex-1">{e.angle}</span>
+                                                <span className="text-[7.5px] font-bold text-slate-400 shrink-0">{h}h</span>
+                                              </div>
+                                            );
+                                          })}
+                                      </div>
+                                      {/* Shift suggestions */}
+                                      {owSuggestions.length > 0 && (
+                                        <div className="space-y-1">
+                                          <p className="text-[8px] font-semibold text-teal-700 mb-1">Suggested schedule shifts:</p>
+                                          {owSuggestions.map((s, idx) => (
+                                            <div key={idx} className="flex items-start gap-2 px-2.5 py-2 rounded-lg bg-teal-50 border border-teal-100">
+                                              <span className="text-[9px] shrink-0">↔️</span>
+                                              <div className="min-w-0">
+                                                <p className="text-[8.5px] font-semibold text-teal-800 truncate">
+                                                  Move <span className="font-black">"{s.entry.angle}"</span> ({s.saving}h)
+                                                </p>
+                                                <p className="text-[8px] text-teal-600">
+                                                  Week {s.fromWeek} → Week {s.toWeek} — saves {s.saving}h from the overloaded week
+                                                </p>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      {owSuggestions.length === 0 && (
+                                        <p className="text-[8px] text-amber-600 italic">No adjacent week has capacity to absorb a shift — consider reducing scope or adding resource for this week.</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Heavy weeks (warning, not critical) */}
+                        {heavy.length > 0 && overloaded.length === 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Heavy weeks to monitor ({CAPACITY_COMFORTABLE}–{CAPACITY_HEAVY}h):</p>
+                            <div className="space-y-1.5 mb-4">
+                              {heavy.map((w) => (
+                                <div key={w.week} className="flex items-center justify-between px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[8.5px] font-bold text-amber-800">Week {w.week}</span>
+                                    <span className="text-[7.5px] text-amber-600">{w.entries.length} pieces</span>
+                                  </div>
+                                  <span className="text-[8.5px] font-bold text-amber-700">{w.hours}h — {w.hours - CAPACITY_COMFORTABLE}h above comfortable</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Light weeks — unused capacity */}
+                        {light.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Under-used weeks — available capacity:</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {light.map((w) => (
+                                <span key={w.week} className="text-[8px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700">
+                                  Wk {w.week} — {CAPACITY_COMFORTABLE - w.hours}h free
+                                </span>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {overloaded.length === 0 && heavy.length === 0 && (
+                          <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-sm">✅</span>
+                            <p className="text-[10px] font-semibold text-emerald-700">
+                              Production schedule is well-balanced — no week exceeds the {CAPACITY_COMFORTABLE}h comfortable capacity ceiling.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
                 {/* ── Competitor Content Gap Detector ──────────────────────── */}
                 {calendar.length > 0 && (() => {
                   // Detect which universe clusters are covered by the calendar
