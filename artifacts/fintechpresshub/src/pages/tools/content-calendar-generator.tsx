@@ -2098,6 +2098,31 @@ export default function ContentCalendarGenerator() {
 
   const resetStatuses = () => setEntryStatuses({});
 
+  // ── Sprint Planner state ───────────────────────────────────────────────────
+  const [sprintMode,         setSprintMode]         = useState(false);
+  const [sprintWeek,         setSprintWeek]         = useState<number | null>(null);
+  const [sprintAssignments,  setSprintAssignments]  = useState<Record<string, number>>({});
+  const [sprintCapacityWarn, setSprintCapacityWarn] = useState<number | null>(null);
+
+  const sprintWeekCount = (wk: number) =>
+    calendar.filter((e) => (sprintAssignments[entryKey(e)] ?? e.week) === wk).length;
+
+  const assignToSprint = (key: string) => {
+    if (sprintWeek === null) return;
+    if (sprintAssignments[key] === sprintWeek) {
+      setSprintAssignments((prev) => { const n = { ...prev }; delete n[key]; return n; });
+      return;
+    }
+    const target       = CADENCE_POSTS_PER_WEEK[form.cadence];
+    const currentCount = sprintWeekCount(sprintWeek);
+    if (currentCount >= target) {
+      setSprintCapacityWarn(sprintWeek);
+      setTimeout(() => setSprintCapacityWarn(null), 2800);
+      return;
+    }
+    setSprintAssignments((prev) => ({ ...prev, [key]: sprintWeek }));
+  };
+
   const entryKey = (e: { date: string; type: string; topic: string }) =>
     `${e.date}|${e.type}|${e.topic}`;
 
@@ -3144,6 +3169,18 @@ export default function ContentCalendarGenerator() {
                     </Button>
                     <Button
                       size="sm"
+                      variant={sprintMode ? "default" : "outline"}
+                      onClick={() => {
+                        setSprintMode((m) => !m);
+                        setSprintWeek(null);
+                      }}
+                      className={`gap-1.5 ${sprintMode ? "bg-orange-500 hover:bg-orange-600 border-orange-500 text-white" : "border-orange-200 text-orange-600 hover:bg-orange-50"}`}
+                      title="Sprint Planner — reassign entries to weeks and track capacity"
+                    >
+                      📋 Sprint
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={copyAsText}
                       className="gap-1.5"
@@ -3260,6 +3297,131 @@ export default function ContentCalendarGenerator() {
                     ))}
                   </div>
                 )}
+
+                {/* ── Sprint Planner Board ────────────────────────────────── */}
+                {sprintMode && (() => {
+                  const target = CADENCE_POSTS_PER_WEEK[form.cadence];
+                  const weeks  = [...new Set(calendar.map((e) => e.week))].sort((a, b) => a - b);
+                  return (
+                    <div className="rounded-xl border border-orange-200 bg-white shadow-sm overflow-hidden">
+                      {/* Header */}
+                      <div className="flex items-center justify-between px-4 py-2.5 bg-orange-50/80 border-b border-orange-100">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm leading-none">📋</span>
+                          <span className="text-[11px] font-bold text-slate-700">Sprint Planner</span>
+                          <span className="text-[9.5px] text-slate-400">
+                            — select a week, then click entries below to assign them
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {Object.keys(sprintAssignments).length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setSprintAssignments({})}
+                              className="text-[9px] text-slate-400 hover:text-rose-500 transition-colors"
+                            >
+                              ↺ reset
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => { setSprintMode(false); setSprintWeek(null); }}
+                            className="text-[9px] font-semibold text-orange-600 hover:text-orange-800 transition-colors"
+                          >
+                            Exit ✕
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Week columns */}
+                      <div className="overflow-x-auto px-4 pt-3 pb-1">
+                        <div className="flex gap-2.5 min-w-max">
+                          {weeks.map((wk) => {
+                            const assigned = calendar.filter(
+                              (e) => (sprintAssignments[entryKey(e)] ?? e.week) === wk,
+                            );
+                            const count     = assigned.length;
+                            const isOver    = count > target;
+                            const isFull    = count === target;
+                            const isSelected   = sprintWeek === wk;
+                            const isCapWarn    = sprintCapacityWarn === wk;
+                            const barColor     = isOver || isCapWarn ? "bg-rose-500" : isFull ? "bg-amber-400" : "bg-orange-400";
+                            const countBadge   = isOver || isCapWarn
+                              ? "bg-rose-100 text-rose-700"
+                              : isFull ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500";
+                            return (
+                              <button
+                                key={wk}
+                                type="button"
+                                onClick={() => setSprintWeek(isSelected ? null : wk)}
+                                className={`flex flex-col items-start w-40 shrink-0 rounded-xl border px-3 py-2.5 text-left transition-all ${
+                                  isSelected
+                                    ? "border-orange-400 bg-orange-50 ring-1 ring-orange-300 shadow-sm"
+                                    : isCapWarn
+                                      ? "border-rose-300 bg-rose-50"
+                                      : "border-slate-100 bg-slate-50/60 hover:border-orange-200 hover:bg-orange-50/40"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between w-full mb-1.5">
+                                  <span className={`text-[10px] font-bold ${isSelected ? "text-orange-700" : "text-slate-600"}`}>
+                                    {isSelected && "▶ "}Wk {wk}
+                                  </span>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full tabular-nums ${countBadge}`}>
+                                    {count}/{target}
+                                  </span>
+                                </div>
+                                <div className="w-full h-1 rounded-full bg-slate-100 overflow-hidden mb-2">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${barColor}`}
+                                    style={{ width: `${Math.min(100, (count / target) * 100)}%` }}
+                                  />
+                                </div>
+                                {isCapWarn && (
+                                  <p className="text-[8.5px] font-semibold text-rose-600 mb-1">
+                                    ⚠ Week at capacity
+                                  </p>
+                                )}
+                                <div className="space-y-1 w-full">
+                                  {assigned.slice(0, 5).map((e) => (
+                                    <div
+                                      key={entryKey(e)}
+                                      className={`text-[8.5px] leading-snug text-slate-600 pl-1.5 border-l-2 ${sprintAssignments[entryKey(e)] !== undefined ? "border-orange-400 font-semibold text-orange-700" : "border-slate-200"}`}
+                                    >
+                                      {e.angle.length > 36 ? e.angle.substring(0, 36) + "…" : e.angle}
+                                    </div>
+                                  ))}
+                                  {assigned.length > 5 && (
+                                    <p className="text-[8px] text-slate-400">
+                                      +{assigned.length - 5} more
+                                    </p>
+                                  )}
+                                  {assigned.length === 0 && (
+                                    <p className="text-[8.5px] text-slate-400 italic">
+                                      Empty — assign entries here
+                                    </p>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Active week hint */}
+                      <div className="px-4 py-2.5">
+                        {sprintWeek !== null ? (
+                          <p className="text-[9.5px] font-semibold text-orange-700">
+                            ▶ Week {sprintWeek} selected — click any entry's "➜ Wk {sprintWeek}" button to assign it. Click again to remove.
+                          </p>
+                        ) : (
+                          <p className="text-[9.5px] text-slate-400">
+                            Click a week column to select it as your sprint target, then assign entries from the calendar below.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* ── Content Velocity Tracker ────────────────────────────── */}
                 {(() => {
@@ -3942,6 +4104,24 @@ export default function ContentCalendarGenerator() {
                                   </button>
                                 );
                               })()}
+                              {sprintMode && sprintWeek !== null && (() => {
+                                const k          = entryKey(entry);
+                                const isAssigned = sprintAssignments[k] === sprintWeek;
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => assignToSprint(k)}
+                                    title={isAssigned ? `Remove from Wk ${sprintWeek}` : `Assign to Wk ${sprintWeek}`}
+                                    className={`flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md border whitespace-nowrap transition-colors ${
+                                      isAssigned
+                                        ? "bg-orange-100 text-orange-700 border-orange-300 hover:opacity-80"
+                                        : "bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
+                                    }`}
+                                  >
+                                    {isAssigned ? `✓ Wk ${sprintWeek}` : `➜ Wk ${sprintWeek}`}
+                                  </button>
+                                );
+                              })()}
                             </div>
                           </motion.div>
                         ))}
@@ -4063,6 +4243,24 @@ export default function ContentCalendarGenerator() {
                                         className={`flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-md border whitespace-nowrap transition-colors ${cfg.bg} ${cfg.text} ${cfg.border} hover:opacity-80`}
                                       >
                                         {cfg.icon} {cfg.label}
+                                      </button>
+                                    );
+                                  })()}
+                                  {sprintMode && sprintWeek !== null && (() => {
+                                    const k          = entryKey(entry);
+                                    const isAssigned = sprintAssignments[k] === sprintWeek;
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={() => assignToSprint(k)}
+                                        title={isAssigned ? `Remove from Wk ${sprintWeek}` : `Assign to Wk ${sprintWeek}`}
+                                        className={`flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md border whitespace-nowrap transition-colors ${
+                                          isAssigned
+                                            ? "bg-orange-100 text-orange-700 border-orange-300 hover:opacity-80"
+                                            : "bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
+                                        }`}
+                                      >
+                                        {isAssigned ? `✓ Wk ${sprintWeek}` : `➜ Wk ${sprintWeek}`}
                                       </button>
                                     );
                                   })()}
