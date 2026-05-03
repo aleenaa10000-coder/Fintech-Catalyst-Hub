@@ -1696,6 +1696,78 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Competitive Blindspot Detector ──────────────────────────────────────────
+// Signals that mark a piece as playing on crowded, commoditised ground
+const CROWD_SIGNALS = [
+  // generic list formats
+  "top 10","top 5","top 7","top 15","top 20","top 25","best fintech","best banks","best neobank","best payment",
+  // future/trend generics
+  "future of banking","future of finance","future of payments","future of fintech",
+  "fintech trends","banking trends","payment trends","trends to watch","trends in 2025","trends in 2026",
+  // explainer generics
+  "what is fintech","what is blockchain","what is open banking","what is embedded finance","what is defi",
+  "explained for beginners","getting started with","for beginners","introduction to fintech","beginner guide",
+  "everything you need to know","complete overview",
+  // benefit/advocacy generics
+  "benefits of digital banking","benefits of open banking","why fintech matters","why digital payments",
+  "advantages of","why you need a","case for adopting",
+  // generic transformation
+  "digital transformation in banking","digital transformation in finance","banking innovation","fintech innovation",
+  // generic ai/tech
+  "ai in banking","ai in finance","machine learning in banking","ml in finance",
+  "blockchain in banking","blockchain for finance","crypto for beginners",
+];
+
+// Signals that mark a piece as genuinely differentiated — original, contrarian, or operationally specific
+const WHITE_SPACE_SIGNALS = [
+  // failure & contrarian analysis
+  "why failed","what went wrong","collapsed","went bust","post-mortem","autopsy","cautionary tale",
+  "the problem with","the myth of","what nobody tells","hidden cost","dark side of","overrated",
+  "doesn't work","why x is wrong","contrary to","the real reason","unpopular opinion",
+  // original research & data
+  "we found","we surveyed","our research","our data","our analysis","proprietary data",
+  "we tracked","we measured","we interviewed","our study","exclusive data","n=","respondents",
+  // operational & behind-the-scenes
+  "how we built","behind the scenes","step-by-step implementation","worked example","real example",
+  "lessons learned","what we learned","implementation guide","how we scaled","how we reduced",
+  "our experience","in practice","in the real world","running a",
+  // economics & unit economics
+  "roi of","cost of","unit economics","economics of","p&l","margin analysis","profitability of",
+  "true cost","hidden fees","cost breakdown","pricing model","monetisation strategy",
+  // technical depth
+  "architecture","infrastructure design","protocol design","api design","technical debt",
+  "engineering decisions","technical trade-off","system design","data model","latency",
+  // niche regulatory implementation
+  "implementing psd2","implementing gdpr","implementing dora","post-brexit","under mifid",
+  "fca approach","cfpb ruling","basel implementation","eba guidelines in practice",
+  // specific market / geography
+  "in southeast asia","in sub-saharan africa","in latin america","in the uk market",
+  "in the us market","in the eu","in germany","in india","in nigeria","in brazil",
+  // specific company analysis
+  "monzo","revolut","stripe","wise","klarna","chime","nubank","starling","n26","checkout",
+  "square","paypal strategy","robinhood","plaid","adyen","worldpay","marqeta","affirm",
+];
+
+type CompetitiveStance = "crowded" | "differentiated" | "neutral";
+
+function scoreCompetitive(e: { topic: string; angle: string }): {
+  crowdScore:   number;
+  diffScore:    number;
+  stance:       CompetitiveStance;
+  crowdHits:    string[];
+  diffHits:     string[];
+} {
+  const hay       = `${e.topic} ${e.angle}`.toLowerCase();
+  const crowdHits = CROWD_SIGNALS.filter((s) => hay.includes(s));
+  const diffHits  = WHITE_SPACE_SIGNALS.filter((s) => hay.includes(s));
+  const crowdScore = Math.min(100, crowdHits.length * 22);
+  const diffScore  = Math.min(100, diffHits.length  * 20);
+  const stance: CompetitiveStance =
+    diffScore > crowdScore && diffScore >= 20 ? "differentiated" :
+    crowdScore > diffScore && crowdScore >= 22 ? "crowded" : "neutral";
+  return { crowdScore, diffScore, stance, crowdHits, diffHits };
+}
+
 // ─── Pillar-Cluster Architecture Mapper ──────────────────────────────────────
 const PILLAR_BREADTH_SIGNALS = [
   "complete guide","ultimate guide","comprehensive guide","definitive guide",
@@ -6490,6 +6562,248 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Competitive Blindspot Detector ───────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar.map((e) => ({ entry: e, ...scoreCompetitive(e) }));
+
+                  const crowded        = scored.filter((s) => s.stance === "crowded");
+                  const differentiated = scored.filter((s) => s.stance === "differentiated");
+                  const neutral        = scored.filter((s) => s.stance === "neutral");
+
+                  // Originality Index (0-100)
+                  // Rewarded for differentiated, penalised for crowded, neutral contributes 50% weight
+                  const originScore = scored.length === 0 ? 50 : Math.max(0, Math.min(100, Math.round(
+                    ((differentiated.length * 100) + (neutral.length * 50) + (crowded.length * 0)) / scored.length
+                  )));
+
+                  const originCfg =
+                    originScore >= 75 ? { label: "Highly original",   color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", bar: "bg-emerald-400" } :
+                    originScore >= 50 ? { label: "Mostly original",   color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100",    bar: "bg-blue-400"    } :
+                    originScore >= 30 ? { label: "Mixed territory",   color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   bar: "bg-amber-400"   } :
+                                        { label: "Heavily commoditised",color: "text-rose-700",  bg: "bg-rose-50",    border: "border-rose-100",    bar: "bg-rose-400"    };
+
+                  const stanceCfg = {
+                    crowded:        { label: "Crowded territory",  bg: "bg-rose-50",    border: "border-rose-100",    text: "text-rose-700",    bar: "bg-rose-400",    badge: "bg-rose-100 text-rose-700 border-rose-200",         icon: "🔴" },
+                    differentiated: { label: "White space play",   bg: "bg-emerald-50", border: "border-emerald-100", text: "text-emerald-700", bar: "bg-emerald-400", badge: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: "🟢" },
+                    neutral:        { label: "Neutral ground",     bg: "bg-slate-50",   border: "border-slate-100",   text: "text-slate-600",   bar: "bg-slate-300",   badge: "bg-slate-100 text-slate-600 border-slate-200",       icon: "⚪" },
+                  } as const;
+
+                  // Top crowded signals across entire calendar (most-repeated commoditised angles)
+                  const allCrowdHits = crowded.flatMap((s) => s.crowdHits);
+                  const crowdHitFreq = allCrowdHits.reduce<Record<string, number>>((acc, h) => { acc[h] = (acc[h] ?? 0) + 1; return acc; }, {});
+                  const topCrowdHits = Object.entries(crowdHitFreq).sort(([, a], [, b]) => b - a).slice(0, 8);
+
+                  // Top differentiation signals across calendar
+                  const allDiffHits = differentiated.flatMap((s) => s.diffHits);
+                  const diffHitFreq = allDiffHits.reduce<Record<string, number>>((acc, h) => { acc[h] = (acc[h] ?? 0) + 1; return acc; }, {});
+                  const topDiffHits = Object.entries(diffHitFreq).sort(([, a], [, b]) => b - a).slice(0, 8);
+
+                  return (
+                    <Card className="border border-orange-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🧭</span>
+                            <p className="text-xs font-semibold text-slate-700">Competitive Blindspot Detector</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${originCfg.color} ${originCfg.bg} ${originCfg.border}`}>
+                            {originScore}/100 · {originCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Cross-references every calendar entry against 30+ commoditised fintech angle signals and 40+ white space differentiation signals — flagging where the calendar is playing the same overcrowded ground as every other fintech publisher versus where it has a genuine competitive edge.
+                        </p>
+
+                        {/* Originality Index */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${originCfg.bg} ${originCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${originCfg.color}`}>{originScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">Originality Index</p>
+                          </div>
+                          <div className="flex-1 space-y-1.5">
+                            {[
+                              { label: "Differentiated", count: differentiated.length, total: scored.length, bar: "bg-emerald-400", text: "text-emerald-700" },
+                              { label: "Neutral ground",  count: neutral.length,        total: scored.length, bar: "bg-slate-300",   text: "text-slate-500" },
+                              { label: "Crowded",         count: crowded.length,        total: scored.length, bar: "bg-rose-400",    text: "text-rose-700"  },
+                            ].map(({ label, count, total, bar, text }) => {
+                              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                              return (
+                                <div key={label} className="flex items-center gap-2">
+                                  <span className={`text-[7px] w-24 shrink-0 ${text}`}>{label}</span>
+                                  <div className="flex-1 h-1.5 rounded-full bg-white/60 overflow-hidden">
+                                    <div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
+                                  </div>
+                                  <span className={`text-[7px] tabular-nums shrink-0 w-14 text-right ${text}`}>{count} piece{count !== 1 ? "s" : ""} ({pct}%)</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Portfolio stats */}
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          {[
+                            { label: "Crowded entries",        val: crowded.length,        sub: "playing on saturated ground", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    },
+                            { label: "White space plays",      val: differentiated.length, sub: "genuinely differentiated",    color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+                            { label: "Neutral / mixed ground", val: neutral.length,        sub: "neither crowded nor unique",  color: "text-slate-600",   bg: "bg-slate-50",   border: "border-slate-100"   },
+                          ].map(({ label, val, sub, color, bg, border }) => (
+                            <div key={label} className={`rounded-lg border px-2 py-1.5 text-center ${bg} ${border}`}>
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className={`text-[13px] font-black leading-none ${color}`}>{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Crowded entries */}
+                        {crowded.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">🔴 Crowded territory — angles every fintech publisher already owns:</p>
+                            <div className="space-y-2 mb-4">
+                              {crowded.sort((a, b) => b.crowdScore - a.crowdScore).slice(0, 6).map(({ entry: e, crowdScore, crowdHits }) => (
+                                <div key={entryKey(e)} className="rounded-xl border border-rose-100 overflow-hidden">
+                                  <div className="flex items-center justify-between px-3.5 py-2 bg-rose-50">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-[8.5px] font-bold text-rose-800 truncate">{e.angle}</span>
+                                    </div>
+                                    <span className="text-[8px] font-black text-rose-600 tabular-nums shrink-0 ml-2">{crowdScore}/100</span>
+                                  </div>
+                                  <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[7px] text-slate-400 shrink-0 w-20">Crowd signal score</span>
+                                      <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                        <div className="h-full rounded-full bg-rose-400" style={{ width: `${crowdScore}%` }} />
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                      <span className="text-[7px] text-slate-400 self-center mr-0.5">Signals:</span>
+                                      {crowdHits.slice(0, 5).map((h) => (
+                                        <span key={h} className="text-[7px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-600 border border-rose-200">"{h}"</span>
+                                      ))}
+                                    </div>
+                                    <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-orange-50 border border-orange-100">
+                                      <span className="text-[9px] shrink-0">💡</span>
+                                      <p className="text-[8px] text-orange-900 leading-snug">
+                                        This angle is well-trodden in fintech publishing. To stand out, add a contrarian angle, original data point, a specific named company or market, or narrow the scope to a niche audience segment that isn't served by the generic version.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                              {crowded.length > 6 && <p className="text-[8px] text-slate-400 text-center">+{crowded.length - 6} more crowded entries</p>}
+                            </div>
+
+                            {/* Most-repeated crowd signals across calendar */}
+                            {topCrowdHits.length > 0 && (
+                              <div className="mb-4">
+                                <p className="text-[9px] font-semibold text-slate-500 mb-1.5">Most-repeated commoditised signals across the calendar:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {topCrowdHits.map(([signal, count]) => (
+                                    <span key={signal} className="text-[7.5px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                      "{signal}" <span className="opacity-60">×{count}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Differentiated entries */}
+                        {differentiated.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">🟢 White space plays — angles where this calendar has genuine edge:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {differentiated.sort((a, b) => b.diffScore - a.diffScore).slice(0, 6).map(({ entry: e, diffScore, diffHits }) => (
+                                <div key={entryKey(e)} className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100">
+                                  <span className="text-[10px] shrink-0 mt-0.5">🟢</span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-[8.5px] font-bold text-emerald-800 truncate">{e.angle}</span>
+                                      <span className="text-[7px] font-black text-emerald-600 tabular-nums shrink-0">{diffScore}/100</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {diffHits.slice(0, 4).map((h) => (
+                                        <span key={h} className="text-[7px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">"{h}"</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                              {differentiated.length > 6 && <p className="text-[8px] text-slate-400 text-center">+{differentiated.length - 6} more differentiated entries</p>}
+                            </div>
+
+                            {topDiffHits.length > 0 && (
+                              <div className="mb-4">
+                                <p className="text-[9px] font-semibold text-slate-500 mb-1.5">Strongest differentiation signals in use:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {topDiffHits.map(([signal, count]) => (
+                                    <span key={signal} className="text-[7.5px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                      "{signal}" <span className="opacity-60">×{count}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Neutral entries */}
+                        {neutral.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">⚪ Neutral ground — neither crowded nor clearly differentiated:</p>
+                            <div className="flex flex-wrap gap-1.5 mb-4">
+                              {neutral.map(({ entry: e }) => (
+                                <span key={entryKey(e)} className={`text-[7.5px] font-semibold px-2 py-0.5 rounded-full border truncate max-w-[14rem] ${TYPE_COLOR[e.type]}`}>{e.angle}</span>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Recommendations */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Competitive recommendations:</p>
+                        <div className="space-y-1.5">
+                          {crowded.length > 0 && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-100">
+                              <span className="text-[9px] shrink-0">🔴</span>
+                              <p className="text-[8px] text-rose-800 leading-snug">
+                                <span className="font-bold">{crowded.length} piece{crowded.length !== 1 ? "s" : ""} in crowded territory.</span> For each: add a specific named company or market, insert one original data point, or narrow to a niche segment. "Top 10 fintechs" competes against thousands of identical pieces — "Top 10 embedded finance infrastructure plays in Southeast Asia in 2025" competes against almost none.
+                              </p>
+                            </div>
+                          )}
+                          {differentiated.length === 0 && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                              <span className="text-[9px] shrink-0">⚠️</span>
+                              <p className="text-[8px] text-amber-900 leading-snug">
+                                <span className="font-bold">No differentiated pieces detected.</span> Commission at least one original-research piece, one failure post-mortem, or one deeply operational implementation guide per quarter — these formats are underproduced in fintech publishing and earn disproportionate links and shares.
+                              </p>
+                            </div>
+                          )}
+                          {differentiated.length > 0 && crowded.length === 0 && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                              <span className="text-[9px] shrink-0">🟢</span>
+                              <p className="text-[8px] text-emerald-800 leading-snug font-semibold">
+                                Strong competitive positioning — all detected pieces use differentiated angles with no commoditised ground. Maintain this by continuing to prioritise original research, contrarian analysis, and operationally specific content formats.
+                              </p>
+                            </div>
+                          )}
+                          {neutral.length > 0 && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
+                              <span className="text-[9px] shrink-0">⚪</span>
+                              <p className="text-[8px] text-blue-800 leading-snug">
+                                <span className="font-bold">{neutral.length} neutral piece{neutral.length !== 1 ? "s" : ""}.</span> These are neither crowded nor clearly differentiated — small angle edits can push them into white space territory. Add one specific data point, one named company or geography, or one contrarian hook per piece.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Pillar-Cluster Architecture Mapper ───────────────────── */}
                 {calendar.length > 1 && (() => {
