@@ -1696,6 +1696,33 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Editorial Complexity & Resource Estimate ────────────────────────────────
+interface ComplexityProfile {
+  hours:     number;   // estimated production hours
+  words:     number;   // expected word count
+  assets:    number;   // design/media assets needed
+  approvals: number;   // sign-off rounds
+  roles:     string[]; // team roles typically involved
+  tip:       string;   // efficiency tip to reduce production time
+}
+const COMPLEXITY_BY_TYPE: Record<ContentType, ComplexityProfile> = {
+  guide:          { hours: 16, words: 3000, assets: 5,  approvals: 2, roles: ["Writer","Designer","SME Reviewer","Editor"],                      tip: "Repurpose existing blog posts as section drafts — cuts research time by ~40%" },
+  "case-study":   { hours: 12, words: 1500, assets: 3,  approvals: 3, roles: ["Writer","Client Contact","Designer","Compliance"],                 tip: "Run a 30-min structured client interview and transcribe — saves 4h of back-and-forth" },
+  "blog-post":    { hours: 6,  words: 1200, assets: 2,  approvals: 1, roles: ["Writer","Editor"],                                                 tip: "Use a standard brief template — brief should take 20 min max to complete" },
+  linkedin:       { hours: 1,  words: 250,  assets: 1,  approvals: 1, roles: ["Copywriter","Brand Reviewer"],                                     tip: "Batch-write 4–5 posts in a single session to maintain tone consistency" },
+  newsletter:     { hours: 4,  words: 800,  assets: 2,  approvals: 1, roles: ["Writer","Editor"],                                                 tip: "Curate 3 external links per issue to reduce original writing load" },
+  webinar:        { hours: 20, words: 4000, assets: 20, approvals: 2, roles: ["Speaker","Designer","Ops/Tech","Moderator","Promoter"],             tip: "Reuse slide structure from previous webinars — only update data and case examples" },
+  infographic:    { hours: 8,  words: 300,  assets: 8,  approvals: 2, roles: ["Researcher","Designer","Brand Reviewer"],                          tip: "Brief the designer with a wireframe sketch — eliminates the first revision round" },
+  checklist:      { hours: 3,  words: 600,  assets: 1,  approvals: 1, roles: ["Writer","SME Reviewer"],                                           tip: "Source items from existing guides — drops production to ~90 min" },
+  "video-script": { hours: 14, words: 2000, assets: 10, approvals: 2, roles: ["Scriptwriter","Videographer","Video Editor","Thumbnail Designer"],  tip: "Script in bullet points first, then expand — faster than writing prose from scratch" },
+  podcast:        { hours: 6,  words: 500,  assets: 2,  approvals: 1, roles: ["Host","Guest Coordinator","Audio Editor"],                         tip: "Prepare 10 structured questions instead of a full script — sounds natural, cuts prep time" },
+};
+const COMPLEXITY_TIER = (h: number) =>
+  h > 16 ? { label: "Heavy",    bg: "bg-rose-100",    text: "text-rose-700",    bar: "bg-rose-400"    }
+  : h > 8  ? { label: "Complex",  bg: "bg-amber-100",   text: "text-amber-700",   bar: "bg-amber-400"   }
+  : h > 4  ? { label: "Standard", bg: "bg-blue-100",    text: "text-blue-700",    bar: "bg-blue-400"    }
+  :          { label: "Quick",    bg: "bg-emerald-100", text: "text-emerald-700", bar: "bg-emerald-400" };
+
 // ─── Lead Generation Potential Score ─────────────────────────────────────────
 const LEAD_GATE: Record<ContentType, number> = {
   guide: 24, "case-study": 20, "blog-post": 8, linkedin: 0,
@@ -5681,6 +5708,171 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Editorial Complexity & Resource Estimate ─────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Attach complexity + week number to each entry
+                  const withCx = calendar.map((e) => ({
+                    e,
+                    cx: COMPLEXITY_BY_TYPE[e.type],
+                  }));
+
+                  // Week → total hours map
+                  const weekHours: Record<number, number> = {};
+                  for (const { e, cx } of withCx) {
+                    weekHours[e.week] = (weekHours[e.week] ?? 0) + cx.hours;
+                  }
+                  const weeks       = Object.keys(weekHours).map(Number).sort((a, b) => a - b);
+                  const totalHours  = Object.values(weekHours).reduce((s, h) => s + h, 0);
+                  const avgPerWeek  = Math.round((totalHours / (weeks.length || 1)) * 10) / 10;
+                  const maxWkHours  = Math.max(...Object.values(weekHours), 1);
+                  const busiestWk   = weeks.reduce((a, b) => (weekHours[b] > weekHours[a] ? b : a), weeks[0]);
+                  const overloaded  = weeks.filter((w) => weekHours[w] > 24);
+
+                  // Top 5 heaviest entries
+                  const heaviest = [...withCx].sort((a, b) => b.cx.hours - a.cx.hours).slice(0, 5);
+
+                  const wkBar = (h: number) =>
+                    h > 32 ? "bg-rose-400" : h > 20 ? "bg-amber-400" : h > 12 ? "bg-blue-400" : "bg-emerald-400";
+                  const wkText = (h: number) =>
+                    h > 32 ? "text-rose-700" : h > 20 ? "text-amber-700" : h > 12 ? "text-blue-600" : "text-emerald-700";
+
+                  return (
+                    <Card className="border border-orange-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🏗️</span>
+                            <p className="text-xs font-semibold text-slate-700">Editorial Complexity & Resource Estimate</p>
+                          </div>
+                          {overloaded.length > 0 ? (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                              {overloaded.length} week{overloaded.length !== 1 ? "s" : ""} overloaded
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                              Workload balanced
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Estimated production hours per entry and week — flags weeks where the team will be overloaded before you lock the schedule.
+                        </p>
+
+                        {/* Summary stats */}
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          {[{ label: "Total hours",    val: `${totalHours}h` },
+                            { label: "Avg / week",     val: `${avgPerWeek}h` },
+                            { label: "Busiest week",   val: busiestWk != null ? `Wk ${busiestWk} · ${weekHours[busiestWk]}h` : "—" }]
+                            .map(({ label, val }) => (
+                              <div key={label} className="rounded-lg bg-orange-50 border border-orange-100 px-2.5 py-2 text-center">
+                                <p className="text-[8.5px] text-slate-400 mb-0.5">{label}</p>
+                                <p className="text-[11px] font-black text-orange-700 leading-none">{val}</p>
+                              </div>
+                            ))}
+                        </div>
+
+                        {/* Week workload bars */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Weekly production load:</p>
+                        <div className="flex items-end gap-1.5 mb-1">
+                          {weeks.map((wk) => {
+                            const h   = weekHours[wk];
+                            const pct = Math.max(8, Math.round((h / Math.max(maxWkHours, 1)) * 100));
+                            return (
+                              <div key={wk} className="flex-1 flex flex-col items-center gap-0.5">
+                                <span className={`text-[7.5px] font-bold tabular-nums ${wkText(h)}`}>{h}h</span>
+                                <div className="w-full h-10 flex items-end bg-slate-100 rounded-sm overflow-hidden">
+                                  <div className={`w-full rounded-sm ${wkBar(h)}`} style={{ height: `${pct}%` }} />
+                                </div>
+                                <span className="text-[7.5px] text-slate-400">Wk {wk}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-3 mb-4 mt-1">
+                          {[{ label: "Manageable  ≤12h",  bg: "bg-emerald-400" },
+                            { label: "Busy  13–20h",       bg: "bg-blue-400"    },
+                            { label: "Heavy  21–32h",      bg: "bg-amber-400"   },
+                            { label: "Overloaded  >32h",   bg: "bg-rose-400"    }]
+                            .map((t) => (
+                              <span key={t.label} className="text-[8px] text-slate-400 flex items-center gap-1">
+                                <span className={`inline-block w-2 h-2 rounded-full ${t.bg}`} />
+                                {t.label}
+                              </span>
+                            ))}
+                        </div>
+
+                        {/* Top 5 heaviest entries */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Highest-effort pieces:</p>
+                        <div className="space-y-2.5">
+                          {heaviest.map(({ e, cx }) => {
+                            const tc = COMPLEXITY_TIER(cx.hours);
+                            return (
+                              <div key={entryKey(e)} className="rounded-xl border border-slate-100 bg-slate-50 overflow-hidden">
+                                {/* Entry header */}
+                                <div className="flex flex-wrap items-start justify-between gap-2 px-3.5 py-2 bg-white border-b border-slate-100">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                      <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>
+                                        {FORMAT_LABEL[e.type]}
+                                      </span>
+                                      <span className="text-[8px] text-slate-400">Wk {e.week}</span>
+                                    </div>
+                                    <p className="text-[10px] font-bold text-slate-700 line-clamp-2 leading-snug">{e.angle}</p>
+                                  </div>
+                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${tc.bg} ${tc.text}`}>
+                                    {cx.hours}h · {tc.label}
+                                  </span>
+                                </div>
+
+                                {/* Stats row */}
+                                <div className="px-3.5 py-2 flex flex-wrap gap-x-4 gap-y-1">
+                                  {[{ icon: "📝", label: `~${cx.words.toLocaleString()} words` },
+                                    { icon: "🎨", label: `${cx.assets} asset${cx.assets !== 1 ? "s" : ""}` },
+                                    { icon: "✅", label: `${cx.approvals} approval round${cx.approvals !== 1 ? "s" : ""}` }]
+                                    .map(({ icon, label }) => (
+                                      <span key={label} className="text-[8.5px] text-slate-500">{icon} {label}</span>
+                                    ))}
+                                </div>
+
+                                {/* Roles */}
+                                <div className="px-3.5 pb-2 flex flex-wrap gap-1">
+                                  {cx.roles.map((r) => (
+                                    <span key={r} className="text-[7.5px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-100">
+                                      {r}
+                                    </span>
+                                  ))}
+                                </div>
+
+                                {/* Efficiency tip */}
+                                <div className="mx-3.5 mb-2.5 px-3 py-2 rounded-lg bg-orange-50 border border-orange-100">
+                                  <p className="text-[8.5px] text-orange-800 font-semibold mb-0.5">⚡ Efficiency tip</p>
+                                  <p className="text-[9px] text-orange-900 leading-snug">{cx.tip}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Overloaded week callout */}
+                        {overloaded.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-rose-50 border border-rose-100 mt-3">
+                            <span className="text-sm shrink-0 leading-none mt-0.5">🚨</span>
+                            <div>
+                              <p className="text-[9px] font-bold text-rose-800">
+                                {overloaded.length === 1 ? `Week ${overloaded[0]} is` : `Weeks ${overloaded.join(", ")} are`} overloaded
+                              </p>
+                              <p className="text-[8.5px] text-rose-700 mt-0.5">
+                                These weeks exceed 32 production hours — redistribute heavy pieces to lighter weeks or increase team capacity before locking the schedule.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Lead Generation Potential Score ──────────────────────── */}
                 {calendar.length > 0 && (() => {
