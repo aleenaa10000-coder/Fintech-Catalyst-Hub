@@ -1696,6 +1696,75 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Social Amplification Planner ────────────────────────────────────────────
+const VIRAL_CONTRARIAN = ["myth","wrong","mistake","debunking","counterintuitive","unpopular","hot take","controversial","against","disagree","rethinking","uncomfortable truth","overrated","nobody talks about","stop","don't"];
+const VIRAL_DATA       = ["statistic","statistics","data","study","survey","benchmark","research","found that","shows that","revealed","according to","findings","measured","tracked","reported","numbers","metric"];
+const VIRAL_URGENCY    = ["risk","warning","danger","losing","missing out","critical","alert","fraud","threat","crisis","deadline","must","urgent","time-sensitive","avoid","before","costly"];
+const VIRAL_ASPIRE     = ["how to","build","grow","achieve","succeed","master","become","launch","win","transform","improve","boost","scale","level up","unlock","increase","double","triple"];
+const VIRAL_INSIDER    = ["insider","secret","nobody tells you","truth","behind the scenes","hidden","what they don't","actually","revealed","confession","honest","overlooked","underrated","rarely","few people"];
+
+const ATOMISE_BY_TYPE: Record<ContentType, { count: number; breakdown: string[] }> = {
+  "guide":      { count: 10, breakdown: ["5 LinkedIn posts (one insight per section)", "3 Twitter/X thread openers (one per key argument)", "2 newsletter feature sections"] },
+  "case-study": { count: 7,  breakdown: ["3 LinkedIn story posts (setup / conflict / result)", "2 result-stat tweets", "1 newsletter client spotlight section", "1 trade press pitch angle"] },
+  "roundup":    { count: 8,  breakdown: ["1 tweet per resource listed", "2 LinkedIn intro carousel slides", "1 newsletter 'what we're reading' section"] },
+  "blog":       { count: 5,  breakdown: ["3 LinkedIn insight posts (one key takeaway each)", "1 Twitter/X thread opener", "1 newsletter teaser with CTA"] },
+  "linkedin":   { count: 2,  breakdown: ["1 Twitter/X adapted version (condensed)", "1 newsletter quote or mention"] },
+};
+
+type ViralDim = "contrarian" | "data" | "urgency" | "aspire" | "insider";
+interface ViralScore {
+  total:      number;
+  contrarian: number;
+  data:       number;
+  urgency:    number;
+  aspire:     number;
+  insider:    number;
+  dominant:   ViralDim;
+  tier:       "viral" | "high" | "moderate" | "low";
+}
+
+function scoreViral(topic: string, angle: string): ViralScore {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  const contrarian = Math.min(25, VIRAL_CONTRARIAN.filter((s) => hay.includes(s)).length * 9);
+  const data       = Math.min(25, VIRAL_DATA.filter((s) => hay.includes(s)).length * 9);
+  const urgency    = Math.min(20, VIRAL_URGENCY.filter((s) => hay.includes(s)).length * 7);
+  const aspire     = Math.min(15, VIRAL_ASPIRE.filter((s) => hay.includes(s)).length * 5);
+  const insider    = Math.min(15, VIRAL_INSIDER.filter((s) => hay.includes(s)).length * 8);
+  const total = contrarian + data + urgency + aspire + insider;
+  const tier: ViralScore["tier"] = total >= 60 ? "viral" : total >= 40 ? "high" : total >= 20 ? "moderate" : "low";
+  const dims: [ViralDim, number][] = [["contrarian", contrarian], ["data", data], ["urgency", urgency], ["aspire", aspire], ["insider", insider]];
+  const dominant = dims.sort(([, a], [, b]) => b - a)[0][0];
+  return { total, contrarian, data, urgency, aspire, insider, dominant, tier };
+}
+
+const PLATFORM_TIPS: Record<ViralDim, { linkedin: string; twitter: string; newsletter: string }> = {
+  contrarian: {
+    linkedin:   "Open with the myth as a bold single-line hook, then break it in line 2 — contrarian openers get 4× more comment volume on LinkedIn",
+    twitter:    "Tweet the counterintuitive claim as a provocative one-liner, thread the evidence — contrarian hooks earn 5× more quote-tweets",
+    newsletter: "Use as the lead story with an 'Editor's hot take' label — controversial angles lift open rates by up to 30%",
+  },
+  data: {
+    linkedin:   "Lead with the headline stat in a bold callout: '83% of fintech leaders say X — yet only 12% do Y' stops the scroll instantly",
+    twitter:    "One stat per tweet, threaded — data threads get pinned by journalists and earn organic press mentions when the numbers are surprising",
+    newsletter: "Feature the key finding with a chart visual — data-forward stories earn 40% more forwards and 'reply with question' engagement",
+  },
+  urgency: {
+    linkedin:   "Frame as a 'warning post' with specific consequences — '3 things that will hurt your [role] by Q4' performs strongly with risk-aware audiences",
+    twitter:    "Urgency tweets work best with a hard deadline or event tie-in — anchor to a regulatory date or industry event for timely traction",
+    newsletter: "Open with the risk scenario, then provide the solution — problem-solution structure converts readers into consultation requests",
+  },
+  aspire: {
+    linkedin:   "Use the 'I did X in Y days — here's exactly how' format — aspiration + specificity is the highest-converting LinkedIn content pattern",
+    twitter:    "Numbered list tweet: '5 things that doubled [metric] for our fintech clients' — listicle threads get 3× more saves and retweets",
+    newsletter: "Position as a step-by-step playbook section — aspirational how-to content drives the highest click-through rates in B2B newsletters",
+  },
+  insider: {
+    linkedin:   "Frame as an insider perspective: 'After reviewing 200 compliance audits, here's what nobody warns you about' — authority + exclusivity stops scrollers",
+    twitter:    "Exclusive-insight hooks earn strong RT engagement: 'Rarely discussed:' or 'Most people miss this:' as the first 4 words dramatically increase engagement",
+    newsletter: "Position as 'What we're seeing from inside the industry' — insider-knowledge sections have the highest subscriber-share rates in fintech newsletters",
+  },
+};
+
 // ─── Backlink Magnetism Predictor ────────────────────────────────────────────
 const BACKLINK_FORMAT_SCORE: Record<ContentType, number> = {
   "guide":      30,
@@ -5997,6 +6066,211 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Social Amplification Planner ─────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar
+                    .map((e) => ({ entry: e, viral: scoreViral(e.topic, e.angle), atomise: ATOMISE_BY_TYPE[e.type] }))
+                    .sort((a, b) => b.viral.total - a.viral.total);
+
+                  const tierCfg = {
+                    viral:    { label: "Viral potential",  bg: "bg-fuchsia-50",  border: "border-fuchsia-100", text: "text-fuchsia-700",  bar: "bg-fuchsia-500", badge: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200" },
+                    high:     { label: "High engagement",  bg: "bg-violet-50",   border: "border-violet-100",  text: "text-violet-700",   bar: "bg-violet-400",  badge: "bg-violet-100 text-violet-700 border-violet-200"   },
+                    moderate: { label: "Moderate reach",   bg: "bg-blue-50",     border: "border-blue-100",    text: "text-blue-700",     bar: "bg-blue-400",    badge: "bg-blue-100 text-blue-700 border-blue-200"         },
+                    low:      { label: "Low virality",     bg: "bg-slate-50",    border: "border-slate-100",   text: "text-slate-500",    bar: "bg-slate-300",   badge: "bg-slate-100 text-slate-500 border-slate-200"      },
+                  } as const;
+
+                  const dimCfg: { key: keyof ViralScore & ViralDim; label: string; max: number; color: string; emoji: string }[] = [
+                    { key: "contrarian", label: "Contrarian hook",  max: 25, color: "bg-rose-400",    emoji: "🔥" },
+                    { key: "data",       label: "Data/research",     max: 25, color: "bg-sky-400",     emoji: "📊" },
+                    { key: "urgency",    label: "Urgency/fear",      max: 20, color: "bg-amber-400",   emoji: "⚠️" },
+                    { key: "aspire",     label: "Aspirational",      max: 15, color: "bg-emerald-400", emoji: "🚀" },
+                    { key: "insider",    label: "Insider/exclusive",  max: 15, color: "bg-purple-400",  emoji: "🔑" },
+                  ];
+
+                  const byTier = (t: ViralScore["tier"]) => scored.filter((s) => s.viral.tier === t);
+                  const totalDerivatives = scored.reduce((s, x) => s + x.atomise.count, 0);
+                  const avgViral = Math.round(scored.reduce((s, x) => s + x.viral.total, 0) / scored.length);
+
+                  return (
+                    <Card className="border border-fuchsia-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📡</span>
+                            <p className="text-xs font-semibold text-slate-700">Social Amplification Planner</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {byTier("viral").length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200">
+                                {byTier("viral").length} viral potential
+                              </span>
+                            )}
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                              {totalDerivatives} derivatives
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Scores each piece on 5 virality dimensions, counts how many social derivatives it can generate, and gives platform-specific repurposing instructions for LinkedIn, Twitter/X, and newsletter.
+                        </p>
+
+                        {/* Portfolio summary */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Viral / High",     val: byTier("viral").length + byTier("high").length, sub: "strong amplification" },
+                            { label: "Avg score",        val: `${avgViral}`,                                   sub: "out of 100"          },
+                            { label: "Total derivatives",val: totalDerivatives,                                sub: "social posts from cal"},
+                            { label: "Avg per piece",    val: Math.round(totalDerivatives / scored.length),   sub: "repurposed posts"     },
+                          ].map(({ label, val, sub }) => (
+                            <div key={label} className="rounded-lg border border-fuchsia-100 bg-fuchsia-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className="text-[12px] font-black leading-none text-fuchsia-700">{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Tier distribution */}
+                        <div className="flex gap-px h-2 rounded-full overflow-hidden mb-1">
+                          {(["viral","high","moderate","low"] as const).map((t) => {
+                            const pct = Math.round((byTier(t).length / scored.length) * 100);
+                            return pct > 0 ? <div key={t} className={`h-full ${tierCfg[t].bar}`} style={{ width: `${pct}%` }} /> : null;
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4">
+                          {(["viral","high","moderate","low"] as const).filter((t) => byTier(t).length > 0).map((t) => (
+                            <div key={t} className="flex items-center gap-1">
+                              <div className={`w-2 h-2 rounded-full ${tierCfg[t].bar}`} />
+                              <span className="text-[8px] text-slate-500">{tierCfg[t].label} <span className="font-bold text-slate-700">({byTier(t).length})</span></span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Top amplification candidates */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Top amplification candidates:</p>
+                        <div className="space-y-2.5 mb-4">
+                          {scored.filter((s) => s.viral.tier === "viral" || s.viral.tier === "high").slice(0, 5).map(({ entry: e, viral: v, atomise: a }) => {
+                            const cfg = tierCfg[v.tier];
+                            const tips = PLATFORM_TIPS[v.dominant];
+                            return (
+                              <div key={entryKey(e)} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                {/* Entry header */}
+                                <div className={`flex items-center justify-between px-3.5 py-2 ${cfg.bg}`}>
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className={`text-[8.5px] font-bold truncate ${cfg.text}`}>{e.angle}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                    <span className="text-[7.5px] text-slate-400">Wk {e.week}</span>
+                                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border tabular-nums ${cfg.badge}`}>{v.total}/100</span>
+                                  </div>
+                                </div>
+                                <div className="px-3.5 py-2.5 bg-white space-y-2">
+                                  {/* Virality dimension mini-bars */}
+                                  <div className="space-y-1">
+                                    {dimCfg.map((d) => {
+                                      const val = v[d.key as keyof typeof v] as number;
+                                      const pct = Math.round((val / d.max) * 100);
+                                      return (
+                                        <div key={d.key} className="flex items-center gap-2">
+                                          <span className="text-[8px] shrink-0 w-4">{d.emoji}</span>
+                                          <span className="text-[7px] text-slate-400 w-20 shrink-0">{d.label}</span>
+                                          <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                            <div className={`h-full rounded-full ${d.color}`} style={{ width: `${pct}%` }} />
+                                          </div>
+                                          <span className="text-[7px] tabular-nums text-slate-400 shrink-0 w-8 text-right">{val}/{d.max}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  {/* Content atomisation */}
+                                  <div className="px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                    <p className="text-[8px] font-bold text-slate-600 mb-1">
+                                      ✂️ {a.count} social derivatives from this piece:
+                                    </p>
+                                    <div className="space-y-0.5">
+                                      {a.breakdown.map((b) => (
+                                        <p key={b} className="text-[7.5px] text-slate-500">• {b}</p>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  {/* Platform tips */}
+                                  <div className="space-y-1">
+                                    {[
+                                      { platform: "LinkedIn", emoji: "💼", tip: tips.linkedin   },
+                                      { platform: "Twitter/X", emoji: "🐦", tip: tips.twitter   },
+                                      { platform: "Newsletter", emoji: "📧", tip: tips.newsletter},
+                                    ].map(({ platform, emoji, tip }) => (
+                                      <div key={platform} className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-fuchsia-50 border border-fuchsia-100">
+                                        <span className="text-[9px] shrink-0">{emoji}</span>
+                                        <div className="min-w-0">
+                                          <span className="text-[7.5px] font-bold text-fuchsia-700">{platform}: </span>
+                                          <span className="text-[7.5px] text-fuchsia-800 leading-snug">{tip}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Low-virality pieces — what's holding them back */}
+                        {byTier("low").length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Low-virality pieces — amplification tips:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {byTier("low").slice(0, 4).map(({ entry: e, viral: v, atomise: a }) => (
+                                <div key={entryKey(e)} className="rounded-xl border border-slate-100 overflow-hidden">
+                                  <div className="flex items-center justify-between px-3.5 py-2 bg-slate-50">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-[8.5px] text-slate-600 truncate">{e.angle}</span>
+                                    </div>
+                                    <span className="text-[7.5px] font-bold text-slate-400 shrink-0 ml-2 tabular-nums">{v.total}/100 · {a.count} derivatives</span>
+                                  </div>
+                                  <div className="px-3.5 py-2 bg-white">
+                                    <p className="text-[8px] text-slate-500 leading-snug">
+                                      💡 Add a <span className="font-semibold text-slate-700">
+                                        {v.contrarian < 5 ? "contrarian hook or myth-busting angle"
+                                          : v.data < 5 ? "data point or original statistic"
+                                          : v.aspire < 5 ? "aspirational outcome in the title"
+                                          : "urgency or insider angle"}
+                                      </span> — this piece currently scores low on all virality dimensions and will be difficult to amplify organically without a stronger engagement hook.
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Atomisation summary by type */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Social derivative capacity by format:</p>
+                        <div className="space-y-1.5">
+                          {(Object.entries(ATOMISE_BY_TYPE) as [ContentType, typeof ATOMISE_BY_TYPE[ContentType]][])
+                            .filter(([type]) => calendar.some((e) => e.type === type))
+                            .sort(([, a], [, b]) => b.count - a.count)
+                            .map(([type, { count, breakdown }]) => {
+                              const typeCount = calendar.filter((e) => e.type === type).length;
+                              return (
+                                <div key={type} className="flex items-start gap-2 px-2.5 py-2 rounded-lg bg-slate-50 border border-slate-100">
+                                  <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 mt-0.5 ${TYPE_COLOR[type]}`}>{FORMAT_LABEL[type]}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[8px] font-semibold text-slate-700">{count} derivatives/piece · {typeCount} piece{typeCount !== 1 ? "s" : ""} = <span className="text-fuchsia-700">{count * typeCount} total posts</span></p>
+                                    <p className="text-[7px] text-slate-400 mt-0.5">{breakdown[0]}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Backlink Magnetism Predictor ─────────────────────────── */}
                 {calendar.length > 0 && (() => {
