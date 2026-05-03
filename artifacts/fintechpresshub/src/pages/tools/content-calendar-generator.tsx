@@ -1696,6 +1696,37 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Persona-to-Content Mapping Matrix ───────────────────────────────────────
+interface PersonaDef {
+  id:      string;
+  name:    string;
+  emoji:   string;
+  signals: string[];
+  color:   string;
+  tip:     string;
+}
+const PERSONA_DEFS: PersonaDef[] = [
+  { id: "cfo",        name: "CFO / Finance Director",        emoji: "💰", signals: ["roi","revenue","cost","budget","p&l","ebitda","treasury","cash flow","financial risk","profitability","savings","capex","opex","financial performance","cfo","finance director","working capital"],                                           color: "bg-violet-100 text-violet-700 border-violet-200", tip: "CFOs respond to quantified ROI, benchmark data, and risk-adjusted business cases. Leads convert best with cost calculators and savings estimators." },
+  { id: "cco",        name: "Chief Compliance Officer",      emoji: "⚖️",  signals: ["compliance","regulatory","regulation","fca","sec","gdpr","psd2","aml","kyc","risk management","audit","penalty","fine","sanctions","reporting obligation","regulator","policy","control framework","cco","compliance officer","risk officer"], color: "bg-rose-100 text-rose-700 border-rose-200",     tip: "CCOs prioritise actionable checklists and regulatory deadline calendars. They share content that helps their team pass audits — make it quotable and printable." },
+  { id: "cto",        name: "CTO / VP Engineering",          emoji: "🛠️",  signals: ["api","integration","developer","technical","architecture","sdk","infrastructure","stack","microservice","latency","uptime","sla","webhook","oauth","rest","graphql","cloud","devops","engineering","cto","vp engineering"],                   color: "bg-blue-100 text-blue-700 border-blue-200",     tip: "CTOs want implementation depth — code samples, architecture diagrams, benchmark results. Avoid marketing language; lead with specificity and technical honesty." },
+  { id: "pm",         name: "Product Manager",               emoji: "🗺️",  signals: ["product","feature","roadmap","user experience","adoption","retention","onboarding","discovery","mvp","sprint","backlog","a/b test","conversion","ux","friction","product-market fit","launch","go-to-market","product manager"],               color: "bg-cyan-100 text-cyan-700 border-cyan-200",     tip: "PMs consume case studies, teardowns, and competitive comparisons. Format-fit: before/after analyses and 'how we built X' narratives outperform theory." },
+  { id: "cmo",        name: "Marketing Leader / CMO",        emoji: "📣",  signals: ["marketing","brand","demand generation","campaign","pipeline","mql","sql","content strategy","seo","awareness","thought leadership","analyst","positioning","messaging","cmo","marketing director","marketing leader","growth marketing"],         color: "bg-pink-100 text-pink-700 border-pink-200",     tip: "CMOs want market data, competitor intelligence, and content that makes their brand look ahead of the curve. Reports and original research drive the most sharing." },
+  { id: "ceo",        name: "CEO / Founder / Board",         emoji: "🎯",  signals: ["strategy","growth","funding","investor","scale","market opportunity","competitive","vision","leadership","board","series","venture","ipo","expansion","partnership","m&a","transformation","ceo","founder","executive"],                         color: "bg-amber-100 text-amber-700 border-amber-200",  tip: "CEOs and founders read for pattern recognition and competitive positioning. Lead with a bold POV, a counterintuitive insight, or a market trend they haven't seen framed this way." },
+  { id: "ops",        name: "Operations / COO",              emoji: "⚙️",  signals: ["operations","efficiency","automation","process","workflow","throughput","headcount","reconciliation","settlement","back office","straight-through processing","stp","operational risk","vendor management","coo","operations director"],           color: "bg-teal-100 text-teal-700 border-teal-200",    tip: "COOs focus on process efficiency and error rates. Format-fit: step-by-step playbooks, before/after workflow diagrams, and vendor evaluation scorecards." },
+  { id: "data",       name: "Risk / Data Analyst",           emoji: "📊",  signals: ["data","analytics","metrics","dashboard","reporting","kpi","model","algorithm","machine learning","ai","fraud detection","credit scoring","risk model","portfolio","data science","analyst","insight","benchmark","dataset"],                    color: "bg-indigo-100 text-indigo-700 border-indigo-200",tip: "Analysts share data-rich content — original research, interactive tools, and methodology explainers. Methodology transparency builds trust faster than conclusions alone." },
+];
+
+function detectPersona(topic: string, angle: string): PersonaDef {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  let best: PersonaDef | null = null;
+  let bestScore = 0;
+  for (const p of PERSONA_DEFS) {
+    const score = p.signals.filter((s) => hay.includes(s)).length;
+    if (score > bestScore) { bestScore = score; best = p; }
+  }
+  return best ?? { id: "general", name: "General Audience", emoji: "👥", signals: [], color: "bg-slate-100 text-slate-600 border-slate-200", tip: "Broad audience content builds top-of-funnel awareness but rarely converts. Consider adding a persona signal to sharpen targeting." };
+}
+
 // ─── Competitor Content Gap Detector ─────────────────────────────────────────
 interface GapTopic {
   cluster:        string;
@@ -5866,6 +5897,217 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Persona-to-Content Mapping Matrix ────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const SKEW_THRESHOLD = 0.60; // >60% one persona in a week = skew
+
+                  // Assign persona to each entry
+                  const mapped = calendar.map((e) => ({ entry: e, persona: detectPersona(e.topic, e.angle) }));
+
+                  // Per-persona counts
+                  const personaCount = new Map<string, { def: PersonaDef; count: number; entries: typeof calendar }>();
+                  for (const { entry, persona } of mapped) {
+                    if (!personaCount.has(persona.id)) personaCount.set(persona.id, { def: persona, count: 0, entries: [] });
+                    const p = personaCount.get(persona.id)!;
+                    p.count++;
+                    p.entries.push(entry);
+                  }
+
+                  // All 8 defined personas — check coverage
+                  const coveredIds     = new Set([...personaCount.keys()]);
+                  const missingPersonas = PERSONA_DEFS.filter((p) => !coveredIds.has(p.id));
+                  const underserved     = PERSONA_DEFS.filter((p) => {
+                    const c = personaCount.get(p.id)?.count ?? 0;
+                    return c > 0 && c / calendar.length < 0.10;
+                  });
+
+                  // Persona rows sorted by count descending
+                  const rows = [...personaCount.values()].sort((a, b) => b.count - a.count);
+                  const total = calendar.length;
+
+                  // Per-week skew
+                  const weekMap = new Map<number, { persona: PersonaDef; count: number }[]>();
+                  for (const { entry, persona } of mapped) {
+                    if (!weekMap.has(entry.week)) weekMap.set(entry.week, []);
+                    weekMap.get(entry.week)!.push({ persona, count: 1 });
+                  }
+                  type WeekSkew = { week: number; dominant: PersonaDef; pct: number; total: number };
+                  const skeweWeeks: WeekSkew[] = [];
+                  for (const [week, items] of weekMap) {
+                    const freq = new Map<string, { def: PersonaDef; count: number }>();
+                    for (const { persona } of items) {
+                      if (!freq.has(persona.id)) freq.set(persona.id, { def: persona, count: 0 });
+                      freq.get(persona.id)!.count++;
+                    }
+                    const top = [...freq.values()].sort((a, b) => b.count - a.count)[0];
+                    if (top && top.count / items.length >= SKEW_THRESHOLD) {
+                      skeweWeeks.push({ week, dominant: top.def, pct: Math.round((top.count / items.length) * 100), total: items.length });
+                    }
+                  }
+                  skeweWeeks.sort((a, b) => b.pct - a.pct);
+
+                  const coverageScore = Math.round((coveredIds.size / PERSONA_DEFS.length) * 100);
+                  const scoreCfg = coverageScore >= 75 ? { bg: "bg-emerald-50", text: "text-emerald-700", label: "Broad coverage" }
+                    : coverageScore >= 50 ? { bg: "bg-blue-50",    text: "text-blue-700",    label: "Moderate coverage" }
+                    : coverageScore >= 25 ? { bg: "bg-amber-50",   text: "text-amber-700",   label: "Narrow reach" }
+                    :                       { bg: "bg-rose-50",    text: "text-rose-700",    label: "Single-persona risk" };
+
+                  return (
+                    <Card className="border border-pink-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🧑‍🤝‍🧑</span>
+                            <p className="text-xs font-semibold text-slate-700">Persona-to-Content Mapping Matrix</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {missingPersonas.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {missingPersonas.length} persona{missingPersonas.length !== 1 ? "s" : ""} missing
+                              </span>
+                            )}
+                            {skeweWeeks.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                {skeweWeeks.length} skewed week{skeweWeeks.length !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Assigns each calendar entry to its primary buyer persona — detecting audience blind spots, underserved segments, and weeks where the content mix is skewed toward a single buyer type.
+                        </p>
+
+                        {/* Coverage score */}
+                        <div className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-4 ${scoreCfg.bg}`}>
+                          <div>
+                            <p className="text-[9px] text-slate-500 mb-0.5">Persona Coverage</p>
+                            <p className={`text-lg font-black leading-none ${scoreCfg.text}`}>
+                              {coveredIds.size}<span className="text-xs font-semibold opacity-60">/{PERSONA_DEFS.length} personas</span>
+                            </p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full border ${scoreCfg.bg} ${scoreCfg.text}`}>
+                            {scoreCfg.label}
+                          </span>
+                        </div>
+
+                        {/* Persona distribution bars */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Audience distribution:</p>
+                        <div className="space-y-2 mb-4">
+                          {/* Covered personas */}
+                          {rows.map(({ def, count, entries }) => {
+                            const pct = Math.round((count / total) * 100);
+                            const isUnder = count / total < 0.10;
+                            return (
+                              <div key={def.id}>
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] leading-none">{def.emoji}</span>
+                                    <span className="text-[8.5px] font-semibold text-slate-700">{def.name}</span>
+                                    {isUnder && <span className="text-[7px] font-bold px-1 py-0.5 rounded bg-amber-100 text-amber-700">underserved</span>}
+                                  </div>
+                                  <span className="text-[8px] tabular-nums text-slate-400">{count} piece{count !== 1 ? "s" : ""} · {pct}%</span>
+                                </div>
+                                <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${isUnder ? "bg-amber-400" : "bg-pink-400"}`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <p className="text-[7px] text-slate-400 italic mt-0.5 truncate">{def.tip.split(".")[0]}.</p>
+                              </div>
+                            );
+                          })}
+                          {/* Missing personas */}
+                          {missingPersonas.map((def) => (
+                            <div key={def.id} className="opacity-40">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] leading-none grayscale">{def.emoji}</span>
+                                  <span className="text-[8.5px] font-semibold text-slate-400">{def.name}</span>
+                                  <span className="text-[7px] font-bold px-1 py-0.5 rounded bg-rose-100 text-rose-600">no content</span>
+                                </div>
+                                <span className="text-[8px] text-slate-300">0 pieces · 0%</span>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-slate-100" />
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Underserved persona tip cards */}
+                        {underserved.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Underserved personas — content suggestions:</p>
+                            <div className="space-y-2 mb-4">
+                              {underserved.map((def) => (
+                                <div key={def.id} className="rounded-xl border border-amber-100 overflow-hidden">
+                                  <div className="flex items-center gap-2 px-3.5 py-2 bg-amber-50">
+                                    <span className="text-[11px]">{def.emoji}</span>
+                                    <p className="text-[9px] font-bold text-amber-800">{def.name}</p>
+                                    <span className="text-[7.5px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-700 ml-auto shrink-0">
+                                      {personaCount.get(def.id)?.count ?? 0} piece{personaCount.get(def.id)?.count !== 1 ? "s" : ""}
+                                    </span>
+                                  </div>
+                                  <div className="px-3.5 py-2 bg-white">
+                                    <p className="text-[8.5px] text-slate-600 leading-snug">{def.tip}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Missing persona callout cards */}
+                        {missingPersonas.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Missing personas — zero coverage:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {missingPersonas.map((def) => (
+                                <div key={def.id} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-100">
+                                  <span className="text-[11px] shrink-0 mt-0.5">{def.emoji}</span>
+                                  <div className="min-w-0">
+                                    <p className="text-[8.5px] font-bold text-rose-800">{def.name}</p>
+                                    <p className="text-[8px] text-rose-600 leading-snug">{def.tip}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Weekly skew warnings */}
+                        {skeweWeeks.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Weeks with audience skew ({">"}60% one persona):</p>
+                            <div className="space-y-1.5">
+                              {skeweWeeks.map(({ week, dominant, pct, total: wTotal }) => (
+                                <div key={week} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                  <span className="text-[8.5px] font-bold text-amber-800 shrink-0">Week {week}</span>
+                                  <span className="text-[10px] shrink-0">{dominant.emoji}</span>
+                                  <span className="text-[8px] text-amber-700 flex-1">{dominant.name}</span>
+                                  <span className="text-[8px] font-bold text-amber-700 shrink-0">{pct}% of {wTotal} pieces</span>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-[7.5px] text-slate-400 italic mt-2">
+                              Skewed weeks risk alienating subscribers from other personas. Introduce one piece targeting a different buyer type to rebalance.
+                            </p>
+                          </>
+                        )}
+
+                        {missingPersonas.length === 0 && underserved.length === 0 && skeweWeeks.length === 0 && (
+                          <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-sm">✅</span>
+                            <p className="text-[10px] font-semibold text-emerald-700">
+                              All 8 buyer personas are covered and no week shows audience skew — excellent content mix balance.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Publishing Cadence Stress Test ───────────────────────── */}
                 {calendar.length > 0 && (() => {
