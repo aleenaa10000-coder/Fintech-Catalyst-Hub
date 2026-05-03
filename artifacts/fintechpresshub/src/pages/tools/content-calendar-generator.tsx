@@ -1491,6 +1491,202 @@ const WORD_COUNT_BY_TYPE: Record<ContentType, string> = {
   linkedin:      "150–300 words",
 };
 
+// ─── Brief Template Generator — personas, objectives, outlines, distribution ──
+
+const PERSONA_BY_NICHE: {
+  keywords: string[];
+  title: string;
+  role: string;
+  painPoints: string[];
+}[] = [
+  {
+    keywords: ["regtech", "compliance", "regulation", "kyc", "aml", "gdpr"],
+    title: "Chief Compliance Officer",
+    role: "Responsible for regulatory adherence, audit readiness, and risk mitigation across jurisdictions",
+    painPoints: ["Keeping pace with evolving regulations", "Manual audit workflows", "Multi-jurisdiction complexity"],
+  },
+  {
+    keywords: ["open banking", "psd2", "api banking", "open finance"],
+    title: "Head of Digital Banking / CTO",
+    role: "Drives API strategy, platform partnerships, and developer ecosystem growth",
+    painPoints: ["API reliability at scale", "Third-party risk management", "Customer consent UX"],
+  },
+  {
+    keywords: ["defi", "decentralized finance", "crypto", "web3", "blockchain"],
+    title: "DeFi Protocol Lead / Crypto Fund Manager",
+    role: "Manages on-chain operations, tokenomics, and institutional DeFi strategy",
+    painPoints: ["Smart contract risk", "Regulatory uncertainty", "Liquidity management"],
+  },
+  {
+    keywords: ["payment", "embedded finance", "payment gateway", "acquiring"],
+    title: "VP of Payments / CFO",
+    role: "Owns payment strategy, cost optimisation, and checkout conversion",
+    painPoints: ["Cross-border payment friction", "Transaction fee compression", "Fraud and chargeback rates"],
+  },
+  {
+    keywords: ["insurtech", "insurance"],
+    title: "Head of Digital Insurance / Chief Actuary",
+    role: "Drives product modernisation, claims automation, and distribution strategy",
+    painPoints: ["Legacy system migration", "Claims fraud detection", "Customer acquisition cost"],
+  },
+  {
+    keywords: ["lending", "credit", "loan", "bnpl", "buy now pay later"],
+    title: "Chief Risk Officer / Head of Credit",
+    role: "Owns underwriting models, credit policy, and portfolio risk",
+    painPoints: ["Default rate management", "Alternative data integration", "Regulatory capital requirements"],
+  },
+  {
+    keywords: ["wealthtech", "wealth management", "robo-advisor", "investment"],
+    title: "Head of Wealth Management / Portfolio Manager",
+    role: "Manages client portfolios, digital advice delivery, and AUM growth",
+    painPoints: ["Client retention at scale", "Fee compression", "Regulatory compliance (MiFID II / RDR)"],
+  },
+  {
+    keywords: ["neobank", "challenger bank", "digital bank", "banking"],
+    title: "Chief Product Officer / Head of Retail Banking",
+    role: "Drives product roadmap, customer activation, and revenue diversification",
+    painPoints: ["Unit economics at scale", "Customer lifetime value", "Licence and regulatory overhead"],
+  },
+  {
+    keywords: ["ai", "artificial intelligence", "machine learning", "llm"],
+    title: "Chief Data Officer / Head of AI",
+    role: "Leads AI strategy, model governance, and data platform development",
+    painPoints: ["Model explainability for regulators", "Data quality and lineage", "AI talent acquisition"],
+  },
+  {
+    keywords: ["fintech", "financial technology", "financial services", ""],
+    title: "C-Suite Fintech Executive (CEO / CFO / CTO)",
+    role: "Strategic leader driving growth, efficiency, and digital transformation",
+    painPoints: ["Scaling operations profitably", "Regulatory complexity", "Competitive differentiation"],
+  },
+];
+
+function getPersona(
+  topic: string,
+): (typeof PERSONA_BY_NICHE)[0] {
+  const lower = topic.toLowerCase();
+  return (
+    PERSONA_BY_NICHE.find((p) =>
+      p.keywords.some((kw) => kw && lower.includes(kw)),
+    ) ?? PERSONA_BY_NICHE[PERSONA_BY_NICHE.length - 1]
+  );
+}
+
+const OBJECTIVE_BY_ARCHETYPE: Record<string, string> = {
+  "The Blueprint":       "Establish authority with actionable frameworks — converts readers into leads who trust your process.",
+  "The Comparison":      "Capture high-intent 'vs' and 'alternative' searches — ideal for decision-stage buyers evaluating solutions.",
+  "The Trendsetter":     "Rank for forward-looking queries and position the brand ahead of the curve before competitors.",
+  "The Data Dive":       "Build credibility with proprietary data — earns backlinks and drives SME decision-maker traffic.",
+  "The Contrarian":      "Generate shares by challenging conventional wisdom — strong for brand differentiation and PR pick-up.",
+  "The How-To":          "Capture 'how to' search volume — high conversion rate for readers with a specific implementation problem.",
+  "The Listicle":        "Earn featured snippets and social shares — skimmable format drives high dwell time and return visits.",
+  "The Deep Dive":       "Own long-tail authority queries — signals expertise to Google and builds thought-leader credibility.",
+  "The Warning":         "Capture risk-aware searchers — strong for top-of-funnel brand awareness and newsletter sign-ups.",
+  "The Future":          "Rank for prediction and outlook queries — positions the brand as the category oracle.",
+  "The Authority Guide": "Build topical authority and internal link equity — cornerstone content for the pillar strategy.",
+  "The Case Study":      "Convert bottom-of-funnel traffic with proof — highest-converting format for services businesses.",
+  "The Why Now":         "Capture urgency-driven searches — strong for seasonal or trend-driven topics with a narrow window.",
+  "The Insider":         "Differentiate with proprietary knowledge — builds loyal readership and email subscribers.",
+  "The Opportunity":     "Surface untapped angles for strategic readers — strong for newsletter growth and lead generation.",
+  "The Benchmark":       "Own benchmark and comparison queries — earns citations from industry publications.",
+};
+
+const SECONDARY_KW_SUFFIX_BY_TYPE: Record<ContentType, string[]> = {
+  guide:        ["best practices 2026", "implementation guide", "how it works", "ROI and benefits"],
+  blog:         ["trends 2026", "strategy guide", "explained for CFOs", "what you need to know"],
+  "case-study": ["success story", "ROI analysis", "real-world results", "before and after"],
+  roundup:      ["tools comparison", "top vendors 2026", "buyer's guide", "best alternatives"],
+  linkedin:     ["insights", "predictions 2026", "lessons learned", "what nobody tells you"],
+};
+
+const OUTLINE_TEMPLATE_BY_TYPE: Record<
+  ContentType,
+  (topic: string) => string[]
+> = {
+  guide: (t) => [
+    `## Introduction: Why ${t} Matters Right Now`,
+    `## What Is ${t}? (Definition & Scope)`,
+    `## The Business Case: ROI and Risk of Inaction`,
+    `## Key Components of a ${t} Strategy`,
+    `## Step-by-Step Implementation Roadmap`,
+    `## Common Pitfalls and How to Avoid Them`,
+    `## ${t} Tools & Vendors: What to Evaluate`,
+    `## Real-World Results: Metrics and Benchmarks`,
+    `## Conclusion + Next Steps`,
+  ],
+  blog: (t) => [
+    `## Why ${t} Is at an Inflection Point`,
+    `## The Core Challenge Driving Change`,
+    `## Three Shifts Reshaping the Landscape`,
+    `## What Leading Firms Are Doing Differently`,
+    `## What This Means for Your Strategy`,
+    `## Key Takeaways`,
+  ],
+  "case-study": (t) => [
+    `## The Challenge: What Was Broken`,
+    `## Why ${t} Was the Right Solution`,
+    `## The Approach: Implementation in Four Phases`,
+    `## Results: The Numbers That Changed Everything`,
+    `## Lessons Learned & What We'd Do Differently`,
+    `## Is ${t} Right for Your Organisation?`,
+  ],
+  roundup: (t) => [
+    `## How We Evaluated the Best ${t} Solutions`,
+    `## #1 — [Vendor]: Best for Enterprise Scale`,
+    `## #2 — [Vendor]: Best for Mid-Market`,
+    `## #3 — [Vendor]: Best for Cost-Efficiency`,
+    `## #4 — [Vendor]: Best for Compliance-Heavy Sectors`,
+    `## Comparison Table`,
+    `## How to Choose the Right ${t} Solution`,
+    `## Verdict`,
+  ],
+  linkedin: (t) => [
+    `[Hook: Bold claim or counterintuitive statement about ${t}]`,
+    `[Context: 1–2 sentences why this matters now]`,
+    `[3–5 bullet insights or predictions — short, punchy]`,
+    `[Bridge: What the smartest companies are doing differently]`,
+    `[CTA: Invite a reaction, ask a question, or request a DM]`,
+  ],
+};
+
+const DISTRIBUTION_PLAN_BY_TYPE: Record<
+  ContentType,
+  { channel: string; action: string }[]
+> = {
+  guide: [
+    { channel: "Organic Search",     action: "Primary driver — optimise title tag, meta description, and H1 for target keyword" },
+    { channel: "LinkedIn",           action: "Share a 5-insight extract with a link; tag relevant thought leaders" },
+    { channel: "Email Newsletter",   action: "Feature as the lead story in the next send with a 2-line summary and CTA button" },
+    { channel: "Sales Enablement",   action: "Add to sales playbook as a bottom-of-funnel asset for prospects in evaluation" },
+    { channel: "Partner Outreach",   action: "Co-promote with any vendors or partners mentioned in the guide" },
+  ],
+  blog: [
+    { channel: "Organic Search",     action: "Optimise for informational intent; add to internal linking from the pillar page" },
+    { channel: "LinkedIn",           action: "Repurpose one key stat or insight as a native post; link to the full article" },
+    { channel: "Email Newsletter",   action: "Include as a secondary story or 'From the blog' section" },
+    { channel: "Social Snippet",     action: "Extract one pull quote for Twitter/X distribution" },
+  ],
+  "case-study": [
+    { channel: "Sales Enablement",   action: "Primary use — send proactively to prospects in the same industry vertical" },
+    { channel: "Organic Search",     action: "Optimise for '[client type] + [outcome] + [topic]' keyword pattern" },
+    { channel: "LinkedIn",           action: "Share headline result as a native post with 'Read the full story' link" },
+    { channel: "Email Newsletter",   action: "Feature prominently — case studies consistently drive highest newsletter CTR" },
+    { channel: "PR Outreach",        action: "Pitch the headline metric to fintech trade press as a data story" },
+  ],
+  roundup: [
+    { channel: "Organic Search",     action: "Target 'best [topic] tools/vendors' cluster — high commercial intent" },
+    { channel: "Vendor Outreach",    action: "Notify featured vendors — many will share and link back organically" },
+    { channel: "LinkedIn",           action: "Post the comparison table as a native document carousel" },
+    { channel: "Email Newsletter",   action: "Feature as a resource for subscribers currently evaluating solutions" },
+  ],
+  linkedin: [
+    { channel: "LinkedIn Native",    action: "Post directly — do not link externally; let the algorithm run for 24h" },
+    { channel: "Employee Amplify",   action: "Ask 3–5 team members to like and comment within the first hour" },
+    { channel: "Newsletter Cross-post", action: "Adapt as a short intro + link to the LinkedIn post in your next email send" },
+    { channel: "Repurpose",          action: "Expand the top-performing insight into a full blog post within 2 weeks" },
+  ],
+};
+
 // ─── Editorial brief generator ────────────────────────────────────────────────
 // Produces a Notion-ready markdown string for a single calendar entry.
 // Paste directly into a new Notion page — all formatting renders correctly.
@@ -1558,6 +1754,17 @@ function generateBrief(entry: CalendarEntry): string {
           `Close with CTA: *${entry.cta}*`,
         ];
 
+  const persona    = getPersona(entry.topic);
+  const objective  =
+    OBJECTIVE_BY_ARCHETYPE[entry.archetype] ??
+    `Build authority and drive organic traffic in the ${entry.topic} space.`;
+  const topicLabel = entry.topic.split(" ").slice(0, 2).join(" ");
+  const secondaryKws = SECONDARY_KW_SUFFIX_BY_TYPE[entry.type].map(
+    (suffix) => `${topicLabel} ${suffix}`,
+  );
+  const outline      = OUTLINE_TEMPLATE_BY_TYPE[entry.type](topicLabel);
+  const distribution = DISTRIBUTION_PLAN_BY_TYPE[entry.type];
+
   return [
     `# ${entry.angle}`,
     ``,
@@ -1574,11 +1781,46 @@ function generateBrief(entry: CalendarEntry): string {
     `| **Est. Monthly Search Volume** | ${entry.searchVolume} |`,
     `| **Topic Difficulty (KD)** | ${entry.topicDifficulty} / 100 |`,
     `| **Suggested Word Count** | ${wordCount} |`,
+    `| **Target Persona** | ${persona.title} |`,
     `| **CTA** | ${entry.cta} |`,
     ``,
     `---`,
     ``,
-    `## 🎯 Archetype Rationale`,
+    `## 👤 Target Persona`,
+    ``,
+    `**${persona.title}** — ${persona.role}`,
+    ``,
+    `**Key pain points:** ${persona.painPoints.join(" · ")}`,
+    ``,
+    `---`,
+    ``,
+    `## 🎯 Content Objective`,
+    ``,
+    objective,
+    ``,
+    `---`,
+    ``,
+    `## 🔍 SEO Keywords`,
+    ``,
+    `- **Primary:** ${entry.topic}`,
+    ...secondaryKws.map((kw) => `- **Secondary:** ${kw}`),
+    `- **Search Intent:** ${entry.searchIntent}`,
+    ``,
+    `---`,
+    ``,
+    `## 📐 Suggested Outline`,
+    ``,
+    ...outline,
+    ``,
+    `---`,
+    ``,
+    `## 📣 Distribution Plan`,
+    ``,
+    ...distribution.map((d) => `- **${d.channel}:** ${d.action}`),
+    ``,
+    `---`,
+    ``,
+    `## 🧠 Archetype Rationale`,
     ``,
     `**${entry.archetype}** — ${rationale}`,
     ``,
@@ -4702,10 +4944,277 @@ export default function ContentCalendarGenerator() {
             </div>
 
             {/* Scrollable brief body */}
-            <div className="overflow-y-auto flex-1 px-6 py-4">
-              <pre className="text-[11.5px] leading-relaxed text-slate-700 font-mono whitespace-pre-wrap bg-slate-50 border border-slate-100 rounded-lg p-4">
-                {generateBrief(briefEntry)}
-              </pre>
+            <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+              {(() => {
+                const bp = briefEntry;
+                const bRationale =
+                  ARCHETYPE_RATIONALE[bp.archetype] ??
+                  "Build authority and drive organic traffic";
+                const bWordCount  = WORD_COUNT_BY_TYPE[bp.type];
+                const bIsLinkedIn = bp.type === "linkedin";
+                const bPersona    = getPersona(bp.topic);
+                const bObjective  =
+                  OBJECTIVE_BY_ARCHETYPE[bp.archetype] ??
+                  `Build authority and drive organic traffic in the ${bp.topic} space.`;
+                const bTopicLabel = bp.topic.split(" ").slice(0, 2).join(" ");
+                const bSecondaryKws = SECONDARY_KW_SUFFIX_BY_TYPE[bp.type].map(
+                  (s) => `${bTopicLabel} ${s}`,
+                );
+                const bOutline      = OUTLINE_TEMPLATE_BY_TYPE[bp.type](bTopicLabel);
+                const bDistribution = DISTRIBUTION_PLAN_BY_TYPE[bp.type];
+                const bInternalLinks = bIsLinkedIn
+                  ? [
+                      `Tag or mention a relevant thought leader in ${bp.topic}`,
+                      `Reference a recent FintechPressHub article on ${bp.topic}`,
+                      `Link to the most recent guide or whitepaper on ${bp.topic}`,
+                    ]
+                  : [
+                      `Link to the most recent ${bp.topic} case study on the site`,
+                      `Link to the services page most closely covering ${bp.topic}`,
+                      `Link to the topic hub or pillar page for ${bp.topic}`,
+                      `Link to a related roundup or data post on ${bp.topic}`,
+                    ];
+                const bWriterNotes =
+                  bIsLinkedIn
+                    ? [
+                        "Keep the opening hook to 1–2 lines before the 'see more' break",
+                        "Use short paragraphs — 1–2 sentences max for mobile readability",
+                        "Include a direct question or prompt to drive comment engagement",
+                        `Execute CTA: ${bp.cta}`,
+                      ]
+                    : bp.type === "guide"
+                      ? [
+                          "Open with a clear statement of who the guide is for and what problem it solves",
+                          "Structure with H2 sections and H3 sub-sections for scannability",
+                          "Include at least 3 original data points, charts, or proprietary insights",
+                          "Add a downloadable asset or gated resource to support the CTA",
+                          "Include a pull quote formatted for LinkedIn repurposing",
+                          "Minimum internal links: 3 — see targets below",
+                          `Close with CTA: ${bp.cta}`,
+                        ]
+                      : bp.type === "case-study"
+                        ? [
+                            "Lead with the headline result (the key metric) in the opening paragraph",
+                            "Structure: Challenge → Approach → Results → Takeaways",
+                            "Include at least 2 specific, verifiable metrics with source attribution",
+                            "Add a client pull quote if available",
+                            `Close with CTA: ${bp.cta}`,
+                          ]
+                        : bp.type === "roundup"
+                          ? [
+                              "Curate 8–12 high-quality sources with brief editorial commentary on each",
+                              "Open with a strong editorial take — not a generic list introduction",
+                              "Verify all outbound links open and are not behind paywalls",
+                              "Add at least one proprietary insight or original data point to differentiate",
+                              `Close with CTA: ${bp.cta}`,
+                            ]
+                          : [
+                              "Open with a strong hook that states the reader's specific problem",
+                              "Use H2 subheadings — aim for 4–6 sections minimum",
+                              "Include at least 1 original data point, stat, or proprietary insight",
+                              "Add a pull quote formatted for LinkedIn repurposing",
+                              `Close with CTA: ${bp.cta}`,
+                            ];
+
+                const Section = ({
+                  icon,
+                  title,
+                  children,
+                  accent = "slate",
+                }: {
+                  icon: string;
+                  title: string;
+                  children: React.ReactNode;
+                  accent?: string;
+                }) => (
+                  <div className="rounded-lg border border-slate-100 overflow-hidden">
+                    <div className={`flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-100`}>
+                      <span className="text-sm">{icon}</span>
+                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">
+                        {title}
+                      </span>
+                    </div>
+                    <div className="px-3 py-3 bg-white">{children}</div>
+                  </div>
+                );
+
+                return (
+                  <>
+                    {/* Working title */}
+                    <div className="px-1">
+                      <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
+                        Working Title
+                      </p>
+                      <p className="text-[13px] font-bold text-slate-800 leading-snug">
+                        {bp.angle}
+                      </p>
+                    </div>
+
+                    {/* Meta strip */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: "Publish Date",   value: `${bp.date} · Wk ${bp.week}` },
+                        { label: "Word Count",      value: bWordCount },
+                        { label: "Priority Score",  value: `${bp.priorityScore} / 100` },
+                        { label: "Search Volume",   value: bp.searchVolume },
+                        { label: "Keyword Diff.",   value: `${bp.topicDifficulty} / 100` },
+                        { label: "Search Intent",   value: bp.searchIntent },
+                      ].map(({ label, value }) => (
+                        <div
+                          key={label}
+                          className="bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-2"
+                        >
+                          <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wide">
+                            {label}
+                          </p>
+                          <p className="text-[10.5px] font-semibold text-slate-700 mt-0.5 leading-snug">
+                            {value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Persona */}
+                    <Section icon="👤" title="Target Persona">
+                      <p className="text-[11px] font-bold text-slate-800">
+                        {bPersona.title}
+                      </p>
+                      <p className="text-[10.5px] text-slate-500 mt-0.5 leading-snug">
+                        {bPersona.role}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {bPersona.painPoints.map((pt) => (
+                          <span
+                            key={pt}
+                            className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100"
+                          >
+                            {pt}
+                          </span>
+                        ))}
+                      </div>
+                    </Section>
+
+                    {/* Objective */}
+                    <Section icon="🎯" title="Content Objective">
+                      <p className="text-[11px] text-slate-700 leading-relaxed">
+                        {bObjective}
+                      </p>
+                      <div className="mt-2 pt-2 border-t border-slate-50">
+                        <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
+                          Archetype
+                        </p>
+                        <p className="text-[10.5px] text-slate-600 leading-snug">
+                          <span className="font-bold">{bp.archetype}</span> —{" "}
+                          {bRationale}
+                        </p>
+                      </div>
+                    </Section>
+
+                    {/* SEO Keywords */}
+                    <Section icon="🔍" title="SEO Keywords">
+                      <div className="space-y-1.5">
+                        <div className="flex items-start gap-2">
+                          <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded px-1 py-0.5 shrink-0 mt-0.5">
+                            Primary
+                          </span>
+                          <span className="text-[11px] font-semibold text-slate-800">
+                            {bp.topic}
+                          </span>
+                        </div>
+                        {bSecondaryKws.map((kw) => (
+                          <div key={kw} className="flex items-start gap-2">
+                            <span className="text-[8px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1 py-0.5 shrink-0 mt-0.5">
+                              Secondary
+                            </span>
+                            <span className="text-[10.5px] text-slate-600">
+                              {kw}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </Section>
+
+                    {/* Suggested Outline */}
+                    <Section icon="📐" title="Suggested Outline">
+                      <ol className="space-y-1">
+                        {bOutline.map((h, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="text-[9px] font-bold text-slate-300 w-4 shrink-0 mt-0.5">
+                              {i + 1}.
+                            </span>
+                            <span className="text-[10.5px] text-slate-700 leading-snug">
+                              {h.replace(/^#+\s*/, "")}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    </Section>
+
+                    {/* Distribution Plan */}
+                    <Section icon="📣" title="Distribution Plan">
+                      <div className="space-y-2">
+                        {bDistribution.map(({ channel, action }) => (
+                          <div key={channel} className="flex items-start gap-2">
+                            <span className="text-[8px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5 shrink-0 whitespace-nowrap mt-0.5">
+                              {channel}
+                            </span>
+                            <span className="text-[10.5px] text-slate-600 leading-snug">
+                              {action}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </Section>
+
+                    {/* Internal Links */}
+                    <Section icon="🔗" title="Internal Link Targets">
+                      <ul className="space-y-1.5">
+                        {bInternalLinks.map((link, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="text-slate-300 mt-0.5 shrink-0">☐</span>
+                            <span className="text-[10.5px] text-slate-600 leading-snug">
+                              {link}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </Section>
+
+                    {/* Writer Notes */}
+                    <Section icon="📝" title="Writer Notes">
+                      <ul className="space-y-1.5">
+                        {bWriterNotes.map((note, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="text-indigo-300 mt-0.5 shrink-0">→</span>
+                            <span className="text-[10.5px] text-slate-700 leading-snug">
+                              {note}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </Section>
+
+                    {/* CTA */}
+                    <div className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-indigo-50 border border-indigo-100">
+                      <span className="text-sm shrink-0">📢</span>
+                      <div>
+                        <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-wide">
+                          Call to Action
+                        </p>
+                        <p className="text-[11px] font-semibold text-indigo-800 mt-0.5">
+                          {bp.cta}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <p className="text-[9px] text-slate-300 text-center pb-1">
+                      Generated by FintechPressHub Content Calendar Generator
+                      — use "Copy to Notion" to export as markdown
+                    </p>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
