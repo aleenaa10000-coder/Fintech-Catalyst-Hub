@@ -1696,6 +1696,61 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content ROI Forecaster ──────────────────────────────────────────────────
+// Projects monthly organic traffic and pipeline value per entry using a
+// multi-factor model: intent base × format × cluster depth × timing × credibility
+
+const ROI_INTENT_BASE: Record<string, number> = {
+  commercial:     500,
+  informational:  300,
+  navigational:   120,
+  transactional:  900,
+};
+
+const ROI_FORMAT_MULT: Record<ContentType, number> = {
+  "guide":       2.50,
+  "case-study":  2.00,
+  "roundup":     1.30,
+  "blog":        1.00,
+  "linkedin":    0.25,
+};
+
+function roiClusterMult(depth: number): number {
+  return depth >= 5 ? 1.5 : depth >= 3 ? 1.2 : depth === 2 ? 1.0 : 0.6;
+}
+
+const ROI_TIMING_MULT: Record<TimingAlignment, number> = {
+  "optimal":       1.30,
+  "good":          1.10,
+  "near":          1.00,
+  "generic":       0.90,
+  "off-season":    0.75,
+  "low-attention": 0.55,
+};
+
+const ROI_CRED_MULT: Record<CredTier, number> = {
+  "high":     1.20,
+  "moderate": 1.00,
+  "thin":     0.85,
+  "risk":     0.70,
+};
+
+const ROI_PIPELINE_PER_VISIT_GBP = 0.80;   // £ pipeline attribution per monthly organic visit
+                                             // = 0.8% visit-to-lead × 12% close rate × £8,333 avg deal
+
+interface ROIEntry {
+  monthlyTraffic:  number;
+  monthlyPipeline: number;
+  annualPipeline:  number;
+  intentType:      string;
+  intentBase:      number;
+  formatMult:      number;
+  clusterMult:     number;
+  timingMult:      number;
+  credMult:        number;
+  roiTier:         "high" | "medium" | "low";
+}
+
 // ─── Keyword Cannibalisation Detector ────────────────────────────────────────
 // Detects angle token overlap within topic clusters that would split search traffic
 
@@ -7928,6 +7983,249 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content ROI Forecaster ───────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Build cluster depth map
+                  const depthMap = new Map<string, number>();
+                  calendar.forEach((e) => {
+                    const k = e.topic.toLowerCase().trim();
+                    depthMap.set(k, (depthMap.get(k) ?? 0) + 1);
+                  });
+
+                  // Compute ROI for every entry
+                  const roiRaw: Array<{ entry: typeof calendar[0]; roi: ROIEntry }> = calendar.map((e) => {
+                    const depth   = depthMap.get(e.topic.toLowerCase().trim()) ?? 1;
+                    const intent  = dominantIntent(e.topic, e.angle);
+                    const timing  = scorePublicationTiming(e.date, e.topic, e.angle);
+                    const cred    = scoreCredibility(e.topic, e.angle);
+
+                    const intentBase  = ROI_INTENT_BASE[intent] ?? 300;
+                    const formatMult  = ROI_FORMAT_MULT[e.type]  ?? 1.0;
+                    const clusterMult = roiClusterMult(depth);
+                    const timingMult  = ROI_TIMING_MULT[timing.alignment];
+                    const credMult    = ROI_CRED_MULT[cred.tier];
+
+                    const monthlyTraffic  = Math.round(intentBase * formatMult * clusterMult * timingMult * credMult);
+                    const monthlyPipeline = Math.round(monthlyTraffic * ROI_PIPELINE_PER_VISIT_GBP);
+                    const annualPipeline  = monthlyPipeline * 12;
+
+                    return {
+                      entry: e,
+                      roi: { monthlyTraffic, monthlyPipeline, annualPipeline, intentType: intent, intentBase, formatMult, clusterMult, timingMult, credMult, roiTier: "medium" },
+                    };
+                  });
+
+                  // Assign roiTier by tercile of annualPipeline
+                  const sorted = [...roiRaw].sort((a, b) => b.roi.annualPipeline - a.roi.annualPipeline);
+                  const topCut = Math.ceil(sorted.length / 3);
+                  const botCut = Math.floor((sorted.length * 2) / 3);
+                  sorted.forEach((r, i) => { r.roi.roiTier = i < topCut ? "high" : i < botCut ? "medium" : "low"; });
+
+                  // Portfolio totals
+                  const n = roiRaw.length;
+                  const totalMonthlyTraffic   = roiRaw.reduce((s, r) => s + r.roi.monthlyTraffic,  0);
+                  const totalMonthlyPipeline  = roiRaw.reduce((s, r) => s + r.roi.monthlyPipeline, 0);
+                  const totalAnnualPipeline   = roiRaw.reduce((s, r) => s + r.roi.annualPipeline,  0);
+                  const avgMonthlyPipeline    = n > 0 ? Math.round(totalMonthlyPipeline / n) : 0;
+
+                  const highTierEntries = sorted.filter((r) => r.roi.roiTier === "high");
+                  const lowTierEntries  = sorted.filter((r) => r.roi.roiTier === "low");
+
+                  const commTransRate   = n > 0 ? roiRaw.filter((r) => r.roi.intentType === "commercial" || r.roi.intentType === "transactional").length / n : 0;
+                  const highFormatRate  = n > 0 ? roiRaw.filter((r) => r.entry.type === "guide" || r.entry.type === "case-study").length / n : 0;
+                  const wellTimedRate   = n > 0 ? roiRaw.filter((r) => r.roi.timingMult >= 1.1).length / n : 0;
+                  const highROIRate     = n > 0 ? highTierEntries.length / n : 0;
+
+                  // ROI Efficiency Score (0-100)
+                  const roiEffHigh    = Math.round(Math.min(1, highROIRate    / 0.33) * 40);
+                  const roiEffComm    = Math.round(Math.min(1, commTransRate  / 0.40) * 30);
+                  const roiEffFormat  = Math.round(Math.min(1, highFormatRate / 0.25) * 20);
+                  const roiEffTiming  = Math.round(Math.min(1, wellTimedRate  / 0.40) * 10);
+                  const roiEffScore   = roiEffHigh + roiEffComm + roiEffFormat + roiEffTiming;
+
+                  const effCfg =
+                    roiEffScore >= 75 ? { label: "High ROI efficiency — well-optimised for commercial return", color: "text-green-700",  bg: "bg-green-50",  border: "border-green-100"  } :
+                    roiEffScore >= 50 ? { label: "Moderate efficiency — ROI mix has room to improve",          color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100"   } :
+                    roiEffScore >= 25 ? { label: "Low efficiency — format and intent mix limiting pipeline",   color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100"  } :
+                                        { label: "Poor efficiency — significant ROI left on the table",        color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100"   };
+
+                  const fmt = (n: number) =>
+                    n >= 1_000_000 ? `£${(n/1_000_000).toFixed(2)}m` :
+                    n >= 1_000     ? `£${(n/1_000).toFixed(1)}k`     :
+                                     `£${n}`;
+
+                  const TIER_ROI_CFG = {
+                    high:   { label: "High ROI",   pill: "bg-green-100 text-green-700 border-green-200",  bar: "bg-green-400"  },
+                    medium: { label: "Medium ROI",  pill: "bg-blue-100 text-blue-700 border-blue-200",    bar: "bg-blue-400"   },
+                    low:    { label: "Low ROI",     pill: "bg-slate-100 text-slate-500 border-slate-200", bar: "bg-slate-300"  },
+                  };
+
+                  const INTENT_PILL: Record<string, string> = {
+                    commercial:    "bg-violet-100 text-violet-700 border-violet-200",
+                    informational: "bg-blue-100 text-blue-700 border-blue-200",
+                    transactional: "bg-rose-100 text-rose-700 border-rose-200",
+                    navigational:  "bg-slate-100 text-slate-500 border-slate-200",
+                  };
+
+                  return (
+                    <Card className="border border-green-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">💰</span>
+                            <p className="text-xs font-semibold text-slate-700">Content ROI Forecaster</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${effCfg.color} ${effCfg.bg} ${effCfg.border}`}>
+                            ROI Efficiency {roiEffScore}/100 · {effCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Projects monthly organic traffic and pipeline value for each entry using a five-factor model: commercial intent base traffic (commercial 500/mo · transactional 900/mo · informational 300/mo) × format multiplier (guide 2.5× · case-study 2.0× · roundup 1.3× · blog 1.0× · LinkedIn 0.25×) × cluster depth multiplier (5+ entries 1.5× · 3-4 entries 1.2× · isolated 0.6×) × timing alignment multiplier (optimal 1.3× · low-attention 0.55×) × credibility tier multiplier (high E-E-A-T 1.2× · credibility risk 0.7×). Pipeline attribution: £0.80 per monthly organic visit (0.8% visit-to-lead × 12% close rate × £8,333 avg deal value).
+                        </p>
+
+                        {/* Headline totals */}
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          {[
+                            { label: "Projected annual pipeline", value: fmt(totalAnnualPipeline),  sub: "across all entries", color: "text-green-700", bg: "bg-green-50", border: "border-green-100" },
+                            { label: "Total monthly traffic",     value: totalMonthlyTraffic.toLocaleString(), sub: "organic visits/month", color: "text-blue-700",  bg: "bg-blue-50",  border: "border-blue-100"  },
+                            { label: "Avg pipeline per piece",    value: fmt(avgMonthlyPipeline),   sub: "per entry per month", color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-100" },
+                          ].map(({ label, value, sub, color, bg, border }) => (
+                            <div key={label} className={`rounded-xl border px-3 py-2.5 text-center ${bg} ${border}`}>
+                              <p className="text-[6.5px] text-slate-500 mb-0.5">{label}</p>
+                              <p className={`text-lg font-black tabular-nums leading-none ${color}`}>{value}</p>
+                              <p className="text-[6px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* ROI Efficiency Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${effCfg.bg} ${effCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${effCfg.color}`}>{roiEffScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "High-ROI piece rate",  val: roiEffHigh,   max: 40, desc: `${highTierEntries.length}/${n} entries in top ROI tercile — target ≥33%` },
+                              { label: "Commercial intent mix", val: roiEffComm,   max: 30, desc: `${Math.round(commTransRate*100)}% of entries are commercial or transactional intent — target ≥40%` },
+                              { label: "High-ROI formats",      val: roiEffFormat, max: 20, desc: `${Math.round(highFormatRate*100)}% of entries are guides or case studies — target ≥25%` },
+                              { label: "Timing efficiency",     val: roiEffTiming, max: 10, desc: `${Math.round(wellTimedRate*100)}% of entries in optimal or good timing windows` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${effCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Model assumptions */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">📐</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">Model assumptions (adjust mentally to your pipeline economics):</span> Base traffic reflects median monthly organic traffic for a well-optimised single piece targeting that intent type in competitive fintech search. The format multiplier captures the structural advantage of comprehensive guides and case studies over shorter formats — both in search ranking (longer dwell time, more backlink targets) and in conversion (higher-intent readers who consume long-form content). Cluster depth reflects the established SEO principle that topical authority compounds — a piece in a 5-entry cluster benefits from all the inbound authority of the other cluster pieces. Timing and credibility multipliers reflect audience availability and ranking quality. <span className="font-bold">Pipeline attribution: £0.80 per organic visit</span> = 0.8% content-to-lead × 12% lead-to-close × £8,333 average deal. This is conservative for enterprise fintech (average deals often exceed £50K) and optimistic for SME-focused fintech (lower deal values).
+                          </p>
+                        </div>
+
+                        {/* Top ROI entries */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Top {Math.min(5, highTierEntries.length)} highest-ROI entries — prioritise these for production resources:</p>
+                        <div className="space-y-1.5 mb-4">
+                          {sorted.slice(0, 5).map(({ entry: e, roi }, i) => (
+                            <div key={entryKey(e)} className="flex items-center gap-1.5 rounded-lg border border-green-100 bg-green-50 px-2.5 py-1.5">
+                              <span className="text-[8px] font-black text-green-700 w-3 shrink-0">#{i+1}</span>
+                              <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                              <span className="text-[7px] text-slate-700 truncate flex-1 min-w-0">{e.angle.slice(0,30)}{e.angle.length > 30 ? "…" : ""}</span>
+                              <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${INTENT_PILL[roi.intentType] ?? INTENT_PILL.informational}`}>{roi.intentType}</span>
+                              <div className="flex flex-col items-end shrink-0">
+                                <span className="text-[8px] font-black text-green-700 tabular-nums leading-none">{fmt(roi.annualPipeline)}/yr</span>
+                                <span className="text-[6px] text-slate-400 tabular-nums">{roi.monthlyTraffic.toLocaleString()} visits/mo</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Efficiency drains — bottom ROI entries */}
+                        {lowTierEntries.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Bottom {Math.min(5, lowTierEntries.length)} lowest-ROI entries — consider reworking format, angle, or timing:</p>
+                            <div className="space-y-1 mb-4">
+                              {sorted.slice(-Math.min(5, lowTierEntries.length)).reverse().map(({ entry: e, roi }) => (
+                                <div key={entryKey(e)} className="flex items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5">
+                                  <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                  <span className="text-[7px] text-slate-600 truncate flex-1 min-w-0">{e.angle.slice(0,28)}{e.angle.length > 28 ? "…" : ""}</span>
+                                  <div className="flex items-center gap-1 shrink-0 text-[6.5px] text-slate-400">
+                                    {roi.clusterMult < 1 && <span className="px-1 py-0.5 rounded bg-slate-100 border border-slate-200">📍 isolated</span>}
+                                    {roi.timingMult < 0.8 && <span className="px-1 py-0.5 rounded bg-rose-50 border border-rose-100 text-rose-500">📅 off-cycle</span>}
+                                    {roi.credMult < 0.85 && <span className="px-1 py-0.5 rounded bg-amber-50 border border-amber-100 text-amber-600">📜 thin cred</span>}
+                                    {roi.formatMult <= 0.25 && <span className="px-1 py-0.5 rounded bg-slate-100 border border-slate-200">📋 low-reach format</span>}
+                                  </div>
+                                  <span className="text-[8px] font-black text-slate-400 tabular-nums shrink-0">{fmt(roi.annualPipeline)}/yr</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Full per-entry ROI table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — projected ROI (sorted by annual pipeline):</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[6.5px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-12">Traffic/mo</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-14">Pipeline/mo</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-14">Annual</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-7">Fmt</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-7">Clu</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-7">Tim</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-7">Crd</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {sorted.map(({ entry: e, roi }) => {
+                                const tierCfg = TIER_ROI_CFG[roi.roiTier];
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,22)}{e.angle.length > 22 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1 tabular-nums text-slate-600">{roi.monthlyTraffic.toLocaleString()}</td>
+                                    <td className="text-center py-0.5 px-1 tabular-nums text-slate-600">{fmt(roi.monthlyPipeline)}</td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`font-black tabular-nums px-1 py-0.5 rounded-full border text-[6px] ${tierCfg.pill}`}>{fmt(roi.annualPipeline)}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1 tabular-nums text-slate-500">{roi.formatMult}×</td>
+                                    <td className="text-center py-0.5 px-1 tabular-nums text-slate-500">{roi.clusterMult}×</td>
+                                    <td className="text-center py-0.5 px-1 tabular-nums text-slate-500">{roi.timingMult}×</td>
+                                    <td className="text-center py-0.5 px-1 tabular-nums text-slate-500">{roi.credMult}×</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                            <tfoot>
+                              <tr className="border-t-2 border-slate-200">
+                                <td className="py-1 pr-2 text-slate-500 font-bold">TOTAL ({n} entries)</td>
+                                <td className="text-center py-1 px-1 font-black text-slate-700 tabular-nums">{totalMonthlyTraffic.toLocaleString()}</td>
+                                <td className="text-center py-1 px-1 font-black text-green-700 tabular-nums">{fmt(totalMonthlyPipeline)}</td>
+                                <td className="text-center py-1 px-1 font-black text-green-700 tabular-nums">{fmt(totalAnnualPipeline)}</td>
+                                <td colSpan={4} />
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                        <p className="text-[7px] text-slate-400 mt-2">Fmt = format multiplier · Clu = cluster depth multiplier · Tim = timing alignment multiplier · Crd = credibility tier multiplier · All figures are projections based on model assumptions above — actual results depend on SEO execution, domain authority, and competitive intensity</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Keyword Cannibalisation Detector ─────────────────────── */}
                 {calendar.length > 0 && (() => {
