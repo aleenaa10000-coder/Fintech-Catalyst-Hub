@@ -1615,6 +1615,30 @@ function getTopicTrend(topic: string): {
   return { momentum: 62, direction: "steady", velocity: "+5% MoM", trigger: "Stable fintech audience interest — niche but engaged readership" };
 }
 
+// ─── Audience Intent Heatmap ─────────────────────────────────────────────────
+const INTENT_TYPE_BASE: Record<ContentType, number> = {
+  "blog-post": 20, guide: 25, infographic: 15, linkedin: 30, newsletter: 25,
+  "case-study": 60, webinar: 65, checklist: 55, "video-script": 40, podcast: 35,
+};
+const FUNNEL_TYPE_BASE: Record<ContentType, number> = {
+  "blog-post": 30, guide: 45, infographic: 25, linkedin: 35, newsletter: 40,
+  "case-study": 75, webinar: 80, checklist: 70, "video-script": 50, podcast: 45,
+};
+
+function getHeatmapCoords(entry: CalendarEntry): { ix: number; fy: number } {
+  let ix = INTENT_TYPE_BASE[entry.type] ?? 35;
+  let fy = FUNNEL_TYPE_BASE[entry.type] ?? 40;
+  const si = (entry.searchIntent ?? "").toLowerCase();
+  if      (si.includes("transactional")) ix += 28;
+  else if (si.includes("commercial"))    ix += 18;
+  else if (si.includes("informational")) ix -= 10;
+  fy += Math.round((entry.priorityScore - 50) * 0.18);
+  return {
+    ix: Math.max(5, Math.min(93, ix)),
+    fy: Math.max(5, Math.min(93, fy)),
+  };
+}
+
 // ─── CTA Effectiveness Scorer ─────────────────────────────────────────────────
 interface CtaScore {
   urgency:       number; // 0–25
@@ -5429,6 +5453,131 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Audience Intent Heatmap ─────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const DOT_COLOR_MAP: Record<ContentType, string> = {
+                    "blog-post": "bg-blue-500", guide: "bg-indigo-500", infographic: "bg-cyan-500",
+                    linkedin: "bg-sky-500", newsletter: "bg-teal-500", "case-study": "bg-violet-600",
+                    webinar: "bg-purple-500", checklist: "bg-green-500", "video-script": "bg-orange-500",
+                    podcast: "bg-rose-500",
+                  };
+
+                  const plotData = calendar.map((entry) => {
+                    const { ix, fy } = getHeatmapCoords(entry);
+                    return { entry, ix, fy, dot: DOT_COLOR_MAP[entry.type] };
+                  });
+
+                  type QKey = "educate" | "inspire" | "nurture" | "convert";
+                  const qOf = (ix: number, fy: number): QKey =>
+                    ix < 50 && fy < 50 ? "educate"
+                    : ix >= 50 && fy < 50 ? "inspire"
+                    : ix < 50 ? "nurture" : "convert";
+
+                  const qCounts: Record<QKey, number> = { educate: 0, inspire: 0, nurture: 0, convert: 0 };
+                  plotData.forEach(({ ix, fy }) => { qCounts[qOf(ix, fy)]++; });
+
+                  const GAP_META: Record<QKey, { label: string; icon: string; suggestion: string; bg: string; border: string; lc: string }> = {
+                    educate: { label: "Educate",  icon: "📚", bg: "bg-blue-50",    border: "border-blue-200",    lc: "text-blue-600",    suggestion: "informational blog posts or infographics to build top-of-funnel awareness"                   },
+                    inspire: { label: "Inspire",  icon: "✨", bg: "bg-violet-50",  border: "border-violet-200",  lc: "text-violet-600",  suggestion: "thought-leadership or case studies that attract commercially-minded readers early"              },
+                    nurture: { label: "Nurture",  icon: "🌱", bg: "bg-emerald-50", border: "border-emerald-200", lc: "text-emerald-700", suggestion: "how-to guides or checklists helping research-stage readers evaluate their options"              },
+                    convert: { label: "Convert",  icon: "🎯", bg: "bg-amber-50",   border: "border-amber-200",   lc: "text-amber-700",   suggestion: "webinars, comparison guides, or demos that move high-intent prospects to act"                  },
+                  };
+
+                  const gapKey = (Object.entries(qCounts) as [QKey, number][])
+                    .sort((a, b) => a[1] - b[1])[0][0];
+                  const gapMeta = GAP_META[gapKey];
+
+                  return (
+                    <Card className="border border-indigo-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-base leading-none">🗺️</span>
+                          <p className="text-xs font-semibold text-slate-700">Audience Intent Heatmap</p>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Each entry plotted by search intent (informational → commercial) and funnel stage (awareness → decision) — spot gaps and imbalances at a glance.
+                        </p>
+
+                        {/* Quadrant count pills */}
+                        <div className="grid grid-cols-2 gap-1.5 mb-4">
+                          {(["educate", "inspire", "nurture", "convert"] as QKey[]).map((k) => {
+                            const m = GAP_META[k];
+                            return (
+                              <div key={k} className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${m.bg} ${m.border}`}>
+                                <span className={`text-[9px] font-bold ${m.lc}`}>{m.icon} {m.label}</span>
+                                <span className={`text-[9px] font-bold tabular-nums ${m.lc}`}>{qCounts[k]}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Scatter plot */}
+                        <div className="flex gap-3">
+                          {/* Y-axis label */}
+                          <div className="flex flex-col justify-between shrink-0 text-right" style={{ width: 52 }}>
+                            <span className="text-[7.5px] text-slate-400 font-semibold leading-tight">Awareness ↑</span>
+                            <span className="text-[7.5px] text-slate-400 font-semibold leading-tight">↓ Decision</span>
+                          </div>
+                          {/* Plot area */}
+                          <div className="flex-1 min-w-0">
+                            <div className="relative rounded-lg overflow-hidden border border-slate-200" style={{ height: 220 }}>
+                              {/* Quadrant backgrounds */}
+                              <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none">
+                                <div className="bg-blue-50/70" />
+                                <div className="bg-violet-50/70" />
+                                <div className="bg-emerald-50/70" />
+                                <div className="bg-amber-50/70" />
+                              </div>
+                              {/* Dividers */}
+                              <div className="absolute top-0 bottom-0 left-1/2 border-l border-dashed border-slate-300/70 pointer-events-none" />
+                              <div className="absolute left-0 right-0 top-1/2 border-t border-dashed border-slate-300/70 pointer-events-none" />
+                              {/* Quadrant corner labels */}
+                              <p className="absolute top-1.5 left-2 text-[8px] font-bold text-blue-500 leading-none pointer-events-none">📚 Educate</p>
+                              <p className="absolute top-1.5 right-2 text-[8px] font-bold text-violet-600 leading-none text-right pointer-events-none">✨ Inspire</p>
+                              <p className="absolute bottom-1.5 left-2 text-[8px] font-bold text-emerald-700 leading-none pointer-events-none">🌱 Nurture</p>
+                              <p className="absolute bottom-1.5 right-2 text-[8px] font-bold text-amber-700 leading-none text-right pointer-events-none">🎯 Convert</p>
+                              {/* Entry dots */}
+                              {plotData.map(({ entry, ix, fy, dot }) => (
+                                <div
+                                  key={entryKey(entry)}
+                                  title={`${entry.angle}\n${FORMAT_LABEL[entry.type]} · Wk ${entry.week}`}
+                                  className={`absolute w-2.5 h-2.5 rounded-full border border-white shadow-sm opacity-75 cursor-default ${dot}`}
+                                  style={{ left: `${ix}%`, top: `${fy}%`, transform: "translate(-50%, -50%)" }}
+                                />
+                              ))}
+                            </div>
+                            {/* X-axis label */}
+                            <div className="flex justify-between mt-1.5">
+                              <span className="text-[7.5px] text-slate-400 font-semibold">← Informational</span>
+                              <span className="text-[7.5px] text-slate-400">Search Intent</span>
+                              <span className="text-[7.5px] text-slate-400 font-semibold">Commercial →</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Gap callout */}
+                        <div className={`flex items-start gap-2 px-3 py-2 rounded-lg border mt-4 ${gapMeta.bg} ${gapMeta.border}`}>
+                          <span className="text-sm shrink-0 mt-0.5 leading-none">{gapMeta.icon}</span>
+                          <p className="text-[9.5px] text-slate-700 leading-snug">
+                            <span className={`font-bold ${gapMeta.lc}`}>{gapMeta.label}</span> is your lightest quadrant ({qCounts[gapKey]} {qCounts[gapKey] === 1 ? "entry" : "entries"}) — consider adding {gapMeta.suggestion}.
+                          </p>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5">
+                          {(Object.entries(DOT_COLOR_MAP) as [ContentType, string][]).map(([type, bg]) => (
+                            <div key={type} className="flex items-center gap-1">
+                              <div className={`w-2 h-2 rounded-full shrink-0 opacity-80 ${bg}`} />
+                              <span className="text-[7.5px] text-slate-400">{FORMAT_LABEL[type]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── CTA Effectiveness Scorer ────────────────────────────── */}
                 {calendar.length > 0 && (() => {
