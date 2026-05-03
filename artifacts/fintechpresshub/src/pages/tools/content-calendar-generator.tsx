@@ -1696,6 +1696,50 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Backlink Magnetism Predictor ────────────────────────────────────────────
+const BACKLINK_FORMAT_SCORE: Record<ContentType, number> = {
+  "guide":      30,
+  "case-study": 24,
+  "roundup":    20,
+  "blog":       14,
+  "linkedin":    4,
+};
+const BACKLINK_DATA_SIGNALS       = ["study","survey","data","statistic","statistics","benchmark","benchmarking","research","report","state of","index","analysis","findings","dataset","whitepaper","original data","proprietary","experiment","test results","measured","tracked","monitored","census","poll","sample size"];
+const BACKLINK_CONTRARIAN_SIGNALS = ["myth","wrong","mistake","why you shouldn't","counterintuitive","unpopular opinion","controversial","challenge","debunking","rethinking","overrated","underrated","nobody talks about","uncomfortable truth","actually","surprising","against","disagree","stop doing","harmful"];
+const BACKLINK_DEPTH_SIGNALS      = ["complete guide","ultimate","everything you need","definitive","comprehensive","in-depth","deep dive","full breakdown","step by step","from scratch","a to z","end-to-end","exhaustive","masterclass","playbook","handbook","blueprint","framework"];
+const BACKLINK_TIMELY_SIGNALS     = ["2024","2025","2026","new","latest","just released","breaking","emerging","this year","q1","q2","q3","q4","january","february","march","april","may","june","july","august","september","october","november","december","annual","quarterly","update"];
+
+interface LinkScore {
+  total:         number;
+  format:        number;
+  data:          number;
+  contrarian:    number;
+  depth:         number;
+  timely:        number;
+  tier:          "high" | "good" | "moderate" | "low";
+  enhancements:  string[];
+}
+
+function scoreLinkMagnetism(type: ContentType, topic: string, angle: string): LinkScore {
+  const hay  = `${topic} ${angle}`.toLowerCase();
+  const fmt  = BACKLINK_FORMAT_SCORE[type];
+  const data = Math.min(25, BACKLINK_DATA_SIGNALS.filter((s) => hay.includes(s)).length * 8);
+  const con  = Math.min(20, BACKLINK_CONTRARIAN_SIGNALS.filter((s) => hay.includes(s)).length * 10);
+  const dep  = Math.min(15, BACKLINK_DEPTH_SIGNALS.filter((s) => hay.includes(s)).length * 8);
+  const tim  = Math.min(10, BACKLINK_TIMELY_SIGNALS.filter((s) => hay.includes(s)).length * 5);
+  const total = fmt + data + con + dep + tim;
+  const tier: LinkScore["tier"] = total >= 65 ? "high" : total >= 45 ? "good" : total >= 25 ? "moderate" : "low";
+
+  const enhancements: string[] = [];
+  if (data < 10)  enhancements.push("Commission an original statistic, survey, or proprietary benchmark — primary-source data turns articles into citation targets for other publishers");
+  if (con === 0)  enhancements.push("Add a counterintuitive angle or myth-busting hook — contrarian takes attract editorial attention and are 3× more likely to earn unprompted citations");
+  if (dep < 8)   enhancements.push("Add depth signals to the title ('Complete Guide', 'Ultimate Breakdown') — comprehensive-framed content earns significantly more resource-page backlinks");
+  if (tim === 0)  enhancements.push("Add a timely anchor ('2025 State of...', 'Q2 Benchmarks') — dated editions get cited by journalists and analysts searching for the freshest data point");
+  if (fmt < 20)  enhancements.push(`Upgrade format from ${type} to a guide or roundup — these formats attract 4× more backlinks and qualify for more resource-page inclusions`);
+
+  return { total, format: fmt, data, contrarian: con, depth: dep, timely: tim, tier, enhancements };
+}
+
 // ─── Search Intent Alignment Score ───────────────────────────────────────────
 type SearchIntent = "informational" | "commercial" | "transactional" | "navigational";
 interface IntentDef {
@@ -5953,6 +5997,189 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Backlink Magnetism Predictor ─────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar
+                    .map((e) => ({ entry: e, score: scoreLinkMagnetism(e.type, e.topic, e.angle) }))
+                    .sort((a, b) => b.score.total - a.score.total);
+
+                  const tierCfg = {
+                    high:     { label: "High magnetism",  bg: "bg-emerald-50",  border: "border-emerald-100", text: "text-emerald-700", bar: "bg-emerald-400", badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+                    good:     { label: "Good potential",  bg: "bg-blue-50",     border: "border-blue-100",    text: "text-blue-700",    bar: "bg-blue-400",    badge: "bg-blue-100 text-blue-700 border-blue-200"          },
+                    moderate: { label: "Moderate",        bg: "bg-amber-50",    border: "border-amber-100",   text: "text-amber-700",   bar: "bg-amber-400",   badge: "bg-amber-100 text-amber-700 border-amber-200"        },
+                    low:      { label: "Low magnetism",   bg: "bg-rose-50",     border: "border-rose-100",    text: "text-rose-700",    bar: "bg-rose-400",    badge: "bg-rose-100 text-rose-700 border-rose-200"           },
+                  } as const;
+
+                  const byTier  = (t: LinkScore["tier"]) => scored.filter((s) => s.score.tier === t);
+                  const high    = byTier("high");
+                  const good    = byTier("good");
+                  const moderate = byTier("moderate");
+                  const low     = byTier("low");
+                  const avgScore = Math.round(scored.reduce((s, x) => s + x.score.total, 0) / scored.length);
+                  const maxPossible = 100;
+
+                  const dimCfg: { key: keyof LinkScore; label: string; max: number; color: string }[] = [
+                    { key: "format",     label: "Format linkability", max: 30, color: "bg-violet-400" },
+                    { key: "data",       label: "Data/research",      max: 25, color: "bg-sky-400"    },
+                    { key: "contrarian", label: "Unique angle",       max: 20, color: "bg-rose-400"   },
+                    { key: "depth",      label: "Comprehensiveness",  max: 15, color: "bg-amber-400"  },
+                    { key: "timely",     label: "Timeliness",         max: 10, color: "bg-emerald-400"},
+                  ];
+
+                  return (
+                    <Card className="border border-yellow-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🧲</span>
+                            <p className="text-xs font-semibold text-slate-700">Backlink Magnetism Predictor</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {high.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                {high.length} high magnetism
+                              </span>
+                            )}
+                            {low.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {low.length} low
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Scores each piece across 5 backlink-magnetism dimensions — format, data depth, unique angle, comprehensiveness, and timeliness — ranking your top link-earning candidates and showing how to boost each one.
+                        </p>
+
+                        {/* Portfolio avg + distribution */}
+                        <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-yellow-100 bg-yellow-50 mb-3">
+                          <div>
+                            <p className="text-[9px] text-slate-500 mb-0.5">Portfolio Avg Magnetism</p>
+                            <p className="text-lg font-black tabular-nums leading-none text-yellow-700">
+                              {avgScore}<span className="text-xs font-semibold opacity-60">/{maxPossible}</span>
+                            </p>
+                          </div>
+                          <div className="flex gap-1.5">
+                            {(["high","good","moderate","low"] as const).filter((t) => byTier(t).length > 0).map((t) => (
+                              <div key={t} className={`rounded-lg border px-2 py-1 text-center ${tierCfg[t].badge}`}>
+                                <p className="text-[10px] font-black leading-none">{byTier(t).length}</p>
+                                <p className="text-[7px] leading-none mt-0.5">{tierCfg[t].label.split(" ")[0]}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Dimension legend */}
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4">
+                          {dimCfg.map((d) => (
+                            <div key={d.key} className="flex items-center gap-1">
+                              <div className={`w-2 h-2 rounded-full ${d.color}`} />
+                              <span className="text-[7.5px] text-slate-500">{d.label} <span className="text-slate-400">(/{d.max})</span></span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Top link-earning candidates */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Top link-earning candidates:</p>
+                        <div className="space-y-2 mb-4">
+                          {scored.slice(0, 6).map(({ entry: e, score: s }) => {
+                            const cfg = tierCfg[s.tier];
+                            return (
+                              <div key={entryKey(e)} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                <div className={`flex items-center justify-between px-3.5 py-2 ${cfg.bg}`}>
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className={`text-[8.5px] font-bold truncate ${cfg.text}`}>{e.angle}</span>
+                                  </div>
+                                  <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border shrink-0 ml-2 tabular-nums ${cfg.badge}`}>
+                                    {s.total}/100
+                                  </span>
+                                </div>
+                                {/* Score dimension mini-bars */}
+                                <div className="px-3.5 py-2 bg-white">
+                                  <div className="space-y-1 mb-2">
+                                    {dimCfg.map((d) => {
+                                      const val = s[d.key] as number;
+                                      const pct = Math.round((val / d.max) * 100);
+                                      return (
+                                        <div key={d.key} className="flex items-center gap-2">
+                                          <span className="text-[7px] text-slate-400 w-24 shrink-0">{d.label}</span>
+                                          <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                            <div className={`h-full rounded-full ${d.color}`} style={{ width: `${pct}%` }} />
+                                          </div>
+                                          <span className="text-[7px] tabular-nums text-slate-400 shrink-0 w-8 text-right">{val}/{d.max}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  {/* Top enhancement tip */}
+                                  {s.enhancements.length > 0 && (
+                                    <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-yellow-50 border border-yellow-100">
+                                      <span className="text-[9px] shrink-0">💡</span>
+                                      <p className="text-[8px] text-yellow-800 leading-snug">{s.enhancements[0]}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Low-magnetism pieces needing the most work */}
+                        {low.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Lowest-magnetism pieces — enhancement priorities:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {low.slice(0, 4).map(({ entry: e, score: s }) => (
+                                <div key={entryKey(e)} className="rounded-xl border border-rose-100 overflow-hidden">
+                                  <div className="flex items-center justify-between px-3.5 py-2 bg-rose-50">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-[8.5px] font-bold text-rose-800 truncate">{e.angle}</span>
+                                    </div>
+                                    <span className="text-[8px] font-black text-rose-600 shrink-0 ml-2 tabular-nums">{s.total}/100</span>
+                                  </div>
+                                  <div className="px-3.5 py-2 bg-white space-y-1">
+                                    {s.enhancements.slice(0, 2).map((tip, i) => (
+                                      <div key={i} className="flex items-start gap-1.5">
+                                        <span className="text-[8px] text-rose-400 shrink-0 mt-0.5">→</span>
+                                        <p className="text-[8px] text-slate-600 leading-snug">{tip}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Format-level summary */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Average magnetism by content type:</p>
+                        <div className="space-y-1.5">
+                          {(Object.entries(BACKLINK_FORMAT_SCORE) as [ContentType, number][])
+                            .sort(([, a], [, b]) => b - a)
+                            .map(([type, fmtScore]) => {
+                              const typeEntries = scored.filter((s) => s.entry.type === type);
+                              if (typeEntries.length === 0) return null;
+                              const avg = Math.round(typeEntries.reduce((s, x) => s + x.score.total, 0) / typeEntries.length);
+                              return (
+                                <div key={type} className="flex items-center gap-2">
+                                  <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 w-20 text-center ${TYPE_COLOR[type]}`}>{FORMAT_LABEL[type]}</span>
+                                  <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                    <div className="h-full rounded-full bg-yellow-400" style={{ width: `${avg}%` }} />
+                                  </div>
+                                  <span className="text-[8px] tabular-nums text-slate-500 shrink-0 w-12 text-right">{avg}/100 avg</span>
+                                  <span className="text-[7.5px] text-slate-400 shrink-0">({typeEntries.length})</span>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Search Intent Alignment Score ────────────────────────── */}
                 {calendar.length > 0 && (() => {
