@@ -1696,6 +1696,46 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Thought Leadership Index ─────────────────────────────────────────────────
+const TL_POV_SIGNALS       = ["predict","believe","argue","case for","perspective","our view","our take","opinion","we think","position","stance","bold","provocative","thesis","assert","contend","challenge","disagree","contrary","wrong about","time to rethink","rethinking","myth","reframe","redefine"];
+const TL_CATEGORY_SIGNALS  = ["introducing","new framework","our model","our methodology","we call","coined","first to","pioneered","category","taxonomy","defined as","framework for","playbook","our approach","proprietary","original research","we built","developed by","created by","our tool"];
+const TL_INSIGHT_SIGNALS   = ["counterintuitive","surprising","overlooked","underrated","nobody talks about","what most miss","hidden","rarely discussed","beneath the surface","second-order","root cause","systemic","nuanced","complex","unpopular","uncomfortable","actually","in reality","the real reason","what really"];
+const TL_EVIDENCE_SIGNALS  = ["research shows","data shows","study","evidence","proven","validated","tested","measured","our clients","client data","we found","in our experience","from working with","after analysing","based on","n=","sample","tracked","monitored","over x years","in practice"];
+const TL_VISION_SIGNALS    = ["future","predict","forecast","by 2025","by 2026","by 2027","next decade","next five years","emerging","paradigm shift","will change","will transform","on the horizon","coming shift","where fintech is heading","where banking is going","in ten years","long-term","strategic implication"];
+const TL_COMMODITY_SIGNALS = ["what is","introduction to","overview of","basics of","beginners guide","101","getting started with","a guide to","how does","everything you need to know","what are","types of","definition of","meaning of","explained simply","for dummies","primer on"];
+
+interface TLScore {
+  total:      number;
+  pov:        number;
+  category:   number;
+  insight:    number;
+  evidence:   number;
+  vision:     number;
+  isCommodity: boolean;
+  tier:       "leader" | "strong" | "developing" | "commodity";
+  enhancements: string[];
+}
+
+function scoreTL(topic: string, angle: string): TLScore {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  const pov      = Math.min(30, TL_POV_SIGNALS.filter((s) => hay.includes(s)).length * 10);
+  const category = Math.min(25, TL_CATEGORY_SIGNALS.filter((s) => hay.includes(s)).length * 9);
+  const insight  = Math.min(20, TL_INSIGHT_SIGNALS.filter((s) => hay.includes(s)).length * 7);
+  const evidence = Math.min(15, TL_EVIDENCE_SIGNALS.filter((s) => hay.includes(s)).length * 6);
+  const vision   = Math.min(10, TL_VISION_SIGNALS.filter((s) => hay.includes(s)).length * 5);
+  const total = pov + category + insight + evidence + vision;
+  const commodityHits = TL_COMMODITY_SIGNALS.filter((s) => hay.includes(s)).length;
+  const isCommodity = commodityHits > 0 && total < 25;
+  const tier: TLScore["tier"] = total >= 60 ? "leader" : total >= 40 ? "strong" : total >= 20 ? "developing" : "commodity";
+  const enhancements: string[] = [];
+  if (pov < 10)      enhancements.push("State a bold opening thesis — declare what you believe that most in the industry don't, then defend it with evidence. Opinion without a stake in the ground isn't thought leadership.");
+  if (category < 8)  enhancements.push("Coin a specific term or name your framework — named models and proprietary methodologies get cited and shared far more than generic advice ('The X Framework' outperforms 'Tips for X').");
+  if (insight < 7)   enhancements.push("Find the non-obvious implication — what does mainstream coverage of this topic consistently miss? Build the whole piece around that gap in the conversation.");
+  if (evidence < 5)  enhancements.push("Anchor your POV in named client data, original research, or a specific case — opinion without evidence is commentary, not thought leadership that earns trust.");
+  if (vision < 4)    enhancements.push("Add a 12–24 month prediction — forward-looking claims position you as a guide rather than a reporter. Specific, falsifiable predictions build authority faster than trend summaries.");
+  return { total, pov, category, insight, evidence, vision, isCommodity, tier, enhancements };
+}
+
 // ─── Social Amplification Planner ────────────────────────────────────────────
 const VIRAL_CONTRARIAN = ["myth","wrong","mistake","debunking","counterintuitive","unpopular","hot take","controversial","against","disagree","rethinking","uncomfortable truth","overrated","nobody talks about","stop","don't"];
 const VIRAL_DATA       = ["statistic","statistics","data","study","survey","benchmark","research","found that","shows that","revealed","according to","findings","measured","tracked","reported","numbers","metric"];
@@ -6066,6 +6106,225 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Thought Leadership Index ──────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar
+                    .map((e) => ({ entry: e, tl: scoreTL(e.topic, e.angle) }))
+                    .sort((a, b) => b.tl.total - a.tl.total);
+
+                  const tierCfg = {
+                    leader:    { label: "Thought leader",    bg: "bg-indigo-50",   border: "border-indigo-100",  text: "text-indigo-700",  bar: "bg-indigo-500",  badge: "bg-indigo-100 text-indigo-700 border-indigo-200"  },
+                    strong:    { label: "Strong authority",  bg: "bg-blue-50",     border: "border-blue-100",    text: "text-blue-700",    bar: "bg-blue-400",    badge: "bg-blue-100 text-blue-700 border-blue-200"        },
+                    developing:{ label: "Developing",        bg: "bg-amber-50",    border: "border-amber-100",   text: "text-amber-700",   bar: "bg-amber-400",   badge: "bg-amber-100 text-amber-700 border-amber-200"     },
+                    commodity: { label: "Commodity content", bg: "bg-rose-50",     border: "border-rose-100",    text: "text-rose-700",    bar: "bg-rose-400",    badge: "bg-rose-100 text-rose-700 border-rose-200"        },
+                  } as const;
+
+                  const dimCfg: { key: keyof TLScore; label: string; max: number; color: string; emoji: string; description: string }[] = [
+                    { key: "pov",      label: "Original POV",       max: 30, color: "bg-indigo-400",  emoji: "💡", description: "A distinct, defensible opinion the author is willing to stand behind" },
+                    { key: "category", label: "Category ownership", max: 25, color: "bg-violet-400",  emoji: "🏴", description: "Proprietary frameworks, coined terms, or named methodologies" },
+                    { key: "insight",  label: "Insight depth",      max: 20, color: "bg-sky-400",     emoji: "🔭", description: "Non-obvious angles that most coverage of this topic misses" },
+                    { key: "evidence", label: "Evidence/authority", max: 15, color: "bg-emerald-400", emoji: "📋", description: "Client data, original research, or named case backing the claim" },
+                    { key: "vision",   label: "Future vision",      max: 10, color: "bg-amber-400",   emoji: "🔮", description: "Specific forward-looking predictions that position the author as a guide" },
+                  ];
+
+                  const byTier  = (t: TLScore["tier"]) => scored.filter((s) => s.tl.tier === t);
+                  const commodityEntries = scored.filter((s) => s.tl.isCommodity);
+                  const avgScore = Math.round(scored.reduce((s, x) => s + x.tl.total, 0) / scored.length);
+
+                  const scoreCfg = (v: number) =>
+                    v >= 55 ? { bg: "bg-indigo-50", text: "text-indigo-700", badge: "bg-indigo-100 text-indigo-700 border-indigo-200", label: "Strong TL portfolio" }
+                    : v >= 35 ? { bg: "bg-blue-50",   text: "text-blue-700",   badge: "bg-blue-100 text-blue-700 border-blue-200",         label: "Developing authority"  }
+                    : v >= 20 ? { bg: "bg-amber-50",  text: "text-amber-700",  badge: "bg-amber-100 text-amber-700 border-amber-200",       label: "Mostly informational"  }
+                    :           { bg: "bg-rose-50",   text: "text-rose-700",   badge: "bg-rose-100 text-rose-700 border-rose-200",          label: "Commodity risk"        };
+                  const sc = scoreCfg(avgScore);
+
+                  return (
+                    <Card className="border border-indigo-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🎖️</span>
+                            <p className="text-xs font-semibold text-slate-700">Thought Leadership Index</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {byTier("leader").length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                {byTier("leader").length} leader piece{byTier("leader").length !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                            {commodityEntries.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {commodityEntries.length} commodity risk
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Scores each piece on 5 authority-building dimensions — original POV, category ownership, insight depth, evidence, and future vision — distinguishing genuine thought leadership from commodity content.
+                        </p>
+
+                        {/* Portfolio average */}
+                        <div className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-3 ${sc.bg}`}>
+                          <div>
+                            <p className="text-[9px] text-slate-500 mb-0.5">Portfolio TL Average</p>
+                            <p className={`text-lg font-black tabular-nums leading-none ${sc.text}`}>
+                              {avgScore}<span className="text-xs font-semibold opacity-60">/100</span>
+                            </p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full border ${sc.badge}`}>{sc.label}</span>
+                        </div>
+
+                        {/* Tier distribution bar */}
+                        <div className="flex gap-px h-2 rounded-full overflow-hidden mb-1">
+                          {(["leader","strong","developing","commodity"] as const).map((t) => {
+                            const pct = Math.round((byTier(t).length / scored.length) * 100);
+                            return pct > 0 ? <div key={t} className={`h-full ${tierCfg[t].bar}`} style={{ width: `${pct}%` }} /> : null;
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4">
+                          {(["leader","strong","developing","commodity"] as const).filter((t) => byTier(t).length > 0).map((t) => (
+                            <div key={t} className="flex items-center gap-1">
+                              <div className={`w-2 h-2 rounded-full ${tierCfg[t].bar}`} />
+                              <span className="text-[8px] text-slate-500">{tierCfg[t].label} <span className="font-bold text-slate-700">({byTier(t).length})</span></span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Dimension key */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Scoring dimensions:</p>
+                        <div className="space-y-1 mb-4">
+                          {dimCfg.map((d) => (
+                            <div key={d.key} className="flex items-start gap-2">
+                              <span className="text-[9px] shrink-0 mt-0.5">{d.emoji}</span>
+                              <div className="flex items-baseline gap-1.5 flex-wrap">
+                                <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full shrink-0`} style={{ background: "transparent" }}>
+                                  <span className={`inline-block w-2 h-2 rounded-full mr-1 ${d.color}`} />
+                                  {d.label} <span className="text-slate-400 font-normal">/{d.max}pts</span>
+                                </span>
+                                <span className="text-[7.5px] text-slate-400 leading-snug">{d.description}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Top TL pieces */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">
+                          Top authority-building pieces:
+                        </p>
+                        <div className="space-y-2.5 mb-4">
+                          {scored.filter((s) => s.tl.tier === "leader" || s.tl.tier === "strong").slice(0, 5).map(({ entry: e, tl }) => {
+                            const cfg = tierCfg[tl.tier];
+                            return (
+                              <div key={entryKey(e)} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                <div className={`flex items-center justify-between px-3.5 py-2 ${cfg.bg}`}>
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className={`text-[8.5px] font-bold truncate ${cfg.text}`}>{e.angle}</span>
+                                  </div>
+                                  <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border shrink-0 ml-2 tabular-nums ${cfg.badge}`}>{tl.total}/100</span>
+                                </div>
+                                <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                  {/* Dimension breakdown */}
+                                  <div className="space-y-1">
+                                    {dimCfg.map((d) => {
+                                      const val = tl[d.key as keyof typeof tl] as number;
+                                      const pct = Math.round((val / d.max) * 100);
+                                      return (
+                                        <div key={d.key} className="flex items-center gap-2">
+                                          <span className="text-[8px] shrink-0 w-4">{d.emoji}</span>
+                                          <span className="text-[7px] text-slate-400 w-24 shrink-0">{d.label}</span>
+                                          <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                            <div className={`h-full rounded-full ${d.color}`} style={{ width: `${pct}%` }} />
+                                          </div>
+                                          <span className="text-[7px] tabular-nums text-slate-400 shrink-0 w-8 text-right">{val}/{d.max}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  {/* Top enhancement */}
+                                  {tl.enhancements.length > 0 && (
+                                    <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100">
+                                      <span className="text-[9px] shrink-0">💡</span>
+                                      <p className="text-[8px] text-indigo-800 leading-snug">{tl.enhancements[0]}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {scored.filter((s) => s.tl.tier === "leader" || s.tl.tier === "strong").length === 0 && (
+                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                              <span className="text-sm">⚠️</span>
+                              <p className="text-[9px] text-amber-700 font-semibold">No pieces currently score in the leader or strong tiers — the calendar reads as primarily informational. Add original POV and category-ownership signals to build authority.</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Commodity risk pieces */}
+                        {commodityEntries.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Commodity content risk — needs a POV:</p>
+                            <div className="space-y-2 mb-4">
+                              {commodityEntries.slice(0, 5).map(({ entry: e, tl }) => (
+                                <div key={entryKey(e)} className="rounded-xl border border-rose-100 overflow-hidden">
+                                  <div className="flex items-center justify-between px-3.5 py-2 bg-rose-50">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-[8.5px] font-bold text-rose-800 truncate">{e.angle}</span>
+                                    </div>
+                                    <span className="text-[7.5px] font-bold text-rose-500 shrink-0 ml-2 tabular-nums">{tl.total}/100</span>
+                                  </div>
+                                  <div className="px-3.5 py-2.5 bg-white space-y-1">
+                                    <p className="text-[8px] font-semibold text-slate-600">
+                                      ⚠️ This reads as a definition or overview piece with no original perspective. Commodity content competes on keywords alone — it won't build brand authority.
+                                    </p>
+                                    {tl.enhancements.slice(0, 2).map((tip, i) => (
+                                      <div key={i} className="flex items-start gap-1.5">
+                                        <span className="text-[8px] text-rose-400 shrink-0">→</span>
+                                        <p className="text-[8px] text-slate-600 leading-snug">{tip}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* All developing pieces — quick wins list */}
+                        {byTier("developing").length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Developing pieces — one enhancement each:</p>
+                            <div className="space-y-1.5">
+                              {byTier("developing").slice(0, 5).map(({ entry: e, tl }) => (
+                                <div key={entryKey(e)} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                  <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 mt-0.5 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[8.5px] font-semibold text-amber-800 truncate">{e.angle} <span className="font-normal text-amber-600">({tl.total}/100)</span></p>
+                                    {tl.enhancements[0] && (
+                                      <p className="text-[7.5px] text-amber-700 leading-snug mt-0.5">→ {tl.enhancements[0]}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {commodityEntries.length === 0 && byTier("commodity").length === 0 && avgScore >= 40 && (
+                          <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-indigo-50 border border-indigo-100 mt-3">
+                            <span className="text-sm">🎖️</span>
+                            <p className="text-[10px] font-semibold text-indigo-700">
+                              Strong thought leadership portfolio — no commodity-risk pieces detected and the calendar average is above the authority threshold.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Social Amplification Planner ─────────────────────────── */}
                 {calendar.length > 0 && (() => {
