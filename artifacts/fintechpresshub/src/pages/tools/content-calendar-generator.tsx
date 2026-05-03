@@ -1696,6 +1696,22 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Publishing Cadence Stress Tester ────────────────────────────────────────
+// Production effort units per content type — relative cost for a 2-3 person fintech editorial team
+const EFFORT_WEIGHT: Record<ContentType, number> = {
+  "guide":      5,   // long-form comprehensive piece: research + SME interviews + SEO + design assets + review cycles
+  "case-study": 4,   // proof piece: client approval + data gathering + narrative structure + legal/compliance review
+  "blog":       3,   // substantive post: outline + research + draft + expert review + optimisation + publish
+  "roundup":    2,   // curation-based: sourcing + brief commentary + formatting + link validation
+  "linkedin":   1,   // short-form social: concept + draft + approve + schedule — fastest to produce
+};
+
+// Weekly effort thresholds calibrated to a typical 2-3 person fintech content function
+const EFFORT_SUSTAINABLE = 8;    // ≤8 — comfortable; team can produce without quality compromise
+const EFFORT_ELEVATED    = 11;   // 9-11 — manageable with focus; one busy format or 3 blogs
+const EFFORT_CRUNCH      = 15;   // 12-15 — meaningful stress; quality risk starts, likely needs reprioritisation
+const EFFORT_OVERFLOW    = 16;   // ≥16 — unsustainable without contractor surge or scope reduction
+
 // ─── Angle Differentiation Scorer ────────────────────────────────────────────
 // Common words to strip before computing token-level angle similarity
 const ANGLE_STOP_WORDS = new Set(["the","a","an","of","in","to","for","how","why","what","your","their","its","with","and","or","is","are","be","by","at","from","on","as","that","this","it","we","you","our","these","those","which","will","can","has","have","had","been","was","were","do","does","did","not","but","so","if","when","where","who","more","most","all","any","new","they","them","about","into","than","other","some","my","up","out","get","use","s"]);
@@ -6909,6 +6925,328 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Publishing Cadence Stress Tester ────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Per-week effort calculation
+                  const weekNums = [...new Set(calendar.map((e) => e.week))].sort((a, b) => a - b);
+
+                  type WeekStatus = "sustainable" | "elevated" | "crunch" | "overflow";
+                  interface WeekLoad {
+                    week:            number;
+                    entries:         typeof calendar;
+                    effortTotal:     number;
+                    formatBreakdown: { type: ContentType; count: number; effort: number }[];
+                    status:          WeekStatus;
+                    spareCap:        number;   // effort units of slack below EFFORT_SUSTAINABLE (negative = over budget)
+                  }
+
+                  const weekLoads: WeekLoad[] = weekNums.map((wk) => {
+                    const entries        = calendar.filter((e) => e.week === wk);
+                    const effortTotal    = entries.reduce((s, e) => s + EFFORT_WEIGHT[e.type], 0);
+                    const formatBreakdown = (Object.keys(EFFORT_WEIGHT) as ContentType[])
+                      .map((t) => ({ type: t, count: entries.filter((e) => e.type === t).length, effort: entries.filter((e) => e.type === t).length * EFFORT_WEIGHT[t] }))
+                      .filter((f) => f.count > 0)
+                      .sort((a, b) => b.effort - a.effort);
+                    const status: WeekStatus =
+                      effortTotal >= EFFORT_OVERFLOW ? "overflow"    :
+                      effortTotal >= EFFORT_CRUNCH   ? "crunch"      :
+                      effortTotal >= EFFORT_ELEVATED  ? "elevated"    :
+                                                        "sustainable";
+                    const spareCap = EFFORT_SUSTAINABLE - effortTotal;
+                    return { week: wk, entries, effortTotal, formatBreakdown, status, spareCap };
+                  });
+
+                  // Summary groups
+                  const sustainableWks = weekLoads.filter((w) => w.status === "sustainable");
+                  const elevatedWks    = weekLoads.filter((w) => w.status === "elevated");
+                  const crunchWks      = weekLoads.filter((w) => w.status === "crunch");
+                  const overflowWks    = weekLoads.filter((w) => w.status === "overflow");
+                  const underloadedWks = weekLoads.filter((w) => w.spareCap >= 3); // spare ≥3 units = good absorption slot
+
+                  const totalEffort   = weekLoads.reduce((s, w) => s + w.effortTotal, 0);
+                  const avgEffort     = weekNums.length > 0 ? totalEffort / weekNums.length : 0;
+                  const maxEffort     = Math.max(...weekLoads.map((w) => w.effortTotal), 1);
+
+                  // Coefficient of variation for load balance score
+                  const variance  = weekNums.length > 0 ? weekLoads.reduce((s, w) => s + Math.pow(w.effortTotal - avgEffort, 2), 0) / weekNums.length : 0;
+                  const stddev    = Math.sqrt(variance);
+                  const cv        = avgEffort > 0 ? stddev / avgEffort : 0;   // 0 = perfectly even, >1 = very uneven
+
+                  // ── Portfolio Production Health Score (0-100) ──────────────
+                  // Sustainable-week rate (0-40): % of weeks at ≤ EFFORT_SUSTAINABLE
+                  const sustRate      = weekNums.length > 0 ? sustainableWks.length / weekNums.length : 1;
+                  const sustScore     = Math.round(sustRate * 40);
+
+                  // Crunch-free rate (0-30): % of weeks below EFFORT_CRUNCH
+                  const crunchFreeRate  = weekNums.length > 0 ? (weekNums.length - crunchWks.length - overflowWks.length) / weekNums.length : 1;
+                  const crunchFreeScore = Math.round(crunchFreeRate * 30);
+
+                  // Load balance (0-30): inversely proportional to coefficient of variation (capped at cv=1.0)
+                  const balanceScore = Math.round(Math.max(0, 1 - Math.min(cv, 1)) * 30);
+
+                  const healthScore = sustScore + crunchFreeScore + balanceScore;
+
+                  const healthCfg =
+                    healthScore >= 75 ? { label: "Sustainable production pace",     color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    healthScore >= 50 ? { label: "Manageable with attention",       color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    healthScore >= 25 ? { label: "Crunch weeks present — rebalance",color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                        { label: "Production overload — action needed", color: "text-rose-700", bg: "bg-rose-50",   border: "border-rose-100"    };
+
+                  const STATUS_CFG: Record<WeekStatus, { label: string; icon: string; color: string; bg: string; border: string; bar: string; desc: string }> = {
+                    sustainable: { label: "Sustainable", icon: "🟢", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", bar: "bg-emerald-400", desc: `≤${EFFORT_SUSTAINABLE} effort units — comfortable pace, team can produce at full quality` },
+                    elevated:    { label: "Elevated",    icon: "🟡", color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100",    bar: "bg-blue-400",    desc: `${EFFORT_SUSTAINABLE+1}–${EFFORT_CRUNCH-1} effort units — manageable but a busy week; plan reviews early`  },
+                    crunch:      { label: "Crunch",      icon: "🔴", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   bar: "bg-amber-400",   desc: `${EFFORT_CRUNCH}–${EFFORT_OVERFLOW-1} effort units — quality risk; needs load reduction or extra resource` },
+                    overflow:    { label: "Overflow",    icon: "🚨", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100",    bar: "bg-rose-400",    desc: `≥${EFFORT_OVERFLOW} effort units — unsustainable; move pieces out or bring in contractor support`   },
+                  };
+
+                  // Load-levelling swap suggestions — for each crunch/overflow week, find the best nearby slack week
+                  interface SwapSuggestion { fromWeek: number; toWeek: number; piece: typeof calendar[number]; effortSaved: number; reason: string }
+                  const swapSuggestions: SwapSuggestion[] = [];
+                  [...crunchWks, ...overflowWks]
+                    .sort((a, b) => b.effortTotal - a.effortTotal)
+                    .slice(0, 3)
+                    .forEach((cw) => {
+                      // Find the highest-effort non-anchor entry in this week (best candidate to move)
+                      const movable = [...cw.entries].sort((a, b) => EFFORT_WEIGHT[b.type] - EFFORT_WEIGHT[a.type])[0];
+                      if (!movable) return;
+                      // Find the nearest week with spare capacity
+                      const target = weekLoads
+                        .filter((w) => w.week !== cw.week && w.spareCap >= EFFORT_WEIGHT[movable.type])
+                        .sort((a, b) => Math.abs(a.week - cw.week) - Math.abs(b.week - cw.week))[0];
+                      if (!target) return;
+                      swapSuggestions.push({
+                        fromWeek: cw.week, toWeek: target.week,
+                        piece: movable,
+                        effortSaved: EFFORT_WEIGHT[movable.type],
+                        reason: `Week ${cw.week} drops from ${cw.effortTotal} → ${cw.effortTotal - EFFORT_WEIGHT[movable.type]} effort units; week ${target.week} rises from ${target.effortTotal} → ${target.effortTotal + EFFORT_WEIGHT[movable.type]} (still ${target.effortTotal + EFFORT_WEIGHT[movable.type] <= EFFORT_SUSTAINABLE ? "sustainable" : "elevated"})`,
+                      });
+                    });
+
+                  // Downgrade suggestions — for crunch weeks where no near slack exists, suggest format downgrade
+                  const downgradeSuggestions: { week: number; from: ContentType; to: ContentType; effortSaved: number }[] = [];
+                  [...crunchWks, ...overflowWks].forEach((cw) => {
+                    const hasGuide     = cw.entries.some((e) => e.type === "guide");
+                    const hasCaseStudy = cw.entries.some((e) => e.type === "case-study");
+                    const alreadySwapped = swapSuggestions.some((s) => s.fromWeek === cw.week);
+                    if (!alreadySwapped && hasGuide) {
+                      downgradeSuggestions.push({ week: cw.week, from: "guide", to: "blog", effortSaved: EFFORT_WEIGHT["guide"] - EFFORT_WEIGHT["blog"] });
+                    } else if (!alreadySwapped && hasCaseStudy) {
+                      downgradeSuggestions.push({ week: cw.week, from: "case-study", to: "blog", effortSaved: EFFORT_WEIGHT["case-study"] - EFFORT_WEIGHT["blog"] });
+                    }
+                  });
+
+                  const barMax = Math.max(maxEffort, EFFORT_OVERFLOW + 2);
+
+                  return (
+                    <Card className="border border-green-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🔥</span>
+                            <p className="text-xs font-semibold text-slate-700">Publishing Cadence Stress Tester</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${healthCfg.color} ${healthCfg.bg} ${healthCfg.border}`}>
+                            {healthScore}/100 · {healthCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Models the week-by-week production load using effort units calibrated to a 2-3 person fintech content team — Guide (5 units), Case Study (4), Blog (3), Roundup (2), LinkedIn (1). Flags crunch weeks that exceed the sustainable threshold, detects load imbalance across the calendar period, and generates specific load-levelling swaps that move the right piece to the right week without sacrificing topical coverage.
+                        </p>
+
+                        {/* Effort weight reference */}
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          {(Object.entries(EFFORT_WEIGHT) as [ContentType, number][]).map(([t, w]) => (
+                            <div key={t} className={`flex items-center gap-1 px-2 py-1 rounded-full border text-[7.5px] ${TYPE_COLOR[t]}`}>
+                              <span className="font-bold">{FORMAT_LABEL[t]}</span>
+                              <span className="opacity-60">= {w} unit{w !== 1 ? "s" : ""}</span>
+                            </div>
+                          ))}
+                          <div className="flex items-center gap-1 px-2 py-1 rounded-full border border-slate-200 bg-slate-50 text-[7.5px] text-slate-500">
+                            <span>Sustainable ≤{EFFORT_SUSTAINABLE}</span>
+                            <span className="text-slate-300">·</span>
+                            <span>Crunch ≥{EFFORT_CRUNCH}</span>
+                            <span className="text-slate-300">·</span>
+                            <span>Overflow ≥{EFFORT_OVERFLOW}</span>
+                          </div>
+                        </div>
+
+                        {/* Portfolio Production Health Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${healthCfg.bg} ${healthCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${healthCfg.color}`}>{healthScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Sustainable weeks",  val: sustScore,       max: 40, desc: `${sustainableWks.length}/${weekNums.length} weeks at ≤${EFFORT_SUSTAINABLE} effort units`                                  },
+                              { label: "Crunch-free weeks",  val: crunchFreeScore, max: 30, desc: `${weekNums.length - crunchWks.length - overflowWks.length}/${weekNums.length} weeks below the crunch threshold (${EFFORT_CRUNCH} units)` },
+                              { label: "Load balance",       val: balanceScore,    max: 30, desc: `CV=${cv.toFixed(2)} — coefficient of variation of weekly effort (0=perfectly even, 1+=highly uneven)`                   },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${healthCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Summary stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Avg effort/wk", val: avgEffort.toFixed(1), sub: `peak: ${maxEffort} units`,              color: "text-slate-700",   bg: "bg-slate-50",   border: "border-slate-100"   },
+                            { label: "Sustainable",   val: sustainableWks.length, sub: `≤${EFFORT_SUSTAINABLE} units`,          color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+                            { label: "Crunch",        val: crunchWks.length,      sub: `${EFFORT_CRUNCH}–${EFFORT_OVERFLOW-1} units`, color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   },
+                            { label: "Overflow",      val: overflowWks.length,    sub: `≥${EFFORT_OVERFLOW} units`,             color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    },
+                          ].map(({ label, val, sub, color, bg, border }) => (
+                            <div key={label} className={`rounded-lg border px-2 py-1.5 text-center ${bg} ${border}`}>
+                              <p className="text-[7.5px] text-slate-400 mb-0.5">{label}</p>
+                              <p className={`text-[13px] font-black leading-none ${color}`}>{val}</p>
+                              <p className="text-[6.5px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Per-week effort load bars */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Week-by-week production load:</p>
+                        <div className="space-y-2 mb-4">
+                          {weekLoads.map((wl) => {
+                            const sCfg   = STATUS_CFG[wl.status];
+                            const barPct = Math.min(100, Math.round((wl.effortTotal / barMax) * 100));
+                            // Zone markers as % of barMax
+                            const sustPct  = Math.round((EFFORT_SUSTAINABLE / barMax) * 100);
+                            const crunchPct= Math.round((EFFORT_CRUNCH / barMax) * 100);
+                            const overPct  = Math.round((EFFORT_OVERFLOW / barMax) * 100);
+                            return (
+                              <div key={wl.week} className={`rounded-xl border overflow-hidden ${sCfg.border}`}>
+                                <div className={`flex items-center justify-between px-3.5 py-1.5 ${sCfg.bg}`}>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[8px]">{sCfg.icon}</span>
+                                    <span className={`text-[8px] font-bold ${sCfg.color}`}>Week {wl.week}</span>
+                                    <span className="text-[7px] text-slate-400">{wl.entries.length} piece{wl.entries.length !== 1 ? "s" : ""}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-[7px] text-slate-400">{wl.formatBreakdown.map((f) => `${f.count}×${FORMAT_LABEL[f.type]}`).join(" + ")}</span>
+                                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border tabular-nums ${sCfg.bg} ${sCfg.color} ${sCfg.border}`}>{wl.effortTotal} units · {sCfg.label}</span>
+                                  </div>
+                                </div>
+                                <div className="px-3.5 py-2 bg-white">
+                                  {/* Effort bar with zone markers */}
+                                  <div className="relative h-3 rounded-full bg-slate-100 overflow-hidden mb-1.5">
+                                    {/* Zone boundary markers */}
+                                    <div className="absolute inset-y-0 w-px bg-emerald-300 opacity-60" style={{ left: `${sustPct}%` }} />
+                                    <div className="absolute inset-y-0 w-px bg-amber-400 opacity-60"   style={{ left: `${crunchPct}%` }} />
+                                    <div className="absolute inset-y-0 w-px bg-rose-400 opacity-60"   style={{ left: `${overPct}%` }} />
+                                    {/* Effort fill */}
+                                    <div className={`absolute inset-y-0 left-0 rounded-full ${sCfg.bar}`} style={{ width: `${barPct}%` }} />
+                                  </div>
+                                  {/* Zone label row */}
+                                  <div className="relative h-3">
+                                    <span className="absolute text-[6px] text-emerald-600 transform -translate-x-1/2" style={{ left: `${sustPct}%` }}>≤{EFFORT_SUSTAINABLE}</span>
+                                    <span className="absolute text-[6px] text-amber-600 transform -translate-x-1/2" style={{ left: `${crunchPct}%` }}>≥{EFFORT_CRUNCH}</span>
+                                    <span className="absolute text-[6px] text-rose-600 transform -translate-x-1/2" style={{ left: `${overPct}%` }}>≥{EFFORT_OVERFLOW}</span>
+                                  </div>
+                                  {/* Per-format effort breakdown chips */}
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {wl.formatBreakdown.map((f) => (
+                                      <span key={f.type} className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[f.type]}`}>
+                                        {f.count}× {FORMAT_LABEL[f.type]} = {f.effort} pts
+                                      </span>
+                                    ))}
+                                    {wl.spareCap > 0 && (
+                                      <span className="text-[7px] px-1.5 py-0.5 rounded-full border bg-slate-50 text-slate-400 border-slate-100">
+                                        +{wl.spareCap} spare
+                                      </span>
+                                    )}
+                                  </div>
+                                  {/* Status description */}
+                                  <p className="text-[7.5px] text-slate-500 leading-snug mt-1">{sCfg.desc}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Load-levelling swap recommendations */}
+                        {swapSuggestions.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">↔️ Load-levelling swaps — move pieces to reduce crunch:</p>
+                            <div className="space-y-2 mb-4">
+                              {swapSuggestions.map((sw, i) => (
+                                <div key={i} className="rounded-xl border border-sky-100 overflow-hidden">
+                                  <div className="flex items-center justify-between px-3.5 py-2 bg-sky-50">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-[7.5px] font-bold text-sky-700">Move from Week {sw.fromWeek} → Week {sw.toWeek}</span>
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[sw.piece.type]}`}>{FORMAT_LABEL[sw.piece.type]}</span>
+                                      <span className="text-[7.5px] text-sky-600 truncate max-w-[14rem]">{sw.piece.angle.slice(0,40)}{sw.piece.angle.length > 40 ? "…" : ""}</span>
+                                    </div>
+                                    <span className="text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border bg-sky-100 text-sky-700 border-sky-200 shrink-0 ml-2">−{sw.effortSaved} units from Wk {sw.fromWeek}</span>
+                                  </div>
+                                  <div className="px-3.5 py-2 bg-white">
+                                    <p className="text-[7.5px] text-slate-600 leading-snug">{sw.reason}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Format downgrade suggestions */}
+                        {downgradeSuggestions.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">⬇️ Format downgrade options — reduce effort without removing content:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {downgradeSuggestions.map((dg, i) => (
+                                <div key={i} className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                                  <span className="text-[10px] shrink-0 mt-0.5">⬇️</span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[7.5px] font-bold text-amber-800">Week {dg.week}:</span>
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[dg.from]}`}>{FORMAT_LABEL[dg.from]}</span>
+                                    <span className="text-[7px] text-amber-600">→</span>
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[dg.to]}`}>{FORMAT_LABEL[dg.to]}</span>
+                                    <span className="text-[7.5px] text-amber-700">saves {dg.effortSaved} effort units — publish the full {FORMAT_LABEL[dg.from]} in a later calendar period when the week has more slack</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Underloaded absorption slots */}
+                        {underloadedWks.length > 0 && (crunchWks.length > 0 || overflowWks.length > 0) && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-100 mb-3">
+                            <span className="text-[10px] shrink-0 mt-0.5">🟢</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-emerald-800 mb-1">{underloadedWks.length} underloaded week{underloadedWks.length !== 1 ? "s" : ""} with ≥3 spare effort units — good absorption slots for displaced pieces</p>
+                              <div className="flex flex-wrap gap-1">
+                                {underloadedWks.map((w) => (
+                                  <span key={w.week} className="text-[7.5px] font-semibold px-1.5 py-0.5 rounded-full border bg-emerald-100 text-emerald-700 border-emerald-200">
+                                    Week {w.week} (+{w.spareCap} spare)
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* All-clear */}
+                        {crunchWks.length === 0 && overflowWks.length === 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-[9px] shrink-0">✅</span>
+                            <p className="text-[8px] text-emerald-800 leading-snug font-semibold">
+                              No crunch or overflow weeks detected — every week's production load sits within sustainable range for a 2-3 person content team. The calendar can be executed at full quality without requiring contractor surge capacity or emergency reprioritisation.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Angle Differentiation Scorer ─────────────────────────── */}
                 {calendar.length > 0 && (() => {
