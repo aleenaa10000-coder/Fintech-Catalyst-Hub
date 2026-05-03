@@ -1696,6 +1696,75 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Source Credibility Signal Scanner ───────────────────────────────────────
+// Detects evidence-quality markers in each entry and scores E-E-A-T signal strength
+
+const CRED_PRIMARY_SIGNALS = [
+  "proprietary data","our research","we found","we surveyed","primary research",
+  "original data","first-hand","case study","our client","we interviewed",
+  "exclusive data","commissioned research","our survey","our analysis","our study",
+  "new data from","new research","we analysed","in-house research","internally",
+];
+
+const CRED_SECONDARY_SIGNALS = [
+  "according to","published by","research by","report by","data from",
+  "fca report","ecb report","bis report","world bank","imf report",
+  "mckinsey","gartner","forrester","deloitte","pwc","kpmg","ey report",
+  "federal reserve","bank of england","european commission","eba report",
+  "cited in","as reported by","per the","source:","referenced in","new report",
+];
+
+const CRED_EXPERT_SIGNALS = [
+  "cto of","cfo of","ceo of","head of","director of","founder of",
+  "partner at","analyst at","vp of","managing director","chief ",
+  "in conversation with","practitioner","veteran","former regulator",
+  "industry veteran","leading expert","authority on","specialist in",
+];
+
+const CRED_VAGUE_SIGNALS = [
+  "industry experts say","many believe","widely thought","some argue",
+  "it is said","reportedly","apparently","anecdotally","sources say",
+  "insiders say","it is understood","observers note","pundits say",
+  "generally accepted","common wisdom","everyone knows","it's no secret",
+  "industry consensus","market participants say","analysts suggest","thought to",
+];
+
+type CredTier = "high" | "moderate" | "thin" | "risk";
+
+interface CredResult {
+  primaryHits:   number;
+  secondaryHits: number;
+  expertHits:    number;
+  vagueHits:     number;
+  score:         number;
+  tier:          CredTier;
+}
+
+function scoreCredibility(topic: string, angle: string): CredResult {
+  const hay = `${topic} ${angle}`.toLowerCase();
+
+  const primaryHits   = CRED_PRIMARY_SIGNALS.filter((s)   => hay.includes(s)).length;
+  const secondaryHits = CRED_SECONDARY_SIGNALS.filter((s) => hay.includes(s)).length;
+  const expertHits    = CRED_EXPERT_SIGNALS.filter((s)    => hay.includes(s)).length;
+  const vagueHits     = CRED_VAGUE_SIGNALS.filter((s)     => hay.includes(s)).length;
+
+  const score = Math.max(0, Math.min(100,
+    30
+    + Math.min(40, primaryHits   * 15)
+    + Math.min(25, secondaryHits *  8)
+    + Math.min(15, expertHits    *  5)
+    - Math.min(40, vagueHits     * 12)
+  ));
+
+  const tier: CredTier =
+    score >= 70 ? "high"     :
+    score >= 50 ? "moderate" :
+    score >= 30 ? "thin"     :
+                  "risk";
+
+  return { primaryHits, secondaryHits, expertHits, vagueHits, score, tier };
+}
+
 // ─── Content Cluster Cohesion Analyser ───────────────────────────────────────
 // Groups entries by topic, measures pillar depth, format mix, and angle variety
 
@@ -7521,6 +7590,217 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Source Credibility Signal Scanner ────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar.map((e) => ({ entry: e, cred: scoreCredibility(e.topic, e.angle) }));
+                  const n = scored.length;
+
+                  const byTier = (t: CredTier) => scored.filter((s) => s.cred.tier === t);
+                  const highC    = byTier("high");
+                  const modC     = byTier("moderate");
+                  const thinC    = byTier("thin");
+                  const riskC    = byTier("risk");
+
+                  const highRate    = n > 0 ? highC.length    / n : 0;
+                  const vagueCount  = scored.filter((s) => s.cred.vagueHits > 0).length;
+                  const vagueRate   = n > 0 ? vagueCount / n : 0;
+                  const primaryCount = scored.filter((s) => s.cred.primaryHits > 0).length;
+                  const primaryRate  = n > 0 ? primaryCount / n : 0;
+                  const avgScore     = n > 0 ? scored.reduce((s, e) => s + e.cred.score, 0) / n : 0;
+
+                  // ── Portfolio Source Credibility Score (0-100) ─────────────
+                  const highPScore    = Math.round(Math.min(1, highRate    / 0.35) * 40);
+                  const primaryPScore = Math.round(Math.min(1, primaryRate / 0.20) * 25);
+                  const vaguePScore   = Math.round((1 - Math.min(1, vagueRate / 0.30)) * 25);
+                  const avgPScore     = Math.round(Math.min(1, avgScore / 60) * 10);
+                  const credScore     = highPScore + primaryPScore + vaguePScore + avgPScore;
+
+                  const credCfg =
+                    credScore >= 75 ? { label: "Strong E-E-A-T signal — evidence-backed portfolio",    color: "text-teal-700",   bg: "bg-teal-50",   border: "border-teal-100"   } :
+                    credScore >= 50 ? { label: "Moderate credibility — sourcing gaps present",          color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100"   } :
+                    credScore >= 25 ? { label: "Thin evidence — generic assertions dominate",           color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100"  } :
+                                      { label: "Credibility risk — vague claims undermine authority",   color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100"   };
+
+                  const TIER_CFG: Record<CredTier, { label: string; icon: string; color: string; bg: string; border: string; bar: string; pill: string; desc: string }> = {
+                    high:     { label: "High credibility",     icon: "✅", color: "text-teal-700",   bg: "bg-teal-50",   border: "border-teal-100",   bar: "bg-teal-400",   pill: "bg-teal-100 text-teal-700 border-teal-200",    desc: "Strong E-E-A-T signals: proprietary data, named experts, or verified third-party citations. Google quality raters will treat this as authoritative content." },
+                    moderate: { label: "Moderate credibility", icon: "🟡", color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100",   bar: "bg-blue-400",   pill: "bg-blue-100 text-blue-700 border-blue-200",    desc: "Some credibility markers present. Would benefit from upgrading at least one source type: add proprietary data, a named practitioner quote, or a verified external citation." },
+                    thin:     { label: "Thin evidence",        icon: "🟠", color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100",  bar: "bg-amber-400",  pill: "bg-amber-100 text-amber-700 border-amber-200",  desc: "No strong sourcing markers detected. The piece relies on the angle alone to convey authority. A single named citation or data point would materially improve E-E-A-T scoring." },
+                    risk:     { label: "Credibility risk",     icon: "🔴", color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100",   bar: "bg-rose-400",   pill: "bg-rose-100 text-rose-700 border-rose-200",    desc: "Vague/hedged language detected ('industry experts say', 'many believe') with no countervailing evidence markers. This pattern actively signals low quality to Google's quality raters." },
+                  };
+
+                  const TIERS: CredTier[] = ["high","moderate","thin","risk"];
+                  const tierCounts: Record<CredTier, number> = { high: highC.length, moderate: modC.length, thin: thinC.length, risk: riskC.length };
+
+                  return (
+                    <Card className="border border-teal-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📜</span>
+                            <p className="text-xs font-semibold text-slate-700">Source Credibility Signal Scanner</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${credCfg.color} ${credCfg.bg} ${credCfg.border}`}>
+                            {credScore}/100 · {credCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Detects evidence-quality markers in each entry's angle — proprietary data and original research (strongest E-E-A-T signal), named third-party citations from regulators and analysts, named practitioner expert quotes, and vague/hedged language ("industry experts say", "many believe") that actively undermines credibility with Google quality raters. Scores whether the portfolio has enough evidence-backed content to build genuine E-E-A-T authority or whether it relies on unverifiable assertions that are penalised by Google's helpful content guidelines.
+                        </p>
+
+                        {/* Portfolio score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${credCfg.bg} ${credCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${credCfg.color}`}>{credScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "High-cred rate",    val: highPScore,    max: 40, desc: `${highC.length}/${n} entries score ≥70 — target ≥35% high-credibility; avg score ${avgScore.toFixed(0)}/100` },
+                              { label: "Primary evidence",  val: primaryPScore, max: 25, desc: `${primaryCount}/${n} entries reference proprietary/original research — target ≥20%`                            },
+                              { label: "Vague-claim-free",  val: vaguePScore,   max: 25, desc: `${vagueCount} entries carry vague/hedged language — each actively undermines E-E-A-T signals`                 },
+                              { label: "Avg credibility",   val: avgPScore,     max: 10, desc: `portfolio average credibility score ${avgScore.toFixed(0)}/100 — target ≥60`                                   },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${credCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Distribution bar + chips */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Credibility tier distribution:</p>
+                        <div className="flex h-5 w-full rounded-lg overflow-hidden mb-1.5">
+                          {TIERS.map((t) => {
+                            const pct = n > 0 ? Math.round((tierCounts[t] / n) * 100) : 0;
+                            return pct > 0 ? (
+                              <div key={t} className={`flex items-center justify-center text-[6.5px] font-bold text-white ${TIER_CFG[t].bar}`} style={{ width: `${pct}%` }} title={`${TIER_CFG[t].label}: ${tierCounts[t]} entries`}>
+                                {pct >= 8 ? `${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5 mb-4">
+                          {TIERS.map((t) => {
+                            const cfg = TIER_CFG[t];
+                            return (
+                              <div key={t} className={`rounded-lg border px-2 py-1.5 text-center ${cfg.bg} ${cfg.border}`}>
+                                <p className="text-[6.5px] text-slate-400 mb-0.5">{cfg.icon} {cfg.label}</p>
+                                <p className={`text-[12px] font-black leading-none ${cfg.color}`}>{tierCounts[t]}</p>
+                                <p className="text-[6px] text-slate-400 mt-0.5">entries</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* E-E-A-T context panel */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">🏛️</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">Why E-E-A-T signals determine fintech content rankings:</span> Google's quality rater guidelines explicitly evaluate Experience, Expertise, Authoritativeness, and Trustworthiness for YMYL (Your Money/Your Life) topics — and all fintech content is classified as YMYL. Quality raters are trained to downgrade pages that make unverifiable claims without evidence, use vague attribution ("industry experts suggest"), or lack demonstrable first-hand experience. <span className="font-bold">Content with proprietary data, named expert citations, and verifiable third-party sources consistently outperforms topic-equivalent content without these markers</span> in competitive fintech keyword sets — not because of keyword optimisation, but because the evidence signals are a direct input into quality assessment.
+                          </p>
+                        </div>
+
+                        {/* Vague/hedged entries warning */}
+                        {riskC.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-rose-50 border border-rose-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🔴</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1">{riskC.length} credibility-risk piece{riskC.length !== 1 ? "s" : ""} — vague assertions with no evidence markers</p>
+                              <div className="flex flex-wrap gap-1 mb-1.5">
+                                {riskC.map(({ entry: e }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>{e.angle.slice(0,24)}{e.angle.length > 24 ? "…" : ""}</span>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-rose-700 leading-snug">These entries carry vague hedging signals ("industry experts say", "many believe", "it is widely thought") with no countervailing primary or secondary evidence markers. For YMYL fintech content, this pattern signals low quality to Google's automated systems and quality raters — upgrade each with a specific named source, a data point from a named report, or a verifiable case study reference before publication.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Thin evidence entries — the most common failure mode */}
+                        {thinC.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🟠</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{thinC.length} thin-evidence piece{thinC.length !== 1 ? "s" : ""} — no sourcing markers detected</p>
+                              <p className="text-[7.5px] text-amber-700 leading-snug">Thin-evidence pieces rely on the angle's framing alone to convey authority. A single concrete addition — "according to [FCA/ECB/BIS] data", "our client achieved", or "[named person], CTO of [company], explains" — elevates the brief from generic to verifiably authoritative. These additions take minutes in the angle-writing phase but materially change how the content is positioned for both writers and quality evaluators.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* High credibility callout */}
+                        {highC.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-teal-50 border border-teal-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">✅</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-teal-800 mb-1">{highC.length} high-credibility anchor piece{highC.length !== 1 ? "s" : ""} — strong E-E-A-T signals</p>
+                              <div className="flex flex-wrap gap-1">
+                                {highC.map(({ entry: e, cred }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[14rem] ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,26)}{e.angle.length > 26 ? "…" : ""} <span className="opacity-60">({cred.score}pts)</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Per-entry credibility table sorted by score descending */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — credibility score:</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Score</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-24">Tier</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-6" title="Primary evidence hits">🔬</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-6" title="Secondary citation hits">📑</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-6" title="Expert signal hits">👤</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-6" title="Vague/hedged hits">⚠️</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...scored].sort((a, b) => b.cred.score - a.cred.score).map(({ entry: e, cred }) => {
+                                const cfg = TIER_CFG[cred.tier];
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,26)}{e.angle.length > 26 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <div className="flex items-center gap-1">
+                                        <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${cred.score}%` }} />
+                                        </div>
+                                        <span className={`tabular-nums font-black shrink-0 text-[6.5px] ${cfg.color}`}>{cred.score}</span>
+                                      </div>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${cfg.pill}`}>{cfg.icon} {cfg.label}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-0.5"><span className={`text-[6.5px] ${cred.primaryHits   === 0 ? "text-slate-300" : "text-teal-600 font-bold"}`}>{cred.primaryHits}</span></td>
+                                    <td className="text-center py-0.5 px-0.5"><span className={`text-[6.5px] ${cred.secondaryHits === 0 ? "text-slate-300" : "text-blue-600 font-bold"}`}>{cred.secondaryHits}</span></td>
+                                    <td className="text-center py-0.5 px-0.5"><span className={`text-[6.5px] ${cred.expertHits    === 0 ? "text-slate-300" : "text-purple-600 font-bold"}`}>{cred.expertHits}</span></td>
+                                    <td className="text-center py-0.5 px-0.5"><span className={`text-[6.5px] ${cred.vagueHits     === 0 ? "text-slate-300" : "text-rose-600 font-bold"}`}>{cred.vagueHits}</span></td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <p className="text-[7px] text-slate-400 mt-1">🔬 Primary evidence · 📑 Secondary citations · 👤 Named expert · ⚠️ Vague/hedged (deducts score) · All fintech content is YMYL — E-E-A-T signals are a direct quality input</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Cluster Cohesion Analyser ────────────────────── */}
                 {calendar.length > 0 && (() => {
