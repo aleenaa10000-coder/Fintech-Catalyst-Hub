@@ -3584,78 +3584,6 @@ function scoreLongevity(topic: string, angle: string): LongevityResult {
   return { evergreenHits, slowHits, fastHits, ephemeralHits, score, tier, shelfLife };
 }
 
-// ─── Persona Targeting Density Mapper ────────────────────────────────────────
-// Detects which fintech B2B buying-committee personas each entry targets
-
-const PERSONA_SIGNALS: Record<PersonaKey, string[]> = {
-  compliance: [
-    "compliance","risk officer","ciso","chief risk","regulatory","audit trail",
-    "gdpr","dora","psd2","aml","kyc","fca","eba","data privacy","data protection",
-    "operational risk","credit risk","fraud","anti-money laundering","sanctions",
-    "srep","pillar 2","crd","crr","stress test","regulatory capital","oversight",
-  ],
-  cto: [
-    "cto","chief technology","engineering","architect","developer","api ",
-    "api integration","scalability","infrastructure","cloud","microservices",
-    "latency","throughput","devops","deployment","migration","security review",
-    "open source","sdk","webhook","data pipeline","data engineering","platform",
-  ],
-  cfo: [
-    "cfo","chief financial","finance director","roi","return on investment",
-    "cost reduction","cost savings","payback","total cost of ownership","tco",
-    "financial risk","budget","p&l","revenue impact","treasury","controller",
-    "cash flow","working capital","cost per","unit economics","margin","spend",
-  ],
-  product: [
-    "product manager","product director","head of product","chief product",
-    "innovation","customer experience","cx","user experience","ux",
-    "time to market","feature","roadmap","mvp","agile","product strategy",
-    "competitive differentiation","market fit","adoption rate","onboarding",
-    "conversion rate","retention","net promoter","nps","customer journey",
-  ],
-  operations: [
-    "coo","chief operating","operations team","operational","workflow",
-    "automation","process efficiency","productivity","sla ","throughput",
-    "headcount","back office","middle office","straight-through","stp",
-    "reconciliation","settlement","exception management","manual process",
-    "operational overhead","cost per transaction","resource planning",
-  ],
-  ceo: [
-    "ceo","chief executive","board","chairman","strategic","growth strategy",
-    "market share","transformation","m&a","acquisition","ipo","valuation",
-    "competitive advantage","industry leadership","investor","shareholder",
-    "corporate strategy","market positioning","category leadership",
-  ],
-};
-
-const PERSONA_CFG: Record<PersonaKey, { label: string; icon: string; color: string; bg: string; border: string; bar: string; pill: string; role: string; threshold: number }> = {
-  compliance:  { label: "Compliance/Risk", icon: "🔒", color: "text-slate-700",   bg: "bg-slate-50",   border: "border-slate-200",   bar: "bg-slate-500",   pill: "bg-slate-100 text-slate-700 border-slate-200",     role: "CRO, CISO, Compliance Director — controls regulatory approval and is the most common deal-blocker in fintech enterprise sales; rarely targeted despite being a veto-holder", threshold: 20 },
-  cto:         { label: "CTO/Engineering", icon: "⚙️", color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100",   bar: "bg-blue-400",   pill: "bg-blue-100 text-blue-700 border-blue-200",       role: "CTO, VP Engineering, Solutions Architect — controls the technical evaluation, integration complexity assessment, and build-vs-buy decision for all technology purchases",    threshold: 20 },
-  cfo:         { label: "CFO/Finance",     icon: "💰", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", bar: "bg-emerald-400", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", role: "CFO, Finance Director, Treasury — controls the budget sign-off and demands a credible ROI case, payback period, and TCO analysis before approving any significant spend",  threshold: 15 },
-  product:     { label: "Product/CPO",     icon: "🎨", color: "text-purple-700",  bg: "bg-purple-50",  border: "border-purple-100",  bar: "bg-purple-400",  pill: "bg-purple-100 text-purple-700 border-purple-200",  role: "CPO, Product Director, Head of Innovation — drives the internal business case for fintech investment and is the primary day-to-day buyer champion who builds the shortlist", threshold: 15 },
-  operations:  { label: "Operations/COO",  icon: "⚡", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   bar: "bg-amber-400",   pill: "bg-amber-100 text-amber-700 border-amber-200",     role: "COO, Head of Operations — primary beneficiary of automation and STP improvements; heavily influences vendor selection for operational tooling but is chronically under-served by fintech content", threshold: 10 },
-  ceo:         { label: "CEO/Board",        icon: "🏛️", color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100",   bar: "bg-rose-400",   pill: "bg-rose-100 text-rose-700 border-rose-200",       role: "CEO, Board Members, Investors — strategic buyers who approve transformational spend; need market narrative and competitive positioning content rather than product feature detail",  threshold: 7  },
-};
-
-const PERSONA_FILL_TIPS: Record<PersonaKey, { formats: string; examples: string[] }> = {
-  compliance:  { formats: "Regulatory checklists, enforcement action analyses, audit guides, risk framework posts, regulatory update roundups",   examples: ["What [regulation] means for [institution type] — a practical compliance checklist", "How [financial institution type] is preparing for [regulatory deadline]: a step-by-step guide", "The [regulation] enforcement tracker: what [sector] compliance teams need to act on now"]            },
-  cto:         { formats: "Technical deep-dives, API evaluation guides, architecture case studies, security and scalability reviews, migration posts", examples: ["The architecture of [solution] at scale: a technical deep-dive for engineering teams", "API-first [category]: the technical evaluation criteria that engineering teams miss", "How [company type] migrated from [legacy system] to [modern platform] without downtime"]            },
-  cfo:         { formats: "ROI frameworks, TCO analyses, cost-benefit comparisons, CFO-ready business case templates, payback models",             examples: ["The CFO's guide to evaluating [solution]: ROI, TCO, and payback period in plain language", "How to build the business case for [investment]: a framework for finance leaders", "The real cost of [manual process]: why automation delivers payback within [timeframe]"]               },
-  product:     { formats: "Innovation roundups, competitive landscape analyses, UX case studies, product strategy frameworks, CX benchmarks",      examples: ["How [company] reduced customer onboarding time by [X]% using [approach]: a product case study", "The product manager's guide to [fintech category]: what to build vs buy in [year]", "Customer experience benchmarks in [fintech segment]: what top-performing product teams do differently"] },
-  operations:  { formats: "Process automation guides, STP analyses, operational efficiency case studies, reconciliation optimisation posts",        examples: ["How [institution type] achieved [X]% straight-through processing in [process]: a step-by-step account", "The operations leader's guide to automating [manual process]: what works, what doesn't", "Headcount vs automation in [back-office operation]: the real trade-off for COOs"]                   },
-  ceo:         { formats: "Market positioning pieces, category narrative posts, competitive landscape views, transformation case studies",          examples: ["The competitive landscape of [fintech category] in [year]: who wins and why", "How [company type] is using [approach] to gain durable competitive advantage in [market]", "The [category] market in [year]: where value is moving and what it means for strategic buyers"]          },
-};
-
-function detectPersonas(topic: string, angle: string): Partial<Record<PersonaKey, number>> {
-  const hay = `${topic} ${angle}`.toLowerCase();
-  const result: Partial<Record<PersonaKey, number>> = {};
-  (["compliance","cto","cfo","product","operations","ceo"] as PersonaKey[]).forEach((p) => {
-    const hits = PERSONA_SIGNALS[p].filter((s) => hay.includes(s)).length;
-    if (hits > 0) result[p] = hits;
-  });
-  return result;
-}
-
 // ─── Buyer Journey Stage Mapper ──────────────────────────────────────────────
 // Classifies each entry by which B2B buyer stage it targets and scores funnel balance
 
@@ -3757,16 +3685,6 @@ const DIFF_SPECIFICITY_SIGNALS = [
   "fiserv","finastra","mambu","thought machine"," cfo"," cto"," ciso","treasury team",
   "compliance officer","risk officer","q1 ","q2 ","q3 ","q4 ","2024","2025","2026",
   "basis points"," bps"," percent"," % ","per month","per year","annually",
-];
-
-const DIFF_CONTRARIAN_SIGNALS = [
-  "the case against","why it fails","the failure of","the problem with","the flaw in",
-  "stop claiming","stop saying","despite the hype","contrary to","against the grain",
-  "the myth of","overrated","misunderstood","overlooked","what most miss","rethinking",
-  "the real reason","in reality","the truth about","the real cost","the real risk",
-  "the hidden cost","the hidden risk","the dark side","the downside","the catch",
-  "think again","wrong about","mistakes made","pushback on","reconsidering",
-  "the inconvenient","not as simple","not as easy","harder than","more complex than",
 ];
 
 const DIFF_INSIDER_SIGNALS = [
@@ -4273,12 +4191,7 @@ function scoreChannelFit(e: { type: ContentType; topic: string; angle: string })
 // ─── Source Credibility Mapper ───────────────────────────────────────────────
 // Signals that drive high evidence demand — the piece MUST cite authoritative sources
 const CRED_REGULATORY_SIGNALS  = ["psd2","gdpr","aml","kyc","mifid","dora","mica","basel","fca","cfpb","eba","dodd-frank","fatca","fintrac","regulation","compliance","directive","legislative","mandatory","obligat","legal requirement","enforcement","sanction","penalty"];
-const CRED_STAT_CLAIM_SIGNALS  = ["statistics show","data shows","research shows","study found","according to","survey found","report found","% of companies","% of banks","percent of","market size","adoption rate","growth rate","by 2025","by 2026","by 2027","by 2030","projected to","estimated at","valued at","cagr"];
-const CRED_MARKET_CLAIM_SIGNALS= ["valuation","series a","series b","series c","funding round","investment raised","market cap","deal flow","ipo","unicorn status","market share","revenue grew","profit margin","unit economics breakdown","cost per acquisition"];
-const CRED_EXPERT_SIGNALS      = ["should consider","experts argue","analysts predict","industry experts","practitioners warn","executives say","cto of","cfo of","ceo of","head of","vp of","according to analysts","research by","whitepaper","advisory board","peer reviewed"];
 // Signals that REDUCE evidence demand — piece can rely on author authority or established practice
-const CRED_LOWBAR_SIGNALS      = ["how to","step-by-step","best practices","checklist","template","what is","explained simply","beginner","introduction to","basics of","overview of","fundamentals of","quick guide","tips for"];
-const CRED_PERSPECTIVE_SIGNALS = ["opinion","my view","hot take","unpopular","commentary","our experience","what we learned","lessons from building","in my opinion","from the trenches","practitioner perspective","we believe","we think"];
 
 type SourceType = "regulatory" | "primary-data" | "expert-testimony" | "industry-report" | "author-perspective" | "mixed";
 
@@ -4291,48 +4204,6 @@ interface CredibilityEntry {
   marketScore:      number;
   expertScore:      number;
   perspectiveBonus: number;   // negative contribution to demand
-}
-
-function scoreCredibility(e: { type: ContentType; topic: string; angle: string }): CredibilityEntry {
-  const hay = `${e.topic} ${e.angle}`.toLowerCase();
-
-  const regScore     = Math.min(40, CRED_REGULATORY_SIGNALS.filter((s) => hay.includes(s)).length * 10);
-  const statScore    = Math.min(30, CRED_STAT_CLAIM_SIGNALS.filter((s) => hay.includes(s)).length * 12);
-  const marketScore  = Math.min(25, CRED_MARKET_CLAIM_SIGNALS.filter((s) => hay.includes(s)).length * 10);
-  const expertScore  = Math.min(20, CRED_EXPERT_SIGNALS.filter((s) => hay.includes(s)).length * 8);
-  const lowbarHits   = CRED_LOWBAR_SIGNALS.filter((s) => hay.includes(s)).length;
-  const perspHits    = CRED_PERSPECTIVE_SIGNALS.filter((s) => hay.includes(s)).length;
-  const perspectiveBonus = Math.min(25, (lowbarHits * 6) + (perspHits * 9));
-
-  // Content-type base adjustment
-  const typeAdj =
-    e.type === "case-study" ? 10 :   // client data, verifiable outcomes
-    e.type === "linkedin"   ? -15 :  // personal voice acceptable
-    e.type === "roundup"    ? 5  :   // curation requires attributed sources
-    0;
-
-  const raw           = regScore + statScore + marketScore + expertScore - perspectiveBonus + typeAdj;
-  const evidenceDemand = Math.max(0, Math.min(100, raw));
-
-  // Dominant source type (highest score wins)
-  const scores: [SourceType, number][] = [
-    ["regulatory",        regScore],
-    ["primary-data",      statScore],
-    ["industry-report",   marketScore],
-    ["expert-testimony",  expertScore],
-    ["author-perspective",perspectiveBonus],
-  ];
-  const sorted = scores.sort(([, a], [, b]) => b - a);
-  const sourceType: SourceType =
-    sorted[0][1] === 0             ? "author-perspective" :
-    sorted[0][1] > 0 && sorted[1][1] > sorted[0][1] * 0.6 ? "mixed" :
-    sorted[0][0];
-
-  const obtainDifficulty: CredibilityEntry["obtainDifficulty"] =
-    evidenceDemand >= 55 ? "demanding" :
-    evidenceDemand >= 25 ? "moderate"  : "straightforward";
-
-  return { evidenceDemand, sourceType, obtainDifficulty, regScore, statScore, marketScore, expertScore, perspectiveBonus };
 }
 
 // ─── Editorial Momentum Tracker ──────────────────────────────────────────────
@@ -5004,17 +4875,6 @@ const INTENT_DEFS: IntentDef[] = [
   },
 ];
 
-function detectIntent(topic: string, angle: string): IntentDef {
-  const hay = `${topic} ${angle}`.toLowerCase();
-  let best: IntentDef = INTENT_DEFS[0]; // default: informational
-  let bestScore = 0;
-  for (const def of INTENT_DEFS) {
-    const score = def.signals.filter((s) => hay.includes(s)).length;
-    if (score > bestScore) { bestScore = score; best = def; }
-  }
-  return best;
-}
-
 // ─── Persona-to-Content Mapping Matrix ───────────────────────────────────────
 interface PersonaDef {
   id:      string;
@@ -5034,17 +4894,6 @@ const PERSONA_DEFS: PersonaDef[] = [
   { id: "ops",        name: "Operations / COO",              emoji: "⚙️",  signals: ["operations","efficiency","automation","process","workflow","throughput","headcount","reconciliation","settlement","back office","straight-through processing","stp","operational risk","vendor management","coo","operations director"],           color: "bg-teal-100 text-teal-700 border-teal-200",    tip: "COOs focus on process efficiency and error rates. Format-fit: step-by-step playbooks, before/after workflow diagrams, and vendor evaluation scorecards." },
   { id: "data",       name: "Risk / Data Analyst",           emoji: "📊",  signals: ["data","analytics","metrics","dashboard","reporting","kpi","model","algorithm","machine learning","ai","fraud detection","credit scoring","risk model","portfolio","data science","analyst","insight","benchmark","dataset"],                    color: "bg-indigo-100 text-indigo-700 border-indigo-200",tip: "Analysts share data-rich content — original research, interactive tools, and methodology explainers. Methodology transparency builds trust faster than conclusions alone." },
 ];
-
-function detectPersona(topic: string, angle: string): PersonaDef {
-  const hay = `${topic} ${angle}`.toLowerCase();
-  let best: PersonaDef | null = null;
-  let bestScore = 0;
-  for (const p of PERSONA_DEFS) {
-    const score = p.signals.filter((s) => hay.includes(s)).length;
-    if (score > bestScore) { bestScore = score; best = p; }
-  }
-  return best ?? { id: "general", name: "General Audience", emoji: "👥", signals: [], color: "bg-slate-100 text-slate-600 border-slate-200", tip: "Broad audience content builds top-of-funnel awareness but rarely converts. Consider adding a persona signal to sharpen targeting." };
-}
 
 // ─── Competitor Content Gap Detector ─────────────────────────────────────────
 interface GapTopic {
