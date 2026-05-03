@@ -1696,6 +1696,74 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Reader Trust Signal Auditor ─────────────────────────────────────────────
+// Signals that build credibility with risk-averse fintech buyers
+const TRUST_DATA_SIGNALS      = ["% ","percent","billion","million","trillion","basis points"," bps","cagr","yoy","year-on-year","survey of","respondents","times faster","reduction of","increase of","growth rate","adoption rate","market share","study of","data shows","figures show","according to data","median","average of"];
+const TRUST_EXPERT_SIGNALS    = ["according to","forrester","gartner","mckinsey","deloitte","pwc","ey report","kpmg","accenture","bain","oliver wyman","bank of england","ecb","bis report","world bank","imf","swift","fca guidance","eba","fdic","federal reserve","bcg","idc","capgemini","juniper research","celent","aite","javelin"];
+const TRUST_EVIDENCE_SIGNALS  = ["case study","achieved","reduced by","increased by","saved","roi","return on investment","proven","measurable result","outcome","demonstrated","real-world","customer story","client","live in production","deployed","in production","working example","in the field","within months","within weeks"];
+const TRUST_REGULATORY_SIGNALS= ["regulation","directive","compliance","framework","standard","requirement","guidance","legislation","act ","rule ","mandate","statutory","prescribed","psd2","psd3","gdpr","dora","mifid","aml","kyc","basel","srep","pillar 2","crd","crr","consumer duty","fca","eba","iso 20022"];
+const TRUST_HEDGING_SIGNALS   = [" can "," may "," typically "," in many cases"," depending on"," varies"," often "," generally "," for most"," tends to"," in our experience"," in practice"," usually "," where applicable"," in some"," subject to"];
+// Bold superlatives that undermine credibility with informed fintech buyers
+const TRUST_BOLD_PENALTIES    = ["best in class","only solution","unique solution","revolutionary","game-changing","disruptive technology","unprecedented","industry-leading platform","world-class","cutting-edge","state-of-the-art","most advanced","transformative solution","next-generation platform","future-proof","silver bullet","one-stop"];
+
+type TrustTier = "highly-credible" | "credible" | "thin-signals" | "claims-heavy";
+
+interface TrustEntry {
+  dataHits:        number;
+  expertHits:      number;
+  evidenceHits:    number;
+  regulatoryHits:  number;
+  hedgingHits:     number;
+  boldPenalties:   number;
+  dataScore:       number;   // 0-25
+  expertScore:     number;   // 0-20
+  evidenceScore:   number;   // 0-25
+  regulatoryScore: number;   // 0-15
+  hedgingScore:    number;   // 0-15
+  penalty:         number;
+  trustScore:      number;   // 0-100
+  tier:            TrustTier;
+  weakestDim:      string;   // highest-impact missing dimension label
+}
+
+function scoreTrust(topic: string, angle: string): TrustEntry {
+  const hay = `${topic} ${angle}`.toLowerCase();
+
+  const dataHits        = TRUST_DATA_SIGNALS.filter((s)       => hay.includes(s)).length;
+  const expertHits      = TRUST_EXPERT_SIGNALS.filter((s)     => hay.includes(s)).length;
+  const evidenceHits    = TRUST_EVIDENCE_SIGNALS.filter((s)   => hay.includes(s)).length;
+  const regulatoryHits  = TRUST_REGULATORY_SIGNALS.filter((s) => hay.includes(s)).length;
+  const hedgingHits     = TRUST_HEDGING_SIGNALS.filter((s)    => hay.includes(s)).length;
+  const boldPenalties   = TRUST_BOLD_PENALTIES.filter((s)     => hay.includes(s)).length;
+
+  const dataScore        = Math.min(25, dataHits       * 9);
+  const expertScore      = Math.min(20, expertHits     * 8);
+  const evidenceScore    = Math.min(25, evidenceHits   * 9);
+  const regulatoryScore  = Math.min(15, regulatoryHits * 6);
+  const hedgingScore     = Math.min(15, hedgingHits    * 6);
+  const penalty          = boldPenalties * 7;
+
+  const trustScore = Math.max(0, dataScore + expertScore + evidenceScore + regulatoryScore + hedgingScore - penalty);
+
+  const tier: TrustTier =
+    trustScore >= 70 ? "highly-credible" :
+    trustScore >= 50 ? "credible"        :
+    trustScore >= 25 ? "thin-signals"    :
+                       "claims-heavy";
+
+  // Identify the highest-impact missing dimension for targeted advice
+  const dims = [
+    { label: "data citation",     score: dataScore,       max: 25 },
+    { label: "evidence/proof",    score: evidenceScore,   max: 25 },
+    { label: "expert attribution",score: expertScore,     max: 20 },
+    { label: "regulatory anchor", score: regulatoryScore, max: 15 },
+    { label: "hedging language",  score: hedgingScore,    max: 15 },
+  ].sort((a, b) => (a.score / a.max) - (b.score / b.max));
+  const weakestDim = dims[0].label;
+
+  return { dataHits, expertHits, evidenceHits, regulatoryHits, hedgingHits, boldPenalties, dataScore, expertScore, evidenceScore, regulatoryScore, hedgingScore, penalty, trustScore, tier, weakestDim };
+}
+
 // ─── Seasonal Relevance Mapper ────────────────────────────────────────────────
 interface SeasonalEvent {
   id:         string;
@@ -6961,6 +7029,268 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Reader Trust Signal Auditor ──────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar.map((e) => ({ entry: e, trust: scoreTrust(e.topic, e.angle) }));
+                  const n = scored.length;
+
+                  // Tier groups
+                  const byTier = (t: TrustTier) => scored.filter((s) => s.trust.tier === t);
+                  const highlyCredible = byTier("highly-credible");
+                  const credible       = byTier("credible");
+                  const thinSignals    = byTier("thin-signals");
+                  const claimsHeavy   = byTier("claims-heavy");
+                  const penalised      = scored.filter((s) => s.trust.boldPenalties > 0);
+
+                  // ── Portfolio Reader Trust Score (0-100) ───────────────────
+                  const avgTrust      = n > 0 ? scored.reduce((s, e) => s + e.trust.trustScore, 0) / n : 0;
+                  const avgTrustScore = Math.round((avgTrust / 100) * 60);
+
+                  const highTrustCount = scored.filter((s) => s.trust.trustScore >= 60).length;
+                  const highTrustScore = n > 0 ? Math.round((highTrustCount / n) * 25) : 25;
+
+                  const claimFreeCount = scored.filter((s) => s.trust.boldPenalties === 0).length;
+                  const claimFreeScore = n > 0 ? Math.round((claimFreeCount / n) * 15) : 15;
+
+                  const portfolioTrustScore = avgTrustScore + highTrustScore + claimFreeScore;
+
+                  const trustCfg =
+                    portfolioTrustScore >= 75 ? { label: "High reader trust profile",       color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    portfolioTrustScore >= 50 ? { label: "Moderate trust signals",          color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    portfolioTrustScore >= 25 ? { label: "Trust deficit — needs grounding", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                                { label: "Claims-heavy, low evidence base", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  const TIER_CFG: Record<TrustTier, { label: string; icon: string; color: string; bg: string; border: string; bar: string; desc: string; fix: string }> = {
+                    "highly-credible": { label: "Highly credible",  icon: "🛡️", color: "text-emerald-700", bg: "bg-emerald-50",  border: "border-emerald-100", bar: "bg-emerald-400", desc: "Strong evidence base with data, expert attribution, or proof — risk-averse fintech buyers will engage",            fix: "Maintain the evidence standard — cross-link to primary data sources to maximise SEO and backlink value" },
+                    "credible":        { label: "Credible",          icon: "✅", color: "text-blue-700",    bg: "bg-blue-50",     border: "border-blue-100",    bar: "bg-blue-400",    desc: "Decent trust signals — readable by informed buyers but not yet maximally persuasive",                          fix: "Add one more data point or institutional citation to move into the highly-credible tier" },
+                    "thin-signals":    { label: "Thin signals",      icon: "⚠️", color: "text-amber-700",  bg: "bg-amber-50",    border: "border-amber-100",   bar: "bg-amber-400",   desc: "Insufficient trust signals — fintech buyers will discount bold assertions without grounding",                 fix: "Add at least one specific statistic (X%) or an institutional reference (Forrester, EBA guidance) to the angle brief" },
+                    "claims-heavy":    { label: "Claims-heavy",      icon: "🚨", color: "text-rose-700",   bg: "bg-rose-50",     border: "border-rose-100",    bar: "bg-rose-400",    desc: "Bold claims without supporting evidence — informed buyers actively distrust this pattern in fintech content", fix: "Rewrite the angle brief to lead with a specific outcome or data point before any evaluative claim — evidence first, conclusion second" },
+                  };
+
+                  const DIM_CFG = [
+                    { key: "dataScore"       as const, label: "Data citations",      max: 25, color: "bg-blue-400",    desc: "Specific numbers, percentages, statistics, metrics" },
+                    { key: "evidenceScore"   as const, label: "Evidence/proof",      max: 25, color: "bg-emerald-400", desc: "Case studies, ROI data, real-world outcomes"        },
+                    { key: "expertScore"     as const, label: "Expert attribution",  max: 20, color: "bg-violet-400",  desc: "Named institutions, research firms, regulators"     },
+                    { key: "regulatoryScore" as const, label: "Regulatory anchor",   max: 15, color: "bg-indigo-400",  desc: "Named regulations, frameworks, compliance standards" },
+                    { key: "hedgingScore"    as const, label: "Hedging language",    max: 15, color: "bg-teal-400",    desc: "Appropriate qualification showing intellectual honesty" },
+                  ] as const;
+
+                  // Weakest dimension across the whole portfolio
+                  const dimTotals = DIM_CFG.map((d) => ({
+                    ...d,
+                    total: scored.reduce((s, e) => s + e.trust[d.key], 0),
+                    possible: n * d.max,
+                  }));
+                  const portfolioWeakest = dimTotals.sort((a, b) => (a.total / a.possible) - (b.total / b.possible))[0];
+
+                  return (
+                    <Card className="border border-zinc-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🛡️</span>
+                            <p className="text-xs font-semibold text-slate-700">Reader Trust Signal Auditor</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${trustCfg.color} ${trustCfg.bg} ${trustCfg.border}`}>
+                            {portfolioTrustScore}/100 · {trustCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Analyses each entry's topic and angle for the presence of five trust-building signal categories — data citations, expert attribution, evidence and proof, regulatory grounding, and appropriate hedging language — and penalises bold superlatives that informed fintech buyers actively distrust. Produces a trust score per entry and a portfolio-level credibility profile, identifying which pieces need evidence reinforcement before publication.
+                        </p>
+
+                        {/* Portfolio Trust Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${trustCfg.bg} ${trustCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${trustCfg.color}`}>{portfolioTrustScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Avg trust score",    val: avgTrustScore,   max: 60, desc: `mean entry score ${avgTrust.toFixed(1)}/100 across all ${n} pieces`                      },
+                              { label: "High-trust rate",    val: highTrustScore,  max: 25, desc: `${highTrustCount}/${n} entries score ≥60/100 (credible or highly credible tier)`         },
+                              { label: "Bold-claim-free",    val: claimFreeScore,  max: 15, desc: `${claimFreeCount}/${n} entries contain zero bold superlative penalties`                   },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${trustCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Tier distribution */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {(["highly-credible","credible","thin-signals","claims-heavy"] as TrustTier[]).map((t) => {
+                            const g = byTier(t); const cfg = TIER_CFG[t];
+                            return (
+                              <div key={t} className={`rounded-lg border px-2 py-1.5 text-center ${cfg.bg} ${cfg.border}`}>
+                                <p className="text-[7px] text-slate-400 mb-0.5">{cfg.label}</p>
+                                <p className={`text-[13px] font-black leading-none ${cfg.color}`}>{g.length}</p>
+                                <p className="text-[6.5px] text-slate-400 mt-0.5">{cfg.icon}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Portfolio weakest dimension callout */}
+                        <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[9px] shrink-0 mt-0.5">📉</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">Portfolio's weakest trust dimension: {portfolioWeakest.label}</span> — across all {n} entries this dimension averages only {n > 0 ? Math.round(portfolioWeakest.total / n) : 0}/{portfolioWeakest.max} pts. {portfolioWeakest.desc}. Briefing all writers to include at least one {portfolioWeakest.label} signal per piece would have the single highest impact on portfolio trust score.
+                          </p>
+                        </div>
+
+                        {/* Per-entry trust score table — lowest trust first */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Entry trust scores — lowest first (most in need of strengthening):</p>
+                        <div className="overflow-x-auto mb-4">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Score</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-20">Tier</th>
+                                {DIM_CFG.map((d) => (
+                                  <th key={d.key} className="text-center text-slate-400 font-normal pb-1 px-0.5 w-8" title={d.desc}>{d.label.split(" ")[0]}</th>
+                                ))}
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-10">Penalty</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...scored].sort((a, b) => a.trust.trustScore - b.trust.trustScore).map(({ entry: e, trust: t }) => {
+                                const cfg = TIER_CFG[t.tier];
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,24)}{e.angle.length > 24 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <div className="flex items-center gap-1">
+                                        <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${t.trustScore}%` }} />
+                                        </div>
+                                        <span className={`tabular-nums font-black shrink-0 ${cfg.color}`}>{t.trustScore}</span>
+                                      </div>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${cfg.bg} ${cfg.color} ${cfg.border}`}>{cfg.icon} {cfg.label}</span>
+                                    </td>
+                                    {DIM_CFG.map((d) => (
+                                      <td key={d.key} className="text-center py-0.5 px-0.5">
+                                        <span className={`tabular-nums font-bold text-[6.5px] ${t[d.key] === 0 ? "text-slate-300" : "text-slate-600"}`}>{t[d.key]}</span>
+                                      </td>
+                                    ))}
+                                    <td className="text-center py-0.5 px-1">
+                                      {t.boldPenalties > 0
+                                        ? <span className="text-[6.5px] font-bold text-rose-600">−{t.penalty}pts</span>
+                                        : <span className="text-[6.5px] text-slate-300">—</span>
+                                      }
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <p className="text-[7px] text-slate-400 mt-1">Columns: Data (0-25) · Evidence (0-25) · Expert (0-20) · Regulatory (0-15) · Hedging (0-15)</p>
+                        </div>
+
+                        {/* Claims-heavy and thin-signal detail cards */}
+                        {(claimsHeavy.length > 0 || thinSignals.length > 0) && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Entries needing trust reinforcement before publication:</p>
+                            <div className="space-y-2 mb-4">
+                              {[...claimsHeavy, ...thinSignals].slice(0,5).map(({ entry: e, trust: t }) => {
+                                const cfg = TIER_CFG[t.tier];
+                                return (
+                                  <div key={entryKey(e)} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                    <div className={`flex items-center justify-between px-3.5 py-2 ${cfg.bg}`}>
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                        <span className={`text-[8.5px] font-bold truncate ${cfg.color}`}>{e.angle}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border tabular-nums ${cfg.bg} ${cfg.color} ${cfg.border}`}>{t.trustScore}/100</span>
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.bg} ${cfg.color} ${cfg.border}`}>{cfg.icon} {cfg.label}</span>
+                                      </div>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                      {/* Dimension bars */}
+                                      <div className="space-y-0.5">
+                                        {DIM_CFG.map((d) => (
+                                          <div key={d.key} className="flex items-center gap-2">
+                                            <span className="text-[6.5px] text-slate-400 w-24 shrink-0">{d.label}</span>
+                                            <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                              <div className={`h-full rounded-full ${d.color}`} style={{ width: `${Math.round((t[d.key]/d.max)*100)}%` }} />
+                                            </div>
+                                            <span className="text-[6.5px] tabular-nums text-slate-400 shrink-0 w-8 text-right">{t[d.key]}/{d.max}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      {/* Bold penalties */}
+                                      {t.boldPenalties > 0 && (
+                                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-rose-50 border border-rose-100">
+                                          <span className="text-[8px] shrink-0">🚨</span>
+                                          <p className="text-[7.5px] text-rose-700 leading-snug font-semibold">{t.boldPenalties} bold superlative{t.boldPenalties !== 1 ? "s" : ""} detected — −{t.penalty} pts total. Remove or replace with a qualified claim backed by evidence.</p>
+                                        </div>
+                                      )}
+                                      {/* Targeted fix */}
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                        <span className="text-[8px] shrink-0">✏️</span>
+                                        <p className="text-[7.5px] text-slate-700 leading-snug">
+                                          <span className="font-bold">Weakest dimension: {t.weakestDim}. </span>{cfg.fix}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Bold claim penalties summary */}
+                        {penalised.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-rose-50 border border-rose-100 mb-3">
+                            <span className="text-[10px] shrink-0 mt-0.5">🚨</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1">{penalised.length} piece{penalised.length !== 1 ? "s" : ""} contain bold superlatives that undermine trust with informed fintech buyers</p>
+                              <div className="flex flex-wrap gap-1 mb-1">
+                                {penalised.map(({ entry: e }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[14rem] ${TYPE_COLOR[e.type]}`}>{e.angle.slice(0,28)}{e.angle.length > 28 ? "…" : ""}</span>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-rose-700 leading-snug">Fintech buyers — especially compliance leads, CTOs, and risk professionals — are trained to distrust superlative marketing language. Every bold claim without evidence erodes the credibility of all other claims in the piece. Replace superlatives with specific, measured outcomes ("reduced onboarding time by 40%" rather than "industry-leading onboarding").</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Highly credible callout */}
+                        {highlyCredible.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-[10px] shrink-0 mt-0.5">🛡️</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-emerald-800 mb-1">{highlyCredible.length} highly credible piece{highlyCredible.length !== 1 ? "s" : ""} — strong evidence base, no bold claim penalties</p>
+                              <div className="flex flex-wrap gap-1">
+                                {highlyCredible.map(({ entry: e, trust: t }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[14rem] ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,28)}{e.angle.length > 28 ? "…" : ""} <span className="opacity-60">({t.trustScore}pts)</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Seasonal Relevance Mapper ────────────────────────────── */}
                 {calendar.length > 0 && (() => {
