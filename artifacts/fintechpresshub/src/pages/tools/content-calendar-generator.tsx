@@ -1696,6 +1696,61 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content Velocity Tracker ────────────────────────────────────────────────
+const BASE_TIME_TO_PEAK: Record<ContentType, number | null> = {
+  "guide":      5,    // months to first meaningful organic traffic
+  "case-study": 3.5,
+  "blog":       5,
+  "roundup":    3,
+  "linkedin":   null, // social-only, no SEO compounding
+};
+
+const CV_HALFLIFE: Record<ContentType, number> = {
+  "guide":      18,
+  "case-study": 12,
+  "blog":       8,
+  "roundup":    4,
+  "linkedin":   1,
+};
+
+// High-competition topic signals → adds 2 months to ranking time
+const CV_HIGH_COMP = ["compliance","regulation","regulatory","crypto","blockchain","payments","banking","insurance","lending","mortgage","investing","trading","tax","aml","kyc","gdpr","pci","basel","fatca","mifid","dodd-frank"];
+// Niche/specialist signals → removes 1 month (less competition, faster indexing)
+const CV_NICHE     = ["embedded finance","open banking","treasury","bnpl","regtech","insurtech","wealthtech","neobank","defi","stablecoin","tokenisation","paytech","suptech","clo","clm","core banking modernisation","ledger","vault","cfo tech"];
+
+type CVTier = "fast" | "standard" | "slow" | "social-only";
+type CVCompetition = "high" | "standard" | "niche";
+
+interface CVEntry {
+  timeToTraffic: number | null;
+  halfLife:      number;
+  mismatch:      boolean;
+  competition:   CVCompetition;
+  tier:          CVTier;
+  publishMonth:  number;
+  peakMonth:     number | null;
+}
+
+function calcVelocity(e: { type: ContentType; topic: string; angle: string; week: number }): CVEntry {
+  const base     = BASE_TIME_TO_PEAK[e.type];
+  const halfLife = CV_HALFLIFE[e.type];
+  const hay      = `${e.topic} ${e.angle}`.toLowerCase();
+  const isHigh   = CV_HIGH_COMP.some((s) => hay.includes(s));
+  const isNiche  = CV_NICHE.some((s) => hay.includes(s));
+  const competition: CVCompetition = isNiche ? "niche" : isHigh ? "high" : "standard";
+  const publishMonth = Math.ceil(e.week / 4.33);
+
+  if (base === null) {
+    return { timeToTraffic: null, halfLife, mismatch: false, competition, tier: "social-only", publishMonth, peakMonth: null };
+  }
+
+  const adjusted   = Math.max(1, base + (isHigh ? 2 : 0) - (isNiche ? 1 : 0));
+  const peakMonth  = publishMonth + adjusted;
+  const mismatch   = adjusted > halfLife;
+  const tier: CVTier = adjusted <= 3 ? "fast" : adjusted <= 6 ? "standard" : "slow";
+  return { timeToTraffic: adjusted, halfLife, mismatch, competition, tier, publishMonth, peakMonth };
+}
+
 // ─── Thought Leadership Index ─────────────────────────────────────────────────
 const TL_POV_SIGNALS       = ["predict","believe","argue","case for","perspective","our view","our take","opinion","we think","position","stance","bold","provocative","thesis","assert","contend","challenge","disagree","contrary","wrong about","time to rethink","rethinking","myth","reframe","redefine"];
 const TL_CATEGORY_SIGNALS  = ["introducing","new framework","our model","our methodology","we call","coined","first to","pioneered","category","taxonomy","defined as","framework for","playbook","our approach","proprietary","original research","we built","developed by","created by","our tool"];
@@ -6106,6 +6161,260 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Velocity Tracker ──────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar
+                    .map((e) => ({ entry: e, cv: calcVelocity(e) }))
+                    .sort((a, b) => {
+                      if (a.cv.timeToTraffic === null && b.cv.timeToTraffic === null) return 0;
+                      if (a.cv.timeToTraffic === null) return 1;
+                      if (b.cv.timeToTraffic === null) return -1;
+                      return a.cv.timeToTraffic - b.cv.timeToTraffic;
+                    });
+
+                  const seoEntries     = scored.filter((s) => s.cv.tier !== "social-only");
+                  const socialOnly     = scored.filter((s) => s.cv.tier === "social-only");
+                  const mismatches     = scored.filter((s) => s.cv.mismatch);
+                  const fastEntries    = scored.filter((s) => s.cv.tier === "fast");
+                  const slowEntries    = scored.filter((s) => s.cv.tier === "slow");
+
+                  // Portfolio SEO momentum milestone: month when 3rd piece hits peak traffic
+                  const peakMonths = seoEntries
+                    .map((s) => s.cv.peakMonth)
+                    .filter((m): m is number => m !== null)
+                    .sort((a, b) => a - b);
+                  const momentumMonth = peakMonths.length >= 3 ? peakMonths[2] : null;
+                  const avgTimeToTraffic = seoEntries.length
+                    ? Math.round((seoEntries.reduce((s, x) => s + (x.cv.timeToTraffic ?? 0), 0) / seoEntries.length) * 10) / 10
+                    : 0;
+
+                  const tierCfg = {
+                    fast:        { label: "Fast track",    bg: "bg-emerald-50", border: "border-emerald-100", text: "text-emerald-700", bar: "bg-emerald-400", badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+                    standard:    { label: "Standard",      bg: "bg-blue-50",    border: "border-blue-100",    text: "text-blue-700",    bar: "bg-blue-400",    badge: "bg-blue-100 text-blue-700 border-blue-200"          },
+                    slow:        { label: "Slow burn",     bg: "bg-amber-50",   border: "border-amber-100",   text: "text-amber-700",   bar: "bg-amber-400",   badge: "bg-amber-100 text-amber-700 border-amber-200"       },
+                    "social-only":{ label: "Social only",  bg: "bg-slate-50",   border: "border-slate-100",   text: "text-slate-500",   bar: "bg-slate-300",   badge: "bg-slate-100 text-slate-500 border-slate-200"       },
+                  } as const;
+
+                  const compIcon: Record<CVCompetition, string> = {
+                    high:     "🔴",
+                    standard: "🟡",
+                    niche:    "🟢",
+                  };
+                  const compLabel: Record<CVCompetition, string> = {
+                    high:     "High competition (+2 mo)",
+                    standard: "Standard competition",
+                    niche:    "Niche topic (−1 mo)",
+                  };
+
+                  const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                  const nowMonth = new Date().getMonth(); // 0-indexed
+                  const nowYear  = new Date().getFullYear();
+                  const labelMonth = (m: number) => {
+                    const idx = (nowMonth + m - 1) % 12;
+                    const yr  = nowYear + Math.floor((nowMonth + m - 1) / 12);
+                    return `${MONTH_NAMES[idx]} ${yr}`;
+                  };
+
+                  return (
+                    <Card className="border border-cyan-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">⚡</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Velocity Tracker</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {mismatches.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {mismatches.length} velocity mismatch{mismatches.length !== 1 ? "es" : ""}
+                              </span>
+                            )}
+                            {fastEntries.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                {fastEntries.length} fast track
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Models time-to-peak-traffic for each SEO piece based on content type and topic competition level. Flags velocity mismatches where the ranking window exceeds the content's freshness half-life — meaning the piece may be stale before it ranks.
+                        </p>
+
+                        {/* Portfolio stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "SEO pieces",         val: seoEntries.length,           sub: "with ranking potential"                         },
+                            { label: "Avg time-to-traffic",val: `${avgTimeToTraffic} mo`,    sub: "months to peak organic"                         },
+                            { label: "Momentum milestone", val: momentumMonth ? labelMonth(momentumMonth) : "—", sub: "3+ pieces at peak traffic" },
+                            { label: "Velocity mismatches",val: mismatches.length,            sub: "stale before ranking"                           },
+                          ].map(({ label, val, sub }) => (
+                            <div key={label} className="rounded-lg border border-cyan-100 bg-cyan-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className="text-[11px] font-black leading-none text-cyan-700">{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* SEO momentum timeline */}
+                        {peakMonths.length > 0 && (() => {
+                          const maxMonth = Math.max(...peakMonths, 12);
+                          return (
+                            <div className="mb-4">
+                              <p className="text-[9.5px] font-semibold text-slate-600 mb-2">SEO momentum timeline — pieces reaching peak traffic:</p>
+                              <div className="relative h-6 bg-slate-100 rounded-full overflow-hidden mb-1">
+                                {peakMonths.map((m, i) => {
+                                  const pct = Math.min(99, Math.round((m / (maxMonth + 1)) * 100));
+                                  const tier = scored.find((s) => s.cv.peakMonth === m)?.cv.tier ?? "standard";
+                                  const barColor = tier === "fast" ? "bg-emerald-400" : tier === "slow" ? "bg-amber-400" : "bg-blue-400";
+                                  return (
+                                    <div
+                                      key={i}
+                                      className={`absolute top-0 h-full w-1.5 rounded-full ${barColor} opacity-80`}
+                                      style={{ left: `${pct}%` }}
+                                    />
+                                  );
+                                })}
+                                {momentumMonth && (
+                                  <div
+                                    className="absolute top-0 h-full w-0.5 bg-cyan-600 opacity-70"
+                                    style={{ left: `${Math.min(99, Math.round((momentumMonth / (maxMonth + 1)) * 100))}%` }}
+                                  />
+                                )}
+                              </div>
+                              <div className="flex justify-between text-[7px] text-slate-400">
+                                <span>Now</span>
+                                {momentumMonth && (
+                                  <span className="text-cyan-600 font-bold">⚡ Momentum: {labelMonth(momentumMonth)}</span>
+                                )}
+                                <span>Mo {maxMonth}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Tier distribution bar */}
+                        <div className="flex gap-px h-2 rounded-full overflow-hidden mb-1">
+                          {(["fast","standard","slow","social-only"] as const).map((t) => {
+                            const count = scored.filter((s) => s.cv.tier === t).length;
+                            const pct   = Math.round((count / scored.length) * 100);
+                            return pct > 0 ? <div key={t} className={`h-full ${tierCfg[t].bar}`} style={{ width: `${pct}%` }} /> : null;
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4">
+                          {(["fast","standard","slow","social-only"] as const).filter((t) => scored.some((s) => s.cv.tier === t)).map((t) => {
+                            const count = scored.filter((s) => s.cv.tier === t).length;
+                            return (
+                              <div key={t} className="flex items-center gap-1">
+                                <div className={`w-2 h-2 rounded-full ${tierCfg[t].bar}`} />
+                                <span className="text-[8px] text-slate-500">{tierCfg[t].label} <span className="font-bold text-slate-700">({count})</span></span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Per-piece velocity — top SEO entries */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">SEO piece velocity — fastest ranking first:</p>
+                        <div className="space-y-2 mb-4">
+                          {seoEntries.slice(0, 6).map(({ entry: e, cv }) => {
+                            const cfg = tierCfg[cv.tier];
+                            const ttp = cv.timeToTraffic!;
+                            const halfLifePct = Math.min(100, Math.round((ttp / cv.halfLife) * 100));
+                            return (
+                              <div key={entryKey(e)} className={`rounded-xl border overflow-hidden ${cv.mismatch ? "border-rose-200" : cfg.border}`}>
+                                <div className={`flex items-center justify-between px-3.5 py-2 ${cv.mismatch ? "bg-rose-50" : cfg.bg}`}>
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className={`text-[8.5px] font-bold truncate ${cv.mismatch ? "text-rose-700" : cfg.text}`}>{e.angle}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                    {cv.mismatch && <span className="text-[7px] font-bold text-rose-600 bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded-full">⚠️ mismatch</span>}
+                                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border tabular-nums ${cv.mismatch ? "bg-rose-100 text-rose-700 border-rose-200" : cfg.badge}`}>
+                                      {ttp} mo
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                  {/* Time-to-traffic vs half-life bar */}
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[7px] text-slate-400 w-24 shrink-0">Ranking vs shelf-life</span>
+                                    <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden relative">
+                                      <div
+                                        className={`h-full rounded-full ${halfLifePct >= 100 ? "bg-rose-400" : halfLifePct >= 70 ? "bg-amber-400" : "bg-emerald-400"}`}
+                                        style={{ width: `${halfLifePct}%` }}
+                                      />
+                                      {/* Half-life marker at 100% */}
+                                    </div>
+                                    <span className="text-[7px] tabular-nums text-slate-400 shrink-0 w-16 text-right">{ttp}mo rank / {cv.halfLife}mo life</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    <span className="text-[7.5px] text-slate-500">
+                                      {compIcon[cv.competition]} <span className="font-semibold">{compLabel[cv.competition]}</span>
+                                    </span>
+                                    {cv.peakMonth && (
+                                      <span className="text-[7.5px] text-slate-500">
+                                        📅 Peak traffic: <span className="font-semibold text-cyan-700">{labelMonth(cv.peakMonth)}</span>
+                                      </span>
+                                    )}
+                                    <span className="text-[7.5px] text-slate-500">
+                                      📅 Publish: <span className="font-semibold">Wk {e.week} (~{labelMonth(cv.publishMonth)})</span>
+                                    </span>
+                                  </div>
+                                  {cv.mismatch && (
+                                    <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-rose-50 border border-rose-200">
+                                      <span className="text-[9px] shrink-0">⚠️</span>
+                                      <p className="text-[8px] text-rose-800 leading-snug">
+                                        <span className="font-bold">Velocity mismatch:</span> This piece is projected to rank in <span className="font-semibold">{ttp} months</span> but its freshness half-life is only <span className="font-semibold">{cv.halfLife} months</span>. Consider adding a "last updated" evergreen refresh cycle, or shifting to a format with a longer shelf-life.
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Slow-burn pieces — compounding value note */}
+                        {slowEntries.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Slow-burn pieces — compounding SEO value:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {slowEntries.slice(0, 4).map(({ entry: e, cv }) => (
+                                <div key={entryKey(e)} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                  <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 mt-0.5 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[8.5px] font-semibold text-amber-800 truncate">{e.angle}</p>
+                                    <p className="text-[7.5px] text-amber-700 mt-0.5">
+                                      {compIcon[cv.competition]} {cv.timeToTraffic}mo to rank · {cv.halfLife}mo shelf-life · peak {cv.peakMonth ? labelMonth(cv.peakMonth) : "—"}
+                                      {!cv.mismatch && " · ✅ shelf-life covers the ranking window"}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Social-only pieces */}
+                        {socialOnly.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                            <span className="text-sm shrink-0">💼</span>
+                            <div>
+                              <p className="text-[8.5px] font-semibold text-slate-600 mb-0.5">
+                                {socialOnly.length} social-only piece{socialOnly.length !== 1 ? "s" : ""} — no SEO velocity applies
+                              </p>
+                              <p className="text-[8px] text-slate-500 leading-snug">
+                                LinkedIn and newsletter entries drive immediate reach but generate no compounding search traffic. Pair each social post with a linked long-form SEO piece to capture search intent from the audience it reaches.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Thought Leadership Index ──────────────────────────────── */}
                 {calendar.length > 0 && (() => {
