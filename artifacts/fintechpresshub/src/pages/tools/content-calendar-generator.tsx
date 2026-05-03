@@ -1696,6 +1696,46 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content Cannibalism Detector ────────────────────────────────────────────
+const CANNIBAL_STOP = new Set([
+  "a","an","the","and","or","in","of","for","to","is","are","how","why","what","with",
+  "that","this","your","you","on","at","by","from","as","it","its","be","can","will",
+  "their","which","our","we","has","have","do","not","more","less","new","get","all",
+  "into","via","vs","using","across","through","within","between","around","about",
+  "over","under","up","top","key","most","best","every","each","should","could","when",
+  "while","whether","if","then","also","even","just","only","both","many","some","any",
+]);
+
+function cannibalTokens(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !CANNIBAL_STOP.has(w));
+}
+
+function cannibalScore(
+  a: { type: ContentType; topic: string; angle: string },
+  b: { type: ContentType; topic: string; angle: string },
+): { score: number; shared: string[] } {
+  const tokA = new Set(cannibalTokens(`${a.topic} ${a.angle}`));
+  const tokB = new Set(cannibalTokens(`${b.topic} ${b.angle}`));
+  const union = new Set([...tokA, ...tokB]);
+  const shared = [...tokA].filter((t) => tokB.has(t));
+  const jaccard = union.size > 0 ? shared.length / union.size : 0;
+  let score = Math.round(jaccard * 75);
+  if (a.type === b.type) score = Math.min(100, score + 15);
+  return { score, shared };
+}
+
+interface CannibalPair {
+  a:      ReturnType<typeof Object.assign> & { type: ContentType; topic: string; angle: string; week: number; date: string };
+  b:      ReturnType<typeof Object.assign> & { type: ContentType; topic: string; angle: string; week: number; date: string };
+  score:  number;
+  shared: string[];
+  severity: "critical" | "high" | "moderate";
+}
+
 // ─── Revenue Attribution Modeller ────────────────────────────────────────────
 const RA_TOFU_SIGNALS     = ["what is","introduction","overview","trends","state of","guide to","understanding","101","primer","landscape","ecosystem","rise of","evolution of","history of","future of","impact of","emergence of","growth of"];
 const RA_MOFU_SIGNALS     = ["how to choose","comparison","vs ","alternative","benchmark","best practice","framework","strategy","approach","roadmap","checklist","template","playbook","model","methodology","evaluate","assess","select","optimise","optimize","improve","consider","build"];
@@ -6232,6 +6272,202 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Cannibalism Detector ─────────────────────────── */}
+                {calendar.length > 1 && (() => {
+                  // Build all pairwise scores — O(n²) fine for typical calendar sizes ≤60
+                  const pairs: CannibalPair[] = [];
+                  for (let i = 0; i < calendar.length; i++) {
+                    for (let j = i + 1; j < calendar.length; j++) {
+                      const { score, shared } = cannibalScore(calendar[i], calendar[j]);
+                      if (score >= 28) {
+                        pairs.push({
+                          a: calendar[i],
+                          b: calendar[j],
+                          score,
+                          shared,
+                          severity: score >= 65 ? "critical" : score >= 45 ? "high" : "moderate",
+                        });
+                      }
+                    }
+                  }
+                  pairs.sort((a, b) => b.score - a.score);
+
+                  const critical = pairs.filter((p) => p.severity === "critical");
+                  const high     = pairs.filter((p) => p.severity === "high");
+                  const moderate = pairs.filter((p) => p.severity === "moderate");
+
+                  const sevCfg = {
+                    critical: { label: "Critical overlap",  bg: "bg-red-50",    border: "border-red-200",   text: "text-red-700",    bar: "bg-red-400",    badge: "bg-red-100 text-red-700 border-red-200",       icon: "🚨" },
+                    high:     { label: "High overlap",      bg: "bg-orange-50", border: "border-orange-200",text: "text-orange-700", bar: "bg-orange-400", badge: "bg-orange-100 text-orange-700 border-orange-200",icon: "⚠️" },
+                    moderate: { label: "Moderate overlap",  bg: "bg-amber-50",  border: "border-amber-100", text: "text-amber-700",  bar: "bg-amber-400",  badge: "bg-amber-100 text-amber-700 border-amber-200",   icon: "🔶" },
+                  } as const;
+
+                  const remedy = (p: CannibalPair): string => {
+                    if (p.a.type === p.b.type)
+                      return `Consolidate into one comprehensive ${FORMAT_LABEL[p.a.type]} or clearly split by subtopic — two ${FORMAT_LABEL[p.a.type]}s on the same territory split link equity, dilute anchor text signals, and confuse Google on which URL to rank.`;
+                    if (p.severity === "critical")
+                      return `Differentiate keyword targets — designate one piece as the primary (the more comprehensive format) and redirect the other to it, or reframe the secondary piece around a distinct long-tail angle that doesn't compete on the same head terms.`;
+                    return `Add explicit differentiation in the title and intro — signal to both readers and search engines which subtopic each piece owns. Without clear scope separation, both pieces risk ranking on page 2 instead of one ranking on page 1.`;
+                  };
+
+                  return (
+                    <Card className="border border-orange-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🦀</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Cannibalism Detector</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {critical.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
+                                {critical.length} critical
+                              </span>
+                            )}
+                            {high.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
+                                {high.length} high
+                              </span>
+                            )}
+                            {pairs.length === 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                No overlaps detected
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Computes pairwise keyword overlap across every entry in the calendar using Jaccard token similarity. Identifies pairs that would compete against each other in search, diluting rankings for both, and recommends consolidation or differentiation strategies.
+                        </p>
+
+                        {pairs.length === 0 ? (
+                          <div className="flex items-center gap-3 px-4 py-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                            <span className="text-2xl">✅</span>
+                            <div>
+                              <p className="text-[10px] font-bold text-emerald-700 mb-0.5">No keyword cannibalism detected</p>
+                              <p className="text-[9px] text-emerald-600 leading-snug">Every entry in the calendar targets sufficiently distinct topic territory. No two pieces share enough keyword overlap to risk competing against each other in search results.</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {/* Summary stats */}
+                            <div className="grid grid-cols-4 gap-2 mb-4">
+                              {[
+                                { label: "Pairs analysed",  val: Math.round((calendar.length * (calendar.length - 1)) / 2), sub: "all combinations checked" },
+                                { label: "Overlapping pairs",val: pairs.length,     sub: "≥28% token overlap"              },
+                                { label: "Critical pairs",   val: critical.length,  sub: "direct competitors (≥65%)"       },
+                                { label: "Pieces affected",  val: new Set([...pairs.flatMap((p) => [entryKey(p.a), entryKey(p.b)])]).size, sub: "unique entries at risk" },
+                              ].map(({ label, val, sub }) => (
+                                <div key={label} className="rounded-lg border border-orange-100 bg-orange-50 px-2 py-1.5 text-center">
+                                  <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                                  <p className="text-[11px] font-black leading-none text-orange-700">{val}</p>
+                                  <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Severity breakdown bar */}
+                            <div className="flex gap-px h-2 rounded-full overflow-hidden mb-1">
+                              {(["critical","high","moderate"] as const).map((s) => {
+                                const pct = pairs.length > 0 ? Math.round((pairs.filter((p) => p.severity === s).length / pairs.length) * 100) : 0;
+                                return pct > 0 ? <div key={s} className={`h-full ${sevCfg[s].bar}`} style={{ width: `${pct}%` }} /> : null;
+                              })}
+                            </div>
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4">
+                              {(["critical","high","moderate"] as const).filter((s) => pairs.some((p) => p.severity === s)).map((s) => {
+                                const count = pairs.filter((p) => p.severity === s).length;
+                                return (
+                                  <div key={s} className="flex items-center gap-1">
+                                    <div className={`w-2 h-2 rounded-full ${sevCfg[s].bar}`} />
+                                    <span className="text-[8px] text-slate-500">{sevCfg[s].label} <span className="font-bold text-slate-700">({count})</span></span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Pair cards */}
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Cannibalising pairs — highest overlap first:</p>
+                            <div className="space-y-3">
+                              {pairs.slice(0, 8).map((p, idx) => {
+                                const cfg = sevCfg[p.severity];
+                                return (
+                                  <div key={idx} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                    {/* Severity header */}
+                                    <div className={`flex items-center justify-between px-3.5 py-1.5 ${cfg.bg}`}>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[10px]">{cfg.icon}</span>
+                                        <span className={`text-[8px] font-bold ${cfg.text}`}>{cfg.label}</span>
+                                      </div>
+                                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border tabular-nums ${cfg.badge}`}>{p.score}% overlap</span>
+                                    </div>
+
+                                    <div className="px-3.5 py-2.5 bg-white space-y-2.5">
+                                      {/* The two competing entries */}
+                                      <div className="space-y-1.5">
+                                        {[p.a, p.b].map((e, ei) => (
+                                          <div key={ei} className="flex items-center gap-2">
+                                            <span className="text-[7.5px] font-bold text-slate-400 w-3 shrink-0">{ei === 0 ? "A" : "B"}</span>
+                                            <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                            <span className="text-[7.5px] text-slate-400 shrink-0">Wk {e.week}</span>
+                                            <span className="text-[8px] font-semibold text-slate-700 truncate">{e.angle}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+
+                                      {/* Overlap bar */}
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[7px] text-slate-400 w-20 shrink-0">Keyword overlap</span>
+                                        <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${p.score}%` }} />
+                                        </div>
+                                        <span className="text-[7px] tabular-nums text-slate-500 shrink-0 w-8 text-right">{p.score}%</span>
+                                      </div>
+
+                                      {/* Shared tokens */}
+                                      {p.shared.length > 0 && (
+                                        <div className="flex flex-wrap gap-1">
+                                          <span className="text-[7px] text-slate-400 mr-0.5 self-center">Shared terms:</span>
+                                          {p.shared.slice(0, 10).map((tok) => (
+                                            <span key={tok} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border ${cfg.badge}`}>{tok}</span>
+                                          ))}
+                                          {p.shared.length > 10 && (
+                                            <span className="text-[7px] text-slate-400 self-center">+{p.shared.length - 10} more</span>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* Remedy */}
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-orange-50 border border-orange-100">
+                                        <span className="text-[9px] shrink-0">💡</span>
+                                        <p className="text-[8px] text-orange-900 leading-snug">{remedy(p)}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Safe entries note */}
+                            {(() => {
+                              const affected = new Set(pairs.flatMap((p) => [entryKey(p.a), entryKey(p.b)]));
+                              const safeCount = calendar.filter((e) => !affected.has(entryKey(e))).length;
+                              return safeCount > 0 ? (
+                                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100 mt-3">
+                                  <span className="text-sm">✅</span>
+                                  <p className="text-[9px] text-emerald-700 font-semibold">
+                                    {safeCount} piece{safeCount !== 1 ? "s" : ""} have no keyword overlap with any other entry — these are safe to publish as-is.
+                                  </p>
+                                </div>
+                              ) : null;
+                            })()}
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Revenue Attribution Modeller ─────────────────────────── */}
                 {calendar.length > 0 && (() => {
