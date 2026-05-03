@@ -1732,17 +1732,17 @@ function topicSimilarity(topic1: string, topic2: string): number {
 }
 
 function detectNarrativeTheme(entries: ContentEntry[]): string {
-  const intents = entries.map((e) => dominantIntent(e.topic, e.angle));
+  const intents = entries.map((e) => dominantIntent(detectIntent(e.topic, e.angle)));
   const intentCounts: Record<string, number> = {};
   intents.forEach((i) => { intentCounts[i] = (intentCounts[i] ?? 0) + 1; });
-  const dominantIntent = Object.entries(intentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "mixed";
+  const dominantIntentTheme = Object.entries(intentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "mixed";
 
   const personas = entries.map((e) => detectPersona(e.topic, e.angle).primaryPersona);
   const personaCounts: Record<string, number> = {};
   personas.forEach((p) => { personaCounts[p] = (personaCounts[p] ?? 0) + 1; });
   const dominantPersona = Object.entries(personaCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "general";
 
-  return `${dominantIntent}/${dominantPersona}`;
+  return `${dominantIntentTheme}/${dominantPersona}`;
 }
 
 function scoreNarrativeCoherence(entries: ContentEntry[]): number {
