@@ -1696,6 +1696,137 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Publication Timing Optimiser ────────────────────────────────────────────
+// Scores each entry's publication date against fintech event/regulatory/budget cycles
+
+interface TimingWindow {
+  key:           string;
+  name:          string;
+  icon:          string;
+  peakMonths:    number[];
+  buildupMonths: number[];
+  topicSignals:  string[];
+  contentTip:    string;
+  color: string; bg: string; border: string; pill: string;
+}
+
+const TIMING_WINDOWS: TimingWindow[] = [
+  {
+    key: "budget", name: "Budget & Procurement Season", icon: "💼",
+    peakMonths: [10, 11], buildupMonths: [8, 9],
+    topicSignals: ["budget","procurement","vendor selection","total cost of ownership","tco","roi","business case","investment","rfp","spend","shortlist","build vs buy","capex","opex"],
+    contentTip: "Publish ROI frameworks, TCO analyses, and vendor comparison guides 6-8 weeks before October — finance leaders need them when Q4 budget submissions begin",
+    color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100", pill: "bg-amber-100 text-amber-700 border-amber-200",
+  },
+  {
+    key: "new-year", name: "New Year Planning Window", icon: "🗓️",
+    peakMonths: [1, 2], buildupMonths: [11, 12],
+    topicSignals: ["strategy","planning","roadmap","priorities","trends","outlook","predictions","year ahead","forecast","2026","next year","looking ahead","for next year"],
+    contentTip: "Publish state-of-industry reports and trend predictions in November-December so they are live and indexed when planning teams begin Q1 research in January",
+    color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100", pill: "bg-blue-100 text-blue-700 border-blue-200",
+  },
+  {
+    key: "regulatory", name: "Q1 Regulatory Cycle", icon: "⚖️",
+    peakMonths: [2, 3], buildupMonths: [12, 1],
+    topicSignals: ["compliance","regulatory","audit","dora","psd2","aml","kyc","fca","eba","reporting","srep","pillar","crd","crr","stress test","regulatory deadline","regulatory calendar"],
+    contentTip: "Publish regulatory guides and compliance checklists in December-January when compliance teams finalise year-end reporting and plan Q1 audit programmes",
+    color: "text-slate-700", bg: "bg-slate-50", border: "border-slate-200", pill: "bg-slate-100 text-slate-700 border-slate-200",
+  },
+  {
+    key: "data-privacy", name: "GDPR/Data Privacy Season", icon: "🔒",
+    peakMonths: [5], buildupMonths: [3, 4],
+    topicSignals: ["gdpr","data privacy","data protection","personal data","consent","dpia","privacy regulation","data governance","data residency","right to erasure"],
+    contentTip: "Publish GDPR anniversary analysis in March-April — attention peaks sharply around the May 25 anniversary date and compliance teams run annual reviews in Q2",
+    color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-100", pill: "bg-purple-100 text-purple-700 border-purple-200",
+  },
+  {
+    key: "money2020", name: "Money20/20 / Conference Season", icon: "🎪",
+    peakMonths: [6, 10], buildupMonths: [4, 5, 8, 9],
+    topicSignals: ["money20/20","payments","open banking","embedded finance","innovation","platform banking","fintech strategy","digital banking","neobank","banking as a service","baas"],
+    contentTip: "Publish fintech innovation and payments strategy content 6-8 weeks before Money20/20 Europe (June) and USA (October) — delegates research topics in depth before attending",
+    color: "text-fuchsia-700", bg: "bg-fuchsia-50", border: "border-fuchsia-100", pill: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200",
+  },
+  {
+    key: "sibos", name: "SIBOS / Transaction Banking", icon: "🌐",
+    peakMonths: [10, 11], buildupMonths: [8, 9],
+    topicSignals: ["sibos","correspondent banking","swift","cross-border","transaction banking","trade finance","securities","custody","clearing","settlement","iso 20022","nostro","vostro"],
+    contentTip: "Publish transaction banking and correspondent banking content in August-September — SIBOS delegates research intensively in the 6-8 weeks before the October event",
+    color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", pill: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  },
+  {
+    key: "year-end", name: "Year-End Review Season", icon: "📊",
+    peakMonths: [11, 12], buildupMonths: [10, 11],
+    topicSignals: ["year in review","year-end","annual review","looking back","2025 roundup","2026 preview","annual report","highlights of","the year in","retrospective","lessons from"],
+    contentTip: "Publish year-in-review and annual benchmark content in October-November so it is fully indexed and ranking before the peak December readership of year-end retrospectives",
+    color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-100", pill: "bg-rose-100 text-rose-700 border-rose-200",
+  },
+  {
+    key: "mid-year", name: "Mid-Year Benchmark Window", icon: "📈",
+    peakMonths: [7], buildupMonths: [5, 6],
+    topicSignals: ["half-year","mid-year","h1 ","q2 results","first half","six months","benchmarks","mid-year review","performance review","half-time"],
+    contentTip: "Publish H1 benchmarks and mid-year analysis in May-June so they are live when finance and compliance teams conduct mid-year performance reviews in July",
+    color: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-100", pill: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  },
+];
+
+type TimingAlignment = "optimal" | "good" | "near" | "off-season" | "low-attention" | "generic";
+
+interface TimingResult {
+  matchedWindow:   TimingWindow | null;
+  signalHits:      number;
+  month:           number;
+  alignment:       TimingAlignment;
+  score:           number;
+  rescheduleMonth: number | null;
+}
+
+const MONTH_NAMES = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function scorePublicationTiming(date: string, topic: string, angle: string): TimingResult {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  const d   = new Date(date);
+  const month = isNaN(d.getTime()) ? 0 : d.getMonth() + 1;
+
+  const isAugust   = month === 8;
+  const isXmas     = month === 12 && d.getDate() >= 20;
+  const isNewYearW = month === 1  && d.getDate() <= 6;
+  const isLow      = isAugust || isXmas || isNewYearW;
+
+  // Best matching window
+  let bestWindow: TimingWindow | null = null;
+  let bestHits = 0;
+  TIMING_WINDOWS.forEach((w) => {
+    const hits = w.topicSignals.filter((s) => hay.includes(s)).length;
+    if (hits > bestHits) { bestWindow = w; bestHits = hits; }
+  });
+
+  if (month === 0) return { matchedWindow: bestWindow, signalHits: bestHits, month: 0, alignment: "generic", score: 50, rescheduleMonth: null };
+
+  if (!bestWindow || bestHits === 0) {
+    return { matchedWindow: null, signalHits: 0, month, alignment: isLow ? "low-attention" : "generic", score: isLow ? 20 : 50, rescheduleMonth: null };
+  }
+
+  const w = bestWindow as TimingWindow;
+  let alignment: TimingAlignment;
+  let score: number;
+  let rescheduleMonth: number | null = null;
+
+  if (isLow) {
+    alignment = "low-attention"; score = 15; rescheduleMonth = w.buildupMonths[0];
+  } else if (w.buildupMonths.includes(month)) {
+    alignment = "optimal"; score = 95;
+  } else if (w.peakMonths.includes(month)) {
+    alignment = "good"; score = 70;
+  } else {
+    const allRel  = [...w.buildupMonths, ...w.peakMonths];
+    const minDist = Math.min(...allRel.map((m) => Math.min(Math.abs(m - month), 12 - Math.abs(m - month))));
+    if (minDist <= 1) { alignment = "near"; score = 50; }
+    else              { alignment = "off-season"; score = 25; rescheduleMonth = w.buildupMonths[0]; }
+  }
+
+  return { matchedWindow: w, signalHits: bestHits, month, alignment, score, rescheduleMonth };
+}
+
 // ─── Source Credibility Signal Scanner ───────────────────────────────────────
 // Detects evidence-quality markers in each entry and scores E-E-A-T signal strength
 
@@ -7590,6 +7721,223 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Publication Timing Optimiser ─────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const timed = calendar.map((e) => ({ entry: e, timing: scorePublicationTiming(e.date, e.topic, e.angle) }));
+                  const n = timed.length;
+
+                  const byAlign = (a: TimingAlignment) => timed.filter((t) => t.timing.alignment === a);
+                  const optimal    = byAlign("optimal");
+                  const good       = byAlign("good");
+                  const near       = byAlign("near");
+                  const offSeason  = byAlign("off-season");
+                  const lowAttn    = byAlign("low-attention");
+                  const generic    = byAlign("generic");
+
+                  const wellTimed  = [...optimal, ...good];
+                  const poorTimed  = [...offSeason, ...lowAttn];
+
+                  const wellRate   = n > 0 ? wellTimed.length / n : 0;
+                  const lowRate    = n > 0 ? lowAttn.length  / n : 0;
+
+                  // Unique timing windows covered with ≥1 well-timed entry
+                  const coveredWindows = new Set(wellTimed.map((t) => t.timing.matchedWindow?.key).filter(Boolean));
+
+                  // Portfolio Timing Score (0-100)
+                  const wellScore    = Math.round(Math.min(1, wellRate / 0.40) * 40);
+                  const lowPenalty   = Math.round((1 - Math.min(1, lowRate / 0.20)) * 30);
+                  const winScore     = Math.round((coveredWindows.size / Math.min(TIMING_WINDOWS.length, 4)) * 20);
+                  const nearScore    = Math.round((Math.min(1, (wellTimed.length + near.length) / Math.max(n, 1) / 0.60)) * 10);
+                  const timingScore  = wellScore + lowPenalty + winScore + nearScore;
+
+                  const tCfg =
+                    timingScore >= 75 ? { label: "Well-timed — aligned with industry attention peaks", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-100" } :
+                    timingScore >= 50 ? { label: "Partial alignment — some timing gaps",               color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100"   } :
+                    timingScore >= 25 ? { label: "Weak timing — missing key attention windows",        color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100"  } :
+                                        { label: "Off-cycle — content missing its optimal audience",   color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100"   };
+
+                  const ALIGN_CFG: Record<TimingAlignment, { label: string; icon: string; color: string; pill: string; bar: string }> = {
+                    "optimal":      { label: "Optimal",      icon: "🟢", color: "text-emerald-700", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", bar: "bg-emerald-400" },
+                    "good":         { label: "Good",         icon: "🔵", color: "text-blue-700",    pill: "bg-blue-100 text-blue-700 border-blue-200",          bar: "bg-blue-400"    },
+                    "near":         { label: "Near-peak",    icon: "🟡", color: "text-amber-700",   pill: "bg-amber-100 text-amber-700 border-amber-200",       bar: "bg-amber-400"   },
+                    "off-season":   { label: "Off-season",   icon: "🟠", color: "text-orange-700",  pill: "bg-orange-100 text-orange-700 border-orange-200",    bar: "bg-orange-400"  },
+                    "low-attention":{ label: "Low-attention",icon: "🔴", color: "text-rose-700",    pill: "bg-rose-100 text-rose-700 border-rose-200",          bar: "bg-rose-400"    },
+                    "generic":      { label: "No window",    icon: "⚪", color: "text-slate-500",   pill: "bg-slate-100 text-slate-500 border-slate-200",       bar: "bg-slate-300"   },
+                  };
+
+                  // Month distribution (for heatmap)
+                  const monthCounts: Record<number, number> = {};
+                  for (let m = 1; m <= 12; m++) monthCounts[m] = 0;
+                  timed.forEach((t) => { if (t.timing.month > 0) monthCounts[t.timing.month]++; });
+                  const maxMonth = Math.max(...Object.values(monthCounts), 1);
+
+                  return (
+                    <Card className="border border-orange-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📅</span>
+                            <p className="text-xs font-semibold text-slate-700">Publication Timing Optimiser</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${tCfg.color} ${tCfg.bg} ${tCfg.border}`}>
+                            {timingScore}/100 · {tCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Scores each entry's publication date against eight fintech industry attention cycles — Budget &amp; Procurement Season (Oct-Nov), New Year Planning (Jan-Feb), Q1 Regulatory Cycle (Feb-Mar), GDPR/Data Privacy Season (May), Money20/20 &amp; Conference Windows (Jun/Oct), SIBOS (Oct-Nov), Year-End Review Season (Nov-Dec), and Mid-Year Benchmark Window (Jul). Flags content scheduled during low-attention periods (August, Christmas fortnight) and provides specific reschedule suggestions to land in the optimal buildup window for maximum audience attention.
+                        </p>
+
+                        {/* Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${tCfg.bg} ${tCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${tCfg.color}`}>{timingScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Well-timed rate",  val: wellScore,  max: 40, desc: `${wellTimed.length}/${n} entries in Optimal or Good timing windows — target ≥40%` },
+                              { label: "Low-attn-free",    val: lowPenalty, max: 30, desc: `${lowAttn.length} entries in August/Christmas — low-attention periods drop B2B readership ~40%` },
+                              { label: "Window coverage",  val: winScore,   max: 20, desc: `${coveredWindows.size} of ${TIMING_WINDOWS.length} timing windows covered by well-timed entries` },
+                              { label: "Broadly aligned",  val: nearScore,  max: 10, desc: `${(wellTimed.length + near.length)}/${n} entries within 1 month of an attention peak` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-24 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${tCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Month heatmap */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Publication calendar — monthly distribution:</p>
+                        <div className="flex gap-0.5 items-end mb-1 h-10">
+                          {[1,2,3,4,5,6,7,8,9,10,11,12].map((m) => {
+                            const cnt  = monthCounts[m];
+                            const pct  = Math.round((cnt / maxMonth) * 100);
+                            const isLowM = m === 8;
+                            const isBudget = m === 10 || m === 11;
+                            return (
+                              <div key={m} className="flex-1 flex flex-col items-center gap-0.5">
+                                <span className="text-[5px] text-slate-400 tabular-nums">{cnt > 0 ? cnt : ""}</span>
+                                <div className="w-full rounded-t" style={{ height: `${Math.max(2, pct * 0.32)}rem`, backgroundColor: isLowM ? "#fca5a5" : isBudget ? "#fcd34d" : "#818cf8" }} title={`${MONTH_NAMES[m]}: ${cnt} entries`} />
+                                <span className={`text-[5.5px] tabular-nums ${isLowM ? "text-rose-500 font-bold" : "text-slate-400"}`}>{MONTH_NAMES[m]}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[7px] text-slate-400 mb-4">🔴 August = low-attention period · 🟡 Oct-Nov = budget season peak · 🔵 all other months</p>
+
+                        {/* Timing window coverage summary */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Attention window coverage:</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-4">
+                          {TIMING_WINDOWS.map((w) => {
+                            const windowEntries = timed.filter((t) => t.timing.matchedWindow?.key === w.key);
+                            const wellW = windowEntries.filter((t) => t.timing.score >= 70);
+                            const covered = wellW.length > 0;
+                            return (
+                              <div key={w.key} className={`rounded-lg border px-2 py-1.5 ${covered ? w.bg + " " + w.border : "bg-slate-50 border-slate-100"}`}>
+                                <p className="text-[6.5px] text-slate-500 mb-0.5">{w.icon} {w.name}</p>
+                                <p className={`text-[8px] font-bold ${covered ? w.color : "text-slate-400"}`}>
+                                  {covered ? `✓ ${wellW.length} well-timed` : "Not covered"}
+                                </p>
+                                <p className="text-[6px] text-slate-400 mt-0.5">Peak: {w.peakMonths.map((m) => MONTH_NAMES[m]).join("/")}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Low-attention entries warning */}
+                        {lowAttn.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-rose-50 border border-rose-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🔴</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1">{lowAttn.length} piece{lowAttn.length !== 1 ? "s" : ""} scheduled in low-attention periods (August or Christmas fortnight)</p>
+                              <div className="space-y-1 mb-1.5">
+                                {lowAttn.map(({ entry: e, timing: t }) => (
+                                  <div key={entryKey(e)} className="flex items-center gap-1.5">
+                                    <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className="text-[7px] text-rose-700 truncate">{e.angle.slice(0,28)}{e.angle.length > 28 ? "…" : ""}</span>
+                                    <span className="text-[6.5px] text-slate-400 shrink-0">({MONTH_NAMES[t.month]})</span>
+                                    {t.rescheduleMonth && <span className="text-[6.5px] font-bold text-emerald-600 shrink-0">→ move to {MONTH_NAMES[t.rescheduleMonth]}</span>}
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-rose-700 leading-snug">European B2B content consumption drops ~40% in August as finance and technology teams take summer leave. Pieces published in August miss their intended audience at launch — a critical disadvantage since organic rankings take 3-8 weeks to stabilise, meaning August-published content reaches peak visibility just as the September return-to-work research surge begins without the head start of having been live and indexed since the optimal buildup window.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Off-season entries with reschedule suggestions */}
+                        {offSeason.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-orange-50 border border-orange-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🟠</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-orange-800 mb-1.5">{offSeason.length} off-season piece{offSeason.length !== 1 ? "s" : ""} — scheduled outside their topic's attention window</p>
+                              <div className="space-y-1.5">
+                                {offSeason.map(({ entry: e, timing: t }) => (
+                                  <div key={entryKey(e)} className={`rounded-lg border px-2.5 py-1.5 ${t.matchedWindow ? t.matchedWindow.bg + " " + t.matchedWindow.border : "bg-slate-50 border-slate-100"}`}>
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                      <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className={`text-[7.5px] font-bold truncate ${t.matchedWindow ? t.matchedWindow.color : "text-slate-600"}`}>{e.angle.slice(0,30)}{e.angle.length > 30 ? "…" : ""}</span>
+                                    </div>
+                                    <p className="text-[7px] text-slate-600">
+                                      Scheduled: <span className="font-bold">{MONTH_NAMES[t.month]}</span>
+                                      {t.matchedWindow && <> · Best window: <span className="font-bold">{t.matchedWindow.icon} {t.matchedWindow.name}</span> (peak {t.matchedWindow.peakMonths.map((m) => MONTH_NAMES[m]).join("/")})</>}
+                                      {t.rescheduleMonth && <> · <span className="font-bold text-emerald-700">Reschedule to {MONTH_NAMES[t.rescheduleMonth]}</span></>}
+                                    </p>
+                                    {t.matchedWindow && <p className="text-[6.5px] text-slate-500 mt-0.5 italic">{t.matchedWindow.contentTip}</p>}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Well-timed entries callout */}
+                        {wellTimed.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🟢</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-emerald-800 mb-1">{wellTimed.length} well-timed piece{wellTimed.length !== 1 ? "s" : ""} — scheduled in optimal or peak attention windows</p>
+                              <div className="flex flex-wrap gap-1">
+                                {wellTimed.map(({ entry: e, timing: t }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[14rem] ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,22)}{e.angle.length > 22 ? "…" : ""} <span className="opacity-60">({MONTH_NAMES[t.month]} · {t.matchedWindow?.icon})</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Per-entry timing table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — timing alignment:</p>
+                        <div className="space-y-0.5">
+                          {[...timed].sort((a, b) => b.timing.score - a.timing.score).map(({ entry: e, timing: t }) => {
+                            const aCfg = ALIGN_CFG[t.alignment];
+                            return (
+                              <div key={entryKey(e)} className="flex items-center gap-1.5 py-0.5 border-b border-slate-50">
+                                <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                <span className="text-[7px] text-slate-600 truncate flex-1 min-w-0">{e.angle.slice(0,28)}{e.angle.length > 28 ? "…" : ""}</span>
+                                <span className="text-[6.5px] text-slate-400 shrink-0">{MONTH_NAMES[t.month] || "—"}</span>
+                                <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${aCfg.pill}`}>{aCfg.icon} {aCfg.label}</span>
+                                {t.matchedWindow && <span className="text-[6px] text-slate-400 shrink-0 hidden sm:inline">{t.matchedWindow.icon} {t.matchedWindow.name.split(" ").slice(0,2).join(" ")}</span>}
+                                {t.rescheduleMonth && <span className="text-[6px] font-bold text-emerald-600 shrink-0">→ {MONTH_NAMES[t.rescheduleMonth]}</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[7px] text-slate-400 mt-2">Sorted by timing alignment score · → = suggested reschedule month to hit optimal buildup window</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Source Credibility Signal Scanner ────────────────────── */}
                 {calendar.length > 0 && (() => {
