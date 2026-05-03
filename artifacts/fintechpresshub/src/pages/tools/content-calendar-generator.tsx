@@ -1696,6 +1696,83 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content Longevity Predictor ─────────────────────────────────────────────
+// Classifies each entry by expected shelf life and scores portfolio longevity balance
+
+const LONGEVITY_EVERGREEN_SIGNALS = [
+  "how to ","framework for","principles of","fundamentals","guide to ",
+  "step by step","building a","designing a","anatomy of","essentials of",
+  "foundations of","core concepts","the mechanics of","what is ","understanding ",
+  "best practice","playbook","handbook","reference guide","technical guide",
+  "practical guide","from scratch","ground up","complete overview","deep dive into",
+  "implementation guide","checklist for","primer on","when to use","how it works",
+];
+
+const LONGEVITY_SLOW_SIGNALS = [
+  "state of ","annual ","benchmark","survey","landscape","trend","outlook",
+  "year in review","industry report","market report","research report",
+  "this year's","in 2025","in 2026","for 2025","for 2026","for next year",
+  "regulatory update","compliance update","market overview","half-year review",
+  "mid-year","year-end","annual review","bi-annual","semi-annual",
+];
+
+const LONGEVITY_FAST_SIGNALS = [
+  "q1 ","q2 ","q3 ","q4 ","quarterly","this quarter","next quarter",
+  "preview","conference roundup","recap","predictions for","what to expect at",
+  "money20/20","sibos","fintech week","post-event","post-conference",
+  "results","quarterly results","this year","latest news","new report",
+];
+
+const LONGEVITY_EPHEMERAL_SIGNALS = [
+  "breaking","just announced","this week","yesterday","today ",
+  "live from","live coverage","as of ","just published","hot take",
+  "fined ","enforcement action","acquires ","merger ","acquisition announcement",
+  "raises ","funding round","ipo announcement","just released","just launched",
+];
+
+type LongevityTier = "evergreen" | "slow-decay" | "fast-decay" | "ephemeral";
+
+interface LongevityResult {
+  evergreenHits: number;
+  slowHits:      number;
+  fastHits:      number;
+  ephemeralHits: number;
+  score:         number;   // 0-100: higher = longer shelf life
+  tier:          LongevityTier;
+  shelfLife:     string;
+}
+
+function scoreLongevity(topic: string, angle: string): LongevityResult {
+  const hay = `${topic} ${angle}`.toLowerCase();
+
+  const evergreenHits = LONGEVITY_EVERGREEN_SIGNALS.filter((s) => hay.includes(s)).length;
+  const slowHits      = LONGEVITY_SLOW_SIGNALS.filter((s)      => hay.includes(s)).length;
+  const fastHits      = LONGEVITY_FAST_SIGNALS.filter((s)      => hay.includes(s)).length;
+  const ephemeralHits = LONGEVITY_EPHEMERAL_SIGNALS.filter((s) => hay.includes(s)).length;
+
+  const score = Math.max(0, Math.min(100,
+    50
+    + Math.min(40, evergreenHits * 8)
+    + Math.min(15, slowHits      * 5)
+    - Math.min(50, fastHits      * 9)
+    - Math.min(70, ephemeralHits * 18)
+  ));
+
+  const tier: LongevityTier =
+    score >= 70 ? "evergreen"  :
+    score >= 50 ? "slow-decay" :
+    score >= 30 ? "fast-decay" :
+                  "ephemeral";
+
+  const shelfLife =
+    tier === "evergreen"  ? "3+ years"     :
+    tier === "slow-decay" ? "12–18 months" :
+    tier === "fast-decay" ? "2–6 months"   :
+                            "< 4 weeks";
+
+  return { evergreenHits, slowHits, fastHits, ephemeralHits, score, tier, shelfLife };
+}
+
 // ─── Persona Targeting Density Mapper ────────────────────────────────────────
 // Detects which fintech B2B buying-committee personas each entry targets
 
@@ -7281,6 +7358,269 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Longevity Predictor ──────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar.map((e) => ({ entry: e, lon: scoreLongevity(e.topic, e.angle) }));
+                  const n = scored.length;
+
+                  const byTier = (t: LongevityTier) => scored.filter((s) => s.lon.tier === t);
+                  const evergreen  = byTier("evergreen");
+                  const slowDecay  = byTier("slow-decay");
+                  const fastDecay  = byTier("fast-decay");
+                  const ephemeral  = byTier("ephemeral");
+
+                  const evRate  = n > 0 ? evergreen.length  / n : 0;
+                  const slRate  = n > 0 ? slowDecay.length  / n : 0;
+                  const fdRate  = n > 0 ? fastDecay.length  / n : 0;
+                  const epRate  = n > 0 ? ephemeral.length  / n : 0;
+
+                  // ── Portfolio Longevity Score (0-100) ──────────────────────
+                  const evScore  = Math.round(Math.min(1, evRate  / 0.45) * 40);
+                  const slScore  = Math.round(Math.min(1, slRate  / 0.35) * 30);
+                  const fdScore  = fdRate <= 0.20 ? 20 : fdRate <= 0.35 ? Math.round((0.35 - fdRate) / 0.15 * 20) : 0;
+                  const epScore  = ephemeral.length === 0 ? 10 : ephemeral.length === 1 ? 5 : 0;
+
+                  const lonScore = evScore + slScore + fdScore + epScore;
+
+                  const lonCfg =
+                    lonScore >= 75 ? { label: "High longevity — strong ROI profile",     color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    lonScore >= 50 ? { label: "Moderate longevity — some decay risk",     color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    lonScore >= 25 ? { label: "Short shelf life — high refresh burden",   color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                     { label: "Ephemeral-heavy — rapid value destruction",color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  const TIER_CFG: Record<LongevityTier, { label: string; icon: string; shelfLife: string; color: string; bg: string; border: string; bar: string; pill: string; desc: string; refreshTip: string }> = {
+                    "evergreen":  { label: "Evergreen",   icon: "🌳", shelfLife: "3+ years",     color: "text-emerald-700", bg: "bg-emerald-50",  border: "border-emerald-100", bar: "bg-emerald-400", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", desc: "Holds value indefinitely — framework posts, how-to guides, concept explainers. The highest long-term ROI content in any calendar.",         refreshTip: "Refresh annually with updated statistics and regulation names to maintain SEO ranking and topicality without rebuilding the piece"  },
+                    "slow-decay": { label: "Slow-decay",  icon: "🍂", shelfLife: "12–18 months", color: "text-blue-700",    bg: "bg-blue-50",     border: "border-blue-100",    bar: "bg-blue-400",   pill: "bg-blue-100 text-blue-700 border-blue-200",          desc: "Relevant for 12-18 months — annual benchmarks, state-of-industry reports, regulatory implementation guides. Solid ongoing value.",       refreshTip: "Schedule a calendar update at month 12 — replace dated statistics, update regulatory references, and republish as 'updated [year]'" },
+                    "fast-decay": { label: "Fast-decay",  icon: "⏱️",  shelfLife: "2–6 months",   color: "text-amber-700",   bg: "bg-amber-50",    border: "border-amber-100",   bar: "bg-amber-400",  pill: "bg-amber-100 text-amber-700 border-amber-200",        desc: "Useful for 2-6 months — quarterly roundups, conference previews, Q-specific analyses. Generates short-term traffic but depreciates quickly.", refreshTip: "Plan a follow-up evergreen piece that captures the same organic demand without the time dependency — e.g. 'lessons from [conference]' as a perennial resource" },
+                    "ephemeral":  { label: "Ephemeral",   icon: "⚡",  shelfLife: "< 4 weeks",    color: "text-rose-700",    bg: "bg-rose-50",     border: "border-rose-100",    bar: "bg-rose-400",   pill: "bg-rose-100 text-rose-700 border-rose-200",           desc: "Expires within weeks — breaking news reactions, enforcement action hot takes, live conference coverage. Minimal long-term value.",           refreshTip: "Convert to an evergreen format immediately after publication — 'what [event] tells us about [broader trend]' extends the traffic lifetime by 12+ months" },
+                  };
+
+                  const TIERS: LongevityTier[] = ["evergreen","slow-decay","fast-decay","ephemeral"];
+                  const tierCounts: Record<LongevityTier, number> = { evergreen: evergreen.length, "slow-decay": slowDecay.length, "fast-decay": fastDecay.length, ephemeral: ephemeral.length };
+                  const tierRates:  Record<LongevityTier, number> = { evergreen: evRate, "slow-decay": slRate, "fast-decay": fdRate, ephemeral: epRate };
+
+                  // Avg longevity score
+                  const avgLon = n > 0 ? scored.reduce((s, e) => s + e.lon.score, 0) / n : 0;
+
+                  // Refresh schedule: fast-decay and ephemeral entries with estimated expiry
+                  const needsRefresh = [...fastDecay, ...ephemeral].sort((a, b) => new Date(a.entry.date).getTime() - new Date(b.entry.date).getTime());
+                  const addMonths = (dateStr: string, months: number): string => {
+                    const d = new Date(dateStr);
+                    if (isNaN(d.getTime())) return "—";
+                    d.setMonth(d.getMonth() + months);
+                    return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+                  };
+
+                  return (
+                    <Card className="border border-stone-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">⏳</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Longevity Predictor</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${lonCfg.color} ${lonCfg.bg} ${lonCfg.border}`}>
+                            {lonScore}/100 · {lonCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Classifies each calendar entry by expected shelf life — Evergreen (3+ years), Slow-decay (12–18 months), Fast-decay (2–6 months), or Ephemeral (&lt;4 weeks) — using keyword signal detection across topic and angle fields. Scores the portfolio's longevity balance against ideal ratios for a content agency, flags over-investment in time-sensitive content that creates high refresh burden, and provides concrete evergreen conversion tips to extend the traffic lifetime of time-sensitive pieces.
+                        </p>
+
+                        {/* Portfolio Longevity Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${lonCfg.bg} ${lonCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${lonCfg.color}`}>{lonScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Evergreen rate",    val: evScore, max: 40, desc: `${evergreen.length}/${n} entries evergreen (${Math.round(evRate*100)}%) — target ≥45%`                    },
+                              { label: "Slow-decay rate",   val: slScore, max: 30, desc: `${slowDecay.length}/${n} slow-decay (${Math.round(slRate*100)}%) — target ≥35%`                          },
+                              { label: "Fast-decay cap",    val: fdScore, max: 20, desc: `${fastDecay.length}/${n} fast-decay (${Math.round(fdRate*100)}%) — target ≤20%; avg longevity ${avgLon.toFixed(0)}/100` },
+                              { label: "Ephemeral-free",    val: epScore, max: 10, desc: `${ephemeral.length} ephemeral piece${ephemeral.length !== 1 ? "s" : ""} — planned ephemeral content rarely pays back production cost`       },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${lonCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Visual distribution bar + tier chips */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Longevity distribution:</p>
+                        <div className="flex h-5 w-full rounded-lg overflow-hidden mb-1.5">
+                          {TIERS.map((t) => {
+                            const pct = Math.round(tierRates[t] * 100);
+                            return pct > 0 ? (
+                              <div key={t} className={`flex items-center justify-center text-[6.5px] font-bold text-white ${TIER_CFG[t].bar}`} style={{ width: `${pct}%` }} title={`${TIER_CFG[t].label}: ${pct}%`}>
+                                {pct >= 8 ? `${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {TIERS.map((t) => {
+                            const cfg = TIER_CFG[t]; const cnt = tierCounts[t];
+                            return (
+                              <div key={t} className={`rounded-lg border px-2 py-1.5 text-center ${cfg.bg} ${cfg.border}`}>
+                                <p className="text-[7px] text-slate-400 mb-0.5">{cfg.icon} {cfg.label}</p>
+                                <p className={`text-[12px] font-black leading-none ${cfg.color}`}>{cnt}</p>
+                                <p className="text-[6.5px] text-slate-400 mt-0.5">{cfg.shelfLife}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Economic ROI context panel */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">📊</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">The longevity economics of fintech content:</span> A piece that ranks on page 1 and generates 200 organic visits/month costs the same to produce whether it's evergreen or time-sensitive. After 36 months, an evergreen piece has delivered 7,200 visits from a single production investment. A fast-decay piece stops earning after month 6 — delivering 1,200 visits before requiring a full refresh. Evergreen content earns <span className="font-bold">6× more traffic per £1 of production cost</span> over a 3-year window, which is why a portfolio with &lt;40% evergreen content should be treated as a cost efficiency problem, not just a content strategy problem.
+                          </p>
+                        </div>
+
+                        {/* Fast-decay and ephemeral entries — refresh schedule */}
+                        {needsRefresh.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Refresh planning — time-sensitive entries by estimated expiry:</p>
+                            <div className="rounded-xl border border-slate-100 overflow-hidden mb-4">
+                              <table className="w-full text-[7px] border-collapse">
+                                <thead className="bg-slate-50">
+                                  <tr>
+                                    <th className="text-left text-slate-500 font-semibold px-3 py-1.5">Entry</th>
+                                    <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Tier</th>
+                                    <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Score</th>
+                                    <th className="text-center text-slate-500 font-semibold px-3 py-1.5">Shelf life</th>
+                                    <th className="text-left text-slate-500 font-semibold px-3 py-1.5">Refresh by</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {needsRefresh.map(({ entry: e, lon }) => {
+                                    const cfg = TIER_CFG[lon.tier];
+                                    const refreshBy = lon.tier === "ephemeral" ? addMonths(e.date, 1) : addMonths(e.date, 5);
+                                    return (
+                                      <tr key={entryKey(e)} className="border-t border-slate-50">
+                                        <td className="px-3 py-1.5">
+                                          <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                          <span className="text-slate-600">{e.angle.slice(0,26)}{e.angle.length > 26 ? "…" : ""}</span>
+                                        </td>
+                                        <td className="text-center px-3 py-1.5">
+                                          <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.pill}`}>{cfg.icon} {cfg.label}</span>
+                                        </td>
+                                        <td className="text-center px-3 py-1.5">
+                                          <span className={`text-[7px] font-black tabular-nums ${cfg.color}`}>{lon.score}</span>
+                                        </td>
+                                        <td className="text-center px-3 py-1.5 text-slate-500">{cfg.shelfLife}</td>
+                                        <td className="px-3 py-1.5">
+                                          <span className={`text-[7px] font-bold ${lon.tier === "ephemeral" ? "text-rose-600" : "text-amber-600"}`}>{refreshBy}</span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                              <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100">
+                                <p className="text-[7px] text-slate-400">Refresh by = estimated date when the piece's organic relevance degrades to the point of requiring a full update — fast-decay: publish date + 5 months; ephemeral: publish date + 4 weeks</p>
+                              </div>
+                            </div>
+
+                            {/* Per-entry evergreen conversion tip for the worst entries */}
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Evergreen conversion tips — highest-ROI rewrites:</p>
+                            <div className="space-y-2 mb-4">
+                              {needsRefresh.slice(0,4).map(({ entry: e, lon }) => {
+                                const cfg = TIER_CFG[lon.tier];
+                                return (
+                                  <div key={entryKey(e)} className={`flex items-start gap-2 px-3 py-2 rounded-lg border ${cfg.border} ${cfg.bg}`}>
+                                    <span className="text-[8px] shrink-0 mt-0.5">{cfg.icon}</span>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                                        <span className={`text-[7.5px] font-bold ${cfg.color}`}>{e.angle.slice(0,32)}{e.angle.length > 32 ? "…" : ""}</span>
+                                        <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border ${cfg.pill}`}>{cfg.label}</span>
+                                      </div>
+                                      <p className="text-[7.5px] text-slate-700 leading-snug">✏️ {cfg.refreshTip}</p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Evergreen anchors callout */}
+                        {evergreen.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-100 mb-3">
+                            <span className="text-[10px] shrink-0 mt-0.5">🌳</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-emerald-800 mb-1">{evergreen.length} evergreen anchor piece{evergreen.length !== 1 ? "s" : ""} — long-term organic traffic compounders</p>
+                              <div className="flex flex-wrap gap-1">
+                                {evergreen.map(({ entry: e, lon }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[14rem] ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,28)}{e.angle.length > 28 ? "…" : ""} <span className="opacity-60">({lon.score}pts)</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Per-entry longevity table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — longevity score:</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Score</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-20">Tier</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Shelf life</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-6" title="Evergreen hits">🌳</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-6" title="Slow-decay hits">🍂</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-6" title="Fast-decay hits">⏱️</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...scored].sort((a, b) => b.lon.score - a.lon.score).map(({ entry: e, lon }) => {
+                                const cfg = TIER_CFG[lon.tier];
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,26)}{e.angle.length > 26 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <div className="flex items-center gap-1">
+                                        <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${lon.score}%` }} />
+                                        </div>
+                                        <span className={`tabular-nums font-black shrink-0 text-[6.5px] ${cfg.color}`}>{lon.score}</span>
+                                      </div>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${cfg.pill}`}>{cfg.icon} {cfg.label}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1 text-slate-400">{lon.shelfLife}</td>
+                                    <td className="text-center py-0.5 px-0.5"><span className={`text-[6.5px] ${lon.evergreenHits === 0 ? "text-slate-300" : "text-emerald-600 font-bold"}`}>{lon.evergreenHits}</span></td>
+                                    <td className="text-center py-0.5 px-0.5"><span className={`text-[6.5px] ${lon.slowHits === 0 ? "text-slate-300" : "text-blue-600 font-bold"}`}>{lon.slowHits}</span></td>
+                                    <td className="text-center py-0.5 px-0.5"><span className={`text-[6.5px] ${lon.fastHits === 0 ? "text-slate-300" : "text-amber-600 font-bold"}`}>{lon.fastHits}</span></td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <p className="text-[7px] text-slate-400 mt-1">Score = higher is longer-lived · 🌳 Evergreen hits · 🍂 Slow-decay hits · ⏱️ Fast-decay hits (deduct score)</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Persona Targeting Density Mapper ─────────────────────── */}
                 {calendar.length > 0 && (() => {
