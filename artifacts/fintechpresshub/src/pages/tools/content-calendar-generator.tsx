@@ -1696,6 +1696,77 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Revenue Attribution Modeller ────────────────────────────────────────────
+const RA_TOFU_SIGNALS     = ["what is","introduction","overview","trends","state of","guide to","understanding","101","primer","landscape","ecosystem","rise of","evolution of","history of","future of","impact of","emergence of","growth of"];
+const RA_MOFU_SIGNALS     = ["how to choose","comparison","vs ","alternative","benchmark","best practice","framework","strategy","approach","roadmap","checklist","template","playbook","model","methodology","evaluate","assess","select","optimise","optimize","improve","consider","build"];
+const RA_BOFU_SIGNALS     = ["case study","roi","results","outcome","implementation","migration","vendor","pricing","demo","proof","client","customer","success story","before and after","transformation","saved","grew","reduced by","increased by","achieved","delivered","generated","cut","won"];
+const RA_ENTERPRISE_SIG   = ["enterprise","tier 1 bank","financial institution","c-suite","cfo","cto","chief","head of","director of","vp ","institutional","global bank","investment bank","wealth management","asset manager","central bank","regulator","board level"];
+const RA_MIDMARKET_SIG    = ["fintech","scale-up","growth stage","series b","series c","mid-market","regional bank","credit union","challenger bank","digital bank","payments provider","lending platform","insurtech","wealthtech","neobank"];
+
+type FunnelStage = "TOFU" | "MOFU" | "BOFU";
+
+const BASE_LEADS: Record<ContentType, number> = {
+  "guide":      0.8,
+  "case-study": 2.5,
+  "blog":       0.3,
+  "roundup":    0.2,
+  "linkedin":   0.4,
+};
+
+const RA_DEAL_SIZE: Record<"enterprise" | "mid-market" | "smb", number> = {
+  enterprise:    85000,
+  "mid-market":  25000,
+  smb:           8000,
+};
+
+const STAGE_MULT: Record<FunnelStage, number> = {
+  BOFU: 1.0,
+  MOFU: 0.6,
+  TOFU: 0.3,
+};
+
+const TYPE_STAGE_PRIOR: Record<ContentType, FunnelStage> = {
+  guide:         "TOFU",
+  blog:          "TOFU",
+  roundup:       "TOFU",
+  "case-study":  "BOFU",
+  linkedin:      "MOFU",
+};
+
+interface RAEntry {
+  stage:     FunnelStage;
+  buyerTier: "enterprise" | "mid-market" | "smb";
+  baseLeads: number;
+  pipeline:  number;
+  stageFlag: boolean;
+}
+
+function scoreRA(e: { type: ContentType; topic: string; angle: string }): RAEntry {
+  const hay       = `${e.topic} ${e.angle}`.toLowerCase();
+  const tofuHits  = RA_TOFU_SIGNALS.filter((s) => hay.includes(s)).length;
+  const mofuHits  = RA_MOFU_SIGNALS.filter((s) => hay.includes(s)).length;
+  const bofuHits  = RA_BOFU_SIGNALS.filter((s) => hay.includes(s)).length;
+  const stage: FunnelStage =
+    bofuHits > 0                       ? "BOFU" :
+    mofuHits > 0 && mofuHits >= tofuHits ? "MOFU" :
+    tofuHits > 0                       ? "TOFU" :
+    TYPE_STAGE_PRIOR[e.type];
+  const isEnterprise = RA_ENTERPRISE_SIG.some((s) => hay.includes(s));
+  const isMidMarket  = RA_MIDMARKET_SIG.some((s) => hay.includes(s));
+  const buyerTier: RAEntry["buyerTier"] = isEnterprise ? "enterprise" : isMidMarket ? "mid-market" : "smb";
+  const baseLeads = BASE_LEADS[e.type];
+  const pipeline  = Math.round(baseLeads * RA_DEAL_SIZE[buyerTier] * STAGE_MULT[stage]);
+  const stageFlag = (stage === "BOFU" && (e.type === "linkedin" || e.type === "roundup"))
+                 || (stage === "TOFU" && e.type === "case-study");
+  return { stage, buyerTier, baseLeads, pipeline, stageFlag };
+}
+
+function fmtPipeline(v: number): string {
+  if (v >= 1_000_000) return `£${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000)     return `£${Math.round(v / 1_000)}K`;
+  return `£${v}`;
+}
+
 // ─── Content Velocity Tracker ────────────────────────────────────────────────
 const BASE_TIME_TO_PEAK: Record<ContentType, number | null> = {
   "guide":      5,    // months to first meaningful organic traffic
@@ -6161,6 +6232,210 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Revenue Attribution Modeller ─────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar
+                    .map((e) => ({ entry: e, ra: scoreRA(e) }))
+                    .sort((a, b) => b.ra.pipeline - a.ra.pipeline);
+
+                  const totalPipeline  = scored.reduce((s, x) => s + x.ra.pipeline, 0);
+                  const avgPipeline    = Math.round(totalPipeline / scored.length);
+                  const bofuEntries    = scored.filter((s) => s.ra.stage === "BOFU");
+                  const mofuEntries    = scored.filter((s) => s.ra.stage === "MOFU");
+                  const tofuEntries    = scored.filter((s) => s.ra.stage === "TOFU");
+                  const enterpriseEnts = scored.filter((s) => s.ra.buyerTier === "enterprise");
+                  const flaggedEntries = scored.filter((s) => s.ra.stageFlag);
+
+                  const tofuPct  = Math.round((tofuEntries.length  / scored.length) * 100);
+                  const mofuPct  = Math.round((mofuEntries.length  / scored.length) * 100);
+                  const bofuPct  = Math.round((bofuEntries.length  / scored.length) * 100);
+
+                  const stageCfg = {
+                    TOFU: { label: "TOFU",  sublabel: "Awareness",    bg: "bg-sky-50",     border: "border-sky-100",     text: "text-sky-700",     bar: "bg-sky-400",     badge: "bg-sky-100 text-sky-700 border-sky-200"         },
+                    MOFU: { label: "MOFU",  sublabel: "Consideration", bg: "bg-violet-50",  border: "border-violet-100",  text: "text-violet-700",  bar: "bg-violet-400",  badge: "bg-violet-100 text-violet-700 border-violet-200" },
+                    BOFU: { label: "BOFU",  sublabel: "Decision",      bg: "bg-emerald-50", border: "border-emerald-100", text: "text-emerald-700", bar: "bg-emerald-400", badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+                  } as const;
+
+                  const tierCfg = {
+                    enterprise:    { label: "Enterprise",   bar: "bg-indigo-400",  badge: "bg-indigo-100 text-indigo-700 border-indigo-200"    },
+                    "mid-market":  { label: "Mid-market",   bar: "bg-blue-400",    badge: "bg-blue-100 text-blue-700 border-blue-200"            },
+                    smb:           { label: "SMB",          bar: "bg-slate-300",   badge: "bg-slate-100 text-slate-600 border-slate-200"         },
+                  } as const;
+
+                  return (
+                    <Card className="border border-green-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">💰</span>
+                            <p className="text-xs font-semibold text-slate-700">Revenue Attribution Modeller</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
+                              {fmtPipeline(totalPipeline)} total pipeline
+                            </span>
+                            {flaggedEntries.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {flaggedEntries.length} misaligned
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Assigns a projected pipeline contribution to each entry based on content type conversion coefficients, detected funnel stage (TOFU / MOFU / BOFU), and buyer tier signals. Flags format-stage misalignments where the content type and revenue intent don't match.
+                        </p>
+
+                        {/* Portfolio stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Total pipeline",   val: fmtPipeline(totalPipeline), sub: "projected contribution"       },
+                            { label: "Avg per piece",    val: fmtPipeline(avgPipeline),   sub: "blended across calendar"      },
+                            { label: "BOFU pieces",      val: bofuEntries.length,         sub: "high-intent / decision stage"  },
+                            { label: "Enterprise pieces",val: enterpriseEnts.length,       sub: "largest deal-size segment"    },
+                          ].map(({ label, val, sub }) => (
+                            <div key={label} className="rounded-lg border border-green-100 bg-green-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className="text-[11px] font-black leading-none text-green-700">{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Funnel stage distribution */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Funnel stage distribution:</p>
+                        <div className="flex gap-px h-3 rounded-full overflow-hidden mb-1">
+                          {([["TOFU", tofuPct], ["MOFU", mofuPct], ["BOFU", bofuPct]] as [FunnelStage, number][]).map(([s, pct]) =>
+                            pct > 0 ? (
+                              <div key={s} className={`h-full flex items-center justify-center ${stageCfg[s].bar}`} style={{ width: `${pct}%` }}>
+                                {pct >= 12 && <span className="text-[7px] font-bold text-white">{pct}%</span>}
+                              </div>
+                            ) : null
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4">
+                          {(["TOFU","MOFU","BOFU"] as FunnelStage[]).map((s) => {
+                            const count   = scored.filter((x) => x.ra.stage === s).length;
+                            const pipeSeg = scored.filter((x) => x.ra.stage === s).reduce((a, x) => a + x.ra.pipeline, 0);
+                            return (
+                              <div key={s} className="flex items-center gap-1.5">
+                                <div className={`w-2 h-2 rounded-full ${stageCfg[s].bar}`} />
+                                <span className="text-[8px] text-slate-500">
+                                  <span className="font-bold text-slate-700">{s}</span> {stageCfg[s].sublabel} · {count} piece{count !== 1 ? "s" : ""} · <span className="font-semibold text-green-700">{fmtPipeline(pipeSeg)}</span>
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Top revenue-contributing pieces */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Top pipeline contributors:</p>
+                        <div className="space-y-2 mb-4">
+                          {scored.slice(0, 6).map(({ entry: e, ra }) => {
+                            const sCfg = stageCfg[ra.stage];
+                            const tCfg = tierCfg[ra.buyerTier];
+                            const barPct = Math.round((ra.pipeline / scored[0].ra.pipeline) * 100);
+                            return (
+                              <div key={entryKey(e)} className={`rounded-xl border overflow-hidden ${ra.stageFlag ? "border-rose-200" : sCfg.border}`}>
+                                <div className={`flex items-center justify-between px-3.5 py-2 ${ra.stageFlag ? "bg-rose-50" : sCfg.bg}`}>
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${ra.stageFlag ? "bg-rose-100 text-rose-700 border-rose-200" : sCfg.badge}`}>{ra.stage}</span>
+                                    <span className={`text-[8.5px] font-bold truncate ${ra.stageFlag ? "text-rose-700" : sCfg.text}`}>{e.angle}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${tCfg.badge}`}>{tCfg.label}</span>
+                                    <span className="text-[9px] font-black text-green-700 tabular-nums">{fmtPipeline(ra.pipeline)}</span>
+                                  </div>
+                                </div>
+                                <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                  {/* Pipeline bar relative to top piece */}
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[7px] text-slate-400 w-20 shrink-0">Pipeline value</span>
+                                    <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                      <div className="h-full rounded-full bg-green-400" style={{ width: `${barPct}%` }} />
+                                    </div>
+                                    <span className="text-[7px] tabular-nums text-slate-400 shrink-0 w-12 text-right">{barPct}% of top</span>
+                                  </div>
+                                  {/* Calculation breakdown */}
+                                  <p className="text-[7.5px] text-slate-400">
+                                    {ra.baseLeads} leads × {fmtPipeline(RA_DEAL_SIZE[ra.buyerTier])} deal size × {(STAGE_MULT[ra.stage] * 100).toFixed(0)}% stage conversion = <span className="font-bold text-slate-600">{fmtPipeline(ra.pipeline)}</span>
+                                  </p>
+                                  {/* Stage mismatch warning */}
+                                  {ra.stageFlag && (
+                                    <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-rose-50 border border-rose-200">
+                                      <span className="text-[9px] shrink-0">⚠️</span>
+                                      <p className="text-[8px] text-rose-800 leading-snug">
+                                        <span className="font-bold">Format-stage mismatch:</span>{" "}
+                                        {ra.stage === "BOFU" && (e.type === "linkedin" || e.type === "roundup")
+                                          ? `A ${FORMAT_LABEL[e.type]} is a weak BOFU format — decision-stage buyers need proof, not social posts. Consider converting this into a case study or adding a linked BOFU asset.`
+                                          : `A case study with no decision-stage signals reads as a story without a commercial hook. Add ROI metrics, a client outcome, or a specific result to justify the high-intent format.`}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Portfolio revenue gaps */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Revenue gap analysis:</p>
+                        <div className="space-y-1.5">
+                          {bofuEntries.length === 0 && (
+                            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-rose-50 border border-rose-200">
+                              <span className="text-sm shrink-0">🚨</span>
+                              <div>
+                                <p className="text-[8.5px] font-bold text-rose-700 mb-0.5">No BOFU content — critical pipeline gap</p>
+                                <p className="text-[8px] text-rose-600 leading-snug">Zero decision-stage pieces means buyers reaching high intent have no proof assets to convert them. A single well-crafted case study with outcome metrics can be worth more pipeline than 10 awareness posts. Add at least one case study with a named result.</p>
+                              </div>
+                            </div>
+                          )}
+                          {tofuPct > 65 && (
+                            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                              <span className="text-sm shrink-0">⚠️</span>
+                              <div>
+                                <p className="text-[8.5px] font-bold text-amber-700 mb-0.5">TOFU-heavy calendar ({tofuPct}% awareness content)</p>
+                                <p className="text-[8px] text-amber-700 leading-snug">More than two-thirds of the calendar is awareness-stage. This builds audience but limits pipeline conversion. Shift at least 2–3 pieces to MOFU (comparison frameworks, strategy guides) and 1–2 to BOFU (case studies, outcome reports) to create a complete funnel.</p>
+                              </div>
+                            </div>
+                          )}
+                          {enterpriseEnts.length === 0 && (
+                            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                              <span className="text-sm shrink-0">⚠️</span>
+                              <div>
+                                <p className="text-[8.5px] font-bold text-amber-700 mb-0.5">No enterprise-tier content detected</p>
+                                <p className="text-[8px] text-amber-700 leading-snug">No pieces explicitly target enterprise buyer signals (CFO, CTO, Head of, financial institution). Enterprise deals carry a £85K+ deal size vs £8K for SMB — a single enterprise piece with the right signals unlocks a 10× pipeline multiplier. Add C-suite language and institutional framing to at least 2 pieces.</p>
+                              </div>
+                            </div>
+                          )}
+                          {bofuEntries.length > 0 && tofuPct <= 65 && enterpriseEnts.length > 0 && (
+                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-50 border border-green-100">
+                              <span className="text-sm">✅</span>
+                              <p className="text-[9px] font-semibold text-green-700">Well-balanced revenue funnel — BOFU content present, enterprise signals detected, and TOFU not dominant. Pipeline attribution is spread across all three funnel stages.</p>
+                            </div>
+                          )}
+                          {/* Buyer tier breakdown */}
+                          <div className="grid grid-cols-3 gap-2 mt-1">
+                            {(["enterprise","mid-market","smb"] as const).map((t) => {
+                              const count    = scored.filter((s) => s.ra.buyerTier === t).length;
+                              const pipe     = scored.filter((s) => s.ra.buyerTier === t).reduce((a, x) => a + x.ra.pipeline, 0);
+                              const cfg      = tierCfg[t];
+                              return (
+                                <div key={t} className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1.5 text-center">
+                                  <p className={`text-[7.5px] font-bold mb-0.5 ${cfg.bar.replace("bg-", "text-").replace("-400", "-700")}`}>{cfg.label}</p>
+                                  <p className="text-[10px] font-black text-slate-700 tabular-nums">{fmtPipeline(pipe)}</p>
+                                  <p className="text-[7px] text-slate-400">{count} piece{count !== 1 ? "s" : ""}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Velocity Tracker ──────────────────────────────── */}
                 {calendar.length > 0 && (() => {
