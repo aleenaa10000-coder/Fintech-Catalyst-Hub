@@ -1696,6 +1696,31 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Pillar-Cluster Architecture Mapper ──────────────────────────────────────
+const PILLAR_BREADTH_SIGNALS = [
+  "complete guide","ultimate guide","comprehensive guide","definitive guide",
+  "introduction to","intro to","what is","overview of","everything about",
+  "everything you need","deep dive","masterclass","101","fundamentals",
+  "explained","demystified","framework","strategy","playbook","handbook",
+  "the state of","how to","why every","a guide to","primer on",
+];
+
+// Returns 0-100 likelihood this entry is a pillar page (broad, foundational, comprehensive)
+function pillarScore(e: { type: ContentType; topic: string; angle: string; week: number }): number {
+  const hay   = `${e.topic} ${e.angle}`.toLowerCase();
+  const typeScore =
+    e.type === "guide"      ? 30 :
+    e.type === "blog"       ? 12 :
+    e.type === "roundup"    ? -5 :
+    e.type === "linkedin"   ? -18 :
+    e.type === "case-study" ? -20 : 0;
+  const breadthHits  = PILLAR_BREADTH_SIGNALS.filter((s) => hay.includes(s)).length;
+  const breadthScore = Math.min(35, breadthHits * 10);
+  const weekScore    = e.week <= 4 ? 8 : e.week <= 8 ? 4 : 0;
+  const lengthScore  = Math.min(12, Math.floor(e.angle.length / 8));  // longer angles tend to be more comprehensive
+  return Math.max(0, Math.min(100, typeScore + breadthScore + weekScore + lengthScore));
+}
+
 // ─── Authority Gap Scanner ───────────────────────────────────────────────────
 interface AuthorityCategory {
   name:        string;
@@ -6465,6 +6490,256 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Pillar-Cluster Architecture Mapper ───────────────────── */}
+                {calendar.length > 1 && (() => {
+                  // ── 1. Score every entry as a potential pillar ─────────────
+                  const withPillarScore = calendar.map((e) => ({ e, ps: pillarScore(e) }));
+                  withPillarScore.sort((a, b) => b.ps - a.ps);
+
+                  // Number of pillars: ~1 per 4 entries (min 1, max 8)
+                  const pillarCount = Math.max(1, Math.min(8, Math.round(calendar.length / 4)));
+                  const pillars     = withPillarScore.slice(0, pillarCount).map((x) => x.e);
+                  const pillarSet   = new Set(pillars.map(entryKey));
+                  const clusters    = calendar.filter((e) => !pillarSet.has(entryKey(e)));
+
+                  // ── 2. Assign each cluster to its closest pillar ───────────
+                  const CLUSTER_THRESHOLD = 0.06; // min Jaccard overlap to belong to a pillar
+                  type ClusterAssignment = { entry: typeof clusters[0]; pillarIdx: number | null; overlap: number };
+                  const assignments: ClusterAssignment[] = clusters.map((c) => {
+                    let bestIdx = -1;
+                    let bestOverlap = 0;
+                    pillars.forEach((p, i) => {
+                      const ov = narrativeOverlap(p, c);
+                      if (ov > bestOverlap) { bestOverlap = ov; bestIdx = i; }
+                    });
+                    return {
+                      entry:     c,
+                      pillarIdx: bestOverlap >= CLUSTER_THRESHOLD ? bestIdx : null,
+                      overlap:   bestOverlap,
+                    };
+                  });
+
+                  const orphaned = assignments.filter((a) => a.pillarIdx === null);
+                  const assigned = assignments.filter((a) => a.pillarIdx !== null);
+
+                  // ── 3. Build hub map ───────────────────────────────────────
+                  const hubs = pillars.map((p, i) => {
+                    const clusterEntries = assigned.filter((a) => a.pillarIdx === i);
+                    const hubStrength: "strong" | "moderate" | "thin" | "lonely" =
+                      clusterEntries.length >= 4 ? "strong" :
+                      clusterEntries.length >= 2 ? "moderate" :
+                      clusterEntries.length === 1 ? "thin" : "lonely";
+                    const avgOverlap = clusterEntries.length
+                      ? clusterEntries.reduce((s, a) => s + a.overlap, 0) / clusterEntries.length
+                      : 0;
+                    return { pillar: p, clusterEntries, hubStrength, avgOverlap };
+                  }).sort((a, b) => b.clusterEntries.length - a.clusterEntries.length);
+
+                  const lonelyPillars = hubs.filter((h) => h.hubStrength === "lonely");
+
+                  // ── 4. Architecture score (0-100) ──────────────────────────
+                  const clusterRate   = clusters.length > 0 ? Math.round((assigned.length / clusters.length) * 40) : 40;
+                  const avgDepth      = hubs.length > 0 ? hubs.reduce((s, h) => s + h.clusterEntries.length, 0) / hubs.length : 0;
+                  const depthScore    = Math.round(Math.min(35, (avgDepth / 5) * 35));
+                  const pillarBalance = Math.round(Math.min(25, (1 - Math.abs(pillarCount - calendar.length / 4) / (calendar.length / 4)) * 25));
+                  const archScore     = Math.max(0, Math.min(100, clusterRate + depthScore + pillarBalance));
+
+                  const archCfg =
+                    archScore >= 75 ? { label: "Strong architecture",   color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    archScore >= 50 ? { label: "Developing structure",  color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    archScore >= 30 ? { label: "Thin clustering",       color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                      { label: "Flat / unstructured",   color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  const hubCfg = {
+                    strong:   { label: "Strong hub",    bg: "bg-emerald-50", border: "border-emerald-100", text: "text-emerald-700", badge: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: "🏛️" },
+                    moderate: { label: "Moderate hub",  bg: "bg-blue-50",    border: "border-blue-100",    text: "text-blue-700",    badge: "bg-blue-100 text-blue-700 border-blue-200",           icon: "🔷" },
+                    thin:     { label: "Thin hub",      bg: "bg-amber-50",   border: "border-amber-100",   text: "text-amber-700",   badge: "bg-amber-100 text-amber-700 border-amber-200",         icon: "⚠️" },
+                    lonely:   { label: "Lonely pillar", bg: "bg-rose-50",    border: "border-rose-100",    text: "text-rose-700",    badge: "bg-rose-100 text-rose-700 border-rose-200",            icon: "🏚️" },
+                  } as const;
+
+                  return (
+                    <Card className="border border-indigo-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🗺️</span>
+                            <p className="text-xs font-semibold text-slate-700">Pillar-Cluster Architecture Mapper</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${archCfg.color} ${archCfg.bg} ${archCfg.border.replace("border-","border-")}`}>
+                              {archScore}/100 · {archCfg.label}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Automatically groups calendar entries into pillar pages and supporting cluster posts using topic-signal breadth scoring and pairwise token overlap. Shows which hubs have enough cluster depth to build topical authority, which pillars are orphaned, and which clusters have no parent to link back to.
+                        </p>
+
+                        {/* Architecture score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${archCfg.bg} ${archCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${archCfg.color}`}>{archScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Cluster assignment rate", val: clusterRate, max: 40, desc: `${assigned.length}/${clusters.length} non-pillar entries assigned to a hub` },
+                              { label: "Hub depth",               val: depthScore,  max: 35, desc: `avg ${avgDepth.toFixed(1)} clusters per pillar (ideal ≥ 4)`               },
+                              { label: "Pillar balance",          val: pillarBalance, max: 25, desc: `${pillarCount} pillar${pillarCount !== 1 ? "s" : ""} detected for ${calendar.length} entries`   },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${archCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val / max) * 100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Portfolio stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Pillar pages",      val: pillars.length,                              sub: "broad foundational pieces"     },
+                            { label: "Clustered posts",   val: assigned.length,                             sub: "entries with a parent hub"     },
+                            { label: "Orphaned posts",    val: orphaned.length,                             sub: "no parent pillar found"         },
+                            { label: "Avg hub depth",     val: `${avgDepth.toFixed(1)}x`,                  sub: "clusters per pillar"           },
+                          ].map(({ label, val, sub }) => (
+                            <div key={label} className="rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className="text-[11px] font-black leading-none text-indigo-700">{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Pillar hub cards */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">
+                          Content hubs — {hubs.length} pillar{hubs.length !== 1 ? "s" : ""} mapped:
+                        </p>
+                        <div className="space-y-3 mb-4">
+                          {hubs.map(({ pillar, clusterEntries, hubStrength, avgOverlap }, hi) => {
+                            const hCfg = hubCfg[hubStrength];
+                            return (
+                              <div key={entryKey(pillar)} className={`rounded-xl border overflow-hidden ${hCfg.border}`}>
+                                {/* Pillar header */}
+                                <div className={`px-3.5 py-2.5 ${hCfg.bg}`}>
+                                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className="text-[10px] shrink-0">📌</span>
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[pillar.type]}`}>{FORMAT_LABEL[pillar.type]}</span>
+                                      <span className={`text-[8.5px] font-bold truncate ${hCfg.text}`}>{pillar.angle}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${hCfg.badge}`}>{hCfg.icon} {hCfg.label}</span>
+                                      <span className="text-[7.5px] text-slate-400">Wk {pillar.week}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1.5">
+                                    <span className="text-[7px] text-slate-400 shrink-0">Pillar score</span>
+                                    <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                      <div className={`h-full rounded-full ${hCfg.text.replace("text-","bg-")}`} style={{ width: `${pillarScore(pillar)}%` }} />
+                                    </div>
+                                    <span className="text-[7px] tabular-nums text-slate-400 shrink-0">{pillarScore(pillar)}/100</span>
+                                  </div>
+                                </div>
+
+                                {/* Cluster entries */}
+                                {clusterEntries.length > 0 ? (
+                                  <div className="px-3.5 py-2 bg-white space-y-1">
+                                    {clusterEntries.map((a) => (
+                                      <div key={entryKey(a.entry)} className="flex items-center gap-2 py-0.5">
+                                        <span className="text-[8px] text-slate-300 shrink-0">└─</span>
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[a.entry.type]}`}>{FORMAT_LABEL[a.entry.type]}</span>
+                                        <span className="text-[8px] text-slate-600 truncate flex-1">{a.entry.angle}</span>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          <span className="text-[6.5px] text-slate-300">Wk {a.entry.week}</span>
+                                          <span className="text-[6.5px] tabular-nums text-slate-300">{Math.round(a.overlap * 100)}% match</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {clusterEntries.length > 0 && (
+                                      <p className="text-[7px] text-slate-400 pt-0.5 border-t border-slate-50">
+                                        {clusterEntries.length} cluster post{clusterEntries.length !== 1 ? "s" : ""} · avg {Math.round(avgOverlap * 100)}% topic overlap with pillar
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="px-3.5 py-2 bg-white">
+                                    <p className="text-[7.5px] text-rose-500 italic">No cluster posts assigned — this pillar has no supporting content. Add 3-5 narrower posts that cover subtopics within this subject area to build topical depth.</p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Orphaned clusters */}
+                        {orphaned.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">🔗 Orphaned posts — no parent pillar to link back to:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {orphaned.map((a) => (
+                                <div key={entryKey(a.entry)} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200">
+                                  <span className="text-[10px] shrink-0 mt-0.5">🔗</span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[a.entry.type]}`}>{FORMAT_LABEL[a.entry.type]}</span>
+                                      <span className="text-[8px] font-semibold text-slate-700 truncate">{a.entry.angle}</span>
+                                      <span className="text-[7px] text-slate-400 shrink-0">Wk {a.entry.week}</span>
+                                    </div>
+                                    <p className="text-[7.5px] text-slate-500 leading-snug">
+                                      This post doesn't share enough vocabulary with any pillar page to cluster under it. Either create a new pillar that covers the broader version of this topic, or broaden the angle so it connects to an existing hub.
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Architecture recommendations */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Architecture recommendations:</p>
+                        <div className="space-y-1.5">
+                          {lonelyPillars.length > 0 && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-100">
+                              <span className="text-[9px] shrink-0">🏚️</span>
+                              <p className="text-[8px] text-rose-800 leading-snug">
+                                <span className="font-bold">{lonelyPillars.length} lonely pillar{lonelyPillars.length !== 1 ? "s" : ""}</span> — {lonelyPillars.map((h) => `"${h.pillar.angle.slice(0, 35)}${h.pillar.angle.length > 35 ? "…" : ""}""`).join(", ")} have no supporting cluster posts. Standalone pillar pages have weaker topical authority signals — add 3-5 subtopic posts per pillar to build depth.
+                              </p>
+                            </div>
+                          )}
+                          {orphaned.length > 0 && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                              <span className="text-[9px] shrink-0">🔗</span>
+                              <p className="text-[8px] text-amber-900 leading-snug">
+                                <span className="font-bold">{orphaned.length} orphaned post{orphaned.length !== 1 ? "s" : ""}</span> — these entries don't belong to any content hub. Without a pillar to link back to, they generate no internal linking value and contribute nothing to topical authority clusters.
+                              </p>
+                            </div>
+                          )}
+                          {hubs.filter((h) => h.hubStrength === "thin").length > 0 && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
+                              <span className="text-[9px] shrink-0">📚</span>
+                              <p className="text-[8px] text-blue-800 leading-snug">
+                                <span className="font-bold">{hubs.filter((h) => h.hubStrength === "thin").length} thin hub{hubs.filter((h) => h.hubStrength === "thin").length !== 1 ? "s" : ""}</span> — only 1 supporting cluster post each. SEO research consistently shows that 4-6 tightly-linked cluster posts are needed before a hub page gains meaningful topical authority signals in competitive niches like fintech.
+                              </p>
+                            </div>
+                          )}
+                          {archScore >= 75 && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                              <span className="text-[9px] shrink-0">🏛️</span>
+                              <p className="text-[8px] text-emerald-800 leading-snug font-semibold">Strong pillar-cluster architecture — the calendar is structured to build topical authority. Ensure all cluster posts include internal links back to their parent pillar and that each pillar links out to all its clusters.</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Authority Gap Scanner ────────────────────────────────── */}
                 {calendar.length > 0 && (() => {
