@@ -1615,6 +1615,72 @@ function getTopicTrend(topic: string): {
   return { momentum: 62, direction: "steady", velocity: "+5% MoM", trigger: "Stable fintech audience interest — niche but engaged readership" };
 }
 
+// ─── CTA Effectiveness Scorer ─────────────────────────────────────────────────
+interface CtaScore {
+  urgency:       number; // 0–25
+  specificity:   number; // 0–25
+  audienceFit:   number; // 0–25
+  actionClarity: number; // 0–25
+  total:         number; // 0–100
+  rewrite:       string;
+}
+
+const CTA_URGENCY_WORDS  = ["now", "today", "this week", "limited", "don't miss", "deadline", "before", "last chance", "hurry", "expires", "ending soon", "act now"];
+const CTA_GENERIC_TERMS  = ["learn more", "click here", "read more", "find out more", "see more", "discover more", "check it out", "get started"];
+const CTA_SPECIFIC_VERBS = ["download", "get", "book", "schedule", "request", "register", "join", "access", "subscribe", "watch", "listen", "compare", "calculate", "benchmark", "claim", "unlock", "grab"];
+const CTA_CLARITY_VERBS  = ["download", "book", "schedule", "get", "read", "watch", "listen", "register", "subscribe", "join", "access", "view", "learn", "discover", "build", "start", "try", "claim", "unlock", "grab"];
+const CTA_TYPE_IDEAL: Partial<Record<ContentType, string[]>> = {
+  guide:          ["download", "get the guide", "access", "get your", "grab the"],
+  "case-study":   ["see how", "read how", "view the case study", "learn how", "discover how"],
+  linkedin:       ["share", "comment", "follow", "connect", "let me know", "drop your"],
+  newsletter:     ["subscribe", "sign up", "join", "get weekly", "get the weekly"],
+  webinar:        ["register", "join", "save your seat", "attend", "reserve"],
+  podcast:        ["listen", "subscribe", "tune in", "follow the"],
+  infographic:    ["download", "share", "view", "grab the"],
+  checklist:      ["download", "get your", "grab the", "claim your"],
+  "video-script": ["watch", "subscribe", "follow"],
+  "blog-post":    ["read", "explore", "discover", "learn", "see the full"],
+};
+
+function scoreCta(cta: string, type: ContentType, topic: string): CtaScore {
+  const c = cta.toLowerCase();
+
+  const urgency = CTA_URGENCY_WORDS.some((w) => c.includes(w)) ? 25
+    : c.includes("next") || c.includes("upcoming") || c.includes("launch") ? 15 : 8;
+
+  const hasGeneric  = CTA_GENERIC_TERMS.some((t) => c.includes(t));
+  const hasSpecific = CTA_SPECIFIC_VERBS.some((v) => c.includes(v));
+  const specificity = hasGeneric ? 5 : hasSpecific ? 22 : 12;
+
+  const idealActions = CTA_TYPE_IDEAL[type] ?? [];
+  const audienceFit  = idealActions.some((a) => c.includes(a)) ? 25 : hasSpecific ? 15 : 8;
+
+  const hasVerb       = CTA_CLARITY_VERBS.some((v) => c.includes(v));
+  const wordCount     = cta.trim().split(/\s+/).length;
+  const actionClarity = hasVerb && wordCount >= 3 && wordCount <= 12 ? 23
+    : hasVerb ? 16 : wordCount < 3 ? 8 : 12;
+
+  const total = urgency + specificity + audienceFit + actionClarity;
+
+  const slug = topic.split(" ").slice(0, 4).join(" ").toLowerCase();
+  const yr   = new Date().getFullYear();
+  const REWRITES: Partial<Record<ContentType, string>> = {
+    guide:          `Download the free ${slug} guide — updated for ${yr}`,
+    "case-study":   `See exactly how leading firms achieved results with ${slug}`,
+    linkedin:       `What's your take on ${slug}? Drop your experience in the comments ↓`,
+    newsletter:     `Subscribe now — weekly ${slug} insights for fintech leaders`,
+    webinar:        `Register now · limited seats — ${slug} live session`,
+    podcast:        `Listen now and subscribe for weekly ${slug} breakdowns`,
+    infographic:    `Download the ${slug} infographic — share with your team`,
+    checklist:      `Get your free ${slug} checklist — print-ready PDF`,
+    "video-script": `Watch now · subscribe for weekly ${slug} deep-dives`,
+    "blog-post":    `Read the full breakdown → everything you need to know about ${slug}`,
+  };
+  const rewrite = REWRITES[type] ?? `Get the complete ${slug} resource — free download`;
+
+  return { urgency, specificity, audienceFit, actionClarity, total, rewrite };
+}
+
 // ─── Brief Template Generator — personas, objectives, outlines, distribution ──
 
 const PERSONA_BY_NICHE: {
@@ -5363,6 +5429,155 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── CTA Effectiveness Scorer ────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const DIM_META: { key: keyof Omit<CtaScore, "total" | "rewrite">; label: string; icon: string }[] = [
+                    { key: "urgency",       label: "Urgency",        icon: "⚡" },
+                    { key: "specificity",   label: "Specificity",    icon: "🎯" },
+                    { key: "audienceFit",   label: "Audience Fit",   icon: "👤" },
+                    { key: "actionClarity", label: "Action Clarity", icon: "✅" },
+                  ];
+
+                  const scored = calendar.map((entry) => ({
+                    entry,
+                    score: scoreCta(entry.cta, entry.type, entry.topic),
+                  }));
+
+                  const needsWork = scored.filter((s) => s.score.total < 70);
+                  const good      = scored.filter((s) => s.score.total >= 70 && s.score.total < 85);
+                  const excellent = scored.filter((s) => s.score.total >= 85);
+                  const shown     = [...needsWork].sort((a, b) => a.score.total - b.score.total).slice(0, 6);
+
+                  const totalScore = (v: number): { bg: string; text: string; label: string } =>
+                    v >= 85 ? { bg: "bg-cyan-100",    text: "text-cyan-700",    label: "Excellent" }
+                    : v >= 70 ? { bg: "bg-emerald-100", text: "text-emerald-700", label: "Good"      }
+                    : v >= 50 ? { bg: "bg-amber-100",   text: "text-amber-700",   label: "Fair"      }
+                    :           { bg: "bg-rose-100",    text: "text-rose-700",    label: "Poor"      };
+
+                  const dimBar = (v: number) =>
+                    v >= 20 ? "bg-emerald-400" : v >= 12 ? "bg-amber-400" : "bg-rose-400";
+
+                  return (
+                    <Card className="border border-violet-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📣</span>
+                            <p className="text-xs font-semibold text-slate-700">
+                              CTA Effectiveness Scorer
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {needsWork.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                {needsWork.length} need{needsWork.length === 1 ? "s" : ""} attention
+                              </span>
+                            )}
+                            {excellent.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-700 border border-cyan-200">
+                                {excellent.length} excellent
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Each CTA scored on Urgency, Specificity, Audience Fit & Action Clarity (max 100) — lowest scorers shown first with a rewrite suggestion.
+                        </p>
+
+                        {/* Distribution bar */}
+                        <div className="mb-4">
+                          <div className="flex h-2 rounded-full overflow-hidden gap-px">
+                            {needsWork.length > 0 && (
+                              <div className="bg-rose-400 rounded-l-full" style={{ width: `${(needsWork.length / scored.length) * 100}%` }} />
+                            )}
+                            {good.length > 0 && (
+                              <div className="bg-emerald-400" style={{ width: `${(good.length / scored.length) * 100}%` }} />
+                            )}
+                            {excellent.length > 0 && (
+                              <div className="bg-cyan-400 rounded-r-full" style={{ width: `${(excellent.length / scored.length) * 100}%` }} />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1.5">
+                            <span className="text-[8.5px] text-slate-400"><span className="inline-block w-2 h-2 rounded-full bg-rose-400 mr-1" />Poor/Fair</span>
+                            <span className="text-[8.5px] text-slate-400"><span className="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-1" />Good</span>
+                            <span className="text-[8.5px] text-slate-400"><span className="inline-block w-2 h-2 rounded-full bg-cyan-400 mr-1" />Excellent</span>
+                          </div>
+                        </div>
+
+                        {needsWork.length === 0 ? (
+                          <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-sm">✅</span>
+                            <p className="text-[10px] font-semibold text-emerald-700">
+                              All CTAs score 70 or above — your calls-to-action are well-structured and audience-aligned.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3.5">
+                            {shown.map(({ entry, score }) => {
+                              const tc = totalScore(score.total);
+                              return (
+                                <div key={entryKey(entry)} className="rounded-xl border border-slate-100 bg-slate-50 overflow-hidden">
+                                  {/* Entry header */}
+                                  <div className="flex flex-wrap items-start justify-between gap-2 px-3.5 py-2 border-b border-slate-100 bg-white">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">
+                                        {entry.angle}
+                                      </p>
+                                      <p className="text-[9px] text-violet-600 italic mt-0.5 line-clamp-1">
+                                        "{entry.cta}"
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${TYPE_COLOR[entry.type]}`}>
+                                        {FORMAT_LABEL[entry.type]}
+                                      </span>
+                                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${tc.bg} ${tc.text}`}>
+                                        {score.total} · {tc.label}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Dimension bars */}
+                                  <div className="px-3.5 py-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
+                                    {DIM_META.map(({ key, label, icon }) => (
+                                      <div key={key}>
+                                        <div className="flex items-center justify-between mb-0.5">
+                                          <span className="text-[8.5px] text-slate-500">{icon} {label}</span>
+                                          <span className="text-[8.5px] font-bold text-slate-600">{score[key]}/25</span>
+                                        </div>
+                                        <div className="h-1 rounded-full bg-slate-200 overflow-hidden">
+                                          <div
+                                            className={`h-full rounded-full ${dimBar(score[key])}`}
+                                            style={{ width: `${(score[key] / 25) * 100}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  {/* Rewrite suggestion */}
+                                  <div className="mx-3.5 mb-2.5 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                    <p className="text-[8.5px] text-amber-700 font-semibold mb-0.5">✏️ Suggested rewrite</p>
+                                    <p className="text-[9px] text-amber-900 italic leading-snug">
+                                      "{score.rewrite}"
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {needsWork.length > 6 && (
+                              <p className="text-[9px] text-slate-400 text-center">
+                                +{needsWork.length - 6} more entries need CTA attention
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Trending Topics Radar ───────────────────────────────── */}
                 {calendarTopics.length > 0 && (() => {
