@@ -5454,6 +5454,167 @@ export default function ContentCalendarGenerator() {
                   );
                 })()}
 
+                {/* ── Content Aging Alerts ────────────────────────────────── */}
+                {(() => {
+                  const now      = Date.now();
+                  const MS_DAY   = 1000 * 60 * 60 * 24;
+                  const STALE_DAYS = 21;
+
+                  type AlertKind = "both" | "cooling" | "stale";
+
+                  const RECS: Record<AlertKind, string[]> = {
+                    both: [
+                      "Priority action: pull into your next sprint week AND refresh the angle immediately",
+                      "Reframe around a Rising topic for a contrast or comparison piece to rescue reach",
+                      "Set a brief review checkpoint before the scheduled publish date",
+                    ],
+                    cooling: [
+                      "Reframe the angle to highlight contrast with rising alternatives — e.g. 'Why X is losing to Y'",
+                      "Update the CTA to acknowledge market sentiment shift and address reader hesitation",
+                      "Consider pairing with a surging topic to anchor the cooling piece in a hot narrative",
+                    ],
+                    stale: [
+                      "Re-slot earlier using Sprint Planner — content planned >3 weeks out loses relevance fast",
+                      "Update the working title to reference a recent development or regulatory update",
+                      "Review the CTA — time-sensitive offers or events may have passed by publish date",
+                    ],
+                  };
+
+                  type AlertItem = {
+                    entry:   CalendarEntry;
+                    kind:    AlertKind;
+                    daysOut: number;
+                    trend:   ReturnType<typeof getTopicTrend>;
+                  };
+
+                  const alerts: AlertItem[] = [];
+
+                  for (const entry of calendar) {
+                    const status   = entryStatuses[entryKey(entry)] ?? "not-started";
+                    if (status === "published") continue;
+
+                    const trend    = getTopicTrend(entry.topic);
+                    const ms       = new Date(entry.date).getTime() - now;
+                    const daysOut  = Math.floor(ms / MS_DAY);
+                    const isCool   = trend.direction === "cooling";
+                    const isStale  = daysOut > STALE_DAYS;
+
+                    if (!isCool && !isStale) continue;
+
+                    const kind: AlertKind = isCool && isStale ? "both" : isCool ? "cooling" : "stale";
+                    alerts.push({ entry, kind, daysOut, trend });
+                  }
+
+                  // Sort: both > cooling > stale; within each group, nearest date first
+                  const order: Record<AlertKind, number> = { both: 0, cooling: 1, stale: 2 };
+                  alerts.sort((a, b) =>
+                    order[a.kind] !== order[b.kind]
+                      ? order[a.kind] - order[b.kind]
+                      : a.daysOut - b.daysOut,
+                  );
+                  const shown = alerts.slice(0, 6);
+
+                  const KIND_CFG: Record<AlertKind, { label: string; icon: string; bg: string; border: string; badge: string; text: string }> = {
+                    both:    { label: "Cooling + Stale",  icon: "🚨", bg: "bg-rose-50",   border: "border-rose-200",   badge: "bg-rose-100 text-rose-700 border-rose-300",     text: "text-rose-700"  },
+                    cooling: { label: "Cooling Topic",    icon: "🥶", bg: "bg-blue-50",   border: "border-blue-200",   badge: "bg-blue-100 text-blue-700 border-blue-300",     text: "text-blue-700"  },
+                    stale:   { label: "Scheduled Late",   icon: "⏳", bg: "bg-amber-50",  border: "border-amber-200",  badge: "bg-amber-100 text-amber-700 border-amber-300",  text: "text-amber-700" },
+                  };
+
+                  return (
+                    <Card className="border border-amber-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">⚠️</span>
+                            <p className="text-xs font-semibold text-slate-700">
+                              Content Aging Alerts
+                            </p>
+                          </div>
+                          {shown.length > 0 ? (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                              {alerts.length} alert{alerts.length !== 1 ? "s" : ""}{alerts.length > 6 ? ` · showing 6` : ""}
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                              ✓ All clear
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Entries with a cooling momentum signal or a publish date more than 3 weeks out — with specific actions to keep them relevant.
+                        </p>
+
+                        {shown.length === 0 ? (
+                          <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-sm">✅</span>
+                            <p className="text-[10px] font-semibold text-emerald-700">
+                              No aging alerts — your calendar topics are trending well and all pieces are scheduled within 3 weeks.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {shown.map(({ entry, kind, daysOut, trend }) => {
+                              const cfg  = KIND_CFG[kind];
+                              const recs = RECS[kind];
+                              return (
+                                <div
+                                  key={entryKey(entry)}
+                                  className={`rounded-xl border ${cfg.border} ${cfg.bg} overflow-hidden`}
+                                >
+                                  {/* Entry header */}
+                                  <div className="flex flex-wrap items-start justify-between gap-2 px-3.5 py-2.5 border-b border-inherit">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[10px] font-bold text-slate-700 leading-snug line-clamp-1">
+                                        {entry.angle}
+                                      </p>
+                                      <p className="text-[9px] text-slate-400 mt-0.5">
+                                        {entry.topic} · Wk {entry.week} · {entry.date}
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                                      <span className={`text-[9px] font-semibold border rounded-full px-2 py-0.5 whitespace-nowrap ${TYPE_COLOR[entry.type]}`}>
+                                        {FORMAT_LABEL[entry.type]}
+                                      </span>
+                                      <span className={`text-[9px] font-bold border rounded-full px-2 py-0.5 whitespace-nowrap ${cfg.badge}`}>
+                                        {cfg.icon} {cfg.label}
+                                      </span>
+                                      {kind !== "cooling" && (
+                                        <span className="text-[9px] font-semibold text-amber-700 whitespace-nowrap">
+                                          {daysOut}d out
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Recommendations */}
+                                  <div className="px-3.5 py-2.5 space-y-1">
+                                    {kind === "cooling" && (
+                                      <p className="text-[8.5px] text-slate-500 mb-1">
+                                        Topic trend: <span className="font-semibold text-blue-600">{trend.velocity}</span> — {trend.trigger}
+                                      </p>
+                                    )}
+                                    {recs.map((rec, i) => (
+                                      <div key={i} className="flex items-start gap-1.5">
+                                        <span className={`text-[9px] font-bold mt-0.5 shrink-0 ${cfg.text}`}>
+                                          {i === 0 ? "①" : i === 1 ? "②" : "③"}
+                                        </span>
+                                        <p className="text-[9px] text-slate-600 leading-snug">
+                                          {rec}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
                 {/* ── Competitor Gap Analysis ─────────────────────────────── */}
                 {competitorGapsByTopic.length > 0 && (
                   <Card className="border border-rose-100 shadow-sm">
