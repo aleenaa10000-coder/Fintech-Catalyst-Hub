@@ -1696,6 +1696,62 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Distribution Channel Fit Analyser ───────────────────────────────────────
+type ChannelKey = "seo" | "linkedin" | "email" | "podcast" | "twitter" | "pr" | "syndication" | "community";
+
+interface Channel {
+  key:   ChannelKey;
+  name:  string;
+  icon:  string;
+  desc:  string;
+  color: string;   // Tailwind bg + text + border classes (space-separated)
+}
+
+const CHANNELS: Channel[] = [
+  { key: "seo",         name: "Organic Search",     icon: "🌐", desc: "Long-form, keyword-rich content that answers specific queries at scale",               color: "bg-blue-100 text-blue-700 border-blue-200"       },
+  { key: "linkedin",    name: "LinkedIn",            icon: "💼", desc: "Professional thought leadership, conversational angles, and career insights",           color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
+  { key: "email",       name: "Email Newsletter",    icon: "📧", desc: "Curated, timely insights that reward subscribers with exclusive editorial depth",       color: "bg-amber-100 text-amber-700 border-amber-200"    },
+  { key: "podcast",     name: "Podcast / Audio",     icon: "🎙️", desc: "Narrative-rich, interview-friendly content that works in spoken form",                  color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { key: "twitter",     name: "X / Twitter",         icon: "🐦", desc: "Punchy data points, contrarian takes, and visual stats that ignite threads",            color: "bg-sky-100 text-sky-700 border-sky-200"          },
+  { key: "pr",          name: "Press / PR",          icon: "📰", desc: "Newsworthy angles with original data or executive perspectives for earned coverage",    color: "bg-rose-100 text-rose-700 border-rose-200"       },
+  { key: "syndication", name: "Partner Syndication", icon: "🤝", desc: "Broadly applicable educational content that non-competing publishers will republish",   color: "bg-emerald-100 text-emerald-700 border-emerald-200"},
+  { key: "community",   name: "Community / Slack",   icon: "💬", desc: "Discussion-starting, question-framing content that earns replies and active debate",    color: "bg-orange-100 text-orange-700 border-orange-200" },
+];
+
+// Base channel fit by content type (0-10)
+const CHANNEL_TYPE_FIT: Record<ContentType, Record<ChannelKey, number>> = {
+  "guide":      { seo: 10, linkedin: 4, email: 6, podcast: 3, twitter: 2, pr: 3, syndication: 8, community: 6 },
+  "blog":       { seo: 8,  linkedin: 6, email: 7, podcast: 4, twitter: 5, pr: 5, syndication: 7, community: 5 },
+  "roundup":    { seo: 6,  linkedin: 7, email: 9, podcast: 5, twitter: 7, pr: 4, syndication: 6, community: 8 },
+  "case-study": { seo: 5,  linkedin: 8, email: 6, podcast: 7, twitter: 4, pr: 8, syndication: 5, community: 4 },
+  "linkedin":   { seo: 2,  linkedin: 10,email: 5, podcast: 2, twitter: 6, pr: 2, syndication: 3, community: 7 },
+};
+
+// Topic/angle signals that boost a channel's fit score (+1.5 each, max +3 per channel)
+const CHANNEL_BOOST: Record<ChannelKey, string[]> = {
+  seo:         ["how to","what is","guide to"," vs ","checklist","template","step by step","everything you need","complete guide","comparison of","definition of","types of","examples of","best way to"],
+  linkedin:    ["thought leadership","why i ","unpopular opinion","lessons from","leadership","what i learned","my experience","industry insight","cto","founder","head of","vp of","practitioner","from the trenches"],
+  email:       ["weekly","roundup","newsletter","curated","this week in","digest","what's new","updates from","trending this week","worth reading","inside look","notable"],
+  podcast:     ["interview","conversation with","in depth with","founder story","behind the","how we built","lessons from","what it takes","the journey","our story","episode"],
+  twitter:     ["surprising","data shows","you won't believe","quick stat","thread","hot take","just in","chart shows","number","percentage","fact:","study shows","stat:"],
+  pr:          ["exclusive data","new research","we surveyed","original data","for the first time","reveals","uncovers","new report","new findings","first look","annual study","proprietary"],
+  syndication: ["for all fintech","universal","primer on","complete guide","definitive","introduction to","anyone working in","all practitioners","overview for","industry-wide","fundamentals"],
+  community:   ["debate","poll","should we","controversial","what do you think","discussion","your view","change my mind","argue that","convince me","hot take","question:","unpopular"],
+};
+
+// Returns a 0-10 fit score for each channel
+function scoreChannelFit(e: { type: ContentType; topic: string; angle: string }): Record<ChannelKey, number> {
+  const hay = `${e.topic} ${e.angle}`.toLowerCase();
+  const result = {} as Record<ChannelKey, number>;
+  (Object.keys(CHANNEL_TYPE_FIT[e.type]) as ChannelKey[]).forEach((ch) => {
+    const base  = CHANNEL_TYPE_FIT[e.type][ch];
+    const hits  = CHANNEL_BOOST[ch].filter((s) => hay.includes(s)).length;
+    const boost = Math.min(3, hits * 1.5);
+    result[ch]  = Math.min(10, base + boost);
+  });
+  return result;
+}
+
 // ─── Source Credibility Mapper ───────────────────────────────────────────────
 // Signals that drive high evidence demand — the piece MUST cite authoritative sources
 const CRED_REGULATORY_SIGNALS  = ["psd2","gdpr","aml","kyc","mifid","dora","mica","basel","fca","cfpb","eba","dodd-frank","fatca","fintrac","regulation","compliance","directive","legislative","mandatory","obligat","legal requirement","enforcement","sanction","penalty"];
@@ -6645,6 +6701,299 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Distribution Channel Fit Analyser ───────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Score every entry across all 8 channels
+                  const scored = calendar.map((e) => ({
+                    entry:    e,
+                    scores:   scoreChannelFit(e),
+                    topCh:    (Object.entries(scoreChannelFit(e)) as [ChannelKey, number][]).sort(([,a],[,b]) => b - a)[0][0] as ChannelKey,
+                    topScore: Math.max(...Object.values(scoreChannelFit(e))),
+                  }));
+
+                  // Primary channel for each content type = highest base score channel
+                  const primaryCh = (t: ContentType): ChannelKey =>
+                    (Object.entries(CHANNEL_TYPE_FIT[t]) as [ChannelKey,number][]).sort(([,a],[,b]) => b - a)[0][0];
+
+                  // Per-channel strong-fit count (score ≥ 7)
+                  const channelStrong = CHANNELS.map((ch) => ({
+                    ch,
+                    strong: scored.filter((s) => s.scores[ch.key] >= 7).length,
+                    moderate: scored.filter((s) => s.scores[ch.key] >= 5 && s.scores[ch.key] < 7).length,
+                  }));
+
+                  // Multi-channel amplification candidates: ≥ 6.5 on 3+ channels
+                  const multiChannel = scored.filter((s) =>
+                    (Object.values(s.scores) as number[]).filter((v) => v >= 6.5).length >= 3
+                  ).sort((a, b) => {
+                    const aCount = (Object.values(a.scores) as number[]).filter(v => v >= 6.5).length;
+                    const bCount = (Object.values(b.scores) as number[]).filter(v => v >= 6.5).length;
+                    return bCount - aCount;
+                  });
+
+                  // Mismatch detection: top channel ≠ primary channel for this format, with meaningful gap
+                  const mismatches = scored.filter((s) => {
+                    const pCh  = primaryCh(s.entry.type);
+                    if (s.topCh === pCh) return false;
+                    const gap = s.scores[s.topCh] - s.scores[pCh];
+                    return gap >= 2.5; // topic strongly pulls toward a different channel than the format
+                  });
+
+                  // ── Channel Coverage Score (0-100) ─────────────────────────
+                  // Breadth (0-40): how many channels have ≥1 strong-fit (≥7) entry
+                  const coveredChannels = channelStrong.filter((c) => c.strong >= 1).length;
+                  const breadthScore    = Math.round(Math.min(40, coveredChannels * 5));
+
+                  // Balance (0-30): penalise if one channel dominates the "top channel" assignments
+                  const topChCounts    = CHANNELS.map((ch) => scored.filter((s) => s.topCh === ch.key).length);
+                  const maxTopCh       = Math.max(...topChCounts);
+                  const dominancePct   = scored.length > 0 ? maxTopCh / scored.length : 0;
+                  const balanceScore   = Math.round(Math.max(0, 30 * (1 - dominancePct)));
+
+                  // Mismatch penalty (0-30)
+                  const mismatchScore = Math.max(0, 30 - mismatches.length * 8);
+
+                  const channelScore = breadthScore + balanceScore + mismatchScore;
+
+                  const chanCfg =
+                    channelScore >= 75 ? { label: "Excellent channel coverage",  color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    channelScore >= 50 ? { label: "Good distribution",           color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    channelScore >= 30 ? { label: "Narrow channel reach",        color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                         { label: "Single-channel dependency",   color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  const maxStrong = Math.max(...channelStrong.map((c) => c.strong), 1);
+
+                  return (
+                    <Card className="border border-sky-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📡</span>
+                            <p className="text-xs font-semibold text-slate-700">Distribution Channel Fit Analyser</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${chanCfg.color} ${chanCfg.bg} ${chanCfg.border}`}>
+                            {channelScore}/100 · {chanCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Scores each entry across 8 distribution channels (Organic Search, LinkedIn, Email, Podcast, Twitter/X, Press/PR, Partner Syndication, Community) using base format fit weights and topic-angle signal boosts — flagging format-channel mismatches and surfacing multi-channel amplification candidates.
+                        </p>
+
+                        {/* Channel Coverage Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${chanCfg.bg} ${chanCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${chanCfg.color}`}>{channelScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Channel breadth",    val: breadthScore,  max: 40, desc: `${coveredChannels}/8 channels have ≥1 strong-fit entry (score ≥7)`                     },
+                              { label: "Distribution balance",val: balanceScore, max: 30, desc: `${Math.round(dominancePct*100)}% of entries point to a single top channel`              },
+                              { label: "Mismatch rate",      val: mismatchScore, max: 30, desc: `${mismatches.length} format-channel mismatch${mismatches.length !== 1 ? "es" : ""} detected` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${chanCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val / max) * 100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Portfolio stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Channels covered",   val: coveredChannels,      sub: "of 8 channels with strong fit"    },
+                            { label: "Multi-channel hits", val: multiChannel.length,  sub: "≥3 channels scoring 6.5+"         },
+                            { label: "Mismatches",         val: mismatches.length,    sub: "format vs topic channel conflict"  },
+                            { label: "Dominant channel",   val: CHANNELS.find((c) => c.key === (CHANNELS.map((ch) => ({ ch, n: scored.filter((s) => s.topCh === ch.key).length })).sort((a,b) => b.n - a.n)[0]?.ch.key))?.icon ?? "—", sub: "most common top channel" },
+                          ].map(({ label, val, sub }) => (
+                            <div key={label} className="rounded-lg border border-sky-100 bg-sky-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className="text-[11px] font-black leading-none text-sky-700">{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Channel strength bars */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Channel coverage — strong-fit entries per channel:</p>
+                        <div className="space-y-1.5 mb-4">
+                          {channelStrong.map(({ ch, strong, moderate }) => {
+                            const [bgCls, textCls, borderCls] = ch.color.split(" ");
+                            const strongPct   = maxStrong > 0 ? Math.round((strong   / maxStrong) * 100) : 0;
+                            const moderatePct = maxStrong > 0 ? Math.round((moderate / maxStrong) * 100) : 0;
+                            return (
+                              <div key={ch.key} className="flex items-center gap-2">
+                                <span className="text-[10px] shrink-0 w-5">{ch.icon}</span>
+                                <span className="text-[7.5px] text-slate-500 w-28 shrink-0">{ch.name}</span>
+                                <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden relative">
+                                  {moderatePct > 0 && <div className="absolute inset-y-0 left-0 h-full opacity-40" style={{ width: `${Math.min(100,(strongPct + moderatePct))}%`, backgroundColor: "currentColor" }} />}
+                                  <div className={`h-full rounded-full ${bgCls.replace("100","400")}`} style={{ width: `${strongPct}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 shrink-0 w-20 text-right">
+                                  {strong > 0 ? <span className="font-bold text-slate-700">{strong} strong</span> : <span className="text-slate-300">—</span>}
+                                  {moderate > 0 && <span className="text-slate-400"> · {moderate} ok</span>}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          <p className="text-[7px] text-slate-400 pt-0.5">Strong = score ≥7/10 · Moderate = 5–6.9 · bars normalised to highest channel</p>
+                        </div>
+
+                        {/* Per-entry channel heatmap (compact) */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Entry-by-channel fit heatmap:</p>
+                        <div className="overflow-x-auto mb-4">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead>
+                              <tr>
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2 w-36">Entry</th>
+                                {CHANNELS.map((ch) => (
+                                  <th key={ch.key} className="text-center text-slate-400 font-normal pb-1 px-0.5 w-7" title={ch.name}>{ch.icon}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scored.map(({ entry: e, scores }) => (
+                                <tr key={entryKey(e)} className="border-t border-slate-50">
+                                  <td className="py-0.5 pr-2 truncate max-w-[9rem]">
+                                    <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className="text-slate-600 text-[7px]">{e.angle.slice(0,24)}{e.angle.length > 24 ? "…" : ""}</span>
+                                  </td>
+                                  {CHANNELS.map((ch) => {
+                                    const v   = scores[ch.key];
+                                    const cls =
+                                      v >= 8   ? "bg-emerald-500 text-white" :
+                                      v >= 6.5 ? "bg-emerald-200 text-emerald-800" :
+                                      v >= 5   ? "bg-amber-100 text-amber-700" :
+                                      v >= 3   ? "bg-slate-100 text-slate-500" :
+                                                 "bg-slate-50 text-slate-300";
+                                    return (
+                                      <td key={ch.key} className="text-center py-0.5 px-0.5">
+                                        <span className={`inline-block w-5 h-4 rounded text-[6.5px] font-bold leading-4 tabular-nums ${cls}`}>{v.toFixed(0)}</span>
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          <div className="flex items-center gap-3 mt-1">
+                            {[["bg-emerald-500 text-white","≥8 Strong"],["bg-emerald-200 text-emerald-800","6.5–7.9 Good"],["bg-amber-100 text-amber-700","5–6.4 OK"],["bg-slate-100 text-slate-500","3–4.9 Weak"],["bg-slate-50 text-slate-300","<3 Poor"]].map(([cls,label]) => (
+                              <div key={label} className="flex items-center gap-1">
+                                <span className={`inline-block w-4 h-3 rounded text-[5.5px] leading-3 text-center font-bold ${cls}`}>8</span>
+                                <span className="text-[6.5px] text-slate-400">{label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Multi-channel amplification candidates */}
+                        {multiChannel.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">🚀 Multi-channel amplification candidates — strong fit on 3+ channels:</p>
+                            <div className="space-y-2 mb-4">
+                              {multiChannel.slice(0, 4).map(({ entry: e, scores }) => {
+                                const strongChs = (Object.entries(scores) as [ChannelKey, number][])
+                                  .filter(([, v]) => v >= 6.5)
+                                  .sort(([, a], [, b]) => b - a);
+                                return (
+                                  <div key={entryKey(e)} className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-sky-50 border border-sky-100">
+                                    <span className="text-[10px] shrink-0 mt-0.5">🚀</span>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                        <span className="text-[8.5px] font-bold text-sky-800 truncate">{e.angle}</span>
+                                        <span className="text-[7px] text-sky-600 shrink-0">Wk {e.week}</span>
+                                      </div>
+                                      <div className="flex flex-wrap gap-1">
+                                        {strongChs.map(([ck, v]) => {
+                                          const ch = CHANNELS.find((c) => c.key === ck)!;
+                                          const [bgCls, textCls, borderCls] = ch.color.split(" ");
+                                          return (
+                                            <span key={ck} className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${bgCls} ${textCls} ${borderCls}`}>
+                                              {ch.icon} {ch.name} <span className="opacity-70">{v.toFixed(1)}</span>
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Format-channel mismatches */}
+                        {mismatches.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">⚠️ Format-channel mismatches — topic wants a different channel than the format:</p>
+                            <div className="space-y-2 mb-4">
+                              {mismatches.map(({ entry: e, scores, topCh }) => {
+                                const pCh    = primaryCh(e.type);
+                                const topChObj = CHANNELS.find((c) => c.key === topCh)!;
+                                const pChObj   = CHANNELS.find((c) => c.key === pCh)!;
+                                const [topBg, topText, topBorder] = topChObj.color.split(" ");
+                                const [pBg,   pText,   pBorder]   = pChObj.color.split(" ");
+                                return (
+                                  <div key={entryKey(e)} className="rounded-xl border border-amber-100 overflow-hidden">
+                                    <div className="flex items-center justify-between px-3.5 py-2 bg-amber-50">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                        <span className="text-[8.5px] font-bold text-amber-800 truncate">{e.angle}</span>
+                                      </div>
+                                      <span className="text-[7px] text-amber-600 shrink-0 ml-2">Wk {e.week}</span>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-[7.5px] text-slate-500 shrink-0">Format primary:</span>
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${pBg} ${pText} ${pBorder}`}>{pChObj.icon} {pChObj.name} ({scores[pCh].toFixed(1)})</span>
+                                        <span className="text-[7px] text-slate-400">→ but topic fits best in:</span>
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${topBg} ${topText} ${topBorder}`}>{topChObj.icon} {topChObj.name} ({scores[topCh].toFixed(1)})</span>
+                                      </div>
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-amber-50 border border-amber-100">
+                                        <span className="text-[9px] shrink-0">💡</span>
+                                        <p className="text-[8px] text-amber-900 leading-snug">
+                                          This topic's angle scores {(scores[topCh] - scores[pCh]).toFixed(1)} points higher on {topChObj.name} than on {pChObj.name}. Either adapt the format (e.g. extract the core insight into a {topChObj.name} native format) or rewrite the angle to play to the {FORMAT_LABEL[e.type]}'s natural channel strengths — {pChObj.desc.toLowerCase()}.
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Uncovered channels */}
+                        {(() => {
+                          const dark = channelStrong.filter((c) => c.strong === 0 && c.moderate === 0);
+                          return dark.length > 0 ? (
+                            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                              <span className="text-[10px] shrink-0 mt-0.5">📭</span>
+                              <div>
+                                <p className="text-[8.5px] font-bold text-slate-700 mb-0.5">Uncovered channels — zero entries fit these well:</p>
+                                <div className="flex flex-wrap gap-1 mb-1">
+                                  {dark.map(({ ch }) => {
+                                    const [bgCls, textCls, borderCls] = ch.color.split(" ");
+                                    return <span key={ch.key} className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${bgCls} ${textCls} ${borderCls}`}>{ch.icon} {ch.name}</span>;
+                                  })}
+                                </div>
+                                <p className="text-[8px] text-slate-600 leading-snug">These channels have no naturally fitting content in the current calendar. A single well-targeted piece per quarter per channel is enough to maintain a distribution presence without overextending the editorial team.</p>
+                              </div>
+                            </div>
+                          ) : null;
+                        })()}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Source Credibility Mapper ────────────────────────────── */}
                 {calendar.length > 0 && (() => {
