@@ -1696,6 +1696,103 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Competitive Differentiation Index ───────────────────────────────────────
+// Detects commodity angles and scores proprietary-perspective signals per entry
+
+const DIFF_COMMODITY_SIGNALS = [
+  "the future of ","is transforming","is changing the","the rise of ","everything you need to know",
+  "a complete guide","the ultimate guide","top ways to","best practices","key takeaways",
+  "what you need to know","the importance of","the role of ","an introduction to",
+  "getting started with","demystified","explained simply","overview of","the basics of",
+  "unlocking the","harnessing the","leveraging ","strategies for ","solutions for ",
+  "tips and tricks","your guide to","how to use ","checklist for","a guide to ",
+];
+
+const DIFF_SPECIFICITY_SIGNALS = [
+  " uk ","in the uk","in the eu","in the us","in europe","in asia","in singapore","in london",
+  "in frankfurt","in new york","in hong kong","psd2","psd3","gdpr","dora","mifid",
+  "consumer duty","basel iii","iso 20022","srep","mastercard","visa","stripe","revolut",
+  "monzo","starling","jpmorgan","goldman","santander","barclays","lloyds","hsbc",
+  "fiserv","finastra","mambu","thought machine"," cfo"," cto"," ciso","treasury team",
+  "compliance officer","risk officer","q1 ","q2 ","q3 ","q4 ","2024","2025","2026",
+  "basis points"," bps"," percent"," % ","per month","per year","annually",
+];
+
+const DIFF_CONTRARIAN_SIGNALS = [
+  "the case against","why it fails","the failure of","the problem with","the flaw in",
+  "stop claiming","stop saying","despite the hype","contrary to","against the grain",
+  "the myth of","overrated","misunderstood","overlooked","what most miss","rethinking",
+  "the real reason","in reality","the truth about","the real cost","the real risk",
+  "the hidden cost","the hidden risk","the dark side","the downside","the catch",
+  "think again","wrong about","mistakes made","pushback on","reconsidering",
+  "the inconvenient","not as simple","not as easy","harder than","more complex than",
+];
+
+const DIFF_INSIDER_SIGNALS = [
+  "implementation","in practice","real-world","under the hood","the mechanics of",
+  "step-by-step","how to actually","in production","at scale","lessons learned",
+  "pitfalls","what no one tells","behind the scenes","from experience","worked example",
+  "hands-on","day-to-day","api integration","configuration","migration path",
+  "vendor selection","build vs buy","total cost of ownership","tco","operational overhead",
+  "time to value","time to implement","failure mode","edge case","corner case",
+  "architecture decision","team structure","skill gap","procurement","due diligence",
+];
+
+type DiffTier = "strongly-differentiated" | "differentiated" | "commodity-risk" | "commodity";
+
+interface DiffEntry {
+  commodityHits:    number;
+  specificityHits:  number;
+  contrarianHits:   number;
+  insiderHits:      number;
+  specificityScore: number;   // 0-30
+  contrarianScore:  number;   // 0-25
+  insiderScore:     number;   // 0-25
+  commodityPenalty: number;
+  diffScore:        number;   // 0-100 after penalty
+  tier:             DiffTier;
+  weakestDim:       string;
+}
+
+function scoreDiff(topic: string, angle: string): DiffEntry {
+  const hay = `${topic} ${angle}`.toLowerCase();
+
+  const commodityHits   = DIFF_COMMODITY_SIGNALS.filter((s)   => hay.includes(s)).length;
+  const specificityHits = DIFF_SPECIFICITY_SIGNALS.filter((s) => hay.includes(s)).length;
+  const contrarianHits  = DIFF_CONTRARIAN_SIGNALS.filter((s)  => hay.includes(s)).length;
+  const insiderHits     = DIFF_INSIDER_SIGNALS.filter((s)     => hay.includes(s)).length;
+
+  const specificityScore = Math.min(30, specificityHits * 5);
+  const contrarianScore  = Math.min(25, contrarianHits  * 10);
+  const insiderScore     = Math.min(25, insiderHits     * 7);
+  const commodityPenalty = commodityHits * 8;
+
+  const diffScore = Math.max(0, specificityScore + contrarianScore + insiderScore - commodityPenalty);
+
+  const tier: DiffTier =
+    diffScore >= 60 ? "strongly-differentiated" :
+    diffScore >= 38 ? "differentiated"          :
+    diffScore >= 15 ? "commodity-risk"           :
+                      "commodity";
+
+  const dims = [
+    { label: "specificity",                score: specificityScore, max: 30 },
+    { label: "contrarian positioning",     score: contrarianScore,  max: 25 },
+    { label: "insider/practitioner depth", score: insiderScore,     max: 25 },
+  ].sort((a, b) => (a.score / a.max) - (b.score / b.max));
+
+  return { commodityHits, specificityHits, contrarianHits, insiderHits, specificityScore, contrarianScore, insiderScore, commodityPenalty, diffScore, tier, weakestDim: dims[0].label };
+}
+
+// Per-entry contextualised reframe tip based on weakest dimension + topic
+const diffReframeTip = (weakestDim: string, topic: string): string => {
+  if (weakestDim === "specificity")
+    return `Ground "${topic}" in a named geography (UK, EU, Singapore), a specific regulation (PSD3, DORA, Consumer Duty), or a named institution — specificity transforms generic content into citable reference material that earns backlinks and positions the agency as an informed specialist rather than a category generalist.`;
+  if (weakestDim === "contrarian positioning")
+    return `Reframe "${topic}" as a challenge to conventional wisdom — argue why the standard approach fails in practice, or name a widely-held assumption about ${topic} that practitioners know to be wrong — contrarian angles earn 3× more social engagement in fintech because they give informed readers something concrete to agree or disagree with.`;
+  return `Add implementation depth to "${topic}" — focus on real-world mechanics, edge cases, vendor selection criteria, or build-vs-buy trade-offs — practitioner-level detail is the single hardest type of content for commodity publishers to replicate because it requires genuine operational experience.`;
+};
+
 // ─── Reader Trust Signal Auditor ─────────────────────────────────────────────
 // Signals that build credibility with risk-averse fintech buyers
 const TRUST_DATA_SIGNALS      = ["% ","percent","billion","million","trillion","basis points"," bps","cagr","yoy","year-on-year","survey of","respondents","times faster","reduction of","increase of","growth rate","adoption rate","market share","study of","data shows","figures show","according to data","median","average of"];
@@ -7029,6 +7126,270 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Competitive Differentiation Index ───────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar.map((e) => ({ entry: e, diff: scoreDiff(e.topic, e.angle) }));
+                  const n = scored.length;
+
+                  const byTier = (t: DiffTier) => scored.filter((s) => s.diff.tier === t);
+                  const stronglyDiff = byTier("strongly-differentiated");
+                  const diffEntries  = byTier("differentiated");
+                  const commRisk     = byTier("commodity-risk");
+                  const commodity    = byTier("commodity");
+                  const penalised    = scored.filter((s) => s.diff.commodityHits > 0);
+
+                  // ── Portfolio Competitive Differentiation Score (0-100) ────
+                  const avgDiff      = n > 0 ? scored.reduce((s, e) => s + e.diff.diffScore, 0) / n : 0;
+                  const avgDiffScore = Math.round((avgDiff / 100) * 60);
+
+                  const strongCount = scored.filter((s) => s.diff.diffScore >= 50).length;
+                  const strongScore = n > 0 ? Math.round((strongCount / n) * 25) : 25;
+
+                  const commFreeCount = scored.filter((s) => s.diff.commodityHits === 0).length;
+                  const commFreeScore = n > 0 ? Math.round((commFreeCount / n) * 15) : 15;
+
+                  const portfolioDiffScore = avgDiffScore + strongScore + commFreeScore;
+
+                  const diffCfg =
+                    portfolioDiffScore >= 75 ? { label: "Strongly differentiated calendar",    color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    portfolioDiffScore >= 50 ? { label: "Differentiated with commodity risk",  color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    portfolioDiffScore >= 25 ? { label: "Significant commodity exposure",      color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                               { label: "Commodity calendar — easily replicated", color: "text-rose-700", bg: "bg-rose-50",   border: "border-rose-100"    };
+
+                  const TIER_CFG: Record<DiffTier, { label: string; icon: string; color: string; bg: string; border: string; bar: string; desc: string }> = {
+                    "strongly-differentiated": { label: "Strongly differentiated", icon: "🎯", color: "text-emerald-700", bg: "bg-emerald-50",  border: "border-emerald-100", bar: "bg-emerald-400", desc: "High specificity, contrarian or practitioner framing — hard for competitors to replicate"       },
+                    "differentiated":          { label: "Differentiated",          icon: "✅", color: "text-blue-700",    bg: "bg-blue-50",     border: "border-blue-100",    bar: "bg-blue-400",    desc: "Some proprietary context — strengthening one dimension would push it to strongly differentiated" },
+                    "commodity-risk":          { label: "Commodity risk",          icon: "⚠️", color: "text-amber-700",  bg: "bg-amber-50",    border: "border-amber-100",   bar: "bg-amber-400",   desc: "Partially generic framing — likely to be replicated by multiple other fintech publishers"        },
+                    "commodity":               { label: "Commodity",               icon: "🚨", color: "text-rose-700",   bg: "bg-rose-50",     border: "border-rose-100",    bar: "bg-rose-400",    desc: "Generic framing with low proprietary value — easily replicated by any category publisher"        },
+                  };
+
+                  const DIM_CFG = [
+                    { key: "specificityScore"  as const, label: "Specificity",          max: 30, color: "bg-blue-400",    desc: "Named geography, regulation, company, persona, or metric" },
+                    { key: "contrarianScore"   as const, label: "Contrarian angle",     max: 25, color: "bg-rose-400",    desc: "Challenges conventional wisdom or names a failing"         },
+                    { key: "insiderScore"      as const, label: "Insider/practitioner", max: 25, color: "bg-violet-400",  desc: "Operational mechanics, implementation, edge cases"         },
+                  ] as const;
+
+                  // Portfolio weakest differentiation dimension
+                  const portDims = [
+                    { label: "specificity",                total: scored.reduce((s, e) => s + e.diff.specificityScore, 0), max: n * 30 },
+                    { label: "contrarian positioning",     total: scored.reduce((s, e) => s + e.diff.contrarianScore,  0), max: n * 25 },
+                    { label: "insider/practitioner depth", total: scored.reduce((s, e) => s + e.diff.insiderScore,     0), max: n * 25 },
+                  ].sort((a, b) => (a.total / a.max) - (b.total / b.max));
+                  const weakestPortDim = portDims[0];
+
+                  // Commodity entries sorted worst-first
+                  const worstFirst = [...scored].sort((a, b) => a.diff.diffScore - b.diff.diffScore);
+
+                  return (
+                    <Card className="border border-blue-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🎯</span>
+                            <p className="text-xs font-semibold text-slate-700">Competitive Differentiation Index</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${diffCfg.color} ${diffCfg.bg} ${diffCfg.border}`}>
+                            {portfolioDiffScore}/100 · {diffCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Detects when calendar angles use commodity framings that every other fintech publisher reproduces — "the future of X", "why Y matters", "a guide to Z" — and scores each entry for the proprietary-perspective signals that competitors can't easily replicate: named-entity specificity, contrarian positioning that challenges received wisdom, and insider/practitioner depth that requires genuine operational experience to write credibly.
+                        </p>
+
+                        {/* Portfolio score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${diffCfg.bg} ${diffCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${diffCfg.color}`}>{portfolioDiffScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Avg differentiation",  val: avgDiffScore,  max: 60, desc: `mean entry score ${avgDiff.toFixed(1)}/100 across all ${n} pieces`                                     },
+                              { label: "Strong diff rate",     val: strongScore,   max: 25, desc: `${strongCount}/${n} entries score ≥50 (differentiated or strongly differentiated tier)`                },
+                              { label: "Commodity-free rate",  val: commFreeScore, max: 15, desc: `${commFreeCount}/${n} entries have zero generic framing signals detected in topic or angle`             },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${diffCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Tier distribution */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {(["strongly-differentiated","differentiated","commodity-risk","commodity"] as DiffTier[]).map((t) => {
+                            const g = byTier(t); const cfg = TIER_CFG[t];
+                            return (
+                              <div key={t} className={`rounded-lg border px-2 py-1.5 text-center ${cfg.bg} ${cfg.border}`}>
+                                <p className="text-[7px] text-slate-400 mb-0.5">{cfg.label}</p>
+                                <p className={`text-[13px] font-black leading-none ${cfg.color}`}>{g.length}</p>
+                                <p className="text-[6.5px] text-slate-400 mt-0.5">{cfg.icon}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Portfolio weakest dimension */}
+                        <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[9px] shrink-0 mt-0.5">📉</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">Portfolio's lowest differentiation dimension: {weakestPortDim.label}</span> — averages {n > 0 ? Math.round(weakestPortDim.total / n) : 0}/{weakestPortDim.max === n * 30 ? 30 : 25} pts across all entries. {diffReframeTip(weakestPortDim.label, "your fintech content")}
+                          </p>
+                        </div>
+
+                        {/* Commodity penalty callout */}
+                        {penalised.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{penalised.length} piece{penalised.length !== 1 ? "s" : ""} use generic framing signals that flood the fintech content category — each costs differentiation score</p>
+                              <div className="flex flex-wrap gap-1 mb-1.5">
+                                {penalised.map(({ entry: e, diff: d }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,26)}{e.angle.length > 26 ? "…" : ""} <span className="opacity-55">({d.commodityHits}× generic)</span>
+                                  </span>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-amber-700 leading-snug">Generic framings ("the future of X", "a guide to Y", "why Z matters") are the lowest-cost angles for any publisher to produce — which is precisely why they earn the lowest differentiation value. Every other fintech publisher with a content budget is competing in exactly this slot. These entries need angle surgery before they can earn meaningful organic reach, links, or audience loyalty.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Commodity and commodity-risk detail cards — top 5 worst */}
+                        {(commodity.length > 0 || commRisk.length > 0) && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Entries needing angle surgery — lowest differentiation first:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {worstFirst.filter((s) => s.diff.tier === "commodity" || s.diff.tier === "commodity-risk").slice(0,5).map(({ entry: e, diff: d }) => {
+                                const cfg = TIER_CFG[d.tier];
+                                return (
+                                  <div key={entryKey(e)} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                    <div className={`flex items-center justify-between px-3.5 py-2 ${cfg.bg}`}>
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                        <span className={`text-[8.5px] font-bold truncate ${cfg.color}`}>{e.angle}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border tabular-nums ${cfg.bg} ${cfg.color} ${cfg.border}`}>{d.diffScore}/100</span>
+                                        <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.bg} ${cfg.color} ${cfg.border}`}>{cfg.icon} {cfg.label}</span>
+                                      </div>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                      {/* Dimension bars */}
+                                      <div className="space-y-0.5">
+                                        {DIM_CFG.map((dim) => (
+                                          <div key={dim.key} className="flex items-center gap-2">
+                                            <span className="text-[6.5px] text-slate-400 w-24 shrink-0">{dim.label}</span>
+                                            <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                              <div className={`h-full rounded-full ${dim.color}`} style={{ width: `${Math.round((d[dim.key]/dim.max)*100)}%` }} />
+                                            </div>
+                                            <span className="text-[6.5px] tabular-nums text-slate-400 shrink-0 w-8 text-right">{d[dim.key]}/{dim.max}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      {/* Commodity signal alert */}
+                                      {d.commodityHits > 0 && (
+                                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-50 border border-amber-100">
+                                          <span className="text-[8px] shrink-0">⚠️</span>
+                                          <p className="text-[7.5px] text-amber-700 font-semibold">{d.commodityHits} generic framing signal{d.commodityHits !== 1 ? "s" : ""} detected — −{d.commodityPenalty} pts. Rephrase the angle to remove or replace these with specific, proprietary context.</p>
+                                        </div>
+                                      )}
+                                      {/* Contextualised reframe tip */}
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                        <span className="text-[8px] shrink-0">✏️</span>
+                                        <p className="text-[7.5px] text-slate-700 leading-snug">
+                                          <span className="font-bold">Weakest dimension: {d.weakestDim}. </span>{diffReframeTip(d.weakestDim, e.topic)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Per-entry differentiation table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — differentiation score lowest-first:</p>
+                        <div className="overflow-x-auto mb-4">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Score</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-20">Tier</th>
+                                {DIM_CFG.map((d) => (
+                                  <th key={d.key} className="text-center text-slate-400 font-normal pb-1 px-0.5 w-8" title={d.desc}>{d.label.split("/")[0]}</th>
+                                ))}
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-12">Generic×</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {worstFirst.map(({ entry: e, diff: d }) => {
+                                const cfg = TIER_CFG[d.tier];
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,26)}{e.angle.length > 26 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <div className="flex items-center gap-1">
+                                        <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${d.diffScore}%` }} />
+                                        </div>
+                                        <span className={`tabular-nums font-black shrink-0 ${cfg.color}`}>{d.diffScore}</span>
+                                      </div>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${cfg.bg} ${cfg.color} ${cfg.border}`}>{cfg.icon}</span>
+                                    </td>
+                                    {DIM_CFG.map((dim) => (
+                                      <td key={dim.key} className="text-center py-0.5 px-0.5">
+                                        <span className={`tabular-nums font-bold text-[6.5px] ${d[dim.key] === 0 ? "text-slate-300" : "text-slate-600"}`}>{d[dim.key]}</span>
+                                      </td>
+                                    ))}
+                                    <td className="text-center py-0.5 px-1">
+                                      {d.commodityHits > 0
+                                        ? <span className="text-[6.5px] font-bold text-amber-600">{d.commodityHits}× (−{d.commodityPenalty})</span>
+                                        : <span className="text-[6.5px] text-slate-300">—</span>
+                                      }
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <p className="text-[7px] text-slate-400 mt-1">Dim cols: Specificity (0-30) · Contrarian (0-25) · Insider (0-25) · Generic× = commodity signal hits and point penalty</p>
+                        </div>
+
+                        {/* Strongly differentiated callout */}
+                        {stronglyDiff.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-[10px] shrink-0 mt-0.5">🎯</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-emerald-800 mb-1">{stronglyDiff.length} strongly differentiated piece{stronglyDiff.length !== 1 ? "s" : ""} — proprietary framing that competitors can't easily replicate</p>
+                              <div className="flex flex-wrap gap-1">
+                                {stronglyDiff.map(({ entry: e, diff: d }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[14rem] ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,28)}{e.angle.length > 28 ? "…" : ""} <span className="opacity-60">({d.diffScore}pts)</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Reader Trust Signal Auditor ──────────────────────────── */}
                 {calendar.length > 0 && (() => {
