@@ -1696,6 +1696,74 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content Seasonality Mapper ──────────────────────────────────────────────
+type SeasonEventType = "regulatory" | "reporting" | "event" | "market";
+
+interface SeasonEvent {
+  name:       string;
+  months:     number[];          // 1=Jan … 12=Dec — peak demand window
+  keywords:   string[];
+  type:       SeasonEventType;
+  demandLift: number;            // % search lift during peak vs off-peak
+  icon:       string;
+}
+
+const SEASON_EVENTS: SeasonEvent[] = [
+  { name: "Q1 Budgeting & Planning",        months: [1, 2],     keywords: ["budget","planning","roadmap","priorities","investment","strategy","fintech spend","tech stack","annual plan","2025","2026"],                                               type: "reporting",   demandLift: 60,  icon: "📊" },
+  { name: "Tax Season",                     months: [2, 3, 4],  keywords: ["tax","filing","hmrc","irs","self-assessment","corporation tax","vat","reporting","year-end accounts","payroll","r&d credit"],                                              type: "regulatory",  demandLift: 110, icon: "🧾" },
+  { name: "GDPR / Data Privacy",            months: [1, 5],     keywords: ["gdpr","data privacy","data protection","consent","ico","personal data","right to erasure","data breach","dpo","privacy by design","dpia"],                                type: "regulatory",  demandLift: 75,  icon: "🔒" },
+  { name: "AML & BSA Annual Review",        months: [1, 2, 3],  keywords: ["aml","anti-money laundering","bsa","kyc","sanctions","financial crime","cdd","edd","suspicious activity","sar","fatf","fincen"],                                          type: "regulatory",  demandLift: 85,  icon: "🛡️" },
+  { name: "Money20/20 Europe",              months: [6],        keywords: ["payments","open banking","embedded finance","bnpl","digital wallet","payment rail","iso 20022","instant payment","payment innovation","sepa","pos"],                       type: "event",       demandLift: 95,  icon: "🌍" },
+  { name: "H1 / Mid-Year Reporting",        months: [6, 7],     keywords: ["half-year","h1 results","mid-year","interim results","q2 results","performance review","fintech growth","market update"],                                                  type: "reporting",   demandLift: 50,  icon: "📈" },
+  { name: "FinovateFall / Banking Innovation", months: [9],     keywords: ["banking innovation","digital transformation","ai in banking","core banking","banking tech","neobank","challenger bank","regtech","digital bank"],                          type: "event",       demandLift: 80,  icon: "🏦" },
+  { name: "Q3 Regulatory Updates",          months: [8, 9],     keywords: ["regulatory update","compliance change","new regulation","fca","cfpb","psd2","basel iv","mifid","dodd-frank","sec rule","eba","esma"],                                      type: "regulatory",  demandLift: 70,  icon: "⚖️" },
+  { name: "Sibos / Swift Ecosystem",        months: [10],       keywords: ["swift","correspondent banking","payments infrastructure","iso 20022","cross-border payments","trade finance","treasury","nostro","vostro","cbdc","central bank"],           type: "event",       demandLift: 90,  icon: "🌐" },
+  { name: "Money20/20 USA",                 months: [10],       keywords: ["payments","fintech","crypto","digital currency","defi","stablecoin","blockchain","north america","usa fintech","fed","federal reserve"],                                   type: "event",       demandLift: 90,  icon: "🇺🇸" },
+  { name: "UK Autumn Budget",              months: [10, 11],   keywords: ["autumn statement","uk budget","fintech policy","chancellor","hmrc","business rates","r&d relief","enterprise investment","startup relief","tax change"],                    type: "regulatory",  demandLift: 80,  icon: "🏛️" },
+  { name: "Year-End & Predictions",         months: [11, 12],   keywords: ["year-end","q4","annual review","2025 predictions","2026 predictions","year in review","state of fintech","fintech outlook","trends 2026","what's next"],                   type: "reporting",   demandLift: 100, icon: "🎯" },
+  { name: "Q4 Compliance Deadlines",        months: [11, 12],   keywords: ["compliance deadline","year-end audit","regulatory deadline","annual return","board reporting","risk review","annual aml","model risk","stress test","ccar"],               type: "regulatory",  demandLift: 85,  icon: "⏰" },
+  { name: "LendIt / Credit Tech",           months: [5],        keywords: ["lending","credit","loan","underwriting","credit risk","alternative lending","sme lending","consumer credit","open banking credit","buy now pay later"],                   type: "event",       demandLift: 75,  icon: "💳" },
+];
+
+const MONTH_ABBR = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"] as const;
+
+interface SeasonScore {
+  event:        SeasonEvent | null;   // best-matching event
+  timing:       number;               // 0-100 — how well publish week aligns with event peak
+  monthsOff:    number;               // months away from nearest peak month
+  tier:         "perfect" | "good" | "suboptimal" | "mistimed" | "evergreen";
+  isEvergreen:  boolean;
+  publishMonth: number;               // 1-12
+}
+
+function scoreSeasonality(e: { topic: string; angle: string; week: number }): SeasonScore {
+  const hay          = `${e.topic} ${e.angle}`.toLowerCase();
+  const publishMonth = Math.min(12, Math.max(1, Math.ceil(e.week / 4.33)));
+
+  // Find the event with the most keyword hits
+  let bestEvent: SeasonEvent | null = null;
+  let bestHits = 0;
+  for (const ev of SEASON_EVENTS) {
+    const hits = ev.keywords.filter((k) => hay.includes(k)).length;
+    if (hits > bestHits) { bestHits = hits; bestEvent = ev; }
+  }
+
+  if (!bestEvent || bestHits === 0) {
+    return { event: null, timing: 50, monthsOff: 0, tier: "evergreen", isEvergreen: true, publishMonth };
+  }
+
+  // Distance from publish month to nearest peak month (circular)
+  const dist = bestEvent.months.reduce((min, m) => {
+    const d = Math.min(Math.abs(publishMonth - m), 12 - Math.abs(publishMonth - m));
+    return Math.min(min, d);
+  }, 99);
+
+  const timing  = dist === 0 ? 100 : dist === 1 ? 72 : dist === 2 ? 44 : dist === 3 ? 20 : 5;
+  const tier    = timing >= 80 ? "perfect" : timing >= 55 ? "good" : timing >= 30 ? "suboptimal" : "mistimed";
+
+  return { event: bestEvent, timing, monthsOff: dist, tier, isEvergreen: false, publishMonth };
+}
+
 // ─── Content Cannibalism Detector ────────────────────────────────────────────
 const CANNIBAL_STOP = new Set([
   "a","an","the","and","or","in","of","for","to","is","are","how","why","what","with",
@@ -6272,6 +6340,278 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Seasonality Mapper ───────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar
+                    .map((e) => ({ entry: e, s: scoreSeasonality(e) }))
+                    .sort((a, b) => {
+                      // Mistimed first, then by timing asc (worst first)
+                      if (a.s.tier === "mistimed" && b.s.tier !== "mistimed") return -1;
+                      if (b.s.tier === "mistimed" && a.s.tier !== "mistimed") return 1;
+                      return a.s.timing - b.s.timing;
+                    });
+
+                  const perfect    = scored.filter((s) => s.s.tier === "perfect");
+                  const good       = scored.filter((s) => s.s.tier === "good");
+                  const suboptimal = scored.filter((s) => s.s.tier === "suboptimal");
+                  const mistimed   = scored.filter((s) => s.s.tier === "mistimed");
+                  const evergreen  = scored.filter((s) => s.s.isEvergreen);
+                  const seasonal   = scored.filter((s) => !s.s.isEvergreen);
+
+                  const tierCfg = {
+                    perfect:    { label: "Perfectly timed",  bg: "bg-emerald-50", border: "border-emerald-100", text: "text-emerald-700", bar: "bg-emerald-400", badge: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: "✅" },
+                    good:       { label: "Good timing",      bg: "bg-blue-50",    border: "border-blue-100",    text: "text-blue-700",    bar: "bg-blue-400",    badge: "bg-blue-100 text-blue-700 border-blue-200",           icon: "👍" },
+                    suboptimal: { label: "Suboptimal",       bg: "bg-amber-50",   border: "border-amber-100",   text: "text-amber-700",   bar: "bg-amber-400",   badge: "bg-amber-100 text-amber-700 border-amber-200",         icon: "🔶" },
+                    mistimed:   { label: "Mistimed",         bg: "bg-rose-50",    border: "border-rose-200",    text: "text-rose-700",    bar: "bg-rose-400",    badge: "bg-rose-100 text-rose-700 border-rose-200",           icon: "⛔" },
+                    evergreen:  { label: "Evergreen",        bg: "bg-slate-50",   border: "border-slate-100",   text: "text-slate-600",   bar: "bg-slate-300",   badge: "bg-slate-100 text-slate-600 border-slate-200",         icon: "🌿" },
+                  } as const;
+
+                  const evTypeCfg: Record<SeasonEventType, { color: string; label: string }> = {
+                    regulatory: { color: "bg-purple-100 text-purple-700 border-purple-200", label: "Regulatory" },
+                    reporting:  { color: "bg-blue-100 text-blue-700 border-blue-200",       label: "Reporting"  },
+                    event:      { color: "bg-orange-100 text-orange-700 border-orange-200", label: "Industry event" },
+                    market:     { color: "bg-teal-100 text-teal-700 border-teal-200",       label: "Market cycle" },
+                  };
+
+                  const avgTiming = seasonal.length
+                    ? Math.round(seasonal.reduce((s, x) => s + x.s.timing, 0) / seasonal.length)
+                    : null;
+
+                  return (
+                    <Card className="border border-purple-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🗓️</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Seasonality Mapper</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {mistimed.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {mistimed.length} mistimed
+                              </span>
+                            )}
+                            {perfect.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                {perfect.length} perfectly timed
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Maps each entry against 14 fintech seasonal demand windows — regulatory calendars, financial reporting cycles, and industry events. Scores timing alignment and flags pieces publishing into low-demand periods for their topic.
+                        </p>
+
+                        {/* Portfolio stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Seasonal pieces",    val: seasonal.length,                        sub: "with a demand calendar"          },
+                            { label: "Avg timing score",   val: avgTiming !== null ? `${avgTiming}%` : "—", sub: "alignment across seasonal pieces" },
+                            { label: "Mistimed",           val: mistimed.length,                        sub: "publishing into low demand"      },
+                            { label: "Evergreen",          val: evergreen.length,                       sub: "no seasonal demand detected"     },
+                          ].map(({ label, val, sub }) => (
+                            <div key={label} className="rounded-lg border border-purple-100 bg-purple-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className="text-[11px] font-black leading-none text-purple-700">{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Timing tier distribution bar */}
+                        <div className="flex gap-px h-2 rounded-full overflow-hidden mb-1">
+                          {(["perfect","good","suboptimal","mistimed","evergreen"] as const).map((t) => {
+                            const count = scored.filter((s) => s.s.tier === t || (t === "evergreen" && s.s.isEvergreen)).length;
+                            const pct   = Math.round((count / scored.length) * 100);
+                            return pct > 0 ? <div key={t} className={`h-full ${tierCfg[t].bar}`} style={{ width: `${pct}%` }} /> : null;
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4">
+                          {(["perfect","good","suboptimal","mistimed","evergreen"] as const)
+                            .filter((t) => scored.some((s) => s.s.tier === t || (t === "evergreen" && s.s.isEvergreen)))
+                            .map((t) => {
+                              const count = t === "evergreen"
+                                ? evergreen.length
+                                : scored.filter((s) => s.s.tier === t).length;
+                              return (
+                                <div key={t} className="flex items-center gap-1">
+                                  <div className={`w-2 h-2 rounded-full ${tierCfg[t].bar}`} />
+                                  <span className="text-[8px] text-slate-500">{tierCfg[t].label} <span className="font-bold text-slate-700">({count})</span></span>
+                                </div>
+                              );
+                            })}
+                        </div>
+
+                        {/* 12-month demand heatmap strip */}
+                        {seasonal.length > 0 && (() => {
+                          // For each calendar month 1-12, count how many entries publish in it
+                          const byMonth: Record<number, typeof scored> = {};
+                          for (let m = 1; m <= 12; m++) byMonth[m] = [];
+                          for (const s of seasonal) {
+                            if (s.s.publishMonth >= 1 && s.s.publishMonth <= 12)
+                              byMonth[s.s.publishMonth].push(s);
+                          }
+                          const maxInMonth = Math.max(...Object.values(byMonth).map((arr) => arr.length), 1);
+                          return (
+                            <div className="mb-4">
+                              <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Publishing distribution vs peak demand months:</p>
+                              <div className="flex gap-0.5">
+                                {Array.from({ length: 12 }, (_, i) => {
+                                  const m    = i + 1;
+                                  const arr  = byMonth[m];
+                                  const pct  = Math.round((arr.length / maxInMonth) * 100);
+                                  // How many SEASON_EVENTS peak in this month?
+                                  const peakEvents = SEASON_EVENTS.filter((ev) => ev.months.includes(m));
+                                  const hasPeak    = peakEvents.length > 0;
+                                  const mistimed   = arr.filter((s) => s.s.tier === "mistimed").length;
+                                  const barColor   = mistimed > 0 ? "bg-rose-400" : arr.length > 0 && hasPeak ? "bg-emerald-400" : arr.length > 0 ? "bg-blue-300" : "bg-slate-200";
+                                  return (
+                                    <div key={m} className="flex-1 flex flex-col items-center gap-0.5">
+                                      <div className="w-full h-8 rounded-sm bg-slate-100 flex items-end overflow-hidden">
+                                        {arr.length > 0 && (
+                                          <div className={`w-full rounded-sm ${barColor}`} style={{ height: `${Math.max(12, pct)}%` }} />
+                                        )}
+                                      </div>
+                                      {hasPeak && <div className="w-full h-0.5 rounded-full bg-purple-300" />}
+                                      <span className="text-[6.5px] text-slate-400 leading-none">{MONTH_ABBR[m]}</span>
+                                      {arr.length > 0 && <span className="text-[6px] font-bold text-slate-500">{arr.length}</span>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                                <span className="text-[7px] text-slate-400">— Purple line = industry event / reg peak · 🟢 Timed well · 🔵 Publishing but no peak · 🔴 Mistimed</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Mistimed entries — urgent fixes */}
+                        {mistimed.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">⛔ Mistimed entries — consider rescheduling:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {mistimed.map(({ entry: e, s }) => {
+                                const ev = s.event!;
+                                const peakMonthLabels = ev.months.map((m) => MONTH_ABBR[m]).join(" / ");
+                                const shiftDir = (() => {
+                                  const nearest = ev.months.reduce((best, m) => {
+                                    const d = Math.min(Math.abs(s.publishMonth - m), 12 - Math.abs(s.publishMonth - m));
+                                    return d < Math.abs(s.publishMonth - best) ? m : best;
+                                  }, ev.months[0]);
+                                  return nearest > s.publishMonth ? "forward" : "back";
+                                })();
+                                return (
+                                  <div key={entryKey(e)} className="rounded-xl border border-rose-200 overflow-hidden">
+                                    <div className="flex items-center justify-between px-3.5 py-2 bg-rose-50">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                        <span className="text-[8.5px] font-bold text-rose-800 truncate">{e.angle}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <span className="text-[7px] text-rose-500">Wk {e.week} · {MONTH_ABBR[s.publishMonth]}</span>
+                                        <span className="text-[7.5px] font-black px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200 tabular-nums">{s.timing}% aligned</span>
+                                      </div>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-[8px]">{ev.icon}</span>
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${evTypeCfg[ev.type].color}`}>{evTypeCfg[ev.type].label}</span>
+                                        <span className="text-[8px] font-semibold text-slate-700">{ev.name}</span>
+                                        <span className="text-[7.5px] text-slate-400">peaks in <span className="font-semibold text-purple-700">{peakMonthLabels}</span></span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[7px] text-slate-400 w-20 shrink-0">Timing score</span>
+                                        <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className="h-full rounded-full bg-rose-400" style={{ width: `${s.timing}%` }} />
+                                        </div>
+                                        <span className="text-[7px] tabular-nums text-slate-400 shrink-0">{s.monthsOff} mo off peak</span>
+                                      </div>
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-rose-50 border border-rose-200">
+                                        <span className="text-[9px] shrink-0">💡</span>
+                                        <p className="text-[8px] text-rose-800 leading-snug">
+                                          Move {shiftDir === "forward" ? "forward" : "back"} to publish in <span className="font-bold">{peakMonthLabels}</span> — this topic's search volume lifts <span className="font-bold">{ev.demandLift}%</span> during the {ev.name} window. Publishing {s.monthsOff} month{s.monthsOff !== 1 ? "s" : ""} away from peak means the piece lands when demand is at its lowest.
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Perfectly timed — quick wins */}
+                        {perfect.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">✅ Perfectly timed — ride the demand spike:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {perfect.slice(0, 4).map(({ entry: e, s }) => {
+                                const ev = s.event!;
+                                return (
+                                  <div key={entryKey(e)} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                    <span className="text-sm shrink-0">{ev.icon}</span>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                        <span className="text-[8.5px] font-bold text-emerald-800 truncate">{e.angle}</span>
+                                      </div>
+                                      <p className="text-[7.5px] text-emerald-700">
+                                        {ev.name} · <span className="font-semibold">{ev.demandLift}% demand lift</span> · publishes Wk {e.week} ({MONTH_ABBR[s.publishMonth]}) — exactly on peak
+                                      </p>
+                                    </div>
+                                    <span className="text-[8px] font-black text-emerald-700 shrink-0 tabular-nums">{s.timing}%</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Suboptimal entries */}
+                        {suboptimal.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">🔶 Suboptimal timing — small reschedule, big payoff:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {suboptimal.slice(0, 3).map(({ entry: e, s }) => {
+                                const ev = s.event!;
+                                const peakLabels = ev.months.map((m) => MONTH_ABBR[m]).join(" / ");
+                                return (
+                                  <div key={entryKey(e)} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                    <span className="text-sm shrink-0">{ev.icon}</span>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                        <span className="text-[8.5px] font-semibold text-amber-800 truncate">{e.angle}</span>
+                                      </div>
+                                      <p className="text-[7.5px] text-amber-700">
+                                        {ev.name} peaks in <span className="font-semibold">{peakLabels}</span> ({ev.demandLift}% lift) · currently {s.monthsOff} mo off — shift by {s.monthsOff} week{s.monthsOff !== 1 ? "s" : ""} for full uplift
+                                      </p>
+                                    </div>
+                                    <span className="text-[8px] font-black text-amber-600 shrink-0 tabular-nums">{s.timing}%</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Evergreen note */}
+                        {evergreen.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                            <span className="text-sm shrink-0">🌿</span>
+                            <div>
+                              <p className="text-[8.5px] font-semibold text-slate-600 mb-0.5">{evergreen.length} evergreen piece{evergreen.length !== 1 ? "s" : ""} — no seasonal alignment detected</p>
+                              <p className="text-[8px] text-slate-500 leading-snug">These topics have no strong correlation with a fintech regulatory, reporting, or event calendar. They can publish at any time — consider clustering them around slow calendar weeks to fill capacity without wasting peak demand slots.</p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Cannibalism Detector ─────────────────────────── */}
                 {calendar.length > 1 && (() => {
