@@ -1808,6 +1808,108 @@ function analyzeMonthlyNarrative(calendar: ContentEntry[]): MonthCoherence[] {
     });
 }
 
+// ─── Content Sequencing & Momentum Analyzer ────────────────────────────────
+
+interface SeriesCluster {
+  topicGroup: string;
+  entries: ContentEntry[];
+  optimalOrder: ContentEntry[];
+  similarity: number;
+  momentumScore: number;
+  hasBreaks: boolean;
+}
+
+function detectSeriesClusters(calendar: ContentEntry[]): SeriesCluster[] {
+  const clusters: SeriesCluster[] = [];
+  const assigned = new Set<string>();
+
+  for (let i = 0; i < calendar.length; i++) {
+    const e1 = calendar[i];
+    const k1 = entryKey(e1);
+    if (assigned.has(k1)) continue;
+
+    const related = [e1];
+    assigned.add(k1);
+
+    for (let j = i + 1; j < calendar.length; j++) {
+      const e2 = calendar[j];
+      const k2 = entryKey(e2);
+      if (assigned.has(k2)) continue;
+
+      const sim = topicSimilarity(e1.topic, e2.topic);
+      if (sim >= 0.6) {
+        related.push(e2);
+        assigned.add(k2);
+      }
+    }
+
+    if (related.length >= 2) {
+      const avgSim = Math.round(
+        related.reduce((sum, e, idx) => {
+          if (idx === 0) return sum;
+          return sum + topicSimilarity(related[0].topic, e.topic);
+        }, 0) / Math.max(1, related.length - 1) * 100
+      );
+
+      // Calculate optimal order based on arc stage progression
+      const stageOrder = { awareness: 0, education: 1, consideration: 2, implementation: 3, advanced: 4 };
+      const optimalOrder = [...related].sort((a, b) => {
+        const stageA = stageOrder[detectArcStage(a.angle)] ?? 2;
+        const stageB = stageOrder[detectArcStage(b.angle)] ?? 2;
+        return stageA - stageB;
+      });
+
+      // Check if current order matches optimal
+      let hasBreaks = false;
+      for (let k = 1; k < related.length; k++) {
+        const stageA = stageOrder[detectArcStage(related[k - 1].angle)] ?? 2;
+        const stageB = stageOrder[detectArcStage(related[k].angle)] ?? 2;
+        if (stageB < stageA) {
+          hasBreaks = true;
+          break;
+        }
+      }
+
+      // Calculate momentum score (0-100)
+      let progressionScore = 0;
+      for (let k = 1; k < related.length; k++) {
+        const stageA = stageOrder[detectArcStage(related[k - 1].angle)] ?? 2;
+        const stageB = stageOrder[detectArcStage(related[k].angle)] ?? 2;
+        progressionScore += stageB >= stageA ? 1 : 0;
+      }
+      const momentumScore = related.length > 1 ? Math.round((progressionScore / (related.length - 1)) * 100) : 100;
+
+      clusters.push({
+        topicGroup: e1.topic.slice(0, 32),
+        entries: related,
+        optimalOrder,
+        similarity: avgSim,
+        momentumScore,
+        hasBreaks,
+      });
+    }
+  }
+
+  return clusters;
+}
+
+function scoreSequencingMomentum(calendar: ContentEntry[]): number {
+  const clusters = detectSeriesClusters(calendar);
+  if (clusters.length === 0) return 100;
+
+  const multiPartClusters = clusters.filter((c) => c.entries.length >= 2);
+  if (multiPartClusters.length === 0) return 100;
+
+  const wellSequenced = multiPartClusters.filter((c) => !c.hasBreaks).length;
+  const seqRate = Math.round((wellSequenced / multiPartClusters.length) * 50);
+
+  const avgMomentum = Math.round(
+    multiPartClusters.reduce((sum, c) => sum + c.momentumScore, 0) / multiPartClusters.length * 0.5
+  );
+
+  return seqRate + avgMomentum;
+}
+
 // ─── Competitive Differentiation Radar ───────────────────────────────────────
 // Scores each entry on five competitive positioning dimensions to identify
 // which angles stand out in search results and which are commodity content
@@ -8702,6 +8804,240 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Sequencing & Momentum Analyzer ──────────────── */}
+                {calendar.length > 0 && (() => {
+                  const seriesClusters = detectSeriesClusters(calendar);
+                  const momentumScore = scoreSequencingMomentum(calendar);
+
+                  const multiPartSeries = seriesClusters.filter((c) => c.entries.length >= 2);
+                  const withMissequence = seriesClusters.filter((c) => c.hasBreaks);
+
+                  const sCfg =
+                    momentumScore >= 80 ? { label: "Strong sequencing — series entries are optimally ordered, momentum builds naturally", color: "text-cyan-700", bg: "bg-cyan-50", border: "border-cyan-100" } :
+                    momentumScore >= 60 ? { label: "Good sequencing — some series have suboptimal order but most entries flow", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" } :
+                    momentumScore >= 40 ? { label: "Weak sequencing — series entries scattered, momentum breaks frequently", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" } :
+                                          { label: "Poor sequencing — no clear series order, momentum breaks in most clusters", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-100" };
+
+                  const MOMENTUM_TIER: Record<string, { label: string; icon: string; pill: string }> = {
+                    excellent:  { label: "Excellent momentum",  icon: "🚀", pill: "bg-cyan-100 text-cyan-700 border-cyan-200"      },
+                    good:       { label: "Good momentum",       icon: "📈", pill: "bg-blue-100 text-blue-700 border-blue-200"    },
+                    weak:       { label: "Broken momentum",     icon: "⚠️", pill: "bg-amber-100 text-amber-700 border-amber-200" },
+                    fragmented: { label: "Fragmented sequence", icon: "❌", pill: "bg-rose-100 text-rose-700 border-rose-200"   },
+                  };
+
+                  const getMomentumTier = (score: number) =>
+                    score >= 80 ? "excellent" : score >= 60 ? "good" : score >= 40 ? "weak" : "fragmented";
+
+                  return (
+                    <Card className="border border-cyan-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📐</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Sequencing & Momentum Analyzer</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${sCfg.color} ${sCfg.bg} ${sCfg.border}`}>
+                            {momentumScore}/100 · {sCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Automatically detects multi-part content series by grouping entries with topic similarity ≥60%, then calculates the optimal publishing order within each series based on arc stage progression (awareness → education → consideration → implementation → advanced). Scores each series on momentum (are stages ordered logically?) and flags entries that break the intended flow. When a fintech publisher writes a three-part series on "Open Banking Integration", the reader expects Awareness → Implementation order; if the Implementation post publishes before the Awareness post, the momentum breaks and the Implementation post underperforms on initial launch because context is missing.
+                        </p>
+
+                        {/* Portfolio momentum score */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${sCfg.bg} ${sCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${sCfg.color}`}>{momentumScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Series with optimal order", val: seriesClusters.length - withMissequence.length, max: seriesClusters.length, desc: `${seriesClusters.length - withMissequence.length}/${seriesClusters.length} multi-part series are properly sequenced — target: 100%` },
+                              { label: "Avg momentum per series",   val: multiPartSeries.length > 0 ? Math.round(multiPartSeries.reduce((s,c) => s + c.momentumScore, 0) / multiPartSeries.length) : 100, max: 100, desc: `Within series, stages progress logically (awareness before implementation) — higher = stronger narrative flow` },
+                              { label: "Series detected",         val: multiPartSeries.length, max: Math.max(1, calendar.length / 3), desc: `${multiPartSeries.length} multi-part series found in calendar — target: cluster related content to build reader narrative` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-32 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${sCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.min(100, Math.round((val/max)*100))}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{Math.min(val, max)}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Series clusters detail cards */}
+                        {multiPartSeries.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Detected series ({multiPartSeries.length}) — topic similarity clusters ≥60%:</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                              {multiPartSeries.map((cluster, idx) => {
+                                const tier = cluster.momentumScore >= 80 ? "excellent" : cluster.momentumScore >= 60 ? "good" : "weak";
+                                const tierCfg = MOMENTUM_TIER[tier];
+                                return (
+                                  <div key={idx} className={`rounded-lg border px-3 py-2 ${cluster.hasBreaks ? "bg-amber-50 border-amber-100" : "bg-cyan-50 border-cyan-100"}`}>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                      <div>
+                                        <p className="text-[7.5px] font-bold text-slate-700 mb-0.5">{cluster.topicGroup}…</p>
+                                        <p className="text-[6px] text-slate-400">{cluster.entries.length} entries · {cluster.similarity}% avg similarity</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className={`text-[13px] font-black leading-none tabular-nums ${cluster.momentumScore >= 80 ? "text-cyan-700" : cluster.momentumScore >= 60 ? "text-blue-700" : "text-amber-700"}`}>{cluster.momentumScore}</p>
+                                        <p className="text-[6px] text-slate-400">momentum</p>
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-1 mb-1.5">
+                                      <div>
+                                        <p className="text-[6px] text-slate-500 mb-0.5">Current publishing order:</p>
+                                        <div className="flex flex-wrap gap-0.5">
+                                          {cluster.entries.map((e) => (
+                                            <span key={entryKey(e)} className={`text-[5.5px] font-bold px-1 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`} title={e.angle}>
+                                              {FORMAT_LABEL[e.type]}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <p className="text-[6px] text-slate-500 mb-0.5">Optimal arc order (awareness → advanced):</p>
+                                        <div className="flex flex-wrap gap-0.5">
+                                          {cluster.optimalOrder.map((e) => {
+                                            const stage = detectArcStage(e.angle);
+                                            const stageLbl = stage === "awareness" ? "A" : stage === "education" ? "E" : stage === "consideration" ? "C" : stage === "implementation" ? "I" : "Adv";
+                                            const stageColor = {
+                                              awareness: "bg-blue-100 text-blue-700 border-blue-200",
+                                              education: "bg-sky-100 text-sky-700 border-sky-200",
+                                              consideration: "bg-violet-100 text-violet-700 border-violet-200",
+                                              implementation: "bg-orange-100 text-orange-700 border-orange-200",
+                                              advanced: "bg-rose-100 text-rose-700 border-rose-200",
+                                            }[stage];
+                                            return (
+                                              <span key={entryKey(e)} className={`text-[6px] font-bold px-1.5 py-0.5 rounded-full border ${stageColor}`} title={`${stage}: ${e.angle}`}>
+                                                {stageLbl}
+                                              </span>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {cluster.hasBreaks && (
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded bg-amber-100 border border-amber-200">
+                                        <span className="text-[10px] shrink-0">⚠️</span>
+                                        <p className="text-[6.5px] text-amber-800 font-bold">Series is missequenced. Reorder entries to follow optimal arc stage progression.</p>
+                                      </div>
+                                    )}
+                                    {!cluster.hasBreaks && (
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded bg-cyan-100 border border-cyan-200">
+                                        <span className="text-[10px] shrink-0">✓</span>
+                                        <p className="text-[6.5px] text-cyan-800 font-bold">Series is well-sequenced — momentum builds naturally</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Missequence alert */}
+                        {withMissequence.length > 0 && (
+                          <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border mb-3 bg-amber-50 border-amber-100`}>
+                            <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{withMissequence.length} series with broken sequencing — entries publish in non-optimal order, reducing initial launch momentum</p>
+                              <div className="space-y-1">
+                                {withMissequence.map((cluster, idx) => (
+                                  <div key={idx} className="rounded border border-amber-200 bg-white/60 px-2 py-1">
+                                    <p className="text-[6.5px] font-bold text-amber-700 mb-0.5">{cluster.topicGroup}…</p>
+                                    <p className="text-[6px] text-amber-600 mb-0.5">Current: {cluster.entries.map((e) => detectArcStage(e.angle).slice(0,3)).join(" → ")} | Optimal: {cluster.optimalOrder.map((e) => detectArcStage(e.angle).slice(0,3)).join(" → ")}</p>
+                                    <p className="text-[6px] text-amber-500">→ Reschedule entries to {cluster.optimalOrder.map((e) => e.date).join(" → ")}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Lone entries (no series) */}
+                        {calendar.length - seriesClusters.reduce((s,c) => s + c.entries.length, 0) > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">📄</span>
+                            <p className="text-[7px] text-slate-600 leading-snug">
+                              <span className="font-bold">{calendar.length - seriesClusters.reduce((s,c) => s + c.entries.length, 0)} standalone entries</span> — content with no detected series partner. These entries don't benefit from multi-part sequencing but should still be ordered within the month by arc stage (awareness pieces before implementation pieces) to maintain internal momentum.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Sequencing best practice */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">🎯</span>
+                          <div>
+                            <p className="text-[8px] font-bold text-slate-700 mb-1">Sequencing best practice — building reader momentum:</p>
+                            <p className="text-[6.5px] text-slate-600 leading-snug">
+                              <span className="font-bold">Within a series:</span> Publish awareness/education entries first, implementation entries last. A reader who sees "How We Think About Open Banking" before "Step-by-Step Open Banking Integration" will be primed and motivated. <span className="font-bold">Within a month:</span> Group related entries together (cluster by topic) and sequence each cluster by arc stage. The reader journey through your monthly output should feel like a narrative progression, not a random walk. <span className="font-bold">Across months:</span> Defer series part 2 and part 3 to following months if space is tight — publish a complete story (awareness through implementation) in one month, then move to the next topic.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Per-series detailed table */}
+                        {multiPartSeries.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Series details — momentum analysis:</p>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-[6px] border-collapse">
+                                <thead>
+                                  <tr className="border-b border-slate-100">
+                                    <th className="text-left text-slate-400 font-normal pb-1 pr-2">Series</th>
+                                    <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Entries</th>
+                                    <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Sim %</th>
+                                    <th className="text-center text-slate-400 font-normal pb-1 px-1 w-18">Current order</th>
+                                    <th className="text-center text-slate-400 font-normal pb-1 px-1 w-18">Optimal order</th>
+                                    <th className="text-center text-slate-400 font-normal pb-1 px-1 w-20">Momentum</th>
+                                    <th className="text-center text-slate-400 font-normal pb-1 px-1 w-14">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {multiPartSeries.map((cluster, idx) => (
+                                    <tr key={idx} className="border-t border-slate-50">
+                                      <td className="py-0.5 pr-2 text-slate-700">{cluster.topicGroup.slice(0,24)}…</td>
+                                      <td className="text-center py-0.5 px-1 font-bold">{cluster.entries.length}</td>
+                                      <td className="text-center py-0.5 px-1">{cluster.similarity}%</td>
+                                      <td className="text-center py-0.5 px-1">
+                                        {cluster.entries.map((e) => detectArcStage(e.angle).slice(0,3).toUpperCase()).join("→")}
+                                      </td>
+                                      <td className="text-center py-0.5 px-1 font-bold text-cyan-700">
+                                        {cluster.optimalOrder.map((e) => detectArcStage(e.angle).slice(0,3).toUpperCase()).join("→")}
+                                      </td>
+                                      <td className="text-center py-0.5 px-1">
+                                        <div className="flex items-center gap-1 justify-center">
+                                          <div className="w-6 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                            <div className={`h-full rounded-full ${cluster.momentumScore >= 80 ? "bg-cyan-400" : cluster.momentumScore >= 60 ? "bg-blue-400" : "bg-amber-400"}`} style={{ width: `${cluster.momentumScore}%` }} />
+                                          </div>
+                                          <span className={`tabular-nums shrink-0 w-7 text-right font-bold ${cluster.momentumScore >= 80 ? "text-cyan-700" : cluster.momentumScore >= 60 ? "text-blue-700" : "text-amber-700"}`}>{cluster.momentumScore}</span>
+                                        </div>
+                                      </td>
+                                      <td className="text-center py-0.5 px-1">
+                                        <span className={`text-[5.5px] font-bold px-0.5 py-0.5 rounded-full border ${cluster.hasBreaks ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-cyan-100 text-cyan-700 border-cyan-200"}`}>
+                                          {cluster.hasBreaks ? "⚠️ Broken" : "✓ OK"}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <p className="text-[7px] text-slate-400 mt-2">Current/Optimal order: A=Awareness, E=Education, C=Consideration, I=Implementation, Adv=Advanced. Momentum: ≥80=excellent, 60–79=good, &lt;60=weak. Status: OK = already sequenced optimally, Broken = reorder recommended.</p>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Narrative Coherence Scorer ───────────────────────────── */}
                 {calendar.length > 0 && (() => {
