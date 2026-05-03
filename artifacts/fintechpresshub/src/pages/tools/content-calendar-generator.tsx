@@ -1696,6 +1696,29 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content ROI Projection ───────────────────────────────────────────────────
+const MQL_BASE: Record<ContentType, { low: number; high: number }> = {
+  webinar:        { low: 15, high: 40 },
+  guide:          { low: 8,  high: 25 },
+  checklist:      { low: 6,  high: 18 },
+  "case-study":   { low: 5,  high: 15 },
+  newsletter:     { low: 3,  high: 10 },
+  "blog-post":    { low: 2,  high: 8  },
+  "video-script": { low: 2,  high: 8  },
+  infographic:    { low: 1,  high: 5  },
+  linkedin:       { low: 1,  high: 4  },
+  podcast:        { low: 1,  high: 4  },
+};
+
+function projectMQL(type: ContentType, lgTotal: number): { low: number; mid: number; high: number } {
+  const base = MQL_BASE[type];
+  const mult = lgTotal >= 85 ? 1.4 : lgTotal >= 70 ? 1.2 : lgTotal >= 50 ? 1.0 : 0.7;
+  const low  = Math.round(base.low  * mult);
+  const high = Math.round(base.high * mult * 1.2);
+  const mid  = Math.round((low + high) / 2);
+  return { low, mid, high };
+}
+
 // ─── Editorial Complexity & Resource Estimate ────────────────────────────────
 interface ComplexityProfile {
   hours:     number;   // estimated production hours
@@ -5708,6 +5731,137 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content ROI Projection ───────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const rows = calendar.map((e) => {
+                    const lg  = scoreLeadGen(e.type, e.topic, e.angle);
+                    const mql = projectMQL(e.type, lg.total);
+                    return { e, lg, mql };
+                  }).sort((a, b) => b.mql.mid - a.mql.mid);
+
+                  const top6 = rows.slice(0, 6);
+
+                  const portfolioLow  = rows.reduce((s, r) => s + r.mql.low,  0);
+                  const portfolioMid  = rows.reduce((s, r) => s + r.mql.mid,  0);
+                  const portfolioHigh = rows.reduce((s, r) => s + r.mql.high, 0);
+
+                  const priorityCfg = (high: number) =>
+                    high >= 20
+                      ? { label: "Top priority",      bg: "bg-emerald-100", text: "text-emerald-700", desc: "Allocate paid promotion budget immediately" }
+                      : high >= 10
+                      ? { label: "Consider boosting", bg: "bg-blue-100",    text: "text-blue-700",    desc: "Boost organically first, then retarget top engagers" }
+                      :   { label: "Organic only",    bg: "bg-slate-100",   text: "text-slate-500",   desc: "Distribute via owned channels — paid unlikely to ROI" };
+
+                  const barW = (val: number, max: number) =>
+                    `${Math.max(4, Math.round((val / (max || 1)) * 100))}%`;
+                  const maxHigh = Math.max(...rows.map((r) => r.mql.high), 1);
+
+                  return (
+                    <Card className="border border-indigo-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📈</span>
+                            <p className="text-xs font-semibold text-slate-700">Content ROI Projection</p>
+                          </div>
+                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
+                            {portfolioMid} MQLs projected (mid)
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Monthly MQL projections per piece based on content type benchmarks × lead-gen score — use to prioritise your promotion budget allocation.
+                        </p>
+
+                        {/* Portfolio totals */}
+                        <div className="rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3 mb-4">
+                          <p className="text-[9px] text-slate-500 mb-2">Portfolio pipeline contribution (monthly)</p>
+                          <div className="flex items-end gap-4">
+                            {[{ label: "Conservative", val: portfolioLow,  color: "text-slate-600" },
+                              { label: "Realistic",    val: portfolioMid,  color: "text-indigo-700" },
+                              { label: "Optimistic",   val: portfolioHigh, color: "text-emerald-700" }]
+                              .map(({ label, val, color }) => (
+                                <div key={label}>
+                                  <p className={`text-xl font-black tabular-nums leading-none ${color}`}>
+                                    {val}<span className="text-[9px] font-semibold opacity-60 ml-0.5">MQLs</span>
+                                  </p>
+                                  <p className="text-[8px] text-slate-400 mt-0.5">{label}</p>
+                                </div>
+                              ))}
+                          </div>
+                          <p className="text-[8px] text-slate-400 mt-2 italic">
+                            Based on content type industry benchmarks × lead-gen score multiplier (0.7–1.4×). Assumes active promotion for high-priority pieces.
+                          </p>
+                        </div>
+
+                        {/* Top 6 entry projections */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Highest-value pieces to promote:</p>
+                        <div className="space-y-2.5">
+                          {top6.map(({ e, mql }, idx) => {
+                            const pc  = priorityCfg(mql.high);
+                            return (
+                              <div key={entryKey(e)} className="rounded-xl border border-slate-100 bg-slate-50 overflow-hidden">
+                                {/* Entry header */}
+                                <div className="flex flex-wrap items-start justify-between gap-2 px-3.5 py-2 bg-white border-b border-slate-100">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                      <span className="text-[8px] font-black text-slate-300">#{idx + 1}</span>
+                                      <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>
+                                        {FORMAT_LABEL[e.type]}
+                                      </span>
+                                      <span className="text-[8px] text-slate-400">Wk {e.week}</span>
+                                    </div>
+                                    <p className="text-[10px] font-bold text-slate-700 line-clamp-2 leading-snug">{e.angle}</p>
+                                    <p className="text-[8.5px] text-slate-400 mt-0.5">{e.topic}</p>
+                                  </div>
+                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${pc.bg} ${pc.text}`}>
+                                    {pc.label}
+                                  </span>
+                                </div>
+
+                                {/* MQL range bar */}
+                                <div className="px-3.5 pt-2.5 pb-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[8px] text-slate-400 w-16 shrink-0">Conservative</span>
+                                    <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                      <div className="h-full bg-slate-400 rounded-full" style={{ width: barW(mql.low, maxHigh) }} />
+                                    </div>
+                                    <span className="text-[8.5px] font-bold text-slate-500 w-10 text-right tabular-nums">{mql.low} MQL</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[8px] text-slate-400 w-16 shrink-0">Realistic</span>
+                                    <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                      <div className="h-full bg-indigo-400 rounded-full" style={{ width: barW(mql.mid, maxHigh) }} />
+                                    </div>
+                                    <span className="text-[8.5px] font-bold text-indigo-600 w-10 text-right tabular-nums">{mql.mid} MQL</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[8px] text-slate-400 w-16 shrink-0">Optimistic</span>
+                                    <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                      <div className="h-full bg-emerald-400 rounded-full" style={{ width: barW(mql.high, maxHigh) }} />
+                                    </div>
+                                    <span className="text-[8.5px] font-bold text-emerald-600 w-10 text-right tabular-nums">{mql.high} MQL</span>
+                                  </div>
+                                </div>
+
+                                {/* Promotion action */}
+                                <div className="mx-3.5 mb-2.5 mt-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100">
+                                  <p className="text-[8.5px] text-indigo-800 leading-snug">📣 {pc.desc}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {rows.length > 6 && (
+                            <p className="text-[9px] text-slate-400 text-center">
+                              +{rows.length - 6} more entries included in portfolio totals above
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Editorial Complexity & Resource Estimate ─────────────── */}
                 {calendar.length > 0 && (() => {
