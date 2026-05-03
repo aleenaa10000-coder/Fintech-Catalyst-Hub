@@ -1696,6 +1696,30 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content Freshness Decay Model ───────────────────────────────────────────
+interface DecayProfile {
+  halfLife:  number;   // months until ~50% relevance loss
+  volatility: "high" | "medium" | "low";
+  updateStrategy: string;
+  refreshTip:     string;
+}
+const FRESHNESS_DECAY: Record<ContentType, DecayProfile> = {
+  "blog":       { halfLife: 6,  volatility: "medium", updateStrategy: "Add updated statistics, refresh examples, and add a 'Last Updated' datestamp at the top", refreshTip: "Target 6-month refreshes — blog posts lose ranking traction quickly in fast-moving fintech" },
+  "linkedin":   { halfLife: 1,  volatility: "high",   updateStrategy: "Repurpose with a fresh angle and updated hook — LinkedIn posts have a 48-hour relevance window", refreshTip: "Plan a content repurposing slot for every evergreen LinkedIn post at the 30-day mark" },
+  "roundup":    { halfLife: 3,  volatility: "high",   updateStrategy: "Replace outdated resources with newer ones, update all publication dates, and re-verify every link", refreshTip: "Resource roundups require quarterly audits — dead links actively harm domain trust" },
+  "case-study": { halfLife: 14, volatility: "low",    updateStrategy: "Add a follow-up results section if the client outcome has evolved — 'Where are they now?' converts well", refreshTip: "Case studies have long shelf lives — focus on adding new outcome data rather than full rewrites" },
+  "guide":      { halfLife: 20, volatility: "low",    updateStrategy: "Review all steps for accuracy, update tool screenshots and vendor references, expand with new best practices", refreshTip: "Comprehensive guides are your highest SEO assets — schedule a full annual audit for each" },
+};
+const FRESHNESS_HIGH_VOL = ["regulat","compliance","fca","sec","gdpr","psd2","aml","kyc","crypto","bitcoin","defi","nft","cbdc","interest rate","inflation","market crash","bnpl","svb","basel","sanctions"];
+const FRESHNESS_LOW_VOL  = ["guide","introduction","basics","fundamentals","what is","how to","overview","101","beginner","explained","glossary","primer"];
+
+function decayMultiplier(topic: string, angle: string): number {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  if (FRESHNESS_HIGH_VOL.some((s) => hay.includes(s))) return 0.5;  // decays 2× faster
+  if (FRESHNESS_LOW_VOL.some((s) => hay.includes(s)))  return 1.5;  // decays slower
+  return 1.0;
+}
+
 // ─── Topic Saturation & Originality Check ────────────────────────────────────
 const ANGLE_DIFFERENTIATION_STRATEGIES = [
   "Target a different persona — switch from CFO to compliance officer, or product manager to developer",
@@ -5810,6 +5834,188 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Freshness Decay Model ────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  type DecayEntry = {
+                    entry:        typeof calendar[number];
+                    effectiveHL:  number;
+                    bucket:       "urgent" | "soon" | "monitor" | "evergreen";
+                    mult:         number;
+                  };
+
+                  const decayEntries: DecayEntry[] = calendar.map((e) => {
+                    const base = FRESHNESS_DECAY[e.type].halfLife;
+                    const mult = decayMultiplier(e.topic, e.angle);
+                    const effectiveHL = Math.round(base * mult * 10) / 10;
+                    const bucket: DecayEntry["bucket"] =
+                      effectiveHL <= 3  ? "urgent"
+                      : effectiveHL <= 6  ? "soon"
+                      : effectiveHL <= 12 ? "monitor"
+                      :                    "evergreen";
+                    return { entry: e, effectiveHL, bucket, mult };
+                  });
+
+                  const byBucket = (b: DecayEntry["bucket"]) => decayEntries.filter((d) => d.bucket === b);
+                  const urgent    = byBucket("urgent");
+                  const soon      = byBucket("soon");
+                  const monitor   = byBucket("monitor");
+                  const evergreen = byBucket("evergreen");
+
+                  const bucketCfg = {
+                    urgent:    { label: "Urgent refresh",  bg: "bg-rose-50",    border: "border-rose-100",    text: "text-rose-700",    bar: "bg-rose-400",    badge: "bg-rose-100 text-rose-700 border-rose-200"    },
+                    soon:      { label: "Refresh soon",    bg: "bg-amber-50",   border: "border-amber-100",   text: "text-amber-700",   bar: "bg-amber-400",   badge: "bg-amber-100 text-amber-700 border-amber-200"   },
+                    monitor:   { label: "Monitor",         bg: "bg-blue-50",    border: "border-blue-100",    text: "text-blue-700",    bar: "bg-blue-400",    badge: "bg-blue-100 text-blue-700 border-blue-200"    },
+                    evergreen: { label: "Evergreen",       bg: "bg-emerald-50", border: "border-emerald-100", text: "text-emerald-700", bar: "bg-emerald-400", badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+                  } as const;
+
+                  // Sort fastest-decaying first for the detail list
+                  const fastestFirst = [...decayEntries].sort((a, b) => a.effectiveHL - b.effectiveHL);
+
+                  return (
+                    <Card className="border border-cyan-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">⏳</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Freshness Decay Model</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {urgent.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {urgent.length} urgent
+                              </span>
+                            )}
+                            {evergreen.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                {evergreen.length} evergreen
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Projects when each piece will lose search relevance based on content type half-life and topic volatility — with the right update strategy for each.
+                        </p>
+
+                        {/* Decay distribution bar */}
+                        <div className="mb-1.5">
+                          <div className="flex h-2.5 rounded-full overflow-hidden gap-px">
+                            {(["urgent","soon","monitor","evergreen"] as const).map((b) => {
+                              const pct = Math.round((byBucket(b).length / calendar.length) * 100);
+                              return pct > 0 ? (
+                                <div key={b} className={`${bucketCfg[b].bar} h-full`} style={{ width: `${pct}%` }} title={`${bucketCfg[b].label}: ${pct}%`} />
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4">
+                          {(["urgent","soon","monitor","evergreen"] as const).map((b) => {
+                            const count = byBucket(b).length;
+                            if (count === 0) return null;
+                            const cfg = bucketCfg[b];
+                            return (
+                              <div key={b} className="flex items-center gap-1">
+                                <div className={`w-2 h-2 rounded-full ${cfg.bar}`} />
+                                <span className="text-[8.5px] text-slate-500">{cfg.label} <span className="font-bold text-slate-700">({count})</span></span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Per-type decay reference */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Decay half-life by content type:</p>
+                        <div className="space-y-1.5 mb-4">
+                          {(Object.entries(FRESHNESS_DECAY) as [ContentType, DecayProfile][]).map(([type, dp]) => {
+                            const maxHL = 20;
+                            const pct   = Math.round((dp.halfLife / maxHL) * 100);
+                            return (
+                              <div key={type} className="flex items-center gap-2">
+                                <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 w-20 text-center ${TYPE_COLOR[type]}`}>
+                                  {FORMAT_LABEL[type]}
+                                </span>
+                                <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${dp.volatility === "high" ? "bg-rose-400" : dp.volatility === "medium" ? "bg-amber-400" : "bg-emerald-400"}`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[8px] text-slate-500 shrink-0 tabular-nums w-14 text-right">{dp.halfLife}mo base</span>
+                                <span className={`text-[7.5px] font-bold px-1 py-0.5 rounded-full shrink-0 ${dp.volatility === "high" ? "bg-rose-100 text-rose-700" : dp.volatility === "medium" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                                  {dp.volatility}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[7.5px] text-slate-400 italic mb-4">
+                          High-volatility topics (regulatory changes, crypto, market events) shorten effective half-life by 50%. Evergreen topics extend it by 40%.
+                        </p>
+
+                        {/* Fastest-decaying pieces */}
+                        {fastestFirst.filter((d) => d.bucket !== "evergreen").length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Pieces requiring earliest refresh attention:</p>
+                            <div className="space-y-2 mb-4">
+                              {fastestFirst.filter((d) => d.bucket !== "evergreen").slice(0, 6).map(({ entry: e, effectiveHL, bucket, mult }) => {
+                                const cfg = bucketCfg[bucket];
+                                const dp  = FRESHNESS_DECAY[e.type];
+                                return (
+                                  <div key={entryKey(e)} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                    <div className={`flex items-center justify-between px-3.5 py-2 ${cfg.bg}`}>
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                        <span className={`text-[8.5px] font-bold truncate ${cfg.text}`}>{e.angle}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <span className="text-[7.5px] text-slate-400">Wk {e.week}</span>
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.badge}`}>
+                                          {effectiveHL}mo
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="px-3.5 py-2 bg-white space-y-1">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[7.5px] text-slate-400">Topic:</span>
+                                        <span className="text-[7.5px] font-semibold text-slate-600">{e.topic}</span>
+                                        {mult < 1 && <span className="text-[7px] px-1 py-0.5 rounded bg-rose-100 text-rose-600 font-bold">volatile topic ×{mult}</span>}
+                                        {mult > 1 && <span className="text-[7px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-600 font-bold">evergreen topic ×{mult}</span>}
+                                      </div>
+                                      <p className="text-[8px] text-slate-600">
+                                        <span className="font-semibold">Update strategy: </span>{dp.updateStrategy}
+                                      </p>
+                                      <p className="text-[7.5px] text-slate-400 italic">{dp.refreshTip}</p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Evergreen pieces */}
+                        {evergreen.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Long-lived evergreen pieces ({">"}12 months):</p>
+                            <div className="space-y-1.5">
+                              {evergreen.slice(0, 5).map(({ entry: e, effectiveHL }) => (
+                                <div key={entryKey(e)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                  <span className="text-xs shrink-0">🌿</span>
+                                  <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                  <span className="text-[8.5px] text-emerald-800 font-semibold truncate flex-1">{e.angle}</span>
+                                  <span className="text-[7.5px] text-emerald-600 font-bold shrink-0">{effectiveHL}mo</span>
+                                </div>
+                              ))}
+                              {evergreen.length > 5 && (
+                                <p className="text-[9px] text-slate-400 text-center">+{evergreen.length - 5} more evergreen pieces</p>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Internal Linking Opportunity Map ─────────────────────── */}
                 {calendar.length > 0 && (() => {
