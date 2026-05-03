@@ -1503,6 +1503,38 @@ const WORD_COUNT_BY_TYPE: Record<ContentType, string> = {
   linkedin:      "150–300 words",
 };
 
+// ─── Content Repurposing Map ───────────────────────────────────────────────────
+const REPURPOSE_DERIVATIVES: Record<
+  ContentType,
+  { format: string; angleSuffix: string; channel: string; icon: string }[]
+> = {
+  blog: [
+    { format: "LinkedIn Carousel", angleSuffix: "Key takeaways visualised in 8 slides — works as a standalone post",   channel: "LinkedIn",            icon: "🎠" },
+    { format: "Email Drip (3-part)", angleSuffix: "Core argument reframed as a nurture sequence with one action per email", channel: "Email",            icon: "✉️" },
+    { format: "Twitter Thread",    angleSuffix: "10-tweet breakdown ending with a link to the full piece",              channel: "Twitter / X",         icon: "🧵" },
+  ],
+  linkedin: [
+    { format: "Long-form Blog",    angleSuffix: "Expand with supporting data, case studies and a target keyword",       channel: "Organic Search",      icon: "✍️" },
+    { format: "Email Newsletter",  angleSuffix: "Personalised version segmented by subscriber role or industry",        channel: "Email",               icon: "✉️" },
+    { format: "Short-Form Video",  angleSuffix: "60-second talking-head summary optimised for Reels / YouTube Shorts",  channel: "Instagram · YouTube", icon: "🎬" },
+  ],
+  roundup: [
+    { format: "SlideShare Deck",   angleSuffix: "One slide per resource with its headline stat and a source link",     channel: "SlideShare · LinkedIn", icon: "📊" },
+    { format: "Newsletter Digest", angleSuffix: "'Top picks this fortnight' section with a 2-sentence editorial note", channel: "Email Newsletter",    icon: "📰" },
+    { format: "Twitter Thread",    angleSuffix: "Curated list thread with a short insight comment on each link",       channel: "Twitter / X",         icon: "🧵" },
+  ],
+  "case-study": [
+    { format: "LinkedIn Carousel", angleSuffix: "Before / After results story across 6 slides — stat-led cover",       channel: "LinkedIn",            icon: "🎠" },
+    { format: "Podcast Outline",   angleSuffix: "Interview-style script tracing the problem → solution → outcome arc", channel: "Podcast",             icon: "🎙️" },
+    { format: "Infographic",       angleSuffix: "Key metrics and decision timeline in a single shareable visual",      channel: "Pinterest · Blog",    icon: "📈" },
+  ],
+  guide: [
+    { format: "YouTube Script",    angleSuffix: "Step-by-step walkthrough with chapter markers every 3–4 minutes",    channel: "YouTube",             icon: "🎥" },
+    { format: "SlideShare Deck",   angleSuffix: "Chapter-by-chapter visual quick-reference for scan readers",         channel: "SlideShare",          icon: "📊" },
+    { format: "Email Course",      angleSuffix: "5-part lesson sequence — one guide chapter delivered per email",     channel: "Email",               icon: "✉️" },
+  ],
+};
+
 // ─── Brief Template Generator — personas, objectives, outlines, distribution ──
 
 const PERSONA_BY_NICHE: {
@@ -5072,6 +5104,127 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Repurposing Map ─────────────────────────────── */}
+                {(() => {
+                  const publishedEntries = calendar.filter(
+                    (e) => (entryStatuses[entryKey(e)] ?? "not-started") === "published",
+                  );
+                  const reviewEntries = calendar.filter(
+                    (e) => (entryStatuses[entryKey(e)] ?? "not-started") === "review",
+                  );
+                  const isTracked =
+                    publishedEntries.length > 0 || reviewEntries.length > 0;
+                  const sourcePool = isTracked
+                    ? [...publishedEntries, ...reviewEntries]
+                    : calendar;
+
+                  // De-duplicate by topic+type, cap at 6 cards
+                  const seen = new Set<string>();
+                  const sourceEntries: CalendarEntry[] = [];
+                  for (const e of sourcePool) {
+                    const k = `${e.topic}|${e.type}`;
+                    if (!seen.has(k) && sourceEntries.length < 6) {
+                      seen.add(k);
+                      sourceEntries.push(e);
+                    }
+                  }
+
+                  return (
+                    <Card className="border border-violet-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">♻️</span>
+                            <p className="text-xs font-semibold text-slate-700">
+                              Content Repurposing Map
+                            </p>
+                          </div>
+                          {isTracked ? (
+                            <span className="text-[9.5px] font-semibold text-violet-600 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5">
+                              {publishedEntries.length + reviewEntries.length} queued piece{publishedEntries.length + reviewEntries.length !== 1 ? "s" : ""} · {sourceEntries.length} shown
+                            </span>
+                          ) : (
+                            <span className="text-[9.5px] text-slate-400 italic">
+                              Mark entries Published or In Review to filter to your live content
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          For each piece in your production queue, three ready-to-execute derivative formats — with the exact angle adaptation and best distribution channel for each.
+                        </p>
+
+                        {/* Cards grid */}
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          {sourceEntries.map((entry) => {
+                            const derivatives = REPURPOSE_DERIVATIVES[entry.type];
+                            const entryStatus: ContentStatus =
+                              entryStatuses[entryKey(entry)] ?? "not-started";
+                            const statusCfg = STATUS_CONFIG[entryStatus];
+                            return (
+                              <div
+                                key={entryKey(entry)}
+                                className="rounded-xl border border-slate-100 bg-white overflow-hidden shadow-sm"
+                              >
+                                {/* Source piece header */}
+                                <div className="flex items-start justify-between gap-2 px-3.5 py-2.5 border-b border-slate-100 bg-slate-50/60">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-bold text-slate-700 leading-snug line-clamp-2">
+                                      {entry.angle}
+                                    </p>
+                                    <p className="text-[9px] text-slate-400 mt-0.5">
+                                      {entry.topic} · Wk {entry.week}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1 shrink-0">
+                                    <span
+                                      className={`text-[9px] font-semibold border rounded-full px-2 py-0.5 whitespace-nowrap ${TYPE_COLOR[entry.type]}`}
+                                    >
+                                      {FORMAT_LABEL[entry.type]}
+                                    </span>
+                                    {isTracked && (
+                                      <span
+                                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md border whitespace-nowrap ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
+                                      >
+                                        {statusCfg.icon} {statusCfg.label}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Three derivative rows */}
+                                <div className="divide-y divide-slate-50">
+                                  {derivatives.map((d, i) => (
+                                    <div
+                                      key={i}
+                                      className="flex items-start gap-2.5 px-3.5 py-2.5"
+                                    >
+                                      <span className="text-sm mt-0.5 shrink-0 leading-none">
+                                        {d.icon}
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-[10px] font-bold text-slate-700">
+                                          {d.format}
+                                        </p>
+                                        <p className="text-[9.5px] text-slate-500 leading-snug mt-0.5">
+                                          {d.angleSuffix}
+                                        </p>
+                                      </div>
+                                      <span className="text-[8.5px] font-semibold text-violet-600 bg-violet-50 border border-violet-100 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0 mt-0.5 leading-tight">
+                                        {d.channel}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Gap Finder ──────────────────────────────────── */}
                 <Card className="border border-slate-100 shadow-sm">
