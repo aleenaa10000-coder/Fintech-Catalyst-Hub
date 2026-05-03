@@ -1760,7 +1760,7 @@ function scoreNarrativeCoherence(entries: ContentEntry[]): number {
   const avgTopicSimilarity = pairs > 0 ? similaritySum / pairs : 1;
 
   // Intent consistency — entries in the same month should not jump between intents
-  const intents = entries.map((e) => dominantIntent(e.topic, e.angle));
+  const intents = entries.map((e) => dominantIntent(detectIntent(e.topic, e.angle)));
   const intentDiversity = new Set(intents).size / Math.max(intents.length, 1);
   const intentConsistency = 1 - intentDiversity;
 
@@ -1801,7 +1801,7 @@ function analyzeMonthlyNarrative(calendar: ContentEntry[]): MonthCoherence[] {
   return Object.entries(byMonth)
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([month, entries]) => {
-      const intents = entries.map((e) => dominantIntent(e.topic, e.angle));
+      const intents = entries.map((e) => dominantIntent(detectIntent(e.topic, e.angle)));
       const intentShifts = new Set(intents).size;
       const coherenceScore = scoreNarrativeCoherence(entries);
       const theme = detectNarrativeTheme(entries);
@@ -1835,7 +1835,7 @@ interface CannibalGroup {
 function detectCannibalization(calendar: ContentEntry[]): CannibalGroup[] {
   const tagged = calendar.map((e) => ({
     entry: e,
-    intent: dominantIntent(e.topic, e.angle),
+    intent: dominantIntent(detectIntent(e.topic, e.angle)),
     persona: detectPersona(e.topic, e.angle).primaryPersona,
     stage: detectArcStage(e.angle),
     topicSig: e.topic.toLowerCase().slice(0, 20),
@@ -2048,7 +2048,7 @@ function analyzeAuthorDiversity(calendar: ContentEntry[]): AuthorAnalysis {
     const profile = authorMap[author];
     profile.entryCount += 1;
     profile.personas.add(detectPersona(e.topic, e.angle).primaryPersona);
-    profile.intents.add(dominantIntent(e.topic, e.angle));
+    profile.intents.add(dominantIntent(detectIntent(e.topic, e.angle)));
     profile.formats.add(e.type);
   });
 
@@ -2510,7 +2510,7 @@ interface IntentAlignmentResult {
 function scoreIntentAlignment(
   topic: string, angle: string, type: ContentType,
 ): IntentAlignmentResult {
-  const intent = dominantIntent(topic, angle);
+  const intent = dominantIntent(detectIntent(topic, angle));
   const stage  = detectArcStage(angle);
 
   const fMap         = INTENT_FORMAT_MAP[type];
@@ -2714,7 +2714,7 @@ function buildLinkArchitecture(
     if (cluster.length < 2) return;
 
     const sorted = [...cluster].sort((a, b) => a.date.localeCompare(b.date));
-    const staged = sorted.map((e) => ({ ...e, stage: detectArcStage(e.angle), intent: dominantIntent(e.topic, e.angle) }));
+    const staged = sorted.map((e) => ({ ...e, stage: detectArcStage(e.angle), intent: dominantIntent(detectIntent(e.topic, e.angle)) }));
 
     // Pillar = earliest awareness/education entry; fallback = first entry
     const foundations = staged.filter((e) => e.stage === "awareness" || e.stage === "education");
@@ -2758,7 +2758,7 @@ function buildLinkArchitecture(
 
   // Rule 4: Commercial/transactional cross-topic links (high priority — revenue network)
   const commEntries = entries
-    .map((e) => ({ ...e, intent: dominantIntent(e.topic, e.angle), stage: detectArcStage(e.angle) }))
+    .map((e) => ({ ...e, intent: dominantIntent(detectIntent(e.topic, e.angle)), stage: detectArcStage(e.angle) }))
     .filter((e) => e.intent === "commercial" || e.intent === "transactional");
 
   let crossCount = 0;
@@ -9894,7 +9894,7 @@ export default function ContentCalendarGenerator() {
                                             {personaCfg ? personaCfg.label : "general"}
                                           </span>
                                         </td>
-                                        <td className="py-0.5 pr-2 text-right text-slate-400">{dominantIntent(e.topic, e.angle)}</td>
+                                        <td className="py-0.5 pr-2 text-right text-slate-400">{dominantIntent(detectIntent(e.topic, e.angle))}</td>
                                       </tr>
                                     );
                                   })}
@@ -11413,7 +11413,7 @@ export default function ContentCalendarGenerator() {
 
                   // Commercial entries linked
                   const allCommAngles   = new Set(
-                    calendar.filter((e) => { const i = dominantIntent(e.topic, e.angle); return i === "commercial" || i === "transactional"; }).map((e) => e.angle)
+                    calendar.filter((e) => { const i = dominantIntent(detectIntent(e.topic, e.angle)); return i === "commercial" || i === "transactional"; }).map((e) => e.angle)
                   );
                   const linkedCommAngles = new Set([...commLinks.map((l) => l.fromAngle), ...commLinks.map((l) => l.toAngle)]);
                   const commCoverage    = allCommAngles.size > 0 ? linkedCommAngles.size / allCommAngles.size : 1;
@@ -11919,7 +11919,7 @@ export default function ContentCalendarGenerator() {
                   // Compute ROI for every entry
                   const roiRaw: Array<{ entry: typeof calendar[0]; roi: ROIEntry }> = calendar.map((e) => {
                     const depth   = depthMap.get(e.topic.toLowerCase().trim()) ?? 1;
-                    const intent  = dominantIntent(e.topic, e.angle);
+                    const intent  = dominantIntent(detectIntent(e.topic, e.angle));
                     const timing  = scorePublicationTiming(e.date, e.topic, e.angle);
                     const cred    = scoreCredibility(e.topic, e.angle);
 
