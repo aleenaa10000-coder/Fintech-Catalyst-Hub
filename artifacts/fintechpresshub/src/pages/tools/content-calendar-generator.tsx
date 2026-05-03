@@ -1696,6 +1696,82 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Search Intent Alignment Scorer ──────────────────────────────────────────
+// Compares each entry's dominant search intent against its format choice and
+// arc stage, flags contradictions, and estimates the resulting ranking penalty
+
+const INTENT_FORMAT_MAP: Record<ContentType, { best: string[]; acceptable: string[] }> = {
+  "guide":       { best: ["informational"],               acceptable: ["commercial","transactional"]  },
+  "blog":        { best: ["informational"],               acceptable: ["commercial","navigational"]   },
+  "roundup":     { best: ["commercial"],                  acceptable: ["informational"]               },
+  "case-study":  { best: ["commercial","transactional"],  acceptable: []                             },
+  "linkedin":    { best: ["informational","commercial"],  acceptable: ["navigational"]                },
+};
+
+const INTENT_STAGE_MAP: Record<ArcStage, string[]> = {
+  awareness:      ["informational","navigational"],
+  education:      ["informational"],
+  consideration:  ["commercial","informational"],
+  implementation: ["commercial","transactional"],
+  advanced:       ["commercial","transactional"],
+};
+
+const FORMAT_INTENT_BEST: Record<string, ContentType[]> = {
+  informational: ["guide","blog"],
+  commercial:    ["roundup","case-study"],
+  transactional: ["case-study"],
+  navigational:  ["blog","guide"],
+};
+
+type IntentAlignment = "aligned" | "partial" | "misaligned";
+
+interface IntentAlignmentResult {
+  intent:         string;
+  stage:          ArcStage;
+  alignment:      IntentAlignment;
+  formatMismatch: boolean;
+  stageMismatch:  boolean;
+  penaltyEst:     string;
+  recommendation: string;
+}
+
+function scoreIntentAlignment(
+  topic: string, angle: string, type: ContentType,
+): IntentAlignmentResult {
+  const intent = dominantIntent(topic, angle);
+  const stage  = detectArcStage(angle);
+
+  const fMap         = INTENT_FORMAT_MAP[type];
+  const formatMismatch = !fMap.best.includes(intent) && !fMap.acceptable.includes(intent);
+
+  const sMap         = INTENT_STAGE_MAP[stage];
+  const stageMismatch  = !sMap.includes(intent);
+
+  const alignment: IntentAlignment =
+    !formatMismatch && !stageMismatch ? "aligned"    :
+    formatMismatch  && stageMismatch  ? "misaligned" :
+                                        "partial";
+
+  const penaltyEst =
+    alignment === "aligned"    ? "No penalty — signals are mutually reinforcing"   :
+    alignment === "partial"    ? "~5–20% ranking disadvantage from mixed signals"  :
+                                 "~25–50% ranking disadvantage from contradictions";
+
+  const bestFormats = (FORMAT_INTENT_BEST[intent] ?? []).map((f) => FORMAT_LABEL[f as ContentType]).join(" or ");
+  const stageExpects = INTENT_STAGE_MAP[stage].join(" / ");
+
+  const recommendation =
+    alignment === "aligned"
+      ? "Well-aligned — format, arc stage, and intent are mutually reinforcing"
+      : formatMismatch && stageMismatch
+      ? `Both format and stage contradict the ${intent} intent. ${FORMAT_LABEL[type]} format suits ${INTENT_FORMAT_MAP[type].best[0] ?? "other"} intent; ${stage} stage expects ${stageExpects} intent. Change format to ${bestFormats || "a better-fit format"} and realign the angle to match the stage.`
+      : formatMismatch
+      ? `${FORMAT_LABEL[type]} format is weak for ${intent} intent — the format signals ${INTENT_FORMAT_MAP[type].best[0] ?? "a different"} intent to search engines. ${bestFormats ? `Consider ${bestFormats} format.` : "Rework the angle to match the format's natural intent."}`
+      : `${stage} stage expects ${stageExpects} intent but the angle reads as ${intent} — search engines may categorise this piece incorrectly, causing it to rank for the wrong query type. Adjust the angle to emphasise ${stageExpects} signals or move the entry to a more appropriate cluster position.`;
+
+  return { intent, stage, alignment, formatMismatch, stageMismatch, penaltyEst, recommendation };
+}
+
 // ─── Persona Targeting Depth Analyser ────────────────────────────────────────
 // Maps each entry to one or more fintech buyer personas and measures funnel
 // depth per persona — flags over-indexed and underserved audiences
@@ -8327,6 +8403,289 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Search Intent Alignment Scorer ───────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar.map((e) => ({
+                    entry: e,
+                    align: scoreIntentAlignment(e.topic, e.angle, e.type),
+                  }));
+
+                  const n           = scored.length;
+                  const aligned     = scored.filter((s) => s.align.alignment === "aligned");
+                  const partial     = scored.filter((s) => s.align.alignment === "partial");
+                  const misaligned  = scored.filter((s) => s.align.alignment === "misaligned");
+                  const fmtMismatch = scored.filter((s) => s.align.formatMismatch);
+                  const stgMismatch = scored.filter((s) => s.align.stageMismatch);
+
+                  // Intent distribution
+                  const intentCounts: Record<string, number> = {};
+                  scored.forEach((s) => { intentCounts[s.align.intent] = (intentCounts[s.align.intent] ?? 0) + 1; });
+
+                  // Portfolio Search Intent Alignment Score (0-100)
+                  const s1 = n > 0 ? Math.round((aligned.length / n) * 50)    : 50;
+                  const s2 = n > 0 ? Math.round(((n - misaligned.length) / n) * 30) : 30;
+                  const s3 = n > 0 ? Math.round(
+                    scored.filter((s) => INTENT_FORMAT_MAP[s.entry.type].best.includes(s.align.intent)).length / n * 20
+                  ) : 20;
+                  const alignScore = s1 + s2 + s3;
+
+                  const iCfg =
+                    alignScore >= 80 ? { label: "Strong alignment — format, stage, and intent are consistent",    color: "text-indigo-700",  bg: "bg-indigo-50",  border: "border-indigo-100"  } :
+                    alignScore >= 55 ? { label: "Partial alignment — some format or stage contradictions present", color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    alignScore >= 30 ? { label: "Weak alignment — widespread intent/format mismatches",            color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                        { label: "Poor alignment — most entries have contradictory intent signals", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  const ALIGN_CFG: Record<IntentAlignment, { label: string; icon: string; pill: string; bar: string; color: string }> = {
+                    aligned:    { label: "Aligned",    icon: "✅", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", bar: "bg-emerald-400", color: "text-emerald-700" },
+                    partial:    { label: "Partial",    icon: "🟡", pill: "bg-amber-100 text-amber-700 border-amber-200",     bar: "bg-amber-400",   color: "text-amber-700"   },
+                    misaligned: { label: "Misaligned", icon: "🔴", pill: "bg-rose-100 text-rose-700 border-rose-200",        bar: "bg-rose-400",    color: "text-rose-700"    },
+                  };
+
+                  const INTENT_PILL_CFG: Record<string, { pill: string; bar: string }> = {
+                    informational: { pill: "bg-blue-100 text-blue-700 border-blue-200",     bar: "bg-blue-400"   },
+                    commercial:    { pill: "bg-violet-100 text-violet-700 border-violet-200", bar: "bg-violet-400" },
+                    transactional: { pill: "bg-rose-100 text-rose-700 border-rose-200",     bar: "bg-rose-400"   },
+                    navigational:  { pill: "bg-slate-100 text-slate-500 border-slate-200",  bar: "bg-slate-400"  },
+                  };
+
+                  const STAGE_EXPECTS: Record<ArcStage, string> = {
+                    awareness:      "informational / navigational",
+                    education:      "informational",
+                    consideration:  "commercial / informational",
+                    implementation: "commercial / transactional",
+                    advanced:       "commercial / transactional",
+                  };
+
+                  return (
+                    <Card className="border border-indigo-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🔍</span>
+                            <p className="text-xs font-semibold text-slate-700">Search Intent Alignment Scorer</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${iCfg.color} ${iCfg.bg} ${iCfg.border}`}>
+                            {alignScore}/100 · {iCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Detects contradictions between each entry's dominant search intent (commercial · informational · transactional · navigational), its format choice, and its editorial arc stage. A LinkedIn post targeting transactional commercial intent, or a 101-style guide in an Implementation arc stage, sends contradictory signals to search engines — the page is categorised for the wrong query type, ranks below its quality ceiling, and drives visitors whose needs it cannot satisfy, inflating bounce rate and suppressing further ranking gains. Both mismatches are scored independently and combined into an entry-level alignment rating with a ranking penalty estimate.
+                        </p>
+
+                        {/* Portfolio alignment score */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${iCfg.bg} ${iCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${iCfg.color}`}>{alignScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Full alignment rate",   val: s1, max: 50, desc: `${aligned.length}/${n} entries have aligned intent, format, and stage — target ≥70%` },
+                              { label: "Misalignment-free",     val: s2, max: 30, desc: `${misaligned.length}/${n} entries have both format and stage mismatched — strongly penalised` },
+                              { label: "Format fitness",        val: s3, max: 20, desc: `${scored.filter((s) => INTENT_FORMAT_MAP[s.entry.type].best.includes(s.align.intent)).length}/${n} entries use the optimal (not just acceptable) format for their intent` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${iCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Alignment tier distribution */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Alignment distribution:</p>
+                        <div className="flex h-4 w-full rounded-lg overflow-hidden mb-2">
+                          {(["aligned","partial","misaligned"] as IntentAlignment[]).map((a) => {
+                            const count = a === "aligned" ? aligned.length : a === "partial" ? partial.length : misaligned.length;
+                            const pct   = n > 0 ? Math.round((count / n) * 100) : 0;
+                            const cfg   = ALIGN_CFG[a];
+                            return pct > 0 ? (
+                              <div key={a} className={`flex items-center justify-center text-[6.5px] font-bold text-white ${cfg.bar}`} style={{ width: `${pct}%` }}>
+                                {pct >= 10 ? `${cfg.label} ${pct}%` : pct >= 6 ? `${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5 mb-4">
+                          {(["aligned","partial","misaligned"] as IntentAlignment[]).map((a) => {
+                            const count = a === "aligned" ? aligned.length : a === "partial" ? partial.length : misaligned.length;
+                            const cfg   = ALIGN_CFG[a];
+                            return (
+                              <div key={a} className={`rounded-lg border px-2 py-1.5 text-center ${a === "aligned" ? "bg-emerald-50 border-emerald-100" : a === "partial" ? "bg-amber-50 border-amber-100" : "bg-rose-50 border-rose-100"}`}>
+                                <p className="text-[6.5px] text-slate-400 mb-0.5">{cfg.icon} {cfg.label}</p>
+                                <p className={`text-[14px] font-black leading-none ${cfg.color}`}>{count}</p>
+                                <p className="text-[6px] text-slate-400 mt-0.5">{n > 0 ? Math.round((count/n)*100) : 0}% of calendar</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Intent distribution */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Intent distribution across calendar:</p>
+                        <div className="flex h-4 w-full rounded-lg overflow-hidden mb-1.5">
+                          {Object.entries(intentCounts).sort((a,b) => b[1]-a[1]).map(([intent, count]) => {
+                            const pct = n > 0 ? Math.round((count / n) * 100) : 0;
+                            const cfg = INTENT_PILL_CFG[intent] ?? INTENT_PILL_CFG.navigational;
+                            return pct > 0 ? (
+                              <div key={intent} className={`flex items-center justify-center text-[6.5px] font-bold text-white ${cfg.bar}`} style={{ width: `${pct}%` }}>
+                                {pct >= 12 ? `${intent} ${pct}%` : pct >= 7 ? `${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          {Object.entries(intentCounts).sort((a,b) => b[1]-a[1]).map(([intent, count]) => {
+                            const cfg = INTENT_PILL_CFG[intent] ?? INTENT_PILL_CFG.navigational;
+                            return (
+                              <span key={intent} className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.pill}`}>
+                                {intent} · {count} entries · {n > 0 ? Math.round((count/n)*100) : 0}%
+                              </span>
+                            );
+                          })}
+                        </div>
+
+                        {/* Format-intent compatibility reference */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">📐</span>
+                          <div>
+                            <p className="text-[8px] font-bold text-slate-700 mb-1.5">Format × intent compatibility reference:</p>
+                            <div className="grid grid-cols-5 gap-1">
+                              {(["guide","blog","roundup","case-study","linkedin"] as ContentType[]).map((t) => {
+                                const fm = INTENT_FORMAT_MAP[t];
+                                return (
+                                  <div key={t} className="text-center">
+                                    <p className={`text-[6px] font-bold px-1 py-0.5 rounded-full border mb-1 ${TYPE_COLOR[t]}`}>{FORMAT_LABEL[t]}</p>
+                                    <p className="text-[5.5px] text-emerald-600 font-bold">✓ {fm.best.join(", ")}</p>
+                                    {fm.acceptable.length > 0 && <p className="text-[5.5px] text-amber-500">~ {fm.acceptable.join(", ")}</p>}
+                                    {(["informational","commercial","transactional","navigational"] as const).filter(i => !fm.best.includes(i) && !fm.acceptable.includes(i)).map(i => (
+                                      <p key={i} className="text-[5.5px] text-rose-400">✗ {i}</p>
+                                    ))}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <p className="text-[7px] text-slate-400 mt-1.5">✓ best-fit · ~ acceptable · ✗ mismatch → sends contradictory signals</p>
+                          </div>
+                        </div>
+
+                        {/* Arc stage → expected intent reference */}
+                        <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">🗺️</span>
+                          <div>
+                            <p className="text-[8px] font-bold text-slate-700 mb-1">Arc stage × expected search intent:</p>
+                            <div className="grid grid-cols-5 gap-1">
+                              {(["awareness","education","consideration","implementation","advanced"] as ArcStage[]).map((s) => (
+                                <div key={s} className="text-center">
+                                  <p className="text-[6px] font-bold text-slate-600 mb-0.5">{s}</p>
+                                  <p className="text-[5.5px] text-blue-600">{STAGE_EXPECTS[s]}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Misaligned entries — most urgent */}
+                        {misaligned.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">
+                              🔴 {misaligned.length} fully misaligned entr{misaligned.length !== 1 ? "ies" : "y"} — both format and stage contradict the intent (~25–50% ranking penalty):
+                            </p>
+                            <div className="space-y-1.5 mb-4">
+                              {misaligned.map(({ entry: e, align }) => (
+                                <div key={entryKey(e)} className="rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-2">
+                                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                    <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className="text-[7.5px] font-semibold text-slate-700 truncate">{e.angle.slice(0,32)}{e.angle.length > 32 ? "…" : ""}</span>
+                                    <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${INTENT_PILL_CFG[align.intent]?.pill ?? ""}`}>{align.intent}</span>
+                                    <span className="text-[6.5px] text-slate-400 italic shrink-0">arc: {align.stage}</span>
+                                  </div>
+                                  <p className="text-[7px] text-rose-700 leading-snug">{align.recommendation}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Partial alignment entries */}
+                        {partial.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">
+                              🟡 {partial.length} partially aligned entr{partial.length !== 1 ? "ies" : "y"} — one mismatch present (~5–20% penalty):
+                            </p>
+                            <div className="space-y-1 mb-4">
+                              {partial.map(({ entry: e, align }) => (
+                                <div key={entryKey(e)} className="rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                                    <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className="text-[7px] text-slate-700 truncate flex-1">{e.angle.slice(0,30)}{e.angle.length > 30 ? "…" : ""}</span>
+                                    <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${align.formatMismatch ? "bg-rose-100 text-rose-600 border-rose-200" : "bg-emerald-100 text-emerald-700 border-emerald-200"}`}>
+                                      {align.formatMismatch ? "✗ fmt" : "✓ fmt"}
+                                    </span>
+                                    <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${align.stageMismatch ? "bg-rose-100 text-rose-600 border-rose-200" : "bg-emerald-100 text-emerald-700 border-emerald-200"}`}>
+                                      {align.stageMismatch ? "✗ stage" : "✓ stage"}
+                                    </span>
+                                  </div>
+                                  <p className="text-[6.5px] text-amber-700 leading-snug italic">{align.recommendation}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Full per-entry table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — intent alignment:</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[6.5px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-20">Intent</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-18">Stage</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-7">Fmt</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-7">Stg</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-16">Alignment</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scored.map(({ entry: e, align }) => {
+                                const ac = ALIGN_CFG[align.alignment];
+                                const ic = INTENT_PILL_CFG[align.intent] ?? INTENT_PILL_CFG.navigational;
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,22)}{e.angle.length > 22 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${ic.pill}`}>{align.intent}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1 text-slate-500">{align.stage}</td>
+                                    <td className="text-center py-0.5 px-1 font-black text-[7px]">
+                                      <span className={align.formatMismatch ? "text-rose-500" : "text-emerald-600"}>{align.formatMismatch ? "✗" : "✓"}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1 font-black text-[7px]">
+                                      <span className={align.stageMismatch ? "text-rose-500" : "text-emerald-600"}>{align.stageMismatch ? "✗" : "✓"}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${ac.pill}`}>{ac.icon} {ac.label}</span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="text-[7px] text-slate-400 mt-2">Fmt = format-intent alignment · Stg = stage-intent alignment · ✓ = aligned · ✗ = mismatch · Both ✗ = misaligned (~25–50% ranking penalty) · One ✗ = partial (~5–20% penalty) · Both ✓ = aligned (no penalty)</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Persona Targeting Depth Analyser ─────────────────────── */}
                 {calendar.length > 0 && (() => {
