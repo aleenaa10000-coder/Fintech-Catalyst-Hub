@@ -1696,6 +1696,118 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Narrative Coherence Scorer ──────────────────────────────────────────────
+// Evaluates whether entries in each month tell a unified strategic story,
+// detects disconnected topic clusters and abrupt pivots, scores monthly coherence
+
+function getMonthKey(dateStr: string): string {
+  const [y, m] = dateStr.split("-");
+  return `${y}-${m}`;
+}
+
+function editDistance(a: string, b: string): number {
+  const aLower = a.toLowerCase();
+  const bLower = b.toLowerCase();
+  const m = aLower.length, n = bLower.length;
+  const dp = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (aLower[i - 1] === bLower[j - 1]) dp[i][j] = dp[i - 1][j - 1];
+      else dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+function topicSimilarity(topic1: string, topic2: string): number {
+  const dist = editDistance(topic1, topic2);
+  const maxLen = Math.max(topic1.length, topic2.length);
+  return Math.max(0, 1 - (dist / maxLen));
+}
+
+function detectNarrativeTheme(entries: ContentEntry[]): string {
+  const intents = entries.map((e) => dominantIntent(e.topic, e.angle));
+  const intentCounts: Record<string, number> = {};
+  intents.forEach((i) => { intentCounts[i] = (intentCounts[i] ?? 0) + 1; });
+  const dominantIntent = Object.entries(intentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "mixed";
+
+  const personas = entries.map((e) => detectPersona(e.topic, e.angle).primaryPersona);
+  const personaCounts: Record<string, number> = {};
+  personas.forEach((p) => { personaCounts[p] = (personaCounts[p] ?? 0) + 1; });
+  const dominantPersona = Object.entries(personaCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "general";
+
+  return `${dominantIntent}/${dominantPersona}`;
+}
+
+function scoreNarrativeCoherence(entries: ContentEntry[]): number {
+  if (entries.length <= 1) return 100;
+
+  // Pairwise topic similarity — all entries should relate to each other
+  let similaritySum = 0;
+  let pairs = 0;
+  for (let i = 0; i < entries.length; i++) {
+    for (let j = i + 1; j < entries.length; j++) {
+      similaritySum += topicSimilarity(entries[i].topic, entries[j].topic);
+      pairs++;
+    }
+  }
+  const avgTopicSimilarity = pairs > 0 ? similaritySum / pairs : 1;
+
+  // Intent consistency — entries in the same month should not jump between intents
+  const intents = entries.map((e) => dominantIntent(e.topic, e.angle));
+  const intentDiversity = new Set(intents).size / Math.max(intents.length, 1);
+  const intentConsistency = 1 - intentDiversity;
+
+  // Stage progression — check for logical arc stage ordering (awareness → advanced)
+  const stages = entries.map((e) => detectArcStage(e.angle));
+  const stageOrder = { awareness: 0, education: 1, consideration: 2, implementation: 3, advanced: 4 };
+  let stageProgression = 0;
+  for (let i = 1; i < stages.length; i++) {
+    const prev = stageOrder[stages[i - 1]] ?? 2;
+    const curr = stageOrder[stages[i]] ?? 2;
+    stageProgression += curr >= prev ? 1 : 0;
+  }
+  const stageProgressionScore = stages.length > 1 ? stageProgression / (stages.length - 1) : 1;
+
+  // Combined coherence: 40% topic, 30% intent, 30% stage progression
+  return Math.round(
+    (avgTopicSimilarity * 0.4 + intentConsistency * 0.3 + stageProgressionScore * 0.3) * 100
+  );
+}
+
+interface MonthCoherence {
+  month: string;
+  entries: ContentEntry[];
+  coherenceScore: number;
+  theme: string;
+  topicDiversity: number;
+  intentShifts: number;
+  isDisconnected: boolean;
+}
+
+function analyzeMonthlyNarrative(calendar: ContentEntry[]): MonthCoherence[] {
+  const byMonth: Record<string, ContentEntry[]> = {};
+  calendar.forEach((e) => {
+    const mk = getMonthKey(e.date);
+    byMonth[mk] = (byMonth[mk] ?? []).concat([e]);
+  });
+
+  return Object.entries(byMonth)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([month, entries]) => {
+      const intents = entries.map((e) => dominantIntent(e.topic, e.angle));
+      const intentShifts = new Set(intents).size;
+      const coherenceScore = scoreNarrativeCoherence(entries);
+      const theme = detectNarrativeTheme(entries);
+      const isDisconnected = coherenceScore < 40 || intentShifts > entries.length * 0.6;
+      const topicDiversity = new Set(entries.map((e) => e.topic)).size;
+
+      return { month, entries, coherenceScore, theme, topicDiversity, intentShifts, isDisconnected };
+    });
+}
+
 // ─── Competitive Differentiation Radar ───────────────────────────────────────
 // Scores each entry on five competitive positioning dimensions to identify
 // which angles stand out in search results and which are commodity content
@@ -8590,6 +8702,211 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Narrative Coherence Scorer ───────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const monthCoherence = analyzeMonthlyNarrative(calendar);
+                  const n = monthCoherence.length;
+
+                  const withoutDisconnected = monthCoherence.filter((m) => !m.isDisconnected);
+                  const avgCoherence = n > 0 ? Math.round(monthCoherence.reduce((s, m) => s + m.coherenceScore, 0) / n) : 0;
+                  const portfolioCoherence = n > 0 ? Math.round((withoutDisconnected.length / n) * 50) + Math.round(avgCoherence * 0.5) : 50;
+
+                  const nCfg =
+                    portfolioCoherence >= 75 ? { label: "Strong narrative coherence — each month tells a complete story", color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-100" } :
+                    portfolioCoherence >= 50 ? { label: "Moderate coherence — some months drift between topics", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" } :
+                    portfolioCoherence >= 25 ? { label: "Weak coherence — calendar reads as list of disconnected pieces", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" } :
+                                                { label: "Poor coherence — most months lack narrative progression", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-100" };
+
+                  const COHERENCE_TIER: Record<string, { label: string; icon: string; color: string; pill: string }> = {
+                    excellent:  { label: "Excellent",  icon: "🎬", color: "text-emerald-700", pill: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+                    good:       { label: "Good",       icon: "📖", color: "text-blue-700",    pill: "bg-blue-100 text-blue-700 border-blue-200"    },
+                    weak:       { label: "Weak",       icon: "🔀", color: "text-amber-700",   pill: "bg-amber-100 text-amber-700 border-amber-200"   },
+                    disconnect: { label: "Disconnect", icon: "❌", color: "text-rose-700",    pill: "bg-rose-100 text-rose-700 border-rose-200"    },
+                  };
+
+                  const getTier = (score: number) =>
+                    score >= 70 ? "excellent" : score >= 50 ? "good" : score >= 40 ? "weak" : "disconnect";
+
+                  const disconnected = monthCoherence.filter((m) => m.isDisconnected);
+                  const weakCoherent = monthCoherence.filter((m) => !m.isDisconnected && m.coherenceScore < 50);
+
+                  return (
+                    <Card className="border border-violet-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🎬</span>
+                            <p className="text-xs font-semibold text-slate-700">Narrative Coherence Scorer</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${nCfg.color} ${nCfg.bg} ${nCfg.border}`}>
+                            {portfolioCoherence}/100 · {nCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Evaluates whether entries in each month tell a unified strategic story by measuring topic similarity (do entries relate to each other?), intent consistency (do they all target the same reader psychology?), and stage progression (is there logical arc development from awareness through implementation?). A cohesive month creates narrative momentum and reader return visits; a disconnected month feels like an inbox dump and deprioritises every entry in the reader's mind. Each month is scored 0–100 on coherence, and the portfolio score combines per-month coherence with the proportion of months that achieve narrative unity.
+                        </p>
+
+                        {/* Portfolio score */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${nCfg.bg} ${nCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${nCfg.color}`}>{portfolioCoherence}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Coherent month rate",   val: withoutDisconnected.length, max: n, desc: `${withoutDisconnected.length}/${n} months achieve narrative unity — target 100%` },
+                              { label: "Avg monthly coherence", val: Math.round(avgCoherence), max: 100, desc: `Portfolio-wide coherence score — ${avgCoherence}/100 — higher = tighter thematic focus` },
+                              { label: "Disconnected months",   val: n - disconnected.length, max: n, desc: `${disconnected.length}/${n} months lack narrative progression — each weakens the monthly story arc` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${nCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Per-month coherence cards */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Monthly narrative coherence breakdown:</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                          {monthCoherence.map((m) => {
+                            const tier = getTier(m.coherenceScore);
+                            const cfg = COHERENCE_TIER[tier];
+                            const [intent, persona] = m.theme.split("/");
+                            const personaCfg = persona && persona !== "general" ? PERSONA_CFG[persona as PersonaKey] : null;
+                            return (
+                              <div key={m.month} className={`rounded-lg border px-3 py-2 ${m.isDisconnected ? "bg-rose-50 border-rose-100" : cfg.color.includes("emerald") ? "bg-emerald-50 border-emerald-100" : cfg.color.includes("blue") ? "bg-blue-50 border-blue-100" : "bg-amber-50 border-amber-100"}`}>
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[9px]">{cfg.icon}</span>
+                                    <p className="text-[7.5px] font-bold text-slate-700">{m.month}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className={`text-[13px] font-black leading-none tabular-nums ${cfg.color}`}>{m.coherenceScore}</p>
+                                    <p className="text-[6px] text-slate-400">/100</p>
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-2 mb-1.5">
+                                  <div className="flex-1">
+                                    <p className="text-[6px] text-slate-500 mb-0.5">Intent shifts:</p>
+                                    <p className={`text-[11px] font-black ${m.intentShifts <= 1 ? "text-emerald-700" : m.intentShifts <= 2 ? "text-amber-600" : "text-rose-600"}`}>{m.intentShifts}/{m.entries.length}</p>
+                                    <p className="text-[5.5px] text-slate-400 italic">{m.intentShifts <= 1 ? "unified" : m.intentShifts <= 2 ? "diverging" : "fragmented"}</p>
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-[6px] text-slate-500 mb-0.5">Topic diversity:</p>
+                                    <p className={`text-[11px] font-black ${m.topicDiversity <= 2 ? "text-emerald-700" : m.topicDiversity <= 3 ? "text-amber-600" : "text-rose-600"}`}>{m.topicDiversity} topics</p>
+                                    <p className="text-[5.5px] text-slate-400 italic">{m.topicDiversity <= 2 ? "focused" : m.topicDiversity <= 3 ? "balanced" : "scattered"}</p>
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-1.5 flex-wrap mb-1.5">
+                                  <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${INTENT_PILL_CFG[intent]?.pill ?? INTENT_PILL_CFG.navigational.pill}`}>{intent}</span>
+                                  {personaCfg && (
+                                    <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${personaCfg.pill}`}>{personaCfg.icon} {personaCfg.label}</span>
+                                  )}
+                                </div>
+
+                                {m.coherenceScore >= 70 && (
+                                  <p className="text-[6.5px] text-emerald-700 font-bold">✓ Cohesive — month tells a unified story with clear theme</p>
+                                )}
+                                {m.coherenceScore >= 50 && m.coherenceScore < 70 && (
+                                  <p className="text-[6.5px] text-amber-700">~ Some topic drift — intent stays consistent but topics branch</p>
+                                )}
+                                {m.coherenceScore < 50 && !m.isDisconnected && (
+                                  <p className="text-[6.5px] text-amber-600">Weak coherence — entries read as loosely related</p>
+                                )}
+                                {m.isDisconnected && (
+                                  <p className="text-[6.5px] text-rose-700 font-bold">✗ Disconnected — no clear narrative thread or intent fragmentation</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Disconnected months alert */}
+                        {disconnected.length > 0 && (
+                          <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border mb-3 bg-rose-50 border-rose-100`}>
+                            <span className="text-[10px] shrink-0 mt-0.5">❌</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1">{disconnected.length} month{disconnected.length !== 1 ? "s" : ""} with fragmented narrative — readers get inbox-dump experience rather than story arc</p>
+                              <div className="space-y-1">
+                                {disconnected.map((m) => (
+                                  <div key={m.month} className="flex items-center gap-1.5">
+                                    <span className="text-[7px] font-bold text-rose-700">{m.month}:</span>
+                                    <span className="text-[6.5px] text-rose-600">{m.intentShifts} intent shifts across {m.entries.length} entries (score: {m.coherenceScore}/100)</span>
+                                    <span className="text-[6px] text-rose-400 italic">→ Consolidate {m.intentShifts > 1 ? "intent" : "topics"} or split into multiple months</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Weak coherence alert */}
+                        {weakCoherent.length > 0 && (
+                          <div className={`flex items-start gap-2 px-3 py-2 rounded-lg border mb-4 bg-amber-50 border-amber-100`}>
+                            <span className="text-[10px] shrink-0 mt-0.5">🔀</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{weakCoherent.length} month{weakCoherent.length !== 1 ? "s" : ""} with weak narrative coherence (40–50) — still readable but loose</p>
+                              <p className="text-[7px] text-amber-700 leading-snug">Each month should have a dominant theme. For weak-coherence months, either (a) rewrite one entry's angle to align with the month's primary theme, or (b) defer that entry to next month if it belongs to a different narrative arc.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Narrative strategy panel */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">📚</span>
+                          <div>
+                            <p className="text-[8px] font-bold text-slate-700 mb-1">Why narrative coherence matters — reader psychology:</p>
+                            <p className="text-[6.5px] text-slate-600 leading-snug">
+                              Readers who land on your blog post via search engine expect to land on a specific, focused resource. After reading, they make a binary decision: (a) return to this blog next time they have a related question, or (b) go elsewhere. A reader who encounters a cohesive blog with June entries all addressing "compliance automation for payment processors" will bookmark the June archive and return. A reader who bounces between "compliance automation", "API latency optimisation", and "embedded finance UX trends" in a single month perceives a lack of editorial direction and deprioritises return visits. <span className="font-bold">Coherent monthly themes create reader habits and compound blog authority over time.</span> Weak-coherence months are not "wrong" — but high-coherence months consistently outperform on retention and returning visitor metrics.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Per-month entry table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Monthly entries — narrative thread:</p>
+                        <div className="space-y-2">
+                          {monthCoherence.map((m) => (
+                            <div key={m.month} className="overflow-x-auto">
+                              <p className="text-[7px] font-bold text-slate-600 mb-1 px-2">{m.month} — Coherence {m.coherenceScore}/100, Intent shifts {m.intentShifts}, Topics {m.topicDiversity}</p>
+                              <table className="w-full text-[6px] border-collapse">
+                                <tbody>
+                                  {m.entries.map((e, idx) => {
+                                    const persona = detectPersona(e.topic, e.angle);
+                                    const personaCfg = persona.primaryPersona !== "general" ? PERSONA_CFG[persona.primaryPersona as PersonaKey] : null;
+                                    return (
+                                      <tr key={entryKey(e)} className={`border-t border-slate-100 ${idx === 0 ? "" : ""}`}>
+                                        <td className="py-0.5 pl-2 text-slate-500">{idx + 1}</td>
+                                        <td className="py-0.5 px-2">
+                                          <span className={`text-[5.5px] font-bold px-0.5 py-0.5 rounded border ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                        </td>
+                                        <td className="py-0.5 px-2 text-slate-700 max-w-xs truncate">{e.angle.slice(0,36)}</td>
+                                        <td className="py-0.5 px-1.5">
+                                          <span className={`text-[5.5px] font-bold px-0.5 py-0.5 rounded border ${personaCfg ? personaCfg.pill : "bg-slate-100 text-slate-500 border-slate-200"}`}>
+                                            {personaCfg ? personaCfg.label : "general"}
+                                          </span>
+                                        </td>
+                                        <td className="py-0.5 pr-2 text-right text-slate-400">{dominantIntent(e.topic, e.angle)}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Competitive Differentiation Radar ───────────────────── */}
                 {calendar.length > 0 && (() => {
