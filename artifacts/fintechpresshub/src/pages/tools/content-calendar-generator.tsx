@@ -5811,6 +5811,209 @@ export default function ContentCalendarGenerator() {
                   </Card>
                 )}
 
+                {/* ── Internal Linking Opportunity Map ─────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Group entries by topic
+                  const topicMap = new Map<string, typeof calendar>();
+                  for (const e of calendar) {
+                    if (!topicMap.has(e.topic)) topicMap.set(e.topic, []);
+                    topicMap.get(e.topic)!.push(e);
+                  }
+
+                  // Build cluster profiles
+                  type Cluster = {
+                    topic:      string;
+                    pillars:    typeof calendar;
+                    supporting: typeof calendar;
+                    linkCount:  number;
+                  };
+                  const clusters: Cluster[] = [];
+                  const orphans: typeof calendar = [];
+
+                  for (const [topic, entries] of topicMap) {
+                    const pillars    = entries.filter((e) => PILLAR_TYPES.has(e.type));
+                    const supporting = entries.filter((e) => !PILLAR_TYPES.has(e.type));
+                    if (entries.length === 1) { orphans.push(entries[0]); continue; }
+                    const linkCount = pillars.length > 0
+                      ? pillars.length * supporting.length * 2
+                      : supporting.length > 1 ? supporting.length - 1 : 0;
+                    clusters.push({ topic, pillars, supporting, linkCount });
+                  }
+                  clusters.sort((a, b) => b.linkCount - a.linkCount);
+
+                  // Cross-topic links: topics sharing a significant keyword
+                  const topicKeys = [...topicMap.keys()];
+                  const sigWords   = (t: string) => t.toLowerCase().split(/[\s/&,]+/).filter((w) => w.length > 4);
+                  const crossLinks: { topicA: string; topicB: string; word: string }[] = [];
+                  for (let i = 0; i < topicKeys.length; i++) {
+                    for (let j = i + 1; j < topicKeys.length; j++) {
+                      const wa = sigWords(topicKeys[i]);
+                      const shared = wa.find((w) => sigWords(topicKeys[j]).includes(w));
+                      if (shared) crossLinks.push({ topicA: topicKeys[i], topicB: topicKeys[j], word: shared });
+                    }
+                  }
+
+                  const clusterLinkTotal = clusters.reduce((s, c) => s + c.linkCount, 0);
+                  const totalOpp         = clusterLinkTotal + crossLinks.length;
+                  const withLinks        = clusters.filter((c) => c.linkCount > 0);
+                  const noPillar         = clusters.filter((c) => c.pillars.length === 0 && c.supporting.length > 1);
+
+                  return (
+                    <Card className="border border-lime-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🔗</span>
+                            <p className="text-xs font-semibold text-slate-700">Internal Linking Opportunity Map</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-lime-100 text-lime-700 border border-lime-200">
+                              {totalOpp} opportunities
+                            </span>
+                            {orphans.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {orphans.length} orphan{orphans.length !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Maps pillar-to-cluster and cross-topic internal link relationships — concentrating PageRank on your highest-value assets and eliminating orphan content.
+                        </p>
+
+                        {/* Summary stat row */}
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          {[{ label: "Cluster links",  val: clusterLinkTotal, warn: false },
+                            { label: "Cross-topic",    val: crossLinks.length, warn: false },
+                            { label: "Orphan pieces",  val: orphans.length,   warn: orphans.length > 0 }]
+                            .map(({ label, val, warn }) => (
+                              <div key={label} className={`rounded-lg border px-2.5 py-2 text-center ${warn ? "bg-rose-50 border-rose-100" : "bg-lime-50 border-lime-100"}`}>
+                                <p className="text-[8.5px] text-slate-400 mb-0.5">{label}</p>
+                                <p className={`text-[12px] font-black leading-none ${warn ? "text-rose-700" : "text-lime-700"}`}>{val}</p>
+                              </div>
+                            ))}
+                        </div>
+
+                        {/* Topic cluster link maps */}
+                        {withLinks.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Topic cluster link map:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {withLinks.slice(0, 5).map(({ topic, pillars, supporting }) => (
+                                <div key={topic} className="rounded-xl border border-slate-100 bg-slate-50 overflow-hidden">
+                                  <div className="flex items-center justify-between px-3.5 py-2 bg-white border-b border-slate-100">
+                                    <p className="text-[9.5px] font-bold text-slate-700">{topic}</p>
+                                    <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-lime-100 text-lime-700">
+                                      {pillars.length}P · {supporting.length}S
+                                    </span>
+                                  </div>
+                                  <div className="px-3.5 py-2.5 space-y-2">
+                                    {pillars.length > 0 ? (
+                                      <>
+                                        {/* Pillar pieces */}
+                                        {pillars.map((p) => (
+                                          <div key={entryKey(p)} className="flex items-center gap-2">
+                                            <div className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100">
+                                              <span className="text-[9px] shrink-0">🏛️</span>
+                                              <span className={`text-[7.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[p.type]}`}>{FORMAT_LABEL[p.type]}</span>
+                                              <span className="text-[8.5px] font-bold text-indigo-800 truncate">{p.angle}</span>
+                                              <span className="text-[7.5px] text-indigo-400 shrink-0">Wk {p.week}</span>
+                                            </div>
+                                            <span className="text-[7.5px] font-black text-indigo-400 shrink-0">PILLAR</span>
+                                          </div>
+                                        ))}
+                                        {/* Supporting pieces linking to pillar */}
+                                        {supporting.length > 0 && (
+                                          <div className="pl-2 space-y-1">
+                                            <p className="text-[7.5px] text-slate-400 font-semibold">Each should link TO the pillar ↑</p>
+                                            {supporting.map((s) => (
+                                              <div key={entryKey(s)} className="flex items-center gap-1.5">
+                                                <span className="text-[9px] text-slate-300 shrink-0">└─</span>
+                                                <div className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1 rounded-lg bg-white border border-slate-100">
+                                                  <span className={`text-[7.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[s.type]}`}>{FORMAT_LABEL[s.type]}</span>
+                                                  <span className="text-[8.5px] text-slate-700 truncate">{s.angle}</span>
+                                                  <span className="text-[7.5px] text-slate-400 shrink-0">Wk {s.week}</span>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <div className="px-2.5 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                        <p className="text-[8.5px] text-amber-700 font-semibold">⚠️ No pillar piece for this cluster</p>
+                                        <p className="text-[8px] text-amber-600 mt-0.5">
+                                          {supporting.length} supporting entries exist but no guide or case study to anchor the cluster. Add a pillar to concentrate link equity.
+                                        </p>
+                                      </div>
+                                    )}
+                                    <p className="text-[7.5px] text-slate-400 italic">
+                                      Supporting→pillar links concentrate PageRank on your highest-value asset. The pillar should reciprocate by linking back to each cluster piece.
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                              {withLinks.length > 5 && (
+                                <p className="text-[9px] text-slate-400 text-center">+{withLinks.length - 5} more topic clusters</p>
+                              )}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Cross-topic opportunities */}
+                        {crossLinks.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Cross-topic link opportunities:</p>
+                            <div className="space-y-1.5 mb-2">
+                              {crossLinks.slice(0, 6).map(({ topicA, topicB, word }) => (
+                                <div key={`${topicA}|${topicB}`} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-lime-50 border border-lime-100">
+                                  <span className="text-[8.5px] font-semibold text-lime-800 truncate flex-1 min-w-0">{topicA}</span>
+                                  <span className="text-[7.5px] text-lime-500 font-black shrink-0 px-1.5">⟷ "{word}"</span>
+                                  <span className="text-[8.5px] font-semibold text-lime-800 truncate flex-1 min-w-0 text-right">{topicB}</span>
+                                </div>
+                              ))}
+                              {crossLinks.length > 6 && (
+                                <p className="text-[9px] text-slate-400 text-center">+{crossLinks.length - 6} more cross-topic pairs</p>
+                              )}
+                            </div>
+                            <p className="text-[8px] text-slate-400 italic mb-4">
+                              Shared keywords signal these topics are semantically related — contextual cross-links help Google understand topical breadth and improve crawl efficiency.
+                            </p>
+                          </>
+                        )}
+
+                        {/* Orphan pieces */}
+                        {orphans.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Orphan pieces — no siblings to link from:</p>
+                            <div className="space-y-1.5 mb-2">
+                              {orphans.map((e) => (
+                                <div key={entryKey(e)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-100">
+                                  <span className="text-xs shrink-0">🏝️</span>
+                                  <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                  <span className="text-[8.5px] text-rose-800 truncate flex-1">{e.angle}</span>
+                                  <span className="text-[7.5px] text-slate-400 shrink-0">Wk {e.week}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-[8px] text-slate-400 italic">
+                              Orphan pieces cannot receive internal link equity. Add a supporting piece or related pillar on the same topic to anchor them in the link graph.
+                            </p>
+                          </>
+                        )}
+
+                        {withLinks.length === 0 && crossLinks.length === 0 && orphans.length === 0 && (
+                          <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-sm">✅</span>
+                            <p className="text-[10px] font-semibold text-emerald-700">All topics are well-connected — strong internal link graph with no orphan content detected.</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
                 {/* ── Topic Saturation & Originality Check ─────────────────── */}
                 {calendar.length > 0 && (() => {
                   const total = calendar.length;
