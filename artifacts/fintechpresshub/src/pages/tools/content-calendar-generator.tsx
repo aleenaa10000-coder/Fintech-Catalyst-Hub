@@ -1696,6 +1696,70 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Content Debt Register ───────────────────────────────────────────────────
+const DEBT_REGULATION_NAMED  = ["psd2","gdpr","mifid","basel iv","dodd-frank","fatca","fca","cfpb","eba","esma","fintrac","ccar","dora","mica","emir","solvency ii","ifrs 9","ifrs 17","aifmd","ucits","crd","crr"];
+const DEBT_REGULATION_GENERIC = ["regulation","compliance","regulatory","legislation","law","rule","directive","requirement","mandate","obligation","standard","guidance","policy"];
+const DEBT_DATE_SIGNALS       = ["2023","2024","2025","2026","2027","q1 ","q2 ","q3 ","q4 ","this year","last year","current year","in 2025","in 2026","by 2025","by 2026","predictions for","outlook for","state of fintech"];
+const DEBT_STAT_SIGNALS       = ["% of","percent","statistics","study shows","according to","survey found","report found","data shows","research shows","found that","measured","tracked","n=","sample of","respondents","benchmark data"];
+const DEBT_MARKET_SIGNALS     = ["interest rate","inflation","valuation","funding round","market cap","share price","stock","ipo","unicorn","series a","series b","series c","venture","investment round","raise"];
+const DEBT_EVERGREEN_SIGNALS  = ["how to","what is","guide to","framework","principles","fundamentals","definition","basics","introduction to","explained","understanding","always","never changes","timeless","primer"];
+
+type DebtType = "regulatory" | "date" | "statistical" | "market" | "evergreen";
+
+interface DebtEntry {
+  score:        number;           // 0-100, higher = more maintenance urgency
+  tier:         "critical" | "high" | "medium" | "low";
+  dominantDebt: DebtType;
+  regScore:     number;
+  dateScore:    number;
+  statScore:    number;
+  marketScore:  number;
+  evergreenBonus: number;         // negative contribution
+  refreshMonths: number;          // months from publish until refresh needed
+}
+
+function scoreDebt(e: { type: ContentType; topic: string; angle: string; week: number }): DebtEntry {
+  const hay = `${e.topic} ${e.angle}`.toLowerCase();
+
+  const regNamedHits   = DEBT_REGULATION_NAMED.filter((s) => hay.includes(s)).length;
+  const regGenericHits = DEBT_REGULATION_GENERIC.filter((s) => hay.includes(s)).length;
+  const regScore       = Math.min(40, regNamedHits * 18 + regGenericHits * 7);
+
+  const dateHits  = DEBT_DATE_SIGNALS.filter((s) => hay.includes(s)).length;
+  const dateScore = Math.min(35, dateHits * 18);
+
+  const statHits  = DEBT_STAT_SIGNALS.filter((s) => hay.includes(s)).length;
+  const statScore = Math.min(25, statHits * 9);
+
+  const mktHits    = DEBT_MARKET_SIGNALS.filter((s) => hay.includes(s)).length;
+  const marketScore = Math.min(20, mktHits * 8);
+
+  const evHits         = DEBT_EVERGREEN_SIGNALS.filter((s) => hay.includes(s)).length;
+  const evergreenBonus = Math.min(25, evHits * 7);
+
+  // Case studies carry inherently lower debt (client outcomes don't become stale as fast)
+  const typeAdj = e.type === "case-study" ? -8 : e.type === "guide" ? -4 : 0;
+
+  const raw   = regScore + dateScore + statScore + marketScore - evergreenBonus + typeAdj;
+  const score = Math.max(0, Math.min(100, raw));
+  const tier: DebtEntry["tier"] = score >= 65 ? "critical" : score >= 40 ? "high" : score >= 20 ? "medium" : "low";
+
+  // Dominant debt type
+  const scores: [DebtType, number][] = [
+    ["regulatory", regScore], ["date", dateScore],
+    ["statistical", statScore], ["market", marketScore], ["evergreen", evergreenBonus],
+  ];
+  const dominantDebt = scores.sort(([, a], [, b]) => b - a)[0][0];
+
+  // Refresh cycle — how many months from publish until a refresh pass is needed
+  const refreshMonths =
+    tier === "critical" ? 3 :
+    tier === "high"     ? 6 :
+    tier === "medium"   ? 12 : 24;
+
+  return { score, tier, dominantDebt, regScore, dateScore, statScore, marketScore, evergreenBonus, refreshMonths };
+}
+
 // ─── Narrative Arc Analyser ──────────────────────────────────────────────────
 const NARRATIVE_REGISTER: Record<ContentType, string> = {
   "guide":      "educational",
@@ -6368,6 +6432,251 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Content Debt Register ────────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar
+                    .map((e) => ({ entry: e, debt: scoreDebt(e) }))
+                    .sort((a, b) => b.debt.score - a.debt.score);
+
+                  const critical    = scored.filter((s) => s.debt.tier === "critical");
+                  const high        = scored.filter((s) => s.debt.tier === "high");
+                  const medium      = scored.filter((s) => s.debt.tier === "medium");
+                  const low         = scored.filter((s) => s.debt.tier === "low");
+                  const evergreens  = scored.filter((s) => s.debt.dominantDebt === "evergreen" || s.debt.tier === "low");
+                  const avgRefresh  = Math.round(scored.reduce((s, x) => s + x.debt.refreshMonths, 0) / scored.length);
+
+                  const tierCfg = {
+                    critical: { label: "Critical debt",    bg: "bg-red-50",    border: "border-red-200",    text: "text-red-700",    bar: "bg-red-400",    badge: "bg-red-100 text-red-700 border-red-200",         icon: "🚨", refresh: "Within 3 months"  },
+                    high:     { label: "High debt",        bg: "bg-orange-50", border: "border-orange-100", text: "text-orange-700", bar: "bg-orange-400", badge: "bg-orange-100 text-orange-700 border-orange-200", icon: "⚠️", refresh: "Within 6 months"  },
+                    medium:   { label: "Medium debt",      bg: "bg-amber-50",  border: "border-amber-100",  text: "text-amber-700",  bar: "bg-amber-400",  badge: "bg-amber-100 text-amber-700 border-amber-200",   icon: "🔶", refresh: "Annual refresh"    },
+                    low:      { label: "Low debt",         bg: "bg-emerald-50",border: "border-emerald-100",text: "text-emerald-700",bar: "bg-emerald-400",badge: "bg-emerald-100 text-emerald-700 border-emerald-200",icon: "✅", refresh: "Every 2 years"   },
+                  } as const;
+
+                  const debtTypeCfg: Record<DebtType, { label: string; color: string; icon: string; desc: string }> = {
+                    regulatory: { label: "Regulatory",  color: "bg-purple-100 text-purple-700 border-purple-200", icon: "⚖️", desc: "Tied to specific legislation — must refresh when rules change"     },
+                    date:       { label: "Date-stamped", color: "bg-rose-100 text-rose-700 border-rose-200",       icon: "📅", desc: "Contains year/quarter markers — hard expiry when the period ends" },
+                    statistical:{ label: "Statistical",  color: "bg-blue-100 text-blue-700 border-blue-200",       icon: "📊", desc: "References specific data — becomes stale when new studies publish" },
+                    market:     { label: "Market-linked",color: "bg-amber-100 text-amber-700 border-amber-200",    icon: "📈", desc: "Tied to market conditions — may need updating quarterly"          },
+                    evergreen:  { label: "Evergreen",    color: "bg-emerald-100 text-emerald-700 border-emerald-200",icon: "🌿",desc: "Durable content — strong reuse and repurposing candidate"        },
+                  };
+
+                  const dimCfg = [
+                    { key: "regScore"   as const, label: "Regulatory",  max: 40, color: "bg-purple-400", icon: "⚖️"  },
+                    { key: "dateScore"  as const, label: "Date-stamped", max: 35, color: "bg-rose-400",   icon: "📅"  },
+                    { key: "statScore"  as const, label: "Statistical",  max: 25, color: "bg-blue-400",   icon: "📊"  },
+                    { key: "marketScore"as const, label: "Market",       max: 20, color: "bg-amber-400",  icon: "📈"  },
+                  ];
+
+                  const MONTH_NAMES_FULL = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                  const nowM = new Date().getMonth();
+                  const nowY = new Date().getFullYear();
+                  const refreshLabel = (publishWeek: number, refreshMonths: number) => {
+                    const publishM   = Math.min(11, Math.ceil(publishWeek / 4.33) - 1);
+                    const totalM     = publishM + refreshMonths;
+                    const refreshM   = totalM % 12;
+                    const refreshY   = nowY + Math.floor((nowM + totalM) / 12);
+                    return `${MONTH_NAMES_FULL[refreshM]} ${refreshY}`;
+                  };
+
+                  return (
+                    <Card className="border border-amber-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🗂️</span>
+                            <p className="text-xs font-semibold text-slate-700">Content Debt Register</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {critical.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
+                                {critical.length} critical
+                              </span>
+                            )}
+                            {evergreens.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                {evergreens.length} evergreen
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Scores each entry on four debt dimensions — regulatory exposure, date-stamping, statistical freshness, and market linkage — to project when each piece will need a refresh pass before it becomes an accuracy liability or loses ranking.
+                        </p>
+
+                        {/* Portfolio stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Critical debt",    val: critical.length,     sub: "refresh within 3 months"  },
+                            { label: "Avg refresh cycle",val: `${avgRefresh} mo`,  sub: "months until stale"        },
+                            { label: "Evergreen assets", val: evergreens.length,   sub: "strong reuse candidates"   },
+                            { label: "High + critical",  val: critical.length + high.length, sub: "need attention first" },
+                          ].map(({ label, val, sub }) => (
+                            <div key={label} className="rounded-lg border border-amber-100 bg-amber-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className="text-[11px] font-black leading-none text-amber-700">{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Debt tier distribution bar */}
+                        <div className="flex gap-px h-2 rounded-full overflow-hidden mb-1">
+                          {(["critical","high","medium","low"] as const).map((t) => {
+                            const count = scored.filter((s) => s.debt.tier === t).length;
+                            const pct   = Math.round((count / scored.length) * 100);
+                            return pct > 0 ? <div key={t} className={`h-full ${tierCfg[t].bar}`} style={{ width: `${pct}%` }} /> : null;
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4">
+                          {(["critical","high","medium","low"] as const).filter((t) => scored.some((s) => s.debt.tier === t)).map((t) => {
+                            const count = scored.filter((s) => s.debt.tier === t).length;
+                            return (
+                              <div key={t} className="flex items-center gap-1">
+                                <div className={`w-2 h-2 rounded-full ${tierCfg[t].bar}`} />
+                                <span className="text-[8px] text-slate-500">{tierCfg[t].label} <span className="font-bold text-slate-700">({count})</span> · {tierCfg[t].refresh}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Debt type breakdown */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Debt type distribution across calendar:</p>
+                        <div className="grid grid-cols-2 gap-1.5 mb-4">
+                          {(Object.entries(debtTypeCfg) as [DebtType, typeof debtTypeCfg[DebtType]][]).map(([type, cfg]) => {
+                            const count = scored.filter((s) => s.debt.dominantDebt === type).length;
+                            if (count === 0) return null;
+                            return (
+                              <div key={type} className={`flex items-start gap-2 px-2.5 py-1.5 rounded-lg border ${cfg.color.split(" ").filter(c => c.startsWith("bg-")).join(" ")} ${cfg.color.split(" ").filter(c => c.startsWith("border-")).join(" ")}`}>
+                                <span className="text-[10px] shrink-0">{cfg.icon}</span>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    <span className={`text-[8px] font-bold ${cfg.color.split(" ").filter(c => c.startsWith("text-")).join(" ")}`}>{cfg.label}</span>
+                                    <span className="text-[7px] text-slate-400">({count} piece{count !== 1 ? "s" : ""})</span>
+                                  </div>
+                                  <p className="text-[7px] text-slate-500 leading-snug">{cfg.desc}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Critical + High debt pieces */}
+                        {(critical.length > 0 || high.length > 0) && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">High-priority debt — refresh first:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {[...critical, ...high].slice(0, 6).map(({ entry: e, debt }) => {
+                                const cfg     = tierCfg[debt.tier];
+                                const dtCfg   = debtTypeCfg[debt.dominantDebt];
+                                const barPct  = Math.round((debt.score / 100) * 100);
+                                const refresh = refreshLabel(e.week, debt.refreshMonths);
+                                return (
+                                  <div key={entryKey(e)} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                    <div className={`flex items-center justify-between px-3.5 py-2 ${cfg.bg}`}>
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${cfg.badge}`}>{cfg.icon} {cfg.label}</span>
+                                        <span className={`text-[8.5px] font-bold truncate ${cfg.text}`}>{e.angle}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <span className="text-[7px] text-slate-400">Wk {e.week}</span>
+                                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border tabular-nums ${cfg.badge}`}>{debt.score}/100</span>
+                                      </div>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                      {/* Debt dimension bars */}
+                                      <div className="space-y-1">
+                                        {dimCfg.map((d) => {
+                                          const val = debt[d.key];
+                                          const pct = Math.round((val / d.max) * 100);
+                                          return pct > 0 ? (
+                                            <div key={d.key} className="flex items-center gap-2">
+                                              <span className="text-[8px] shrink-0 w-4">{d.icon}</span>
+                                              <span className="text-[7px] text-slate-400 w-20 shrink-0">{d.label}</span>
+                                              <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                                <div className={`h-full rounded-full ${d.color}`} style={{ width: `${pct}%` }} />
+                                              </div>
+                                              <span className="text-[7px] tabular-nums text-slate-400 shrink-0 w-8 text-right">{val}/{d.max}</span>
+                                            </div>
+                                          ) : null;
+                                        })}
+                                      </div>
+                                      {/* Dominant debt type + refresh schedule */}
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${dtCfg.color}`}>{dtCfg.icon} {dtCfg.label}</span>
+                                        <span className="text-[7.5px] text-slate-500">Refresh by: <span className="font-bold text-amber-700">{refresh}</span></span>
+                                        <span className="text-[7.5px] text-slate-400">({debt.refreshMonths} mo from publish)</span>
+                                      </div>
+                                      {/* Debt reason */}
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-amber-50 border border-amber-100">
+                                        <span className="text-[9px] shrink-0">💡</span>
+                                        <p className="text-[8px] text-amber-900 leading-snug">
+                                          {debt.dominantDebt === "regulatory" && "This piece references specific regulation or compliance frameworks. Any legislative update, FCA/CFPB guidance change, or rule amendment will instantly make sections inaccurate — flag for review whenever related regulatory news breaks."}
+                                          {debt.dominantDebt === "date" && "Contains year or quarter markers that create a hard expiry date. Schedule a full rewrite or update pass before the referenced period ends — date-stamped content loses ranking signals the moment the date passes."}
+                                          {debt.dominantDebt === "statistical" && "References specific data, statistics, or research findings. As new studies and benchmarks are published in this space, the numbers will age out. Schedule a fact-check pass every 6 months or when a new industry report drops."}
+                                          {debt.dominantDebt === "market" && "Tied to current market conditions (rates, valuations, funding climate). These factors can shift quarterly — build in a lightweight update review every time a major market event occurs in this topic area."}
+                                          {debt.dominantDebt === "evergreen" && "Low debt content — this piece uses durable language and doesn't reference time-sensitive data. It's a strong candidate for repurposing and can safely remain live for 18–24 months before needing a refresh pass."}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Maintenance schedule — projected refresh timeline */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Projected maintenance schedule:</p>
+                        <div className="space-y-1 mb-4">
+                          {(["critical","high","medium","low"] as const).filter((t) => scored.some((s) => s.debt.tier === t)).map((t) => {
+                            const group = scored.filter((s) => s.debt.tier === t);
+                            const cfg   = tierCfg[t];
+                            return (
+                              <div key={t} className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${cfg.bg} ${cfg.border}`}>
+                                <span className="text-sm shrink-0">{cfg.icon}</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-baseline gap-1.5 flex-wrap">
+                                    <span className={`text-[8.5px] font-bold ${cfg.text}`}>{cfg.label} — {cfg.refresh}</span>
+                                    <span className="text-[7.5px] text-slate-500">{group.length} piece{group.length !== 1 ? "s" : ""}</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1 mt-0.5">
+                                    {group.slice(0, 4).map(({ entry: e }) => (
+                                      <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[10rem] ${TYPE_COLOR[e.type]}`}>{e.angle}</span>
+                                    ))}
+                                    {group.length > 4 && <span className="text-[7px] text-slate-400 self-center">+{group.length - 4} more</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Evergreen asset register */}
+                        {evergreens.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">🌿 Evergreen asset register — strongest reuse candidates:</p>
+                            <div className="space-y-1.5">
+                              {evergreens.slice(0, 5).map(({ entry: e, debt }) => (
+                                <div key={entryKey(e)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                  <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                  <span className="text-[8px] font-semibold text-emerald-800 truncate flex-1">{e.angle}</span>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className="text-[7.5px] text-emerald-600">Stable {debt.refreshMonths} mo</span>
+                                    <span className="text-[7.5px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 rounded-full">{debt.score}/100 debt</span>
+                                  </div>
+                                </div>
+                              ))}
+                              <p className="text-[8px] text-slate-400 px-1 pt-0.5">Evergreen pieces can be updated with fresh examples or new data without a full rewrite — each pass extends their shelf-life by another 12–18 months.</p>
+                            </div>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Narrative Arc Analyser ───────────────────────────────── */}
                 {calendar.length > 1 && (() => {
