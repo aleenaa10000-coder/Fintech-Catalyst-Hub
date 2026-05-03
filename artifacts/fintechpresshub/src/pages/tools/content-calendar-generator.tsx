@@ -1696,6 +1696,41 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Format Saturation Detector ──────────────────────────────────────────────
+// Ideal format share ranges for a balanced fintech editorial calendar (min, max as 0-1 fractions)
+const FORMAT_IDEAL_RANGE: Record<ContentType, [number, number]> = {
+  "guide":      [0.10, 0.30],   // 10-30% — SEO workhorse; valuable but heavy to produce
+  "blog":       [0.20, 0.45],   // 20-45% — versatile backbone; most flexible format
+  "case-study": [0.08, 0.25],   // 8-25%  — proof content; chronically underrepresented in most calendars
+  "roundup":    [0.08, 0.22],   // 8-22%  — email/community native; goes stale faster
+  "linkedin":   [0.10, 0.30],   // 10-30% — social layer; needs pacing so it doesn't dilute brand authority
+};
+
+type FormatStatus = "saturated" | "ideal" | "deficient" | "absent";
+
+interface FormatShare {
+  type:   ContentType;
+  count:  number;
+  pct:    number;          // 0-1 fraction of total entries
+  status: FormatStatus;
+  ideal:  [number, number];
+}
+
+function computeFormatShares(entries: { type: ContentType }[]): FormatShare[] {
+  const n = entries.length;
+  return (Object.keys(FORMAT_IDEAL_RANGE) as ContentType[]).map((type) => {
+    const count    = entries.filter((e) => e.type === type).length;
+    const pct      = n > 0 ? count / n : 0;
+    const [lo, hi] = FORMAT_IDEAL_RANGE[type];
+    const status: FormatStatus =
+      count === 0 ? "absent"    :
+      pct > hi    ? "saturated" :
+      pct < lo    ? "deficient" :
+                    "ideal";
+    return { type, count, pct, status, ideal: [lo, hi] };
+  });
+}
+
 // ─── Content Freshness Decay Predictor ───────────────────────────────────────
 // Signals that accelerate decay (piece will become outdated faster)
 const DECAY_REGULATORY = ["regulation","compliance","directive","psd2","gdpr","aml","kyc","mifid","dora","mica","basel","fca","cfpb","eba","mandatory","enforcement","legislative","fintrac","fatca","sanctions","supervisory","authorisation","licensing","reporting requirement"];
@@ -6818,6 +6853,318 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Format Saturation Detector ───────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const n            = calendar.length;
+                  const formatShares = computeFormatShares(calendar);
+
+                  // Per-week format breakdown
+                  const weekNums = [...new Set(calendar.map((e) => e.week))].sort((a, b) => a - b);
+                  const weekData = weekNums.map((wk) => {
+                    const wkEntries = calendar.filter((e) => e.week === wk);
+                    const formatCounts = (Object.keys(FORMAT_IDEAL_RANGE) as ContentType[]).map((t) => ({
+                      type: t, count: wkEntries.filter((e) => e.type === t).length,
+                    })).filter((f) => f.count > 0).sort((a, b) => b.count - a.count);
+                    const distinctFormats = new Set(wkEntries.map((e) => e.type));
+                    const dominant       = formatCounts[0];
+                    const dominantPct    = wkEntries.length > 0 ? dominant.count / wkEntries.length : 0;
+                    const isMono         = dominantPct >= 0.70 && wkEntries.length >= 2;
+                    return { wk, wkEntries, formatCounts, distinctFormats, dominant, dominantPct, isMono };
+                  });
+
+                  // Monotony run detection: ≥2 consecutive weeks with same dominant format at ≥70%
+                  const monoRuns: { format: ContentType; weeks: number[] }[] = [];
+                  let runStart = 0;
+                  for (let i = 1; i <= weekData.length; i++) {
+                    const prev = weekData[i - 1];
+                    const curr = weekData[i];
+                    const sameRun = curr && prev.isMono && curr.isMono && curr.dominant.type === prev.dominant.type;
+                    if (!sameRun) {
+                      if (i - runStart >= 2) {
+                        const runSlice = weekData.slice(runStart, i);
+                        if (runSlice.every((w) => w.isMono && w.dominant.type === runSlice[0].dominant.type)) {
+                          monoRuns.push({ format: runSlice[0].dominant.type, weeks: runSlice.map((w) => w.wk) });
+                        }
+                      }
+                      runStart = i;
+                    }
+                  }
+                  const monoWeekCount = weekData.filter((w) => w.isMono).length;
+
+                  // ── Portfolio Format Variety Score (0-100) ─────────────────
+                  // Entropy score (0-40): Shannon entropy normalised to H_max = ln(5)
+                  const ps = formatShares.map((f) => f.pct).filter((p) => p > 0);
+                  const H  = -ps.reduce((s, p) => s + p * Math.log(p), 0);
+                  const entropyScore = Math.round(Math.min(40, (H / Math.log(5)) * 40));
+
+                  // Weekly variety (0-30): % of weeks with ≥3 distinct formats
+                  const weeksWithVariety  = weekData.filter((w) => w.distinctFormats.size >= 3).length;
+                  const weekVarietyScore  = weekNums.length > 0 ? Math.round((weeksWithVariety / weekNums.length) * 30) : 30;
+
+                  // Monotony penalty (0-30)
+                  const monoScore = Math.max(0, 30 - monoWeekCount * 6);
+
+                  const varietyScore = entropyScore + weekVarietyScore + monoScore;
+
+                  const varCfg =
+                    varietyScore >= 75 ? { label: "Rich editorial variety",     color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    varietyScore >= 50 ? { label: "Decent format mix",          color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    varietyScore >= 25 ? { label: "Format imbalance present",   color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                         { label: "Heavy format dependency",    color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  // Status config
+                  const STATUS_CFG: Record<FormatStatus, { label: string; icon: string; color: string; bg: string; border: string }> = {
+                    saturated: { label: "Saturated", icon: "🔴", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    },
+                    ideal:     { label: "Ideal",     icon: "🟢", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+                    deficient: { label: "Deficient", icon: "🟡", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   },
+                    absent:    { label: "Absent",    icon: "⚪", color: "text-slate-500",   bg: "bg-slate-50",   border: "border-slate-100"   },
+                  };
+
+                  // Format-specific rationale for ideal ranges
+                  const FORMAT_RATIONALE: Record<ContentType, string> = {
+                    "guide":      "Guides are the highest-authority format for SEO but are expensive to produce — more than 30% overloads the team and signals a lack of format variety to search engines",
+                    "blog":       "Blog posts are the calendar backbone — versatile, repeatable, and effective for search and email; below 20% leaves topical coverage thin",
+                    "case-study": "Case studies are the most under-produced format in fintech content — they build purchase-stage credibility that no other format replicates",
+                    "roundup":    "Roundups are native to email and community but go stale quickly — above 22% skews the calendar toward curation rather than original thinking",
+                    "linkedin":   "LinkedIn posts build distribution and thought leadership cadence; too many (>30%) risk diluting brand authority with low-depth social content",
+                  };
+
+                  // Swap recommendations for saturated formats
+                  const saturated = formatShares.filter((f) => f.status === "saturated");
+                  const deficient = formatShares.filter((f) => f.status === "deficient" || f.status === "absent");
+
+                  // Find the best weeks to suggest swaps in (weeks with 2+ of a saturated format)
+                  const swapSuggestions: { week: number; swapFrom: ContentType; swapTo: ContentType; reason: string }[] = [];
+                  saturated.forEach((sat) => {
+                    deficient.forEach((def) => {
+                      weekData.forEach((wd) => {
+                        const satCount = wd.wkEntries.filter((e) => e.type === sat.type).length;
+                        if (satCount >= 2 && swapSuggestions.length < 4) {
+                          swapSuggestions.push({
+                            week: wd.wk, swapFrom: sat.type, swapTo: def.type,
+                            reason: `Week ${wd.wk} has ${satCount} ${FORMAT_LABEL[sat.type]}s — converting one to a ${FORMAT_LABEL[def.type]} reduces saturation and adds the deficient format`,
+                          });
+                        }
+                      });
+                    });
+                  });
+
+                  return (
+                    <Card className="border border-yellow-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🎨</span>
+                            <p className="text-xs font-semibold text-slate-700">Format Saturation Detector</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${varCfg.color} ${varCfg.bg} ${varCfg.border}`}>
+                            {varietyScore}/100 · {varCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Analyses whether the calendar over-relies on any single content format — scoring overall distribution entropy, per-week format variety, and consecutive-week monotony runs that risk reader fatigue. Flags saturated and deficient formats against ideal share ranges calibrated for fintech editorial, and surfaces specific swap recommendations.
+                        </p>
+
+                        {/* Portfolio Format Variety Score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${varCfg.bg} ${varCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${varCfg.color}`}>{varietyScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Distribution entropy", val: entropyScore,      max: 40, desc: `H=${H.toFixed(2)} of H_max=${Math.log(5).toFixed(2)} — how evenly entries spread across all 5 formats`                          },
+                              { label: "Weekly variety",       val: weekVarietyScore,  max: 30, desc: `${weeksWithVariety}/${weekNums.length} weeks have ≥3 distinct formats`                                                             },
+                              { label: "Monotony penalty",     val: monoScore,         max: 30, desc: `${monoWeekCount} week${monoWeekCount !== 1 ? "s" : ""} dominated by one format at ≥70% (−6 pts each)`                             },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${varCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Format share analysis — one row per format */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Format share vs. ideal range:</p>
+                        <div className="space-y-2 mb-4">
+                          {formatShares.map((fs) => {
+                            const sCfg  = STATUS_CFG[fs.status];
+                            const [lo, hi] = fs.ideal;
+                            // Bar: actual vs ideal range (show ideal band as background marking)
+                            const actualPct = Math.round(fs.pct * 100);
+                            const loPct     = Math.round(lo * 100);
+                            const hiPct     = Math.round(hi * 100);
+                            return (
+                              <div key={fs.type} className={`rounded-xl border overflow-hidden ${sCfg.border}`}>
+                                <div className={`flex items-center justify-between px-3.5 py-2 ${sCfg.bg}`}>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${TYPE_COLOR[fs.type]}`}>{FORMAT_LABEL[fs.type]}</span>
+                                    <span className={`text-[8px] font-bold ${sCfg.color}`}>{sCfg.icon} {sCfg.label}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-[7px] text-slate-400">Ideal: {loPct}–{hiPct}%</span>
+                                    <span className={`text-[8px] font-black tabular-nums px-1.5 py-0.5 rounded-full border ${sCfg.bg} ${sCfg.color} ${sCfg.border}`}>{actualPct}% ({fs.count})</span>
+                                  </div>
+                                </div>
+                                {fs.status !== "absent" && (
+                                  <div className="px-3.5 py-2 bg-white">
+                                    {/* Stacked bar: ideal range (grey) + actual (colored) */}
+                                    <div className="relative h-2 rounded-full bg-slate-100 overflow-hidden mb-1.5">
+                                      {/* Ideal zone */}
+                                      <div className="absolute inset-y-0 bg-slate-200 rounded-full" style={{ left: `${loPct}%`, width: `${hiPct - loPct}%` }} />
+                                      {/* Actual */}
+                                      <div className={`absolute inset-y-0 left-0 rounded-full opacity-80 ${
+                                        fs.status === "saturated" ? "bg-rose-400" :
+                                        fs.status === "ideal"     ? "bg-emerald-400" :
+                                                                    "bg-amber-400"
+                                      }`} style={{ width: `${Math.min(100, actualPct)}%` }} />
+                                    </div>
+                                    <p className="text-[7.5px] text-slate-500 leading-snug">{FORMAT_RATIONALE[fs.type]}</p>
+                                    {fs.status === "saturated" && (
+                                      <p className="text-[7.5px] text-rose-700 font-semibold mt-0.5">
+                                        Remove ~{Math.max(1, Math.round((fs.pct - hi) * n))} piece{Math.round((fs.pct - hi) * n) !== 1 ? "s" : ""} of this format to reach the top of the ideal range.
+                                      </p>
+                                    )}
+                                    {fs.status === "deficient" && (
+                                      <p className="text-[7.5px] text-amber-700 font-semibold mt-0.5">
+                                        Add ~{Math.max(1, Math.round((lo - fs.pct) * n))} more piece{Math.round((lo - fs.pct) * n) !== 1 ? "s" : ""} of this format to reach the lower bound of the ideal range.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                                {fs.status === "absent" && (
+                                  <div className="px-3.5 py-2 bg-white">
+                                    <p className="text-[7.5px] text-slate-500 leading-snug">{FORMAT_RATIONALE[fs.type]}</p>
+                                    <p className="text-[7.5px] text-slate-600 font-semibold mt-0.5">Not present in the calendar — add at least {Math.ceil(lo * n)} piece{Math.ceil(lo * n) !== 1 ? "s" : ""} to enter the ideal range.</p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Per-week format heatmap */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Week-by-week format composition:</p>
+                        <div className="overflow-x-auto mb-4">
+                          <table className="w-full text-[7px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2 w-10">Week</th>
+                                {(Object.keys(FORMAT_IDEAL_RANGE) as ContentType[]).map((t) => (
+                                  <th key={t} className="text-center text-slate-400 font-normal pb-1 px-1 w-14" title={FORMAT_LABEL[t]}>
+                                    <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border ${TYPE_COLOR[t]}`}>{FORMAT_LABEL[t]}</span>
+                                  </th>
+                                ))}
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-14">Variety</th>
+                                <th className="text-left text-slate-400 font-normal pb-1 px-1">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {weekData.map((wd) => {
+                                const varietyCount = wd.distinctFormats.size;
+                                const varietyCls   =
+                                  varietyCount >= 4 ? "bg-emerald-100 text-emerald-700" :
+                                  varietyCount === 3 ? "bg-blue-100 text-blue-700"      :
+                                  varietyCount === 2 ? "bg-amber-100 text-amber-700"    :
+                                                       "bg-rose-100 text-rose-700";
+                                return (
+                                  <tr key={wd.wk} className={`border-t border-slate-50 ${wd.isMono ? "bg-amber-50/40" : ""}`}>
+                                    <td className="py-0.5 pr-2 font-bold text-slate-500 tabular-nums">{wd.wk}</td>
+                                    {(Object.keys(FORMAT_IDEAL_RANGE) as ContentType[]).map((t) => {
+                                      const cnt = wd.wkEntries.filter((e) => e.type === t).length;
+                                      const isDom = wd.dominant.type === t && wd.isMono;
+                                      return (
+                                        <td key={t} className="text-center py-0.5 px-1">
+                                          {cnt > 0
+                                            ? <span className={`inline-block w-6 h-4 rounded text-[6.5px] font-bold leading-4 tabular-nums ${isDom ? "bg-amber-200 text-amber-800" : "bg-slate-100 text-slate-600"}`}>{cnt}</span>
+                                            : <span className="text-slate-200">—</span>
+                                          }
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full ${varietyCls}`}>{varietyCount} fmt{varietyCount !== 1 ? "s" : ""}</span>
+                                    </td>
+                                    <td className="py-0.5 px-1">
+                                      {wd.isMono
+                                        ? <span className="text-[7px] font-semibold text-amber-700">⚠️ {Math.round(wd.dominantPct * 100)}% {FORMAT_LABEL[wd.dominant.type]}</span>
+                                        : varietyCount >= 3
+                                          ? <span className="text-[7px] text-emerald-600">✓ Good mix</span>
+                                          : <span className="text-[7px] text-slate-400">Moderate</span>
+                                      }
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <p className="text-[7px] text-slate-400 mt-1">Amber cells = dominant format in a monotony week · Aim for ≥3 formats per week</p>
+                        </div>
+
+                        {/* Monotony runs */}
+                        {monoRuns.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">🔁 Monotony runs — same format dominating consecutive weeks:</p>
+                            <div className="space-y-2 mb-4">
+                              {monoRuns.map((run) => (
+                                <div key={run.weeks.join("-")} className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                                  <span className="text-[10px] shrink-0 mt-0.5">🔁</span>
+                                  <div>
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                      <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[run.format]}`}>{FORMAT_LABEL[run.format]}</span>
+                                      <span className="text-[8px] font-bold text-amber-800">dominates weeks {run.weeks.join(", ")} ({run.weeks.length} consecutive weeks)</span>
+                                    </div>
+                                    <p className="text-[7.5px] text-amber-700 leading-snug">
+                                      Readers receiving {FORMAT_LABEL[run.format]} content {run.weeks.length} weeks running will develop format fatigue — the format loses its signal value. Insert at least one different high-weight format (Guide, Case Study, or Blog) into week {run.weeks[Math.floor(run.weeks.length / 2)]} to break the run.
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Swap recommendations */}
+                        {swapSuggestions.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">🔄 Minimum swap recommendations — highest-impact format rebalancing:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {swapSuggestions.map((sw, i) => (
+                                <div key={i} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-sky-50 border border-sky-100">
+                                  <span className="text-[9px] shrink-0 mt-0.5">↔️</span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[7px] text-sky-700">Wk {sw.week}:</span>
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[sw.swapFrom]}`}>{FORMAT_LABEL[sw.swapFrom]}</span>
+                                    <span className="text-[7px] text-sky-600">→</span>
+                                    <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[sw.swapTo]}`}>{FORMAT_LABEL[sw.swapTo]}</span>
+                                    <span className="text-[7px] text-sky-600 leading-snug">{sw.reason}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* All-clear */}
+                        {saturated.length === 0 && deficient.length === 0 && monoRuns.length === 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-[9px] shrink-0">✅</span>
+                            <p className="text-[8px] text-emerald-800 leading-snug font-semibold">
+                              All five formats are within their ideal share ranges and no consecutive-week monotony runs detected. The calendar presents readers with a varied editorial rhythm — different formats carry different cognitive weights, so this variety sustains attention across the full publication period.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Freshness Decay Predictor ────────────────────── */}
                 {calendar.length > 0 && (() => {
