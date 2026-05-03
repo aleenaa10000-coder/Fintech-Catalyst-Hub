@@ -1696,6 +1696,96 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── E-E-A-T Signal Scorer ───────────────────────────────────────────────────
+// Evaluates each entry across Google's four quality dimensions — Experience,
+// Expertise, Authoritativeness, Trustworthiness — and estimates quality tier
+
+const EEAT_EXPERIENCE_SIGNALS = [
+  "we ","our ","we've","we found","in our experience","we tested","our clients",
+  "our analysis","working with","when we","we implemented","our team","we spoke to",
+  "we surveyed","our research","i've ","having worked","from our work","we built",
+  "we deployed","we helped","our data","firsthand","practitioner","in practice",
+];
+
+const EEAT_EXPERTISE_SIGNALS = [
+  "according to","research shows","data shows","study ","analysis of","framework",
+  "methodology","technical ","specification","standard ","best practice",
+  "architecture","basis points","bps","regulatory capital","tier 1 ","psd2",
+  "iso 20022","swift ","api spec","implementation guide","deep dive","under the hood",
+  "in detail","breakdown","mechanics","nuance","practically speaking","applied",
+];
+
+const EEAT_AUTHORITY_SIGNALS = [
+  "leading banks","tier-1","global banks","fortune 500","central bank",
+  "bank of england","ecb ","fca ","eba ","federal reserve","swift ","published",
+  "cited by","industry report","gartner","forrester","mckinsey","deloitte","pwc",
+  "accenture","boston consulting","oliver wyman","recognised","endorsed","award-winning",
+  "analyst report","authoritative","authorised","regulatory body","regulator",
+];
+
+const EEAT_TRUST_SIGNALS = [
+  "source:","data:","verified","reported by","cited ","evidence ","transparent",
+  "audited","independently","third-party","peer-reviewed","fca-regulated","licensed",
+  "regulated by","accredited","fact-checked","reference","disclosure","footnote",
+  "per ","as reported","survey of","n=","sample of","respondents","confidence",
+];
+
+type EEATDim = "experience" | "expertise" | "authority" | "trust";
+
+interface EEATResult {
+  experienceScore: number;
+  expertiseScore:  number;
+  authorityScore:  number;
+  trustScore:      number;
+  total:           number;
+  tier:            CredTier;
+  gaps:            EEATDim[];
+  strengths:       EEATDim[];
+  rewrite:         string;
+}
+
+function scoreEEAT(topic: string, angle: string): EEATResult {
+  const hay = `${topic} ${angle}`.toLowerCase();
+
+  const expHits   = EEAT_EXPERIENCE_SIGNALS.filter((s) => hay.includes(s)).length;
+  const exprtHits = EEAT_EXPERTISE_SIGNALS.filter((s)  => hay.includes(s)).length;
+  const authHits  = EEAT_AUTHORITY_SIGNALS.filter((s)  => hay.includes(s)).length;
+  const trustHits = EEAT_TRUST_SIGNALS.filter((s)      => hay.includes(s)).length;
+
+  const experienceScore = Math.min(25, expHits   * 10);
+  const expertiseScore  = Math.min(25, exprtHits *  8);
+  const authorityScore  = Math.min(25, authHits  * 12);
+  const trustScore      = Math.min(25, trustHits * 10);
+  const total           = experienceScore + expertiseScore + authorityScore + trustScore;
+
+  const tier: CredTier =
+    total >= 70 ? "high"     :
+    total >= 45 ? "moderate" :
+    total >= 20 ? "thin"     :
+                  "risk";
+
+  const T = 8;
+  const gaps:      EEATDim[] = [];
+  const strengths: EEATDim[] = [];
+  if (experienceScore < T)  gaps.push("experience"); else if (experienceScore >= 16) strengths.push("experience");
+  if (expertiseScore  < T)  gaps.push("expertise");  else if (expertiseScore  >= 16) strengths.push("expertise");
+  if (authorityScore  < T)  gaps.push("authority");  else if (authorityScore  >= 16) strengths.push("authority");
+  if (trustScore      < T)  gaps.push("trust");      else if (trustScore      >= 16) strengths.push("trust");
+
+  const DIM_ADVICE: Record<EEATDim, string> = {
+    experience: "Add first-person experience markers ('we tested', 'our clients found', 'in our work with challenger banks') to signal direct practitioner knowledge rather than secondary commentary",
+    expertise:  "Reference specific frameworks, standards (ISO 20022, PSD2, Basel III), or technical detail to signal domain expertise beyond surface-level observation",
+    authority:  "Cite authoritative institutions (FCA, EBA, ECB, Bank of England, Gartner, Forrester) or commission original data to borrow their authority signals",
+    trust:      "Add verifiable citations — 'according to [source]', 'data from [FCA report]', 'as reported by [institution]' — to convert assertions into evidence-backed claims",
+  };
+
+  const rewrite = gaps.length > 0
+    ? DIM_ADVICE[gaps[0]]
+    : "Strong E-E-A-T signals across all four dimensions — quality raters would likely rate this Highly Meets Needs";
+
+  return { experienceScore, expertiseScore, authorityScore, trustScore, total, tier, gaps, strengths, rewrite };
+}
+
 // ─── Search Intent Alignment Scorer ──────────────────────────────────────────
 // Compares each entry's dominant search intent against its format choice and
 // arc stage, flags contradictions, and estimates the resulting ranking penalty
@@ -8403,6 +8493,270 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── E-E-A-T Signal Scorer ────────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar.map((e) => ({ entry: e, eeat: scoreEEAT(e.topic, e.angle) }));
+                  const n      = scored.length;
+
+                  const byTier = (t: CredTier) => scored.filter((s) => s.eeat.tier === t);
+                  const highT  = byTier("high");
+                  const modT   = byTier("moderate");
+                  const thinT  = byTier("thin");
+                  const riskT  = byTier("risk");
+
+                  // Per-dimension coverage (entries with ≥8 pts in that dim)
+                  const dimCov = (dim: EEATDim) => scored.filter((s) => {
+                    if (dim === "experience") return s.eeat.experienceScore >= 8;
+                    if (dim === "expertise")  return s.eeat.expertiseScore  >= 8;
+                    if (dim === "authority")  return s.eeat.authorityScore  >= 8;
+                    return s.eeat.trustScore >= 8;
+                  }).length;
+
+                  const expCov   = dimCov("experience");
+                  const exprtCov = dimCov("expertise");
+                  const authCov  = dimCov("authority");
+                  const trustCov = dimCov("trust");
+                  const avgDimCov = n > 0 ? (expCov + exprtCov + authCov + trustCov) / (4 * n) : 1;
+
+                  // Portfolio E-E-A-T Score (0-100)
+                  const p1 = n > 0 ? Math.round((highT.length / n)               * 40) : 40;
+                  const p2 = n > 0 ? Math.round(((n - riskT.length) / n)         * 30) : 30;
+                  const p3 = Math.round(avgDimCov * 20);
+                  const p4 = n > 0 ? Math.round(((n - thinT.length - riskT.length) / n) * 10) : 10;
+                  const eeatScore = p1 + p2 + p3 + p4;
+
+                  const eCfg =
+                    eeatScore >= 75 ? { label: "High E-E-A-T — quality raters would rate most content Highly Meets Needs",  color: "text-teal-700",   bg: "bg-teal-50",   border: "border-teal-100"   } :
+                    eeatScore >= 50 ? { label: "Moderate E-E-A-T — some dimension gaps limit quality tier ceiling",          color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100"   } :
+                    eeatScore >= 25 ? { label: "Thin E-E-A-T — most content reads as surface-level commentary",              color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100"  } :
+                                      { label: "Risk-level E-E-A-T — content likely to be rated Doesn't Meet Needs",         color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100"   };
+
+                  const TIER_CFG: Record<CredTier, { label: string; icon: string; pill: string; bar: string; color: string; bg: string; border: string }> = {
+                    high:     { label: "High",     icon: "⭐", pill: "bg-teal-100 text-teal-700 border-teal-200",      bar: "bg-teal-400",   color: "text-teal-700",   bg: "bg-teal-50",   border: "border-teal-100"   },
+                    moderate: { label: "Moderate", icon: "🟡", pill: "bg-blue-100 text-blue-700 border-blue-200",      bar: "bg-blue-400",   color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100"   },
+                    thin:     { label: "Thin",     icon: "🟠", pill: "bg-amber-100 text-amber-700 border-amber-200",   bar: "bg-amber-400",  color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100"  },
+                    risk:     { label: "Risk",     icon: "🔴", pill: "bg-rose-100 text-rose-700 border-rose-200",      bar: "bg-rose-400",   color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100"   },
+                  };
+
+                  const DIM_CFG: Record<EEATDim, { label: string; icon: string; max: number; pill: string; bar: string; what: string }> = {
+                    experience: { label: "Experience", icon: "🧪", max: 25, pill: "bg-emerald-100 text-emerald-700 border-emerald-200", bar: "bg-emerald-400", what: "First-person markers: 'we', 'our clients', 'we tested', 'in our experience', 'from our work' — signals direct practitioner knowledge" },
+                    expertise:  { label: "Expertise",  icon: "🎓", max: 25, pill: "bg-blue-100 text-blue-700 border-blue-200",          bar: "bg-blue-400",    what: "Technical depth: standards (ISO 20022, PSD2, Basel), frameworks, methodology, 'basis points', architecture, 'deep dive' — signals domain mastery" },
+                    authority:  { label: "Authority",  icon: "🏛️", max: 25, pill: "bg-violet-100 text-violet-700 border-violet-200",   bar: "bg-violet-400",  what: "Institutional references: FCA, EBA, ECB, Bank of England, Gartner, Forrester, McKinsey — signals borrowed authority from recognised bodies" },
+                    trust:      { label: "Trust",      icon: "🔒", max: 25, pill: "bg-amber-100 text-amber-700 border-amber-200",       bar: "bg-amber-400",   what: "Verifiable citations: 'according to', 'data from', 'as reported by', 'N=', 'survey of', 'per [source]' — signals evidence-backed claims" },
+                  };
+
+                  const DIMS: EEATDim[] = ["experience","expertise","authority","trust"];
+                  const TIERS: CredTier[] = ["high","moderate","thin","risk"];
+                  const tierCounts: Record<CredTier, number> = { high: highT.length, moderate: modT.length, thin: thinT.length, risk: riskT.length };
+
+                  const avgScore = n > 0 ? Math.round(scored.reduce((s, e) => s + e.eeat.total, 0) / n) : 0;
+
+                  return (
+                    <Card className="border border-teal-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">⭐</span>
+                            <p className="text-xs font-semibold text-slate-700">E-E-A-T Signal Scorer</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${eCfg.color} ${eCfg.bg} ${eCfg.border}`}>
+                            {eeatScore}/100 · {eCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Evaluates each entry against Google's four E-E-A-T quality dimensions — Experience (🧪 first-person practitioner signals), Expertise (🎓 technical depth and domain-specific terminology), Authority (🏛️ citations of recognised institutions and industry sources), and Trust (🔒 verifiable evidence and transparent sourcing) — and estimates the quality tier Google's quality raters would assign. In YMYL (Your Money or Your Life) verticals like fintech, E-E-A-T is a primary ranking factor: content that reads as surface-level commentary written without direct experience of the subject consistently underperforms content with genuine practitioner insight, even when both target identical keywords.
+                        </p>
+
+                        {/* Portfolio E-E-A-T score */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${eCfg.bg} ${eCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${eCfg.color}`}>{eeatScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "High-quality rate",  val: p1, max: 40, desc: `${highT.length}/${n} entries score High E-E-A-T — quality raters would mark Highly Meets Needs` },
+                              { label: "Risk-free rate",     val: p2, max: 30, desc: `${riskT.length}/${n} entries have no detectable E-E-A-T signal — each is a ranking liability` },
+                              { label: "Dimension balance",  val: p3, max: 20, desc: `avg ${(avgDimCov*4).toFixed(1)}/4 E-E-A-T dimensions covered per entry — target: all 4 consistently` },
+                              { label: "Thin-content-free",  val: p4, max: 10, desc: `${thinT.length + riskT.length}/${n} entries are thin or risk-level — moderate additional penalty` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${eCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Tier distribution bar */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Quality tier distribution (avg E-E-A-T score: {avgScore}/100):</p>
+                        <div className="flex h-4 w-full rounded-lg overflow-hidden mb-1.5">
+                          {TIERS.map((t) => {
+                            const pct = n > 0 ? Math.round((tierCounts[t] / n) * 100) : 0;
+                            const cfg = TIER_CFG[t];
+                            return pct > 0 ? (
+                              <div key={t} className={`flex items-center justify-center text-[6.5px] font-bold text-white ${cfg.bar}`} style={{ width: `${pct}%` }}>
+                                {pct >= 10 ? `${cfg.label} ${pct}%` : pct >= 6 ? `${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5 mb-4">
+                          {TIERS.map((t) => {
+                            const cfg = TIER_CFG[t];
+                            return (
+                              <div key={t} className={`rounded-lg border px-2 py-1.5 text-center ${cfg.bg} ${cfg.border}`}>
+                                <p className="text-[6px] text-slate-400 mb-0.5">{cfg.icon} {cfg.label}</p>
+                                <p className={`text-[13px] font-black leading-none ${cfg.color}`}>{tierCounts[t]}</p>
+                                <p className="text-[6px] text-slate-400 mt-0.5">{n > 0 ? Math.round((tierCounts[t]/n)*100) : 0}%</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Per-dimension coverage bars */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">E-E-A-T dimension coverage across calendar:</p>
+                        <div className="space-y-2 mb-4">
+                          {([
+                            { dim: "experience" as EEATDim, cov: expCov },
+                            { dim: "expertise"  as EEATDim, cov: exprtCov },
+                            { dim: "authority"  as EEATDim, cov: authCov },
+                            { dim: "trust"      as EEATDim, cov: trustCov },
+                          ]).map(({ dim, cov }) => {
+                            const cfg = DIM_CFG[dim];
+                            const pct = n > 0 ? Math.round((cov / n) * 100) : 0;
+                            return (
+                              <div key={dim}>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 w-22 text-center ${cfg.pill}`}>{cfg.icon} {cfg.label} (/{cfg.max})</span>
+                                  <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                                    <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${pct}%`, opacity: pct < 25 ? 0.5 : 1 }} />
+                                  </div>
+                                  <span className={`text-[7px] font-bold tabular-nums w-8 text-right shrink-0 ${pct < 25 ? "text-rose-500" : pct < 50 ? "text-amber-600" : "text-emerald-700"}`}>{pct}%</span>
+                                </div>
+                                <p className="text-[6.5px] text-slate-400 pl-[5.5rem]">{cfg.what}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* YMYL context */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">🏦</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">Why E-E-A-T matters more in fintech than in most verticals:</span> Fintech content sits squarely in Google's YMYL (Your Money or Your Life) category — content that could significantly impact a reader's financial decisions. Google applies heightened quality thresholds to YMYL content in its ranking algorithm, and its quality raters manually evaluate content using the E-E-A-T framework with particular scrutiny. <span className="font-bold">A fintech blog post with no experience signals (first-person insight), no expertise signals (technical depth), no authority signals (institutional citations), and no trust signals (verifiable sources) will consistently rank below technically inferior content that carries those signals</span> — because the algorithm treats signal-free content as potentially misleading regardless of its factual accuracy. The "Experience" dimension is the newest and currently most underweighted by fintech publishers — adding genuine practitioner insight ("in our work with tier-2 banks", "from our analysis of 50 payment orchestration implementations") is the single highest-leverage E-E-A-T improvement most fintech content teams can make immediately.
+                          </p>
+                        </div>
+
+                        {/* Risk-tier entries — immediate action */}
+                        {riskT.length > 0 && (
+                          <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border mb-3 ${TIER_CFG.risk.bg} ${TIER_CFG.risk.border}`}>
+                            <span className="text-[10px] shrink-0 mt-0.5">🔴</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1">{riskT.length} risk-level entr{riskT.length !== 1 ? "ies" : "y"} — no E-E-A-T signals detected in angle or topic</p>
+                              <div className="space-y-1 mb-1.5">
+                                {riskT.map(({ entry: e, eeat }) => (
+                                  <div key={entryKey(e)} className="flex items-center gap-1.5">
+                                    <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                    <span className="text-[7px] text-rose-700 flex-1">"{e.angle.slice(0,36)}{e.angle.length > 36 ? "…" : ""}"</span>
+                                    <span className="text-[6.5px] text-rose-500 shrink-0 tabular-nums">{eeat.total}/100</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-rose-700 leading-snug">These angles contain no detectable experience, expertise, authority, or trust signals. Even minimal additions — a single institutional citation or a first-person practitioner claim — would move these out of the risk tier. Start with the Trust dimension (easiest to add retroactively) and then add one Expertise signal per entry.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Thin-tier entries */}
+                        {thinT.length > 0 && (
+                          <div className={`flex items-start gap-2 px-3 py-2 rounded-lg border mb-4 ${TIER_CFG.thin.bg} ${TIER_CFG.thin.border}`}>
+                            <span className="text-[10px] shrink-0 mt-0.5">🟠</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1">{thinT.length} thin-content entr{thinT.length !== 1 ? "ies" : "y"} — signals detected in only 1 dimension</p>
+                              <div className="flex flex-wrap gap-1 mb-1">
+                                {thinT.map(({ entry: e, eeat }) => (
+                                  <span key={entryKey(e)} className={`text-[6.5px] font-semibold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,20)}{e.angle.length > 20 ? "…" : ""} <span className="opacity-60">({eeat.total}/100 · gaps: {eeat.gaps.join(", ")})</span>
+                                  </span>
+                                ))}
+                              </div>
+                              <p className="text-[7px] text-amber-700 leading-snug">Each thin entry is missing signals in {thinT.length > 0 ? Math.round(thinT.reduce((s,e) => s + e.eeat.gaps.length, 0) / thinT.length) : 0} of 4 dimensions on average. The quickest upgrade: add one institution name (Authority) and one first-person data point (Experience) to move from Thin to Moderate.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Per-entry E-E-A-T table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — E-E-A-T scores (sorted by total):</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[6.5px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-14">Tier</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-20">Score</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-7" title="Experience">🧪</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-7" title="Expertise">🎓</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-7" title="Authority">🏛️</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-0.5 w-7" title="Trust">🔒</th>
+                                <th className="text-left text-slate-400 font-normal pb-1 pl-2">Top recommendation</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...scored].sort((a, b) => b.eeat.total - a.eeat.total).map(({ entry: e, eeat }) => {
+                                const tc = TIER_CFG[eeat.tier];
+                                const dimScore = (score: number, max: number) => {
+                                  const pct = Math.round((score / max) * 100);
+                                  return (
+                                    <td className="text-center py-0.5 px-0.5">
+                                      <div className="flex flex-col items-center gap-0.5">
+                                        <div className="w-4 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className="h-full rounded-full bg-slate-400" style={{ width: `${pct}%`, backgroundColor: pct >= 60 ? "#2dd4bf" : pct >= 30 ? "#f59e0b" : "#f87171" }} />
+                                        </div>
+                                        <span className={`tabular-nums text-[5.5px] ${score >= 8 ? "text-teal-700 font-bold" : "text-rose-400"}`}>{score}</span>
+                                      </div>
+                                    </td>
+                                  );
+                                };
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,20)}{e.angle.length > 20 ? "…" : ""}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${tc.pill}`}>{tc.icon} {tc.label}</span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <div className="flex items-center gap-1">
+                                        <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className={`h-full rounded-full ${tc.bar}`} style={{ width: `${eeat.total}%` }} />
+                                        </div>
+                                        <span className={`text-[6.5px] font-black tabular-nums shrink-0 ${tc.color}`}>{eeat.total}</span>
+                                      </div>
+                                    </td>
+                                    {dimScore(eeat.experienceScore, 25)}
+                                    {dimScore(eeat.expertiseScore,  25)}
+                                    {dimScore(eeat.authorityScore,  25)}
+                                    {dimScore(eeat.trustScore,      25)}
+                                    <td className="py-0.5 pl-2 text-slate-500 italic max-w-[10rem] truncate">{eeat.rewrite.slice(0,55)}{eeat.rewrite.length > 55 ? "…" : ""}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="text-[7px] text-slate-400 mt-2">🧪 Experience (max 25) · 🎓 Expertise (max 25) · 🏛️ Authority (max 25) · 🔒 Trust (max 25) · Scores ≥8 = meaningful signal (teal) · &lt;8 = gap (rose) · Tier thresholds: High ≥70 · Moderate ≥45 · Thin ≥20 · Risk &lt;20</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Search Intent Alignment Scorer ───────────────────────── */}
                 {calendar.length > 0 && (() => {
