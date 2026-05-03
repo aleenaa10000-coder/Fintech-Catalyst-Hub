@@ -1696,6 +1696,103 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Competitive Differentiation Radar ───────────────────────────────────────
+// Scores each entry on five competitive positioning dimensions to identify
+// which angles stand out in search results and which are commodity content
+
+const DIFF_CONTRARIAN_SIGNALS = [
+  "wrong","myth","misconception","actually ","surprising","rethink","challenge",
+  "beyond","instead of","overlooked","overrated","underrated","stop ","avoid ",
+  "hidden ","real reason","uncomfortable","counterintuitive","fail","problem with",
+  "isn't","don't ","rarely","nobody talks","think again","debunking","unpopular",
+];
+
+const DIFF_SPECIFIC_SIGNALS = [
+  "step-by-step","checklist","template","exact ","concrete","real-world"," bps",
+  " ms ","latency","throughput","per month","per quarter","£","$ ","percent",
+  "tier-2","challenger bank","neobank","payment processor","card scheme",
+  "acquiring bank","issuing bank","api gateway","sandbox","idempotent",
+  "in 30","in 60","in 90","in 6 months","in 12","case study",
+];
+
+const DIFF_PRACTITIONER_SIGNALS = [
+  "implement","deploy","build ","configure","integrate","migrate","scale ",
+  "how to","in practice","hands-on","rollout","launch","operate","workflow",
+  "practical","playbook","guide to","blueprint","tutorial","step-by-step",
+  "architecture","decision","trade-off","when to","which ","vs ","versus",
+];
+
+const DIFF_AUDIENCE_SIGNALS = [
+  "cto","cfo","cco","compliance team","product team","payment team","treasury",
+  "lending","insurtech","wealthtech","regtech","challenger","neobank",
+  "fintech startup","incumbent bank","payment processor","bnpl","buy now pay later",
+  "open banking","embedded finance","for banks","for fintechs","for lenders",
+  "for issuers","for acquirers","for cfos","for compliance","for product",
+];
+
+const DIFF_FRESHNESS_SIGNALS = [
+  "2024","2025","2026","new ","emerging","future of","next generation","evolving",
+  "recent","latest","shift","modern","horizon","upcoming","dora","mica",
+  "basel iv","iso 20022","real-time","instant payment","faster payments",
+  "open finance","ai-powered","generative ai","llm","agentic","tokenisation",
+];
+
+type DiffTier = "distinctive" | "above-average" | "generic" | "commodity";
+type DiffDimension = "contrarianism" | "specificity" | "practitioner" | "audienceFocus" | "freshness";
+
+interface DiffResult {
+  contrarianism: number;
+  specificity:   number;
+  practitioner:  number;
+  audienceFocus: number;
+  freshness:     number;
+  total:         number;
+  tier:          DiffTier;
+  weakestDim:    DiffDimension;
+  recommendation: string;
+}
+
+function scoreDifferentiation(topic: string, angle: string): DiffResult {
+  const hay = `${topic} ${angle}`.toLowerCase();
+
+  const contHits  = DIFF_CONTRARIAN_SIGNALS.filter((s)   => hay.includes(s)).length;
+  const specHits  = DIFF_SPECIFIC_SIGNALS.filter((s)     => hay.includes(s)).length;
+  const practHits = DIFF_PRACTITIONER_SIGNALS.filter((s) => hay.includes(s)).length;
+  const audHits   = DIFF_AUDIENCE_SIGNALS.filter((s)     => hay.includes(s)).length;
+  const freshHits = DIFF_FRESHNESS_SIGNALS.filter((s)    => hay.includes(s)).length;
+
+  const contrarianism = Math.min(20, contHits  * 9);
+  const specificity   = Math.min(20, specHits  * 6);
+  const practitioner  = Math.min(20, practHits * 7);
+  const audienceFocus = Math.min(20, audHits   * 9);
+  const freshness     = Math.min(20, freshHits * 7);
+  const total         = contrarianism + specificity + practitioner + audienceFocus + freshness;
+
+  const tier: DiffTier =
+    total >= 72 ? "distinctive"   :
+    total >= 50 ? "above-average" :
+    total >= 28 ? "generic"       :
+                  "commodity";
+
+  const dims: Record<DiffDimension, number> = { contrarianism, specificity, practitioner, audienceFocus, freshness };
+  const weakestDim = (Object.entries(dims) as [DiffDimension, number][])
+    .reduce((a, b) => a[1] <= b[1] ? a : b)[0];
+
+  const DIM_REC: Record<DiffDimension, string> = {
+    contrarianism:  "Add a contrarian frame — challenge an assumption most fintech leaders hold ('Why [prevailing belief] is costing you [specific outcome]') to move from consensus-confirming to thought-provoking",
+    specificity:    "Narrow the scope with a precise qualifier — a named technology, a specific institution type (tier-2 bank, BNPL provider, embedded finance platform), a measurable outcome, or an exact timeframe — to escape the gravitational pull of generic head terms",
+    practitioner:   "Lead with implementation: 'How to [verb] [specific thing] in [timeframe/context]' signals practitioner depth and attracts readers who need to do the thing, not just understand it conceptually",
+    audienceFocus:  "Name the exact reader — 'for compliance teams at challenger banks', 'for CPOs at embedded finance platforms', 'for treasury leads managing multi-currency flows' — specificity repels the wrong readers and magnetises the right ones",
+    freshness:      "Anchor to a current development — a regulatory event (DORA, MiCA, Basel IV), a technology shift (ISO 20022 migration, real-time rails), or a market move — timely angles generate backlinks from contemporaneous coverage and rank for news-cycle queries",
+  };
+
+  const recommendation = tier === "distinctive"
+    ? "Well-differentiated — angle challenges assumptions, targets a specific audience or scenario, and reflects current developments"
+    : DIM_REC[weakestDim];
+
+  return { contrarianism, specificity, practitioner, audienceFocus, freshness, total, tier, weakestDim, recommendation };
+}
+
 // ─── E-E-A-T Signal Scorer ───────────────────────────────────────────────────
 // Evaluates each entry across Google's four quality dimensions — Experience,
 // Expertise, Authoritativeness, Trustworthiness — and estimates quality tier
