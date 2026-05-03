@@ -1696,6 +1696,80 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Persona Targeting Density Mapper ────────────────────────────────────────
+// Detects which fintech B2B buying-committee personas each entry targets
+
+type PersonaKey = "compliance" | "cto" | "cfo" | "product" | "operations" | "ceo";
+
+const PERSONA_SIGNALS: Record<PersonaKey, string[]> = {
+  compliance: [
+    "compliance","risk officer","ciso","chief risk","regulatory","audit trail",
+    "gdpr","dora","psd2","aml","kyc","fca","eba","data privacy","data protection",
+    "operational risk","credit risk","fraud","anti-money laundering","sanctions",
+    "srep","pillar 2","crd","crr","stress test","regulatory capital","oversight",
+  ],
+  cto: [
+    "cto","chief technology","engineering","architect","developer","api ",
+    "api integration","scalability","infrastructure","cloud","microservices",
+    "latency","throughput","devops","deployment","migration","security review",
+    "open source","sdk","webhook","data pipeline","data engineering","platform",
+  ],
+  cfo: [
+    "cfo","chief financial","finance director","roi","return on investment",
+    "cost reduction","cost savings","payback","total cost of ownership","tco",
+    "financial risk","budget","p&l","revenue impact","treasury","controller",
+    "cash flow","working capital","cost per","unit economics","margin","spend",
+  ],
+  product: [
+    "product manager","product director","head of product","chief product",
+    "innovation","customer experience","cx","user experience","ux",
+    "time to market","feature","roadmap","mvp","agile","product strategy",
+    "competitive differentiation","market fit","adoption rate","onboarding",
+    "conversion rate","retention","net promoter","nps","customer journey",
+  ],
+  operations: [
+    "coo","chief operating","operations team","operational","workflow",
+    "automation","process efficiency","productivity","sla ","throughput",
+    "headcount","back office","middle office","straight-through","stp",
+    "reconciliation","settlement","exception management","manual process",
+    "operational overhead","cost per transaction","resource planning",
+  ],
+  ceo: [
+    "ceo","chief executive","board","chairman","strategic","growth strategy",
+    "market share","transformation","m&a","acquisition","ipo","valuation",
+    "competitive advantage","industry leadership","investor","shareholder",
+    "corporate strategy","market positioning","category leadership",
+  ],
+};
+
+const PERSONA_CFG: Record<PersonaKey, { label: string; icon: string; color: string; bg: string; border: string; bar: string; pill: string; role: string; threshold: number }> = {
+  compliance:  { label: "Compliance/Risk", icon: "🔒", color: "text-slate-700",   bg: "bg-slate-50",   border: "border-slate-200",   bar: "bg-slate-500",   pill: "bg-slate-100 text-slate-700 border-slate-200",     role: "CRO, CISO, Compliance Director — controls regulatory approval and is the most common deal-blocker in fintech enterprise sales; rarely targeted despite being a veto-holder", threshold: 20 },
+  cto:         { label: "CTO/Engineering", icon: "⚙️", color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100",   bar: "bg-blue-400",   pill: "bg-blue-100 text-blue-700 border-blue-200",       role: "CTO, VP Engineering, Solutions Architect — controls the technical evaluation, integration complexity assessment, and build-vs-buy decision for all technology purchases",    threshold: 20 },
+  cfo:         { label: "CFO/Finance",     icon: "💰", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", bar: "bg-emerald-400", pill: "bg-emerald-100 text-emerald-700 border-emerald-200", role: "CFO, Finance Director, Treasury — controls the budget sign-off and demands a credible ROI case, payback period, and TCO analysis before approving any significant spend",  threshold: 15 },
+  product:     { label: "Product/CPO",     icon: "🎨", color: "text-purple-700",  bg: "bg-purple-50",  border: "border-purple-100",  bar: "bg-purple-400",  pill: "bg-purple-100 text-purple-700 border-purple-200",  role: "CPO, Product Director, Head of Innovation — drives the internal business case for fintech investment and is the primary day-to-day buyer champion who builds the shortlist", threshold: 15 },
+  operations:  { label: "Operations/COO",  icon: "⚡", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   bar: "bg-amber-400",   pill: "bg-amber-100 text-amber-700 border-amber-200",     role: "COO, Head of Operations — primary beneficiary of automation and STP improvements; heavily influences vendor selection for operational tooling but is chronically under-served by fintech content", threshold: 10 },
+  ceo:         { label: "CEO/Board",        icon: "🏛️", color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100",   bar: "bg-rose-400",   pill: "bg-rose-100 text-rose-700 border-rose-200",       role: "CEO, Board Members, Investors — strategic buyers who approve transformational spend; need market narrative and competitive positioning content rather than product feature detail",  threshold: 7  },
+};
+
+const PERSONA_FILL_TIPS: Record<PersonaKey, { formats: string; examples: string[] }> = {
+  compliance:  { formats: "Regulatory checklists, enforcement action analyses, audit guides, risk framework posts, regulatory update roundups",   examples: ["What [regulation] means for [institution type] — a practical compliance checklist", "How [financial institution type] is preparing for [regulatory deadline]: a step-by-step guide", "The [regulation] enforcement tracker: what [sector] compliance teams need to act on now"]            },
+  cto:         { formats: "Technical deep-dives, API evaluation guides, architecture case studies, security and scalability reviews, migration posts", examples: ["The architecture of [solution] at scale: a technical deep-dive for engineering teams", "API-first [category]: the technical evaluation criteria that engineering teams miss", "How [company type] migrated from [legacy system] to [modern platform] without downtime"]            },
+  cfo:         { formats: "ROI frameworks, TCO analyses, cost-benefit comparisons, CFO-ready business case templates, payback models",             examples: ["The CFO's guide to evaluating [solution]: ROI, TCO, and payback period in plain language", "How to build the business case for [investment]: a framework for finance leaders", "The real cost of [manual process]: why automation delivers payback within [timeframe]"]               },
+  product:     { formats: "Innovation roundups, competitive landscape analyses, UX case studies, product strategy frameworks, CX benchmarks",      examples: ["How [company] reduced customer onboarding time by [X]% using [approach]: a product case study", "The product manager's guide to [fintech category]: what to build vs buy in [year]", "Customer experience benchmarks in [fintech segment]: what top-performing product teams do differently"] },
+  operations:  { formats: "Process automation guides, STP analyses, operational efficiency case studies, reconciliation optimisation posts",        examples: ["How [institution type] achieved [X]% straight-through processing in [process]: a step-by-step account", "The operations leader's guide to automating [manual process]: what works, what doesn't", "Headcount vs automation in [back-office operation]: the real trade-off for COOs"]                   },
+  ceo:         { formats: "Market positioning pieces, category narrative posts, competitive landscape views, transformation case studies",          examples: ["The competitive landscape of [fintech category] in [year]: who wins and why", "How [company type] is using [approach] to gain durable competitive advantage in [market]", "The [category] market in [year]: where value is moving and what it means for strategic buyers"]          },
+};
+
+function detectPersonas(topic: string, angle: string): Partial<Record<PersonaKey, number>> {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  const result: Partial<Record<PersonaKey, number>> = {};
+  (["compliance","cto","cfo","product","operations","ceo"] as PersonaKey[]).forEach((p) => {
+    const hits = PERSONA_SIGNALS[p].filter((s) => hay.includes(s)).length;
+    if (hits > 0) result[p] = hits;
+  });
+  return result;
+}
+
 // ─── Buyer Journey Stage Mapper ──────────────────────────────────────────────
 // Classifies each entry by which B2B buyer stage it targets and scores funnel balance
 
@@ -7207,6 +7281,227 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Persona Targeting Density Mapper ─────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const PERSONAS: PersonaKey[] = ["compliance","cto","cfo","product","operations","ceo"];
+
+                  const detected = calendar.map((e) => ({
+                    entry:   e,
+                    personas: detectPersonas(e.topic, e.angle),
+                  }));
+                  const n = detected.length;
+
+                  // Coverage rate = % of entries that target each persona (≥1 signal hit)
+                  const coverageCount = {} as Record<PersonaKey, number>;
+                  const coverageRate  = {} as Record<PersonaKey, number>;
+                  PERSONAS.forEach((p) => {
+                    coverageCount[p] = detected.filter((d) => p in d.personas).length;
+                    coverageRate[p]  = n > 0 ? coverageCount[p] / n : 0;
+                  });
+
+                  const noPersona    = detected.filter((d) => Object.keys(d.personas).length === 0);
+                  const multiPersona = detected.filter((d) => Object.keys(d.personas).length >= 3);
+
+                  // ── Portfolio Persona Coverage Score (0-100) ───────────────
+                  const broadReach   = PERSONAS.filter((p) => coverageRate[p] >= 0.10).length;
+                  const reachScore   = Math.round((broadReach / 6) * 40);
+
+                  const compScore    = Math.round(Math.min(1, coverageRate.compliance  / 0.25) * 25);
+                  const opsScore2    = Math.round(Math.min(1, coverageRate.operations  / 0.15) * 20);
+                  const ceoScore2    = Math.round(Math.min(1, coverageRate.ceo         / 0.08) * 15);
+
+                  const personaScore = reachScore + compScore + opsScore2 + ceoScore2;
+
+                  const pCfg =
+                    personaScore >= 75 ? { label: "Broad buying-committee coverage",        color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    personaScore >= 50 ? { label: "Partial persona coverage",               color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    personaScore >= 25 ? { label: "Narrow focus — committee gaps",          color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                         { label: "Single-persona calendar — deal risk",    color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  // Under-served personas (below threshold)
+                  const underServed = PERSONAS
+                    .map((p) => ({ p, rate: coverageRate[p], threshold: PERSONA_CFG[p].threshold }))
+                    .filter(({ rate, threshold }) => rate * 100 < threshold)
+                    .sort((a, b) => (a.threshold - a.rate * 100) - (b.threshold - b.rate * 100))
+                    .reverse(); // largest gap first
+
+                  // Dominant persona (over-concentration warning)
+                  const dominant = PERSONAS.reduce((max, p) => coverageRate[p] > coverageRate[max] ? p : max, "compliance" as PersonaKey);
+                  const isDominated = coverageRate[dominant] > 0.55;
+
+                  return (
+                    <Card className="border border-emerald-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">👥</span>
+                            <p className="text-xs font-semibold text-slate-700">Persona Targeting Density Mapper</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${pCfg.color} ${pCfg.bg} ${pCfg.border}`}>
+                            {personaScore}/100 · {pCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Detects which of the six core fintech B2B buying-committee personas each calendar entry targets — Compliance/Risk, CTO/Engineering, CFO/Finance, Product/CPO, Operations/COO, and CEO/Board — using keyword signal matching across topic and angle fields. Scores the portfolio's persona distribution and flags when the calendar over-concentrates on one persona while leaving veto-holders (compliance, board-level signatories) and chronically under-served decision-influencers (operations) with insufficient targeted content.
+                        </p>
+
+                        {/* Portfolio score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${pCfg.bg} ${pCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${pCfg.color}`}>{personaScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Broad reach",         val: reachScore, max: 40, desc: `${broadReach}/6 personas covered in ≥10% of calendar entries`                                             },
+                              { label: "Compliance depth",    val: compScore,  max: 25, desc: `compliance coverage = ${Math.round(coverageRate.compliance*100)}% — target ≥25% (most common deal-blocker)` },
+                              { label: "Operations coverage", val: opsScore2,  max: 20, desc: `operations coverage = ${Math.round(coverageRate.operations*100)}% — target ≥15% (most neglected persona)`   },
+                              { label: "CEO/Board presence",  val: ceoScore2,  max: 15, desc: `CEO/Board coverage = ${Math.round(coverageRate.ceo*100)}% — target ≥8% for strategic sign-off content`      },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${pCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Per-persona coverage bars */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Buying-committee persona coverage:</p>
+                        <div className="space-y-1.5 mb-4">
+                          {PERSONAS.map((p) => {
+                            const cfg     = PERSONA_CFG[p];
+                            const actual  = Math.round(coverageRate[p] * 100);
+                            const count   = coverageCount[p];
+                            const atRisk  = actual < cfg.threshold;
+                            return (
+                              <div key={p} className="flex items-center gap-2">
+                                <span className="text-[8px] w-4 shrink-0">{cfg.icon}</span>
+                                <span className={`text-[7px] font-bold w-28 shrink-0 ${atRisk ? "text-rose-600" : "text-slate-600"}`}>{cfg.label}</span>
+                                <div className="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden relative">
+                                  {/* Threshold marker */}
+                                  <div className="absolute top-0 bottom-0 w-px bg-slate-300 z-10" style={{ left: `${cfg.threshold}%` }} />
+                                  {/* Actual fill */}
+                                  <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${Math.min(actual, 100)}%` }} />
+                                </div>
+                                <span className={`text-[7px] tabular-nums font-black w-6 text-right shrink-0 ${atRisk ? "text-rose-600" : "text-slate-600"}`}>{actual}%</span>
+                                <span className="text-[6.5px] text-slate-400 shrink-0">({count} entr{count !== 1 ? "ies" : "y"})</span>
+                                <span className="text-[6.5px] text-slate-300 shrink-0">target ≥{cfg.threshold}%</span>
+                                {atRisk && <span className="text-[6.5px] font-bold text-rose-500 shrink-0">↓ {cfg.threshold - actual}pp below</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[7px] text-slate-400 mb-4">Vertical line = minimum target coverage per persona · Coloured fill = actual calendar coverage</p>
+
+                        {/* Over-concentration warning */}
+                        {isDominated && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+                            <p className="text-[7.5px] text-amber-800 leading-snug">
+                              <span className="font-bold">{PERSONA_CFG[dominant].icon} {PERSONA_CFG[dominant].label} is disproportionately dominant at {Math.round(coverageRate[dominant]*100)}% coverage.</span> In a real fintech B2B deal the buying committee is never a single persona — the average enterprise deal involves 6-10 stakeholders with different information needs and veto powers. A calendar that over-concentrates on one persona creates strong reach within one committee layer but fails to support the internal champions who need to convince peers across finance, technology, compliance, and operations before a deal can progress.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Generic (no persona) entries warning */}
+                        {noPersona.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">👤</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-slate-700 mb-1">{noPersona.length} piece{noPersona.length !== 1 ? "s" : ""} have no detected persona signals — targeting "generic fintech professional"</p>
+                              <div className="flex flex-wrap gap-1 mb-1">
+                                {noPersona.map(({ entry: e }) => (
+                                  <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>{e.angle.slice(0,26)}{e.angle.length > 26 ? "…" : ""}</span>
+                                ))}
+                              </div>
+                              <p className="text-[7.5px] text-slate-600">Content that targets nobody in particular typically resonates with nobody in particular. Add at least one role-specific signal to the angle brief (e.g. "for CFOs", "for engineering teams", "for compliance officers") to ensure the piece speaks directly to a real member of the buying committee.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Under-served persona gap cards */}
+                        {underServed.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Under-served personas — buying-committee gaps to close:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {underServed.map(({ p, rate, threshold }) => {
+                                const cfg  = PERSONA_CFG[p];
+                                const tips = PERSONA_FILL_TIPS[p];
+                                const needed = n > 0 ? Math.max(1, Math.ceil((threshold / 100) * n) - coverageCount[p]) : 1;
+                                return (
+                                  <div key={p} className={`rounded-xl border overflow-hidden ${cfg.border}`}>
+                                    <div className={`flex items-center justify-between px-3.5 py-2 ${cfg.bg}`}>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[10px]">{cfg.icon}</span>
+                                        <span className={`text-[8.5px] font-bold ${cfg.color}`}>{cfg.label}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100">{Math.round(rate*100)}% coverage vs ≥{threshold}% target</span>
+                                        <span className="text-[7px] text-slate-400">≈{needed} piece{needed !== 1 ? "s" : ""} needed</span>
+                                      </div>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-2">
+                                      <p className="text-[7.5px] text-slate-500 leading-snug">{cfg.role}</p>
+                                      <div className="px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                        <p className="text-[7.5px] font-bold text-slate-700 mb-0.5">Formats that resonate with this persona:</p>
+                                        <p className="text-[7.5px] text-slate-600">{tips.formats}</p>
+                                      </div>
+                                      <div className="px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                        <p className="text-[7.5px] font-bold text-slate-700 mb-1">Angle templates for {cfg.label} content:</p>
+                                        <ul className="space-y-0.5">
+                                          {tips.examples.map((ex) => (
+                                            <li key={ex} className="text-[7.5px] text-slate-600 flex items-start gap-1.5">
+                                              <span className="shrink-0 text-slate-400 mt-0.5">·</span>{ex}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Per-entry persona tag display */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Entry persona targeting:</p>
+                        <div className="space-y-0.5">
+                          {detected.map(({ entry: e, personas: ps }) => {
+                            const personaKeys = Object.keys(ps) as PersonaKey[];
+                            return (
+                              <div key={entryKey(e)} className="flex items-center gap-1.5 py-0.5 border-b border-slate-50">
+                                <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                <span className="text-[7px] text-slate-600 truncate flex-1 min-w-0">{e.angle.slice(0,30)}{e.angle.length > 30 ? "…" : ""}</span>
+                                <div className="flex gap-0.5 flex-shrink-0">
+                                  {personaKeys.length === 0
+                                    ? <span className="text-[6.5px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400 border border-slate-200">Generic</span>
+                                    : personaKeys.slice(0,3).map((pk) => (
+                                        <span key={pk} className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${PERSONA_CFG[pk].pill}`} title={`${ps[pk]} signal hit${(ps[pk] ?? 0) !== 1 ? "s" : ""}`}>
+                                          {PERSONA_CFG[pk].icon} {PERSONA_CFG[pk].label.split("/")[0]}
+                                        </span>
+                                      ))
+                                  }
+                                  {personaKeys.length > 3 && <span className="text-[6.5px] text-slate-400 px-1">+{personaKeys.length - 3}</span>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {multiPersona.length > 0 && (
+                          <p className="text-[7px] text-slate-400 mt-2">🎯 {multiPersona.length} piece{multiPersona.length !== 1 ? "s" : ""} target 3+ personas simultaneously — strong multi-stakeholder content for internal champion distribution</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Buyer Journey Stage Mapper ───────────────────────────── */}
                 {calendar.length > 0 && (() => {
