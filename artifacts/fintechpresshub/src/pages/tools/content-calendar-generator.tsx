@@ -1696,6 +1696,24 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Editorial Momentum Tracker ──────────────────────────────────────────────
+// Production effort weight per content type (1 = lightest, 5 = heaviest)
+const PROD_COMPLEXITY: Record<ContentType, number> = {
+  "guide":      5,   // full research, long-form writing, SME review, design
+  "case-study": 4,   // client coordination, approval loops, data gathering
+  "roundup":    3,   // research, curation, editorial analysis
+  "blog":       2,   // research + writing
+  "linkedin":   1,   // short-form, rapid turnaround
+};
+
+const COMPLEXITY_LABEL: Record<number, { label: string; color: string; bg: string }> = {
+  5: { label: "Major production",  color: "text-purple-700",  bg: "bg-purple-100"  },
+  4: { label: "High effort",       color: "text-rose-700",    bg: "bg-rose-100"    },
+  3: { label: "Medium effort",     color: "text-amber-700",   bg: "bg-amber-100"   },
+  2: { label: "Standard",          color: "text-blue-700",    bg: "bg-blue-100"    },
+  1: { label: "Light",             color: "text-emerald-700", bg: "bg-emerald-100" },
+};
+
 // ─── Competitive Blindspot Detector ──────────────────────────────────────────
 // Signals that mark a piece as playing on crowded, commoditised ground
 const CROWD_SIGNALS = [
@@ -6562,6 +6580,329 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Editorial Momentum Tracker ───────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // ── 1. Group entries by week, compute per-week complexity ──
+                  const weekMap = new Map<number, typeof calendar>();
+                  calendar.forEach((e) => {
+                    if (!weekMap.has(e.week)) weekMap.set(e.week, []);
+                    weekMap.get(e.week)!.push(e);
+                  });
+                  const sortedWeeks = [...weekMap.keys()].sort((a, b) => a - b);
+                  const weekData = sortedWeeks.map((wk) => {
+                    const entries   = weekMap.get(wk)!;
+                    const complexity = entries.reduce((s, e) => s + PROD_COMPLEXITY[e.type], 0);
+                    const pieces     = entries.length;
+                    return { wk, entries, complexity, pieces };
+                  });
+
+                  if (weekData.length === 0) return null;
+
+                  const maxComplexity = Math.max(...weekData.map((w) => w.complexity));
+                  const avgComplexity = weekData.reduce((s, w) => s + w.complexity, 0) / weekData.length;
+                  const OVERLOAD_THRESHOLD = avgComplexity * 1.5;
+
+                  // ── 2. Momentum — compare first half vs second half ────────
+                  const mid        = Math.ceil(weekData.length / 2);
+                  const firstHalf  = weekData.slice(0, mid);
+                  const secondHalf = weekData.slice(mid);
+                  const firstAvg   = firstHalf.reduce((s, w) => s + w.complexity, 0) / (firstHalf.length || 1);
+                  const secondAvg  = secondHalf.length > 0
+                    ? secondHalf.reduce((s, w) => s + w.complexity, 0) / secondHalf.length
+                    : firstAvg;
+                  const momentumRatio = secondAvg / (firstAvg || 1);
+                  type Momentum = "accelerating" | "steady" | "decelerating";
+                  const momentum: Momentum =
+                    momentumRatio > 1.2 ? "accelerating" :
+                    momentumRatio < 0.8 ? "decelerating" : "steady";
+
+                  // ── 3. Overloaded weeks ────────────────────────────────────
+                  const overloaded = weekData.filter((w) => w.complexity > OVERLOAD_THRESHOLD);
+                  const backHalfOverloaded = overloaded.filter((w) => sortedWeeks.indexOf(w.wk) >= mid);
+
+                  // ── 4. Production regularity (consistency of weekly load) ─
+                  const mean   = avgComplexity;
+                  const variance = weekData.reduce((s, w) => s + Math.pow(w.complexity - mean, 2), 0) / weekData.length;
+                  const stddev   = Math.sqrt(variance);
+                  const cv       = mean > 0 ? stddev / mean : 0;  // coefficient of variation — lower = more regular
+                  const regularityScore = Math.round(Math.max(0, Math.min(35, (1 - Math.min(cv, 1)) * 35)));
+
+                  // ── 5. Sustainability score ────────────────────────────────
+                  const overloadRate      = weekData.length > 0 ? overloaded.length / weekData.length : 0;
+                  const sustainabilityScore = Math.round(Math.max(0, Math.min(35, (1 - overloadRate) * 35)));
+
+                  // ── 6. Momentum component ─────────────────────────────────
+                  // Steady is best (30), gently accelerating is ok (20), sharply accelerating or decelerating is bad
+                  const momentumScore =
+                    momentum === "steady"       ? 30 :
+                    momentum === "accelerating" ? (momentumRatio < 1.4 ? 20 : 10) : 8;
+
+                  // ── 7. Bandwidth score (0-100) ────────────────────────────
+                  const bandwidthScore = regularityScore + sustainabilityScore + momentumScore;
+
+                  const bandwidthCfg =
+                    bandwidthScore >= 75 ? { label: "Sustainable pace",      color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    bandwidthScore >= 50 ? { label: "Manageable",            color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    bandwidthScore >= 30 ? { label: "Stretched",             color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                           { label: "Production crunch risk", color: "text-rose-700",   bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  const momentumCfg = {
+                    accelerating: { label: "Accelerating ↑",  color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-100", icon: "📈" },
+                    steady:       { label: "Steady →",         color: "text-emerald-700",bg: "bg-emerald-50",border: "border-emerald-100", icon: "➡️" },
+                    decelerating: { label: "Decelerating ↓",  color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100",    icon: "📉" },
+                  } as const;
+
+                  const mCfg = momentumCfg[momentum];
+
+                  // Week load classification
+                  const weekLoad = (complexity: number) =>
+                    complexity > OVERLOAD_THRESHOLD            ? { label: "Overloaded", bar: "bg-rose-400",    border: "border-rose-100"    } :
+                    complexity > avgComplexity * 1.1           ? { label: "Heavy",      bar: "bg-amber-400",   border: "border-amber-100"   } :
+                    complexity < avgComplexity * 0.6 && complexity > 0 ? { label: "Light", bar: "bg-sky-300", border: "border-sky-100"     } :
+                    complexity === 0                           ? { label: "Empty",      bar: "bg-slate-100",   border: "border-slate-100"   } :
+                                                                 { label: "Normal",     bar: "bg-emerald-400", border: "border-emerald-100" };
+
+                  return (
+                    <Card className="border border-cyan-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">📈</span>
+                            <p className="text-xs font-semibold text-slate-700">Editorial Momentum Tracker</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${mCfg.color} ${mCfg.bg} ${mCfg.border}`}>
+                              {mCfg.icon} {mCfg.label}
+                            </span>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${bandwidthCfg.color} ${bandwidthCfg.bg} ${bandwidthCfg.border}`}>
+                              {bandwidthScore}/100 · {bandwidthCfg.label}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Weights each calendar entry by production effort (Guide = 5×, Case Study = 4×, Roundup = 3×, Blog = 2×, LinkedIn = 1×) and tracks complexity-weighted output volume across weeks — detecting overloaded weeks, measuring momentum shift between the first and second half of the calendar, and projecting whether the planned pace is sustainable.
+                        </p>
+
+                        {/* Bandwidth score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${bandwidthCfg.bg} ${bandwidthCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${bandwidthCfg.color}`}>{bandwidthScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">Bandwidth Score</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Production regularity", val: regularityScore,    max: 35, desc: `CV = ${cv.toFixed(2)} — ${cv < 0.3 ? "very consistent" : cv < 0.6 ? "moderate variance" : "high variance"} weekly load` },
+                              { label: "Sustainability",        val: sustainabilityScore,max: 35, desc: `${overloaded.length} overloaded week${overloaded.length !== 1 ? "s" : ""} of ${weekData.length} total`                   },
+                              { label: "Momentum quality",     val: momentumScore,       max: 30, desc: `${mCfg.label} — first half avg ${firstAvg.toFixed(1)} → second half ${secondAvg.toFixed(1)}`                             },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${bandwidthCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val / max) * 100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Portfolio stats */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                          {[
+                            { label: "Active weeks",    val: weekData.length,                      sub: "weeks with content"              },
+                            { label: "Avg complexity",  val: avgComplexity.toFixed(1),             sub: "weighted effort per week"        },
+                            { label: "Overloaded weeks",val: overloaded.length,                    sub: `>${Math.round(OVERLOAD_THRESHOLD)} pts threshold` },
+                            { label: "Total effort pts",val: weekData.reduce((s,w) => s+w.complexity,0), sub: "across full calendar"       },
+                          ].map(({ label, val, sub }) => (
+                            <div key={label} className="rounded-lg border border-cyan-100 bg-cyan-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className="text-[11px] font-black leading-none text-cyan-700">{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Weekly effort chart */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Week-by-week production effort — complexity-weighted output:</p>
+                        <div className="flex items-end gap-px mb-1" style={{ height: "60px" }}>
+                          {weekData.map((w) => {
+                            const heightPct = maxComplexity > 0 ? Math.round((w.complexity / maxComplexity) * 100) : 0;
+                            const load      = weekLoad(w.complexity);
+                            return (
+                              <div key={w.wk} className="flex-1 flex flex-col justify-end items-center gap-px" title={`Wk ${w.wk}: ${w.complexity} pts, ${w.pieces} piece${w.pieces !== 1 ? "s" : ""}`}>
+                                <div
+                                  className={`w-full rounded-t-sm ${load.bar} transition-all`}
+                                  style={{ height: `${Math.max(3, heightPct)}%` }}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center justify-between mb-1">
+                          {weekData.slice(0, 1).map((w) => <span key={w.wk} className="text-[6.5px] text-slate-400">Wk {w.wk}</span>)}
+                          <span className="text-[6.5px] text-slate-400">→ time →</span>
+                          {weekData.slice(-1).map((w) => <span key={w.wk} className="text-[6.5px] text-slate-400">Wk {w.wk}</span>)}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mb-4">
+                          {[
+                            { label: "Overloaded", bar: "bg-rose-400"    },
+                            { label: "Heavy",      bar: "bg-amber-400"   },
+                            { label: "Normal",     bar: "bg-emerald-400" },
+                            { label: "Light",      bar: "bg-sky-300"     },
+                          ].map(({ label, bar }) => (
+                            <div key={label} className="flex items-center gap-1">
+                              <div className={`w-2 h-2 rounded-sm ${bar}`} />
+                              <span className="text-[7px] text-slate-400">{label}</span>
+                            </div>
+                          ))}
+                          <span className="text-[7px] text-slate-400 self-center">· overload threshold: {Math.round(OVERLOAD_THRESHOLD)} pts/wk (1.5× avg)</span>
+                        </div>
+
+                        {/* Momentum trend — first vs second half */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Momentum — first half vs second half production load:</p>
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${mCfg.bg} ${mCfg.border}`}>
+                          <div className="flex-1 space-y-1.5">
+                            {[
+                              { label: `First half (Wks ${firstHalf[0]?.wk}–${firstHalf.at(-1)?.wk})`,  avg: firstAvg,  weeks: firstHalf.length  },
+                              { label: `Second half (Wks ${secondHalf[0]?.wk ?? "—"}–${secondHalf.at(-1)?.wk ?? "—"})`, avg: secondAvg, weeks: secondHalf.length },
+                            ].map(({ label, avg, weeks }) => {
+                              const pct = maxComplexity > 0 ? Math.round((avg / maxComplexity) * 100) : 0;
+                              return (
+                                <div key={label} className="flex items-center gap-2">
+                                  <span className="text-[7px] text-slate-500 w-40 shrink-0">{label}</span>
+                                  <div className="flex-1 h-2 rounded-full bg-white/60 overflow-hidden">
+                                    <div className={`h-full rounded-full ${mCfg.color.replace("text-","bg-")}`} style={{ width: `${pct}%` }} />
+                                  </div>
+                                  <span className={`text-[7px] tabular-nums font-bold shrink-0 w-10 text-right ${mCfg.color}`}>{avg.toFixed(1)} pts</span>
+                                  <span className="text-[7px] text-slate-400 shrink-0">{weeks} wk{weeks !== 1 ? "s" : ""}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="text-center shrink-0">
+                            <p className={`text-xl font-black ${mCfg.color}`}>{mCfg.icon}</p>
+                            <p className={`text-[7px] font-bold ${mCfg.color}`}>{(momentumRatio * 100 - 100).toFixed(0)}%</p>
+                            <p className="text-[6.5px] text-slate-400">load shift</p>
+                          </div>
+                        </div>
+
+                        {/* Overloaded week alerts */}
+                        {overloaded.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">🚨 Overloaded weeks — production crunch risk:</p>
+                            <div className="space-y-2 mb-4">
+                              {overloaded.map((w) => {
+                                const heaviest = [...w.entries].sort((a, b) => PROD_COMPLEXITY[b.type] - PROD_COMPLEXITY[a.type]);
+                                return (
+                                  <div key={w.wk} className="rounded-xl border border-rose-100 overflow-hidden">
+                                    <div className="flex items-center justify-between px-3.5 py-2 bg-rose-50">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[9px] shrink-0">🚨</span>
+                                        <span className="text-[8.5px] font-bold text-rose-800">Week {w.wk} — {w.complexity} complexity pts ({w.pieces} piece{w.pieces !== 1 ? "s" : ""})</span>
+                                      </div>
+                                      <span className="text-[7.5px] font-bold text-rose-600 shrink-0">{Math.round((w.complexity / avgComplexity - 1) * 100)}% above avg</span>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white">
+                                      <div className="space-y-0.5 mb-1.5">
+                                        {heaviest.map((e) => (
+                                          <div key={entryKey(e)} className="flex items-center gap-2">
+                                            <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                            <span className="text-[7.5px] text-slate-600 truncate flex-1">{e.angle}</span>
+                                            <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${COMPLEXITY_LABEL[PROD_COMPLEXITY[e.type]].bg} ${COMPLEXITY_LABEL[PROD_COMPLEXITY[e.type]].color}`}>{PROD_COMPLEXITY[e.type]}pts</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-rose-50 border border-rose-100">
+                                        <span className="text-[9px] shrink-0">💡</span>
+                                        <p className="text-[8px] text-rose-900 leading-snug">
+                                          {w.complexity >= OVERLOAD_THRESHOLD * 1.5
+                                            ? `Extreme compression — ${w.complexity} pts in a single week is ${Math.round(w.complexity / avgComplexity)}× the average load. Move the lowest-priority piece to an adjacent week or split the guide into a shorter blog post.`
+                                            : `This week's load exceeds the sustainable threshold by ${Math.round((w.complexity / OVERLOAD_THRESHOLD - 1) * 100)}%. Consider sliding one piece ±1 week to flatten the production curve — the guide or case study is the most expensive single item to resequence.`
+                                          }
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Format-by-effort breakdown */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Production effort breakdown by format:</p>
+                        <div className="space-y-1 mb-4">
+                          {(["guide","case-study","roundup","blog","linkedin"] as ContentType[]).map((t) => {
+                            const count     = calendar.filter((e) => e.type === t).length;
+                            if (count === 0) return null;
+                            const totalPts  = count * PROD_COMPLEXITY[t];
+                            const grandTotal = calendar.reduce((s, e) => s + PROD_COMPLEXITY[e.type], 0);
+                            const pct       = grandTotal > 0 ? Math.round((totalPts / grandTotal) * 100) : 0;
+                            const cfg       = COMPLEXITY_LABEL[PROD_COMPLEXITY[t]];
+                            return (
+                              <div key={t} className="flex items-center gap-2">
+                                <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[t]}`}>{FORMAT_LABEL[t]}</span>
+                                <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                  <div className={`h-full rounded-full ${cfg.bg.replace("bg-","bg-").replace("-100","-400")}`} style={{ width: `${pct}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 shrink-0 w-16 text-right">{count}× · {totalPts} pts ({pct}%)</span>
+                                <span className={`text-[7px] shrink-0 hidden sm:inline ${cfg.color}`}>{cfg.label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Sustainability projection */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Sustainability projection:</p>
+                        <div className="space-y-1.5">
+                          {momentum === "decelerating" && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-100">
+                              <span className="text-[9px] shrink-0">📉</span>
+                              <p className="text-[8px] text-rose-800 leading-snug">
+                                <span className="font-bold">Decelerating production pace.</span> The second half of the calendar has {Math.round((1 - momentumRatio) * 100)}% lower average complexity than the first. This can indicate either smart tapering toward publication dates or — more commonly — that the editorial pipeline is losing momentum. Confirm whether the lighter back half is intentional or a planning gap.
+                              </p>
+                            </div>
+                          )}
+                          {momentum === "accelerating" && momentumRatio > 1.4 && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                              <span className="text-[9px] shrink-0">⚠️</span>
+                              <p className="text-[8px] text-amber-900 leading-snug">
+                                <span className="font-bold">Sharply accelerating back half ({Math.round((momentumRatio - 1) * 100)}% load increase).</span> Heavy pieces concentrated late in the calendar create production crunch risk — writers, designers, and reviewers will be simultaneously overloaded near the end of the quarter. Front-load one or two complex pieces to smooth the curve.
+                              </p>
+                            </div>
+                          )}
+                          {backHalfOverloaded.length > 0 && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-orange-50 border border-orange-100">
+                              <span className="text-[9px] shrink-0">🔥</span>
+                              <p className="text-[8px] text-orange-900 leading-snug">
+                                <span className="font-bold">{backHalfOverloaded.length} overloaded week{backHalfOverloaded.length !== 1 ? "s" : ""} in the back half</span> (Wk{backHalfOverloaded.length !== 1 ? "s" : ""} {backHalfOverloaded.map((w) => w.wk).join(", ")}). Production bottlenecks in the final weeks of a quarter are the most common cause of calendar slippage — pieces get delayed into the next quarter and the editorial plan compounds into a backlog.
+                              </p>
+                            </div>
+                          )}
+                          {overloaded.length === 0 && momentum === "steady" && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                              <span className="text-[9px] shrink-0">✅</span>
+                              <p className="text-[8px] text-emerald-800 leading-snug font-semibold">
+                                Sustainable production pace — no overloaded weeks detected and complexity is evenly distributed. The calendar is well-sequenced for consistent editorial output without crunch periods.
+                              </p>
+                            </div>
+                          )}
+                          {bandwidthScore < 50 && (
+                            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
+                              <span className="text-[9px] shrink-0">💡</span>
+                              <p className="text-[8px] text-blue-800 leading-snug">
+                                <span className="font-bold">Quick fixes to improve bandwidth score:</span> Replace one guide with a roundup in any overloaded week (saves 2 pts) · Cluster LinkedIn posts as lightweight fillers in gaps between heavy production weeks · Batch two blog posts in the same week they share a topic for research efficiency.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Competitive Blindspot Detector ───────────────────────── */}
                 {calendar.length > 0 && (() => {
