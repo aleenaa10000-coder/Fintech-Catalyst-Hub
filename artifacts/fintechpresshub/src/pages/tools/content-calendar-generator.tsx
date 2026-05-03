@@ -1696,6 +1696,38 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Competitor Content Gap Detector ─────────────────────────────────────────
+interface GapTopic {
+  cluster:        string;
+  priority:       "high" | "medium";
+  keywords:       string[];
+  competitorPlay: string;
+  gapAngle:       string;
+  bestFormats:    ContentType[];
+}
+const FINTECH_CONTENT_UNIVERSE: GapTopic[] = [
+  { cluster: "Open Banking & APIs",            priority: "high",   keywords: ["open banking","open finance","api","psd2","account aggregation"],          competitorPlay: "API integration guides and PSD2 explainers targeting developers and CTOs",                                       gapAngle: "Business outcome lens — 'How open banking lifted conversion rates for [vertical]' — moves beyond technical explainers",          bestFormats: ["case-study","guide"] },
+  { cluster: "Embedded Finance",               priority: "high",   keywords: ["embedded finance","embedded banking","banking as a service","baas"],       competitorPlay: "BaaS vendor comparisons and embedded payments implementation walkthroughs",                                         gapAngle: "Vertical-specific playbooks (embedded finance for HR platforms, marketplaces, or logistics) outperform generic overviews",       bestFormats: ["guide","blog"] },
+  { cluster: "Payments & PayTech",             priority: "high",   keywords: ["payment","paytech","checkout","acquiring","merchant","pos","instant pay"], competitorPlay: "Checkout optimisation tips and payment orchestration overviews aimed at e-commerce merchants",                          gapAngle: "Real-time payment failure analysis — what merchants lose per percentage point of decline rate — drives strong B2B intent",       bestFormats: ["blog","roundup"] },
+  { cluster: "RegTech & Compliance Automation",priority: "high",   keywords: ["regtech","compliance automation","regulatory reporting","reg tech"],       competitorPlay: "High-level 'what is regtech' definitions and vendor landscape maps",                                                   gapAngle: "Cost-per-violation modelling — translating compliance failures into auditable financial risk — is underserved at MOFU/BOFU",    bestFormats: ["guide","case-study"] },
+  { cluster: "Crypto & Digital Assets",        priority: "high",   keywords: ["crypto","digital asset","bitcoin","ethereum","token","blockchain","defi"], competitorPlay: "Price-reactive explainers and exchange comparison listicles with high churn and low dwell time",                       gapAngle: "Institutional custody and crypto treasury management for CFOs — evergreen B2B angle with strong lead-gen conversion",            bestFormats: ["guide","whitepaper"] },
+  { cluster: "ESG & Sustainable Finance",      priority: "high",   keywords: ["esg","sustainable finance","green finance","climate risk","sfdr","tcfd"],  competitorPlay: "SFDR and TCFD compliance primers positioned as thought leadership but rarely tied to commercial outcomes",                gapAngle: "Greenwashing liability frameworks — what financial marketers must do before making any sustainability claim — high compliance intent", bestFormats: ["guide","blog"] },
+  { cluster: "BNPL & Consumer Credit",         priority: "medium", keywords: ["bnpl","buy now pay later","consumer credit","instalment","afterpay"],     competitorPlay: "Consumer-facing BNPL comparisons and merchant integration how-tos dominate — B2B angle is thin",                      gapAngle: "BNPL regulatory compliance roadmap post-FCA review — underserved by lenders and BNPL platforms planning 2024–25 pivots",        bestFormats: ["blog","roundup"] },
+  { cluster: "Fraud Prevention & Cybersecurity",priority:"high",  keywords: ["fraud","cybersecurity","aml","money laundering","scam","social engineering","chargeback"], competitorPlay: "Tactic-level fraud prevention lists and AML regulatory updates — rarely translated into ROI or board-level risk language", gapAngle: "Fraud loss benchmarking by vertical (payments vs lending vs crypto) — data-driven content with strong sales enablement utility", bestFormats: ["blog","case-study"] },
+  { cluster: "WealthTech & Robo-Advisory",     priority: "medium", keywords: ["wealthtech","robo-advisor","wealth management","portfolio","investment platform","sipp"], competitorPlay: "Retail-investor comparison articles — almost no B2B or platform-operator perspective exists in the content landscape",   gapAngle: "White-label wealthtech ROI for banks and credit unions — untapped niche with high deal values and long sales cycles",            bestFormats: ["guide","case-study"] },
+  { cluster: "InsurTech",                      priority: "medium", keywords: ["insurtech","insurance","underwriting","claims","embedded insurance","ipa"], competitorPlay: "InsurTech 'innovation trend' listicles with low specificity and weak SEO traction",                                       gapAngle: "Parametric insurance explainers for CFOs and treasury teams — emerging product with almost no quality B2B content",              bestFormats: ["blog","guide"] },
+  { cluster: "SME & Business Banking",         priority: "high",   keywords: ["sme","business banking","sme lending","working capital","accounts payable","trade finance"], competitorPlay: "Product-feature comparison articles written from a consumer rather than operator perspective",                       gapAngle: "SME cash-flow crisis playbooks tied to banking product adoption — positions the bank as a strategic partner, not a product",    bestFormats: ["guide","case-study"] },
+  { cluster: "Cross-border Payments & FX",     priority: "high",   keywords: ["cross-border","fx","foreign exchange","remittance","swift","correspondent banking"], competitorPlay: "Fee comparison tools and SWIFT vs alternatives explainers — rarely contextualised by industry or treasury workflow",   gapAngle: "Cross-border payment failure rate analysis by corridor — data journalism that attracts CFO and treasury backlinks",              bestFormats: ["blog","roundup"] },
+  { cluster: "CBDCs & Digital Currency",       priority: "medium", keywords: ["cbdc","central bank digital currency","digital pound","digital euro","e-cny"], competitorPlay: "Policy commentary and central bank announcement recaps — reactive, low dwell time, poor lead gen",                      gapAngle: "CBDC readiness checklist for banks and PSPs — proactive, practical, high commercial intent from compliance and tech teams",      bestFormats: ["guide","blog"] },
+  { cluster: "AI & Machine Learning in Finance",priority:"high",   keywords: ["artificial intelligence","machine learning","ai","llm","generative ai","nlp","model risk"], competitorPlay: "Generic 'AI in banking' trend pieces with no concrete implementation detail or risk framework",                          gapAngle: "Model risk management for AI in credit decisioning — FCA-specific angle, underserved, and high-intent for compliance buyers",   bestFormats: ["guide","blog"] },
+  { cluster: "Financial Inclusion & Access",   priority: "medium", keywords: ["financial inclusion","unbanked","underbanked","financial access","credit invisible"], competitorPlay: "Impact-led narrative pieces that rarely tie outcomes to product or commercial strategy",                                  gapAngle: "Product-market fit case studies — how fintechs actually converted underbanked customers at sustainable unit economics",           bestFormats: ["case-study","blog"] },
+  { cluster: "KYC & Identity Verification",    priority: "high",   keywords: ["kyc","know your customer","identity verification","onboarding","ekyc","biometric"], competitorPlay: "KYC vendor comparison listicles that mask commercial intent behind editorial framing",                                     gapAngle: "KYC abandonment rate analysis — translating friction data into revenue loss resonates with COOs and product leaders",             bestFormats: ["blog","guide"] },
+  { cluster: "Treasury & Cash Management",     priority: "medium", keywords: ["treasury","cash management","liquidity","working capital","cash flow","cfm"], competitorPlay: "Generic treasury management software reviews — low specificity, weak topical authority",                                    gapAngle: "Interest rate sensitivity modelling for corporate treasuries — technical depth that earns CFO and treasury director backlinks",   bestFormats: ["guide","blog"] },
+  { cluster: "Lending Tech & Credit",          priority: "high",   keywords: ["lending","credit","loan","underwriting","credit scoring","alternative lending","defi lending"], competitorPlay: "Alternative credit scoring explainers — almost always consumer-facing, rarely for lenders or platform operators",      gapAngle: "Embedded lending launch playbook — revenue share structures, risk models, and vendor selection guide for non-bank lenders",      bestFormats: ["guide","case-study"] },
+  { cluster: "DeFi & Web3 Finance",            priority: "medium", keywords: ["defi","decentralised finance","web3","dao","smart contract","yield farming","liquidity pool"], competitorPlay: "Crypto-native DeFi explainers targeting retail — very little institutional or regulatory-readiness content",              gapAngle: "DeFi regulatory compliance guide for traditional finance teams exploring tokenised asset strategies",                             bestFormats: ["guide","blog"] },
+  { cluster: "Fintech for Enterprise & B2B",   priority: "high",   keywords: ["enterprise fintech","b2b fintech","corporate fintech","procurement","accounts payable","erp integration"], competitorPlay: "Sales-pitch disguised as thought leadership — C-suite audiences identify and ignore it quickly",                    gapAngle: "CFO buyer's guide series — independent, outcome-focused selection frameworks for each enterprise fintech category",               bestFormats: ["guide","roundup"] },
+];
+
 // ─── Content Freshness Decay Model ───────────────────────────────────────────
 interface DecayProfile {
   halfLife:  number;   // months until ~50% relevance loss
@@ -5834,6 +5866,183 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Competitor Content Gap Detector ──────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Detect which universe clusters are covered by the calendar
+                  const calendarHay = calendar.map((e) => `${e.topic} ${e.angle}`.toLowerCase());
+
+                  const covered: GapTopic[]  = [];
+                  const missing: GapTopic[]  = [];
+
+                  for (const gap of FINTECH_CONTENT_UNIVERSE) {
+                    const hits = gap.keywords.filter((kw) => calendarHay.some((h) => h.includes(kw)));
+                    if (hits.length > 0) covered.push(gap);
+                    else missing.push(gap);
+                  }
+
+                  const highMissing   = missing.filter((g) => g.priority === "high");
+                  const medMissing    = missing.filter((g) => g.priority === "medium");
+                  const coveragePct   = Math.round((covered.length / FINTECH_CONTENT_UNIVERSE.length) * 100);
+
+                  // Format-coverage gaps
+                  const calendarTypes = new Set(calendar.map((e) => e.type));
+                  const missingFormats: { format: ContentType; label: string; note: string }[] = [];
+                  if (!calendarTypes.has("guide"))       missingFormats.push({ format: "guide",      label: FORMAT_LABEL["guide"],      note: "Guides are your highest-authority SEO assets and strongest lead-gen gate vehicles" });
+                  if (!calendarTypes.has("case-study"))  missingFormats.push({ format: "case-study", label: FORMAT_LABEL["case-study"], note: "Buyers in long sales cycles cite case studies as the #1 content type influencing purchase decisions" });
+                  if (!calendarTypes.has("roundup"))     missingFormats.push({ format: "roundup",    label: FORMAT_LABEL["roundup"],    note: "Resource roundups attract editorial backlinks and establish topical authority efficiently" });
+
+                  const scoreColor = coveragePct >= 60 ? "text-emerald-700" : coveragePct >= 40 ? "text-amber-700" : "text-rose-700";
+                  const scoreBg    = coveragePct >= 60 ? "bg-emerald-50"    : coveragePct >= 40 ? "bg-amber-50"    : "bg-rose-50";
+
+                  return (
+                    <Card className="border border-violet-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🕵️</span>
+                            <p className="text-xs font-semibold text-slate-700">Competitor Content Gap Detector</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {highMissing.length > 0 && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                {highMissing.length} high-priority gap{highMissing.length !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200">
+                              {coveragePct}% universe covered
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Cross-references your calendar against 20 high-value fintech content clusters — surfacing which topic areas competitors are likely publishing first and what differentiated angle to take.
+                        </p>
+
+                        {/* Coverage score */}
+                        <div className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-2 ${scoreBg}`}>
+                          <div>
+                            <p className="text-[9px] text-slate-500 mb-0.5">Fintech Universe Coverage</p>
+                            <p className={`text-lg font-black tabular-nums leading-none ${scoreColor}`}>
+                              {covered.length}<span className="text-xs font-semibold opacity-60">/{FINTECH_CONTENT_UNIVERSE.length} clusters</span>
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-[10px] font-bold ${scoreColor}`}>{coveragePct}% covered</p>
+                            <p className="text-[8.5px] text-slate-400">{missing.length} gaps detected</p>
+                          </div>
+                        </div>
+
+                        {/* Coverage progress bar */}
+                        <div className="h-2 rounded-full bg-slate-100 overflow-hidden mb-4">
+                          <div
+                            className={`h-full rounded-full transition-all ${coveragePct >= 60 ? "bg-emerald-400" : coveragePct >= 40 ? "bg-amber-400" : "bg-rose-400"}`}
+                            style={{ width: `${coveragePct}%` }}
+                          />
+                        </div>
+
+                        {/* High-priority gaps */}
+                        {highMissing.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">
+                              🔴 High-priority gaps — competitors are publishing here now:
+                            </p>
+                            <div className="space-y-2 mb-4">
+                              {highMissing.map((g) => (
+                                <div key={g.cluster} className="rounded-xl border border-rose-100 overflow-hidden">
+                                  <div className="flex items-center justify-between px-3.5 py-2 bg-rose-50">
+                                    <p className="text-[9.5px] font-bold text-rose-800">{g.cluster}</p>
+                                    <div className="flex gap-1 shrink-0 ml-2">
+                                      {g.bestFormats.map((f) => (
+                                        <span key={f} className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[f]}`}>{FORMAT_LABEL[f]}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                    <div className="flex items-start gap-1.5">
+                                      <span className="text-[8px] font-bold text-slate-400 shrink-0 w-20">Competitor play:</span>
+                                      <p className="text-[8px] text-slate-500 leading-snug">{g.competitorPlay}</p>
+                                    </div>
+                                    <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-violet-50 border border-violet-100">
+                                      <span className="text-[9px] shrink-0">💡</span>
+                                      <p className="text-[8.5px] text-violet-800 leading-snug font-medium">{g.gapAngle}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Medium-priority gaps */}
+                        {medMissing.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">
+                              🟡 Medium-priority gaps — emerging opportunities:
+                            </p>
+                            <div className="space-y-1.5 mb-4">
+                              {medMissing.map((g) => (
+                                <div key={g.cluster} className="rounded-xl border border-amber-100 overflow-hidden">
+                                  <div className="flex items-center justify-between px-3.5 py-2 bg-amber-50">
+                                    <p className="text-[9.5px] font-bold text-amber-800">{g.cluster}</p>
+                                    <div className="flex gap-1 shrink-0 ml-2">
+                                      {g.bestFormats.map((f) => (
+                                        <span key={f} className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[f]}`}>{FORMAT_LABEL[f]}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="px-3.5 py-2 bg-white">
+                                    <p className="text-[8px] text-violet-700 font-medium leading-snug">💡 {g.gapAngle}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Covered clusters */}
+                        {covered.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">
+                              ✅ Clusters already covered in your calendar:
+                            </p>
+                            <div className="flex flex-wrap gap-1.5 mb-4">
+                              {covered.map((g) => (
+                                <span key={g.cluster} className="text-[8px] font-semibold px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700">
+                                  {g.cluster}
+                                </span>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Format gaps */}
+                        {missingFormats.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Format coverage gaps:</p>
+                            <div className="space-y-1.5">
+                              {missingFormats.map(({ format, label, note }) => (
+                                <div key={format} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
+                                  <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 mt-0.5 ${TYPE_COLOR[format]}`}>{label}</span>
+                                  <p className="text-[8px] text-slate-600 leading-snug">{note}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {missing.length === 0 && (
+                          <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-sm">🏆</span>
+                            <p className="text-[10px] font-semibold text-emerald-700">
+                              Exceptional coverage — your calendar touches all 20 high-value fintech content clusters.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Freshness Decay Model ────────────────────────── */}
                 {calendar.length > 0 && (() => {
