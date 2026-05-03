@@ -3381,8 +3381,6 @@ function clusterCohesion(entries: Array<{ type: ContentType; angle: string }>): 
 // ─── Search Intent Alignment Scorer ──────────────────────────────────────────
 // Classifies each entry by Google search intent and scores organic-demand alignment
 
-type SearchIntent = "informational" | "commercial" | "transactional" | "navigational";
-
 const INTENT_SIGNALS: Record<SearchIntent, string[]> = {
   informational: [
     "what is ","how does","why is ","explained","overview of","introduction to",
@@ -4969,7 +4967,6 @@ function scoreLinkMagnetism(type: ContentType, topic: string, angle: string): Li
 }
 
 // ─── Search Intent Alignment Score ───────────────────────────────────────────
-type SearchIntent = "informational" | "commercial" | "transactional" | "navigational";
 interface IntentDef {
   id:          SearchIntent;
   label:       string;
