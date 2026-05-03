@@ -1696,6 +1696,67 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Persona Targeting Depth Analyser ────────────────────────────────────────
+// Maps each entry to one or more fintech buyer personas and measures funnel
+// depth per persona — flags over-indexed and underserved audiences
+
+type PersonaKey = "cto" | "cfo" | "cco" | "cpo" | "cmo";
+
+interface PersonaResult {
+  primaryPersona: PersonaKey | "general";
+  allPersonas:    PersonaKey[];
+  scores:         Record<PersonaKey, number>;
+}
+
+const PERSONA_SIGNALS: Record<PersonaKey, string[]> = {
+  cto: [
+    "api","integration","infrastructure","architect","developer","technical","engineering",
+    "implementation","sdk","microservice","latency","scalab","cloud","devops","tech stack",
+    "payment gateway","webhook","orchestrat","real-time","data pipeline","open source",
+  ],
+  cfo: [
+    "cost ","roi","budget","revenue","profit","cashflow","treasury","financial risk",
+    "investment","capex","opex","pricing","margin","cost reduction","working capital",
+    "balance sheet","financial performance","return on","interchange","fx ","yield",
+  ],
+  cco: [
+    "regulat","complian","risk ","audit","governance","gdpr","psd2","aml","kyc",
+    "dora","mica","fca","sanction","reporting requirement","breach","penalty",
+    "prudential","conduct","supervisory","obligation","enforcement","due diligence",
+  ],
+  cpo: [
+    "product","roadmap","user experience","ux ","feature","customer journey",
+    "onboarding","friction","conversion","checkout","payment flow","embedded finance",
+    "open banking","bnpl","wallet","monetis","revenue model","product-market","discovery",
+  ],
+  cmo: [
+    "growth","acquisition","brand","marketing","awareness","content strateg",
+    "thought leadership","positioning","competitive","differentiat","retention",
+    "churn","net promoter","partnership","go-to-market","gtm","demand gen","pipeline",
+  ],
+};
+
+const PERSONA_CFG: Record<PersonaKey, { label: string; role: string; icon: string; color: string; bg: string; border: string; pill: string; bar: string }> = {
+  cto: { label: "CTO",  role: "Head of Engineering", icon: "⚙️",  color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100",   pill: "bg-blue-100 text-blue-700 border-blue-200",     bar: "bg-blue-400"   },
+  cfo: { label: "CFO",  role: "Finance Lead",         icon: "💰",  color: "text-green-700",  bg: "bg-green-50",  border: "border-green-100",  pill: "bg-green-100 text-green-700 border-green-200",  bar: "bg-green-400"  },
+  cco: { label: "CCO",  role: "Chief Compliance",     icon: "⚖️",  color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-100", pill: "bg-violet-100 text-violet-700 border-violet-200",bar: "bg-violet-400" },
+  cpo: { label: "CPO",  role: "Chief Product",        icon: "🗺️", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-100", pill: "bg-orange-100 text-orange-700 border-orange-200",bar: "bg-orange-400" },
+  cmo: { label: "CMO",  role: "Growth Lead",          icon: "📣",  color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100",   pill: "bg-rose-100 text-rose-700 border-rose-200",     bar: "bg-rose-400"   },
+};
+
+function detectPersona(topic: string, angle: string): PersonaResult {
+  const hay = `${topic} ${angle}`.toLowerCase();
+  const scores = (Object.keys(PERSONA_SIGNALS) as PersonaKey[]).reduce<Record<PersonaKey, number>>(
+    (acc, k) => ({ ...acc, [k]: PERSONA_SIGNALS[k].filter((s) => hay.includes(s)).length }),
+    {} as Record<PersonaKey, number>,
+  );
+  const allPersonas  = (Object.keys(scores) as PersonaKey[]).filter((k) => scores[k] > 0);
+  const primaryPersona: PersonaKey | "general" = allPersonas.length > 0
+    ? allPersonas.reduce((a, b) => scores[a] >= scores[b] ? a : b)
+    : "general";
+  return { primaryPersona, allPersonas, scores };
+}
+
 // ─── Content Debt Tracker ────────────────────────────────────────────────────
 // Identifies past-due entries, content decay risk, sequencing inversions,
 // and clusters missing a foundational piece
@@ -8266,6 +8327,338 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Persona Targeting Depth Analyser ─────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const PERSONA_KEYS: PersonaKey[] = ["cto","cfo","cco","cpo","cmo"];
+
+                  // Score every entry
+                  const tagged = calendar.map((e) => ({
+                    entry: e,
+                    persona: detectPersona(e.topic, e.angle),
+                    stage: detectArcStage(e.angle),
+                  }));
+
+                  const n           = tagged.length;
+                  const generalEntries = tagged.filter((t) => t.persona.primaryPersona === "general");
+
+                  // Per-persona entry sets (primary assignment)
+                  const personaEntries: Record<PersonaKey, typeof tagged> = {
+                    cto: tagged.filter((t) => t.persona.primaryPersona === "cto"),
+                    cfo: tagged.filter((t) => t.persona.primaryPersona === "cfo"),
+                    cco: tagged.filter((t) => t.persona.primaryPersona === "cco"),
+                    cpo: tagged.filter((t) => t.persona.primaryPersona === "cpo"),
+                    cmo: tagged.filter((t) => t.persona.primaryPersona === "cmo"),
+                  };
+
+                  // Funnel stage mapping
+                  const toFu = (stage: ArcStage) => stage === "awareness" || stage === "education";
+                  const moFu = (stage: ArcStage) => stage === "consideration";
+                  const boFu = (stage: ArcStage) => stage === "implementation" || stage === "advanced";
+
+                  // Per-persona funnel coverage (how many of ToFu/MoFu/BoFu each persona has)
+                  const funnelCoverage = (k: PersonaKey) => {
+                    const es = personaEntries[k];
+                    return {
+                      tofu: es.filter((e) => toFu(e.stage)).length,
+                      mofu: es.filter((e) => moFu(e.stage)).length,
+                      bofu: es.filter((e) => boFu(e.stage)).length,
+                    };
+                  };
+
+                  // Portfolio Persona Targeting Score (0-100)
+                  const activePersonas     = PERSONA_KEYS.filter((k) => personaEntries[k].length > 0);
+                  const breadthScore       = Math.round((activePersonas.length / 5) * 40);
+
+                  const funnelDepthAvg     = activePersonas.length > 0
+                    ? activePersonas.reduce((sum, k) => {
+                        const fc = funnelCoverage(k);
+                        return sum + (fc.tofu > 0 ? 1 : 0) + (fc.mofu > 0 ? 1 : 0) + (fc.bofu > 0 ? 1 : 0);
+                      }, 0) / (activePersonas.length * 3)
+                    : 1;
+                  const funnelScore        = Math.round(funnelDepthAvg * 30);
+
+                  const nonGeneral         = n - generalEntries.length;
+                  const maxPersonaCount    = Math.max(...PERSONA_KEYS.map((k) => personaEntries[k].length), 0);
+                  const dominanceRate      = nonGeneral > 0 ? maxPersonaCount / nonGeneral : 0;
+                  const dominanceScore     = Math.round(Math.max(0, 1 - Math.max(0, dominanceRate - 0.40) / 0.40) * 20);
+
+                  const generalScore       = n > 0 ? Math.round(((n - generalEntries.length) / n) * 10) : 10;
+
+                  const personaScore       = breadthScore + funnelScore + dominanceScore + generalScore;
+
+                  const pCfg =
+                    personaScore >= 80 ? { label: "Deep persona coverage — all key buyers are addressed across the funnel",    color: "text-fuchsia-700", bg: "bg-fuchsia-50", border: "border-fuchsia-100" } :
+                    personaScore >= 55 ? { label: "Partial coverage — some personas or funnel stages are underserved",         color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    personaScore >= 30 ? { label: "Thin coverage — calendar is significantly skewed toward one persona",       color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                          { label: "Poor coverage — most content has no clear persona or only one persona served", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  // Dominant persona warning threshold
+                  const dominantPersona = PERSONA_KEYS.find((k) => nonGeneral > 0 && personaEntries[k].length / nonGeneral > 0.50);
+                  const underservedPersonas = PERSONA_KEYS.filter((k) => personaEntries[k].length < 2);
+
+                  return (
+                    <Card className="border border-fuchsia-100 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">👤</span>
+                            <p className="text-xs font-semibold text-slate-700">Persona Targeting Depth Analyser</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${pCfg.color} ${pCfg.bg} ${pCfg.border}`}>
+                            {personaScore}/100 · {pCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Maps each entry to one or more of five fintech buyer persona archetypes — CTO/Head of Engineering (technical/integration signals), CFO/Finance Lead (cost/ROI/treasury signals), CCO/Chief Compliance (regulatory/risk signals), CPO/Chief Product (product/UX/embedded finance signals), CMO/Growth Lead (acquisition/brand/GTM signals) — and measures whether the calendar builds sufficient depth with each persona at each funnel stage (Top-of-Funnel awareness and education, Mid-Funnel consideration, Bottom-of-Funnel implementation and advanced decision content). A well-structured fintech content calendar should give every buyer persona a complete content journey, not just the persona the agency finds easiest to write for.
+                        </p>
+
+                        {/* Portfolio score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${pCfg.bg} ${pCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${pCfg.color}`}>{personaScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Persona breadth",    val: breadthScore,   max: 40, desc: `${activePersonas.length}/5 personas have ≥1 entry — target: all 5 personas covered` },
+                              { label: "Funnel depth",       val: funnelScore,    max: 30, desc: `avg ${(funnelDepthAvg * 3).toFixed(1)}/3 funnel stages covered per persona — target: ToFu+MoFu+BoFu for every persona` },
+                              { label: "No dominant persona",val: dominanceScore, max: 20, desc: `top persona holds ${Math.round(dominanceRate*100)}% of non-general entries — target: no persona >40%` },
+                              { label: "Persona-targeted",   val: generalScore,   max: 10, desc: `${generalEntries.length}/${n} entries have no clear persona signal — every entry should speak to someone specific` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${pCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Stacked persona distribution bar */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-1.5">Persona distribution across calendar:</p>
+                        <div className="flex h-5 w-full rounded-lg overflow-hidden mb-1.5">
+                          {[...PERSONA_KEYS, "general" as const].map((k) => {
+                            const count = k === "general" ? generalEntries.length : personaEntries[k].length;
+                            const pct   = n > 0 ? Math.round((count / n) * 100) : 0;
+                            const cfg   = k === "general" ? null : PERSONA_CFG[k];
+                            return pct > 0 ? (
+                              <div
+                                key={k}
+                                className={`flex items-center justify-center text-[6.5px] font-bold text-white ${cfg ? cfg.bar : "bg-slate-300"}`}
+                                style={{ width: `${pct}%` }}
+                                title={`${k.toUpperCase()}: ${count} entries (${pct}%)`}
+                              >
+                                {pct >= 10 ? `${k.toUpperCase()} ${pct}%` : pct >= 6 ? `${pct}%` : ""}
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          {PERSONA_KEYS.map((k) => {
+                            const cfg   = PERSONA_CFG[k];
+                            const count = personaEntries[k].length;
+                            const pct   = n > 0 ? Math.round((count / n) * 100) : 0;
+                            return (
+                              <span key={k} className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${cfg.pill}`}>
+                                {cfg.icon} {cfg.label} · {count} entries · {pct}%
+                              </span>
+                            );
+                          })}
+                          {generalEntries.length > 0 && (
+                            <span className="text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border bg-slate-100 text-slate-500 border-slate-200">
+                              🌐 General · {generalEntries.length} entries · {Math.round((generalEntries.length/n)*100)}%
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Per-persona detail grid */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Funnel depth per persona:</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                          {PERSONA_KEYS.map((k) => {
+                            const cfg  = PERSONA_CFG[k];
+                            const es   = personaEntries[k];
+                            const fc   = funnelCoverage(k);
+                            const fmts = es.reduce<Partial<Record<ContentType, number>>>((acc, e) => ({ ...acc, [e.entry.type]: (acc[e.entry.type] ?? 0) + 1 }), {});
+                            const stagesHit = (fc.tofu > 0 ? 1 : 0) + (fc.mofu > 0 ? 1 : 0) + (fc.bofu > 0 ? 1 : 0);
+                            return (
+                              <div key={k} className={`rounded-xl border px-3 py-2.5 ${cfg.bg} ${cfg.border}`}>
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px]">{cfg.icon}</span>
+                                    <div>
+                                      <p className={`text-[8px] font-black leading-none ${cfg.color}`}>{cfg.label}</p>
+                                      <p className="text-[6.5px] text-slate-400">{cfg.role}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className={`text-[13px] font-black leading-none tabular-nums ${es.length === 0 ? "text-rose-400" : cfg.color}`}>{es.length}</p>
+                                    <p className="text-[6px] text-slate-400">entries</p>
+                                  </div>
+                                </div>
+
+                                {/* Funnel stage bars */}
+                                <div className="space-y-0.5 mb-1.5">
+                                  {[
+                                    { label: "ToFu", count: fc.tofu, total: es.length, tip: "Awareness + Education" },
+                                    { label: "MoFu", count: fc.mofu, total: es.length, tip: "Consideration"         },
+                                    { label: "BoFu", count: fc.bofu, total: es.length, tip: "Implementation + Advanced" },
+                                  ].map(({ label, count, total, tip }) => (
+                                    <div key={label} className="flex items-center gap-1" title={tip}>
+                                      <span className="text-[6px] text-slate-500 w-7 shrink-0">{label}</span>
+                                      <div className="flex-1 h-1 rounded-full bg-white/50 overflow-hidden">
+                                        <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: total > 0 ? `${Math.round((count/total)*100)}%` : "0%" }} />
+                                      </div>
+                                      <span className={`text-[6px] tabular-nums shrink-0 w-4 text-right ${count === 0 ? "text-rose-400 font-bold" : "text-slate-500"}`}>{count}</span>
+                                      {count === 0 && <span className="text-[5.5px] text-rose-400">gap</span>}
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Funnel completeness indicator */}
+                                <div className="flex items-center gap-1 mb-1.5">
+                                  <span className="text-[6px] text-slate-500">Funnel completeness:</span>
+                                  <div className="flex gap-0.5">
+                                    {["ToFu","MoFu","BoFu"].map((stage, i) => {
+                                      const filled = i === 0 ? fc.tofu > 0 : i === 1 ? fc.mofu > 0 : fc.bofu > 0;
+                                      return <span key={stage} className={`text-[6px] px-0.5 rounded ${filled ? `${cfg.pill} font-bold` : "bg-rose-100 text-rose-400 border border-rose-200 font-bold"}`}>{stage}</span>;
+                                    })}
+                                  </div>
+                                  <span className={`text-[6px] font-bold ${stagesHit === 3 ? "text-emerald-600" : stagesHit === 2 ? "text-amber-600" : "text-rose-500"}`}>{stagesHit}/3 stages</span>
+                                </div>
+
+                                {/* Format breakdown */}
+                                {es.length > 0 && (
+                                  <div className="flex flex-wrap gap-0.5">
+                                    {(Object.entries(fmts) as [ContentType, number][]).map(([type, count]) => (
+                                      <span key={type} className={`text-[5.5px] font-bold px-1 py-0.5 rounded-full border ${TYPE_COLOR[type]}`}>{FORMAT_LABEL[type]} ×{count}</span>
+                                    ))}
+                                  </div>
+                                )}
+                                {es.length === 0 && (
+                                  <p className="text-[7px] text-rose-600 font-bold">⚠ No content targeting this persona — this buyer is invisible in the calendar</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Dominant persona warning */}
+                        {dominantPersona && (
+                          <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border mb-3 ${PERSONA_CFG[dominantPersona].bg} ${PERSONA_CFG[dominantPersona].border}`}>
+                            <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+                            <p className="text-[7.5px] leading-snug">
+                              <span className={`font-bold ${PERSONA_CFG[dominantPersona].color}`}>{PERSONA_CFG[dominantPersona].icon} {PERSONA_CFG[dominantPersona].label} ({PERSONA_CFG[dominantPersona].role})</span>
+                              <span className="text-slate-600"> accounts for {Math.round((personaEntries[dominantPersona].length/nonGeneral)*100)}% of all persona-targeted entries. This level of concentration risks building authority with one buyer while neglecting the other stakeholders who often have equal or greater influence on fintech buying decisions — particularly enterprise purchases which typically require sign-off from CTO, CFO, and CCO simultaneously. Rebalance by adding 2-3 entries for each underserved persona before the next publishing window.</span>
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Underserved personas */}
+                        {underservedPersonas.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-100 mb-3">
+                            <span className="text-[10px] shrink-0 mt-0.5">🔴</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-1">{underservedPersonas.length} persona{underservedPersonas.length !== 1 ? "s" : ""} with fewer than 2 entries — no content journey exists for these buyers:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {underservedPersonas.map((k) => {
+                                  const cfg = PERSONA_CFG[k];
+                                  return (
+                                    <span key={k} className={`text-[7px] font-bold px-2 py-0.5 rounded-full border ${cfg.pill}`}>
+                                      {cfg.icon} {cfg.label} / {cfg.role} — {personaEntries[k].length} {personaEntries[k].length === 1 ? "entry" : "entries"}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* General entries */}
+                        {generalEntries.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🌐</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-slate-700 mb-1">{generalEntries.length} entr{generalEntries.length !== 1 ? "ies" : "y"} with no detectable persona signal — these speak to everyone and therefore no one:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {generalEntries.map(({ entry: e }) => (
+                                  <span key={entryKey(e)} className={`text-[6.5px] font-semibold px-1.5 py-0.5 rounded-full border ${TYPE_COLOR[e.type]}`}>
+                                    {e.angle.slice(0,24)}{e.angle.length > 24 ? "…" : ""}
+                                  </span>
+                                ))}
+                              </div>
+                              <p className="text-[7px] text-slate-500 mt-1.5 leading-snug">Add a persona-specific angle modifier — e.g. "for compliance teams", "for product leaders in challenger banks", "for CFOs evaluating treasury platforms" — to transform a generic topic into a targeted piece that a specific buyer will self-select into and share within their professional network.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Per-entry persona table */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">All entries — persona assignment:</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[6.5px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-100">
+                                <th className="text-left text-slate-400 font-normal pb-1 pr-2">Entry</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-20">Primary persona</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-12">Funnel stage</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-5" title="CTO">⚙️</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-5" title="CFO">💰</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-5" title="CCO">⚖️</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-5" title="CPO">🗺️</th>
+                                <th className="text-center text-slate-400 font-normal pb-1 px-1 w-5" title="CMO">📣</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {tagged.map(({ entry: e, persona: p, stage }) => {
+                                const isCross = p.allPersonas.length > 1;
+                                const primCfg = p.primaryPersona !== "general" ? PERSONA_CFG[p.primaryPersona] : null;
+                                const hit = (k: PersonaKey) => p.scores[k] === 0
+                                  ? <span className="text-slate-300">·</span>
+                                  : <span className="font-black" style={{ color: PERSONA_CFG[k].bar.replace("bg-","") }}>{p.scores[k]}</span>;
+                                const STAGE_PILL: Record<ArcStage, string> = {
+                                  awareness:      "bg-blue-100 text-blue-700 border-blue-200",
+                                  education:      "bg-sky-100 text-sky-700 border-sky-200",
+                                  consideration:  "bg-violet-100 text-violet-700 border-violet-200",
+                                  implementation: "bg-orange-100 text-orange-700 border-orange-200",
+                                  advanced:       "bg-rose-100 text-rose-700 border-rose-200",
+                                };
+                                return (
+                                  <tr key={entryKey(e)} className="border-t border-slate-50">
+                                    <td className="py-0.5 pr-2">
+                                      <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border mr-1 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                      <span className="text-slate-600">{e.angle.slice(0,22)}{e.angle.length > 22 ? "…" : ""}</span>
+                                      {isCross && <span className="ml-1 text-[5.5px] text-slate-400 italic">cross-persona</span>}
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      {primCfg
+                                        ? <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${primCfg.pill}`}>{primCfg.icon} {primCfg.label}</span>
+                                        : <span className="text-[6px] text-slate-400 italic">general</span>}
+                                    </td>
+                                    <td className="text-center py-0.5 px-1">
+                                      <span className={`text-[5.5px] font-bold px-1 py-0.5 rounded-full border ${STAGE_PILL[stage]}`}>
+                                        {toFu(stage) ? "ToFu" : moFu(stage) ? "MoFu" : "BoFu"}
+                                      </span>
+                                    </td>
+                                    <td className="text-center py-0.5 px-0.5 text-[6.5px]">{hit("cto")}</td>
+                                    <td className="text-center py-0.5 px-0.5 text-[6.5px]">{hit("cfo")}</td>
+                                    <td className="text-center py-0.5 px-0.5 text-[6.5px]">{hit("cco")}</td>
+                                    <td className="text-center py-0.5 px-0.5 text-[6.5px]">{hit("cpo")}</td>
+                                    <td className="text-center py-0.5 px-0.5 text-[6.5px]">{hit("cmo")}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="text-[7px] text-slate-400 mt-2">⚙️ CTO · 💰 CFO · ⚖️ CCO · 🗺️ CPO · 📣 CMO · Numbers = signal hit count · · = no signal detected · Cross-persona = entry detected signals for 2+ personas · ToFu = Awareness/Education · MoFu = Consideration · BoFu = Implementation/Advanced</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Content Debt Tracker ─────────────────────────────────── */}
                 {calendar.length > 0 && (() => {
