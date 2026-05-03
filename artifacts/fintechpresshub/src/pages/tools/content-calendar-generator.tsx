@@ -1696,6 +1696,100 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Keyword Cannibalisation Detector ────────────────────────────────────────
+// Detects angle token overlap within topic clusters that would split search traffic
+
+const CANNIB_STOP_WORDS = new Set([
+  "a","an","the","and","or","but","in","on","at","to","for","of","with","by",
+  "from","as","into","through","during","before","after","above","below",
+  "between","each","every","all","both","few","more","most","other","some",
+  "such","no","nor","not","only","own","same","so","than","too","very","can",
+  "will","just","should","now","how","why","what","when","where","is","are",
+  "was","were","be","been","being","have","has","had","do","does","did","get",
+  "got","make","your","our","their","its","this","that","these","those","you",
+  "we","it","he","she","they","his","her","any","if","use","used","using",
+  "need","needs","which","who","vs","via","per","out","new","key","top","best",
+]);
+
+type CannibRisk = "high" | "moderate" | "low";
+
+interface CannibPair {
+  angleA:  string;  typeA:  ContentType;  dateA:  string;
+  angleB:  string;  typeB:  ContentType;  dateB:  string;
+  shared:  string[];
+  jaccard: number;
+  risk:    CannibRisk;
+}
+
+interface CannibClusterResult {
+  topic:      string;
+  pairs:      CannibPair[];
+  maxRisk:    CannibRisk | null;
+  maxJaccard: number;
+}
+
+function cannibTokenise(angle: string): Set<string> {
+  return new Set(
+    angle.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 2 && !CANNIB_STOP_WORDS.has(w))
+  );
+}
+
+function cannibJaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 0;
+  const inter = [...a].filter((t) => b.has(t)).length;
+  const union = new Set([...a, ...b]).size;
+  return union === 0 ? 0 : inter / union;
+}
+
+function cannibRisk(j: number): CannibRisk | null {
+  return j >= 0.50 ? "high" : j >= 0.35 ? "moderate" : j >= 0.20 ? "low" : null;
+}
+
+const CANNIB_RISK_ORDER: Record<CannibRisk, number> = { high: 3, moderate: 2, low: 1 };
+
+const CANNIB_RISK_CFG: Record<CannibRisk, { label: string; icon: string; color: string; bg: string; border: string; pill: string; rec: string }> = {
+  high:     { label: "High risk",     icon: "⚔️",  color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100",   pill: "bg-rose-100 text-rose-700 border-rose-200",     rec: "Consolidate: merge into one definitive piece. Keep the more comprehensive angle as the canonical URL; reframe the other as a supporting FAQ, sidebar, or internal section to avoid splitting organic ranking signals."    },
+  moderate: { label: "Moderate risk", icon: "🟠",  color: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-100",  pill: "bg-amber-100 text-amber-700 border-amber-200",  rec: "Differentiate: add an audience modifier ('for neobanks' vs 'for incumbents'), a depth modifier ('introduction to' vs 'advanced'), or a format modifier (guide vs case study) so each piece targets a distinct keyword intent."  },
+  low:      { label: "Low risk",      icon: "🟡",  color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100",   pill: "bg-blue-100 text-blue-700 border-blue-200",     rec: "Monitor: these pieces can coexist if published in different formats or with clear internal linking that signals topic hierarchy. Consider making one the canonical pillar and the other a supporting spoke with an explicit link back."   },
+};
+
+function detectCannibPairs(
+  entries: Array<{ date: string; angle: string; type: ContentType }>,
+): CannibPair[] {
+  const pairs: CannibPair[] = [];
+  for (let i = 0; i < entries.length - 1; i++) {
+    for (let j = i + 1; j < entries.length; j++) {
+      const a = entries[i]; const b = entries[j];
+      const tokA = cannibTokenise(a.angle);
+      const tokB = cannibTokenise(b.angle);
+      const sim  = cannibJaccard(tokA, tokB);
+      const risk = cannibRisk(sim);
+      if (risk !== null) {
+        pairs.push({
+          angleA: a.angle, typeA: a.type, dateA: a.date,
+          angleB: b.angle, typeB: b.type, dateB: b.date,
+          shared: [...tokA].filter((t) => tokB.has(t)).sort(),
+          jaccard: sim, risk,
+        });
+      }
+    }
+  }
+  return pairs.sort((a, b) => b.jaccard - a.jaccard);
+}
+
+function detectCannibCluster(
+  topic: string,
+  entries: Array<{ date: string; angle: string; type: ContentType }>,
+): CannibClusterResult {
+  const pairs = detectCannibPairs(entries);
+  const maxRisk    = pairs.reduce<CannibRisk | null>((mx, p) => !mx || CANNIB_RISK_ORDER[p.risk] > CANNIB_RISK_ORDER[mx] ? p.risk : mx, null);
+  const maxJaccard = pairs.reduce((mx, p) => Math.max(mx, p.jaccard), 0);
+  return { topic, pairs, maxRisk, maxJaccard };
+}
+
 // ─── Narrative Arc Sequencer ─────────────────────────────────────────────────
 // Detects the editorial stage of each entry and flags sequencing inversions
 // within topic clusters — ensures awareness content precedes advanced content
@@ -7834,6 +7928,242 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Keyword Cannibalisation Detector ─────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  // Group by topic
+                  const topicMap = new Map<string, Array<{ date: string; angle: string; type: ContentType }>>();
+                  calendar.forEach((e) => {
+                    const key = e.topic.toLowerCase().trim();
+                    if (!topicMap.has(key)) topicMap.set(key, []);
+                    topicMap.get(key)!.push({ date: e.date, angle: e.angle, type: e.type });
+                  });
+
+                  // Only clusters with ≥2 entries can cannibalise each other
+                  const clusters: CannibClusterResult[] = [];
+                  topicMap.forEach((entries, key) => {
+                    if (entries.length >= 2) {
+                      const displayTopic = calendar.find((e) => e.topic.toLowerCase().trim() === key)?.topic ?? key;
+                      clusters.push(detectCannibCluster(displayTopic, entries));
+                    }
+                  });
+
+                  const soloCount  = [...topicMap.values()].filter((v) => v.length === 1).length;
+                  const totalPairs = clusters.reduce((s, c) => s + c.pairs.length, 0);
+
+                  const highPairs  = clusters.flatMap((c) => c.pairs.filter((p) => p.risk === "high"));
+                  const modPairs   = clusters.flatMap((c) => c.pairs.filter((p) => p.risk === "moderate"));
+                  const lowPairs   = clusters.flatMap((c) => c.pairs.filter((p) => p.risk === "low"));
+
+                  const highClusters = clusters.filter((c) => c.maxRisk === "high");
+                  const cleanClusters = clusters.filter((c) => c.pairs.length === 0);
+
+                  // Portfolio Cannibalisation Score (0-100) — higher = safer
+                  const highFreeRate = clusters.length > 0 ? (clusters.length - highClusters.length) / clusters.length : 1;
+                  const modFreeRate  = totalPairs > 0 ? 1 - (modPairs.length / Math.max(totalPairs, 1)) : 1;
+                  const lowFreeRate  = totalPairs > 0 ? 1 - Math.min(1, lowPairs.length / Math.max(totalPairs * 0.3, 1)) : 1;
+                  const cleanRate    = clusters.length > 0 ? cleanClusters.length / clusters.length : 1;
+
+                  const highScore  = Math.round(highFreeRate  * 40);
+                  const modScore   = Math.round(modFreeRate   * 30);
+                  const lowScore   = Math.round(lowFreeRate   * 20);
+                  const cleanScore = Math.round(cleanRate      * 10);
+                  const cannibScore = highScore + modScore + lowScore + cleanScore;
+
+                  const cCfg =
+                    cannibScore >= 80 ? { label: "Low cannibalisation risk — angles are well-differentiated",    color: "text-emerald-700", bg: "bg-emerald-50",  border: "border-emerald-100" } :
+                    cannibScore >= 55 ? { label: "Moderate risk — some angle overlap, monitor carefully",        color: "text-blue-700",    bg: "bg-blue-50",     border: "border-blue-100"    } :
+                    cannibScore >= 30 ? { label: "Significant risk — multiple overlapping angles within topics", color: "text-amber-700",   bg: "bg-amber-50",    border: "border-amber-100"   } :
+                                        { label: "High risk — several pieces will split ranking signals",        color: "text-rose-700",    bg: "bg-rose-50",     border: "border-rose-100"    };
+
+                  return (
+                    <Card className="border border-red-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">⚔️</span>
+                            <p className="text-xs font-semibold text-slate-700">Keyword Cannibalisation Detector</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${cCfg.color} ${cCfg.bg} ${cCfg.border}`}>
+                            {cannibScore}/100 · {cCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Tokenises each entry's angle (meaningful words only, stop words removed) and computes pairwise Jaccard similarity between entries that share a topic. Pairs with ≥50% token overlap are flagged as high-risk cannibalisation — publishing both would likely split organic ranking signals between them rather than compound authority. Moderate risk (35–49%) indicates significant overlap requiring angle differentiation. Low risk (20–34%) can coexist with clear internal hierarchy signalling. Generates specific consolidation or differentiation recommendations for every at-risk pair.
+                        </p>
+
+                        {/* Portfolio score breakdown */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${cCfg.bg} ${cCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${cCfg.color}`}>{cannibScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "No high-risk pairs",   val: highScore,  max: 40, desc: `${clusters.length - highClusters.length}/${clusters.length} clusters with zero ≥50% angle overlap pairs` },
+                              { label: "No moderate pairs",    val: modScore,   max: 30, desc: `${totalPairs - modPairs.length}/${totalPairs} total pairs below 35% token similarity` },
+                              { label: "Low-risk rate",        val: lowScore,   max: 20, desc: `${lowPairs.length} pair${lowPairs.length !== 1 ? "s" : ""} at 20-34% overlap — can coexist with internal hierarchy signals` },
+                              { label: "Clean clusters",       val: cleanScore, max: 10, desc: `${cleanClusters.length}/${clusters.length} multi-entry clusters with no overlap above threshold` },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${cCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 hidden sm:inline shrink-0">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Why it matters */}
+                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100 mb-4">
+                          <span className="text-[10px] shrink-0 mt-0.5">🎯</span>
+                          <p className="text-[7.5px] text-slate-700 leading-snug">
+                            <span className="font-bold">Why keyword cannibalisation is a critical fintech SEO failure mode:</span> When two pieces in the same domain target nearly identical angle vocabulary, search engines must choose one to rank — and typically rank neither well, splitting the link equity and engagement signals that would have propelled a single definitive piece to page 1. In competitive fintech keyword sets, where a single well-optimised pillar piece can generate hundreds of thousands of pounds in pipeline annually, <span className="font-bold">publishing two 60%-overlapping pieces on "open banking compliance" is not twice the value — it is often less than half the value of one authoritative piece</span>, because the competition signal is diluted and the internal linking architecture sends ambiguous relevance signals to crawlers.
+                          </p>
+                        </div>
+
+                        {/* High-risk pairs — the most critical section */}
+                        {highPairs.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-rose-50 border border-rose-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">⚔️</span>
+                            <div className="w-full">
+                              <p className="text-[8.5px] font-bold text-rose-800 mb-2">{highPairs.length} high-risk cannibalisation pair{highPairs.length !== 1 ? "s" : ""} — ≥50% angle token overlap</p>
+                              <div className="space-y-2">
+                                {highPairs.slice(0, 6).map((p, i) => (
+                                  <div key={i} className="rounded-lg border border-rose-200 bg-white px-2.5 py-2">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                      <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[p.typeA]}`}>{FORMAT_LABEL[p.typeA]}</span>
+                                      <span className="text-[7.5px] font-semibold text-slate-700 truncate flex-1">"{p.angleA.slice(0,30)}{p.angleA.length > 30 ? "…" : ""}"</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <span className="text-[7px] text-rose-500 font-bold shrink-0">vs</span>
+                                      <span className={`text-[6.5px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[p.typeB]}`}>{FORMAT_LABEL[p.typeB]}</span>
+                                      <span className="text-[7.5px] font-semibold text-slate-700 truncate flex-1">"{p.angleB.slice(0,30)}{p.angleB.length > 30 ? "…" : ""}"</span>
+                                      <span className="text-[7px] font-black text-rose-700 shrink-0 tabular-nums">{Math.round(p.jaccard * 100)}%</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-0.5 mb-1">
+                                      {p.shared.slice(0, 8).map((t) => (
+                                        <span key={t} className="text-[6px] font-bold px-1 py-0.5 rounded bg-rose-100 text-rose-600 border border-rose-200">{t}</span>
+                                      ))}
+                                      {p.shared.length > 8 && <span className="text-[6px] text-rose-400">+{p.shared.length - 8} more</span>}
+                                    </div>
+                                    <p className="text-[7px] text-rose-700 italic leading-snug">{CANNIB_RISK_CFG.high.rec}</p>
+                                  </div>
+                                ))}
+                                {highPairs.length > 6 && <p className="text-[7px] text-rose-400 text-center">+{highPairs.length - 6} more high-risk pairs in cluster cards below</p>}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Moderate-risk pairs */}
+                        {modPairs.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">🟠</span>
+                            <div className="w-full">
+                              <p className="text-[8.5px] font-bold text-amber-800 mb-1.5">{modPairs.length} moderate-risk pair{modPairs.length !== 1 ? "s" : ""} — 35–49% overlap, differentiation recommended</p>
+                              <div className="space-y-1.5">
+                                {modPairs.slice(0, 4).map((p, i) => (
+                                  <div key={i} className="rounded border border-amber-200 bg-white px-2.5 py-1.5">
+                                    <div className="flex items-start gap-1 mb-0.5">
+                                      <span className="text-[7px] text-amber-600 font-bold shrink-0 mt-0.5">A:</span>
+                                      <span className="text-[7px] text-slate-700 flex-1">"{p.angleA.slice(0,32)}{p.angleA.length > 32 ? "…" : ""}"</span>
+                                    </div>
+                                    <div className="flex items-start gap-1 mb-1">
+                                      <span className="text-[7px] text-amber-600 font-bold shrink-0 mt-0.5">B:</span>
+                                      <span className="text-[7px] text-slate-700 flex-1">"{p.angleB.slice(0,32)}{p.angleB.length > 32 ? "…" : ""}"</span>
+                                      <span className="text-[7px] font-black text-amber-700 shrink-0 tabular-nums ml-1">{Math.round(p.jaccard * 100)}%</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-0.5">
+                                      {p.shared.slice(0, 6).map((t) => <span key={t} className="text-[6px] font-bold px-1 py-0.5 rounded bg-amber-100 text-amber-600 border border-amber-200">{t}</span>)}
+                                    </div>
+                                  </div>
+                                ))}
+                                {modPairs.length > 4 && <p className="text-[7px] text-amber-500 text-center">+{modPairs.length - 4} more moderate pairs shown in cluster cards below</p>}
+                              </div>
+                              <p className="text-[7.5px] text-amber-700 italic mt-1.5 leading-snug">{CANNIB_RISK_CFG.moderate.rec}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Clean clusters callout */}
+                        {cleanClusters.length > 0 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">✅</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-emerald-800 mb-1">{cleanClusters.length} cluster{cleanClusters.length !== 1 ? "s" : ""} with well-differentiated angles — no overlap above threshold</p>
+                              <div className="flex flex-wrap gap-1">
+                                {cleanClusters.map((c) => (
+                                  <span key={c.topic} className="text-[7px] font-semibold px-1.5 py-0.5 rounded-full border bg-emerald-100 text-emerald-700 border-emerald-200">
+                                    {c.topic}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Per-cluster cannibalisation cards */}
+                        {clusters.filter((c) => c.pairs.length > 0).length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">At-risk topic clusters — all overlapping pairs:</p>
+                            <div className="space-y-2">
+                              {clusters.filter((c) => c.pairs.length > 0).sort((a, b) => b.maxJaccard - a.maxJaccard).map((c) => {
+                                const topRiskCfg = c.maxRisk ? CANNIB_RISK_CFG[c.maxRisk] : null;
+                                return (
+                                  <div key={c.topic} className={`rounded-lg border px-3 py-2 ${topRiskCfg ? topRiskCfg.bg + " " + topRiskCfg.border : "bg-slate-50 border-slate-100"}`}>
+                                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                                      <p className="text-[8px] font-bold text-slate-700 truncate">📌 {c.topic}</p>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {c.maxRisk && <span className={`text-[6.5px] font-bold px-1.5 py-0.5 rounded-full border ${topRiskCfg!.pill}`}>{topRiskCfg!.icon} {topRiskCfg!.label}</span>}
+                                        <span className="text-[6.5px] font-bold text-slate-500">{c.pairs.length} pair{c.pairs.length !== 1 ? "s" : ""}</span>
+                                        <span className="text-[6.5px] font-black text-rose-600 tabular-nums">max {Math.round(c.maxJaccard * 100)}%</span>
+                                      </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {c.pairs.map((p, i) => {
+                                        const rCfg = CANNIB_RISK_CFG[p.risk];
+                                        return (
+                                          <div key={i} className="rounded border border-white/60 bg-white/50 px-2 py-1">
+                                            <div className="flex items-center gap-1 mb-0.5">
+                                              <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border shrink-0 ${rCfg.pill}`}>{rCfg.icon} {Math.round(p.jaccard*100)}%</span>
+                                              <span className="text-[6.5px] text-slate-600 truncate">"{p.angleA.slice(0,22)}…" ↔ "{p.angleB.slice(0,22)}…"</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-0.5">
+                                              {p.shared.slice(0, 5).map((t) => <span key={t} className="text-[5.5px] font-bold px-1 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">{t}</span>)}
+                                              {p.shared.length > 5 && <span className="text-[5.5px] text-slate-400">+{p.shared.length - 5}</span>}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {clusters.length === 0 && (
+                          <p className="text-[8px] text-slate-400 italic text-center py-3">No multi-entry topic clusters — add entries sharing a topic key to enable cannibalisation analysis</p>
+                        )}
+
+                        {clusters.length > 0 && clusters.every((c) => c.pairs.length === 0) && (
+                          <div className="text-center py-3">
+                            <p className="text-[9px] font-bold text-emerald-700 mb-0.5">✅ No cannibalisation risk detected</p>
+                            <p className="text-[7.5px] text-slate-500">All entries within each topic cluster have sufficiently differentiated angles — no pair exceeds the 20% token overlap threshold.</p>
+                          </div>
+                        )}
+
+                        <p className="text-[7px] text-slate-400 mt-3">Jaccard similarity = shared meaningful tokens ÷ total unique meaningful tokens across both angles · ≥50% = consolidate · 35-49% = differentiate · 20-34% = monitor · Stop words, articles, and prepositions excluded from scoring</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Narrative Arc Sequencer ──────────────────────────────── */}
                 {calendar.length > 0 && (() => {
