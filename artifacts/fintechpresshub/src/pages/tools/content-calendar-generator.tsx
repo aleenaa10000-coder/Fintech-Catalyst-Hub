@@ -1696,6 +1696,71 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
   return { specificity, powerWords, keywordPlacement, formatFit, total, rewrite };
 }
 
+// ─── Source Credibility Mapper ───────────────────────────────────────────────
+// Signals that drive high evidence demand — the piece MUST cite authoritative sources
+const CRED_REGULATORY_SIGNALS  = ["psd2","gdpr","aml","kyc","mifid","dora","mica","basel","fca","cfpb","eba","dodd-frank","fatca","fintrac","regulation","compliance","directive","legislative","mandatory","obligat","legal requirement","enforcement","sanction","penalty"];
+const CRED_STAT_CLAIM_SIGNALS  = ["statistics show","data shows","research shows","study found","according to","survey found","report found","% of companies","% of banks","percent of","market size","adoption rate","growth rate","by 2025","by 2026","by 2027","by 2030","projected to","estimated at","valued at","cagr"];
+const CRED_MARKET_CLAIM_SIGNALS= ["valuation","series a","series b","series c","funding round","investment raised","market cap","deal flow","ipo","unicorn status","market share","revenue grew","profit margin","unit economics breakdown","cost per acquisition"];
+const CRED_EXPERT_SIGNALS      = ["should consider","experts argue","analysts predict","industry experts","practitioners warn","executives say","cto of","cfo of","ceo of","head of","vp of","according to analysts","research by","whitepaper","advisory board","peer reviewed"];
+// Signals that REDUCE evidence demand — piece can rely on author authority or established practice
+const CRED_LOWBAR_SIGNALS      = ["how to","step-by-step","best practices","checklist","template","what is","explained simply","beginner","introduction to","basics of","overview of","fundamentals of","quick guide","tips for"];
+const CRED_PERSPECTIVE_SIGNALS = ["opinion","my view","hot take","unpopular","commentary","our experience","what we learned","lessons from building","in my opinion","from the trenches","practitioner perspective","we believe","we think"];
+
+type SourceType = "regulatory" | "primary-data" | "expert-testimony" | "industry-report" | "author-perspective" | "mixed";
+
+interface CredibilityEntry {
+  evidenceDemand:   number;   // 0-100 — how rigorous does the sourcing need to be?
+  sourceType:       SourceType;
+  obtainDifficulty: "straightforward" | "moderate" | "demanding";
+  regScore:         number;
+  statScore:        number;
+  marketScore:      number;
+  expertScore:      number;
+  perspectiveBonus: number;   // negative contribution to demand
+}
+
+function scoreCredibility(e: { type: ContentType; topic: string; angle: string }): CredibilityEntry {
+  const hay = `${e.topic} ${e.angle}`.toLowerCase();
+
+  const regScore     = Math.min(40, CRED_REGULATORY_SIGNALS.filter((s) => hay.includes(s)).length * 10);
+  const statScore    = Math.min(30, CRED_STAT_CLAIM_SIGNALS.filter((s) => hay.includes(s)).length * 12);
+  const marketScore  = Math.min(25, CRED_MARKET_CLAIM_SIGNALS.filter((s) => hay.includes(s)).length * 10);
+  const expertScore  = Math.min(20, CRED_EXPERT_SIGNALS.filter((s) => hay.includes(s)).length * 8);
+  const lowbarHits   = CRED_LOWBAR_SIGNALS.filter((s) => hay.includes(s)).length;
+  const perspHits    = CRED_PERSPECTIVE_SIGNALS.filter((s) => hay.includes(s)).length;
+  const perspectiveBonus = Math.min(25, (lowbarHits * 6) + (perspHits * 9));
+
+  // Content-type base adjustment
+  const typeAdj =
+    e.type === "case-study" ? 10 :   // client data, verifiable outcomes
+    e.type === "linkedin"   ? -15 :  // personal voice acceptable
+    e.type === "roundup"    ? 5  :   // curation requires attributed sources
+    0;
+
+  const raw           = regScore + statScore + marketScore + expertScore - perspectiveBonus + typeAdj;
+  const evidenceDemand = Math.max(0, Math.min(100, raw));
+
+  // Dominant source type (highest score wins)
+  const scores: [SourceType, number][] = [
+    ["regulatory",        regScore],
+    ["primary-data",      statScore],
+    ["industry-report",   marketScore],
+    ["expert-testimony",  expertScore],
+    ["author-perspective",perspectiveBonus],
+  ];
+  const sorted = scores.sort(([, a], [, b]) => b - a);
+  const sourceType: SourceType =
+    sorted[0][1] === 0             ? "author-perspective" :
+    sorted[0][1] > 0 && sorted[1][1] > sorted[0][1] * 0.6 ? "mixed" :
+    sorted[0][0];
+
+  const obtainDifficulty: CredibilityEntry["obtainDifficulty"] =
+    evidenceDemand >= 55 ? "demanding" :
+    evidenceDemand >= 25 ? "moderate"  : "straightforward";
+
+  return { evidenceDemand, sourceType, obtainDifficulty, regScore, statScore, marketScore, expertScore, perspectiveBonus };
+}
+
 // ─── Editorial Momentum Tracker ──────────────────────────────────────────────
 // Production effort weight per content type (1 = lightest, 5 = heaviest)
 const PROD_COMPLEXITY: Record<ContentType, number> = {
@@ -6580,6 +6645,286 @@ export default function ContentCalendarGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Source Credibility Mapper ────────────────────────────── */}
+                {calendar.length > 0 && (() => {
+                  const scored = calendar.map((e) => ({ entry: e, cred: scoreCredibility(e) }));
+
+                  // Tier groups
+                  const demanding     = scored.filter((s) => s.cred.evidenceDemand >= 55);
+                  const moderate      = scored.filter((s) => s.cred.evidenceDemand >= 25 && s.cred.evidenceDemand < 55);
+                  const lowDemand     = scored.filter((s) => s.cred.evidenceDemand < 25);
+
+                  // Source type distribution
+                  const typeCount = (t: SourceType) => scored.filter((s) => s.cred.sourceType === t).length;
+                  const sourceTypes: SourceType[] = ["regulatory","primary-data","expert-testimony","industry-report","author-perspective","mixed"];
+                  const distinctTypes = sourceTypes.filter((t) => typeCount(t) > 0).length;
+
+                  // Risk clustering — weeks with 2+ demanding pieces
+                  const weekMap = new Map<number, typeof scored>();
+                  scored.forEach((s) => {
+                    if (!weekMap.has(s.entry.week)) weekMap.set(s.entry.week, []);
+                    weekMap.get(s.entry.week)!.push(s);
+                  });
+                  const clusterWeeks = [...weekMap.entries()]
+                    .filter(([, ws]) => ws.filter((s) => s.cred.obtainDifficulty === "demanding").length >= 2)
+                    .map(([wk]) => wk)
+                    .sort((a, b) => a - b);
+
+                  // ── Portfolio Credibility Score (0-100) ────────────────────
+                  // Evidence balance (0-40): ideal ~25-35% demanding, 35-50% moderate, 20-35% low
+                  const demandPct = scored.length > 0 ? demanding.length / scored.length : 0;
+                  const lowPct    = scored.length > 0 ? lowDemand.length  / scored.length : 0;
+                  const balanceDev = Math.abs(demandPct - 0.30) + Math.abs(lowPct - 0.27);
+                  const evidenceBalance = Math.round(Math.max(0, 40 * (1 - balanceDev * 1.5)));
+
+                  // Source diversity (0-30): more distinct source types = richer evidential portfolio
+                  const sourceDiversity = Math.round(Math.min(30, distinctTypes * 5));
+
+                  // Risk clustering (0-30): penalty for evidence-crunch weeks
+                  const riskClustering = Math.max(0, 30 - clusterWeeks.length * 10);
+
+                  const credScore = evidenceBalance + sourceDiversity + riskClustering;
+
+                  const credCfg =
+                    credScore >= 75 ? { label: "Well-evidenced portfolio", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" } :
+                    credScore >= 50 ? { label: "Solid evidence mix",       color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100"    } :
+                    credScore >= 30 ? { label: "Evidence risk present",    color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   } :
+                                      { label: "Sourcing bottleneck risk", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    };
+
+                  const diffCfg = {
+                    demanding:     { label: "Demanding",       badge: "bg-rose-100 text-rose-700 border-rose-200",         bar: "bg-rose-400",    icon: "🔬" },
+                    moderate:      { label: "Moderate",        badge: "bg-amber-100 text-amber-700 border-amber-200",       bar: "bg-amber-400",   icon: "📋" },
+                    straightforward:{ label: "Straightforward",badge: "bg-emerald-100 text-emerald-700 border-emerald-200", bar: "bg-emerald-400", icon: "✍️" },
+                  } as const;
+
+                  const sourceCfg: Record<SourceType, { label: string; icon: string; color: string; desc: string }> = {
+                    "regulatory":        { label: "Regulatory citation",  icon: "🏛️", color: "bg-purple-100 text-purple-700 border-purple-200", desc: "Must cite official legislative text, FCA/CFPB/EBA rulings or regulatory guidance documents"             },
+                    "primary-data":      { label: "Primary data",         icon: "📐", color: "bg-blue-100 text-blue-700 border-blue-200",        desc: "Requires original surveys, proprietary research, or first-party data — cannot rely on secondary sources" },
+                    "expert-testimony":  { label: "Expert testimony",     icon: "🎙️", color: "bg-violet-100 text-violet-700 border-violet-200",  desc: "Needs named executive quotes, analyst commentary, or verifiable industry body statements"               },
+                    "industry-report":   { label: "Industry report",      icon: "📊", color: "bg-cyan-100 text-cyan-700 border-cyan-200",         desc: "Can cite published analyst reports (CB Insights, Gartner, McKinsey) as the evidential backbone"          },
+                    "author-perspective":{ label: "Author perspective",   icon: "✍️", color: "bg-emerald-100 text-emerald-700 border-emerald-200",desc: "Can draw on practitioner experience and established best practices — lower external sourcing burden"     },
+                    "mixed":             { label: "Mixed evidence",       icon: "🔀", color: "bg-slate-100 text-slate-700 border-slate-200",      desc: "Requires multiple evidence types — plan sourcing across regulatory, data, and expert channels"           },
+                  };
+
+                  const dimCfg = [
+                    { key: "regScore"    as const, label: "Regulatory",  max: 40, color: "bg-purple-400", icon: "🏛️" },
+                    { key: "statScore"   as const, label: "Statistical",  max: 30, color: "bg-blue-400",   icon: "📐" },
+                    { key: "marketScore" as const, label: "Market claim", max: 25, color: "bg-cyan-400",   icon: "📊" },
+                    { key: "expertScore" as const, label: "Expert quote", max: 20, color: "bg-violet-400", icon: "🎙️" },
+                  ];
+
+                  return (
+                    <Card className="border border-slate-200 shadow-sm">
+                      <CardContent className="p-5">
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base leading-none">🔬</span>
+                            <p className="text-xs font-semibold text-slate-700">Source Credibility Mapper</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${credCfg.color} ${credCfg.bg} ${credCfg.border}`}>
+                            {credScore}/100 · {credCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mb-4">
+                          Scores each calendar entry on the rigour of evidence it requires to be credible — distinguishing pieces that must cite primary regulatory text, original data, or named expert testimony from those that can reasonably rely on secondary sources or practitioner authority. Flags sourcing bottleneck weeks and thin-evidence clusters.
+                        </p>
+
+                        {/* Portfolio Credibility Score */}
+                        <div className={`flex items-center gap-4 px-3.5 py-3 rounded-xl border mb-4 ${credCfg.bg} ${credCfg.border}`}>
+                          <div className="text-center shrink-0">
+                            <p className={`text-2xl font-black tabular-nums leading-none ${credCfg.color}`}>{credScore}</p>
+                            <p className="text-[7px] text-slate-400 mt-0.5">/ 100</p>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {[
+                              { label: "Evidence balance",   val: evidenceBalance, max: 40, desc: `${Math.round(demandPct*100)}% demanding · ${Math.round((moderate.length/scored.length)*100)}% moderate · ${Math.round(lowPct*100)}% light (ideal: 30/40/30)` },
+                              { label: "Source diversity",   val: sourceDiversity, max: 30, desc: `${distinctTypes} distinct source type${distinctTypes !== 1 ? "s" : ""} across calendar`                                                                        },
+                              { label: "Cluster risk",       val: riskClustering,  max: 30, desc: `${clusterWeeks.length} week${clusterWeeks.length !== 1 ? "s" : ""} with 2+ demanding pieces`                                                                  },
+                            ].map(({ label, val, max, desc }) => (
+                              <div key={label} className="flex items-center gap-2">
+                                <span className="text-[7px] text-slate-500 w-28 shrink-0">{label}</span>
+                                <div className="flex-1 h-1 rounded-full bg-white/60 overflow-hidden">
+                                  <div className={`h-full rounded-full ${credCfg.color.replace("text-","bg-")}`} style={{ width: `${Math.round((val / max) * 100)}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-500 w-8 text-right shrink-0">{val}/{max}</span>
+                                <span className="text-[7px] text-slate-400 shrink-0 hidden sm:inline">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Portfolio stats */}
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          {[
+                            { label: "Demanding sourcing", val: demanding.length,  sub: "need primary/regulatory evidence", color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"    },
+                            { label: "Moderate sourcing",  val: moderate.length,   sub: "industry reports + expert quotes", color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100"   },
+                            { label: "Light sourcing",     val: lowDemand.length,  sub: "author perspective acceptable",   color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+                          ].map(({ label, val, sub, color, bg, border }) => (
+                            <div key={label} className={`rounded-lg border px-2 py-1.5 text-center ${bg} ${border}`}>
+                              <p className="text-[8px] text-slate-400 mb-0.5">{label}</p>
+                              <p className={`text-[13px] font-black leading-none ${color}`}>{val}</p>
+                              <p className="text-[7px] text-slate-400 mt-0.5">{sub}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Source type distribution */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Source type distribution across calendar:</p>
+                        <div className="grid grid-cols-2 gap-1.5 mb-4">
+                          {sourceTypes.map((st) => {
+                            const count = typeCount(st);
+                            if (count === 0) return null;
+                            const cfg = sourceCfg[st];
+                            const [bgCls, textCls, borderCls] = cfg.color.split(" ");
+                            return (
+                              <div key={st} className={`flex items-start gap-2 px-2.5 py-1.5 rounded-lg border ${bgCls} ${borderCls}`}>
+                                <span className="text-[10px] shrink-0">{cfg.icon}</span>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    <span className={`text-[8px] font-bold ${textCls}`}>{cfg.label}</span>
+                                    <span className="text-[7px] text-slate-400">({count})</span>
+                                  </div>
+                                  <p className="text-[7px] text-slate-500 leading-snug">{cfg.desc}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Evidence demand chart — all entries sorted by demand */}
+                        <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Evidence demand by entry — sourcing rigour required:</p>
+                        <div className="space-y-1 mb-4">
+                          {scored.sort((a, b) => b.cred.evidenceDemand - a.cred.evidenceDemand).map(({ entry: e, cred }) => {
+                            const dCfg = diffCfg[cred.obtainDifficulty];
+                            const sCfg = sourceCfg[cred.sourceType];
+                            return (
+                              <div key={entryKey(e)} className="flex items-center gap-2">
+                                <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                <span className="text-[7.5px] text-slate-600 truncate w-32 shrink-0">{e.angle.slice(0, 28)}{e.angle.length > 28 ? "…" : ""}</span>
+                                <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                  <div className={`h-full rounded-full ${dCfg.bar}`} style={{ width: `${cred.evidenceDemand}%` }} />
+                                </div>
+                                <span className="text-[7px] tabular-nums text-slate-400 shrink-0 w-6 text-right">{cred.evidenceDemand}</span>
+                                <span className="text-[7px] shrink-0">{sCfg.icon}</span>
+                                <span className={`text-[7px] font-bold px-1 py-0.5 rounded-full border shrink-0 hidden sm:inline ${dCfg.badge}`}>{dCfg.icon} {dCfg.label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Demanding pieces — detailed breakdown */}
+                        {demanding.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">🔬 Demanding sourcing — plan research time before writing:</p>
+                            <div className="space-y-2.5 mb-4">
+                              {demanding.sort((a, b) => b.cred.evidenceDemand - a.cred.evidenceDemand).slice(0, 5).map(({ entry: e, cred }) => {
+                                const sCfg = sourceCfg[cred.sourceType];
+                                const [bgCls, textCls, borderCls] = sCfg.color.split(" ");
+                                return (
+                                  <div key={entryKey(e)} className={`rounded-xl border overflow-hidden ${borderCls}`}>
+                                    <div className={`flex items-center justify-between px-3.5 py-2 ${bgCls}`}>
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${TYPE_COLOR[e.type]}`}>{FORMAT_LABEL[e.type]}</span>
+                                        <span className={`text-[8.5px] font-bold truncate ${textCls}`}>{e.angle}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <span className="text-[7px] text-slate-400">Wk {e.week}</span>
+                                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border tabular-nums ${diffCfg.demanding.badge}`}>{cred.evidenceDemand}/100</span>
+                                      </div>
+                                    </div>
+                                    <div className="px-3.5 py-2.5 bg-white space-y-1.5">
+                                      {/* Dimension bars */}
+                                      <div className="space-y-1">
+                                        {dimCfg.map((d) => {
+                                          const val = cred[d.key];
+                                          const pct = Math.round((val / d.max) * 100);
+                                          return pct > 0 ? (
+                                            <div key={d.key} className="flex items-center gap-2">
+                                              <span className="text-[8px] shrink-0 w-4">{d.icon}</span>
+                                              <span className="text-[7px] text-slate-400 w-20 shrink-0">{d.label}</span>
+                                              <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                                                <div className={`h-full rounded-full ${d.color}`} style={{ width: `${pct}%` }} />
+                                              </div>
+                                              <span className="text-[7px] tabular-nums text-slate-400 shrink-0 w-8 text-right">{val}/{d.max}</span>
+                                            </div>
+                                          ) : null;
+                                        })}
+                                      </div>
+                                      {/* Source type + advice */}
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${sCfg.color}`}>{sCfg.icon} {sCfg.label}</span>
+                                      </div>
+                                      <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                        <span className="text-[9px] shrink-0">📋</span>
+                                        <p className="text-[8px] text-slate-700 leading-snug">
+                                          {cred.sourceType === "regulatory"         && "Brief the writer 2-3 weeks before publish date — they'll need to read the official text, identify the specific articles that apply, and have a legal or compliance reviewer check the accuracy of any regulatory interpretation."}
+                                          {cred.sourceType === "primary-data"       && "This piece will only be credible with original data. Either commission a survey (budget 3-4 weeks), source proprietary client data, or restructure the angle around a secondary dataset that already exists — don't publish claims without the underlying evidence."}
+                                          {cred.sourceType === "expert-testimony"   && "Identify 2-3 named sources (executives, analysts, or regulatory specialists) at least 4 weeks before publication. Expert quotes elevate credibility but require interview scheduling, review cycles, and approval sign-off."}
+                                          {cred.sourceType === "industry-report"    && "Lock down the primary industry reports (CB Insights, Gartner, McKinsey, Pitchbook) before the brief is written — ensure the writer has licensed access and that the data is recent enough to remain accurate at publication date."}
+                                          {cred.sourceType === "author-perspective" && "Low sourcing burden — this piece can rely on practitioner experience. Strengthen it with one or two specific named examples or published references to anchor the perspective in verifiable fact."}
+                                          {cred.sourceType === "mixed"              && "Multi-source piece — plan the evidence strategy before briefing: which claims need regulatory backing, which need data, which can be supported by published reports? Ambiguity in the sourcing plan is the most common cause of fact-check delays before publication."}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Evidence crunch weeks */}
+                        {clusterWeeks.length > 0 && (
+                          <>
+                            <p className="text-[9.5px] font-semibold text-slate-600 mb-2">⚠️ Evidence crunch weeks — 2+ demanding pieces in the same week:</p>
+                            <div className="space-y-1.5 mb-4">
+                              {clusterWeeks.map((wk) => {
+                                const wkDemanding = weekMap.get(wk)!.filter((s) => s.cred.obtainDifficulty === "demanding");
+                                return (
+                                  <div key={wk} className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                                    <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[8px] font-bold text-amber-800 mb-1">Week {wk} — {wkDemanding.length} demanding pieces publishing simultaneously</p>
+                                      <div className="flex flex-wrap gap-1 mb-1">
+                                        {wkDemanding.map(({ entry: e }) => (
+                                          <span key={entryKey(e)} className={`text-[7px] font-semibold px-1.5 py-0.5 rounded-full border truncate max-w-[12rem] ${TYPE_COLOR[e.type]}`}>{e.angle}</span>
+                                        ))}
+                                      </div>
+                                      <p className="text-[7.5px] text-amber-700 leading-snug">Research and source-gathering for {wkDemanding.length} demanding pieces simultaneously will create a bottleneck. Stagger publication by moving one piece ±1–2 weeks, or ensure the research phase for both pieces starts at least 4 weeks apart.</p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Thin evidence cluster warning */}
+                        {lowDemand.length / scored.length > 0.55 && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 mb-4">
+                            <span className="text-[10px] shrink-0 mt-0.5">⚪</span>
+                            <div>
+                              <p className="text-[8.5px] font-bold text-slate-700 mb-0.5">{Math.round(lowPct * 100)}% of pieces have low evidence demand</p>
+                              <p className="text-[8px] text-slate-600 leading-snug">A calendar dominated by low-evidence pieces can publish fast but risks appearing thin and unsubstantiated — especially in a sector like fintech where readers include compliance professionals, investors, and regulators. Add at least one primary-data or regulatory-citation piece per quarter to anchor the portfolio's credibility.</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Recommendations */}
+                        {clusterWeeks.length === 0 && demanding.length > 0 && lowDemand.length / scored.length < 0.55 && (
+                          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <span className="text-[9px] shrink-0">✅</span>
+                            <p className="text-[8px] text-emerald-800 leading-snug font-semibold">
+                              Well-distributed evidence profile — demanding pieces are spread across the calendar without clustering, and the portfolio balances rigorous sourcing with lighter practitioner-authority pieces. Ensure research briefs for demanding pieces are issued at least 3 weeks before their scheduled publication date.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* ── Editorial Momentum Tracker ───────────────────────────── */}
                 {calendar.length > 0 && (() => {
