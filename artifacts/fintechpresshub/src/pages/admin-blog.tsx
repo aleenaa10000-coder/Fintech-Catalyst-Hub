@@ -5142,7 +5142,7 @@ export default function AdminBlog() {
                 No posts match the selected readability filter.
               </p>
             )}
-            {filteredPosts.map((p: { id: number; slug: string; title: string; publishedAt: string; excerpt: string; category: string; featured: boolean; noIndex: boolean; noindexUntil?: string | null; lastSeoPingAt?: string | null; lastSeoPingStatus?: string | null; content: string; [key: string]: unknown }) => {
+            {filteredPosts.map((p) => {
               const isEditing = editingId === p.id;
               const isSelected = selectedSlugs.has(p.slug);
               // In preview mode, suppress the "scheduled" badge for any

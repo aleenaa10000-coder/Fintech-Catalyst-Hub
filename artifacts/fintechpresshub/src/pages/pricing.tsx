@@ -66,7 +66,7 @@ export default function Pricing() {
                   <CardContent><Skeleton className="h-16 w-1/3 mb-8" /><Skeleton className="h-40 w-full" /></CardContent>
                 </Card>
               ))
-            ) : plans?.map((plan: { id: number; name: string; tagline: string; description: string; priceMonthly: number; priceUnit: string; highlighted: boolean; features: string[]; ctaLabel: string; ctaHref: string }, i: number) => (
+            ) : plans?.map((plan, i: number) => (
               <motion.div
                 key={plan.id}
                 initial={{ opacity: 0, y: 20 }}

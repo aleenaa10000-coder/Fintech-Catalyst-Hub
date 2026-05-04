@@ -281,7 +281,7 @@ const FORMAT_LABELS: Record<Format, string> = {
 
 type ContentType = "blog" | "linkedin" | "roundup" | "case-study" | "guide";
 
-const FORMAT_LABEL: Record<ContentType, string> = {
+const FORMAT_LABEL: Record<string, string> = {
   blog: "Blog Post",
   linkedin: "LinkedIn Post",
   roundup: "Weekly Roundup",
@@ -1029,7 +1029,7 @@ function exportCSV(entries: CalendarEntry[], companyName: string) {
 
 // ─── Styling ──────────────────────────────────────────────────────────────────
 
-const TYPE_COLOR: Record<ContentType, string> = {
+const TYPE_COLOR: Record<string, string> = {
   blog: "bg-blue-50 text-blue-700 border-blue-200",
   linkedin: "bg-sky-50 text-sky-700 border-sky-200",
   roundup: "bg-purple-50 text-purple-700 border-purple-200",
@@ -2144,7 +2144,7 @@ function analyzeKeywordGaps(calendar: CalendarEntry[]): KeywordAnalysis {
   // Categorize into covered, gap, and cannibalized
   const covered: Array<{ keyword: string; label: string; desc: string; importance: string; coverage: number; entries: string[]; isCannibalized: boolean }> = [];
   const gaps: Array<{ keyword: string; label: string; desc: string; importance: string }> = [];
-  const cannibalized: Array<{ keyword: string; label: string; coverage: number; entries: string[]; isCannibalized: boolean }> = [];
+  const cannibalized: Array<{ keyword: string; label: string; desc: string; importance: string; coverage: number; entries: string[]; isCannibalized: boolean }> = [];
 
   Object.entries(keywordMap).forEach(([kw, data]) => {
     const count = data.entries.size;
@@ -11307,6 +11307,7 @@ export default function ContentCalendarGenerator() {
                         <div className="grid grid-cols-4 gap-1.5 mb-4">
                           {(["past-due","decay-risk","sequence-inversion","missing-foundation"] as DebtType[]).map((t) => {
                             const cfg = DEBT_TYPE_CFG[t];
+                            if (!cfg) return null;
                             const count = debtItems.filter((d) => d.debtTypes.includes(t)).length;
                             return (
                               <div key={t} className={`rounded-lg border px-2 py-1.5 text-center ${count > 0 ? "bg-rose-50 border-rose-100" : "bg-emerald-50 border-emerald-100"}`}>
@@ -11338,8 +11339,8 @@ export default function ContentCalendarGenerator() {
                                         </div>
                                         <div className="flex flex-wrap gap-1 mb-1">
                                           {d.debtTypes.map((t) => (
-                                            <span key={t} className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${DEBT_TYPE_CFG[t].pill}`}>
-                                              {DEBT_TYPE_CFG[t].icon} {DEBT_TYPE_CFG[t].label}
+                                            <span key={t} className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${DEBT_TYPE_CFG[t]?.pill}`}>
+                                              {DEBT_TYPE_CFG[t]?.icon} {DEBT_TYPE_CFG[t]?.label}
                                             </span>
                                           ))}
                                         </div>
@@ -11470,8 +11471,8 @@ export default function ContentCalendarGenerator() {
                                         {d.debtTypes.length === 0
                                           ? <span className="text-[6px] text-emerald-600 font-bold">✓ clean</span>
                                           : d.debtTypes.map((t) => (
-                                              <span key={t} className={`text-[5.5px] font-bold px-1 py-0.5 rounded-full border ${DEBT_TYPE_CFG[t].pill}`}>
-                                                {DEBT_TYPE_CFG[t].icon}
+                                              <span key={t} className={`text-[5.5px] font-bold px-1 py-0.5 rounded-full border ${DEBT_TYPE_CFG[t]?.pill}`}>
+                                                {DEBT_TYPE_CFG[t]?.icon}
                                               </span>
                                             ))}
                                       </div>
@@ -18828,7 +18829,7 @@ export default function ContentCalendarGenerator() {
                         {/* Debt type breakdown */}
                         <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Debt type distribution across calendar:</p>
                         <div className="grid grid-cols-2 gap-1.5 mb-4">
-                          {(Object.entries(debtTypeCfg) as [DebtType, typeof debtTypeCfg[DebtType]][]).map(([type, cfg]) => {
+                          {(Object.entries(debtTypeCfg) as [DebtType, NonNullable<typeof debtTypeCfg[DebtType]>][]).map(([type, cfg]) => {
                             const count = scored.filter((s) => s.debt.dominantDebt === type).length;
                             if (count === 0) return null;
                             return (
@@ -18889,7 +18890,7 @@ export default function ContentCalendarGenerator() {
                                       </div>
                                       {/* Dominant debt type + refresh schedule */}
                                       <div className="flex items-center gap-2 flex-wrap">
-                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${dtCfg.color}`}>{dtCfg.icon} {dtCfg.label}</span>
+                                        <span className={`text-[7.5px] font-bold px-1.5 py-0.5 rounded-full border ${dtCfg?.color}`}>{dtCfg?.icon} {dtCfg?.label}</span>
                                         <span className="text-[7.5px] text-slate-500">Refresh by: <span className="font-bold text-amber-700">{refresh}</span></span>
                                         <span className="text-[7.5px] text-slate-400">({debt.refreshMonths} mo from publish)</span>
                                       </div>
@@ -22496,7 +22497,7 @@ export default function ContentCalendarGenerator() {
                   // Attach complexity + week number to each entry
                   const withCx = calendar.map((e) => ({
                     e,
-                    cx: COMPLEXITY_BY_TYPE[e.type],
+                    cx: COMPLEXITY_BY_TYPE[e.type] ?? { hours: 4, words: 800, assets: 2, approvals: 1, roles: ["Writer"], tip: "" },
                   }));
 
                   // Week → total hours map
@@ -22833,7 +22834,7 @@ export default function ContentCalendarGenerator() {
                   for (const t of typesPresent) {
                     for (const mo of months) {
                       cellsTotal++;
-                      if ((typeMonthMap[t]?.[mo] ?? 0) >= CADENCE_BY_TYPE[t].min) cellsMet++;
+                      if ((typeMonthMap[t]?.[mo] ?? 0) >= (CADENCE_BY_TYPE[t]?.min ?? 1)) cellsMet++;
                     }
                   }
                   const velocityScore = Math.round((cellsMet / (cellsTotal || 1)) * 100);
@@ -22855,7 +22856,7 @@ export default function ContentCalendarGenerator() {
                   const sc = scoreCfg(velocityScore);
 
                   const velSt = (count: number, type: ContentType) => {
-                    const { min, ideal } = CADENCE_BY_TYPE[type];
+                    const { min, ideal } = CADENCE_BY_TYPE[type] ?? { min: 1, ideal: 2 };
                     if (count === 0)        return { bar: "bg-rose-300",    text: "text-rose-500",    label: "None"     };
                     if (count >= ideal)     return { bar: "bg-emerald-400", text: "text-emerald-700", label: "On Track" };
                     if (count >= min)       return { bar: "bg-blue-400",    text: "text-blue-600",    label: "Healthy"  };
@@ -22896,7 +22897,7 @@ export default function ContentCalendarGenerator() {
                         {/* Per-type velocity rows */}
                         <div className="space-y-3 mb-4">
                           {typesPresent.map((type) => {
-                            const { min, ideal, unit, rationale } = CADENCE_BY_TYPE[type];
+                            const { min, ideal, unit, rationale } = CADENCE_BY_TYPE[type] ?? { min: 1, ideal: 2, unit: "—", rationale: "" };
                             const monthData   = months.map((mo) => ({ mo, count: typeMonthMap[type]?.[mo] ?? 0 }));
                             const totalCount  = monthData.reduce((s, m) => s + m.count, 0);
                             const avgPerMonth = months.length ? Math.round((totalCount / months.length) * 10) / 10 : 0;
