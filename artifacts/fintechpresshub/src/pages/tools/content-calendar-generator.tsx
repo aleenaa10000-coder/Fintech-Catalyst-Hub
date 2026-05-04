@@ -1638,7 +1638,7 @@ const HEADLINE_POWER_WORDS = [
   "trend","rise","fall","shift","transform","everything","never","always",
 ];
 
-const HEADLINE_FORMAT_PATTERNS: Partial<Record<ContentType, RegExp[]>> = {
+const HEADLINE_FORMAT_PATTERNS: Partial<Record<string, RegExp[]>> = {
   guide:          [/^how to/i, /\bguide\b/i, /step[- ]by[- ]step/i, /\b\d+\s+ways?\b/i, /\b\d+\s+steps?\b/i],
   "case-study":   [/how .+ (achieved|grew|scaled|reduced|increased|saved)/i, /lessons? from/i, /inside .+:/i, /what .* learned/i],
   "blog-post":    [/^why /i, /^what /i, /^how /i, /\d+\s+(reasons?|ways?|tips?|things?|mistakes?)/i],
@@ -1684,7 +1684,7 @@ function scoreHeadline(angle: string, type: ContentType, topic: string): Headlin
 
   const slug = topic.split(" ").slice(0, 4).join(" ");
   const yr   = new Date().getFullYear();
-  const REWRITES: Partial<Record<ContentType, string>> = {
+  const REWRITES: Partial<Record<string, string>> = {
     guide:          `The Complete ${slug} Guide: ${yr} Edition [+ Free Checklist]`,
     "case-study":   `How [Client] Achieved [Result] with ${slug} — 7 Key Lessons`,
     "blog-post":    `7 Proven ${slug} Strategies Every Fintech Leader Needs in ${yr}`,
@@ -1732,7 +1732,7 @@ function topicSimilarity(topic1: string, topic2: string): number {
   return Math.max(0, 1 - (dist / maxLen));
 }
 
-function detectNarrativeTheme(entries: ContentEntry[]): string {
+function detectNarrativeTheme(entries: CalendarEntry[]): string {
   const intents = entries.map((e) => dominantIntent(detectIntent(e.topic, e.angle)));
   const intentCounts: Record<string, number> = {};
   intents.forEach((i) => { intentCounts[i] = (intentCounts[i] ?? 0) + 1; });
@@ -1746,7 +1746,7 @@ function detectNarrativeTheme(entries: ContentEntry[]): string {
   return `${dominantIntentTheme}/${dominantPersona}`;
 }
 
-function scoreNarrativeCoherence(entries: ContentEntry[]): number {
+function scoreNarrativeCoherence(entries: CalendarEntry[]): number {
   if (entries.length <= 1) return 100;
 
   // Pairwise topic similarity — all entries should relate to each other
@@ -1767,7 +1767,7 @@ function scoreNarrativeCoherence(entries: ContentEntry[]): number {
 
   // Stage progression — check for logical arc stage ordering (awareness → advanced)
   const stages = entries.map((e) => detectArcStage(e.angle));
-  const stageOrder = { awareness: 0, education: 1, consideration: 2, implementation: 3, advanced: 4 };
+  const stageOrder = { awareness: 0, education: 1, consideration: 2, implementation: 3, advanced: 4, unknown: 2 };
   let stageProgression = 0;
   for (let i = 1; i < stages.length; i++) {
     const prev = stageOrder[stages[i - 1]] ?? 2;
@@ -1784,7 +1784,7 @@ function scoreNarrativeCoherence(entries: ContentEntry[]): number {
 
 interface MonthCoherence {
   month: string;
-  entries: ContentEntry[];
+  entries: CalendarEntry[];
   coherenceScore: number;
   theme: string;
   topicDiversity: number;
@@ -1792,8 +1792,8 @@ interface MonthCoherence {
   isDisconnected: boolean;
 }
 
-function analyzeMonthlyNarrative(calendar: ContentEntry[]): MonthCoherence[] {
-  const byMonth: Record<string, ContentEntry[]> = {};
+function analyzeMonthlyNarrative(calendar: CalendarEntry[]): MonthCoherence[] {
+  const byMonth: Record<string, CalendarEntry[]> = {};
   calendar.forEach((e) => {
     const mk = getMonthKey(e.date);
     byMonth[mk] = (byMonth[mk] ?? []).concat([e]);
@@ -1818,7 +1818,7 @@ function analyzeMonthlyNarrative(calendar: ContentEntry[]): MonthCoherence[] {
 // scores overlap severity and recommends consolidation or differentiation
 
 interface CannibalEntry {
-  entry: ContentEntry;
+  entry: CalendarEntry;
   intent: string;
   persona: string;
   stage: ArcStage;
@@ -1833,7 +1833,7 @@ interface CannibalGroup {
   recommendation: string;
 }
 
-function detectCannibalization(calendar: ContentEntry[]): CannibalGroup[] {
+function detectCannibalization(calendar: CalendarEntry[]): CannibalGroup[] {
   const tagged = calendar.map((e) => ({
     entry: e,
     intent: dominantIntent(detectIntent(e.topic, e.angle)),
@@ -1940,10 +1940,10 @@ interface CadenceAnalysis {
   isSeasonalPattern: boolean;
 }
 
-function analyzeCadence(calendar: ContentEntry[]): CadenceAnalysis {
+function analyzeCadence(calendar: CalendarEntry[]): CadenceAnalysis {
   if (calendar.length === 0) return { totalEntries: 0, monthsCovered: 0, monthsEmpty: 0, avgPerMonth: 0, cadenceScore: 0, consistency: 0, longestGap: 0, isSeasonalPattern: false };
 
-  const byMonth: Record<string, ContentEntry[]> = {};
+  const byMonth: Record<string, CalendarEntry[]> = {};
   calendar.forEach((e) => {
     const mk = getMonthKey(e.date);
     byMonth[mk] = (byMonth[mk] ?? []).concat([e]);
@@ -2038,7 +2038,7 @@ function detectAuthorVoice(topic: string, angle: string): string {
   return "generic-voice";
 }
 
-function analyzeAuthorDiversity(calendar: ContentEntry[]): AuthorAnalysis {
+function analyzeAuthorDiversity(calendar: CalendarEntry[]): AuthorAnalysis {
   const authorMap: Record<string, AuthorProfile> = {};
 
   calendar.forEach((e) => {
@@ -2123,7 +2123,7 @@ interface KeywordAnalysis {
   gapCount: number;
 }
 
-function analyzeKeywordGaps(calendar: ContentEntry[]): KeywordAnalysis {
+function analyzeKeywordGaps(calendar: CalendarEntry[]): KeywordAnalysis {
   const keywordMap: Record<string, { entries: Set<string>; label: string; desc: string; importance: string }> = {};
   
   // Initialize all keywords
@@ -2155,7 +2155,7 @@ function analyzeKeywordGaps(calendar: ContentEntry[]): KeywordAnalysis {
       gaps.push({ keyword: kw, label: meta.label, desc: meta.desc, importance: meta.importance });
     } else if (count >= 2) {
       covered.push({ keyword: kw, label: meta.label, desc: meta.desc, importance: meta.importance, coverage: count, entries: entryKeys, isCannibalized: true });
-      cannibalized.push({ keyword: kw, label: meta.label, importance: meta.importance, coverage: count, entries: entryKeys, isCannibalized: true });
+      cannibalized.push({ keyword: kw, label: meta.label, desc: meta.desc, importance: meta.importance, coverage: count, entries: entryKeys, isCannibalized: true });
     } else {
       covered.push({ keyword: kw, label: meta.label, desc: meta.desc, importance: meta.importance, coverage: count, entries: entryKeys, isCannibalized: false });
     }
@@ -2184,14 +2184,14 @@ function analyzeKeywordGaps(calendar: ContentEntry[]): KeywordAnalysis {
 
 interface SeriesCluster {
   topicGroup: string;
-  entries: ContentEntry[];
-  optimalOrder: ContentEntry[];
+  entries: CalendarEntry[];
+  optimalOrder: CalendarEntry[];
   similarity: number;
   momentumScore: number;
   hasBreaks: boolean;
 }
 
-function detectSeriesClusters(calendar: ContentEntry[]): SeriesCluster[] {
+function detectSeriesClusters(calendar: CalendarEntry[]): SeriesCluster[] {
   const clusters: SeriesCluster[] = [];
   const assigned = new Set<string>();
 
@@ -2224,7 +2224,7 @@ function detectSeriesClusters(calendar: ContentEntry[]): SeriesCluster[] {
       );
 
       // Calculate optimal order based on arc stage progression
-      const stageOrder = { awareness: 0, education: 1, consideration: 2, implementation: 3, advanced: 4 };
+      const stageOrder = { awareness: 0, education: 1, consideration: 2, implementation: 3, advanced: 4, unknown: 2 };
       const optimalOrder = [...related].sort((a, b) => {
         const stageA = stageOrder[detectArcStage(a.angle)] ?? 2;
         const stageB = stageOrder[detectArcStage(b.angle)] ?? 2;
@@ -2265,7 +2265,7 @@ function detectSeriesClusters(calendar: ContentEntry[]): SeriesCluster[] {
   return clusters;
 }
 
-function scoreSequencingMomentum(calendar: ContentEntry[]): number {
+function scoreSequencingMomentum(calendar: CalendarEntry[]): number {
   const clusters = detectSeriesClusters(calendar);
   if (clusters.length === 0) return 100;
 
@@ -2372,7 +2372,7 @@ function scoreDifferentiation(topic: string, angle: string): DiffResult {
     freshness:      "Anchor to a current development — a regulatory event (DORA, MiCA, Basel IV), a technology shift (ISO 20022 migration, real-time rails), or a market move — timely angles generate backlinks from contemporaneous coverage and rank for news-cycle queries",
   };
 
-  const recommendation = tier === "distinctive"
+  const recommendation = tier === "strongly-differentiated"
     ? "Well-differentiated — angle challenges assumptions, targets a specific audience or scenario, and reflects current developments"
     : DIM_REC[weakestDim];
 
@@ -2487,6 +2487,7 @@ const INTENT_STAGE_MAP: Record<ArcStage, string[]> = {
   consideration:  ["commercial","informational"],
   implementation: ["commercial","transactional"],
   advanced:       ["commercial","transactional"],
+  unknown:        [],
 };
 
 const FORMAT_INTENT_BEST: Record<string, ContentType[]> = {
