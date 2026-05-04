@@ -2,6 +2,32 @@ import { Link } from "wouter";
 import { Twitter, Linkedin, Github } from "lucide-react";
 import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
 import { CookiePreferencesButton } from "@/components/CookiePreferencesButton";
+import { prefetchRoute } from "@/lib/route-prefetch";
+
+function PrefetchLink({
+  href,
+  className,
+  children,
+  "data-testid": testId,
+}: {
+  href: string;
+  className?: string;
+  children: React.ReactNode;
+  "data-testid"?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={className}
+      data-testid={testId}
+      onMouseEnter={() => prefetchRoute(href)}
+      onFocus={() => prefetchRoute(href)}
+      onTouchStart={() => prefetchRoute(href)}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export function Footer() {
   return (
@@ -9,7 +35,7 @@ export function Footer() {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-12 mb-12">
           <div className="col-span-1 md:col-span-2">
-            <Link href="/" className="inline-flex items-center mb-4" aria-label="FintechPressHub - Home">
+            <PrefetchLink href="/" className="inline-flex items-center mb-4" aria-label="FintechPressHub - Home">
               <img
                 src={logoSvg}
                 alt="FintechPressHub - Fintech SEO Agency"
@@ -17,7 +43,7 @@ export function Footer() {
                 width={260}
                 height={48}
               />
-            </Link>
+            </PrefetchLink>
             <p className="text-muted-foreground max-w-sm mb-6 leading-relaxed">
               We are a specialized content marketing agency bridging the gap between deep fintech expertise and search visibility. We help financial technology companies scale their organic growth.
             </p>
@@ -41,29 +67,29 @@ export function Footer() {
             <h3 className="font-semibold text-lg mb-4 text-foreground">Company</h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/about" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/about" className="text-muted-foreground hover:text-primary transition-colors">
                   About Us
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link href="/services" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/services" className="text-muted-foreground hover:text-primary transition-colors">
                   Services
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link href="/pricing" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/pricing" className="text-muted-foreground hover:text-primary transition-colors">
                   Pricing
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link href="/authors" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/authors" className="text-muted-foreground hover:text-primary transition-colors">
                   Meet the Team
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link href="/contact" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/contact" className="text-muted-foreground hover:text-primary transition-colors">
                   Contact
-                </Link>
+                </PrefetchLink>
               </li>
             </ul>
           </div>
@@ -72,37 +98,37 @@ export function Footer() {
             <h3 className="font-semibold text-lg mb-4 text-foreground">Resources</h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/blog" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/blog" className="text-muted-foreground hover:text-primary transition-colors">
                   Blog
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link
+                <PrefetchLink
                   href="/tools/financial-health-score-calculator"
                   className="text-muted-foreground hover:text-primary transition-colors"
                   data-testid="link-footer-tool-financial-health"
                 >
                   Financial Health Score
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link href="/write-for-us" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/write-for-us" className="text-muted-foreground hover:text-primary transition-colors">
                   Write For Us
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link href="/editorial-guidelines" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/editorial-guidelines" className="text-muted-foreground hover:text-primary transition-colors">
                   Editorial Guidelines
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link
+                <PrefetchLink
                   href="/status"
                   className="text-muted-foreground hover:text-primary transition-colors"
                   data-testid="link-footer-status"
                 >
                   System Status
-                </Link>
+                </PrefetchLink>
               </li>
             </ul>
           </div>
@@ -111,29 +137,29 @@ export function Footer() {
             <h3 className="font-semibold text-lg mb-4 text-foreground">Legal</h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/privacy-policy" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/privacy-policy" className="text-muted-foreground hover:text-primary transition-colors">
                   Privacy Policy
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link href="/refund-policy" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/refund-policy" className="text-muted-foreground hover:text-primary transition-colors">
                   Refund Policy
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link href="/cookie-policy" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/cookie-policy" className="text-muted-foreground hover:text-primary transition-colors">
                   Cookie Policy
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
                   Terms and Conditions
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
-                <Link href="/community-guidelines" className="text-muted-foreground hover:text-primary transition-colors">
+                <PrefetchLink href="/community-guidelines" className="text-muted-foreground hover:text-primary transition-colors">
                   Community Guidelines
-                </Link>
+                </PrefetchLink>
               </li>
               <li>
                 <CookiePreferencesButton data-testid="link-footer-manage-cookies" />

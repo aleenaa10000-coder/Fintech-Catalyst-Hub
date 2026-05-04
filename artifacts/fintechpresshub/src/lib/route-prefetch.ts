@@ -18,6 +18,14 @@ const ROUTE_LOADERS: Record<string, () => Promise<unknown>> = {
   "/blog": () => import("@/pages/blog"),
   "/contact": () => import("@/pages/contact"),
   "/write-for-us": () => import("@/pages/write-for-us"),
+  "/authors": () => import("@/pages/authors"),
+  "/editorial-guidelines": () => import("@/pages/editorial-guidelines"),
+  "/community-guidelines": () => import("@/pages/community-guidelines"),
+  "/privacy-policy": () => import("@/pages/privacy-policy"),
+  "/refund-policy": () => import("@/pages/refund-policy"),
+  "/cookie-policy": () => import("@/pages/cookie-policy"),
+  "/terms": () => import("@/pages/terms"),
+  "/status": () => import("@/pages/status"),
   "/tools/financial-health-score-calculator": () =>
     import("@/pages/tools/financial-health-score-calculator"),
 };
