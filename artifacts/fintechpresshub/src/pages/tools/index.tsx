@@ -11,7 +11,6 @@ import {
   FileText,
   Send,
   BookOpen,
-  CalendarDays,
   BarChart2,
   Link2,
   FileEdit,
@@ -64,15 +63,6 @@ const TOOLS = [
     title: "Readability Checker",
     description:
       "Paste your fintech article and get an instant Flesch readability score, grade level, sentence length breakdown, and actionable tips.",
-  },
-  {
-    href: "/tools/content-calendar-generator",
-    icon: CalendarDays,
-    color: "bg-indigo-50 text-indigo-600",
-    badge: "Planning",
-    title: "Content Calendar Generator",
-    description:
-      "Build a 30, 60, or 90-day fintech editorial calendar in seconds. Pick your topics and cadence, then export to CSV or copy into Notion.",
   },
   {
     href: "/tools/keyword-difficulty-estimator",

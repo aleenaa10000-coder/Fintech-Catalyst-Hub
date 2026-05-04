@@ -62,9 +62,6 @@ const GuestPostPitchGenerator = lazy(
 const ReadabilityChecker = lazy(
   () => import("@/pages/tools/readability-checker"),
 );
-const ContentCalendarGenerator = lazy(
-  () => import("@/pages/tools/content-calendar-generator"),
-);
 const KeywordDifficultyEstimator = lazy(
   () => import("@/pages/tools/keyword-difficulty-estimator"),
 );
@@ -271,10 +268,6 @@ function Router() {
             <Route
               path="/tools/readability-checker"
               component={ReadabilityChecker}
-            />
-            <Route
-              path="/tools/content-calendar-generator"
-              component={ContentCalendarGenerator}
             />
             <Route
               path="/tools/keyword-difficulty-estimator"

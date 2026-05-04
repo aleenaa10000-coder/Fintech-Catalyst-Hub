@@ -23,7 +23,6 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   "meta-description-generator": "Meta Description Generator",
   "guest-post-pitch-generator": "Guest Post Pitch Generator",
   "readability-checker": "Readability Checker",
-  "content-calendar-generator": "Content Calendar Generator",
   "keyword-difficulty-estimator": "Keyword Difficulty Estimator",
   "backlink-value-estimator": "Backlink Value Estimator",
   "content-brief-generator": "Content Brief Generator",
@@ -147,11 +146,6 @@ export const PAGE_META = {
     title: "Readability Checker for Fintech Content | Free Tool",
     description:
       "Paste your fintech article and get an instant Flesch readability score, grade level, and actionable tips to make your content clearer.",
-  },
-  contentCalendarGenerator: {
-    title: "Fintech Content Calendar Generator | Free Editorial Planner",
-    description:
-      "Build a 30, 60, or 90-day fintech content calendar in seconds. Choose your topics, cadence, and format — then export to CSV or copy into Notion.",
   },
   keywordDifficultyEstimator: {
     title: "Fintech Keyword Difficulty Estimator | Free SEO Tool",
