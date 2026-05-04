@@ -29,6 +29,11 @@ import {
   UserCog,
   DollarSign,
   BarChart2,
+  Map,
+  Send,
+  CheckCircle2,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 
 function timeAgo(iso: string): string {
@@ -91,6 +96,19 @@ interface DashboardData {
   newsletterSubscribers: { total: number };
   contentReports?: { open: number; total: number; recent: RecentReport[] };
   authorPhotoRequests?: { pending: number };
+}
+
+interface SitemapEntryCounts {
+  total: number;
+  bySource: { static: number; blog: number; author: number; rss: number };
+}
+
+interface SitemapPingResult {
+  submitted: number;
+  indexNow: { accepted: boolean; status: number | null; error?: string };
+  google: { pinged: boolean; error?: string };
+  durationMs: number;
+  sitemapUrl: string;
 }
 
 function StatCard({
@@ -159,6 +177,12 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [sitemapCounts, setSitemapCounts] = useState<SitemapEntryCounts | null>(null);
+  const [sitemapCountsLoading, setSitemapCountsLoading] = useState(false);
+  const [pinging, setPinging] = useState(false);
+  const [pingResult, setPingResult] = useState<SitemapPingResult | null>(null);
+  const [pingError, setPingError] = useState<string | null>(null);
+
   async function fetchDashboard() {
     try {
       setRefreshing(true);
@@ -175,9 +199,41 @@ export default function AdminDashboard() {
     }
   }
 
+  async function fetchSitemapCounts() {
+    try {
+      setSitemapCountsLoading(true);
+      const res = await fetch("/api/admin/sitemap/entries");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setSitemapCounts(json);
+    } catch {
+      // silently ignore — panel shows a retry button
+    } finally {
+      setSitemapCountsLoading(false);
+    }
+  }
+
+  async function handlePing() {
+    try {
+      setPinging(true);
+      setPingResult(null);
+      setPingError(null);
+      const res = await fetch("/api/admin/sitemap/ping", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
+      setPingResult(json);
+      fetchSitemapCounts();
+    } catch (e: unknown) {
+      setPingError(e instanceof Error ? e.message : "Ping failed.");
+    } finally {
+      setPinging(false);
+    }
+  }
+
   useEffect(() => {
     if (isAuthenticated && user?.isAdmin) {
       fetchDashboard();
+      fetchSitemapCounts();
     } else {
       setLoading(false);
     }
@@ -555,6 +611,114 @@ export default function AdminDashboard() {
                     ))}
                   </ul>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Sitemap panel */}
+            <Card className="mb-6">
+              <CardContent className="pt-5 pb-5 px-5">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                  <div className="flex items-center gap-2">
+                    <Map className="w-4 h-4 text-muted-foreground" />
+                    <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+                      Sitemap &amp; search engine indexing
+                    </h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={fetchSitemapCounts}
+                      disabled={sitemapCountsLoading}
+                      className="text-xs h-7"
+                    >
+                      <RefreshCw className={`w-3 h-3 mr-1 ${sitemapCountsLoading ? "animate-spin" : ""}`} />
+                      Refresh counts
+                    </Button>
+                    <a
+                      href="/sitemap.xml"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      View sitemap.xml <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Entry count chips */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {sitemapCountsLoading && !sitemapCounts ? (
+                    <>
+                      {["Total", "Static", "Blog", "Authors", "RSS"].map((l) => (
+                        <div key={l} className="h-7 w-20 rounded-full bg-muted animate-pulse" />
+                      ))}
+                    </>
+                  ) : sitemapCounts ? (
+                    <>
+                      <span className="inline-flex items-center gap-1.5 rounded-full border bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                        {sitemapCounts.total} URLs total
+                      </span>
+                      {(
+                        [
+                          { label: "Static", value: sitemapCounts.bySource.static, color: "bg-blue-50 border-blue-200 text-blue-700" },
+                          { label: "Blog", value: sitemapCounts.bySource.blog, color: "bg-green-50 border-green-200 text-green-700" },
+                          { label: "Authors", value: sitemapCounts.bySource.author, color: "bg-purple-50 border-purple-200 text-purple-700" },
+                          { label: "RSS", value: sitemapCounts.bySource.rss, color: "bg-amber-50 border-amber-200 text-amber-700" },
+                        ] as const
+                      ).map(({ label, value, color }) => (
+                        <span key={label} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${color}`}>
+                          {label}: {value}
+                        </span>
+                      ))}
+                    </>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Could not load counts.</span>
+                  )}
+                </div>
+
+                {/* Ping button + result */}
+                <div className="flex items-start gap-3 flex-wrap">
+                  <Button
+                    size="sm"
+                    onClick={handlePing}
+                    disabled={pinging}
+                    className="bg-[#0052FF] hover:bg-[#0040cc] text-white shrink-0"
+                  >
+                    <Send className={`w-3.5 h-3.5 mr-1.5 ${pinging ? "animate-pulse" : ""}`} />
+                    {pinging ? "Submitting…" : "Submit to Search Engines"}
+                  </Button>
+
+                  {pingResult && !pinging && (
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium ${pingResult.indexNow.accepted ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-amber-50 border-amber-200 text-amber-700"}`}>
+                        {pingResult.indexNow.accepted
+                          ? <><CheckCircle2 className="w-3 h-3" /> IndexNow accepted</>
+                          : <><AlertTriangle className="w-3 h-3" /> IndexNow {pingResult.indexNow.status ?? "error"}</>
+                        }
+                      </span>
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium ${pingResult.google.pinged ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-slate-50 border-slate-200 text-slate-600"}`}>
+                        {pingResult.google.pinged
+                          ? <><CheckCircle2 className="w-3 h-3" /> Google pinged</>
+                          : <><AlertTriangle className="w-3 h-3" /> Google skipped</>
+                        }
+                      </span>
+                      <span className="text-muted-foreground">
+                        {pingResult.submitted} URLs · {pingResult.durationMs}ms
+                      </span>
+                    </div>
+                  )}
+
+                  {pingError && !pinging && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3 shrink-0" /> {pingError}
+                    </p>
+                  )}
+                </div>
+
+                <p className="mt-3 text-[11px] text-muted-foreground leading-relaxed">
+                  Submits all sitemap URLs to IndexNow (Bing, Yandex, Naver) and pings the Google Search Console sitemap endpoint. Blog posts are also notified automatically on publish.
+                </p>
               </CardContent>
             </Card>
 
