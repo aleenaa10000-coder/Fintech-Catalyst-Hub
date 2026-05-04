@@ -5015,7 +5015,7 @@ interface GapTopic {
   keywords:       string[];
   competitorPlay: string;
   gapAngle:       string;
-  bestFormats:    ContentType[];
+  bestFormats:    string[];
 }
 const FINTECH_CONTENT_UNIVERSE: GapTopic[] = [
   { cluster: "Open Banking & APIs",            priority: "high",   keywords: ["open banking","open finance","api","psd2","account aggregation"],          competitorPlay: "API integration guides and PSD2 explainers targeting developers and CTOs",                                       gapAngle: "Business outcome lens — 'How open banking lifted conversion rates for [vertical]' — moves beyond technical explainers",          bestFormats: ["case-study","guide"] },
@@ -5144,7 +5144,7 @@ const COMPLIANCE_RULES: ComplianceRule[] = [
 ];
 
 // ─── Content ROI Projection ───────────────────────────────────────────────────
-const MQL_BASE: Record<ContentType, { low: number; high: number }> = {
+const MQL_BASE: Partial<Record<string, { low: number; high: number }>> = {
   webinar:        { low: 15, high: 40 },
   guide:          { low: 8,  high: 25 },
   checklist:      { low: 6,  high: 18 },
@@ -5158,7 +5158,7 @@ const MQL_BASE: Record<ContentType, { low: number; high: number }> = {
 };
 
 function projectMQL(type: ContentType, lgTotal: number): { low: number; mid: number; high: number } {
-  const base = MQL_BASE[type];
+  const base = MQL_BASE[type] ?? { low: 2, high: 6 };
   const mult = lgTotal >= 85 ? 1.4 : lgTotal >= 70 ? 1.2 : lgTotal >= 50 ? 1.0 : 0.7;
   const low  = Math.round(base.low  * mult);
   const high = Math.round(base.high * mult * 1.2);
@@ -5175,7 +5175,7 @@ interface ComplexityProfile {
   roles:     string[]; // team roles typically involved
   tip:       string;   // efficiency tip to reduce production time
 }
-const COMPLEXITY_BY_TYPE: Record<ContentType, ComplexityProfile> = {
+const COMPLEXITY_BY_TYPE: Partial<Record<string, ComplexityProfile>> = {
   guide:          { hours: 16, words: 3000, assets: 5,  approvals: 2, roles: ["Writer","Designer","SME Reviewer","Editor"],                      tip: "Repurpose existing blog posts as section drafts — cuts research time by ~40%" },
   "case-study":   { hours: 12, words: 1500, assets: 3,  approvals: 3, roles: ["Writer","Client Contact","Designer","Compliance"],                 tip: "Run a 30-min structured client interview and transcribe — saves 4h of back-and-forth" },
   "blog-post":    { hours: 6,  words: 1200, assets: 2,  approvals: 1, roles: ["Writer","Editor"],                                                 tip: "Use a standard brief template — brief should take 20 min max to complete" },
@@ -5194,17 +5194,17 @@ const COMPLEXITY_TIER = (h: number) =>
   :          { label: "Quick",    bg: "bg-emerald-100", text: "text-emerald-700", bar: "bg-emerald-400" };
 
 // ─── Lead Generation Potential Score ─────────────────────────────────────────
-const LEAD_GATE: Record<ContentType, number> = {
+const LEAD_GATE: Partial<Record<string, number>> = {
   guide: 24, "case-study": 20, "blog-post": 8, linkedin: 0,
   newsletter: 18, webinar: 25, infographic: 10, checklist: 22,
   "video-script": 8, podcast: 5,
 };
-const LEAD_CTA: Record<ContentType, number> = {
+const LEAD_CTA: Partial<Record<string, number>> = {
   guide: 20, "case-study": 22, "blog-post": 10, linkedin: 8,
   newsletter: 15, webinar: 25, infographic: 8, checklist: 22,
   "video-script": 10, podcast: 8,
 };
-const LEAD_FUNNEL: Record<ContentType, number> = {
+const LEAD_FUNNEL: Partial<Record<string, number>> = {
   guide: 20, "case-study": 23, "blog-post": 12, linkedin: 10,
   newsletter: 15, webinar: 24, infographic: 8, checklist: 21,
   "video-script": 12, podcast: 10,
@@ -5215,7 +5215,7 @@ const LEAD_COMMERCIAL_SIGNALS = [
   "platform","solution","vendor","benchmark","comparison","alternative","implement",
   "deploy","scale","growth","conversion","acquire","retain","churn","automation",
 ];
-const LEAD_PROMO_TIP: Record<ContentType, string> = {
+const LEAD_PROMO_TIP: Partial<Record<string, string>> = {
   guide:          "Gate with a form → promote via LinkedIn Docs + retarget visitors with LinkedIn Ads",
   "case-study":   "Add to sales email sequences + feature in bottom-funnel LinkedIn Ads by job title",
   "blog-post":    "Add a content upgrade offer within the post to capture emails at point of consumption",
@@ -5234,14 +5234,14 @@ function scoreLeadGen(type: ContentType, topic: string, angle: string): {
   const combined = `${topic} ${angle}`.toLowerCase();
   const hits     = LEAD_COMMERCIAL_SIGNALS.filter((s) => combined.includes(s)).length;
   const commercial = Math.min(25, hits >= 4 ? 25 : hits === 3 ? 21 : hits === 2 ? 16 : hits === 1 ? 10 : 4);
-  const gate   = LEAD_GATE[type];
-  const cta    = LEAD_CTA[type];
-  const funnel = LEAD_FUNNEL[type];
+  const gate   = LEAD_GATE[type] ?? 0;
+  const cta    = LEAD_CTA[type] ?? 0;
+  const funnel = LEAD_FUNNEL[type] ?? 0;
   return { gate, cta, funnel, commercial, total: gate + cta + funnel + commercial };
 }
 
 // ─── Content Velocity Tracker ────────────────────────────────────────────────
-const CADENCE_BY_TYPE: Record<ContentType, { min: number; ideal: number; unit: string; rationale: string }> = {
+const CADENCE_BY_TYPE: Partial<Record<string, { min: number; ideal: number; unit: string; rationale: string }>> = {
   guide:          { min: 1,  ideal: 2,  unit: "1–2/mo",   rationale: "1–2 comprehensive guides/month builds topical authority without diluting depth" },
   "case-study":   { min: 1,  ideal: 1,  unit: "1/mo",     rationale: "Monthly case studies maintain social proof pipeline and sales enablement library" },
   "blog-post":    { min: 4,  ideal: 6,  unit: "4–6/mo",   rationale: "Google rewards consistent publishing — below 4/month loses algorithmic ranking momentum" },
