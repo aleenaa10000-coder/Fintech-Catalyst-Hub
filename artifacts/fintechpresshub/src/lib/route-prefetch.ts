@@ -20,6 +20,8 @@ const ROUTE_LOADERS: Record<string, () => Promise<unknown>> = {
   "/write-for-us": () => import("@/pages/write-for-us"),
   "/tools/financial-health-score-calculator": () =>
     import("@/pages/tools/financial-health-score-calculator"),
+  "/tools/content-calendar-generator": () =>
+    import("@/pages/tools/content-calendar-generator"),
 };
 
 const prefetched = new Set<string>();

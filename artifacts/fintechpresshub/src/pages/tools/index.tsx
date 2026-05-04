@@ -4,6 +4,7 @@ import { PageHero } from "@/components/PageHero";
 import { PageMeta } from "@/components/PageMeta";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { prefetchRoute } from "@/lib/route-prefetch";
 import {
   Calculator,
   TrendingUp,
@@ -143,6 +144,8 @@ export default function ToolsIndex() {
                   initial="hidden"
                   animate="visible"
                   variants={cardVariants}
+                  onMouseEnter={() => prefetchRoute(tool.href)}
+                  onFocus={() => prefetchRoute(tool.href)}
                 >
                   <Link href={tool.href} className="block h-full group">
                     <Card className="h-full border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 group-focus-visible:ring-2 group-focus-visible:ring-blue-500">
