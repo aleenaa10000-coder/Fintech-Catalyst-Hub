@@ -4,6 +4,11 @@ import { getSiteUrl, pingIndexNow, pingGoogleSitemap } from "../lib/seo";
 import { buildSitemapEntries } from "./sitemap";
 import { logger } from "../lib/logger";
 
+function isIndexNowConfigured(): boolean {
+  const key = process.env["INDEXNOW_KEY"];
+  return typeof key === "string" && /^[a-zA-Z0-9-]{8,128}$/.test(key);
+}
+
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
@@ -93,6 +98,7 @@ router.get(
         total: entries.length,
         bySource,
         entries,
+        indexNowConfigured: isIndexNowConfigured(),
         generatedAt: new Date().toISOString(),
       });
     } catch (err) {

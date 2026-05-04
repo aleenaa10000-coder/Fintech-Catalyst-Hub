@@ -34,6 +34,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   ExternalLink,
+  Key,
 } from "lucide-react";
 
 function timeAgo(iso: string): string {
@@ -101,14 +102,19 @@ interface DashboardData {
 interface SitemapEntryCounts {
   total: number;
   bySource: { static: number; blog: number; author: number; rss: number };
+  indexNowConfigured: boolean;
 }
 
+type IndexNowStatus = "accepted" | "rejected" | "skipped_no_key" | "skipped_malformed_key" | "error";
+
 interface SitemapPingResult {
-  submitted: number;
-  indexNow: { accepted: boolean; status: number | null; error?: string };
-  google: { pinged: boolean; error?: string };
+  ok: boolean;
+  urlCount: number;
+  indexNow: { status: IndexNowStatus; httpStatus?: number; message: string; urlsSubmitted: number };
+  google: { status: "attempted" | "error"; httpStatus?: number; message: string };
   durationMs: number;
   sitemapUrl: string;
+  submittedAt: string;
 }
 
 function StatCard({
@@ -646,6 +652,25 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* IndexNow not-configured warning */}
+                {sitemapCounts && !sitemapCounts.indexNowConfigured && (
+                  <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                    <Key className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-amber-900">IndexNow key not configured</p>
+                      <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                        Without an <code className="font-mono bg-amber-100 px-1 rounded">INDEXNOW_KEY</code>, Bing, Yandex, Seznam, and Naver won't be notified when you publish. To set it up:
+                      </p>
+                      <ol className="mt-2 text-xs text-amber-800 list-decimal list-inside space-y-1 leading-relaxed">
+                        <li>Generate a random key: 8–128 characters, letters, digits, and hyphens only — e.g. <code className="font-mono bg-amber-100 px-1 rounded">openssl rand -hex 32</code></li>
+                        <li>Add it as a secret named <code className="font-mono bg-amber-100 px-1 rounded">INDEXNOW_KEY</code> in your Replit project (Tools → Secrets)</li>
+                        <li>Restart the API server — the key file is served automatically at <code className="font-mono bg-amber-100 px-1 rounded">/indexnow-key.txt</code></li>
+                        <li>Verify at <a href="https://www.bing.com/indexnow" target="_blank" rel="noreferrer" className="underline hover:text-amber-900">bing.com/indexnow</a> or submit once with the button below to confirm acceptance</li>
+                      </ol>
+                    </div>
+                  </div>
+                )}
+
                 {/* Entry count chips */}
                 <div className="flex flex-wrap gap-2 mb-4">
                   {sitemapCountsLoading && !sitemapCounts ? (
@@ -691,20 +716,28 @@ export default function AdminDashboard() {
 
                   {pingResult && !pinging && (
                     <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium ${pingResult.indexNow.accepted ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-amber-50 border-amber-200 text-amber-700"}`}>
-                        {pingResult.indexNow.accepted
-                          ? <><CheckCircle2 className="w-3 h-3" /> IndexNow accepted</>
-                          : <><AlertTriangle className="w-3 h-3" /> IndexNow {pingResult.indexNow.status ?? "error"}</>
-                        }
-                      </span>
-                      <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium ${pingResult.google.pinged ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-slate-50 border-slate-200 text-slate-600"}`}>
-                        {pingResult.google.pinged
+                      {(() => {
+                        const accepted = pingResult.indexNow.status === "accepted";
+                        const skipped = pingResult.indexNow.status === "skipped_no_key" || pingResult.indexNow.status === "skipped_malformed_key";
+                        return (
+                          <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium ${accepted ? "bg-emerald-50 border-emerald-200 text-emerald-700" : skipped ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-red-50 border-red-200 text-red-700"}`}>
+                            {accepted
+                              ? <><CheckCircle2 className="w-3 h-3" /> IndexNow accepted</>
+                              : skipped
+                                ? <><Key className="w-3 h-3" /> IndexNow skipped — key not set</>
+                                : <><AlertTriangle className="w-3 h-3" /> IndexNow {pingResult.indexNow.status}</>
+                            }
+                          </span>
+                        );
+                      })()}
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium ${pingResult.google.status === "attempted" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-slate-50 border-slate-200 text-slate-600"}`}>
+                        {pingResult.google.status === "attempted"
                           ? <><CheckCircle2 className="w-3 h-3" /> Google pinged</>
-                          : <><AlertTriangle className="w-3 h-3" /> Google skipped</>
+                          : <><AlertTriangle className="w-3 h-3" /> Google error</>
                         }
                       </span>
                       <span className="text-muted-foreground">
-                        {pingResult.submitted} URLs · {pingResult.durationMs}ms
+                        {pingResult.urlCount} URLs · {pingResult.durationMs}ms
                       </span>
                     </div>
                   )}
