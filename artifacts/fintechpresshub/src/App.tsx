@@ -96,6 +96,7 @@ const AdminAuthorPhotos = lazy(() => import("@/pages/admin-author-photos"));
 const AdminAuthors = lazy(() => import("@/pages/admin-authors"));
 const AdminPricing = lazy(() => import("@/pages/admin-pricing"));
 const AdminAnalytics = lazy(() => import("@/pages/admin-analytics"));
+const AdminSeoPerformance = lazy(() => import("@/pages/admin-seo-performance"));
 
 function RouteFallback() {
   const [location] = useLocation();
@@ -312,6 +313,7 @@ function Router() {
             <AdminRoute path="/admin/audit-log" component={AdminAuditLog} />
             <AdminRoute path="/admin/notifications" component={AdminNotifications} />
             <AdminRoute path="/admin/analytics" component={AdminAnalytics} />
+            <AdminRoute path="/admin/seo-performance" component={AdminSeoPerformance} />
             <Route path="/404" component={NotFound} />
             <Route component={NotFound} />
           </Switch>

@@ -29,6 +29,7 @@ import {
   UserCog,
   DollarSign,
   BarChart2,
+  Search,
   Map,
   Send,
   CheckCircle2,
@@ -789,6 +790,7 @@ export default function AdminDashboard() {
                   { label: "Audit log", icon: ScrollText, href: "/admin/audit-log", badge: 0 },
                   { label: "Notifications", icon: Bell, href: "/admin/notifications", badge: 0 },
                   { label: "Analytics", icon: BarChart2, href: "/admin/analytics", badge: 0 },
+                  { label: "SEO", icon: Search, href: "/admin/seo-performance", badge: 0 },
                 ].map(({ label, icon: Icon, href, badge }) => (
                   <Link
                     key={href}
