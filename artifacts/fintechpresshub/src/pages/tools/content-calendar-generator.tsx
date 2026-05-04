@@ -10024,9 +10024,9 @@ export default function ContentCalendarGenerator() {
                   const n      = scored.length;
 
                   const byTier = (t: DiffTier) => scored.filter((s) => s.diff.tier === t);
-                  const distinctive  = byTier("distinctive");
-                  const aboveAvg     = byTier("above-average");
-                  const generic      = byTier("generic");
+                  const distinctive  = byTier("strongly-differentiated");
+                  const aboveAvg     = byTier("differentiated");
+                  const generic      = byTier("commodity-risk");
                   const commodity    = byTier("commodity");
 
                   // Per-dimension coverage (entries reaching ≥8/20 = meaningful signal)
@@ -10055,10 +10055,10 @@ export default function ContentCalendarGenerator() {
                                       { label: "Undifferentiated — most entries are indistinguishable from competitor content", color: "text-rose-700",  bg: "bg-rose-50",  border: "border-rose-100"  };
 
                   const TIER_D: Record<DiffTier, { label: string; icon: string; pill: string; bar: string; color: string; bg: string; border: string }> = {
-                    "distinctive":   { label: "Distinctive",   icon: "🏆", pill: "bg-lime-100 text-lime-700 border-lime-200",      bar: "bg-lime-400",   color: "text-lime-700",  bg: "bg-lime-50",  border: "border-lime-100"  },
-                    "above-average": { label: "Above average", icon: "🟢", pill: "bg-blue-100 text-blue-700 border-blue-200",      bar: "bg-blue-400",   color: "text-blue-700",  bg: "bg-blue-50",  border: "border-blue-100"  },
-                    "generic":       { label: "Generic",       icon: "🟡", pill: "bg-amber-100 text-amber-700 border-amber-200",   bar: "bg-amber-400",  color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" },
-                    "commodity":     { label: "Commodity",     icon: "🔴", pill: "bg-rose-100 text-rose-700 border-rose-200",      bar: "bg-rose-400",   color: "text-rose-700",  bg: "bg-rose-50",  border: "border-rose-100"  },
+                    "strongly-differentiated": { label: "Strongly differentiated", icon: "🏆", pill: "bg-lime-100 text-lime-700 border-lime-200",      bar: "bg-lime-400",   color: "text-lime-700",  bg: "bg-lime-50",  border: "border-lime-100"  },
+                    "differentiated":          { label: "Differentiated",          icon: "🟢", pill: "bg-blue-100 text-blue-700 border-blue-200",      bar: "bg-blue-400",   color: "text-blue-700",  bg: "bg-blue-50",  border: "border-blue-100"  },
+                    "commodity-risk":          { label: "Commodity risk",          icon: "🟡", pill: "bg-amber-100 text-amber-700 border-amber-200",   bar: "bg-amber-400",  color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" },
+                    "commodity":               { label: "Commodity",               icon: "🔴", pill: "bg-rose-100 text-rose-700 border-rose-200",      bar: "bg-rose-400",   color: "text-rose-700",  bg: "bg-rose-50",  border: "border-rose-100"  },
                   };
 
                   const DIM_D: Record<DiffDimension, { label: string; icon: string; pill: string; bar: string; desc: string; tip: string }> = {
@@ -10070,12 +10070,12 @@ export default function ContentCalendarGenerator() {
                   };
 
                   const DIMS: DiffDimension[] = ["contrarianism","specificity","practitioner","audienceFocus","freshness"];
-                  const TIERS: DiffTier[] = ["distinctive","above-average","generic","commodity"];
+                  const TIERS: DiffTier[] = ["strongly-differentiated","differentiated","commodity-risk","commodity"];
                   const dimPcts: Record<DiffDimension, number> = { contrarianism: contPct, specificity: specPct, practitioner: practPct, audienceFocus: audPct, freshness: freshPct };
 
                   // Most common weakest dimension
                   const weakestCounts: Partial<Record<DiffDimension, number>> = {};
-                  scored.filter((s) => s.diff.tier !== "distinctive").forEach((s) => {
+                  scored.filter((s) => s.diff.tier !== "strongly-differentiated").forEach((s) => {
                     weakestCounts[s.diff.weakestDim] = (weakestCounts[s.diff.weakestDim] ?? 0) + 1;
                   });
                   const portfolioWeakest = (Object.entries(weakestCounts) as [DiffDimension, number][])
@@ -10217,7 +10217,7 @@ export default function ContentCalendarGenerator() {
 
                         {/* Generic entries — quick wins */}
                         {generic.length > 0 && (
-                          <div className={`flex items-start gap-2 px-3 py-2 rounded-lg border mb-4 ${TIER_D.generic.bg} ${TIER_D.generic.border}`}>
+                          <div className={`flex items-start gap-2 px-3 py-2 rounded-lg border mb-4 ${TIER_D["commodity-risk"].bg} ${TIER_D["commodity-risk"].border}`}>
                             <span className="text-[10px] shrink-0 mt-0.5">🟡</span>
                             <div>
                               <p className="text-[8.5px] font-bold text-amber-800 mb-1">{generic.length} generic entr{generic.length !== 1 ? "ies" : "y"} — one dimension lift would move each to Above Average</p>
