@@ -645,9 +645,18 @@ export default function HeadlineAnalyzer() {
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${pct}%` }}
-                              transition={{ duration: 0.5, delay: i * 0.07 }}
-                              className={`h-full rounded-full ${c.bar}`}
-                            />
+                              transition={{
+                                duration: 0.8,
+                                delay: i * 0.07,
+                                ease: [0.25, 0.46, 0.45, 0.94],
+                              }}
+                              className={`relative h-full rounded-full overflow-hidden ${c.bar}`}
+                            >
+                              <div
+                                key={result.headline}
+                                className="absolute inset-0 animate-shimmer-bar bg-gradient-to-r from-transparent via-white/50 to-transparent"
+                              />
+                            </motion.div>
                           </div>
                           <p className="text-[11px] text-muted-foreground leading-snug">{dim.feedback}</p>
                           <p className={`text-[11px] font-medium ${c.text} leading-snug`}>
