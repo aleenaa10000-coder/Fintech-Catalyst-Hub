@@ -486,10 +486,18 @@ function analyzeHeadline(headline: string): Analysis {
   if (/click here|read more|find out more/i.test(headline))
     flags.push("Weak CTA language ('click here', 'read more') — state the value directly instead.");
 
+  // ── Capitalisation ───────────────────────────────────────────────────────
   if (headline.toUpperCase() === headline && headline.length > 5)
-    flags.push("ALL CAPS reduces credibility and trust in professional B2B contexts.");
+    flags.push("Headline is ALL CAPS — inconsistent casing can hurt professional credibility. Use title or sentence case.");
 
-  if (/!!/.test(headline))
+  if (headline.toLowerCase() === headline && headline.length > 5)
+    flags.push("Headline is all lowercase — inconsistent casing can hurt professional credibility. Use title or sentence case.");
+
+  // ── Double punctuation ───────────────────────────────────────────────────
+  if ((headline.match(/\?/g) ?? []).length > 1)
+    flags.push("Multiple question marks detected — use one '?' maximum. Extra marks reduce professional credibility.");
+
+  if ((headline.match(/!/g) ?? []).length > 1)
     flags.push("Multiple exclamation marks read as spammy — one or none is the professional standard.");
 
   // ── Vague & overused phrasing ────────────────────────────────────────────
@@ -515,8 +523,18 @@ function analyzeHeadline(headline: string): Analysis {
     flags.push("Ends in a question with no resolution cue (no colon or parenthetical) — readers may skip without a hint of the answer.");
 
   // ── Passive voice ────────────────────────────────────────────────────────
+  // Specific "is being used/adopted/driven by" pattern — suggest active rewrite
+  const passivByMatch = headline.match(/\bis being (used|adopted|driven|shaped|dominated|led|replaced|disrupted) by\b/i);
+  if (passivByMatch)
+    flags.push(`Passive construction detected ("${passivByMatch[0]}") — rewrite in active voice, e.g. swap "Why X is Being Used by Banks" → "Why Banks Are Using X".`);
+
+  // Passive opener (sentence starts with auxiliary verb)
   if (/^(is |are |was |were |has been |have been |being )/i.test(headline))
-    flags.push("Starts in passive voice — lead with an active verb or the primary keyword for stronger impact.");
+    flags.push("Starts in passive voice — lead with an active verb or the primary keyword for stronger impact and better SEO signal.");
+
+  // "Why [Topic] is being…" pattern mid-headline
+  if (/^why\b.+\bis being\b/i.test(headline) && !passivByMatch)
+    flags.push(`"Why [Topic] is being…" is a passive construction — try "Why [Audience] Is Using [Topic]" to make it active and more search-friendly.`);
 
   return {
     headline,
