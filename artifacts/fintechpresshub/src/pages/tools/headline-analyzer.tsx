@@ -137,6 +137,12 @@ type ScoreDimension = {
     detectedKeyword: string;
     suggestions: string[];
   };
+  /** Character ruler data — only populated by the Character Count dimension */
+  charMarkers?: {
+    count: number;
+    isSweetSpot: boolean;
+    truncationWarning: boolean;
+  };
 };
 
 type Analysis = {
@@ -156,23 +162,34 @@ function scoreCharCount(h: string): ScoreDimension {
   let score: number;
   let feedback: string;
   let tip: string;
-  if (n >= 50 && n <= 70) {
+  let isSweetSpot = false;
+  let truncationWarning = false;
+
+  if (n >= 50 && n <= 60) {
     score = 25;
-    feedback = `${n} characters — ideal range for SEO (50–70).`;
-    tip = "Character count is already in the sweet spot. Keep it.";
+    isSweetSpot = true;
+    feedback = `${n} characters — sweet spot for SEO (50–60).`;
+    tip = "Perfect length. Google displays this in full across all devices.";
+  } else if (n > 60 && n <= 70) {
+    score = 20;
+    truncationWarning = true;
+    feedback = `${n} characters — slightly over the 60-char SEO threshold.`;
+    tip = "Trim 1–3 words to bring it under 60 characters and avoid Google truncation.";
+  } else if (n > 70 && n <= 80) {
+    score = 14;
+    truncationWarning = true;
+    feedback = `${n} characters — likely truncated in Google Search Results.`;
+    tip = "Remove an adjective or qualifier. Aim for one strong idea per headline.";
+  } else if (n > 80) {
+    score = 8;
+    truncationWarning = true;
+    feedback = `${n} characters — too long. Will be cut off in SERPs and browser tabs.`;
+    tip = "Cut any phrase that doesn't add meaning. Aim for under 60 characters.";
   } else if (n >= 40 && n < 50) {
     score = 18;
-    feedback = `${n} characters — slightly short. Target 50–70.`;
+    feedback = `${n} characters — slightly short. Target 50–60 for the sweet spot.`;
     tip = "Add a specific detail (a number, a context qualifier, or a fintech keyword) to reach 50+ characters.";
-  } else if (n > 70 && n <= 80) {
-    score = 18;
-    feedback = `${n} characters — slightly long. Search engines may truncate above 70.`;
-    tip = "Remove an adjective or qualifier to tighten it. Every word must earn its place.";
-  } else if (n > 80 && n <= 100) {
-    score = 10;
-    feedback = `${n} characters — too long. Likely truncated in SERPs.`;
-    tip = "Cut any phrase that doesn't add meaning. Aim for one strong idea, not two.";
-  } else if (n < 40 && n > 0) {
+  } else if (n > 0) {
     score = 10;
     feedback = `${n} characters — too short. Headlines under 40 chars tend to lack context.`;
     tip = "Expand with your target audience, a benefit, or a specific timeframe (e.g. 'in 2025').";
@@ -181,14 +198,16 @@ function scoreCharCount(h: string): ScoreDimension {
     feedback = "No headline entered.";
     tip = "Enter a headline above.";
   }
+
   return {
     label: "Character Count",
     score,
     max: 25,
     icon: Ruler,
-    color: score >= 22 ? "emerald" : score >= 14 ? "amber" : "red",
+    color: isSweetSpot ? "emerald" : score >= 17 ? "amber" : "red",
     feedback,
     tip,
+    charMarkers: n > 0 ? { count: n, isSweetSpot, truncationWarning } : undefined,
   };
 }
 
