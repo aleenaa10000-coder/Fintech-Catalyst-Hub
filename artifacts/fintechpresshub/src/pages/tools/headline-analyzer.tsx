@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -19,6 +19,7 @@ import {
   Zap,
   Ruler,
   RefreshCw,
+  BarChart2,
 } from "lucide-react";
 
 const FINTECH_KEYWORDS = [
@@ -456,6 +457,8 @@ export default function HeadlineAnalyzer() {
   const [result, setResult] = useState<Analysis | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
 
+  const scoreBreakdownRef = useRef<HTMLDivElement>(null);
+
   const analyze = () => {
     if (headline.trim().length < 5) return;
     setResult(analyzeHeadline(headline.trim()));
@@ -470,6 +473,14 @@ export default function HeadlineAnalyzer() {
     navigator.clipboard.writeText(text);
     setCopied(idx);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const checkRewriteScore = (text: string) => {
+    setHeadline(text);
+    setResult(analyzeHeadline(text));
+    setTimeout(() => {
+      scoreBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
   };
 
   const canAnalyze = headline.trim().length >= 5;
@@ -609,7 +620,7 @@ export default function HeadlineAnalyzer() {
                 {/* Dimension breakdown */}
                 <Card className="border border-slate-100 shadow-sm">
                   <CardContent className="p-5 space-y-4">
-                    <h4 className="text-sm font-semibold text-slate-900">Score Breakdown</h4>
+                    <h4 ref={scoreBreakdownRef} className="text-sm font-semibold text-slate-900">Score Breakdown</h4>
                     {result.dimensions.map((dim, i) => {
                       const c = COLOR_MAP[dim.color];
                       const pct = Math.round((dim.score / dim.max) * 100);
@@ -699,17 +710,26 @@ export default function HeadlineAnalyzer() {
                           <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-500">{r.label}</p>
                           <p className="text-sm text-slate-800 leading-snug">{r.text}</p>
                         </div>
-                        <button
-                          onClick={() => copyRewrite(r.text, i)}
-                          className="shrink-0 text-muted-foreground hover:text-indigo-600 transition-colors mt-0.5"
-                          title="Copy"
-                        >
-                          {copied === i ? (
-                            <Check className="w-4 h-4 text-green-500" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                          <button
+                            onClick={() => checkRewriteScore(r.text)}
+                            className="text-muted-foreground hover:text-indigo-600 transition-colors"
+                            title="Check score"
+                          >
+                            <BarChart2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => copyRewrite(r.text, i)}
+                            className="text-muted-foreground hover:text-indigo-600 transition-colors"
+                            title="Copy"
+                          >
+                            {copied === i ? (
+                              <Check className="w-4 h-4 text-green-500" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
                       </motion.div>
                     ))}
                   </CardContent>
