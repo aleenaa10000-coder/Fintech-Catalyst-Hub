@@ -660,23 +660,78 @@ export default function HeadlineAnalyzer() {
                               {dim.score} / {dim.max}
                             </span>
                           </div>
-                          <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${pct}%` }}
-                              transition={{
-                                duration: 0.8,
-                                delay: i * 0.07,
-                                ease: [0.25, 0.46, 0.45, 0.94],
-                              }}
-                              className={`relative h-full rounded-full overflow-hidden ${c.bar}`}
-                            >
-                              <div
-                                key={result.headline}
-                                className="absolute inset-0 animate-shimmer-bar bg-gradient-to-r from-transparent via-white/50 to-transparent"
-                              />
-                            </motion.div>
-                          </div>
+                          {dim.charMarkers ? (
+                            /* ── Character Count: ruler bar with threshold markers ── */
+                            <div className="space-y-0.5">
+                              <div className="relative">
+                                <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${Math.min(dim.charMarkers.count, 100)}%` }}
+                                    transition={{ duration: 0.8, delay: i * 0.07, ease: [0.25, 0.46, 0.45, 0.94] }}
+                                    className={`relative h-full rounded-full overflow-hidden ${c.bar}`}
+                                  >
+                                    <div
+                                      key={result.headline}
+                                      className="absolute inset-0 animate-shimmer-bar bg-gradient-to-r from-transparent via-white/50 to-transparent"
+                                    />
+                                  </motion.div>
+                                </div>
+                                {/* Tick lines sit on top of the track, outside overflow-hidden */}
+                                {[30, 60, 90].map((mark) => (
+                                  <div
+                                    key={mark}
+                                    className="absolute top-0 h-full w-px bg-slate-400/50"
+                                    style={{ left: `${mark}%` }}
+                                  />
+                                ))}
+                              </div>
+                              {/* Marker labels */}
+                              <div className="relative" style={{ height: "2.25rem" }}>
+                                {[
+                                  { pos: 30, chars: 30, label: "Browser Tab" },
+                                  { pos: 60, chars: 60, label: "SEO" },
+                                  { pos: 90, chars: 90, label: "Social" },
+                                ].map(({ pos, chars, label }) => (
+                                  <div
+                                    key={label}
+                                    className="absolute flex flex-col items-center"
+                                    style={{ left: `${pos}%`, transform: "translateX(-50%)" }}
+                                  >
+                                    <span className="text-[9px] font-bold text-slate-500 leading-tight">{chars}</span>
+                                    <span className="text-[8px] text-slate-400 leading-tight whitespace-nowrap">{label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            /* ── Standard bar for all other dimensions ── */
+                            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pct}%` }}
+                                transition={{ duration: 0.8, delay: i * 0.07, ease: [0.25, 0.46, 0.45, 0.94] }}
+                                className={`relative h-full rounded-full overflow-hidden ${c.bar}`}
+                              >
+                                <div
+                                  key={result.headline}
+                                  className="absolute inset-0 animate-shimmer-bar bg-gradient-to-r from-transparent via-white/50 to-transparent"
+                                />
+                              </motion.div>
+                            </div>
+                          )}
+                          {/* Sweet Spot badge */}
+                          {dim.charMarkers?.isSweetSpot && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                              <Check className="w-3 h-3" /> Sweet Spot
+                            </span>
+                          )}
+                          {/* Truncation warning */}
+                          {dim.charMarkers?.truncationWarning && (
+                            <p className="text-[11px] font-medium text-amber-600 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3 shrink-0" /> Risk of truncation in Google Search Results.
+                            </p>
+                          )}
                           <p className="text-[11px] text-muted-foreground leading-snug">{dim.feedback}</p>
                           <p className={`text-[11px] font-medium ${c.text} leading-snug`}>
                             Tip: {dim.tip}
