@@ -27,6 +27,7 @@ import contentReportsRouter from "./contentReports";
 import authorPhotosRouter from "./authorPhotos";
 import authorPhotoRequestsRouter from "./authorPhotoRequests";
 import authorsRouter from "./authors";
+import sitemapPingRouter from "./sitemapPing";
 
 const router: IRouter = Router();
 
@@ -58,5 +59,6 @@ router.use(contentReportsRouter);
 router.use(authorPhotosRouter);
 router.use(authorPhotoRequestsRouter);
 router.use(authorsRouter);
+router.use(sitemapPingRouter);
 
 export default router;
