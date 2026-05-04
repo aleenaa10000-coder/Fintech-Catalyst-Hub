@@ -75,6 +75,48 @@ const ALL_FINTECH_POWER_WORDS = [
   ...FINTECH_URGENCY_WORDS,
 ];
 
+// ── Topical Cluster Map ────────────────────────────────────────────────────
+// When a primary fintech keyword is detected, suggest 2-3 semantically
+// related terms the writer should consider including for topical authority.
+// Keys must be lowercase and match entries in FINTECH_KEYWORDS above.
+const TOPICAL_CLUSTERS: Record<string, string[]> = {
+  "payments":          ["cross-border", "settlement", "acquiring"],
+  "sme":               ["lending", "working capital", "invoice financing"],
+  "open banking":      ["PSD2", "account aggregation", "API connectivity"],
+  "crypto":            ["DeFi", "custody", "blockchain"],
+  "blockchain":        ["smart contracts", "tokenization", "DLT"],
+  "defi":              ["liquidity pools", "yield farming", "protocol"],
+  "lending":           ["underwriting", "credit risk", "origination"],
+  "kyc":               ["AML", "onboarding", "identity verification"],
+  "aml":               ["KYC", "transaction monitoring", "sanctions screening"],
+  "neobank":           ["embedded finance", "BaaS", "digital-first"],
+  "digital bank":      ["BaaS", "core banking", "API-first"],
+  "insurance":         ["underwriting", "claims automation", "parametric"],
+  "insuretech":        ["parametric", "claims automation", "embedded insurance"],
+  "regtech":           ["compliance automation", "reporting", "KYC"],
+  "fraud":             ["authentication", "identity proofing", "chargeback"],
+  "wealth":            ["portfolio management", "robo-advisor", "asset allocation"],
+  "wealthtech":        ["robo-advisor", "portfolio rebalancing", "alternative assets"],
+  "remittance":        ["FX", "cross-border", "correspondent banking"],
+  "embedded finance":  ["BaaS", "non-bank", "API-led"],
+  "cbdc":              ["digital currency", "monetary policy", "programmable money"],
+  "stablecoin":        ["peg mechanism", "collateral", "CBDC"],
+  "fintech":           ["embedded finance", "open banking", "regulatory compliance"],
+  "banking":           ["core banking", "digital transformation", "BaaS"],
+  "compliance":        ["RegTech", "audit trail", "sanctions screening"],
+  "regulation":        ["compliance framework", "licensing", "regulatory capital"],
+  "funding":           ["venture debt", "growth equity", "runway"],
+  "startup":           ["seed round", "product-market fit", "burn rate"],
+  "ai":                ["machine learning", "predictive analytics", "model governance"],
+  "automation":        ["straight-through processing", "workflow orchestration", "RPA"],
+  "identity":          ["biometrics", "liveness detection", "KYC"],
+  "wallet":            ["digital wallet", "stored value", "tokenized payments"],
+  "investment":        ["asset allocation", "portfolio construction", "ESG"],
+  "credit":            ["credit scoring", "underwriting", "bureau data"],
+  "mortgage":          ["LTV ratio", "underwriting", "affordability assessment"],
+  "fx":                ["hedging", "cross-border", "treasury management"],
+};
+
 const VAGUE_WORDS = [
   "things", "stuff", "ways", "some", "certain", "various", "several",
   "many", "lots", "really", "very", "quite", "rather", "somewhat",
@@ -89,6 +131,11 @@ type ScoreDimension = {
   color: string;
   feedback: string;
   tip: string;
+  /** Topical authority hint — only populated by the Keyword Presence dimension */
+  topicalHint?: {
+    detectedKeyword: string;
+    suggestions: string[];
+  };
 };
 
 type Analysis = {
@@ -192,6 +239,14 @@ function scoreFintechKeyword(h: string): ScoreDimension {
   let score: number;
   let feedback: string;
   let tip: string;
+  let topicalHint: ScoreDimension["topicalHint"];
+
+  // Find the most specific matched keyword that has a topical cluster
+  // (longer keyword = more specific, so sort by length descending)
+  const primaryKeyword =
+    [...matched].sort((a, b) => b.length - a.length).find((kw) => TOPICAL_CLUSTERS[kw]) ??
+    matched[0] ??
+    null;
 
   if (matched.length >= 2) {
     score = 25;
@@ -207,6 +262,19 @@ function scoreFintechKeyword(h: string): ScoreDimension {
     tip = "Add your primary keyword explicitly — search engines and readers use it to judge relevance instantly.";
   }
 
+  // Build topical authority hint for the detected primary keyword
+  if (primaryKeyword && TOPICAL_CLUSTERS[primaryKeyword]) {
+    const clusterTerms = TOPICAL_CLUSTERS[primaryKeyword]!;
+    // Only suggest terms not already present in the headline
+    const missing = clusterTerms.filter((t) => !lower.includes(t.toLowerCase()));
+    if (missing.length > 0) {
+      topicalHint = {
+        detectedKeyword: primaryKeyword,
+        suggestions: missing.slice(0, 3),
+      };
+    }
+  }
+
   return {
     label: "Keyword Presence",
     score,
@@ -215,6 +283,7 @@ function scoreFintechKeyword(h: string): ScoreDimension {
     color: score >= 22 ? "emerald" : score >= 14 ? "amber" : "red",
     feedback,
     tip,
+    topicalHint,
   };
 }
 
@@ -573,6 +642,22 @@ export default function HeadlineAnalyzer() {
                           <p className={`text-[11px] font-medium ${c.text} leading-snug`}>
                             Tip: {dim.tip}
                           </p>
+                          {dim.topicalHint && (
+                            <div className="mt-1.5 rounded-md border border-blue-100 bg-blue-50 px-2.5 py-2">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-700 mb-1">
+                                Topical Authority
+                              </p>
+                              <p className="text-[11px] text-blue-800 leading-snug">
+                                To deepen topical coverage around <strong>"{dim.topicalHint.detectedKeyword}"</strong>, consider including:{" "}
+                                {dim.topicalHint.suggestions.map((s, i) => (
+                                  <span key={s}>
+                                    <span className="font-medium">{s}</span>
+                                    {i < dim.topicalHint!.suggestions.length - 1 ? ", " : "."}
+                                  </span>
+                                ))}
+                              </p>
+                            </div>
+                          )}
                         </motion.div>
                       );
                     })}
