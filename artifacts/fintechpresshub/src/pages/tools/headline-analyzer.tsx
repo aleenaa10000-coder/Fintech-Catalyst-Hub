@@ -34,14 +34,45 @@ const FINTECH_KEYWORDS = [
   "data", "ai", "machine learning", "automation", "platform",
 ];
 
-const POWER_WORDS = [
-  "essential", "proven", "ultimate", "critical", "top", "best", "worst",
-  "secret", "surprising", "powerful", "effective", "key", "major",
-  "important", "warning", "alert", "mistake", "hidden", "revealed",
-  "new", "now", "today", "urgent", "fast", "quick", "easy", "simple",
-  "complete", "definitive", "guide", "checklist", "framework", "playbook",
-  "strategy", "tactics", "lessons", "insight", "research", "study", "data",
-  "report", "analysis", "trend", "future", "predict", "shift", "transform",
+// ── Fintech Power Word Dictionary ─────────────────────────────────────────
+// Words are grouped by signal type. Fintech-specific words score higher
+// than generic structural words because they resonate directly with
+// financial decision-makers evaluating authority, ROI, and risk.
+
+const FINTECH_AUTHORITY_WORDS = [
+  "regulated", "compliant", "compliance", "secure", "security", "blueprint",
+  "verified", "certified", "licensed", "audited", "trusted", "institutional",
+  "fiduciary", "sovereign", "accredited", "endorsed", "standards",
+  "framework", "governance", "transparent",
+];
+
+const FINTECH_GROWTH_WORDS = [
+  "scalable", "roi", "liquidity", "expansion", "untapped", "yield",
+  "compounding", "revenue", "portfolio", "alpha", "outperform", "capitalize",
+  "accelerate", "profitable", "high-growth", "upside", "valuation",
+  "arbitrage", "diversify", "compound",
+];
+
+const FINTECH_URGENCY_WORDS = [
+  "critical", "warning", "shift", "deadline", "fraud", "breach", "risk",
+  "volatile", "disruption", "imminent", "exploit", "vulnerability",
+  "exposure", "crackdown", "collapse", "penalty", "sanction", "overhaul",
+];
+
+// Generic structural power words (lower weight than fintech-specific)
+const GENERIC_POWER_WORDS = [
+  "essential", "proven", "ultimate", "top", "best",
+  "secret", "surprising", "powerful", "effective", "hidden", "revealed",
+  "new", "now", "today", "fast", "quick", "simple",
+  "complete", "definitive", "guide", "checklist", "playbook",
+  "strategy", "tactics", "insight", "research", "study", "data",
+  "report", "analysis", "trend", "future", "predict", "transform",
+];
+
+const ALL_FINTECH_POWER_WORDS = [
+  ...FINTECH_AUTHORITY_WORDS,
+  ...FINTECH_GROWTH_WORDS,
+  ...FINTECH_URGENCY_WORDS,
 ];
 
 const VAGUE_WORDS = [
@@ -193,17 +224,42 @@ function scoreEmotionalPull(h: string): ScoreDimension {
   const hasQuestion = h.includes("?");
   const hasBracket = /[\[\(]/.test(h);
   const hasColon = h.includes(":");
-  const powerCount = POWER_WORDS.filter((w) => lower.includes(w)).length;
+
+  // Count fintech-specific power words (higher value signal)
+  const authorityHits = FINTECH_AUTHORITY_WORDS.filter((w) => lower.includes(w));
+  const growthHits    = FINTECH_GROWTH_WORDS.filter((w) => lower.includes(w));
+  const urgencyHits   = FINTECH_URGENCY_WORDS.filter((w) => lower.includes(w));
+  const fintechCount  = authorityHits.length + growthHits.length + urgencyHits.length;
+
+  // Count generic power words (lower value)
+  const genericCount = GENERIC_POWER_WORDS.filter((w) => lower.includes(w)).length;
 
   let score = 0;
   const signals: string[] = [];
 
-  if (hasNumber) { score += 8; signals.push("number"); }
+  // Structural engagement signals
+  if (hasNumber)   { score += 8; signals.push("number"); }
   if (hasQuestion) { score += 6; signals.push("question"); }
-  if (hasBracket) { score += 4; signals.push("bracket/parenthetical"); }
-  if (hasColon) { score += 4; signals.push("colon structure"); }
-  if (powerCount >= 2) { score += 7; signals.push(`${powerCount} power words`); }
-  else if (powerCount === 1) { score += 4; signals.push("1 power word"); }
+  if (hasBracket)  { score += 4; signals.push("bracket/parenthetical"); }
+  if (hasColon)    { score += 4; signals.push("colon structure"); }
+
+  // Fintech power words: 5 pts each, +3 bonus for 2+ (decision-maker resonance)
+  if (fintechCount >= 2) {
+    score += fintechCount * 5 + 3;
+    const categories: string[] = [];
+    if (authorityHits.length) categories.push(`authority (${authorityHits.join(", ")})`);
+    if (growthHits.length)    categories.push(`growth (${growthHits.join(", ")})`);
+    if (urgencyHits.length)   categories.push(`urgency (${urgencyHits.join(", ")})`);
+    signals.push(`fintech power words — ${categories.join("; ")}`);
+  } else if (fintechCount === 1) {
+    score += 5;
+    const hit = [...authorityHits, ...growthHits, ...urgencyHits][0]!;
+    signals.push(`fintech power word (${hit})`);
+  } else if (genericCount >= 2) {
+    score += 7; signals.push(`${genericCount} power words`);
+  } else if (genericCount === 1) {
+    score += 3; signals.push("1 power word");
+  }
 
   score = Math.min(score, 25);
 
@@ -211,11 +267,12 @@ function scoreEmotionalPull(h: string): ScoreDimension {
     signals.length > 0
       ? `Engagement signals: ${signals.join(", ")}.`
       : "No strong engagement signals found.";
+
   const tip =
     !hasNumber
       ? "Add a specific number — e.g. '5 Ways', '3 Mistakes', '$2.4B Market'. Numbers boost click-through rates."
-      : powerCount === 0
-      ? "Include one power word (e.g. 'proven', 'definitive', 'critical') to add urgency or authority."
+      : fintechCount === 0
+      ? "Use power words that signal authority or growth to resonate with financial decision-makers — e.g. 'Regulated', 'Scalable', 'ROI', 'Compliant', 'Fraud'."
       : !hasColon && !hasBracket
       ? "Consider a colon or bracket structure: 'Topic: What You Need to Know' or 'Headline [2025 Edition]'."
       : "Emotional pull is strong. No changes needed.";
