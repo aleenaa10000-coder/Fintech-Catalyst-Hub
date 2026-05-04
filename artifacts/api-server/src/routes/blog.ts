@@ -676,7 +676,7 @@ router.post(
 
       const updated: (typeof blogPostsTable.$inferSelect)[] = [];
 
-      await db.transaction(async (tx: typeof db) => {
+      await db.transaction(async (tx) => {
         for (const item of body.posts) {
           const [row] = await tx
             .update(blogPostsTable)

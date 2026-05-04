@@ -398,7 +398,7 @@ export default function AdminAuthorSubscribers() {
                     </tr>
                   </thead>
                   <tbody>
-                    {subscribers.map((s: { id: string; email: string | null; createdAt: string; source: string | null }) => (
+                    {subscribers.map((s) => (
                       <tr
                         key={s.id}
                         className="border-b last:border-b-0"

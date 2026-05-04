@@ -149,7 +149,7 @@ async function loadAuthorDetail(slug: string) {
       latestSubscribedAt:
         rows[0]?.createdAt?.toISOString() ?? null,
     },
-    subscribers: rows.map((r: { id: string; email: string | null; createdAt: Date; source: string | null }) => ({
+    subscribers: rows.map((r: { id: number; email: string | null; createdAt: Date; source: string | null }) => ({
       id: r.id,
       email: r.email,
       createdAt: r.createdAt.toISOString(),

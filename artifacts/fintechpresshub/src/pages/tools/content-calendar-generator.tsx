@@ -289,7 +289,8 @@ const FORMAT_LABEL: Record<ContentType, string> = {
   guide: "In-Depth Guide",
 };
 
-type SearchIntent = "SEO Intent" | "Engagement Intent";
+type CalendarIntentLabel = "SEO Intent" | "Engagement Intent";
+type SearchIntent = "informational" | "commercial" | "transactional" | "navigational";
 
 type CalendarEntry = {
   week: number;
@@ -299,7 +300,7 @@ type CalendarEntry = {
   archetype: string;
   type: ContentType;
   cta: string;
-  searchIntent: SearchIntent;
+  searchIntent: CalendarIntentLabel;
   searchVolume: string;
   topicDifficulty: number;
   priorityScore: number;
@@ -640,7 +641,7 @@ function resolveSearchIntent(
   topic: string,
   type: ContentType,
   forceHook: boolean,
-): SearchIntent {
+): CalendarIntentLabel {
   const useHook =
     forceHook || type === "linkedin" || (!isHighSearchIntent(topic) && type === "blog");
   return useHook ? "Engagement Intent" : "SEO Intent";
@@ -2118,7 +2119,7 @@ interface KeywordAnalysis {
   coverageScore: number;
   coveredKeywords: Array<{ keyword: string; label: string; desc: string; importance: string; coverage: number; entries: string[]; isCannibalized: boolean }>;
   gapKeywords: Array<{ keyword: string; label: string; desc: string; importance: string }>;
-  cannibalizedKeywords: Array<{ keyword: string; label: string; coverage: number; entries: string[]; isCannibalized: boolean }>;
+  cannibalizedKeywords: Array<{ keyword: string; label: string; desc: string; importance: string; coverage: number; entries: string[]; isCannibalized: boolean }>;
   gapCount: number;
 }
 
@@ -2322,7 +2323,7 @@ const DIFF_FRESHNESS_SIGNALS = [
   "open finance","ai-powered","generative ai","llm","agentic","tokenisation",
 ];
 
-type DiffTier = "distinctive" | "above-average" | "generic" | "commodity";
+type DiffTier = "strongly-differentiated" | "differentiated" | "commodity-risk" | "commodity";
 type DiffDimension = "contrarianism" | "specificity" | "practitioner" | "audienceFocus" | "freshness";
 
 interface DiffResult {
@@ -2354,9 +2355,9 @@ function scoreDifferentiation(topic: string, angle: string): DiffResult {
   const total         = contrarianism + specificity + practitioner + audienceFocus + freshness;
 
   const tier: DiffTier =
-    total >= 72 ? "distinctive"   :
-    total >= 50 ? "above-average" :
-    total >= 28 ? "generic"       :
+    total >= 72 ? "strongly-differentiated" :
+    total >= 50 ? "differentiated"          :
+    total >= 28 ? "commodity-risk"           :
                   "commodity";
 
   const dims: Record<DiffDimension, number> = { contrarianism, specificity, practitioner, audienceFocus, freshness };
@@ -2548,7 +2549,7 @@ function scoreIntentAlignment(
 // Maps each entry to one or more fintech buyer personas and measures funnel
 // depth per persona — flags over-indexed and underserved audiences
 
-type PersonaKey = "cto" | "cfo" | "cco" | "cpo" | "cmo";
+type PersonaKey = "cto" | "cfo" | "cco" | "cpo" | "cmo" | "compliance" | "product" | "operations" | "ceo";
 
 interface PersonaResult {
   primaryPersona: PersonaKey | "general";
@@ -2582,14 +2583,50 @@ const PERSONA_SIGNALS: Record<PersonaKey, string[]> = {
     "thought leadership","positioning","competitive","differentiat","retention",
     "churn","net promoter","partnership","go-to-market","gtm","demand gen","pipeline",
   ],
+  compliance: [
+    "regulat","complian","risk management","audit","governance","gdpr","psd2","aml","kyc",
+    "dora","mica","fca","sanction","reporting obligation","breach","penalty","prudential",
+    "conduct risk","supervisory","enforcement","due diligence","compliance officer","chief compliance",
+  ],
+  product: [
+    "product manager","product director","vp product","product roadmap","product-led",
+    "feature prioritis","discovery","user research","product strategy","go-to-market",
+    "product-market fit","sprint","backlog","mvp","product launch","product analytics",
+  ],
+  operations: [
+    "operations","efficiency","automation","process","workflow","throughput","headcount",
+    "reconciliation","settlement","back office","straight-through","stp","operational risk",
+    "vendor management","coo","operations director","chief operating","supply chain","operational",
+  ],
+  ceo: [
+    "strategy","growth","funding","investor","scale","market opportunity","competitive",
+    "vision","leadership","board","series","venture","ipo","expansion","partnership",
+    "merger","acquisition","transformation","ceo","founder","chief executive","executive team",
+  ],
 };
 
-const PERSONA_CFG: Record<PersonaKey, { label: string; role: string; icon: string; color: string; bg: string; border: string; pill: string; bar: string }> = {
-  cto: { label: "CTO",  role: "Head of Engineering", icon: "⚙️",  color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-100",   pill: "bg-blue-100 text-blue-700 border-blue-200",     bar: "bg-blue-400"   },
-  cfo: { label: "CFO",  role: "Finance Lead",         icon: "💰",  color: "text-green-700",  bg: "bg-green-50",  border: "border-green-100",  pill: "bg-green-100 text-green-700 border-green-200",  bar: "bg-green-400"  },
-  cco: { label: "CCO",  role: "Chief Compliance",     icon: "⚖️",  color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-100", pill: "bg-violet-100 text-violet-700 border-violet-200",bar: "bg-violet-400" },
-  cpo: { label: "CPO",  role: "Chief Product",        icon: "🗺️", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-100", pill: "bg-orange-100 text-orange-700 border-orange-200",bar: "bg-orange-400" },
-  cmo: { label: "CMO",  role: "Growth Lead",          icon: "📣",  color: "text-rose-700",   bg: "bg-rose-50",   border: "border-rose-100",   pill: "bg-rose-100 text-rose-700 border-rose-200",     bar: "bg-rose-400"   },
+const PERSONA_CFG: Record<PersonaKey, { label: string; role: string; icon: string; color: string; bg: string; border: string; pill: string; bar: string; threshold: number }> = {
+  cto:        { label: "CTO",        role: "Head of Engineering",  icon: "⚙️",  color: "text-blue-700",   bg: "bg-blue-50",    border: "border-blue-100",   pill: "bg-blue-100 text-blue-700 border-blue-200",      bar: "bg-blue-400",   threshold: 20 },
+  cfo:        { label: "CFO",        role: "Finance Lead",         icon: "💰",  color: "text-green-700",  bg: "bg-green-50",   border: "border-green-100",  pill: "bg-green-100 text-green-700 border-green-200",   bar: "bg-green-400",  threshold: 20 },
+  cco:        { label: "CCO",        role: "Chief Compliance",     icon: "⚖️",  color: "text-violet-700", bg: "bg-violet-50",  border: "border-violet-100", pill: "bg-violet-100 text-violet-700 border-violet-200", bar: "bg-violet-400", threshold: 25 },
+  cpo:        { label: "CPO",        role: "Chief Product",        icon: "🗺️", color: "text-orange-700", bg: "bg-orange-50",  border: "border-orange-100", pill: "bg-orange-100 text-orange-700 border-orange-200", bar: "bg-orange-400", threshold: 15 },
+  cmo:        { label: "CMO",        role: "Growth Lead",          icon: "📣",  color: "text-rose-700",   bg: "bg-rose-50",    border: "border-rose-100",   pill: "bg-rose-100 text-rose-700 border-rose-200",      bar: "bg-rose-400",   threshold: 15 },
+  compliance: { label: "Compliance", role: "Compliance Team",      icon: "🛡️", color: "text-purple-700", bg: "bg-purple-50",  border: "border-purple-100", pill: "bg-purple-100 text-purple-700 border-purple-200", bar: "bg-purple-400", threshold: 20 },
+  product:    { label: "Product",    role: "Product Team",         icon: "🔧",  color: "text-cyan-700",   bg: "bg-cyan-50",    border: "border-cyan-100",   pill: "bg-cyan-100 text-cyan-700 border-cyan-200",      bar: "bg-cyan-400",   threshold: 15 },
+  operations: { label: "Operations", role: "Operations Team",      icon: "⚙️",  color: "text-teal-700",   bg: "bg-teal-50",    border: "border-teal-100",   pill: "bg-teal-100 text-teal-700 border-teal-200",      bar: "bg-teal-400",   threshold: 15 },
+  ceo:        { label: "CEO",        role: "CEO / Founder",        icon: "🎯",  color: "text-amber-700",  bg: "bg-amber-50",   border: "border-amber-100",  pill: "bg-amber-100 text-amber-700 border-amber-200",   bar: "bg-amber-400",  threshold: 10 },
+};
+
+const PERSONA_FILL_TIPS: Record<PersonaKey, { formats: string; examples: string[] }> = {
+  cto:        { formats: "Technical guides, architecture deep-dives, integration walkthroughs", examples: ["How to integrate [X] API in under 48 hours", "Architecture trade-offs: microservices vs monolith for payments", "Benchmark: latency comparison of real-time payment rails"] },
+  cfo:        { formats: "ROI calculators, benchmarking reports, cost analysis guides", examples: ["The true cost of payment fraud: a CFO financial model", "ROI of real-time payments: benchmarks from 50 fintechs", "Cash flow optimisation playbook for embedded finance CFOs"] },
+  cco:        { formats: "Compliance checklists, regulatory deadline calendars, risk frameworks", examples: ["DORA compliance checklist for payment institutions", "AML programme review: what regulators look for in 2025", "5 regulatory deadlines your compliance team must act on now"] },
+  cpo:        { formats: "Product teardowns, feature comparison guides, user journey analyses", examples: ["How [competitor] redesigned onboarding to cut drop-off by 40%", "BNPL product checklist: 12 decisions before you launch", "Checkout optimisation: A/B test results from 8 fintech platforms"] },
+  cmo:        { formats: "Market research reports, brand positioning guides, content strategy frameworks", examples: ["Fintech content strategy: what actually drives MQLs in 2025", "Brand differentiation in fintech: research across 100 companies", "Demand generation playbook for B2B fintech marketing teams"] },
+  compliance: { formats: "Compliance checklists, regulatory summaries, audit preparation guides", examples: ["Compliance audit preparation checklist for PSPs", "Regulatory change tracker: what is coming in 2025-2026", "Building a compliance-first content approval workflow"] },
+  product:    { formats: "Product management guides, prioritisation frameworks, user research templates", examples: ["Product roadmap prioritisation for embedded finance platforms", "How to run user research interviews with enterprise buyers", "Feature flag strategy for regulated fintech products"] },
+  operations: { formats: "Process playbooks, efficiency guides, vendor selection scorecards", examples: ["Payment reconciliation automation: a practical implementation guide", "Vendor selection scorecard for core banking infrastructure", "STP rate improvement: operational levers for payments teams"] },
+  ceo:        { formats: "Strategic reports, market opportunity analyses, thought leadership pieces", examples: ["State of fintech 2025: strategic implications for platform CEOs", "The case for embedded finance: a board-level briefing", "M&A readiness checklist for fintech scale-ups targeting Series C"] },
 };
 
 const COHERENCE_TIER: Record<string, { label: string; icon: string; color: string; pill: string }> = {
@@ -2618,6 +2655,7 @@ const STAGE_EXPECTS: Record<ArcStage, string> = {
   consideration:  "commercial / informational",
   implementation: "commercial / transactional",
   advanced:       "commercial / transactional",
+  unknown:        "any",
 };
 
 const INTENT_PILL: Record<string, string> = {
@@ -2661,7 +2699,7 @@ const DEBT_CASESTUDY_SIGNALS = [
   "saves ","saved ","cut by","implementation at","deployed at","lessons from",
 ];
 
-type DebtType = "past-due" | "decay-risk" | "sequence-inversion" | "missing-foundation";
+type DebtType = "past-due" | "decay-risk" | "sequence-inversion" | "missing-foundation" | "regulatory" | "date" | "statistical" | "market" | "evergreen";
 
 interface DebtItem {
   date:        string;
@@ -3352,12 +3390,19 @@ const CRED_VAGUE_SIGNALS = [
 type CredTier = "high" | "moderate" | "thin" | "risk";
 
 interface CredResult {
-  primaryHits:   number;
-  secondaryHits: number;
-  expertHits:    number;
-  vagueHits:     number;
-  score:         number;
-  tier:          CredTier;
+  primaryHits:      number;
+  secondaryHits:    number;
+  expertHits:       number;
+  vagueHits:        number;
+  score:            number;
+  tier:             CredTier;
+  evidenceDemand:   number;
+  sourceType:       SourceType;
+  obtainDifficulty: "demanding" | "moderate" | "straightforward";
+  expertScore:      number;
+  regScore:         number;
+  statScore:        number;
+  marketScore:      number;
 }
 
 function scoreCredibility(topic: string, angle: string): CredResult {
@@ -3382,7 +3427,35 @@ function scoreCredibility(topic: string, angle: string): CredResult {
     score >= 30 ? "thin"     :
                   "risk";
 
-  return { primaryHits, secondaryHits, expertHits, vagueHits, score, tier };
+  const regScore    = Math.min(40, primaryHits   * 10);
+  const statScore   = Math.min(30, secondaryHits *  8);
+  const expertScore = Math.min(20, expertHits    *  6);
+  const marketScore = Math.min(25, (secondaryHits + primaryHits) * 4);
+
+  const evidenceDemand = Math.min(100, Math.max(0,
+    regScore + statScore + expertScore + Math.round(marketScore / 2) - vagueHits * 5
+  ));
+
+  const sourceType: SourceType =
+    primaryHits   >= 2 ? "regulatory"        :
+    expertHits    >= 2 ? "expert-testimony"  :
+    secondaryHits >= 3 ? "primary-data"      :
+    secondaryHits >= 1 ? "industry-report"   :
+    expertHits    >= 1 ? "expert-testimony"  :
+    (primaryHits + secondaryHits + expertHits) >= 2 ? "mixed" :
+                         "author-perspective";
+
+  const obtainDifficulty: "demanding" | "moderate" | "straightforward" =
+    evidenceDemand >= 55 ? "demanding"      :
+    evidenceDemand >= 25 ? "moderate"       :
+                           "straightforward";
+
+  return {
+    primaryHits, secondaryHits, expertHits, vagueHits,
+    score, tier,
+    evidenceDemand, sourceType, obtainDifficulty,
+    expertScore, regScore, statScore, marketScore,
+  };
 }
 
 // ─── Content Cluster Cohesion Analyser ───────────────────────────────────────
@@ -5213,11 +5286,11 @@ const FINTECH_MONTHLY_DEMAND: Record<number, { demand: number; peaks: string[]; 
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 // ─── Audience Intent Heatmap ─────────────────────────────────────────────────
-const INTENT_TYPE_BASE: Record<ContentType, number> = {
+const INTENT_TYPE_BASE: Partial<Record<string, number>> = {
   "blog-post": 20, guide: 25, infographic: 15, linkedin: 30, newsletter: 25,
   "case-study": 60, webinar: 65, checklist: 55, "video-script": 40, podcast: 35,
 };
-const FUNNEL_TYPE_BASE: Record<ContentType, number> = {
+const FUNNEL_TYPE_BASE: Partial<Record<string, number>> = {
   "blog-post": 30, guide: 45, infographic: 25, linkedin: 35, newsletter: 40,
   "case-study": 75, webinar: 80, checklist: 70, "video-script": 50, podcast: 45,
 };
@@ -5250,7 +5323,7 @@ const CTA_URGENCY_WORDS  = ["now", "today", "this week", "limited", "don't miss"
 const CTA_GENERIC_TERMS  = ["learn more", "click here", "read more", "find out more", "see more", "discover more", "check it out", "get started"];
 const CTA_SPECIFIC_VERBS = ["download", "get", "book", "schedule", "request", "register", "join", "access", "subscribe", "watch", "listen", "compare", "calculate", "benchmark", "claim", "unlock", "grab"];
 const CTA_CLARITY_VERBS  = ["download", "book", "schedule", "get", "read", "watch", "listen", "register", "subscribe", "join", "access", "view", "learn", "discover", "build", "start", "try", "claim", "unlock", "grab"];
-const CTA_TYPE_IDEAL: Partial<Record<ContentType, string[]>> = {
+const CTA_TYPE_IDEAL: Partial<Record<string, string[]>> = {
   guide:          ["download", "get the guide", "access", "get your", "grab the"],
   "case-study":   ["see how", "read how", "view the case study", "learn how", "discover how"],
   linkedin:       ["share", "comment", "follow", "connect", "let me know", "drop your"],
@@ -5285,7 +5358,7 @@ function scoreCta(cta: string, type: ContentType, topic: string): CtaScore {
 
   const slug = topic.split(" ").slice(0, 4).join(" ").toLowerCase();
   const yr   = new Date().getFullYear();
-  const REWRITES: Partial<Record<ContentType, string>> = {
+  const REWRITES: Partial<Record<string, string>> = {
     guide:          `Download the free ${slug} guide — updated for ${yr}`,
     "case-study":   `See exactly how leading firms achieved results with ${slug}`,
     linkedin:       `What's your take on ${slug}? Drop your experience in the comments ↓`,
@@ -9613,6 +9686,7 @@ export default function ContentCalendarGenerator() {
                                               consideration: "bg-violet-100 text-violet-700 border-violet-200",
                                               implementation: "bg-orange-100 text-orange-700 border-orange-200",
                                               advanced: "bg-rose-100 text-rose-700 border-rose-200",
+                                              unknown: "bg-slate-100 text-slate-400 border-slate-200",
                                             }[stage];
                                             return (
                                               <span key={entryKey(e)} className={`text-[6px] font-bold px-1.5 py-0.5 rounded-full border ${stageColor}`} title={`${stage}: ${e.angle}`}>
@@ -11055,6 +11129,7 @@ export default function ContentCalendarGenerator() {
                                   consideration:  "bg-violet-100 text-violet-700 border-violet-200",
                                   implementation: "bg-orange-100 text-orange-700 border-orange-200",
                                   advanced:       "bg-rose-100 text-rose-700 border-rose-200",
+                                  unknown:        "bg-slate-100 text-slate-400 border-slate-200",
                                 };
                                 return (
                                   <tr key={entryKey(e)} className="border-t border-slate-50">
@@ -14052,7 +14127,7 @@ export default function ContentCalendarGenerator() {
 
                   const detected = calendar.map((e) => ({
                     entry:   e,
-                    personas: detectPersonas(e.topic, e.angle),
+                    personas: detectPersona(e.topic, e.angle),
                   }));
                   const n = detected.length;
 
@@ -17337,7 +17412,7 @@ export default function ContentCalendarGenerator() {
 
                 {/* ── Source Credibility Mapper ────────────────────────────── */}
                 {calendar.length > 0 && (() => {
-                  const scored = calendar.map((e) => ({ entry: e, cred: scoreCredibility(e) }));
+                  const scored = calendar.map((e) => ({ entry: e, cred: scoreCredibility(e.topic, e.angle) }));
 
                   // Tier groups
                   const demanding     = scored.filter((s) => s.cred.evidenceDemand >= 55);
@@ -20920,7 +20995,13 @@ export default function ContentCalendarGenerator() {
                   const SKEW_THRESHOLD = 0.60; // >60% one persona in a week = skew
 
                   // Assign persona to each entry
-                  const mapped = calendar.map((e) => ({ entry: e, persona: detectPersona(e.topic, e.angle) }));
+                  const mapped = calendar.map((e) => {
+                    const result = detectPersona(e.topic, e.angle);
+                    const pk = result.primaryPersona;
+                    const persona: PersonaDef = (pk !== "general" ? PERSONA_DEFS.find(p => p.id === pk) : undefined)
+                      ?? { id: "general", name: "General Audience", emoji: "👤", signals: [], color: "bg-slate-100 text-slate-600 border-slate-200", tip: "" };
+                    return { entry: e, persona };
+                  });
 
                   // Per-persona counts
                   const personaCount = new Map<string, { def: PersonaDef; count: number; entries: typeof calendar }>();
@@ -23155,7 +23236,7 @@ export default function ContentCalendarGenerator() {
 
                 {/* ── Audience Intent Heatmap ─────────────────────────────── */}
                 {calendar.length > 0 && (() => {
-                  const DOT_COLOR_MAP: Record<ContentType, string> = {
+                  const DOT_COLOR_MAP: Record<string, string> = {
                     "blog-post": "bg-blue-500", guide: "bg-indigo-500", infographic: "bg-cyan-500",
                     linkedin: "bg-sky-500", newsletter: "bg-teal-500", "case-study": "bg-violet-600",
                     webinar: "bg-purple-500", checklist: "bg-green-500", "video-script": "bg-orange-500",

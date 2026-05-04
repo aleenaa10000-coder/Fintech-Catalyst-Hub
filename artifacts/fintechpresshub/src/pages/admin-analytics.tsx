@@ -160,7 +160,7 @@ export default function AdminAnalytics() {
   });
 
   const { data: allPosts } = useListBlogPosts(undefined, {
-    query: { enabled: !!user?.isAdmin, staleTime: 5 * 60 * 1000 },
+    query: { queryKey: ["admin-analytics-blog-posts"], enabled: !!user?.isAdmin, staleTime: 5 * 60 * 1000 },
   });
 
   const readabilityTrend = useMemo(() => {
