@@ -354,7 +354,7 @@ export default function AdminNewsletter() {
                     </tr>
                   </thead>
                   <tbody>
-                    {detail.subscribers.map((s: { id: string; email: string | null; createdAt: string; source: string | null }) => (
+                    {detail.subscribers.map((s) => (
                       <tr
                         key={s.id}
                         className="border-b last:border-b-0"

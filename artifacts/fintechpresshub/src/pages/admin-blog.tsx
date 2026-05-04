@@ -3439,7 +3439,7 @@ export default function AdminBlog() {
 
   /** Published posts narrowed by the active readability filter. */
   const filteredPosts = useMemo(
-    () => (posts ?? []).filter((p: { content: string; [key: string]: unknown }) => matchesReadabilityFilter(p.content as string)),
+    () => (posts ?? []).filter((p) => matchesReadabilityFilter(p.content as string)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [posts, readabilityFilter],
   );

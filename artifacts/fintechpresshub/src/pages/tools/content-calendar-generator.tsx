@@ -10289,7 +10289,7 @@ export default function ContentCalendarGenerator() {
                                     {dimBar(diff.audienceFocus)}
                                     {dimBar(diff.freshness)}
                                     <td className="py-0.5 pl-1.5">
-                                      {diff.tier !== "distinctive" && (
+                                      {diff.tier !== "strongly-differentiated" && (
                                         <span className={`text-[6px] font-bold px-1 py-0.5 rounded-full border ${DIM_D[diff.weakestDim].pill}`}>
                                           {DIM_D[diff.weakestDim].icon} {DIM_D[diff.weakestDim].label}
                                         </span>
@@ -10849,11 +10849,15 @@ export default function ContentCalendarGenerator() {
 
                   // Per-persona entry sets (primary assignment)
                   const personaEntries: Record<PersonaKey, typeof tagged> = {
-                    cto: tagged.filter((t) => t.persona.primaryPersona === "cto"),
-                    cfo: tagged.filter((t) => t.persona.primaryPersona === "cfo"),
-                    cco: tagged.filter((t) => t.persona.primaryPersona === "cco"),
-                    cpo: tagged.filter((t) => t.persona.primaryPersona === "cpo"),
-                    cmo: tagged.filter((t) => t.persona.primaryPersona === "cmo"),
+                    cto:        tagged.filter((t) => t.persona.primaryPersona === "cto"),
+                    cfo:        tagged.filter((t) => t.persona.primaryPersona === "cfo"),
+                    cco:        tagged.filter((t) => t.persona.primaryPersona === "cco"),
+                    cpo:        tagged.filter((t) => t.persona.primaryPersona === "cpo"),
+                    cmo:        tagged.filter((t) => t.persona.primaryPersona === "cmo"),
+                    compliance: tagged.filter((t) => t.persona.primaryPersona === "compliance"),
+                    product:    tagged.filter((t) => t.persona.primaryPersona === "product"),
+                    operations: tagged.filter((t) => t.persona.primaryPersona === "operations"),
+                    ceo:        tagged.filter((t) => t.persona.primaryPersona === "ceo"),
                   };
 
                   // Funnel stage mapping
@@ -11235,7 +11239,7 @@ export default function ContentCalendarGenerator() {
                     debtScore >= 35 ? { label: "High debt — significant backlog and decay risk building",   color: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-100" } :
                                       { label: "Critical debt — calendar requires immediate remediation",    color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-100"   };
 
-                  const DEBT_TYPE_CFG: Record<DebtType, { label: string; icon: string; pill: string }> = {
+                  const DEBT_TYPE_CFG: Partial<Record<DebtType, { label: string; icon: string; pill: string }>> = {
                     "past-due":            { label: "Past-due",              icon: "📅", pill: "bg-rose-100 text-rose-700 border-rose-200"      },
                     "decay-risk":          { label: "Decay risk",            icon: "📉", pill: "bg-red-100 text-red-700 border-red-200"          },
                     "sequence-inversion":  { label: "Sequence inversion",    icon: "↕️", pill: "bg-violet-100 text-violet-700 border-violet-200" },
@@ -14314,7 +14318,8 @@ export default function ContentCalendarGenerator() {
                         {/* Per-entry persona tag display */}
                         <p className="text-[9.5px] font-semibold text-slate-600 mb-2">Entry persona targeting:</p>
                         <div className="space-y-0.5">
-                          {detected.map(({ entry: e, personas: ps }) => {
+                          {detected.map(({ entry: e, personas }) => {
+                            const ps = personas.scores;
                             const personaKeys = Object.keys(ps) as PersonaKey[];
                             return (
                               <div key={entryKey(e)} className="flex items-center gap-1.5 py-0.5 border-b border-slate-50">
@@ -18732,7 +18737,7 @@ export default function ContentCalendarGenerator() {
                     low:      { label: "Low debt",         bg: "bg-emerald-50",border: "border-emerald-100",text: "text-emerald-700",bar: "bg-emerald-400",badge: "bg-emerald-100 text-emerald-700 border-emerald-200",icon: "✅", refresh: "Every 2 years"   },
                   } as const;
 
-                  const debtTypeCfg: Record<DebtType, { label: string; color: string; icon: string; desc: string }> = {
+                  const debtTypeCfg: Partial<Record<DebtType, { label: string; color: string; icon: string; desc: string }>> = {
                     regulatory: { label: "Regulatory",  color: "bg-purple-100 text-purple-700 border-purple-200", icon: "⚖️", desc: "Tied to specific legislation — must refresh when rules change"     },
                     date:       { label: "Date-stamped", color: "bg-rose-100 text-rose-700 border-rose-200",       icon: "📅", desc: "Contains year/quarter markers — hard expiry when the period ends" },
                     statistical:{ label: "Statistical",  color: "bg-blue-100 text-blue-700 border-blue-200",       icon: "📊", desc: "References specific data — becomes stale when new studies publish" },
@@ -20785,7 +20790,7 @@ export default function ContentCalendarGenerator() {
                   const counts = new Map<SearchIntent, { def: IntentDef; count: number; entries: typeof calendar }>();
                   for (const def of INTENT_DEFS) counts.set(def.id, { def, count: 0, entries: [] });
                   for (const { entry, intent } of classified) {
-                    const c = counts.get(intent.id)!;
+                    const c = counts.get(dominantIntent(intent))!;
                     c.count++;
                     c.entries.push(entry);
                   }
@@ -20825,7 +20830,8 @@ export default function ContentCalendarGenerator() {
                   for (const { entry, intent } of classified) {
                     if (!weekIntents.has(entry.week)) weekIntents.set(entry.week, new Map());
                     const wm = weekIntents.get(entry.week)!;
-                    wm.set(intent.id, (wm.get(intent.id) ?? 0) + 1);
+                    const intentKey = dominantIntent(intent);
+                    wm.set(intentKey, (wm.get(intentKey) ?? 0) + 1);
                   }
                   const sortedWeeks = [...weekIntents.entries()].sort(([a], [b]) => a - b);
 
