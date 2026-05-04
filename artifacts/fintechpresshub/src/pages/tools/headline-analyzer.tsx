@@ -446,11 +446,77 @@ function analyzeHeadline(headline: string): Analysis {
   else { verdict = "Needs work — consider one of the rewrites below."; verdictColor = "red"; }
 
   const flags: string[] = [];
-  if (headline.length > 80) flags.push("Likely truncated in Google search results");
-  if (/click here|read more|find out/i.test(headline)) flags.push("Contains weak CTA language ('click here', 'read more')");
-  if (/^(the|a|an) /i.test(headline)) flags.push("Starts with an article ('The', 'A') — consider front-loading the keyword");
-  if (/!!/.test(headline)) flags.push("Multiple exclamation marks look spammy");
-  if (headline.toUpperCase() === headline && headline.length > 5) flags.push("ALL CAPS reduces credibility and trust");
+  const lower = headline.toLowerCase();
+  const words = headline.trim().split(/\s+/).filter(Boolean);
+
+  // ── Structure & length ───────────────────────────────────────────────────
+  if (headline.length > 60)
+    flags.push(`${headline.length} characters — over the 60-char Google SERP limit. Risk of truncation in search results.`);
+
+  if (words.length > 12)
+    flags.push(`${words.length} words — headlines over 12 words lose scannability. Aim for 8–10 words.`);
+
+  if (/^(the|a|an) /i.test(headline))
+    flags.push("Starts with an article ('The', 'A') — front-load the primary keyword instead for stronger SEO signal.");
+
+  // ── Duplicate & repetition ───────────────────────────────────────────────
+  const wordFreq: Record<string, number> = {};
+  for (const w of words) {
+    const key = w.toLowerCase().replace(/[^a-z]/g, "");
+    if (key.length > 3) wordFreq[key] = (wordFreq[key] ?? 0) + 1;
+  }
+  const repeatedWords = Object.entries(wordFreq).filter(([, n]) => n >= 3);
+  if (repeatedWords.length > 0)
+    flags.push(`"${repeatedWords[0][0]}" appears ${repeatedWords[0][1]} times — deduplicate for a tighter, more scannable headline.`);
+
+  if (/\b(\w+)\b.*\b\1\b.*\b\1\b/i.test(headline) === false) {
+    // no triple-repeat — skip (already handled above)
+  }
+
+  // ── Keyword hygiene ──────────────────────────────────────────────────────
+  const detectedKws = FINTECH_KEYWORDS.filter((kw) => lower.includes(kw));
+  if (detectedKws.length >= 3)
+    flags.push(`${detectedKws.length} fintech keywords detected (${detectedKws.slice(0, 3).join(", ")}) — risk of keyword stuffing. Pick one primary focus.`);
+
+  // ── Clickbait & trust signals ────────────────────────────────────────────
+  const clickbaitMatch = lower.match(/you won't believe|shocking|mind.blowing|incredible|unbelievable|jaw.dropping/);
+  if (clickbaitMatch)
+    flags.push(`Clickbait language detected ("${clickbaitMatch[0]}") — erodes trust with B2B fintech decision-makers.`);
+
+  if (/click here|read more|find out more/i.test(headline))
+    flags.push("Weak CTA language ('click here', 'read more') — state the value directly instead.");
+
+  if (headline.toUpperCase() === headline && headline.length > 5)
+    flags.push("ALL CAPS reduces credibility and trust in professional B2B contexts.");
+
+  if (/!!/.test(headline))
+    flags.push("Multiple exclamation marks read as spammy — one or none is the professional standard.");
+
+  // ── Vague & overused phrasing ────────────────────────────────────────────
+  const vagueMatch = lower.match(/\b(things|stuff|some tips|various ways|a few things)\b/);
+  if (vagueMatch)
+    flags.push(`Vague filler detected ("${vagueMatch[0]}") — replace with a specific benefit, metric, or outcome.`);
+
+  const overusedMatch = lower.match(/\b(you need to know|everything you need|what you need to know)\b/);
+  if (overusedMatch)
+    flags.push(`"${overusedMatch[0]}" is overused in fintech content — swap for a specific claim or data point.`);
+
+  // ── Superlatives without proof ───────────────────────────────────────────
+  if (/\b(best|top|greatest|most powerful|most important)\b/i.test(headline) && !/\d/.test(headline))
+    flags.push("Superlative used ('best', 'top') without a number or qualifier — add specifics to back the claim (e.g. '5 Best…').");
+
+  // ── Temporal freshness ───────────────────────────────────────────────────
+  const timelyMatch = lower.match(/\b(trends?|predictions?|outlook|forecast|future of|what's next)\b/);
+  if (timelyMatch && !/20\d{2}/.test(headline))
+    flags.push(`"${timelyMatch[0]}" signals timeliness but no year is present — add '2025' to signal freshness to both readers and Google.`);
+
+  // ── Question structure ───────────────────────────────────────────────────
+  if (headline.endsWith("?") && !headline.includes(":") && !headline.includes("("))
+    flags.push("Ends in a question with no resolution cue (no colon or parenthetical) — readers may skip without a hint of the answer.");
+
+  // ── Passive voice ────────────────────────────────────────────────────────
+  if (/^(is |are |was |were |has been |have been |being )/i.test(headline))
+    flags.push("Starts in passive voice — lead with an active verb or the primary keyword for stronger impact.");
 
   return {
     headline,
