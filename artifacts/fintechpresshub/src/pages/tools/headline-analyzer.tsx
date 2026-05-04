@@ -379,32 +379,53 @@ function scoreEmotionalPull(h: string): ScoreDimension {
 
 function generateRewrites(h: string): { label: string; text: string }[] {
   const trimmed = h.trim();
-  const hasNumber = /\d/.test(trimmed);
-  const hasQuestion = trimmed.includes("?");
   const lower = trimmed.toLowerCase();
-  const matchedKw = FINTECH_KEYWORDS.find((kw) => lower.includes(kw)) ?? "fintech";
-  const capKw = matchedKw.charAt(0).toUpperCase() + matchedKw.slice(1);
+  const hasNumber = /\d/.test(trimmed);
 
-  const stripped = trimmed.replace(/^(how to|why|what is|the|a |an )/i, "").replace(/[?!.]$/, "").trim();
-  const strippedCap = stripped.charAt(0).toUpperCase() + stripped.slice(1);
+  // Primary keyword — prefer the longest match that has a topical cluster
+  const matched = FINTECH_KEYWORDS.filter((kw) => lower.includes(kw));
+  const primaryKw =
+    [...matched].sort((a, b) => b.length - a.length).find((kw) => TOPICAL_CLUSTERS[kw]) ??
+    matched[0] ??
+    "fintech";
+  const capKw = primaryKw.charAt(0).toUpperCase() + primaryKw.slice(1);
+
+  // Deterministic variation seed so different headlines get different templates
+  const seed = (trimmed.length + primaryKw.length) % 3;
+
+  // ── The Authority Vibe ────────────────────────────────────────────────────
+  // Uses words like "Verified", "Blueprint", "Framework" to signal credibility
+  const authorityTemplates = [
+    `The Verified ${capKw} Blueprint: A Compliance-First Framework for 2025`,
+    `${capKw} Governance, Decoded: A Certified Framework for Growing Teams`,
+    `Building a Trusted ${capKw} Stack: The Accredited Playbook for Scale`,
+  ];
+
+  // ── The Disruptor Vibe ────────────────────────────────────────────────────
+  // Uses words like "Shift", "Uncovered", "Evolution" to create urgency
+  const disruptorTemplates = [
+    `The ${capKw} Shift Nobody Saw Coming — and What It Means for Your Strategy`,
+    `${capKw} Uncovered: How the Industry's Evolution Is Reshaping the Rules`,
+    `Inside the ${capKw} Reckoning: What the Next Wave of Disruption Looks Like`,
+  ];
+
+  // ── The Data Vibe ─────────────────────────────────────────────────────────
+  // Uses specific numbers, percentages, or "Report" findings
+  const dataStats = ["73%", "5 in 10", "$2.4B", "3 Critical"][
+    (trimmed.length + primaryKw.length) % 4
+  ];
+  const dataTemplates = [
+    `New Report: ${dataStats} of ${capKw} Teams Are Missing This Growth Metric`,
+    `${capKw} by the Numbers: What 2025 Data Reveals About Scaling Strategy`,
+    hasNumber
+      ? `${trimmed.replace(/[?!.]$/, "")} — Full Data Breakdown`
+      : `The ${capKw} Benchmark Report: Key Metrics Every Leader Must Track`,
+  ];
 
   return [
-    {
-      label: "Data-forward",
-      text: hasNumber
-        ? `${trimmed.replace(/\?$/, "")} — Here's What the Data Shows`
-        : `The ${capKw} Numbers Every Fintech Team Should Know: ${strippedCap}`,
-    },
-    {
-      label: "Question / curiosity",
-      text: hasQuestion
-        ? `${trimmed} (And What Smart ${capKw} Teams Do About It)`
-        : `Is Your ${capKw} Strategy Ready for 2025? ${strippedCap} Explained`,
-    },
-    {
-      label: "Benefit-forward",
-      text: `How to ${strippedCap}: A Practical Guide for ${capKw} Teams`,
-    },
+    { label: "The Authority Vibe", text: authorityTemplates[seed] },
+    { label: "The Disruptor Vibe", text: disruptorTemplates[seed] },
+    { label: "The Data Vibe",      text: dataTemplates[seed] },
   ];
 }
 
@@ -790,7 +811,12 @@ export default function HeadlineAnalyzer() {
                         className="flex items-start justify-between gap-3 px-3 py-3 rounded-lg bg-slate-50 border border-slate-100"
                       >
                         <div className="space-y-0.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-500">{r.label}</p>
+                          <p className={`text-[10px] font-semibold uppercase tracking-widest leading-none ${
+                            r.label === "The Authority Vibe" ? "text-blue-600"
+                            : r.label === "The Disruptor Vibe" ? "text-orange-500"
+                            : r.label === "The Data Vibe" ? "text-emerald-600"
+                            : "text-indigo-500"
+                          }`}>{r.label}</p>
                           <p className="text-sm text-slate-800 leading-snug">{r.text}</p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
