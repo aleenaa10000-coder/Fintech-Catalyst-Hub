@@ -12,6 +12,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { prefetchAdminBundle, prefetchPublicBundle } from "@/lib/route-prefetch";
 import { trackPageview } from "@/lib/analytics";
 import { TopProgressBar } from "@/components/TopProgressBar";
+import { BackToTop } from "@/components/BackToTop";
 import {
   HomeSkeleton,
   BlogListSkeleton,
@@ -318,6 +319,7 @@ function Router() {
       </main>
       <Footer />
       <CookieConsentBanner />
+      <BackToTop />
     </div>
   );
 }
