@@ -165,6 +165,47 @@ const TOPIC_CLUSTER_LABELS: Array<{
   { keywords: ["fintech"],                                           label: "Fintech",                   badgeClass: "bg-slate-100 text-slate-700 ring-slate-200",      dotClass: "bg-slate-400",   formats: ["Trend Reports", "Expert Roundups", "Regulatory Analyses"] },
 ];
 
+// ── Format → headline template map ────────────────────────────────────────
+// [Topic] is replaced at click-time with the detected cluster label.
+const FORMAT_TEMPLATES: Record<string, string> = {
+  "How-To Guides":                      "How to [Topic] in 2026: A Practical Guide for Fintech Teams",
+  "Case Studies":                        "How [Company] Used [Topic] to Drive Results: A 2026 Case Study",
+  "Regulatory Roundups":                 "The 2026 [Topic] Regulatory Roundup: What Leaders Need to Know Now",
+  "Deep-Dive Explainers":               "How [Topic] Actually Works in 2026: A Complete Explainer",
+  "API Integration Guides":             "How to Integrate [Topic] APIs in 2026: A Step-by-Step Developer Guide",
+  "Partnership Announcements":          "Why This [Topic] Partnership Could Reshape the Market in 2026",
+  "Market Analysis Reports":            "[Topic] in 2026: Market Size, Growth Drivers and Key Trends",
+  "Regulatory Watch Pieces":            "Regulatory Watch: What New [Topic] Rules Mean for Your Business in 2026",
+  "Protocol Deep Dives":                "Inside [Topic]: How It Works and Why It Matters for Fintech in 2026",
+  "Market Outlooks":                    "[Topic] Market Outlook 2026: Trends, Forecasts and Opportunities",
+  "Technology Primers":                 "What Is [Topic]? A Plain-English Primer for Fintech Professionals",
+  "Compliance Checklists":              "The Ultimate [Topic] Compliance Checklist for 2026",
+  "Product Launch Analyses":            "Breaking Down the Latest [Topic] Launch and What It Means for the Market",
+  "Data-Driven Reports":                "[Topic] by the Numbers: Key Stats and Trends Shaping 2026",
+  "Use Case Stories":                   "5 Real-World [Topic] Use Cases Redefining Fintech in 2026",
+  "Trend Reports":                      "The Top [Topic] Trends Every Fintech Leader Must Watch in 2026",
+  "Investor Roundtables":               "What [Topic] Investors Are Watching Most Closely in 2026",
+  "Threat Intelligence Reports":        "2026 [Topic] Threat Report: Emerging Risks and How to Stay Ahead",
+  "Best Practice Guides":               "Best Practices for [Topic] in 2026: What Top Fintech Teams Are Doing",
+  "Incident Case Studies":              "Lessons From a Major [Topic] Failure and What Every Fintech Must Know",
+  "Market Data Reports":                "[Topic] Market Data 2026: Key Benchmarks and What They Signal",
+  "Underwriting Deep Dives":            "Inside Next-Gen [Topic] Underwriting: How AI Is Changing the Rules",
+  "Borrower Case Studies":              "How One Fintech Cut [Topic] Defaults Using Alternative Data in 2026",
+  "Product Comparison Guides":          "[Topic] Head-to-Head: Comparing the Top Providers in 2026",
+  "User Adoption Stories":              "How [Company] Scaled [Topic] Adoption Without Sacrificing Compliance",
+  "Founder Interviews":                 "Building a [Topic] Business in 2026: Lessons From Founders Who Did It",
+  "Technology Migration Case Studies":  "How [Company] Modernised Its [Topic] Stack Without Downtime",
+  "Vendor Comparisons":                 "The Best [Topic] Vendors in 2026: An Independent Comparison",
+  "CTO Interviews":                     "Inside the [Topic] Stack: A CTO's Playbook for 2026",
+  "Implementation Guides":              "How to Implement [Topic] in Your Fintech Stack: A 2026 Playbook",
+  "ROI Case Studies":                   "The ROI of [Topic]: How Leading Fintechs Are Measuring Returns in 2026",
+  "Funding Roundup Reports":            "[Topic] Funding Roundup: The Biggest Deals and Trends of 2026",
+  "Founder Spotlights":                 "Meet the Founders Reinventing [Topic] in 2026",
+  "Market Opportunity Analyses":        "The [Topic] Opportunity in 2026: Market Size, Gaps and Who Will Win",
+  "Expert Roundups":                    "12 Experts Predict the Biggest [Topic] Shifts of 2026",
+  "Regulatory Analyses":                "How New [Topic] Rules Will Reshape the Fintech Industry in 2026",
+};
+
 function detectTopicCluster(headline: string): typeof TOPIC_CLUSTER_LABELS[number] | null {
   const lower = headline.toLowerCase();
   for (const cluster of TOPIC_CLUSTER_LABELS) {
@@ -1018,6 +1059,7 @@ export default function HeadlineAnalyzer() {
   const [headline, setHeadline] = useState("");
   const [result, setResult] = useState<Analysis | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
+  const [sentToComparison, setSentToComparison] = useState<number | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [urlMode, setUrlMode] = useState(false);
   const [competitorUrl, setCompetitorUrl] = useState("");
@@ -1096,9 +1138,9 @@ export default function HeadlineAnalyzer() {
     setSelectedVibe(null);
   };
 
-  const analyze = () => {
-    if (headline.trim().length < 5) return;
-    const trimmed = headline.trim();
+  const runAnalysis = (text: string) => {
+    const trimmed = text.trim();
+    if (trimmed.length < 5) return;
     setResult(null);
     setSelectedVibe(null);
     setIsProcessing(true);
@@ -1135,6 +1177,20 @@ export default function HeadlineAnalyzer() {
         });
       }
     }, 1500);
+  };
+
+  const analyze = () => runAnalysis(headline);
+
+  const sendToComparison = (rewriteText: string, idx: number) => {
+    if (!result) return;
+    setPinnedResult(result);
+    setHeadline(rewriteText);
+    setSentToComparison(idx);
+    setTimeout(() => setSentToComparison(null), 2200);
+    runAnalysis(rewriteText);
+    setTimeout(() => {
+      scoreBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 200);
   };
 
   const reset = () => {
@@ -2242,15 +2298,26 @@ export default function HeadlineAnalyzer() {
                                 </p>
                                 <div className="flex flex-wrap gap-1.5">
                                   {topicCluster.formats.map((fmt, fi) => (
-                                    <motion.span
+                                    <motion.button
                                       key={fmt}
+                                      type="button"
                                       initial={{ opacity: 0, scale: 0.88 }}
                                       animate={{ opacity: 1, scale: 1 }}
                                       transition={{ delay: i * 0.07 + 0.38 + fi * 0.07 }}
-                                      className="inline-flex items-center gap-1 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-semibold ring-1 ring-current/20"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const template = FORMAT_TEMPLATES[fmt] ?? fmt;
+                                        const filled = template.replace(/\[Topic\]/g, topicCluster.label);
+                                        setHeadline(filled);
+                                        setResult(null);
+                                        setSelectedVibe(null);
+                                        window.scrollTo({ top: 0, behavior: "smooth" });
+                                      }}
+                                      className="inline-flex items-center gap-1 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-semibold ring-1 ring-current/20 cursor-pointer hover:bg-white/90 hover:scale-105 transition-all"
+                                      title={`Use this as a headline template`}
                                     >
                                       <span className="opacity-50">{fi + 1}.</span> {fmt}
-                                    </motion.span>
+                                    </motion.button>
                                   ))}
                                 </div>
                               </div>
@@ -2325,14 +2392,25 @@ export default function HeadlineAnalyzer() {
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                           <button
-                            onClick={() => checkRewriteScore(r.text)}
+                            onClick={(e) => { e.stopPropagation(); sendToComparison(r.text, i); }}
+                            className={`transition-colors ${sentToComparison === i ? "text-violet-500" : "text-muted-foreground hover:text-violet-600"}`}
+                            title="Pin original as A, analyse this as B"
+                          >
+                            {sentToComparison === i ? (
+                              <Check className="w-4 h-4 text-violet-500" />
+                            ) : (
+                              <GitCompare className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); checkRewriteScore(r.text); }}
                             className="text-muted-foreground hover:text-indigo-600 transition-colors"
                             title="Check score"
                           >
                             <BarChart2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => copyRewrite(r.text, i)}
+                            onClick={(e) => { e.stopPropagation(); copyRewrite(r.text, i); }}
                             className="text-muted-foreground hover:text-indigo-600 transition-colors"
                             title="Copy"
                           >
