@@ -868,6 +868,11 @@ export default function AdminNewsletter() {
                               href={buildMailto(lead.email, lead.keyword)}
                               className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-700 hover:text-violet-900 transition-colors group"
                               title={lead.keyword ? `Send personalised reply about "${lead.keyword}"` : "Send reply"}
+                              onClick={() => {
+                                if (effectiveStatus === "new") {
+                                  updateLeadStatus(lead.id, "in_progress");
+                                }
+                              }}
                             >
                               <Mail className="w-3 h-3" />
                               Reply
