@@ -410,6 +410,56 @@ function scoreEmotionalPull(h: string): ScoreDimension {
   };
 }
 
+// ── Audience Match ────────────────────────────────────────────────────────
+// Scores jargon density to classify the headline's calibrated audience tier.
+// Expert terms score 2 pts each; practitioner terms score 1 pt each.
+// This dimension is informational only — score/max are 0 and excluded from
+// the overall 100-pt total.
+function scoreAudienceMatch(h: string): ScoreDimension {
+  const lower = h.toLowerCase();
+
+  const expertFound   = EXPERT_JARGON_TERMS.filter((t) => lower.includes(t));
+  const practFound    = PRACTITIONER_JARGON_TERMS.filter((t) => lower.includes(t));
+  const jargonScore   = expertFound.length * 2 + practFound.length;
+
+  let tier: "General/Business" | "Practitioner" | "Expert/CTO";
+  let color: string;
+  let feedback: string;
+  let tip: string;
+
+  if (jargonScore >= 4 || expertFound.length >= 1) {
+    tier     = "Expert/CTO";
+    color    = "violet";
+    feedback = expertFound.length > 0
+      ? `Expert-level terms detected: "${expertFound.slice(0, 2).join('", "')}".`
+      : `High jargon density (${jargonScore} pts) — signals deep technical fluency.`;
+    tip = "This headline is perfectly calibrated for Expert/CTO readers. For a wider reach, consider a simpler companion headline for general audiences.";
+  } else if (jargonScore >= 2) {
+    tier     = "Practitioner";
+    color    = "blue";
+    feedback = `Industry-standard terms detected: "${practFound.slice(0, 2).join('", "')}".`;
+    tip = "This headline is perfectly calibrated for Practitioner readers — finance professionals and product managers will find it immediately relevant.";
+  } else {
+    tier     = "General/Business";
+    color    = "emerald";
+    feedback = practFound.length > 0
+      ? `Light jargon detected ("${practFound[0]}") — accessible to most business readers.`
+      : "No dense jargon detected — clear and accessible to a broad business audience.";
+    tip = "This headline is perfectly calibrated for General/Business readers. If targeting specialist decision-makers, consider adding one industry-specific term.";
+  }
+
+  return {
+    label: "Audience Match",
+    score: 0,
+    max: 0,
+    icon: Users,
+    color,
+    feedback,
+    tip,
+    audienceMatch: { tier, jargonScore, expertTerms: expertFound, practitionerTerms: practFound },
+  };
+}
+
 function generateRewrites(h: string): { label: string; text: string }[] {
   const trimmed = h.trim();
   const lower = trimmed.toLowerCase();
@@ -463,13 +513,14 @@ function generateRewrites(h: string): { label: string; text: string }[] {
 }
 
 function analyzeHeadline(headline: string): Analysis {
-  const dims = [
+  const scoringDims = [
     scoreCharCount(headline),
     scoreClarity(headline),
     scoreFintechKeyword(headline),
     scoreEmotionalPull(headline),
   ];
-  const overall = dims.reduce((s, d) => s + d.score, 0);
+  const overall = scoringDims.reduce((s, d) => s + d.score, 0);
+  const dims = [...scoringDims, scoreAudienceMatch(headline)];
 
   let verdict: string;
   let verdictColor: string;
