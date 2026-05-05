@@ -634,6 +634,52 @@ function analyzeHeadline(headline: string): Analysis {
   };
 }
 
+// ── TypewriterText ────────────────────────────────────────────────────────
+// Renders `text` one character at a time after an optional `delay` (ms).
+// Shows a blinking cursor while typing; cursor disappears when done.
+function TypewriterText({
+  text,
+  delay = 0,
+  speed = 18,
+}: {
+  text: string;
+  delay?: number;
+  speed?: number;
+}) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    setDisplayed("");
+    setDone(false);
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const timeoutId = setTimeout(() => {
+      let i = 0;
+      intervalId = setInterval(() => {
+        i++;
+        setDisplayed(text.slice(0, i));
+        if (i >= text.length) {
+          if (intervalId) clearInterval(intervalId);
+          setDone(true);
+        }
+      }, speed);
+    }, delay);
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [text, delay, speed]);
+
+  return (
+    <>
+      {displayed || "\u00a0"}
+      {!done && (
+        <span className="inline-block w-px h-[1em] bg-slate-500 align-middle ml-0.5 animate-pulse" />
+      )}
+    </>
+  );
+}
+
 const COLOR_MAP: Record<string, { bg: string; text: string; bar: string; badge: string }> = {
   emerald: {
     bg: "bg-emerald-50",
@@ -1116,7 +1162,13 @@ export default function HeadlineAnalyzer() {
                             : r.label === "The Data Vibe" ? "text-emerald-600"
                             : "text-indigo-500"
                           }`}>{r.label}</p>
-                          <p className="text-sm text-slate-800 leading-snug">{r.text}</p>
+                          <p className="text-sm text-slate-800 leading-snug">
+                            <TypewriterText
+                              text={r.text}
+                              delay={(i * 0.08 + 0.2) * 1000}
+                              speed={18}
+                            />
+                          </p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                           <button
