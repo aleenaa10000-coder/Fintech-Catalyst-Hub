@@ -1915,6 +1915,252 @@ function ContentGapScore({
   );
 }
 
+// ── Content Roadmap ───────────────────────────────────────────────────────
+
+function buildRoadmapMonths(result: Result) {
+  const kw = result.keyword;
+  const s = result.score;
+  const ideas = generateClusterIdeas(result.cluster, kw);
+
+  const m1: { id: string; label: string }[] = [
+    { id: "m1-pillar",   label: `Write and publish a pillar page targeting "${kw}"` },
+    { id: "m1-meta",     label: "Optimise title tag, meta description, and H1" },
+    { id: "m1-schema",   label: "Add structured data markup (Article + FAQ schema)" },
+    { id: "m1-gsc",      label: "Submit URL to Google Search Console" },
+    { id: "m1-track",    label: `Set up rank tracking for "${kw}"` },
+  ];
+  if (s >= 55) {
+    m1.push({ id: "m1-cwv",   label: "Run a Core Web Vitals audit and fix issues" });
+    m1.push({ id: "m1-crawl", label: "Fix crawlability issues (canonical, hreflang, robots)" });
+  }
+  if (s < 35) {
+    m1.push({ id: "m1-int",   label: "Build 3+ internal links from related existing pages" });
+    m1.push({ id: "m1-now",   label: "Prioritise now — low-competition window won't last long" });
+  }
+
+  const m2: { id: string; label: string }[] = [
+    { id: "m2-c1",      label: `Publish: "${ideas[0]}"` },
+    { id: "m2-c2",      label: `Publish: "${ideas[1]}"` },
+    { id: "m2-c3",      label: `Publish: "${ideas[2]}"` },
+    { id: "m2-lout",    label: "Add internal links: pillar page → each cluster article" },
+    { id: "m2-lin",     label: "Add internal links: each cluster article → pillar page" },
+    { id: "m2-update",  label: "Update pillar page to reference the new cluster articles" },
+  ];
+
+  const m3: { id: string; label: string }[] = [
+    { id: "m3-gsc",    label: `Review Search Console impressions & CTR for "${kw}"` },
+    { id: "m3-rank",   label: "Track ranking position weekly for at least 4 weeks" },
+    { id: "m3-comp",   label: "Identify top 5 competitor backlink sources" },
+  ];
+  if (s >= 55) {
+    m3.push({ id: "m3-guest", label: "Launch guest post outreach (target 3+ DR 40+ domains)" });
+    m3.push({ id: "m3-pr",    label: "Identify digital PR angles for natural link acquisition" });
+  }
+  if (s < 35) {
+    m3.push({ id: "m3-ref",  label: "Refresh pillar page with new data, stats, or expert quotes" });
+    m3.push({ id: "m3-faq",  label: "Expand FAQ section targeting related long-tail questions" });
+  }
+  m3.push({ id: "m3-next", label: "Review gaps and plan next quarter's content cluster" });
+
+  return [
+    {
+      num: 1,
+      title: "Pillar Page Creation",
+      sub: "Technical SEO",
+      icon: <Clock className="w-4 h-4" />,
+      accent: "#7c3aed",
+      accentBg: "bg-violet-50",
+      accentBorder: "border-violet-200",
+      accentText: "text-violet-700",
+      tasks: m1,
+    },
+    {
+      num: 2,
+      title: "3× Cluster Articles",
+      sub: "Topical Authority",
+      icon: <BookOpen className="w-4 h-4" />,
+      accent: "#0891b2",
+      accentBg: "bg-cyan-50",
+      accentBorder: "border-cyan-200",
+      accentText: "text-cyan-700",
+      tasks: m2,
+    },
+    {
+      num: 3,
+      title: "Backlink Outreach",
+      sub: "Performance Monitoring",
+      icon: <TrendingUp className="w-4 h-4" />,
+      accent: "#059669",
+      accentBg: "bg-emerald-50",
+      accentBorder: "border-emerald-200",
+      accentText: "text-emerald-700",
+      tasks: m3,
+    },
+  ] as const;
+}
+
+
+function ContentRoadmap({ result }: { result: Result }) {
+  const [activeMonth, setActiveMonth] = useState<number>(0);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const months = useMemo(() => buildRoadmapMonths(result), [result]);
+
+  const toggle = (id: string) =>
+    setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const active = months[activeMonth];
+
+  return (
+    <Card className="border border-slate-100 shadow-sm overflow-hidden">
+      <CardContent className="p-5">
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-5">
+          <ArrowRight className="w-4 h-4 text-violet-600 shrink-0" />
+          <h4 className="text-sm font-semibold text-slate-900">Content Roadmap</h4>
+          <span className="text-[10px] text-muted-foreground ml-0.5">3-month execution plan</span>
+        </div>
+
+        {/* Horizontal timeline */}
+        <div className="relative flex items-start mb-4">
+          {/* Connector track behind nodes */}
+          <div className="absolute top-5 left-[calc(16.66%)] right-[calc(16.66%)] h-0.5 bg-slate-200 z-0">
+            <motion.div
+              className="h-full bg-violet-300 origin-left"
+              animate={{ scaleX: activeMonth === 0 ? 0 : activeMonth === 1 ? 0.5 : 1 }}
+              transition={{ duration: 0.35, ease: "easeInOut" }}
+            />
+          </div>
+
+          {months.map((m, i) => {
+            const isActive = activeMonth === i;
+            const allDone = m.tasks.every((t) => checked[t.id]);
+            return (
+              <button
+                key={m.num}
+                type="button"
+                onClick={() => setActiveMonth(i)}
+                className="relative z-10 flex flex-col items-center gap-1.5 flex-1 min-w-0 group"
+              >
+                <motion.div
+                  animate={{
+                    backgroundColor: isActive
+                      ? m.accent
+                      : allDone
+                        ? "#10b981"
+                        : "#f8fafc",
+                    borderColor: isActive
+                      ? m.accent
+                      : allDone
+                        ? "#10b981"
+                        : "#e2e8f0",
+                    scale: isActive ? 1.1 : 1,
+                  }}
+                  transition={{ duration: 0.2 }}
+                  className="w-10 h-10 rounded-full border-2 flex items-center justify-center shadow-sm"
+                  style={{
+                    color: isActive ? "#fff" : allDone ? "#fff" : m.accent,
+                  }}
+                >
+                  {allDone && !isActive
+                    ? <Check className="w-4 h-4" />
+                    : m.icon}
+                </motion.div>
+                <div className="text-center px-1">
+                  <p className={`text-[10px] font-bold leading-tight transition-colors ${isActive ? "text-slate-900" : "text-slate-400 group-hover:text-slate-600"}`}>
+                    Month {m.num}
+                  </p>
+                  <p className={`text-[9px] leading-tight mt-0.5 transition-colors hidden sm:block ${isActive ? "text-slate-600" : "text-slate-400 group-hover:text-slate-500"}`}>
+                    {m.title}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Expanded checklist */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeMonth}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.18, ease: "easeInOut" }}
+          >
+            <div className={`rounded-xl border ${active.accentBorder} ${active.accentBg} p-4`}>
+              {/* Checklist header */}
+              <div className="flex items-center gap-2 mb-2.5">
+                <span style={{ color: active.accent }}>{active.icon}</span>
+                <span className={`text-xs font-bold ${active.accentText}`}>
+                  Month {active.num}: {active.title}
+                </span>
+                <span className={`ml-auto text-[10px] font-semibold tabular-nums ${active.accentText} opacity-60`}>
+                  {active.tasks.filter((t) => checked[t.id]).length}/{active.tasks.length} done
+                </span>
+              </div>
+
+              {/* Progress bar */}
+              <div className="h-1 w-full bg-white/70 rounded-full overflow-hidden mb-3">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ background: active.accent }}
+                  animate={{
+                    width: `${(active.tasks.filter((t) => checked[t.id]).length / active.tasks.length) * 100}%`,
+                  }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+
+              {/* Tasks */}
+              <div className="space-y-1.5">
+                {active.tasks.map((task, i) => (
+                  <motion.button
+                    key={task.id}
+                    type="button"
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.035 }}
+                    onClick={() => toggle(task.id)}
+                    className="w-full flex items-start gap-2.5 text-left group"
+                  >
+                    <motion.div
+                      animate={{
+                        backgroundColor: checked[task.id] ? active.accent : "#fff",
+                        borderColor: checked[task.id] ? active.accent : "#cbd5e1",
+                      }}
+                      transition={{ duration: 0.14 }}
+                      className="mt-0.5 w-4 h-4 rounded shrink-0 border-2 flex items-center justify-center"
+                    >
+                      {checked[task.id] && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                        >
+                          <Check className="w-2.5 h-2.5 text-white" />
+                        </motion.div>
+                      )}
+                    </motion.div>
+                    <span
+                      className={`text-[12px] leading-snug transition-colors ${
+                        checked[task.id]
+                          ? "line-through text-slate-400"
+                          : "text-slate-700 group-hover:text-slate-900"
+                      }`}
+                    >
+                      {task.label}
+                    </span>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function KeywordDifficultyEstimator() {
   const [keyword, setKeyword] = useState("");
   const [result, setResult] = useState<Result | null>(null);
@@ -3236,17 +3482,6 @@ export default function KeywordDifficultyEstimator() {
                         {result.label}
                       </span>
 
-                      {/* Predicted Ranking Timeline */}
-                      <div className="mt-3 flex items-start gap-1.5 text-left px-1">
-                        <Clock className="w-3 h-3 text-slate-400 mt-0.5 shrink-0" />
-                        <p className="text-[11px] text-slate-500 leading-relaxed">
-                          {result.score < 30
-                            ? "Estimated 2–4 weeks to Page 1 with optimized content."
-                            : result.score <= 60
-                              ? "Estimated 3–6 months of consistent authority building."
-                              : "High-competition term. Estimated 6+ months; requires aggressive backlink strategy."}
-                        </p>
-                      </div>
 
                       {result.score < 30 && result.intent === "Commercial" && (
                         <motion.div
@@ -3477,6 +3712,9 @@ export default function KeywordDifficultyEstimator() {
                     </Card>
                   );
                 })()}
+
+                {/* Content Roadmap */}
+                <ContentRoadmap key={result.keyword} result={result} />
 
                 {/* Cluster Content Ideas — glassmorphism */}
                 <div
