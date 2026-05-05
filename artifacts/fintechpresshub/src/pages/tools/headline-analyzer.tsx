@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -911,7 +912,16 @@ export default function HeadlineAnalyzer() {
     setTimeout(() => {
       clearInterval(interval);
       setIsProcessing(false);
-      setResult(analyzeHeadline(trimmed));
+      const analysisResult = analyzeHeadline(trimmed);
+      setResult(analysisResult);
+      if (analysisResult.overallScore >= 60) {
+        trackEvent("headline_threshold_reached", {
+          score: analysisResult.overallScore,
+          verdict: analysisResult.verdict,
+          wordCount: analysisResult.wordCount,
+          charCount: analysisResult.charCount,
+        });
+      }
     }, 1500);
   };
 
@@ -929,7 +939,17 @@ export default function HeadlineAnalyzer() {
 
   const checkRewriteScore = (text: string) => {
     setHeadline(text);
-    setResult(analyzeHeadline(text));
+    const rewriteResult = analyzeHeadline(text);
+    setResult(rewriteResult);
+    if (rewriteResult.overallScore >= 60) {
+      trackEvent("headline_threshold_reached", {
+        score: rewriteResult.overallScore,
+        verdict: rewriteResult.verdict,
+        wordCount: rewriteResult.wordCount,
+        charCount: rewriteResult.charCount,
+        source: "rewrite_check",
+      });
+    }
     setTimeout(() => {
       scoreBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 80);
@@ -1556,7 +1576,13 @@ export default function HeadlineAnalyzer() {
                       <p className="text-sm text-indigo-100 leading-relaxed mb-5">
                         Our specialized fintech writers can turn your optimized headline into a 1,500-word authority piece that drives leads.
                       </p>
-                      <Link href="/contact">
+                      <Link href="/contact" onClick={() =>
+                        trackEvent("quote_cta_clicked", {
+                          score: result.overallScore,
+                          verdict: result.verdict,
+                          source: "headline_analyzer",
+                        })
+                      }>
                         <Button className="w-full bg-white text-indigo-700 hover:bg-indigo-50 font-semibold h-10 shadow-sm transition-colors">
                           Get a Content Strategy Quote
                           <ArrowUpRight className="w-4 h-4 ml-1.5 shrink-0" />
