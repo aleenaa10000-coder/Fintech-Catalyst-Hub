@@ -381,23 +381,37 @@ function getQuadrantInfo(score: number, intent: Intent): QuadrantInfo {
   return { label: "Supporting Asset", sublabel: "Hard to rank · Use as cluster support", dotColor: "bg-blue-500", ringColor: "bg-blue-400", labelColor: "text-blue-700" };
 }
 
+function scoreColor(score: number, active: boolean): string {
+  if (active) return "rgba(255,255,255,0.9)";
+  return score >= 75
+    ? "#f87171"
+    : score >= 55
+      ? "#fb923c"
+      : score >= 35
+        ? "#fbbf24"
+        : "#22c55e";
+}
+
 function SparkLine({ scores, active }: { scores: number[]; active: boolean }) {
-  if (scores.length < 2) return null;
   const W = 36;
   const H = 14;
+  const last = scores[scores.length - 1];
+  const color = scoreColor(last, active);
+
+  if (scores.length === 1) {
+    const cy = H - (Math.min(100, Math.max(0, last)) / 100) * H;
+    return (
+      <svg width={W} height={H} className="shrink-0 overflow-visible" aria-hidden>
+        <line x1={0} y1={cy} x2={W} y2={cy} stroke={color} strokeWidth="1" strokeDasharray="2 2" opacity={0.35} />
+        <circle cx={W / 2} cy={cy} r={2.5} fill={color} opacity={0.9} />
+      </svg>
+    );
+  }
+
   const xs = scores.map((_, i) => (i / (scores.length - 1)) * W);
   const ys = scores.map((s) => H - (Math.min(100, Math.max(0, s)) / 100) * H);
   const pts = xs.map((x, i) => `${x},${ys[i]}`).join(" ");
-  const last = scores[scores.length - 1];
-  const color = active
-    ? "rgba(255,255,255,0.85)"
-    : last >= 75
-      ? "#f87171"
-      : last >= 55
-        ? "#fb923c"
-        : last >= 35
-          ? "#fbbf24"
-          : "#22c55e";
+
   return (
     <svg width={W} height={H} className="shrink-0 overflow-visible" aria-hidden>
       <polyline
@@ -421,6 +435,20 @@ function SparkLine({ scores, active }: { scores: number[]; active: boolean }) {
       ))}
     </svg>
   );
+}
+
+function TrendArrow({ scores, active }: { scores: number[]; active: boolean }) {
+  if (scores.length < 2) return null;
+  const first = scores[0];
+  const last = scores[scores.length - 1];
+  const diff = last - first;
+  if (Math.abs(diff) < 2) {
+    return <span className={`text-[9px] font-bold ${active ? "text-violet-200" : "text-slate-400"}`} title="Stable">—</span>;
+  }
+  if (diff > 0) {
+    return <span className={`text-[9px] font-bold ${active ? "text-red-300" : "text-red-400"}`} title={`+${diff} harder`}>↑</span>;
+  }
+  return <span className={`text-[9px] font-bold ${active ? "text-emerald-300" : "text-emerald-500"}`} title={`${diff} easier`}>↓</span>;
 }
 
 export default function KeywordDifficultyEstimator() {
@@ -633,6 +661,11 @@ export default function KeywordDifficultyEstimator() {
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.85 }}
                           type="button"
+                          title={
+                            h.scores.length >= 2
+                              ? `Score history: ${h.scores.join(" → ")} (${h.scores[h.scores.length - 1] - h.scores[0] > 0 ? "+" : ""}${h.scores[h.scores.length - 1] - h.scores[0]} vs first attempt)`
+                              : `Difficulty: ${h.score} — re-analyse to track changes`
+                          }
                           onClick={() => {
                             setResult(h);
                             setKeyword(h.keyword);
@@ -658,9 +691,8 @@ export default function KeywordDifficultyEstimator() {
                           <span className={`font-bold tabular-nums ${isActive ? "text-violet-200" : "text-slate-400"}`}>
                             {h.score}
                           </span>
-                          {h.scores.length >= 2 && (
-                            <SparkLine scores={h.scores} active={isActive} />
-                          )}
+                          <SparkLine scores={h.scores} active={isActive} />
+                          <TrendArrow scores={h.scores} active={isActive} />
                         </motion.button>
                       );
                     })}
