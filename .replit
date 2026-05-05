@@ -72,13 +72,12 @@ waitForPort = 8080
 name = "Start frontend"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=5000 pnpm --filter @workspace/fintechpresshub run dev"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
+args = "echo 'Frontend served by artifacts/fintechpresshub workflow on port 5000'"
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
