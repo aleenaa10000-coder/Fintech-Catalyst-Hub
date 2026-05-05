@@ -1272,7 +1272,7 @@ export default function HeadlineAnalyzer() {
         description="Paste any fintech article headline to get a score across clarity, keyword presence, emotional pull, and character count — with rewrite suggestions tailored to fintech audiences."
       />
 
-      <section className="py-12 md:py-16">
+      <section className="py-12 md:py-16 bg-gradient-to-b from-white via-blue-50/50 to-indigo-50/40">
         <div className="container mx-auto px-4 max-w-3xl">
           <Link
             href="/tools"
@@ -1282,7 +1282,7 @@ export default function HeadlineAnalyzer() {
             All free tools
           </Link>
 
-          <Card className="border border-slate-100 shadow-sm">
+          <Card className="bg-white/70 backdrop-blur-[10px] border border-white/80 shadow-xl">
             <CardContent className="p-6 md:p-8">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
@@ -1607,7 +1607,7 @@ export default function HeadlineAnalyzer() {
                 className="mt-6 space-y-4"
               >
                 {/* Score */}
-                <Card className={`border shadow-sm border-slate-100`}>
+                <Card className="bg-white/40 backdrop-blur-[10px] border border-white/60 shadow-lg">
                   <CardContent className="p-6">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                       <div className="relative w-24 h-24 shrink-0">
@@ -1678,7 +1678,7 @@ export default function HeadlineAnalyzer() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
                     >
-                      <Card className="border border-slate-100 shadow-sm overflow-hidden">
+                      <Card className="bg-white/40 backdrop-blur-[10px] border border-white/60 shadow-lg overflow-hidden">
                         {/* Header row */}
                         <div className="flex items-center justify-between px-5 pt-4 pb-0">
                           <div className="flex items-center gap-2">
@@ -1784,7 +1784,7 @@ export default function HeadlineAnalyzer() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, ease: "easeOut" }}
                   >
-                    <Card className="border border-violet-200 shadow-sm overflow-hidden">
+                    <Card className="bg-white/40 backdrop-blur-[10px] border border-violet-200/70 shadow-lg overflow-hidden">
                       {/* Header */}
                       <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 flex items-center gap-2">
                         <GitCompare className="w-4 h-4 text-white shrink-0" />
@@ -1982,7 +1982,7 @@ export default function HeadlineAnalyzer() {
                 )}
 
                 {/* Dimension breakdown */}
-                <Card className="border border-slate-100 shadow-sm">
+                <Card className="bg-white/40 backdrop-blur-[10px] border border-white/60 shadow-lg">
                   <CardContent className="p-5 space-y-4">
                     <h4 ref={scoreBreakdownRef} className="text-sm font-semibold text-slate-900">Score Breakdown</h4>
 
@@ -2207,7 +2207,7 @@ export default function HeadlineAnalyzer() {
 
                 {/* Flags */}
                 {result.flags.length > 0 && (
-                  <Card className="border border-amber-100 bg-amber-50 shadow-sm">
+                  <Card className="bg-amber-50/60 backdrop-blur-[10px] border border-amber-200/60 shadow-lg">
                     <CardContent className="p-4 space-y-2">
                       <h4 className="text-sm font-semibold text-amber-800 flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4" /> Watch Out For
@@ -2223,7 +2223,7 @@ export default function HeadlineAnalyzer() {
                 )}
 
                 {/* Rewrites */}
-                <Card className="border border-slate-100 shadow-sm">
+                <Card className="bg-white/40 backdrop-blur-[10px] border border-white/60 shadow-lg">
                   <CardContent className="p-5 space-y-3">
                     <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                       <RefreshCw className="w-4 h-4 text-indigo-600" /> Rewrite Suggestions
@@ -2327,7 +2327,7 @@ export default function HeadlineAnalyzer() {
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.22 }}
                       >
-                        <Card className={`border shadow-sm ${bridge.accentBg} ${bridge.accentBorder}`}>
+                        <Card className={`backdrop-blur-[10px] border shadow-lg bg-white/50 ${bridge.accentBorder}`}>
                           <CardContent className="p-5">
                             <p className={`text-[10px] font-semibold uppercase tracking-widest mb-2 ${bridge.accentText}`}>
                               Content Strategy Bridge
@@ -2355,7 +2355,7 @@ export default function HeadlineAnalyzer() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, ease: "easeOut" }}
                 >
-                  <Card className="border-0 shadow-md overflow-hidden">
+                  <Card className="border-0 shadow-xl overflow-hidden backdrop-blur-[10px]">
                     <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 px-6 py-6">
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-200 mb-2">
                         Next Steps
@@ -2391,7 +2391,7 @@ export default function HeadlineAnalyzer() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, ease: "easeOut", delay: 0.1 }}
                 >
-                  <Card className="border border-slate-100 shadow-sm">
+                  <Card className="bg-white/40 backdrop-blur-[10px] border border-white/60 shadow-lg">
                     <CardContent className="p-5">
                       <div className="flex items-center gap-2 mb-3">
                         <Share2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
