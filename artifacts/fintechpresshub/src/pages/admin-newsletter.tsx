@@ -131,6 +131,50 @@ export default function AdminNewsletter() {
     );
   }, []);
 
+  function buildMailto(email: string | null, keyword: string | null): string {
+    if (!email) return "#";
+    const kw = keyword?.trim() || null;
+    const score = kw ? quickScore(kw) : null;
+    const difficulty =
+      score === null ? null
+      : score < 35 ? "Easy"
+      : score < 55 ? "Medium"
+      : "Hard";
+
+    const subject = kw
+      ? `Your "${kw}" SEO Strategy Brief — a personal follow-up`
+      : "Your FintechPressHub SEO Strategy Brief";
+
+    const diffLine = difficulty && kw
+      ? `We noticed you researched "${kw}" — a ${difficulty.toLowerCase()}-difficulty keyword in the fintech space.`
+      : `We noticed you recently downloaded an SEO Strategy Brief from FintechPressHub.`;
+
+    const ctaLine =
+      difficulty === "Hard"
+        ? `Ranking for "${kw}" requires strong topical authority and link equity. Our team specialises in exactly that — building content clusters and acquiring high-authority backlinks for fintech brands.`
+        : difficulty === "Medium"
+          ? `"${kw}" sits in a competitive middle-ground where the right content strategy can make a real difference. We'd love to show you how we'd approach it.`
+          : kw
+            ? `"${kw}" is a great opportunity — low competition means a well-crafted piece could rank quickly. We can help you move fast on it.`
+            : `We'd love to learn more about your SEO goals and show you how FintechPressHub can help.`;
+
+    const body = [
+      `Hi,`,
+      ``,
+      diffLine,
+      ``,
+      ctaLine,
+      ``,
+      `Would you be open to a quick 15-minute call to discuss your fintech content strategy? I'm happy to share some specific ideas tailored to your goals.`,
+      ``,
+      `Best,`,
+      `The FintechPressHub Team`,
+      `https://fintechpresshub.com`,
+    ].join("\n");
+
+    return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+
   function quickScore(keyword: string): number {
     const kw = keyword.trim().toLowerCase();
     const words = kw.split(/\s+/);
@@ -821,10 +865,15 @@ export default function AdminNewsletter() {
                           </td>
                           <td className="py-3">
                             <a
-                              href={`mailto:${lead.email}?subject=Your%20FintechPressHub%20SEO%20Strategy%20Brief&body=Hi%2C%0A%0AThank%20you%20for%20downloading%20your%20SEO%20Strategy%20Brief%20from%20FintechPressHub.%20I%20wanted%20to%20follow%20up%20personally%20and%20see%20if%20there%E2%80%99s%20anything%20we%20can%20help%20you%20with.%0A%0A`}
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 hover:text-violet-900 transition-colors"
+                              href={buildMailto(lead.email, lead.keyword)}
+                              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-700 hover:text-violet-900 transition-colors group"
+                              title={lead.keyword ? `Send personalised reply about "${lead.keyword}"` : "Send reply"}
                             >
-                              <Mail className="w-3 h-3" /> Reply
+                              <Mail className="w-3 h-3" />
+                              Reply
+                              {lead.keyword && (
+                                <span className="text-[9px] font-medium text-violet-400 group-hover:text-violet-600 transition-colors">✦</span>
+                              )}
                             </a>
                           </td>
                         </tr>
