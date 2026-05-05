@@ -107,6 +107,12 @@ export default function AdminNewsletter() {
       }));
   }, [detailQuery.data]);
 
+  const seoBriefLeads = useMemo(() => {
+    return (detailQuery.data?.subscribers ?? []).filter(
+      (s: { source: string | null }) => s.source === "seo-brief",
+    ) as Array<{ id: number; email: string | null; createdAt: string; source: string | null; briefStatus: string | null; briefStatusUpdatedAt: string | null }>;
+  }, [detailQuery.data]);
+
   // Optimistic status map: id → status (overrides server value while PATCH is in-flight / confirmed)
   const [leadStatuses, setLeadStatuses] = useState<Record<number, string>>({});
   const [updatingIds, setUpdatingIds] = useState<Set<number>>(new Set());
@@ -489,6 +495,119 @@ export default function AdminNewsletter() {
                           <td className="py-3">
                             <a
                               href={`mailto:${lead.email}?subject=Your%20FintechPressHub%20Content%20Brief&body=Hi%20${encodeURIComponent(lead.businessName)}%2C%0A%0AThank%20you%20for%20requesting%20your%20personalised%20SEO%20content%20brief.%20Here%20it%20is%3A%0A%0A`}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 hover:text-violet-900 transition-colors"
+                            >
+                              <Mail className="w-3 h-3" /> Reply
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── SEO Brief Leads ─────────────────────────────────────────────── */}
+        <Card id="seo-brief-leads" className="mb-8 border-violet-200/70 bg-violet-50/30">
+          <CardContent className="pt-6 pb-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                  <Search className="w-4 h-4 text-violet-600" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-sm leading-tight">SEO Brief Leads</h2>
+                  <p className="text-xs text-muted-foreground leading-tight">
+                    Submitted via the Keyword Difficulty Estimator PDF download modal
+                  </p>
+                </div>
+                {seoBriefLeads.length > 0 && (
+                  <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-violet-600 text-white text-[10px] font-bold">
+                    {seoBriefLeads.length}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {seoBriefLeads.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <Inbox className="w-8 h-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">No SEO brief leads yet.</p>
+                <p className="text-xs text-muted-foreground/70">
+                  When users download an SEO Strategy Brief from the Keyword Difficulty Estimator, their email appears here.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto -mx-6 px-6">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-violet-100 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="py-2 pr-4 font-medium">Email</th>
+                      <th className="py-2 pr-4 font-medium">Submitted</th>
+                      <th className="py-2 pr-6 font-medium">Status</th>
+                      <th className="py-2 font-medium">Reply</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seoBriefLeads.map((lead) => {
+                      const effectiveStatus = leadStatuses[lead.id] ?? lead.briefStatus ?? "new";
+                      const isUpdating = updatingIds.has(lead.id);
+
+                      const statusMeta: Record<string, { label: string; pill: string; dot: string }> = {
+                        new:         { label: "New",         pill: "bg-sky-100 text-sky-700 ring-sky-200",           dot: "bg-sky-400" },
+                        in_progress: { label: "In Progress", pill: "bg-amber-100 text-amber-700 ring-amber-200",     dot: "bg-amber-400" },
+                        sent:        { label: "Sent",        pill: "bg-indigo-100 text-indigo-700 ring-indigo-200",  dot: "bg-indigo-400" },
+                        actioned:    { label: "Actioned",    pill: "bg-emerald-100 text-emerald-700 ring-emerald-200", dot: "bg-emerald-400" },
+                      };
+                      const meta = statusMeta[effectiveStatus] ?? statusMeta["new"];
+
+                      return (
+                        <tr
+                          key={lead.id}
+                          className="border-b border-violet-50 last:border-b-0 hover:bg-violet-50/40 transition-colors"
+                        >
+                          <td className="py-3 pr-4 font-mono text-xs">{lead.email}</td>
+                          <td className="py-3 pr-4 text-muted-foreground whitespace-nowrap">
+                            <span title={formatDateTime(lead.createdAt)}>
+                              {formatDate(lead.createdAt)}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-6">
+                            <div className="flex flex-col gap-1.5">
+                              <span className={`inline-flex items-center gap-1.5 self-start px-2 py-0.5 rounded-full text-[11px] font-semibold ring-1 ${meta.pill} ${isUpdating ? "opacity-60" : ""}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
+                                {meta.label}
+                                {isUpdating && <span className="ml-0.5 animate-spin text-[8px]">↻</span>}
+                              </span>
+                              <div className="flex gap-1 flex-wrap">
+                                {(["new", "in_progress", "sent", "actioned"] as const).map((s) => {
+                                  const sm = statusMeta[s];
+                                  const isActive = effectiveStatus === s;
+                                  return (
+                                    <button
+                                      key={s}
+                                      type="button"
+                                      disabled={isActive || isUpdating}
+                                      onClick={() => updateLeadStatus(lead.id, s)}
+                                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border transition-all ${
+                                        isActive
+                                          ? `${sm.pill} ring-1 cursor-default`
+                                          : "border-slate-200 text-slate-500 hover:border-slate-400 hover:text-slate-700 bg-white"
+                                      } disabled:opacity-50`}
+                                    >
+                                      {sm.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3">
+                            <a
+                              href={`mailto:${lead.email}?subject=Your%20FintechPressHub%20SEO%20Strategy%20Brief&body=Hi%2C%0A%0AThank%20you%20for%20downloading%20your%20SEO%20Strategy%20Brief%20from%20FintechPressHub.%20I%20wanted%20to%20follow%20up%20personally%20and%20see%20if%20there%E2%80%99s%20anything%20we%20can%20help%20you%20with.%0A%0A`}
                               className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 hover:text-violet-900 transition-colors"
                             >
                               <Mail className="w-3 h-3" /> Reply

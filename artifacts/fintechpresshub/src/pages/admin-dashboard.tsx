@@ -453,6 +453,13 @@ export default function AdminDashboard() {
                 href="/admin/newsletter"
                 color="bg-purple-100 text-purple-600"
               />
+              <StatCard
+                icon={Search}
+                label="SEO Brief Leads"
+                value="View →"
+                href="/admin/newsletter#seo-brief-leads"
+                color="bg-violet-100 text-violet-600"
+              />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
