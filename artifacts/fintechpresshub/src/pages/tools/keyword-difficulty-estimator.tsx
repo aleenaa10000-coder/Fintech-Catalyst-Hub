@@ -21,6 +21,7 @@ import {
   Layers,
   Crosshair,
   Trophy,
+  BookOpen,
 } from "lucide-react";
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
@@ -289,6 +290,36 @@ type QuadrantInfo = {
   labelColor: string;
 };
 
+const CLUSTER_CONTENT_TEMPLATES: Record<Cluster, string[]> = {
+  "Infrastructure & Security": [
+    "How to Secure {kw}: A Complete Fintech Compliance Guide",
+    "{kw} Best Practices: What Enterprise Security Teams Get Right",
+    "The {kw} Implementation Checklist for Regulated Industries",
+    "{kw} vs Alternatives: A Technical Security Breakdown",
+    "What Every Fintech CTO Must Know About {kw}",
+  ],
+  "Commercial Solutions": [
+    "Best {kw} Tools in 2025: An Honest Comparison",
+    "How to Choose the Right {kw} for Your Fintech Stack",
+    "{kw} Pricing Explained: What You're Actually Paying For",
+    "Why High-Growth Fintechs Are Switching to {kw}",
+    "{kw} ROI: Real Case Studies from Fintech Leaders",
+  ],
+  "Fintech General": [
+    "What Is {kw}? A Plain-English Guide for Fintech Teams",
+    "How {kw} Is Reshaping Financial Services in 2025",
+    "{kw} Trends Every Fintech Founder Should Track",
+    "The Beginner's Guide to {kw}: Concepts, Tools & Strategy",
+    "{kw} Best Practices: Lessons from Industry Leaders",
+  ],
+};
+
+function generateClusterIdeas(cluster: Cluster, keyword: string): string[] {
+  return CLUSTER_CONTENT_TEMPLATES[cluster].map((t) =>
+    t.replace(/\{kw\}/g, keyword.trim()),
+  );
+}
+
 const CONFETTI_COLORS = [
   "bg-emerald-400", "bg-lime-400", "bg-violet-500",
   "bg-yellow-400", "bg-pink-400", "bg-cyan-400", "bg-orange-400",
@@ -342,6 +373,7 @@ export default function KeywordDifficultyEstimator() {
   const [keyword, setKeyword] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
+  const [copiedCluster, setCopiedCluster] = useState<number | null>(null);
 
   const reset = () => {
     setKeyword("");
@@ -357,6 +389,12 @@ export default function KeywordDifficultyEstimator() {
     navigator.clipboard.writeText(text);
     setCopied(idx);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const copyClusterIdea = (idx: number, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCluster(idx);
+    setTimeout(() => setCopiedCluster(null), 2000);
   };
 
   const canAnalyse = keyword.trim().length >= 2;
@@ -649,6 +687,58 @@ export default function KeywordDifficultyEstimator() {
                     </Card>
                   );
                 })()}
+
+                {/* Cluster Content Ideas */}
+                <Card className="border border-slate-100 shadow-sm">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <BookOpen className="w-4 h-4 text-violet-600" />
+                      <h4 className="text-sm font-semibold text-slate-900">
+                        Cluster Content Ideas
+                      </h4>
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] font-bold border rounded-full px-2 py-0.5 ml-1 ${CLUSTER_COLOR[result.cluster]}`}
+                      >
+                        <Layers className="w-2.5 h-2.5" />
+                        {result.cluster}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground ml-auto">
+                        Click to copy
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
+                      Create these 5 supporting articles to build Topical Authority around{" "}
+                      <span className="font-semibold text-slate-700">"{result.keyword}"</span>.
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {generateClusterIdeas(result.cluster, result.keyword).map((idea, i) => (
+                        <motion.button
+                          key={i}
+                          type="button"
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.06, duration: 0.25 }}
+                          onClick={() => copyClusterIdea(i, idea)}
+                          className="flex items-center justify-between gap-3 text-left px-3 py-2.5 rounded-lg border border-slate-100 bg-slate-50 hover:bg-violet-50 hover:border-violet-200 transition-all group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="shrink-0 w-5 h-5 rounded-full bg-violet-100 text-violet-600 text-[10px] font-bold flex items-center justify-center">
+                              {i + 1}
+                            </span>
+                            <span className="text-sm text-slate-700 leading-snug truncate">
+                              {idea}
+                            </span>
+                          </div>
+                          {copiedCluster === i ? (
+                            <Check className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          )}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
 
                 {/* Long-tail suggestions */}
                 <Card className="border border-slate-100 shadow-sm">
