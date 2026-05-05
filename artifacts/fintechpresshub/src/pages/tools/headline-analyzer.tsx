@@ -151,6 +151,27 @@ const PRACTITIONER_JARGON_TERMS = [
   "yield", "collateral", "portfolio", "arbitrage", "chargeback",
 ];
 
+// ── Word Heatmap Dictionaries ─────────────────────────────────────────────
+// Filler words: articles, weak conjunctions, and empty intensifiers that
+// add length without meaning — candidates for removal.
+const FILLER_WORDS = new Set([
+  "the", "a", "an",
+  "and", "but", "or", "nor",
+  "in", "of", "to", "for", "at", "by", "on",
+  "is", "are", "was", "were", "be",
+  "very", "really", "quite", "rather", "somewhat", "just", "also", "too",
+  "its", "their", "this", "that",
+]);
+
+// Power words: union of all three fintech power-word categories + generic
+// structural impact words. Stored as a Set for O(1) per-word lookup.
+const POWER_WORDS_SET = new Set([
+  ...FINTECH_AUTHORITY_WORDS,
+  ...FINTECH_GROWTH_WORDS,
+  ...FINTECH_URGENCY_WORDS,
+  ...GENERIC_POWER_WORDS,
+].map((w) => w.toLowerCase()));
+
 type ScoreDimension = {
   label: string;
   score: number;
@@ -634,6 +655,50 @@ function analyzeHeadline(headline: string): Analysis {
   };
 }
 
+// ── WordHeatmap ───────────────────────────────────────────────────────────
+// Splits the headline into tokens, classifies each word as "power", "filler",
+// or "neutral", and renders with matching highlight styles. Whitespace tokens
+// are passed through unchanged so spacing is preserved exactly.
+function WordHeatmap({ headline }: { headline: string }) {
+  const tokens = headline.split(/(\s+)/);
+
+  const classify = (token: string): "power" | "filler" | "neutral" => {
+    const clean = token.toLowerCase().replace(/[^a-z]/g, "");
+    if (!clean) return "neutral";
+    if (FILLER_WORDS.has(clean)) return "filler";
+    if (POWER_WORDS_SET.has(clean)) return "power";
+    return "neutral";
+  };
+
+  return (
+    <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm leading-relaxed text-slate-800 break-words">
+      {tokens.map((token, i) => {
+        if (/^\s+$/.test(token)) return <span key={i}>{token}</span>;
+        const cat = classify(token);
+        if (cat === "power")
+          return (
+            <span
+              key={i}
+              className="rounded-sm bg-emerald-100 px-0.5 font-semibold text-emerald-800 shadow-[0_0_6px_0_rgba(16,185,129,0.25)]"
+            >
+              {token}
+            </span>
+          );
+        if (cat === "filler")
+          return (
+            <span
+              key={i}
+              className="text-red-400 underline decoration-dotted decoration-red-400 underline-offset-2"
+            >
+              {token}
+            </span>
+          );
+        return <span key={i}>{token}</span>;
+      })}
+    </div>
+  );
+}
+
 // ── TypewriterText ────────────────────────────────────────────────────────
 // Renders `text` one character at a time after an optional `delay` (ms).
 // Shows a blinking cursor while typing; cursor disappears when done.
@@ -942,6 +1007,19 @@ export default function HeadlineAnalyzer() {
                 <Card className="border border-slate-100 shadow-sm">
                   <CardContent className="p-5 space-y-4">
                     <h4 ref={scoreBreakdownRef} className="text-sm font-semibold text-slate-900">Score Breakdown</h4>
+
+                    {/* ── Word Heatmap ── */}
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                        Word Heatmap
+                      </p>
+                      <WordHeatmap headline={result.headline} />
+                      <div className="flex items-center gap-4">
+                        <span className="text-[10px] text-slate-500">🔥 Power Word</span>
+                        <span className="text-[10px] text-slate-500">☁️ Filler Word</span>
+                      </div>
+                    </div>
+
                     {result.dimensions.map((dim, i) => {
                       const c = COLOR_MAP[dim.color];
                       const pct = Math.round((dim.score / dim.max) * 100);
