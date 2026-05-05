@@ -272,3 +272,8 @@
 .animate-shimmer-bar {
   animation: shimmer-sweep 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
+
+@keyframes shimmer-bg {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}

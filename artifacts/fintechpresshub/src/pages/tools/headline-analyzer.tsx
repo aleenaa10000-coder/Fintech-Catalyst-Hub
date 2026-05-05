@@ -876,6 +876,14 @@ export default function HeadlineAnalyzer() {
   const [result, setResult] = useState<Analysis | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState(0);
+
+  const PROCESSING_STEPS = [
+    "Scanning SERPs...",
+    "Analyzing Sentiment...",
+    "Calculating Vibe Match...",
+  ];
 
   const scoreBreakdownRef = useRef<HTMLDivElement>(null);
 
@@ -890,8 +898,21 @@ export default function HeadlineAnalyzer() {
 
   const analyze = () => {
     if (headline.trim().length < 5) return;
-    setResult(analyzeHeadline(headline.trim()));
+    const trimmed = headline.trim();
+    setResult(null);
     setSelectedVibe(null);
+    setIsProcessing(true);
+    setProcessingStep(0);
+
+    const interval = setInterval(() => {
+      setProcessingStep((s) => (s + 1) % PROCESSING_STEPS.length);
+    }, 500);
+
+    setTimeout(() => {
+      clearInterval(interval);
+      setIsProcessing(false);
+      setResult(analyzeHeadline(trimmed));
+    }, 1500);
   };
 
   const reset = () => {
@@ -914,7 +935,7 @@ export default function HeadlineAnalyzer() {
     }, 80);
   };
 
-  const canAnalyze = headline.trim().length >= 5;
+  const canAnalyze = headline.trim().length >= 5 && !isProcessing;
 
   const verdictColors = result ? COLOR_MAP[result.verdictColor] : null;
 
@@ -1041,14 +1062,53 @@ export default function HeadlineAnalyzer() {
                 );
               })()}
 
-              <Button
+              <button
                 onClick={analyze}
                 disabled={!canAnalyze}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold h-11"
+                className={`relative w-full h-11 rounded-md font-semibold text-sm text-white overflow-hidden transition-all
+                  ${isProcessing
+                    ? "cursor-not-allowed"
+                    : canAnalyze
+                    ? "hover:opacity-90 active:scale-[0.99]"
+                    : "opacity-50 cursor-not-allowed"
+                  }`}
               >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Analyze Headline
-              </Button>
+                {/* Background — pulses during processing */}
+                <span
+                  className={`absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_100%] transition-all
+                    ${isProcessing ? "animate-[shimmer-bg_1.2s_linear_infinite]" : ""}`}
+                  style={isProcessing ? {} : { backgroundSize: "100% 100%" }}
+                />
+
+                {/* Idle state */}
+                {!isProcessing && (
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Analyze Headline
+                  </span>
+                )}
+
+                {/* Processing state */}
+                {isProcessing && (
+                  <span className="relative z-10 flex items-center justify-center gap-2.5">
+                    {/* Spinning ring */}
+                    <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />
+                    {/* Cycling label */}
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={processingStep}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.18 }}
+                        className="text-sm font-semibold tracking-wide"
+                      >
+                        {PROCESSING_STEPS[processingStep]}
+                      </motion.span>
+                    </AnimatePresence>
+                  </span>
+                )}
+              </button>
             </CardContent>
           </Card>
 
