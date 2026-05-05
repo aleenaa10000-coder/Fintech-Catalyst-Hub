@@ -21,6 +21,7 @@ import {
   RefreshCw,
   BarChart2,
   Users,
+  ArrowUpRight,
 } from "lucide-react";
 
 const FINTECH_KEYWORDS = [
@@ -670,17 +671,20 @@ export default function HeadlineAnalyzer() {
   const [headline, setHeadline] = useState("");
   const [result, setResult] = useState<Analysis | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
+  const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
 
   const scoreBreakdownRef = useRef<HTMLDivElement>(null);
 
   const analyze = () => {
     if (headline.trim().length < 5) return;
     setResult(analyzeHeadline(headline.trim()));
+    setSelectedVibe(null);
   };
 
   const reset = () => {
     setHeadline("");
     setResult(null);
+    setSelectedVibe(null);
   };
 
   const copyRewrite = (text: string, idx: number) => {
@@ -1094,7 +1098,16 @@ export default function HeadlineAnalyzer() {
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.08 }}
-                        className="flex items-start justify-between gap-3 px-3 py-3 rounded-lg bg-slate-50 border border-slate-100"
+                        onClick={() => setSelectedVibe(r.label)}
+                        className={`flex items-start justify-between gap-3 px-3 py-3 rounded-lg cursor-pointer transition-all ${
+                          selectedVibe === r.label
+                            ? r.label === "The Authority Vibe"
+                              ? "bg-blue-50 border border-blue-300 ring-1 ring-blue-100"
+                              : r.label === "The Disruptor Vibe"
+                              ? "bg-orange-50 border border-orange-300 ring-1 ring-orange-100"
+                              : "bg-emerald-50 border border-emerald-300 ring-1 ring-emerald-100"
+                            : "bg-slate-50 border border-slate-100 hover:border-slate-200 hover:bg-slate-100/60"
+                        }`}
                       >
                         <div className="space-y-0.5">
                           <p className={`text-[10px] font-semibold uppercase tracking-widest leading-none ${
@@ -1129,6 +1142,70 @@ export default function HeadlineAnalyzer() {
                     ))}
                   </CardContent>
                 </Card>
+
+                {/* Content Strategy Bridge */}
+                <AnimatePresence mode="wait">
+                  {selectedVibe && (() => {
+                    const BRIDGE_MAP: Record<string, {
+                      accentBg: string; accentBorder: string; accentText: string;
+                      labelColor: string; cta: string; linkText: string;
+                    }> = {
+                      "The Authority Vibe": {
+                        accentBg:     "bg-gradient-to-br from-blue-50 to-white",
+                        accentBorder: "border-blue-200",
+                        accentText:   "text-blue-500",
+                        labelColor:   "text-blue-700",
+                        cta:      "Want to back this up with an expert whitepaper?",
+                        linkText: "Explore our content services",
+                      },
+                      "The Data Vibe": {
+                        accentBg:     "bg-gradient-to-br from-emerald-50 to-white",
+                        accentBorder: "border-emerald-200",
+                        accentText:   "text-emerald-500",
+                        labelColor:   "text-emerald-700",
+                        cta:      "Need a custom industry report to support these numbers?",
+                        linkText: "See our research & data services",
+                      },
+                      "The Disruptor Vibe": {
+                        accentBg:     "bg-gradient-to-br from-orange-50 to-white",
+                        accentBorder: "border-orange-200",
+                        accentText:   "text-orange-500",
+                        labelColor:   "text-orange-700",
+                        cta:      "Ready to lead the conversation with a PR blitz?",
+                        linkText: "Talk to our strategy team",
+                      },
+                    };
+                    const bridge = BRIDGE_MAP[selectedVibe];
+                    if (!bridge) return null;
+                    return (
+                      <motion.div
+                        key={selectedVibe}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.22 }}
+                      >
+                        <Card className={`border shadow-sm ${bridge.accentBg} ${bridge.accentBorder}`}>
+                          <CardContent className="p-5">
+                            <p className={`text-[10px] font-semibold uppercase tracking-widest mb-2 ${bridge.accentText}`}>
+                              Content Strategy Bridge
+                            </p>
+                            <p className={`text-sm font-bold mb-3 ${bridge.labelColor}`}>
+                              {bridge.cta}
+                            </p>
+                            <Link
+                              href="/services"
+                              className={`inline-flex items-center gap-1.5 text-sm font-semibold transition-opacity hover:opacity-80 ${bridge.labelColor}`}
+                            >
+                              {bridge.linkText}
+                              <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+                            </Link>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })()}
+                </AnimatePresence>
 
                 <Card className="border border-slate-100 bg-slate-50 shadow-sm">
                   <CardContent className="p-4">
