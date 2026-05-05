@@ -5,9 +5,14 @@ import {
   type Response,
   type NextFunction,
 } from "express";
-import { db, newsletterSubscribersTable } from "@workspace/db";
-import { desc } from "drizzle-orm";
+import { db, newsletterSubscribersTable, BRIEF_LEAD_STATUSES, type BriefLeadStatus } from "@workspace/db";
+import { desc, eq } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
+import { z } from "zod";
+
+const UpdateBriefStatusBody = z.object({
+  status: z.enum(BRIEF_LEAD_STATUSES),
+});
 
 const router: IRouter = Router();
 
@@ -43,6 +48,8 @@ async function loadDetail() {
       email: newsletterSubscribersTable.email,
       createdAt: newsletterSubscribersTable.createdAt,
       source: newsletterSubscribersTable.source,
+      briefStatus: newsletterSubscribersTable.briefStatus,
+      briefStatusUpdatedAt: newsletterSubscribersTable.briefStatusUpdatedAt,
     })
     .from(newsletterSubscribersTable)
     .orderBy(desc(newsletterSubscribersTable.createdAt));
@@ -74,11 +81,13 @@ async function loadDetail() {
     last30DayCount,
     last7DayCount,
     latestSubscribedAt: rows[0]?.createdAt?.toISOString() ?? null,
-    subscribers: rows.map((r: { id: number; email: string | null; createdAt: Date; source: string | null }) => ({
+    subscribers: rows.map((r: { id: number; email: string | null; createdAt: Date; source: string | null; briefStatus: BriefLeadStatus | null; briefStatusUpdatedAt: Date | null }) => ({
       id: r.id,
       email: r.email,
       createdAt: r.createdAt.toISOString(),
       source: r.source,
+      briefStatus: r.briefStatus ?? null,
+      briefStatusUpdatedAt: r.briefStatusUpdatedAt?.toISOString() ?? null,
     })),
     dailySignups: Array.from(buckets.entries()).map(([date, count]) => ({
       date,
@@ -91,6 +100,37 @@ router.get("/admin/newsletter/subscribers", requireAdmin, async (_req, res) => {
   const detail = await loadDetail();
   res.json(detail);
 });
+
+router.patch(
+  "/admin/newsletter/brief-leads/:id/status",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id ?? "", 10);
+    if (isNaN(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const parsed = UpdateBriefStatusBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid status", issues: parsed.error.issues });
+      return;
+    }
+    const [updated] = await db
+      .update(newsletterSubscribersTable)
+      .set({
+        briefStatus: parsed.data.status,
+        briefStatusUpdatedAt: new Date(),
+      })
+      .where(eq(newsletterSubscribersTable.id, id))
+      .returning({ id: newsletterSubscribersTable.id, briefStatus: newsletterSubscribersTable.briefStatus });
+
+    if (!updated) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+    res.json({ id: updated.id, briefStatus: updated.briefStatus });
+  },
+);
 
 // CSV export — served outside OpenAPI (binary-ish response). Same auth gate.
 router.get(
