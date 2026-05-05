@@ -1565,7 +1565,10 @@ export default function KeywordDifficultyEstimator() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+
+            </div>{/* /main content */}
+          </div>{/* /flex layout */}
+        </div>{/* /container */}
       </section>
     </div>
   );
