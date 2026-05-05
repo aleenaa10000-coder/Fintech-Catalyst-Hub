@@ -13,6 +13,9 @@ import {
   Mail,
   TrendingUp,
   Calendar,
+  FileText,
+  Inbox,
+  Building2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -94,6 +97,15 @@ export default function AdminNewsletter() {
       })),
     [detailQuery.data],
   );
+
+  const briefLeads = useMemo(() => {
+    return (detailQuery.data?.subscribers ?? [])
+      .filter((s: { source: string | null }) => s.source?.startsWith("content-brief-request"))
+      .map((s: { id: number; email: string | null; createdAt: string; source: string | null }) => ({
+        ...s,
+        businessName: s.source?.split("|")[1]?.trim() ?? "—",
+      }));
+  }, [detailQuery.data]);
 
   if (authLoading) {
     return (
@@ -330,10 +342,101 @@ export default function AdminNewsletter() {
           </CardContent>
         </Card>
 
+        {/* ── Content Brief Leads ─────────────────────────────────────────── */}
+        <Card className="mb-8 border-violet-200/70 bg-violet-50/30">
+          <CardContent className="pt-6 pb-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 text-violet-600" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-sm leading-tight">Content Brief Leads</h2>
+                  <p className="text-xs text-muted-foreground leading-tight">
+                    Submitted via the Headline Analyzer brief request modal
+                  </p>
+                </div>
+                {briefLeads.length > 0 && (
+                  <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-violet-600 text-white text-[10px] font-bold">
+                    {briefLeads.length}
+                  </span>
+                )}
+              </div>
+              {briefLeads.length > 0 && (
+                <a
+                  href={`/api/admin/newsletter/subscribers.csv`}
+                  download
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-violet-700 hover:text-violet-900 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" /> Export all leads CSV
+                </a>
+              )}
+            </div>
+
+            {briefLeads.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <Inbox className="w-8 h-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">No content brief requests yet.</p>
+                <p className="text-xs text-muted-foreground/70">
+                  When users request a brief from the Headline Analyzer, their lead appears here.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto -mx-6 px-6">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-violet-100 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="py-2 pr-4 font-medium">Email</th>
+                      <th className="py-2 pr-4 font-medium">Business / Name</th>
+                      <th className="py-2 pr-4 font-medium">Requested</th>
+                      <th className="py-2 font-medium">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {briefLeads.map((lead) => (
+                      <tr
+                        key={lead.id}
+                        className="border-b border-violet-50 last:border-b-0 hover:bg-violet-50/60 transition-colors"
+                        data-testid={`brief-lead-row-${lead.id}`}
+                      >
+                        <td className="py-2.5 pr-4 font-mono text-xs">
+                          {lead.email}
+                        </td>
+                        <td className="py-2.5 pr-4">
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-xs font-medium text-foreground">
+                              {lead.businessName}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap">
+                          <span title={formatDateTime(lead.createdAt)}>
+                            {formatDate(lead.createdAt)}
+                          </span>
+                        </td>
+                        <td className="py-2.5">
+                          <a
+                            href={`mailto:${lead.email}?subject=Your%20FintechPressHub%20Content%20Brief&body=Hi%20${encodeURIComponent(lead.businessName)}%2C%0A%0AThank%20you%20for%20requesting%20your%20personalised%20SEO%20content%20brief.%20Here%20it%20is%3A%0A%0A`}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 hover:text-violet-900 transition-colors"
+                          >
+                            <Mail className="w-3 h-3" /> Reply
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── All Subscribers ─────────────────────────────────────────────── */}
         <Card>
           <CardContent className="pt-6 pb-6">
             <div className="flex items-baseline justify-between mb-4">
-              <h2 className="font-semibold">Subscribers</h2>
+              <h2 className="font-semibold">All Subscribers</h2>
               <span className="text-xs text-muted-foreground">
                 {detail.subscribers.length}{" "}
                 {detail.subscribers.length === 1 ? "person" : "people"}
