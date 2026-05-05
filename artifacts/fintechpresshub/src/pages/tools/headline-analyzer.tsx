@@ -1445,21 +1445,31 @@ export default function HeadlineAnalyzer() {
                   })()}
                 </AnimatePresence>
 
-                <Card className="border border-slate-100 bg-slate-50 shadow-sm">
-                  <CardContent className="p-4">
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      Want a professional writer to craft and test headlines for your fintech content?{" "}
-                      <Link href="/services" className="font-semibold underline underline-offset-2 hover:text-slate-900">
-                        See our content services
-                      </Link>{" "}
-                      or{" "}
-                      <Link href="/contact" className="font-semibold underline underline-offset-2 hover:text-slate-900">
-                        get in touch
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                >
+                  <Card className="border-0 shadow-md overflow-hidden">
+                    <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 px-6 py-6">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-200 mb-2">
+                        Next Steps
+                      </p>
+                      <h3 className="text-lg font-bold text-white leading-snug mb-3">
+                        Ready to turn this headline into a ranking article?
+                      </h3>
+                      <p className="text-sm text-indigo-100 leading-relaxed mb-5">
+                        Our specialized fintech writers can turn your optimized headline into a 1,500-word authority piece that drives leads.
+                      </p>
+                      <Link href="/contact">
+                        <Button className="w-full bg-white text-indigo-700 hover:bg-indigo-50 font-semibold h-10 shadow-sm transition-colors">
+                          Get a Content Strategy Quote
+                          <ArrowUpRight className="w-4 h-4 ml-1.5 shrink-0" />
+                        </Button>
                       </Link>
-                      .
-                    </p>
-                  </CardContent>
-                </Card>
+                    </div>
+                  </Card>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
