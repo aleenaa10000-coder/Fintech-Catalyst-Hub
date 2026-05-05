@@ -44,6 +44,7 @@ import {
   Mail,
   Send,
   AlertTriangle,
+  Clock,
 } from "lucide-react";
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
@@ -527,9 +528,9 @@ function MiniQuadrant({ entry }: { entry: HistoryEntry }) {
 }
 
 function ComparePanelOverlay({
-  a, b, onClose,
+  a, b, onClose, cannibalization,
 }: {
-  a: HistoryEntry; b: HistoryEntry; onClose: () => void;
+  a: HistoryEntry; b: HistoryEntry; onClose: () => void; cannibalization?: boolean;
 }) {
   const qa = getQuadrantInfo(a.score, a.intent);
   const qb = getQuadrantInfo(b.score, b.intent);
@@ -604,6 +605,15 @@ function ComparePanelOverlay({
             <Side entry={b} qInfo={qb} />
           </div>
         </div>
+        {cannibalization && (
+          <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 flex items-start gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              <span className="font-bold">Cannibalization risk detected.</span>{" "}
+              These terms have high semantic overlap. Consider targeting them within a single high-authority pillar page rather than separate articles.
+            </p>
+          </div>
+        )}
         {qa.label !== qb.label && (
           <div className="mt-4 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5">
             <p className="text-[11px] text-slate-600 leading-relaxed">
@@ -1464,6 +1474,7 @@ export default function KeywordDifficultyEstimator() {
                   a={entA}
                   b={entB}
                   onClose={() => setShowCompare(false)}
+                  cannibalization={cannibalizationSet.has(kwA) && cannibalizationSet.has(kwB)}
                 />
               );
             })()}
@@ -1552,6 +1563,19 @@ export default function KeywordDifficultyEstimator() {
                       >
                         {result.label}
                       </span>
+
+                      {/* Predicted Ranking Timeline */}
+                      <div className="mt-3 flex items-start gap-1.5 text-left px-1">
+                        <Clock className="w-3 h-3 text-slate-400 mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          {result.score < 30
+                            ? "Estimated 2–4 weeks to Page 1 with optimized content."
+                            : result.score <= 60
+                              ? "Estimated 3–6 months of consistent authority building."
+                              : "High-competition term. Estimated 6+ months; requires aggressive backlink strategy."}
+                        </p>
+                      </div>
+
                       {result.score < 30 && result.intent === "Commercial" && (
                         <motion.div
                           initial={{ scale: 0, opacity: 0, y: 6 }}
