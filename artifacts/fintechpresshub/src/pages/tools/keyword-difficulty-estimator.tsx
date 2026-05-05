@@ -2002,21 +2002,9 @@ export default function KeywordDifficultyEstimator() {
     const params = new URLSearchParams(window.location.search);
     const q = params.get("q");
     if (q && q.trim().length >= 2) {
-      const kw = q.trim();
-      setKeyword(kw);
-      const r = estimateDifficulty(kw);
-      setResult(r);
-      setHistory((prev) => {
-        const idx = prev.findIndex(
-          (h) => h.keyword.toLowerCase() === r.keyword.toLowerCase(),
-        );
-        const existingScores = idx >= 0 ? prev[idx].scores : [];
-        const scores = [...existingScores, r.score].slice(-5);
-        const entry = { ...r, scores };
-        const filtered = prev.filter((_, i) => i !== idx);
-        return [entry, ...filtered].slice(0, 10);
-      });
+      analyseKw(q.trim());
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const reset = () => {
@@ -2060,9 +2048,11 @@ export default function KeywordDifficultyEstimator() {
     URL.revokeObjectURL(url);
   };
 
-  const analyse = () => {
-    if (!keyword.trim()) return;
-    const r = estimateDifficulty(keyword);
+  const analyseKw = (kw: string) => {
+    const trimmed = kw.trim();
+    if (!trimmed) return;
+    const r = estimateDifficulty(trimmed);
+    setKeyword(trimmed);
     setResult(r);
     setHistory((prev) => {
       const idx = prev.findIndex(
@@ -2080,6 +2070,8 @@ export default function KeywordDifficultyEstimator() {
       `${window.location.pathname}?q=${encodeURIComponent(r.keyword)}`,
     );
   };
+
+  const analyse = () => analyseKw(keyword);
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -3113,7 +3105,7 @@ export default function KeywordDifficultyEstimator() {
               >
                 <ContentGapScore
                   history={history}
-                  onSuggest={(kw) => { setKeyword(kw); }}
+                  onSuggest={(kw) => { analyseKw(kw); }}
                 />
               </motion.div>
             )}
@@ -3541,9 +3533,9 @@ export default function KeywordDifficultyEstimator() {
                             ) : (
                               <motion.span
                                 key="copy"
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 0 }}
-                                className="shrink-0 group-hover:opacity-100 transition-opacity"
+                                initial={{ scale: 0.8 }}
+                                animate={{ scale: 1 }}
+                                className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 <Copy className="w-3.5 h-3.5 text-muted-foreground" />
                               </motion.span>
@@ -3592,8 +3584,8 @@ export default function KeywordDifficultyEstimator() {
                               ) : (
                                 <motion.span
                                   key="copy"
-                                  initial={{ scale: 0.8, opacity: 0 }}
-                                  animate={{ scale: 1, opacity: 1 }}
+                                  initial={{ scale: 0.8 }}
+                                  animate={{ scale: 1 }}
                                   exit={{ scale: 0.8, opacity: 0 }}
                                   transition={{ duration: 0.12 }}
                                   className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
