@@ -18,9 +18,12 @@ import {
   TrendingUp,
   Copy,
   Check,
+  Layers,
 } from "lucide-react";
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
+
+type Cluster = "Infrastructure & Security" | "Commercial Solutions" | "Fintech General";
 
 type Result = {
   keyword: string;
@@ -28,6 +31,7 @@ type Result = {
   label: string;
   intent: Intent;
   intentReason: string;
+  cluster: Cluster;
   volumeRange: string;
   longTails: string[];
   tips: string[];
@@ -74,6 +78,12 @@ const FINTECH_LONG_TAIL_TEMPLATES = [
   "what is {kw}",
   "{kw} strategy guide",
 ];
+
+function detectCluster(kw: string): Cluster {
+  if (kw.includes("security") || kw.includes("api")) return "Infrastructure & Security";
+  if (kw.includes("best") || kw.includes("platform")) return "Commercial Solutions";
+  return "Fintech General";
+}
 
 function detectIntent(words: string[]): { intent: Intent; reason: string } {
   const joined = words.join(" ");
@@ -172,6 +182,7 @@ function estimateDifficulty(keyword: string): Result {
             : "< 100/mo";
 
   const { intent, reason: intentReason } = detectIntent(words);
+  const cluster = detectCluster(kw);
 
   // Generate long-tail suggestions
   const baseKw = words
@@ -216,12 +227,17 @@ function estimateDifficulty(keyword: string): Result {
     );
   }
 
+  tips.push(
+    `To rank for "${keyword.trim()}", you should also create content for 3–5 related terms in the ${cluster} cluster to build Topical Authority.`,
+  );
+
   return {
     keyword: keyword.trim(),
     score,
     label,
     intent,
     intentReason,
+    cluster,
     volumeRange,
     longTails,
     tips,
@@ -251,6 +267,12 @@ const INTENT_COLOR: Record<Intent, string> = {
   Commercial: "bg-purple-50 text-purple-700 border-purple-200",
   Transactional: "bg-green-50 text-green-700 border-green-200",
   Navigational: "bg-slate-100 text-slate-700 border-slate-200",
+};
+
+const CLUSTER_COLOR: Record<Cluster, string> = {
+  "Infrastructure & Security": "bg-cyan-50 text-cyan-700 border-cyan-200",
+  "Commercial Solutions": "bg-indigo-50 text-indigo-700 border-indigo-200",
+  "Fintech General": "bg-teal-50 text-teal-700 border-teal-200",
 };
 
 export default function KeywordDifficultyEstimator() {
@@ -402,7 +424,7 @@ export default function KeywordDifficultyEstimator() {
                       <CardContent className="p-5 flex items-start gap-3">
                         <Target className="w-5 h-5 text-violet-600 mt-0.5 shrink-0" />
                         <div>
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center flex-wrap gap-2 mb-1">
                             <span className="text-sm font-semibold text-slate-900">
                               Search Intent
                             </span>
@@ -410,6 +432,12 @@ export default function KeywordDifficultyEstimator() {
                               className={`text-[10px] font-bold border rounded-full px-2 py-0.5 ${INTENT_COLOR[result.intent]}`}
                             >
                               {result.intent}
+                            </span>
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] font-bold border rounded-full px-2 py-0.5 ${CLUSTER_COLOR[result.cluster]}`}
+                            >
+                              <Layers className="w-2.5 h-2.5" />
+                              {result.cluster}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground leading-relaxed">
