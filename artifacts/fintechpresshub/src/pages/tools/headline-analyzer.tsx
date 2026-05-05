@@ -139,6 +139,39 @@ const TOPICAL_CLUSTERS: Record<string, string[]> = {
   "fx":                ["hedging", "cross-border", "treasury management"],
 };
 
+// ── Topic Cluster Detection ────────────────────────────────────────────────
+// Maps fintech category keywords → a human-readable cluster label + pill style.
+// Entries are checked in order; first match wins (put more-specific first).
+const TOPIC_CLUSTER_LABELS: Array<{
+  keywords: string[];
+  label: string;
+  badgeClass: string;
+  dotClass: string;
+}> = [
+  { keywords: ["embedded finance", "baas", "open banking"],      label: "Embedded Finance & APIs",   badgeClass: "bg-sky-100 text-sky-700 ring-sky-200",       dotClass: "bg-sky-400" },
+  { keywords: ["defi", "stablecoin", "cbdc", "nft", "web3"],     label: "Digital Assets & Web3",     badgeClass: "bg-violet-100 text-violet-700 ring-violet-200", dotClass: "bg-violet-400" },
+  { keywords: ["crypto", "blockchain"],                           label: "Blockchain & Crypto",       badgeClass: "bg-purple-100 text-purple-700 ring-purple-200",  dotClass: "bg-purple-400" },
+  { keywords: ["kyc", "aml", "regtech", "compliance", "regulation"], label: "RegTech & Compliance",  badgeClass: "bg-red-100 text-red-700 ring-red-200",           dotClass: "bg-red-400" },
+  { keywords: ["insuretech", "insurance"],                        label: "InsurTech",                 badgeClass: "bg-teal-100 text-teal-700 ring-teal-200",        dotClass: "bg-teal-400" },
+  { keywords: ["wealthtech", "wealth", "investment", "portfolio", "asset"], label: "WealthTech & Investing", badgeClass: "bg-emerald-100 text-emerald-700 ring-emerald-200", dotClass: "bg-emerald-400" },
+  { keywords: ["fraud", "security", "identity", "authentication"], label: "Security & Identity",     badgeClass: "bg-orange-100 text-orange-700 ring-orange-200",  dotClass: "bg-orange-400" },
+  { keywords: ["payments", "payment", "remittance", "transfer", "wallet"], label: "Merchant Services", badgeClass: "bg-indigo-100 text-indigo-700 ring-indigo-200", dotClass: "bg-indigo-400" },
+  { keywords: ["lending", "credit", "mortgage", "loan", "bnpl"],  label: "Credit & Lending",         badgeClass: "bg-amber-100 text-amber-700 ring-amber-200",     dotClass: "bg-amber-400" },
+  { keywords: ["neobank", "digital bank"],                        label: "Neobanking",                badgeClass: "bg-blue-100 text-blue-700 ring-blue-200",        dotClass: "bg-blue-400" },
+  { keywords: ["banking"],                                         label: "Banking & Infrastructure", badgeClass: "bg-blue-100 text-blue-700 ring-blue-200",        dotClass: "bg-blue-400" },
+  { keywords: ["ai", "machine learning", "automation"],           label: "AI & Automation",           badgeClass: "bg-fuchsia-100 text-fuchsia-700 ring-fuchsia-200", dotClass: "bg-fuchsia-400" },
+  { keywords: ["startup", "funding", "vc", "ipo"],                label: "Startup & VC",              badgeClass: "bg-rose-100 text-rose-700 ring-rose-200",        dotClass: "bg-rose-400" },
+  { keywords: ["fintech"],                                         label: "Fintech",                  badgeClass: "bg-slate-100 text-slate-700 ring-slate-200",     dotClass: "bg-slate-400" },
+];
+
+function detectTopicCluster(headline: string): typeof TOPIC_CLUSTER_LABELS[number] | null {
+  const lower = headline.toLowerCase();
+  for (const cluster of TOPIC_CLUSTER_LABELS) {
+    if (cluster.keywords.some((kw) => lower.includes(kw))) return cluster;
+  }
+  return null;
+}
+
 const VAGUE_WORDS = [
   "things", "stuff", "ways", "some", "certain", "various", "several",
   "many", "lots", "really", "very", "quite", "rather", "somewhat",
@@ -1968,6 +2001,7 @@ export default function HeadlineAnalyzer() {
                     {result.dimensions.map((dim, i) => {
                       const c = COLOR_MAP[dim.color];
                       const pct = Math.round((dim.score / dim.max) * 100);
+                      const topicCluster = detectTopicCluster(result.headline);
                       return (
                         <motion.div
                           key={dim.label}
@@ -1976,14 +2010,27 @@ export default function HeadlineAnalyzer() {
                           transition={{ delay: i * 0.07 }}
                           className="space-y-1"
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               <dim.icon className={`w-3.5 h-3.5 ${c.text}`} />
                               <span className="text-xs font-semibold text-slate-700">{dim.label}</span>
                             </div>
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.badge}`}>
-                              {dim.audienceMatch ? dim.audienceMatch.tier : `${dim.score} / ${dim.max}`}
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                              {dim.audienceMatch && topicCluster && (
+                                <motion.span
+                                  initial={{ opacity: 0, scale: 0.85 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ delay: i * 0.07 + 0.18, duration: 0.22 }}
+                                  className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ${topicCluster.badgeClass}`}
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${topicCluster.dotClass}`} />
+                                  {topicCluster.label}
+                                </motion.span>
+                              )}
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${c.badge}`}>
+                                {dim.audienceMatch ? dim.audienceMatch.tier : `${dim.score} / ${dim.max}`}
+                              </span>
+                            </div>
                           </div>
                           {dim.audienceMatch ? (
                             /* ── Audience Match: three-segment calibration gauge ── */
@@ -2131,6 +2178,20 @@ export default function HeadlineAnalyzer() {
                                 ))}
                               </p>
                             </div>
+                          )}
+                          {dim.label === "Keyword Presence" && topicCluster && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: i * 0.07 + 0.3 }}
+                              className={`mt-1.5 flex items-start gap-2 rounded-md px-2.5 py-2 ring-1 ${topicCluster.badgeClass}`}
+                            >
+                              <span className={`mt-0.5 w-1.5 h-1.5 rounded-full shrink-0 ${topicCluster.dotClass}`} />
+                              <p className="text-[11px] leading-snug">
+                                This headline successfully targets the{" "}
+                                <strong>{topicCluster.label}</strong> cluster, which is currently seeing high search demand in 2026.
+                              </p>
+                            </motion.div>
                           )}
                         </motion.div>
                       );
