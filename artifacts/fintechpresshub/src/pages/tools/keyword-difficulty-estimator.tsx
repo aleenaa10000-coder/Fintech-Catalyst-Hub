@@ -1094,6 +1094,331 @@ function KeywordClusterMap({
   );
 }
 
+// ── Keyword Brief Generator ──────────────────────────────────────────────
+
+type KeywordBrief = {
+  wordCountMin: number;
+  wordCountMax: number;
+  contentFormat: string;
+  audience: string;
+  h2s: string[];
+  internalLinks: { anchor: string; page: string }[];
+  metaDescription: string;
+  cta: string;
+};
+
+function briefWordCount(entry: HistoryEntry): [number, number] {
+  if (entry.score >= 70) return [2500, 3500];
+  if (entry.score >= 45) {
+    if (entry.intent === "Transactional") return [800, 1200];
+    if (entry.intent === "Commercial") return [1400, 2000];
+    return [1800, 2500];
+  }
+  if (entry.intent === "Transactional") return [600, 900];
+  if (entry.intent === "Commercial") return [1000, 1400];
+  if (entry.intent === "Navigational") return [600, 900];
+  return [1200, 1600];
+}
+
+function briefFormat(entry: HistoryEntry): string {
+  if (entry.intent === "Transactional") return "Landing page / product page";
+  if (entry.intent === "Navigational") return "Feature overview page";
+  if (entry.intent === "Commercial") return entry.score >= 55 ? "Long-form comparison article" : "Comparison article";
+  return entry.score >= 65 ? "Pillar page / comprehensive guide" : "How-to guide";
+}
+
+function briefAudience(entry: HistoryEntry): string {
+  if (entry.intent === "Transactional") return "Fintech buyers & decision-makers";
+  if (entry.intent === "Navigational") return "Existing customers & users";
+  if (entry.intent === "Commercial") return "Fintech leaders evaluating solutions";
+  return "Fintech practitioners & content teams";
+}
+
+function briefH2s(entry: HistoryEntry): string[] {
+  const kw = entry.keyword;
+  const yr = new Date().getFullYear();
+  if (entry.intent === "Commercial") {
+    return [
+      `Top ${kw} platforms compared (${yr})`,
+      `What to look for in a ${kw} solution`,
+      `${kw}: pricing and total cost breakdown`,
+      `How to evaluate ${kw} providers`,
+      `${kw} integration and technical requirements`,
+      `${kw} real-world results and case studies`,
+      `Our verdict: which ${kw} is right for you?`,
+    ];
+  }
+  if (entry.intent === "Transactional") {
+    return [
+      `Why choose ${kw}`,
+      `Core features of ${kw}`,
+      `${kw} pricing plans explained`,
+      `${kw} integrations`,
+      `Getting started with ${kw}`,
+      `${kw} frequently asked questions`,
+    ];
+  }
+  if (entry.intent === "Navigational") {
+    return [
+      `${kw} overview`,
+      `Key features of ${kw}`,
+      `How to get started with ${kw}`,
+      `${kw} documentation and resources`,
+      `${kw} support and FAQs`,
+    ];
+  }
+  return [
+    `What is ${kw}?`,
+    `How ${kw} works in practice`,
+    `Key benefits of ${kw} for fintech companies`,
+    `${kw} vs traditional alternatives`,
+    `Common challenges with ${kw} (and how to overcome them)`,
+    `How to implement ${kw}: a step-by-step guide`,
+    `The future of ${kw} in financial services`,
+  ];
+}
+
+function briefInternalLinks(entry: HistoryEntry): { anchor: string; page: string }[] {
+  const common = [
+    { anchor: "fintech content marketing guide", page: "/blog/fintech-content-marketing" },
+    { anchor: "keyword difficulty estimator", page: "/tools/keyword-difficulty-estimator" },
+  ];
+  if (entry.cluster === "Infrastructure & Security") {
+    return [
+      { anchor: "API banking best practices", page: "/blog/api-banking-guide" },
+      { anchor: "fintech security & compliance overview", page: "/blog/fintech-compliance" },
+      { anchor: "RegTech explained for marketers", page: "/blog/regtech-guide" },
+      ...common,
+    ];
+  }
+  if (entry.cluster === "Commercial Solutions") {
+    return [
+      { anchor: "fintech product marketing strategies", page: "/blog/fintech-product-marketing" },
+      { anchor: "how to write fintech case studies", page: "/blog/fintech-case-studies" },
+      { anchor: "fintech pricing page copywriting tips", page: "/blog/pricing-page-copy" },
+      ...common,
+    ];
+  }
+  return [
+    { anchor: "fintech SEO guide", page: "/blog/fintech-seo" },
+    { anchor: "content strategy for fintech startups", page: "/blog/fintech-content-strategy" },
+    { anchor: "top fintech blog topics", page: "/blog/fintech-blog-topics" },
+    ...common,
+  ];
+}
+
+function briefMeta(entry: HistoryEntry): string {
+  const kw = entry.keyword;
+  const yr = new Date().getFullYear();
+  if (entry.intent === "Commercial") {
+    return `Compare the best ${kw} solutions in ${yr}. Expert reviews, feature breakdowns, and top picks to help fintech teams make the right choice.`;
+  }
+  if (entry.intent === "Transactional") {
+    return `Get started with ${kw} today. Explore features, pricing, and integrations — request a free demo to see if it's right for your fintech.`;
+  }
+  if (entry.intent === "Navigational") {
+    return `Explore everything about ${kw}. Find documentation, guides, and support resources to get the most from your ${kw} platform.`;
+  }
+  return `Learn everything about ${kw}. This expert guide covers how it works, key benefits for fintech companies, and implementation best practices.`;
+}
+
+function briefCta(entry: HistoryEntry): string {
+  if (entry.intent === "Transactional") return "Start your free trial today";
+  if (entry.intent === "Commercial") return "Request a free content strategy consultation";
+  if (entry.intent === "Navigational") return "Book a product demo";
+  return "Subscribe to the FintechPressHub newsletter for weekly fintech content insights";
+}
+
+function generateBrief(entry: HistoryEntry): KeywordBrief {
+  const [wordCountMin, wordCountMax] = briefWordCount(entry);
+  return {
+    wordCountMin,
+    wordCountMax,
+    contentFormat: briefFormat(entry),
+    audience: briefAudience(entry),
+    h2s: briefH2s(entry),
+    internalLinks: briefInternalLinks(entry),
+    metaDescription: briefMeta(entry),
+    cta: briefCta(entry),
+  };
+}
+
+function KeywordBriefPanel({ entry, onClose }: { entry: HistoryEntry; onClose: () => void }) {
+  const brief = useMemo(() => generateBrief(entry), [entry]);
+  const [copiedMeta, setCopiedMeta] = useState(false);
+  const [copiedH2s, setCopiedH2s] = useState(false);
+  const [copiedFull, setCopiedFull] = useState(false);
+
+  const copyMeta = () => {
+    navigator.clipboard.writeText(brief.metaDescription);
+    setCopiedMeta(true);
+    setTimeout(() => setCopiedMeta(false), 1800);
+  };
+
+  const copyH2s = () => {
+    navigator.clipboard.writeText(brief.h2s.map((h, i) => `${i + 1}. ${h}`).join("\n"));
+    setCopiedH2s(true);
+    setTimeout(() => setCopiedH2s(false), 1800);
+  };
+
+  const copyFull = () => {
+    const md = [
+      `# Content Brief: ${entry.keyword}`,
+      ``,
+      `## Overview`,
+      `- **Format**: ${brief.contentFormat}`,
+      `- **Target word count**: ${brief.wordCountMin.toLocaleString()}–${brief.wordCountMax.toLocaleString()} words`,
+      `- **Search intent**: ${entry.intent}`,
+      `- **Target audience**: ${brief.audience}`,
+      `- **Difficulty score**: ${entry.score}/100 (${entry.label})`,
+      `- **Volume estimate**: ${entry.volumeRange}`,
+      ``,
+      `## Suggested H2 Structure`,
+      ``,
+      ...brief.h2s.map((h, i) => `${i + 1}. ${h}`),
+      ``,
+      `## Internal Linking Opportunities`,
+      ``,
+      ...brief.internalLinks.map((l) => `- [${l.anchor}](${l.page})`),
+      ``,
+      `## Meta Description (${brief.metaDescription.length} chars)`,
+      ``,
+      brief.metaDescription,
+      ``,
+      `## Primary CTA`,
+      ``,
+      brief.cta,
+    ].join("\n");
+    navigator.clipboard.writeText(md);
+    setCopiedFull(true);
+    setTimeout(() => setCopiedFull(false), 2000);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ type: "spring", stiffness: 340, damping: 30 }}
+      className="mt-4 rounded-xl border border-violet-200 bg-white shadow-lg overflow-hidden"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-violet-50 border-b border-violet-100">
+        <div className="flex items-center gap-2 min-w-0">
+          <BookOpen className="w-4 h-4 text-violet-600 shrink-0" />
+          <span className="text-sm font-bold text-violet-900 shrink-0">Content Brief</span>
+          <span className="text-xs text-violet-500 font-medium truncate">"{entry.keyword}"</span>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1 rounded-md text-violet-400 hover:text-violet-700 hover:bg-violet-100 transition-colors shrink-0"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {/* Overview chips */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {([
+            { label: "Format", value: brief.contentFormat },
+            { label: "Word count", value: `${brief.wordCountMin.toLocaleString()}–${brief.wordCountMax.toLocaleString()}` },
+            { label: "Intent", value: entry.intent },
+            { label: "Audience", value: brief.audience },
+          ] as const).map(({ label, value }) => (
+            <div key={label} className="bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
+              <p className="text-[11px] font-semibold text-slate-700 leading-snug">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* H2 structure */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Suggested H2 Structure</p>
+            <button
+              type="button"
+              onClick={copyH2s}
+              className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-600 hover:text-violet-800 transition-colors"
+            >
+              {copiedH2s ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              {copiedH2s ? "Copied!" : "Copy all"}
+            </button>
+          </div>
+          <ol className="space-y-1.5">
+            {brief.h2s.map((h, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="text-[10px] font-bold text-violet-400 tabular-nums w-4 shrink-0 mt-0.5">{i + 1}.</span>
+                <span className="text-[11.5px] font-medium text-slate-700 leading-snug">{h}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* Internal links */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Internal Linking Opportunities</p>
+          <ul className="space-y-1">
+            {brief.internalLinks.map((l) => (
+              <li key={l.page} className="flex items-center gap-2">
+                <ArrowRight className="w-2.5 h-2.5 text-violet-400 shrink-0" />
+                <span className="text-[11px] text-violet-600 font-medium">{l.anchor}</span>
+                <span className="text-[10px] text-slate-400 truncate">{l.page}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Meta description */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Meta Description</p>
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-semibold tabular-nums ${brief.metaDescription.length > 160 ? "text-red-500" : brief.metaDescription.length > 140 ? "text-amber-500" : "text-emerald-600"}`}>
+                {brief.metaDescription.length} / 160 chars
+              </span>
+              <button
+                type="button"
+                onClick={copyMeta}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-600 hover:text-violet-800 transition-colors"
+              >
+                {copiedMeta ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                {copiedMeta ? "Copied!" : "Copy"}
+              </button>
+            </div>
+          </div>
+          <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
+            <p className="text-[12px] text-slate-700 leading-relaxed">{brief.metaDescription}</p>
+          </div>
+        </div>
+
+        {/* CTA suggestion */}
+        <div className="flex items-center gap-3 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2.5">
+          <Target className="w-4 h-4 text-violet-600 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-violet-400 mb-0.5">Primary CTA</p>
+            <p className="text-[12px] font-semibold text-violet-800">{brief.cta}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer: copy full brief */}
+      <div className="px-4 pb-4">
+        <button
+          type="button"
+          onClick={copyFull}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-700 font-semibold text-[12px] py-2.5 transition-colors"
+        >
+          {copiedFull ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copiedFull ? "Brief copied to clipboard!" : "Copy full brief as Markdown"}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Content Gap Score ─────────────────────────────────────────────────────
 
 type GapCategory =
@@ -1373,6 +1698,7 @@ export default function KeywordDifficultyEstimator() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [compareSet, setCompareSet] = useState<Set<string>>(new Set());
   const [showCompare, setShowCompare] = useState(false);
+  const [briefEntry, setBriefEntry] = useState<HistoryEntry | null>(null);
   const [scoreDriversOpen, setScoreDriversOpen] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailInput, setEmailInput] = useState("");
@@ -2209,6 +2535,18 @@ export default function KeywordDifficultyEstimator() {
                                   <GitCompare className="w-2.5 h-2.5" />
                                   {inCompare ? "Selected" : "Compare"}
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setBriefEntry((prev) => prev?.keyword === h.keyword ? null : h)}
+                                  className={`mt-1.5 w-full inline-flex items-center justify-center gap-1 text-[10px] font-semibold rounded-md px-2 py-1 border transition-all ${
+                                    briefEntry?.keyword === h.keyword
+                                      ? "bg-violet-600 text-white border-violet-600"
+                                      : "bg-white text-slate-500 border-slate-200 hover:border-violet-300 hover:text-violet-700"
+                                  }`}
+                                >
+                                  <BookOpen className="w-2.5 h-2.5" />
+                                  {briefEntry?.keyword === h.keyword ? "Close brief" : "Brief"}
+                                </button>
                               </motion.div>
                             );
                           })}
@@ -2543,6 +2881,17 @@ export default function KeywordDifficultyEstimator() {
                   onSuggest={(kw) => { setKeyword(kw); }}
                 />
               </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Keyword Brief Panel ── */}
+          <AnimatePresence>
+            {briefEntry && (
+              <KeywordBriefPanel
+                key={briefEntry.keyword}
+                entry={briefEntry}
+                onClose={() => setBriefEntry(null)}
+              />
             )}
           </AnimatePresence>
 
