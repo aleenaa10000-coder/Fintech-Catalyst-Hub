@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
+import jsPDF from "jspdf";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart,
@@ -597,7 +598,14 @@ export default function KeywordDifficultyEstimator() {
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
   const [copiedCluster, setCopiedCluster] = useState<number | null>(null);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem("kde_history");
+      return saved ? (JSON.parse(saved) as HistoryEntry[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [copiedLink, setCopiedLink] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [compareSet, setCompareSet] = useState<Set<string>>(new Set());
@@ -617,6 +625,10 @@ export default function KeywordDifficultyEstimator() {
   };
 
   useEffect(() => {
+    localStorage.setItem("kde_history", JSON.stringify(history));
+  }, [history]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const q = params.get("q");
     if (q && q.trim().length >= 2) {
@@ -624,7 +636,16 @@ export default function KeywordDifficultyEstimator() {
       setKeyword(kw);
       const r = estimateDifficulty(kw);
       setResult(r);
-      setHistory([{ ...r, scores: [r.score] }]);
+      setHistory((prev) => {
+        const idx = prev.findIndex(
+          (h) => h.keyword.toLowerCase() === r.keyword.toLowerCase(),
+        );
+        const existingScores = idx >= 0 ? prev[idx].scores : [];
+        const scores = [...existingScores, r.score].slice(-5);
+        const entry = { ...r, scores };
+        const filtered = prev.filter((_, i) => i !== idx);
+        return [entry, ...filtered].slice(0, 10);
+      });
     }
   }, []);
 
@@ -709,6 +730,180 @@ export default function KeywordDifficultyEstimator() {
     a.download = `${r.keyword.replace(/\s+/g, "-").toLowerCase()}-analysis.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadSeoBrief = (r: Result) => {
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pw = doc.internal.pageSize.getWidth();
+    const ph = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentW = pw - margin * 2;
+    let y = 0;
+
+    // ── Header band ──────────────────────────────────────────────────────────
+    doc.setFillColor(109, 40, 217);
+    doc.rect(0, 0, pw, 42, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(17);
+    doc.text("FintechPressHub", margin, 17);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(216, 180, 254);
+    doc.text("FINTECH SEO & CONTENT MARKETING", margin, 24);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    doc.text("SEO STRATEGY BRIEF", pw - margin, 17, { align: "right" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(216, 180, 254);
+    const today = new Date().toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    doc.text(`Generated ${today}`, pw - margin, 24, { align: "right" });
+
+    y = 54;
+
+    // ── Keyword heading ───────────────────────────────────────────────────────
+    doc.setTextColor(15, 23, 42);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(19);
+    doc.text(r.keyword, margin, y);
+    y += 9;
+
+    // ── Badges row ────────────────────────────────────────────────────────────
+    const scoreRgb: [number, number, number] =
+      r.score >= 70 ? [220, 38, 38] : r.score >= 40 ? [234, 88, 12] : [22, 163, 74];
+    doc.setFillColor(...scoreRgb);
+    doc.roundedRect(margin, y, 42, 8, 2, 2, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text(`Difficulty: ${r.score}/100`, margin + 21, y + 5.4, { align: "center" });
+
+    const qColorMap: Record<string, [number, number, number]> = {
+      "Quick Win":        [22, 163, 74],
+      "Long-term Target": [234, 88, 12],
+      "Filler":           [100, 116, 139],
+      "Supporting Asset": [109, 40, 217],
+    };
+    const qRgb: [number, number, number] = qColorMap[r.quadrant] ?? [100, 116, 139];
+    doc.setFillColor(...qRgb);
+    doc.roundedRect(margin + 46, y, 50, 8, 2, 2, "F");
+    doc.text(r.quadrant, margin + 71, y + 5.4, { align: "center" });
+
+    doc.setFillColor(51, 65, 85);
+    doc.roundedRect(margin + 100, y, 38, 8, 2, 2, "F");
+    doc.text(r.intent, margin + 119, y + 5.4, { align: "center" });
+
+    y += 17;
+
+    // ── Topical Cluster ───────────────────────────────────────────────────────
+    doc.setTextColor(100, 116, 139);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.text("TOPICAL CLUSTER", margin, y);
+    y += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(r.cluster, margin, y);
+    y += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Est. Volume: ${r.volumeRange}`, margin, y);
+    y += 10;
+
+    // ── Divider ───────────────────────────────────────────────────────────────
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.line(margin, y, pw - margin, y);
+    y += 8;
+
+    // ── Long-tail variations ──────────────────────────────────────────────────
+    doc.setTextColor(15, 23, 42);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("6 Long-Tail Variations", margin, y);
+    y += 6;
+
+    r.longTails.forEach((lt, i) => {
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(margin, y, contentW, 8, 1.5, 1.5, "F");
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.2);
+      doc.roundedRect(margin, y, contentW, 8, 1.5, 1.5, "S");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(109, 40, 217);
+      doc.text(`${i + 1}.`, margin + 3, y + 5.2);
+
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(30, 41, 59);
+      doc.text(lt, margin + 9, y + 5.2);
+      y += 10;
+    });
+
+    y += 4;
+
+    // ── Divider ───────────────────────────────────────────────────────────────
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.line(margin, y, pw - margin, y);
+    y += 8;
+
+    // ── Strategy Tips ─────────────────────────────────────────────────────────
+    doc.setTextColor(15, 23, 42);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Strategy Tips", margin, y);
+    y += 6;
+
+    r.tips.forEach((tip) => {
+      const lines = doc.splitTextToSize(`• ${tip}`, contentW);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(51, 65, 85);
+      doc.text(lines, margin, y);
+      y += (lines as string[]).length * 5 + 2;
+    });
+
+    // ── Footer ────────────────────────────────────────────────────────────────
+    const footerY = ph - 12;
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, footerY - 7, pw, 20, "F");
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.line(0, footerY - 7, pw, footerY - 7);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(
+      "Strategy prepared by FintechPressHub — Experts in High-Authority Search Growth",
+      pw / 2,
+      footerY - 1,
+      { align: "center" },
+    );
+
+    const contactUrl = "https://fintechpresshub.com/contact";
+    doc.setTextColor(109, 40, 217);
+    doc.textWithLink(contactUrl, pw / 2, footerY + 4, {
+      align: "center",
+      url: contactUrl,
+    });
+
+    doc.save(
+      `${r.keyword.replace(/\s+/g, "-").toLowerCase()}-seo-strategy-brief.pdf`,
+    );
   };
 
   const canAnalyse = keyword.trim().length >= 2;
@@ -1521,6 +1716,19 @@ export default function KeywordDifficultyEstimator() {
                     </ul>
                   </CardContent>
                 </Card>
+
+                {/* Download SEO Strategy Brief */}
+                <div className="flex justify-center pt-1 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => downloadSeoBrief(result)}
+                    className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-violet-700 hover:bg-violet-800 active:bg-violet-900 text-white text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                  >
+                    <Download className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform duration-200" />
+                    Download SEO Strategy Brief
+                    <span className="text-violet-300 text-xs font-normal">.pdf</span>
+                  </button>
+                </div>
 
                 {(() => {
                   const ctaConfig: Record<Intent, { text: string; linkLabel: string; linkHref: string; ctaLabel: string; ctaHref: string }> = {
