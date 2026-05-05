@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  ReferenceLine,
+} from "recharts";
 import { PageHero } from "@/components/PageHero";
 import { PageMeta } from "@/components/PageMeta";
 import { Card, CardContent } from "@/components/ui/card";
@@ -588,6 +598,118 @@ export default function KeywordDifficultyEstimator() {
                     Clear
                   </button>
                 </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Session comparison chart */}
+          <AnimatePresence>
+            {history.length >= 2 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                className="mt-4"
+              >
+                <Card className="border border-slate-100 shadow-sm overflow-hidden">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <BarChart2 className="w-4 h-4 text-violet-600" />
+                      <h4 className="text-sm font-semibold text-slate-900">
+                        Session Comparison
+                      </h4>
+                      <span className="text-[10px] text-muted-foreground ml-1">
+                        {history.length} keyword{history.length !== 1 ? "s" : ""} · difficulty 0–100
+                      </span>
+                    </div>
+                    <ResponsiveContainer width="100%" height={Math.max(history.length * 38, 80)}>
+                      <BarChart
+                        data={[...history].reverse().map((h) => ({
+                          name: h.keyword.length > 22 ? h.keyword.slice(0, 21) + "…" : h.keyword,
+                          full: h.keyword,
+                          score: h.score,
+                          label: h.label,
+                          isActive: result?.keyword.toLowerCase() === h.keyword.toLowerCase(),
+                        }))}
+                        layout="vertical"
+                        margin={{ top: 0, right: 40, left: 4, bottom: 0 }}
+                        barSize={14}
+                      >
+                        <XAxis
+                          type="number"
+                          domain={[0, 100]}
+                          tick={{ fontSize: 10, fill: "#94a3b8" }}
+                          tickLine={false}
+                          axisLine={false}
+                          tickCount={6}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          tick={({ x, y, payload }) => {
+                            const isActive = result?.keyword.toLowerCase().startsWith(
+                              payload.value.replace("…", "").toLowerCase()
+                            );
+                            return (
+                              <text
+                                x={x - 4}
+                                y={y}
+                                dy={4}
+                                textAnchor="end"
+                                fontSize={11}
+                                fontWeight={isActive ? 700 : 400}
+                                fill={isActive ? "#7c3aed" : "#64748b"}
+                              >
+                                {payload.value}
+                              </text>
+                            );
+                          }}
+                          width={130}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          cursor={{ fill: "#f1f5f9" }}
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0].payload;
+                            return (
+                              <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-xs">
+                                <p className="font-semibold text-slate-800 mb-0.5">{d.full}</p>
+                                <p className="text-slate-500">
+                                  Difficulty: <span className="font-bold text-slate-700">{d.score}</span> — {d.label}
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <ReferenceLine x={50} stroke="#e2e8f0" strokeDasharray="3 3" />
+                        <Bar dataKey="score" radius={[0, 4, 4, 0]} isAnimationActive animationDuration={600}>
+                          {[...history].reverse().map((h, i) => {
+                            const isActive = result?.keyword.toLowerCase() === h.keyword.toLowerCase();
+                            const baseColor =
+                              h.score >= 75 ? "#dc2626"
+                              : h.score >= 55 ? "#f97316"
+                              : h.score >= 35 ? "#f59e0b"
+                              : "#16a34a";
+                            return (
+                              <Cell
+                                key={i}
+                                fill={baseColor}
+                                opacity={isActive ? 1 : 0.45}
+                                stroke={isActive ? baseColor : "none"}
+                                strokeWidth={isActive ? 1.5 : 0}
+                              />
+                            );
+                          })}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                      Active keyword shown at full opacity · dashed line = medium difficulty (50)
+                    </p>
+                  </CardContent>
+                </Card>
               </motion.div>
             )}
           </AnimatePresence>
