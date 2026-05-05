@@ -1038,13 +1038,15 @@ export const subscribeToNewsletterBodySourceMax = 80;
 
 export const SubscribeToNewsletterBody = zod.object({
   "email": zod.string().email(),
-  "source": zod.string().max(subscribeToNewsletterBodySourceMax).optional()
+  "source": zod.string().max(subscribeToNewsletterBodySourceMax).optional(),
+  "keyword": zod.string().max(300).optional()
 })
 
 export const SubscribeToNewsletterResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
   "source": zod.string().nullish(),
+  "keyword": zod.string().nullish(),
   "alreadySubscribed": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
@@ -1094,7 +1096,10 @@ export const GetNewsletterSubscribersResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
   "createdAt": zod.coerce.date(),
-  "source": zod.string().nullish()
+  "source": zod.string().nullish(),
+  "keyword": zod.string().nullish(),
+  "briefStatus": zod.string().nullish(),
+  "briefStatusUpdatedAt": zod.coerce.date().nullish()
 })),
   "dailySignups": zod.array(zod.object({
   "date": zod.string().describe('ISO calendar date (UTC) — `YYYY-MM-DD`.'),

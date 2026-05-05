@@ -2025,7 +2025,7 @@ export default function KeywordDifficultyEstimator() {
                         await fetch("/api/newsletter/subscribe", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ email, source: "seo-brief" }),
+                          body: JSON.stringify({ email, source: "seo-brief", keyword: result?.keyword ?? keyword }),
                         });
                       } catch {
                         // fail silently — still show success to user

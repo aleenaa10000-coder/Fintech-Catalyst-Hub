@@ -15,6 +15,7 @@ router.post("/newsletter/subscribe", async (req, res) => {
   }
   const email = parsed.data.email.trim().toLowerCase();
   const source = parsed.data.source ?? null;
+  const keyword = parsed.data.keyword?.trim() || null;
 
   const existing = await db
     .select()
@@ -36,7 +37,7 @@ router.post("/newsletter/subscribe", async (req, res) => {
 
   const [row] = await db
     .insert(newsletterSubscribersTable)
-    .values({ email, source })
+    .values({ email, source, keyword })
     .returning();
 
   if (!row) {

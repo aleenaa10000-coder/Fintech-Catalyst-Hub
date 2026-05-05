@@ -48,6 +48,7 @@ async function loadDetail() {
       email: newsletterSubscribersTable.email,
       createdAt: newsletterSubscribersTable.createdAt,
       source: newsletterSubscribersTable.source,
+      keyword: newsletterSubscribersTable.keyword,
       briefStatus: newsletterSubscribersTable.briefStatus,
       briefStatusUpdatedAt: newsletterSubscribersTable.briefStatusUpdatedAt,
     })
@@ -139,12 +140,13 @@ router.get(
   async (_req, res) => {
     const detail = await loadDetail();
 
-    const header = ["email", "subscribed_at", "source"].join(",");
-    const lines = detail.subscribers.map((s: { email: string | null; createdAt: string; source: string | null }) =>
+    const header = ["email", "subscribed_at", "source", "keyword"].join(",");
+    const lines = detail.subscribers.map((s: { email: string | null; createdAt: string; source: string | null; keyword: string | null }) =>
       [
         escapeCsv(s.email),
         escapeCsv(s.createdAt),
         escapeCsv(s.source ?? ""),
+        escapeCsv(s.keyword ?? ""),
       ].join(","),
     );
     const body = [header, ...lines].join("\n") + "\n";

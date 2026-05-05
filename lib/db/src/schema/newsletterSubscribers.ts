@@ -9,6 +9,7 @@ export const newsletterSubscribersTable = pgTable(
     id: serial("id").primaryKey(),
     email: text("email").notNull(),
     source: text("source"),
+    keyword: text("keyword"),
     briefStatus: text("brief_status").$type<BriefLeadStatus>(),
     briefStatusUpdatedAt: timestamp("brief_status_updated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })

@@ -546,6 +546,7 @@ export default function AdminNewsletter() {
                   <thead>
                     <tr className="border-b border-violet-100 text-left text-xs uppercase tracking-wide text-muted-foreground">
                       <th className="py-2 pr-4 font-medium">Email</th>
+                      <th className="py-2 pr-4 font-medium">Keyword</th>
                       <th className="py-2 pr-4 font-medium">Submitted</th>
                       <th className="py-2 pr-6 font-medium">Status</th>
                       <th className="py-2 font-medium">Reply</th>
@@ -570,6 +571,15 @@ export default function AdminNewsletter() {
                           className="border-b border-violet-50 last:border-b-0 hover:bg-violet-50/40 transition-colors"
                         >
                           <td className="py-3 pr-4 font-mono text-xs">{lead.email}</td>
+                          <td className="py-3 pr-4 text-xs max-w-[180px]">
+                            {lead.keyword ? (
+                              <span className="inline-block truncate max-w-full font-medium text-slate-700" title={lead.keyword}>
+                                {lead.keyword}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground italic">—</span>
+                            )}
+                          </td>
                           <td className="py-3 pr-4 text-muted-foreground whitespace-nowrap">
                             <span title={formatDateTime(lead.createdAt)}>
                               {formatDate(lead.createdAt)}
