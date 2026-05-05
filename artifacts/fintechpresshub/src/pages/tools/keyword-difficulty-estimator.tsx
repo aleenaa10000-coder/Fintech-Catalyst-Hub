@@ -1938,6 +1938,8 @@ export default function KeywordDifficultyEstimator() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [emailSent, setEmailSent] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const scrollToResultsRef = useRef(false);
 
   const cannibalizationSet = useMemo((): Set<string> => {
     const flagged = new Set<string>();
@@ -1997,6 +1999,15 @@ export default function KeywordDifficultyEstimator() {
   useEffect(() => {
     localStorage.setItem("kde_history", JSON.stringify(history));
   }, [history]);
+
+  useEffect(() => {
+    if (result && scrollToResultsRef.current) {
+      scrollToResultsRef.current = false;
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
+    }
+  }, [result]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -3105,7 +3116,7 @@ export default function KeywordDifficultyEstimator() {
               >
                 <ContentGapScore
                   history={history}
-                  onSuggest={(kw) => { analyseKw(kw); }}
+                  onSuggest={(kw) => { scrollToResultsRef.current = true; analyseKw(kw); }}
                 />
               </motion.div>
             )}
@@ -3143,6 +3154,7 @@ export default function KeywordDifficultyEstimator() {
           <AnimatePresence mode="wait">
             {result && (
               <motion.div
+                ref={resultsRef}
                 key={result.keyword}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
