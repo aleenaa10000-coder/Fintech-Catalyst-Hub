@@ -725,14 +725,188 @@ export default function KeywordDifficultyEstimator() {
       />
 
       <section className="py-12 md:py-16">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <Link
-            href="/tools"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary mb-8 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            All free tools
-          </Link>
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="flex gap-6 items-start">
+
+            {/* ── Collapsible Search History Sidebar ── */}
+            <AnimatePresence initial={false}>
+              {sidebarOpen && (
+                <motion.aside
+                  key="sidebar"
+                  initial={{ opacity: 0, width: 0, x: -20 }}
+                  animate={{ opacity: 1, width: 256, x: 0 }}
+                  exit={{ opacity: 0, width: 0, x: -20 }}
+                  transition={{ duration: 0.22, ease: "easeInOut" }}
+                  className="shrink-0 overflow-hidden sticky top-6 self-start hidden lg:block"
+                  style={{ width: 256 }}
+                >
+                  <div className="w-64 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    {/* Sidebar header */}
+                    <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 bg-slate-50">
+                      <div className="flex items-center gap-1.5">
+                        <PanelLeft className="w-3.5 h-3.5 text-violet-600" />
+                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">Search History</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {history.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => { setHistory([]); setResult(null); setKeyword(""); setCompareSet(new Set()); setShowCompare(false); }}
+                            className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="Clear history"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setSidebarOpen(false)}
+                          className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Compare action bar */}
+                    <AnimatePresence>
+                      {compareSet.size > 0 && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden border-b border-violet-100"
+                        >
+                          <div className="px-3 py-2 bg-violet-50 flex items-center gap-2">
+                            <span className="text-[10px] text-violet-700 font-semibold flex-1">
+                              {compareSet.size === 1 ? "Pick one more to compare" : "Ready to compare"}
+                            </span>
+                            {compareSet.size === 2 && (
+                              <button
+                                type="button"
+                                onClick={() => setShowCompare((v) => !v)}
+                                className="inline-flex items-center gap-1 text-[10px] font-bold bg-violet-600 text-white rounded-full px-2.5 py-1 hover:bg-violet-700 transition-colors"
+                              >
+                                <GitCompare className="w-3 h-3" />
+                                Compare
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => { setCompareSet(new Set()); setShowCompare(false); }}
+                              className="text-violet-400 hover:text-violet-700"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* History cards */}
+                    <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
+                      {history.length === 0 ? (
+                        <div className="px-3 py-8 text-center">
+                          <Search className="w-6 h-6 text-slate-300 mx-auto mb-2" />
+                          <p className="text-[11px] text-slate-400 leading-relaxed">
+                            Analyse a keyword to start building your history.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-slate-50">
+                          {history.map((h) => {
+                            const isActive = result?.keyword.toLowerCase() === h.keyword.toLowerCase();
+                            const qInfo = getQuadrantInfo(h.score, h.intent);
+                            const styles = QUADRANT_MINI_STYLES[qInfo.label] ?? { bg: "bg-slate-50", text: "text-slate-700", dot: "bg-slate-400" };
+                            const inCompare = compareSet.has(h.keyword);
+                            return (
+                              <motion.div
+                                key={h.keyword}
+                                layout
+                                initial={{ opacity: 0, y: -6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`px-3 py-2.5 transition-colors ${isActive ? "bg-violet-50" : "hover:bg-slate-50"}`}
+                              >
+                                {/* Keyword + score row */}
+                                <button
+                                  type="button"
+                                  className="w-full text-left"
+                                  onClick={() => { setResult(h); setKeyword(h.keyword); }}
+                                >
+                                  <div className="flex items-center gap-1.5 mb-1.5">
+                                    <span className={`text-[11px] font-semibold truncate flex-1 ${isActive ? "text-violet-700" : "text-slate-700"}`}>
+                                      {h.keyword}
+                                    </span>
+                                    <span className={`text-xs font-black tabular-nums shrink-0 ${SCORE_COLOR(h.score)}`}>
+                                      {h.score}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mb-2">
+                                    <span className={`inline-flex items-center gap-0.5 text-[9px] font-bold rounded-full px-1.5 py-0.5 ${styles.bg} ${styles.text}`}>
+                                      <span className={`w-1 h-1 rounded-full ${styles.dot}`} />
+                                      {qInfo.label}
+                                    </span>
+                                    <span className={`text-[9px] font-bold rounded-full px-1.5 py-0.5 border ${INTENT_COLOR[h.intent]}`}>
+                                      {h.intent}
+                                    </span>
+                                  </div>
+                                  <MiniQuadrant entry={h} />
+                                  {h.scores.length >= 2 && (
+                                    <div className="mt-1.5 flex items-center gap-1.5">
+                                      <SparkLine scores={h.scores} active={false} />
+                                      <TrendArrow scores={h.scores} active={false} />
+                                      <span className="text-[9px] text-slate-400">{h.scores.length} analyses</span>
+                                    </div>
+                                  )}
+                                </button>
+                                {/* Compare toggle */}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleCompare(h.keyword)}
+                                  disabled={!inCompare && compareSet.size >= 2}
+                                  className={`mt-2 w-full inline-flex items-center justify-center gap-1 text-[10px] font-semibold rounded-md px-2 py-1 border transition-all ${
+                                    inCompare
+                                      ? "bg-violet-600 text-white border-violet-600"
+                                      : compareSet.size >= 2
+                                        ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-violet-300 hover:text-violet-700"
+                                  }`}
+                                >
+                                  <GitCompare className="w-2.5 h-2.5" />
+                                  {inCompare ? "Selected" : "Compare"}
+                                </button>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.aside>
+              )}
+            </AnimatePresence>
+
+            {/* ── Main content ── */}
+            <div className="flex-1 min-w-0 max-w-3xl mx-auto lg:mx-0">
+
+          <div className="flex items-center gap-3 mb-8">
+            {/* Sidebar toggle */}
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((v) => !v)}
+              className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-violet-600 hover:border-violet-200 transition-colors shrink-0"
+              title={sidebarOpen ? "Hide history sidebar" : "Show history sidebar"}
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
+            <Link
+              href="/tools"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              All free tools
+            </Link>
+          </div>
 
           {/* Input card */}
           <Card className="border border-slate-100 shadow-sm">
