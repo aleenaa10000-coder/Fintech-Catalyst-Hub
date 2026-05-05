@@ -37,7 +37,6 @@ import {
   PanelLeft,
   GitCompare,
   X,
-  ChevronRight,
   Trash2,
 } from "lucide-react";
 
@@ -1151,6 +1150,23 @@ export default function KeywordDifficultyEstimator() {
                 </Card>
               </motion.div>
             )}
+          </AnimatePresence>
+
+          {/* ── Compare Panel ── */}
+          <AnimatePresence>
+            {showCompare && compareSet.size === 2 && (() => {
+              const [kwA, kwB] = [...compareSet];
+              const entA = history.find((h) => h.keyword === kwA);
+              const entB = history.find((h) => h.keyword === kwB);
+              if (!entA || !entB) return null;
+              return (
+                <ComparePanelOverlay
+                  a={entA}
+                  b={entB}
+                  onClose={() => setShowCompare(false)}
+                />
+              );
+            })()}
           </AnimatePresence>
 
           <AnimatePresence mode="wait">
