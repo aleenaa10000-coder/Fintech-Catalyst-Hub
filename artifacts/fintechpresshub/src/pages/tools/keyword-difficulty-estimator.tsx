@@ -287,16 +287,16 @@ const SCORE_BG = (score: number) =>
         : "bg-green-50 border-green-200";
 
 const INTENT_COLOR: Record<Intent, string> = {
-  Informational: "bg-blue-50 text-blue-700 border-blue-200",
-  Commercial: "bg-purple-50 text-purple-700 border-purple-200",
-  Transactional: "bg-green-50 text-green-700 border-green-200",
-  Navigational: "bg-slate-100 text-slate-700 border-slate-200",
+  Informational:  "bg-blue-50   text-blue-700   border-blue-200   shadow-[0_0_0_1px_rgba(59,130,246,0.35)]",
+  Commercial:     "bg-purple-50  text-purple-700  border-purple-200  shadow-[0_0_0_1px_rgba(147,51,234,0.35)]",
+  Transactional:  "bg-green-50  text-green-700  border-green-200  shadow-[0_0_0_1px_rgba(22,163,74,0.35)]",
+  Navigational:   "bg-slate-100 text-slate-700  border-slate-300  shadow-[0_0_0_1px_rgba(100,116,139,0.30)]",
 };
 
 const CLUSTER_COLOR: Record<Cluster, string> = {
-  "Infrastructure & Security": "bg-cyan-50 text-cyan-700 border-cyan-200",
-  "Commercial Solutions": "bg-indigo-50 text-indigo-700 border-indigo-200",
-  "Fintech General": "bg-teal-50 text-teal-700 border-teal-200",
+  "Infrastructure & Security": "bg-cyan-50   text-cyan-700   border-cyan-200   shadow-[0_0_0_1px_rgba(8,145,178,0.35)]",
+  "Commercial Solutions":      "bg-indigo-50 text-indigo-700 border-indigo-200 shadow-[0_0_0_1px_rgba(79,70,229,0.35)]",
+  "Fintech General":           "bg-teal-50   text-teal-700   border-teal-200   shadow-[0_0_0_1px_rgba(13,148,136,0.35)]",
 };
 
 function intentValue(intent: Intent): number {
@@ -1718,9 +1718,20 @@ export default function KeywordDifficultyEstimator() {
                   );
                 })()}
 
-                {/* Cluster Content Ideas */}
-                <Card className="border border-slate-100 shadow-sm">
-                  <CardContent className="p-5">
+                {/* Cluster Content Ideas — glassmorphism */}
+                <div
+                  className="relative rounded-xl border border-violet-100/70 shadow-lg overflow-hidden"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(237,233,254,0.65) 0%, rgba(255,255,255,0.80) 50%, rgba(207,250,254,0.55) 100%)",
+                    backdropFilter: "blur(14px)",
+                    WebkitBackdropFilter: "blur(14px)",
+                  }}
+                >
+                  {/* decorative orb */}
+                  <div className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full bg-violet-300/20 blur-2xl" />
+                  <div className="pointer-events-none absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-cyan-300/20 blur-2xl" />
+
+                  <div className="relative p-5">
                     <div className="flex items-center gap-2 mb-1">
                       <BookOpen className="w-4 h-4 text-violet-600" />
                       <h4 className="text-sm font-semibold text-slate-900">
@@ -1749,7 +1760,7 @@ export default function KeywordDifficultyEstimator() {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: i * 0.06, duration: 0.25 }}
                           onClick={() => copyClusterIdea(i, idea)}
-                          className="flex items-center justify-between gap-3 text-left px-3 py-2.5 rounded-lg border border-slate-100 bg-slate-50 hover:bg-violet-50 hover:border-violet-200 transition-all group"
+                          className="flex items-center justify-between gap-3 text-left px-3 py-2.5 rounded-lg border border-white/60 bg-white/50 hover:bg-white/80 hover:border-violet-200 transition-all group"
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <span className="shrink-0 w-5 h-5 rounded-full bg-violet-100 text-violet-600 text-[10px] font-bold flex items-center justify-center">
@@ -1759,16 +1770,34 @@ export default function KeywordDifficultyEstimator() {
                               {idea}
                             </span>
                           </div>
-                          {copiedCluster === i ? (
-                            <Check className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          )}
+                          <AnimatePresence mode="wait" initial={false}>
+                            {copiedCluster === i ? (
+                              <motion.span
+                                key="check"
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0, opacity: 0 }}
+                                transition={{ type: "spring", stiffness: 500, damping: 22 }}
+                                className="shrink-0"
+                              >
+                                <Check className="w-3.5 h-3.5 text-green-600" />
+                              </motion.span>
+                            ) : (
+                              <motion.span
+                                key="copy"
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 0 }}
+                                className="shrink-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
                         </motion.button>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* Long-tail suggestions */}
                 <Card className="border border-slate-100 shadow-sm">
@@ -1791,11 +1820,33 @@ export default function KeywordDifficultyEstimator() {
                           className="flex items-center justify-between gap-2 text-left px-3 py-2.5 rounded-lg border border-slate-100 bg-slate-50 hover:bg-violet-50 hover:border-violet-200 transition-all text-sm text-slate-700 group"
                         >
                           <span className="leading-snug">{lt}</span>
-                          {copied === i ? (
-                            <Check className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          )}
+                          <span className="shrink-0 w-4 h-4 relative flex items-center justify-center">
+                            <AnimatePresence mode="wait" initial={false}>
+                              {copied === i ? (
+                                <motion.span
+                                  key="check"
+                                  initial={{ scale: 0, opacity: 0, rotate: -15 }}
+                                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                                  exit={{ scale: 0, opacity: 0 }}
+                                  transition={{ type: "spring", stiffness: 520, damping: 22 }}
+                                  className="absolute inset-0 flex items-center justify-center"
+                                >
+                                  <Check className="w-3.5 h-3.5 text-green-600" />
+                                </motion.span>
+                              ) : (
+                                <motion.span
+                                  key="copy"
+                                  initial={{ scale: 0.8, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  exit={{ scale: 0.8, opacity: 0 }}
+                                  transition={{ duration: 0.12 }}
+                                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                                </motion.span>
+                              )}
+                            </AnimatePresence>
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -1966,9 +2017,20 @@ export default function KeywordDifficultyEstimator() {
                   </motion.div>
                 ) : (
                   <form
-                    onSubmit={(e) => {
+                    onSubmit={async (e) => {
                       e.preventDefault();
-                      if (emailInput.trim()) setEmailSent(true);
+                      const email = emailInput.trim();
+                      if (!email) return;
+                      try {
+                        await fetch("/api/newsletter/subscribe", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email, source: "seo-brief" }),
+                        });
+                      } catch {
+                        // fail silently — still show success to user
+                      }
+                      setEmailSent(true);
                     }}
                     className="space-y-3"
                   >
