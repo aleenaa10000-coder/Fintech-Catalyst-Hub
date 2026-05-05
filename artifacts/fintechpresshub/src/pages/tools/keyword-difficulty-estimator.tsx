@@ -715,21 +715,24 @@ export default function KeywordDifficultyEstimator() {
   };
 
   const copyShareLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }).catch(() => {});
   };
 
   const copyLongTail = (idx: number, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(idx);
-    setTimeout(() => setCopied(null), 2000);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(idx);
+      setTimeout(() => setCopied(null), 2000);
+    }).catch(() => {});
   };
 
   const copyClusterIdea = (idx: number, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedCluster(idx);
-    setTimeout(() => setCopiedCluster(null), 2000);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedCluster(idx);
+      setTimeout(() => setCopiedCluster(null), 2000);
+    }).catch(() => {});
   };
 
   const downloadAnalysis = (r: Result) => {
@@ -826,16 +829,17 @@ export default function KeywordDifficultyEstimator() {
     doc.setFontSize(8);
     doc.text(`Difficulty: ${r.score}/100`, margin + 21, y + 5.4, { align: "center" });
 
+    const quadrantInfo = getQuadrantInfo(r.score, r.intent);
     const qColorMap: Record<string, [number, number, number]> = {
       "Quick Win":        [22, 163, 74],
       "Long-term Target": [234, 88, 12],
-      "Filler":           [100, 116, 139],
+      "Filler Content":   [100, 116, 139],
       "Supporting Asset": [109, 40, 217],
     };
-    const qRgb: [number, number, number] = qColorMap[r.quadrant] ?? [100, 116, 139];
+    const qRgb: [number, number, number] = qColorMap[quadrantInfo.label] ?? [100, 116, 139];
     doc.setFillColor(...qRgb);
     doc.roundedRect(margin + 46, y, 50, 8, 2, 2, "F");
-    doc.text(r.quadrant, margin + 71, y + 5.4, { align: "center" });
+    doc.text(quadrantInfo.label, margin + 71, y + 5.4, { align: "center" });
 
     doc.setFillColor(51, 65, 85);
     doc.roundedRect(margin + 100, y, 38, 8, 2, 2, "F");
@@ -916,6 +920,7 @@ export default function KeywordDifficultyEstimator() {
 
     // ── Footer ────────────────────────────────────────────────────────────────
     const footerY = ph - 12;
+    if (y > footerY - 22) y = footerY - 22;
     doc.setFillColor(248, 250, 252);
     doc.rect(0, footerY - 7, pw, 20, "F");
     doc.setDrawColor(226, 232, 240);

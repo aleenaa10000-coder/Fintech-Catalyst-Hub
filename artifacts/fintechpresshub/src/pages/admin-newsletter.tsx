@@ -131,6 +131,18 @@ export default function AdminNewsletter() {
     );
   }, []);
 
+  const topKeywords = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const lead of seoBriefLeads) {
+      const kw = lead.keyword?.trim().toLowerCase();
+      if (kw) counts[kw] = (counts[kw] ?? 0) + 1;
+    }
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([keyword, count]) => ({ keyword, count }));
+  }, [seoBriefLeads]);
+
   const displayedSeoBriefLeads = useMemo(() => {
     const q = kwFilter.trim().toLowerCase();
     const filtered = q
@@ -565,6 +577,51 @@ export default function AdminNewsletter() {
                 )}
               </div>
             </div>
+
+            {topKeywords.length > 0 && (
+              <div className="mb-5 p-4 rounded-xl bg-white border border-violet-100">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-3">Top Researched Keywords</p>
+                <div className="space-y-2">
+                  {topKeywords.map(({ keyword, count }, i) => {
+                    const maxCount = topKeywords[0]!.count;
+                    const pct = Math.round((count / maxCount) * 100);
+                    const isFiltered = kwFilter.trim().toLowerCase() === keyword;
+                    return (
+                      <button
+                        key={keyword}
+                        type="button"
+                        onClick={() => setKwFilter(isFiltered ? "" : keyword)}
+                        className={`w-full text-left group transition-all ${isFiltered ? "opacity-100" : "hover:opacity-90"}`}
+                      >
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className={`text-xs font-medium truncate max-w-[80%] ${isFiltered ? "text-violet-700" : "text-slate-700"}`}>
+                            {i + 1}. {keyword}
+                          </span>
+                          <span className="text-[10px] font-semibold text-muted-foreground ml-2 shrink-0">
+                            {count} {count === 1 ? "lead" : "leads"}
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-violet-100 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${isFiltered ? "bg-violet-600" : "bg-violet-400 group-hover:bg-violet-500"}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {kwFilter && topKeywords.some(k => k.keyword === kwFilter.trim().toLowerCase()) && (
+                  <button
+                    type="button"
+                    onClick={() => setKwFilter("")}
+                    className="mt-3 text-[10px] font-semibold text-violet-600 hover:text-violet-800 transition-colors"
+                  >
+                    ← Show all leads
+                  </button>
+                )}
+              </div>
+            )}
 
             {seoBriefLeads.length > 0 && (
               <div className="relative mb-4 max-w-xs">
