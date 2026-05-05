@@ -1109,6 +1109,25 @@ export default function HeadlineAnalyzer() {
                   </span>
                 )}
               </button>
+
+              {/* Progress bar — fills linearly over the 1.5s processing window */}
+              <AnimatePresence>
+                {isProcessing && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                    className="mt-3 rounded-full bg-slate-100 h-1.5 overflow-hidden"
+                  >
+                    <motion.div
+                      initial={{ width: "0%" }}
+                      animate={{ width: "100%" }}
+                      transition={{ duration: 1.5, ease: "linear" }}
+                      className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-400"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </CardContent>
           </Card>
 
@@ -1505,6 +1524,7 @@ export default function HeadlineAnalyzer() {
                   })()}
                 </AnimatePresence>
 
+                {result.overallScore >= 60 && (
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1530,6 +1550,7 @@ export default function HeadlineAnalyzer() {
                     </div>
                   </Card>
                 </motion.div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
