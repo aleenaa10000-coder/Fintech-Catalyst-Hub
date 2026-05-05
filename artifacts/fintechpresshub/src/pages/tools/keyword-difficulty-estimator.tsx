@@ -2194,6 +2194,136 @@ function ContentRoadmap({ result }: { result: Result }) {
   );
 }
 
+// ── Skeleton screens ──────────────────────────────────────────────────────
+
+function ClusterMapSkeleton() {
+  return (
+    <div className="border border-slate-100 rounded-xl shadow-sm overflow-hidden bg-white animate-pulse">
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-4 h-4 rounded bg-slate-200 shrink-0" />
+          <div className="h-3.5 w-36 rounded bg-slate-200" />
+          <div className="h-3 w-28 rounded bg-slate-100 ml-1" />
+          <div className="ml-auto flex items-center gap-1">
+            <div className="w-7 h-7 rounded border border-slate-200 bg-slate-100" />
+            <div className="w-7 h-7 rounded border border-slate-200 bg-slate-100" />
+            <div className="w-9 h-7 rounded border border-slate-200 bg-slate-100" />
+          </div>
+        </div>
+        {/* Canvas */}
+        <div
+          className="relative rounded-xl overflow-hidden border border-slate-100 bg-gradient-to-br from-slate-50 to-white"
+          style={{ height: 310 }}
+        >
+          {/* Cluster zone blobs */}
+          <div className="absolute top-5 left-6 w-[120px] h-[88px] rounded-2xl bg-violet-100/70" />
+          <div className="absolute top-4 right-10 w-[130px] h-[92px] rounded-2xl bg-emerald-100/70" />
+          <div className="absolute bottom-8 left-14 w-[140px] h-[80px] rounded-2xl bg-amber-100/70" />
+          <div className="absolute bottom-5 right-6 w-[110px] h-[86px] rounded-2xl bg-blue-100/70" />
+          <div className="absolute top-[38%] left-[38%] w-[96px] h-[70px] rounded-2xl bg-rose-100/70" />
+          {/* Node circles */}
+          {[
+            { top: "18%", left: "12%" }, { top: "28%", left: "26%" },
+            { top: "14%", right: "18%" }, { top: "24%", right: "32%" },
+            { top: "55%", left: "10%" }, { top: "62%", left: "22%" },
+            { bottom: "22%", right: "12%" }, { top: "40%", left: "46%" },
+            { top: "70%", right: "28%" },
+          ].map((pos, i) => (
+            <div
+              key={i}
+              className="absolute w-9 h-9 rounded-full bg-slate-300/60 flex items-center justify-center"
+              style={pos as React.CSSProperties}
+            >
+              <div className="w-5 h-5 rounded-full bg-slate-200/80" />
+            </div>
+          ))}
+          {/* Connector lines hint */}
+          <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.25 }}>
+            <line x1="20%" y1="22%" x2="34%" y2="30%" stroke="#cbd5e1" strokeWidth="1.5" />
+            <line x1="76%" y1="18%" x2="63%" y2="26%" stroke="#cbd5e1" strokeWidth="1.5" />
+            <line x1="15%" y1="58%" x2="26%" y2="65%" stroke="#cbd5e1" strokeWidth="1.5" />
+          </svg>
+        </div>
+        {/* Zone legend */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {["bg-violet-100", "bg-emerald-100", "bg-amber-100", "bg-blue-100", "bg-rose-100", "bg-cyan-100"].map((c, i) => (
+            <div key={i} className={`h-5 rounded-full ${c}`} style={{ width: `${62 + (i * 19) % 48}px` }} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContentGapSkeleton() {
+  return (
+    <div className="border border-slate-100 rounded-xl shadow-sm overflow-hidden bg-white animate-pulse">
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-4 h-4 rounded bg-slate-200 shrink-0" />
+          <div className="h-3.5 w-32 rounded bg-slate-200" />
+          <div className="h-3 w-44 rounded bg-slate-100 ml-1" />
+        </div>
+        {/* Body row */}
+        <div className="flex gap-5 items-start">
+          {/* Ring */}
+          <div className="shrink-0 flex flex-col items-center gap-2">
+            <div
+              className="rounded-full bg-slate-100"
+              style={{
+                width: 114, height: 114,
+                border: "10px solid #e2e8f0",
+              }}
+            />
+            <div className="w-10 h-10 rounded-full bg-slate-100 border-2 border-slate-200" />
+            <div className="h-3 w-16 rounded bg-slate-100" />
+          </div>
+          {/* Category bars */}
+          <div className="flex-1 min-w-0 space-y-2.5 pt-1">
+            {[78, 55, 90, 40, 68].map((w, i) => (
+              <div key={i}>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="h-3 rounded bg-slate-200" style={{ width: `${56 + (i * 23) % 42}px` }} />
+                  <div className="h-3 w-8 rounded bg-slate-100" />
+                </div>
+                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-slate-200 rounded-full" style={{ width: `${w}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Coverage label */}
+        <div className="mt-4 h-3 w-[85%] rounded bg-slate-100" />
+        <div className="mt-1.5 h-3 w-[60%] rounded bg-slate-100" />
+        {/* Topic pills */}
+        <div className="mt-5 pt-4 border-t border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <div className="h-3 w-32 rounded bg-slate-200" />
+            <div className="h-3 w-20 rounded bg-slate-100" />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {Array.from({ length: 11 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-6 rounded-full bg-slate-100"
+                style={{ width: `${48 + (i * 23) % 56}px` }}
+              />
+            ))}
+          </div>
+        </div>
+        {/* Action row */}
+        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+          <div className="h-8 flex-1 rounded-lg bg-slate-100" />
+          <div className="h-8 w-28 rounded-lg bg-slate-100" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Campaign Export Modal ─────────────────────────────────────────────────
 
 function CampaignExportModal({
@@ -2221,6 +2351,26 @@ function CampaignExportModal({
       return next;
     });
   const canGenerate = clientName.trim().length >= 2 && selected.size >= 1;
+
+  const downloadCsv = () => {
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const headers = ["Keyword","Score","Label","Intent","Cluster","Volume Range","Long-tail Variations","Content Tips"];
+    const rows = history
+      .filter((h) => selected.has(h.keyword))
+      .map((h) => [
+        escape(h.keyword), String(h.score), escape(h.label), escape(h.intent),
+        escape(h.cluster), escape(h.volumeRange),
+        escape(h.longTails.join(" | ")), escape(h.tips.join(" | ")),
+      ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(clientName.trim() || "campaign").replace(/[^a-z0-9]/gi, "-").toLowerCase()}-keywords.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -2375,6 +2525,16 @@ function CampaignExportModal({
           </button>
           <button
             type="button"
+            disabled={selected.size === 0}
+            onClick={downloadCsv}
+            title="Download selected keywords as CSV"
+            className="flex-1 py-2.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            CSV
+          </button>
+          <button
+            type="button"
             disabled={!canGenerate}
             onClick={() => {
               if (canGenerate) {
@@ -2419,6 +2579,7 @@ export default function KeywordDifficultyEstimator() {
   const resultsRef = useRef<HTMLDivElement>(null);
   const scrollToResultsRef = useRef(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
   const cannibalizationSet = useMemo((): Set<string> => {
     const flagged = new Set<string>();
@@ -2541,6 +2702,7 @@ export default function KeywordDifficultyEstimator() {
   const analyseKw = (kw: string) => {
     const trimmed = kw.trim();
     if (!trimmed) return;
+    setAnalysisLoading(true);
     const r = estimateDifficulty(trimmed);
     setKeyword(trimmed);
     setResult(r);
@@ -2559,6 +2721,7 @@ export default function KeywordDifficultyEstimator() {
       "",
       `${window.location.pathname}?q=${encodeURIComponent(r.keyword)}`,
     );
+    setTimeout(() => setAnalysisLoading(false), 680);
   };
 
   const analyse = () => analyseKw(keyword);
@@ -3810,39 +3973,67 @@ export default function KeywordDifficultyEstimator() {
           </AnimatePresence>
 
           {/* ── Keyword Cluster Map ── */}
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {history.length >= 1 && (
-              <motion.div
-                key="cluster-map"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-                className="mt-4"
-              >
-                <KeywordClusterMap
-                  history={history}
-                  result={result}
-                  onSelect={(entry) => { setResult(entry); setKeyword(entry.keyword); }}
-                />
-              </motion.div>
+              analysisLoading ? (
+                <motion.div
+                  key="cluster-skeleton"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="mt-4"
+                >
+                  <ClusterMapSkeleton />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="cluster-map"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.22 }}
+                  className="mt-4"
+                >
+                  <KeywordClusterMap
+                    history={history}
+                    result={result}
+                    onSelect={(entry) => { setResult(entry); setKeyword(entry.keyword); }}
+                  />
+                </motion.div>
+              )
             )}
           </AnimatePresence>
 
           {/* ── Content Gap Score ── */}
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {history.length >= 1 && (
-              <motion.div
-                key="content-gap-score"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-                className="mt-4"
-              >
-                <ContentGapScore
-                  history={history}
-                  onSuggest={(kw) => { scrollToResultsRef.current = true; analyseKw(kw); }}
-                />
-              </motion.div>
+              analysisLoading ? (
+                <motion.div
+                  key="gap-skeleton"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="mt-4"
+                >
+                  <ContentGapSkeleton />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="content-gap-score"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.22 }}
+                  className="mt-4"
+                >
+                  <ContentGapScore
+                    history={history}
+                    onSuggest={(kw) => { scrollToResultsRef.current = true; analyseKw(kw); }}
+                  />
+                </motion.div>
+              )
             )}
           </AnimatePresence>
 
