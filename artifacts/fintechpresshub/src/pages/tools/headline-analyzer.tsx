@@ -875,6 +875,32 @@ const COLOR_MAP: Record<string, { bg: string; text: string; bar: string; badge: 
   },
 };
 
+type HistoryEntry = {
+  id: string;
+  headline: string;
+  score: number;
+  verdict: string;
+  verdictColor: "emerald" | "blue" | "amber" | "red";
+  analyzedAt: number;
+};
+
+const HISTORY_KEY = "fph-headline-analyzer.history.v1";
+
+function loadHistory(): HistoryEntry[] {
+  try {
+    const raw = typeof window !== "undefined" ? window.localStorage.getItem(HISTORY_KEY) : null;
+    if (!raw) return [];
+    return JSON.parse(raw) as HistoryEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function pushToHistory(entry: HistoryEntry, prev: HistoryEntry[]): HistoryEntry[] {
+  const filtered = prev.filter((e) => e.headline !== entry.headline);
+  return [entry, ...filtered].slice(0, 5);
+}
+
 export default function HeadlineAnalyzer() {
   const [headline, setHeadline] = useState("");
   const [result, setResult] = useState<Analysis | null>(null);
@@ -884,6 +910,7 @@ export default function HeadlineAnalyzer() {
   const [competitorUrl, setCompetitorUrl] = useState("");
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState(0);
@@ -922,6 +949,19 @@ export default function HeadlineAnalyzer() {
       setIsProcessing(false);
       const analysisResult = analyzeHeadline(trimmed);
       setResult(analysisResult);
+      setHistory((prev) => {
+        const entry: HistoryEntry = {
+          id: String(Date.now()),
+          headline: analysisResult.headline,
+          score: analysisResult.overallScore,
+          verdict: analysisResult.verdict,
+          verdictColor: analysisResult.verdictColor,
+          analyzedAt: Date.now(),
+        };
+        const updated = pushToHistory(entry, prev);
+        try { window.localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
       if (analysisResult.overallScore >= 60) {
         trackEvent("headline_threshold_reached", {
           score: analysisResult.overallScore,
@@ -940,6 +980,22 @@ export default function HeadlineAnalyzer() {
     setUrlMode(false);
     setCompetitorUrl("");
     setFetchError(null);
+  };
+
+  const recallHistory = (entry: HistoryEntry) => {
+    const recalled = analyzeHeadline(entry.headline);
+    setHeadline(entry.headline);
+    setResult(recalled);
+    setSelectedVibe(null);
+    setUrlMode(false);
+    setTimeout(() => {
+      scoreBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
+
+  const clearHistory = () => {
+    setHistory([]);
+    try { window.localStorage.removeItem(HISTORY_KEY); } catch {}
   };
 
   const fetchAndAnalyze = async () => {
@@ -967,6 +1023,19 @@ export default function HeadlineAnalyzer() {
         setIsProcessing(false);
         const analysisResult = analyzeHeadline(fetched);
         setResult(analysisResult);
+        setHistory((prev) => {
+          const entry: HistoryEntry = {
+            id: String(Date.now()),
+            headline: analysisResult.headline,
+            score: analysisResult.overallScore,
+            verdict: analysisResult.verdict,
+            verdictColor: analysisResult.verdictColor,
+            analyzedAt: Date.now(),
+          };
+          const updated = pushToHistory(entry, prev);
+          try { window.localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch {}
+          return updated;
+        });
         if (analysisResult.overallScore >= 60) {
           trackEvent("headline_threshold_reached", {
             score: analysisResult.overallScore,
@@ -1053,6 +1122,50 @@ export default function HeadlineAnalyzer() {
                   Reset
                 </Button>
               </div>
+
+              {/* ── Recent analyses history strip ── */}
+              {history.length > 0 && (
+                <div className="mb-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                      <RefreshCw className="w-3 h-3" />
+                      Recent analyses
+                    </p>
+                    <button
+                      type="button"
+                      onClick={clearHistory}
+                      className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                    {history.map((entry) => {
+                      const badgeClass =
+                        entry.verdictColor === "emerald" ? "bg-emerald-100 text-emerald-700" :
+                        entry.verdictColor === "blue"    ? "bg-blue-100 text-blue-700" :
+                        entry.verdictColor === "amber"   ? "bg-amber-100 text-amber-700" :
+                                                           "bg-red-100 text-red-700";
+                      return (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => recallHistory(entry)}
+                          title={entry.headline}
+                          className="flex items-center gap-1.5 shrink-0 pl-1.5 pr-3 py-1 rounded-full border border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                        >
+                          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold shrink-0 ${badgeClass}`}>
+                            {entry.score}
+                          </span>
+                          <span className="text-xs text-slate-700 font-medium max-w-[140px] truncate">
+                            {entry.headline}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3 mb-5">
                 {/* Mode tabs */}
