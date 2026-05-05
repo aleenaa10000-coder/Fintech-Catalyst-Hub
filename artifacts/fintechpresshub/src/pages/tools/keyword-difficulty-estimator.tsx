@@ -375,6 +375,7 @@ export default function KeywordDifficultyEstimator() {
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
   const [copiedCluster, setCopiedCluster] = useState<number | null>(null);
+  const [history, setHistory] = useState<Result[]>([]);
 
   const reset = () => {
     setKeyword("");
@@ -383,7 +384,14 @@ export default function KeywordDifficultyEstimator() {
 
   const analyse = () => {
     if (!keyword.trim()) return;
-    setResult(estimateDifficulty(keyword));
+    const r = estimateDifficulty(keyword);
+    setResult(r);
+    setHistory((prev) => {
+      const deduped = prev.filter(
+        (h) => h.keyword.toLowerCase() !== r.keyword.toLowerCase(),
+      );
+      return [r, ...deduped].slice(0, 10);
+    });
   };
 
   const copyLongTail = (idx: number, text: string) => {
@@ -518,6 +526,71 @@ export default function KeywordDifficultyEstimator() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Keyword history strip */}
+          <AnimatePresence>
+            {history.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest shrink-0">
+                    Recent
+                  </span>
+                  <div className="flex-1 overflow-x-auto flex items-center gap-1.5 pb-0.5 min-w-0 scrollbar-none">
+                    {history.map((h) => {
+                      const isActive = result?.keyword.toLowerCase() === h.keyword.toLowerCase();
+                      return (
+                        <motion.button
+                          key={h.keyword}
+                          layout
+                          initial={{ opacity: 0, scale: 0.85 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.85 }}
+                          type="button"
+                          onClick={() => {
+                            setResult(h);
+                            setKeyword(h.keyword);
+                          }}
+                          className={`shrink-0 inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border transition-all whitespace-nowrap ${
+                            isActive
+                              ? "bg-violet-600 text-white border-violet-600 shadow-sm"
+                              : "bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-700"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                              h.score >= 75
+                                ? "bg-red-400"
+                                : h.score >= 55
+                                  ? "bg-orange-400"
+                                  : h.score >= 35
+                                    ? "bg-amber-400"
+                                    : "bg-green-500"
+                            } ${isActive ? "opacity-80" : ""}`}
+                          />
+                          <span className="max-w-[140px] truncate">{h.keyword}</span>
+                          <span className={`font-bold tabular-nums ${isActive ? "text-violet-200" : "text-slate-400"}`}>
+                            {h.score}
+                          </span>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setHistory([]); setResult(null); setKeyword(""); }}
+                    className="shrink-0 text-[10px] text-slate-400 hover:text-slate-600 transition-colors font-medium"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence mode="wait">
             {result && (
