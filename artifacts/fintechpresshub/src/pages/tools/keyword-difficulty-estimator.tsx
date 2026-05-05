@@ -1464,6 +1464,41 @@ export default function KeywordDifficultyEstimator() {
     window.history.replaceState(null, "", window.location.pathname);
   };
 
+  const exportCSV = () => {
+    if (history.length === 0) return;
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const headers = [
+      "Keyword",
+      "Score",
+      "Difficulty Label",
+      "Search Intent",
+      "Intent Reason",
+      "Cluster",
+      "Volume Range",
+      "Long-tail Variations",
+      "Content Tips",
+    ];
+    const rows = history.map((h) => [
+      escape(h.keyword),
+      String(h.score),
+      escape(h.label),
+      escape(h.intent),
+      escape(h.intentReason),
+      escape(h.cluster),
+      escape(h.volumeRange),
+      escape(h.longTails.join(" | ")),
+      escape(h.tips.join(" | ")),
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fintech-keywords-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const analyse = () => {
     if (!keyword.trim()) return;
     const r = estimateDifficulty(keyword);
@@ -2224,16 +2259,30 @@ export default function KeywordDifficultyEstimator() {
                     </p>
                   </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={reset}
-                  className="text-muted-foreground"
-                >
-                  <RotateCcw className="w-4 h-4 mr-1.5" />
-                  Reset
-                </Button>
+                <div className="flex items-center gap-2">
+                  {history.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={exportCSV}
+                      className="text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5 mr-1.5" />
+                      Export CSV
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={reset}
+                    className="text-muted-foreground"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1.5" />
+                    Reset
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2">
