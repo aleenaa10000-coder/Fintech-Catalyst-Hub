@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
 import {
   useGetNewsletterSubscribers,
@@ -101,11 +101,37 @@ export default function AdminNewsletter() {
   const briefLeads = useMemo(() => {
     return (detailQuery.data?.subscribers ?? [])
       .filter((s: { source: string | null }) => s.source?.startsWith("content-brief-request"))
-      .map((s: { id: number; email: string | null; createdAt: string; source: string | null }) => ({
+      .map((s: { id: number; email: string | null; createdAt: string; source: string | null; briefStatus: string | null; briefStatusUpdatedAt: string | null }) => ({
         ...s,
         businessName: s.source?.split("|")[1]?.trim() ?? "—",
       }));
   }, [detailQuery.data]);
+
+  // Optimistic status map: id → status (overrides server value while PATCH is in-flight / confirmed)
+  const [leadStatuses, setLeadStatuses] = useState<Record<number, string>>({});
+  const [updatingIds, setUpdatingIds] = useState<Set<number>>(new Set());
+
+  const updateLeadStatus = useCallback(async (id: number, status: string) => {
+    setLeadStatuses((prev) => ({ ...prev, [id]: status }));
+    setUpdatingIds((prev) => new Set(prev).add(id));
+    try {
+      await fetch(`/api/admin/newsletter/brief-leads/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status }),
+      });
+    } catch {
+      // On failure, revert
+      setLeadStatuses((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    } finally {
+      setUpdatingIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    }
+  }, []);
 
   if (authLoading) {
     return (
