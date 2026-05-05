@@ -898,7 +898,25 @@ export default function KeywordDifficultyEstimator() {
     doc.roundedRect(margin + 100, y, 38, 8, 2, 2, "F");
     doc.text(r.intent, margin + 119, y + 5.4, { align: "center" });
 
-    y += 17;
+    y += 12;
+
+    // ── Ranking Timeline ──────────────────────────────────────────────────────
+    const timelineText =
+      r.score < 30
+        ? "⏱  Estimated 2–4 weeks to Page 1 with optimized content."
+        : r.score <= 60
+          ? "⏱  Estimated 3–6 months of consistent authority building."
+          : "⏱  High-competition term. Estimated 6+ months; requires aggressive backlink strategy.";
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, y, contentW, 8, 1.5, 1.5, "F");
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(margin, y, contentW, 8, 1.5, 1.5, "S");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(timelineText, margin + 4, y + 5.2);
+    y += 13;
 
     // ── Topical Cluster ───────────────────────────────────────────────────────
     doc.setTextColor(100, 116, 139);
@@ -970,6 +988,34 @@ export default function KeywordDifficultyEstimator() {
       doc.text(lines, margin, y);
       y += (lines as string[]).length * 5 + 2;
     });
+
+    // ── Content Gap ───────────────────────────────────────────────────────────
+    const contentGapText =
+      r.intent === "Commercial" || r.intent === "Transactional"
+        ? "Top results lack transparent pricing comparisons—add a comparison table to stand out."
+        : "Current guides are text-heavy—rank faster by including a technical architecture diagram or API flow-chart.";
+    y += 4;
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.line(margin, y, pw - margin, y);
+    y += 7;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text("The Content Gap", margin, y);
+    y += 6;
+    doc.setFillColor(255, 251, 235);
+    const gapLines = doc.splitTextToSize(`💡  ${contentGapText}`, contentW - 8) as string[];
+    const gapH = gapLines.length * 5 + 6;
+    doc.roundedRect(margin, y, contentW, gapH, 1.5, 1.5, "F");
+    doc.setDrawColor(253, 230, 138);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(margin, y, contentW, gapH, 1.5, 1.5, "S");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(120, 53, 15);
+    doc.text(gapLines, margin + 4, y + 5);
+    y += gapH + 4;
 
     // ── Footer ────────────────────────────────────────────────────────────────
     const footerY = ph - 12;
@@ -1961,6 +2007,18 @@ export default function KeywordDifficultyEstimator() {
                         </li>
                       ))}
                     </ul>
+
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">The Content Gap</p>
+                      <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2.5">
+                        <Lightbulb className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                        <p className="text-[12px] text-amber-900 leading-relaxed">
+                          {result.intent === "Commercial" || result.intent === "Transactional"
+                            ? "Top results lack transparent pricing comparisons—add a table to stand out."
+                            : "Current guides are text-heavy—rank faster by including a technical architecture diagram or API flow-chart."}
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
