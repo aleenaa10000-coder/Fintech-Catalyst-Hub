@@ -34,6 +34,11 @@ import {
   BookOpen,
   Download,
   Link2,
+  PanelLeft,
+  GitCompare,
+  X,
+  ChevronRight,
+  Trash2,
 } from "lucide-react";
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
@@ -451,13 +456,166 @@ function TrendArrow({ scores, active }: { scores: number[]; active: boolean }) {
   return <span className={`text-[9px] font-bold ${active ? "text-emerald-300" : "text-emerald-500"}`} title={`${diff} easier`}>↓</span>;
 }
 
+type HistoryEntry = Result & { scores: number[] };
+
+const QUADRANT_MINI_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
+  "Quick Win":        { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
+  "Long-term Target": { bg: "bg-amber-50",   text: "text-amber-700",   dot: "bg-amber-500"   },
+  "Filler Content":   { bg: "bg-slate-100",  text: "text-slate-600",   dot: "bg-slate-400"   },
+  "Supporting Asset": { bg: "bg-blue-50",    text: "text-blue-700",    dot: "bg-blue-500"    },
+};
+
+function MiniQuadrant({ entry }: { entry: HistoryEntry }) {
+  const qInfo = getQuadrantInfo(entry.score, entry.intent);
+  const dotXPct = 5 + (entry.score / 100) * 90;
+  const dotYPct = 5 + (1 - intentValue(entry.intent)) * 90;
+  return (
+    <div className="relative w-full rounded-md overflow-hidden border border-slate-100" style={{ paddingBottom: "70%" }}>
+      <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0">
+        <div className="bg-emerald-50 border-r border-b border-slate-100" />
+        <div className="bg-amber-50 border-b border-slate-100" />
+        <div className="bg-slate-50 border-r border-slate-100" />
+        <div className="bg-blue-50" />
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-200" />
+          <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-200" />
+        </div>
+        <div
+          className="absolute z-10"
+          style={{ left: `${dotXPct}%`, top: `${dotYPct}%`, transform: "translate(-50%,-50%)" }}
+        >
+          <div className={`w-3 h-3 rounded-full ${qInfo.dotColor} ring-2 ring-white shadow`} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComparePanelOverlay({
+  a, b, onClose,
+}: {
+  a: HistoryEntry; b: HistoryEntry; onClose: () => void;
+}) {
+  const qa = getQuadrantInfo(a.score, a.intent);
+  const qb = getQuadrantInfo(b.score, b.intent);
+
+  function Side({ entry, qInfo }: { entry: HistoryEntry; qInfo: ReturnType<typeof getQuadrantInfo> }) {
+    const styles = QUADRANT_MINI_STYLES[qInfo.label] ?? { bg: "bg-slate-50", text: "text-slate-700", dot: "bg-slate-400" };
+    return (
+      <div className="flex-1 min-w-0 space-y-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold border rounded-full px-2 py-0.5 ${styles.bg} ${styles.text} border-current/20`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${styles.dot}`} />
+            {qInfo.label}
+          </span>
+          <span className={`text-[10px] font-bold border rounded-full px-2 py-0.5 ${INTENT_COLOR[entry.intent]}`}>
+            {entry.intent}
+          </span>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <span className={`text-4xl font-black ${SCORE_COLOR(entry.score)}`}>{entry.score}</span>
+          <span className="text-xs text-muted-foreground">/ 100 · {entry.label}</span>
+        </div>
+        <MiniQuadrant entry={entry} />
+        <div className={`rounded-lg px-3 py-2 border ${styles.bg} border-current/10`}>
+          <p className={`text-[11px] font-medium leading-relaxed ${styles.text}`}>
+            <span className="font-bold">{qInfo.label}:</span> {qInfo.sublabel}
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Volume est.</p>
+          <p className="text-sm font-bold text-violet-600">{entry.volumeRange}</p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Cluster</p>
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold border rounded-full px-2 py-0.5 ${CLUSTER_COLOR[entry.cluster]}`}>
+            <Layers className="w-2.5 h-2.5" />
+            {entry.cluster}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+      className="mt-4 rounded-xl border border-violet-200 bg-white shadow-lg overflow-hidden"
+    >
+      <div className="flex items-center justify-between px-4 py-3 bg-violet-50 border-b border-violet-100">
+        <div className="flex items-center gap-2">
+          <GitCompare className="w-4 h-4 text-violet-600" />
+          <span className="text-sm font-bold text-violet-900">Phrasing Comparison</span>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1 rounded-md text-violet-400 hover:text-violet-700 hover:bg-violet-100 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="p-4">
+        <div className="flex gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-slate-800 truncate mb-3" title={a.keyword}>"{a.keyword}"</p>
+            <Side entry={a} qInfo={qa} />
+          </div>
+          <div className="w-px bg-slate-100 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-slate-800 truncate mb-3" title={b.keyword}>"{b.keyword}"</p>
+            <Side entry={b} qInfo={qb} />
+          </div>
+        </div>
+        {qa.label !== qb.label && (
+          <div className="mt-4 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5">
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              <span className="font-bold text-slate-800">Takeaway:</span>{" "}
+              <span className="font-semibold">"{a.keyword}"</span> lands in{" "}
+              <span className={`font-bold ${QUADRANT_MINI_STYLES[qa.label]?.text ?? "text-slate-700"}`}>{qa.label}</span>{" "}
+              while{" "}
+              <span className="font-semibold">"{b.keyword}"</span> is a{" "}
+              <span className={`font-bold ${QUADRANT_MINI_STYLES[qb.label]?.text ?? "text-slate-700"}`}>{qb.label}</span>.{" "}
+              {intentValue(a.intent) > intentValue(b.intent)
+                ? `Prioritise "${a.keyword}" for commercial return.`
+                : intentValue(b.intent) > intentValue(a.intent)
+                  ? `Prioritise "${b.keyword}" for commercial return.`
+                  : a.score < b.score
+                    ? `"${a.keyword}" is easier to rank — consider targeting it first.`
+                    : `"${b.keyword}" is easier to rank — consider targeting it first.`}
+            </p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 export default function KeywordDifficultyEstimator() {
   const [keyword, setKeyword] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
   const [copiedCluster, setCopiedCluster] = useState<number | null>(null);
-  const [history, setHistory] = useState<(Result & { scores: number[] })[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [compareSet, setCompareSet] = useState<Set<string>>(new Set());
+  const [showCompare, setShowCompare] = useState(false);
+
+  const toggleCompare = (kw: string) => {
+    setCompareSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(kw)) {
+        next.delete(kw);
+      } else if (next.size < 2) {
+        next.add(kw);
+      }
+      return next;
+    });
+    setShowCompare(false);
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
