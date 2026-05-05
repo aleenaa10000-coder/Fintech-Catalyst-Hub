@@ -147,21 +147,22 @@ const TOPIC_CLUSTER_LABELS: Array<{
   label: string;
   badgeClass: string;
   dotClass: string;
+  formats: [string, string, string];
 }> = [
-  { keywords: ["embedded finance", "baas", "open banking"],      label: "Embedded Finance & APIs",   badgeClass: "bg-sky-100 text-sky-700 ring-sky-200",       dotClass: "bg-sky-400" },
-  { keywords: ["defi", "stablecoin", "cbdc", "nft", "web3"],     label: "Digital Assets & Web3",     badgeClass: "bg-violet-100 text-violet-700 ring-violet-200", dotClass: "bg-violet-400" },
-  { keywords: ["crypto", "blockchain"],                           label: "Blockchain & Crypto",       badgeClass: "bg-purple-100 text-purple-700 ring-purple-200",  dotClass: "bg-purple-400" },
-  { keywords: ["kyc", "aml", "regtech", "compliance", "regulation"], label: "RegTech & Compliance",  badgeClass: "bg-red-100 text-red-700 ring-red-200",           dotClass: "bg-red-400" },
-  { keywords: ["insuretech", "insurance"],                        label: "InsurTech",                 badgeClass: "bg-teal-100 text-teal-700 ring-teal-200",        dotClass: "bg-teal-400" },
-  { keywords: ["wealthtech", "wealth", "investment", "portfolio", "asset"], label: "WealthTech & Investing", badgeClass: "bg-emerald-100 text-emerald-700 ring-emerald-200", dotClass: "bg-emerald-400" },
-  { keywords: ["fraud", "security", "identity", "authentication"], label: "Security & Identity",     badgeClass: "bg-orange-100 text-orange-700 ring-orange-200",  dotClass: "bg-orange-400" },
-  { keywords: ["payments", "payment", "remittance", "transfer", "wallet"], label: "Merchant Services", badgeClass: "bg-indigo-100 text-indigo-700 ring-indigo-200", dotClass: "bg-indigo-400" },
-  { keywords: ["lending", "credit", "mortgage", "loan", "bnpl"],  label: "Credit & Lending",         badgeClass: "bg-amber-100 text-amber-700 ring-amber-200",     dotClass: "bg-amber-400" },
-  { keywords: ["neobank", "digital bank"],                        label: "Neobanking",                badgeClass: "bg-blue-100 text-blue-700 ring-blue-200",        dotClass: "bg-blue-400" },
-  { keywords: ["banking"],                                         label: "Banking & Infrastructure", badgeClass: "bg-blue-100 text-blue-700 ring-blue-200",        dotClass: "bg-blue-400" },
-  { keywords: ["ai", "machine learning", "automation"],           label: "AI & Automation",           badgeClass: "bg-fuchsia-100 text-fuchsia-700 ring-fuchsia-200", dotClass: "bg-fuchsia-400" },
-  { keywords: ["startup", "funding", "vc", "ipo"],                label: "Startup & VC",              badgeClass: "bg-rose-100 text-rose-700 ring-rose-200",        dotClass: "bg-rose-400" },
-  { keywords: ["fintech"],                                         label: "Fintech",                  badgeClass: "bg-slate-100 text-slate-700 ring-slate-200",     dotClass: "bg-slate-400" },
+  { keywords: ["embedded finance", "baas", "open banking"],         label: "Embedded Finance & APIs",   badgeClass: "bg-sky-100 text-sky-700 ring-sky-200",            dotClass: "bg-sky-400",     formats: ["Deep-Dive Explainers", "API Integration Guides", "Partnership Announcements"] },
+  { keywords: ["defi", "stablecoin", "cbdc", "nft", "web3"],        label: "Digital Assets & Web3",     badgeClass: "bg-violet-100 text-violet-700 ring-violet-200",   dotClass: "bg-violet-400",  formats: ["Market Analysis Reports", "Regulatory Watch Pieces", "Protocol Deep Dives"] },
+  { keywords: ["crypto", "blockchain"],                              label: "Blockchain & Crypto",       badgeClass: "bg-purple-100 text-purple-700 ring-purple-200",   dotClass: "bg-purple-400",  formats: ["How-To Guides", "Market Outlooks", "Technology Primers"] },
+  { keywords: ["kyc", "aml", "regtech", "compliance", "regulation"],label: "RegTech & Compliance",      badgeClass: "bg-red-100 text-red-700 ring-red-200",            dotClass: "bg-red-400",     formats: ["Regulatory Roundups", "Compliance Checklists", "Case Studies"] },
+  { keywords: ["insuretech", "insurance"],                           label: "InsurTech",                 badgeClass: "bg-teal-100 text-teal-700 ring-teal-200",         dotClass: "bg-teal-400",    formats: ["Product Launch Analyses", "Data-Driven Reports", "Use Case Stories"] },
+  { keywords: ["wealthtech", "wealth", "investment", "portfolio", "asset"], label: "WealthTech & Investing", badgeClass: "bg-emerald-100 text-emerald-700 ring-emerald-200", dotClass: "bg-emerald-400", formats: ["Trend Reports", "How-To Guides", "Investor Roundtables"] },
+  { keywords: ["fraud", "security", "identity", "authentication"],  label: "Security & Identity",       badgeClass: "bg-orange-100 text-orange-700 ring-orange-200",   dotClass: "bg-orange-400",  formats: ["Threat Intelligence Reports", "Best Practice Guides", "Incident Case Studies"] },
+  { keywords: ["payments", "payment", "remittance", "transfer", "wallet"], label: "Merchant Services", badgeClass: "bg-indigo-100 text-indigo-700 ring-indigo-200",   dotClass: "bg-indigo-400",  formats: ["How-To Guides", "Case Studies", "Regulatory Roundups"] },
+  { keywords: ["lending", "credit", "mortgage", "loan", "bnpl"],   label: "Credit & Lending",          badgeClass: "bg-amber-100 text-amber-700 ring-amber-200",      dotClass: "bg-amber-400",   formats: ["Market Data Reports", "Underwriting Deep Dives", "Borrower Case Studies"] },
+  { keywords: ["neobank", "digital bank"],                          label: "Neobanking",                badgeClass: "bg-blue-100 text-blue-700 ring-blue-200",         dotClass: "bg-blue-400",    formats: ["Product Comparison Guides", "User Adoption Stories", "Founder Interviews"] },
+  { keywords: ["banking"],                                           label: "Banking & Infrastructure",  badgeClass: "bg-blue-100 text-blue-700 ring-blue-200",         dotClass: "bg-blue-400",    formats: ["Technology Migration Case Studies", "Vendor Comparisons", "CTO Interviews"] },
+  { keywords: ["ai", "machine learning", "automation"],             label: "AI & Automation",           badgeClass: "bg-fuchsia-100 text-fuchsia-700 ring-fuchsia-200",dotClass: "bg-fuchsia-400", formats: ["Implementation Guides", "ROI Case Studies", "Technology Primers"] },
+  { keywords: ["startup", "funding", "vc", "ipo"],                  label: "Startup & VC",              badgeClass: "bg-rose-100 text-rose-700 ring-rose-200",         dotClass: "bg-rose-400",    formats: ["Funding Roundup Reports", "Founder Spotlights", "Market Opportunity Analyses"] },
+  { keywords: ["fintech"],                                           label: "Fintech",                   badgeClass: "bg-slate-100 text-slate-700 ring-slate-200",      dotClass: "bg-slate-400",   formats: ["Trend Reports", "Expert Roundups", "Regulatory Analyses"] },
 ];
 
 function detectTopicCluster(headline: string): typeof TOPIC_CLUSTER_LABELS[number] | null {
@@ -1440,16 +1441,58 @@ export default function HeadlineAnalyzer() {
                       rows={3}
                       className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-slate-800 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none leading-relaxed"
                     />
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <p className="text-[11px] text-muted-foreground">
                         {headline.length} characters · {headline.trim().split(/\s+/).filter(Boolean).length} words
                         {headline.length > 0 && headline.length < 50 && (
-                          <span className="ml-2 text-amber-600">· {50 - headline.length} chars to ideal minimum</span>
+                          <span className="ml-2 text-amber-600">· {50 - headline.length} chars to sweet spot</span>
                         )}
                         {headline.length > 70 && (
-                          <span className="ml-2 text-red-500">· {headline.length - 70} chars over ideal maximum</span>
+                          <span className="ml-2 text-red-500">· {headline.length - 70} chars over ideal max</span>
                         )}
                       </p>
+                      {headline.length > 0 && (() => {
+                        const len = headline.length;
+                        const SWEET_MIN = 50, SWEET_MAX = 65;
+                        const isSweet   = len >= SWEET_MIN && len <= SWEET_MAX;
+                        const isOver    = len > 70;
+                        const isClose   = len >= 30 && len < SWEET_MIN;
+                        const trackR    = 8;
+                        const circ      = 2 * Math.PI * trackR;
+                        const fillPct   = Math.min(len / 100, 1);
+                        const dash      = fillPct * circ;
+                        const strokeCol = isSweet ? "#10b981" : isOver ? "#ef4444" : isClose ? "#f59e0b" : "#cbd5e1";
+                        const label     = isSweet ? "Sweet spot!" : isOver ? "Too long" : isClose ? `${SWEET_MIN - len} to go` : `${len}/100`;
+                        return (
+                          <div
+                            className="flex items-center gap-1.5 shrink-0"
+                            title={`SEO sweet spot: 50–65 chars`}
+                          >
+                            <svg
+                              width="22" height="22" viewBox="0 0 22 22"
+                              className={isSweet ? "drop-shadow-[0_0_4px_#10b981]" : ""}
+                            >
+                              <circle cx="11" cy="11" r={trackR} fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                              <circle
+                                cx="11" cy="11" r={trackR}
+                                fill="none"
+                                stroke={strokeCol}
+                                strokeWidth="3"
+                                strokeDasharray={`${dash} ${circ}`}
+                                strokeLinecap="round"
+                                transform="rotate(-90 11 11)"
+                                style={{ transition: "stroke-dasharray 0.3s ease, stroke 0.3s ease" }}
+                              />
+                            </svg>
+                            <span
+                              className="text-[10px] font-semibold tabular-nums"
+                              style={{ color: strokeCol, transition: "color 0.3s ease" }}
+                            >
+                              {label}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </>
                 )}
@@ -2184,13 +2227,33 @@ export default function HeadlineAnalyzer() {
                               initial={{ opacity: 0, y: 4 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: i * 0.07 + 0.3 }}
-                              className={`mt-1.5 flex items-start gap-2 rounded-md px-2.5 py-2 ring-1 ${topicCluster.badgeClass}`}
+                              className={`mt-1.5 rounded-md px-2.5 py-2.5 ring-1 space-y-2 ${topicCluster.badgeClass}`}
                             >
-                              <span className={`mt-0.5 w-1.5 h-1.5 rounded-full shrink-0 ${topicCluster.dotClass}`} />
-                              <p className="text-[11px] leading-snug">
-                                This headline successfully targets the{" "}
-                                <strong>{topicCluster.label}</strong> cluster, which is currently seeing high search demand in 2026.
-                              </p>
+                              <div className="flex items-start gap-2">
+                                <span className={`mt-0.5 w-1.5 h-1.5 rounded-full shrink-0 ${topicCluster.dotClass}`} />
+                                <p className="text-[11px] leading-snug">
+                                  This headline successfully targets the{" "}
+                                  <strong>{topicCluster.label}</strong> cluster, which is currently seeing high search demand in 2026.
+                                </p>
+                              </div>
+                              <div className="pl-3.5 space-y-1.5">
+                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">
+                                  Top performing formats in 2026
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {topicCluster.formats.map((fmt, fi) => (
+                                    <motion.span
+                                      key={fmt}
+                                      initial={{ opacity: 0, scale: 0.88 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      transition={{ delay: i * 0.07 + 0.38 + fi * 0.07 }}
+                                      className="inline-flex items-center gap-1 rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-semibold ring-1 ring-current/20"
+                                    >
+                                      <span className="opacity-50">{fi + 1}.</span> {fmt}
+                                    </motion.span>
+                                  ))}
+                                </div>
+                              </div>
                             </motion.div>
                           )}
                         </motion.div>
