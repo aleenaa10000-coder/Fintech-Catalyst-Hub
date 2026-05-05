@@ -22,6 +22,8 @@ import {
   BarChart2,
   Users,
   ArrowUpRight,
+  Lightbulb,
+  Wand2,
 } from "lucide-react";
 
 const FINTECH_KEYWORDS = [
@@ -150,6 +152,97 @@ const PRACTITIONER_JARGON_TERMS = [
   "compliance", "underwriting", "securitisation", "liquidity",
   "yield", "collateral", "portfolio", "arbitrage", "chargeback",
 ];
+
+// ── SEO Opportunity Map ───────────────────────────────────────────────────
+// Maps a broad/generic fintech keyword (lowercase) to high-intent long-tail
+// phrase alternatives. Detected by scanning analyzed headline words.
+const SEO_OPPORTUNITY_MAP: Record<string, { label: string; phrases: string[] }> = {
+  banking:    { label: "Banking",    phrases: ["Digital Banking Infrastructure", "Cross-border Settlements", "Neobank UX", "Open Banking APIs"] },
+  payments:   { label: "Payments",   phrases: ["Real-time Payment Rails", "Cross-border Payment Flows", "Embedded Checkout Experience", "Instant Settlement Networks"] },
+  crypto:     { label: "Crypto",     phrases: ["On-chain Asset Management", "DeFi Protocol Security", "Stablecoin Settlement Rails", "Layer-2 Scaling Solutions"] },
+  blockchain: { label: "Blockchain", phrases: ["Distributed Ledger Technology", "Smart Contract Automation", "On-chain Settlement Infrastructure", "Zero-knowledge Proof Systems"] },
+  fintech:    { label: "Fintech",    phrases: ["Embedded Finance Platforms", "API-first Banking Stack", "RegTech Compliance Automation", "Financial Infrastructure Layer"] },
+  lending:    { label: "Lending",    phrases: ["AI-driven Credit Underwriting", "Alternative Lending Models", "Embedded Credit Infrastructure", "BNPL Risk Frameworks"] },
+  investment: { label: "Investment", phrases: ["Algorithmic Portfolio Management", "Robo-advisory Platforms", "Alternative Asset Allocation", "Systematic Wealth Strategies"] },
+  insurance:  { label: "Insurance",  phrases: ["Parametric Insurance Models", "Embedded InsurTech APIs", "AI-underwritten Risk Assessment", "Usage-based Insurance Products"] },
+  compliance: { label: "Compliance", phrases: ["AML Transaction Monitoring", "RegTech Automation Workflows", "KYC Identity Verification", "Real-time Regulatory Reporting"] },
+  security:   { label: "Security",   phrases: ["Zero-trust Security Architecture", "Fraud Detection ML Models", "Biometric Authentication Systems", "End-to-end Encryption Protocols"] },
+  data:       { label: "Data",       phrases: ["Alternative Data Intelligence", "Real-time Transaction Analytics", "Behavioral Data Modeling", "Open Data Ecosystems"] },
+  ai:         { label: "AI",         phrases: ["Generative AI Underwriting", "Predictive Credit Scoring", "AI-powered Risk Intelligence", "LLM-driven Financial Planning"] },
+  fraud:      { label: "Fraud",      phrases: ["Real-time Fraud Detection ML", "Behavioral Biometrics for AML", "Synthetic Identity Prevention", "Transaction Anomaly Scoring"] },
+  digital:    { label: "Digital",    phrases: ["Digital-first Banking Stack", "Cloud-native Financial Infrastructure", "API-driven Digital Transformation", "Digital Asset Settlement"] },
+  risk:       { label: "Risk",       phrases: ["Model Risk Governance Frameworks", "Real-time Credit Risk Scoring", "Systemic Risk Quantification", "AI-augmented Risk Management"] },
+  regulation: { label: "Regulation", phrases: ["PSD2 Compliance Architecture", "MiCA Token Regulation", "Basel IV Capital Frameworks", "DORA Operational Resilience"] },
+  wallet:     { label: "Wallet",     phrases: ["Non-custodial Wallet Infrastructure", "Embedded Digital Wallet APIs", "Multi-chain Wallet Abstraction", "White-label Wallet-as-a-Service"] },
+  trading:    { label: "Trading",    phrases: ["Algorithmic Trading Infrastructure", "High-frequency Execution Platforms", "DeFi Automated Market Making", "Latency-optimised Trade Routing"] },
+  credit:     { label: "Credit",     phrases: ["Alternative Credit Scoring Models", "Embedded Credit Decisioning APIs", "Thin-file Borrower Assessment", "Real-time Credit Bureau Integrations"] },
+  defi:       { label: "DeFi",       phrases: ["Decentralised Liquidity Protocols", "Yield Optimisation Strategies", "On-chain Governance Frameworks", "Cross-chain Bridge Security"] },
+};
+
+// ── SeoOpportunityCard ────────────────────────────────────────────────────
+// Scans the analyzed headline for broad keywords that have long-tail
+// alternatives in SEO_OPPORTUNITY_MAP, then renders Quick Swap buttons.
+function SeoOpportunityCard({
+  headline,
+  onSwap,
+}: {
+  headline: string;
+  onSwap: (label: string, phrase: string) => void;
+}) {
+  const normalised = headline.toLowerCase().replace(/[^a-z\s]/g, "");
+  const words = normalised.split(/\s+/);
+  const matches = Object.entries(SEO_OPPORTUNITY_MAP).filter(([key]) =>
+    words.includes(key)
+  );
+  if (matches.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+    >
+      <Card className="border border-amber-200 shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 px-5 py-3 flex items-center gap-2">
+          <Lightbulb className="w-4 h-4 text-amber-600 shrink-0" />
+          <h4 className="text-sm font-semibold text-amber-900">SEO Opportunity</h4>
+          <span className="ml-auto text-[10px] font-semibold bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
+            {matches.length} broad {matches.length === 1 ? "keyword" : "keywords"} detected
+          </span>
+        </div>
+        <CardContent className="p-5 space-y-4 bg-gradient-to-br from-amber-50/40 to-orange-50/30">
+          <p className="text-[11px] text-amber-800 leading-relaxed">
+            Your headline uses broad terms. Swapping to a high-intent phrase signals topic depth to search engines — and click intent to readers.
+          </p>
+          {matches.map(([key, { label, phrases }]) => (
+            <div key={key} className="space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-600">
+                Replace &ldquo;{label}&rdquo; with:
+              </p>
+              <div className="space-y-1.5">
+                {phrases.map((phrase) => (
+                  <div
+                    key={phrase}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-amber-100 bg-white/80 px-3 py-2 hover:border-amber-300 transition-colors"
+                  >
+                    <span className="text-xs text-slate-700 font-medium leading-snug">{phrase}</span>
+                    <button
+                      onClick={() => onSwap(label, phrase)}
+                      className="shrink-0 flex items-center gap-1.5 rounded-md bg-amber-100 hover:bg-amber-200 active:scale-95 px-2.5 py-1 text-[10px] font-semibold text-amber-800 transition-all"
+                    >
+                      <Wand2 className="w-3 h-3" />
+                      Quick Swap
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
 
 // ── Word Heatmap Dictionaries ─────────────────────────────────────────────
 // Filler words: articles, weak conjunctions, and empty intensifiers that
@@ -786,6 +879,15 @@ export default function HeadlineAnalyzer() {
 
   const scoreBreakdownRef = useRef<HTMLDivElement>(null);
 
+  // Replaces the first case-insensitive occurrence of `label` in the headline
+  // input with the chosen long-tail `phrase`, then clears the result so the
+  // user can re-analyze the improved headline.
+  const handleSeoSwap = (label: string, phrase: string) => {
+    setHeadline((prev) => prev.replace(new RegExp(label, "i"), phrase));
+    setResult(null);
+    setSelectedVibe(null);
+  };
+
   const analyze = () => {
     if (headline.trim().length < 5) return;
     setResult(analyzeHeadline(headline.trim()));
@@ -1192,6 +1294,12 @@ export default function HeadlineAnalyzer() {
                     })}
                   </CardContent>
                 </Card>
+
+                {/* SEO Opportunity */}
+                <SeoOpportunityCard
+                  headline={result.headline}
+                  onSwap={handleSeoSwap}
+                />
 
                 {/* Flags */}
                 {result.flags.length > 0 && (
