@@ -1094,6 +1094,241 @@ function KeywordClusterMap({
   );
 }
 
+// ── SERP Snapshot ─────────────────────────────────────────────────────────
+
+type SerpFeature = { id: string; label: string; bg: string; text: string };
+
+type SerpEntry = {
+  type: "ad" | "organic" | "featured_snippet" | "paa" | "video";
+  position?: number;
+  title: string;
+  domain: string;
+  path: string;
+  snippet: string;
+  contentType?: string;
+};
+
+type SerpData = {
+  targetPositionMin: number;
+  targetPositionMax: number;
+  timeToRankMin: number;
+  timeToRankMax: number;
+  winningFormat: string;
+  winningFormatDetail: string;
+  daRequired: number;
+  features: SerpFeature[];
+  entries: SerpEntry[];
+};
+
+function generateSerpSnapshot(result: Result): SerpData {
+  const kw = result.keyword;
+  const yr = new Date().getFullYear();
+  const slug = kw.replace(/\s+/g, "-");
+  const kwCap = kw.charAt(0).toUpperCase() + kw.slice(1);
+  const reviewCount = (kw.length * 37 + 112) % 450 + 80;
+
+  let targetMin: number, targetMax: number, timeMin: number, timeMax: number, daRequired: number;
+  if (result.score <= 25) { targetMin = 3; targetMax = 8; timeMin = 3; timeMax = 6; daRequired = 25; }
+  else if (result.score <= 45) { targetMin = 5; targetMax = 12; timeMin = 6; timeMax = 12; daRequired = 35; }
+  else if (result.score <= 60) { targetMin = 8; targetMax = 18; timeMin = 10; timeMax = 16; daRequired = 45; }
+  else if (result.score <= 75) { targetMin = 12; targetMax = 25; timeMin = 14; timeMax = 24; daRequired = 55; }
+  else { targetMin = 20; targetMax = 40; timeMin = 24; timeMax = 36; daRequired = 65; }
+
+  let winningFormat: string, winningFormatDetail: string;
+  if (result.intent === "Commercial") {
+    winningFormat = result.score >= 55 ? "Long-form comparison article" : "Comparison article";
+    winningFormatDetail = result.score >= 55 ? "3,000+ word deep dives with comparison tables dominate these SERPs" : "Side-by-side comparison tables with pros/cons outperform basic reviews";
+  } else if (result.intent === "Transactional") {
+    winningFormat = "Conversion landing page";
+    winningFormatDetail = "Clean product/service pages with clear pricing, social proof, and a single CTA";
+  } else if (result.intent === "Navigational") {
+    winningFormat = "Brand / product page";
+    winningFormatDetail = "Official pages with structured schema markup and sitelinks win by default";
+  } else {
+    winningFormat = result.score >= 60 ? "Pillar / comprehensive guide" : "How-to guide";
+    winningFormatDetail = result.score >= 60 ? "10,000+ word pillar pages with strong internal linking clusters" : "Practical step-by-step guides with supporting visuals and FAQs";
+  }
+
+  const features: SerpFeature[] = [];
+  if (result.intent === "Informational" && result.score < 60)
+    features.push({ id: "featured", label: "Featured Snippet",    bg: "bg-blue-50",   text: "text-blue-700"   });
+  if (result.intent !== "Navigational")
+    features.push({ id: "paa",      label: "People Also Ask",     bg: "bg-green-50",  text: "text-green-700"  });
+  if (result.intent === "Informational")
+    features.push({ id: "video",    label: "Video Carousel",      bg: "bg-red-50",    text: "text-red-700"    });
+  if (result.intent === "Commercial" || result.intent === "Transactional")
+    features.push({ id: "ads",      label: result.intent === "Transactional" ? "Paid Ads (2–4)" : "Shopping / Text Ads", bg: "bg-amber-50",  text: "text-amber-700"  });
+  if (result.intent === "Navigational")
+    features.push({ id: "knowledge",label: "Knowledge Panel",     bg: "bg-violet-50", text: "text-violet-700" });
+  if (result.intent === "Navigational" || result.intent === "Transactional")
+    features.push({ id: "sitelinks",label: "Sitelinks",           bg: "bg-slate-100", text: "text-slate-600"  });
+  if (result.score >= 50)
+    features.push({ id: "stories",  label: "Top Stories",         bg: "bg-orange-50", text: "text-orange-700" });
+  features.push({ id: "related",    label: "Related Searches",    bg: "bg-slate-100", text: "text-slate-600"  });
+
+  const entries: SerpEntry[] = [];
+
+  if (result.intent === "Informational" && result.score < 55) {
+    entries.push({ type: "featured_snippet", title: `What is ${kw}? — Quick Answer`, domain: "fintech-authority.io", path: `/guides/${slug}`, snippet: `${kwCap} refers to a suite of financial technology solutions that enable... [Google extracts this as a featured snippet from a well-structured definition section]`, contentType: "guide" });
+  }
+  if (result.intent === "Commercial" || result.intent === "Transactional") {
+    entries.push({ type: "ad", title: `${kwCap} — Trusted by 10,000+ Fintech Teams`, domain: "ads.sponsor.com", path: `/${slug}`, snippet: `Get started with ${kw} today. Free demo available. No credit card required. Rated #1 by fintech leaders.` });
+  }
+
+  if (result.intent === "Commercial") {
+    entries.push({ type: "organic", position: 1, title: `Best ${kw} Platforms in ${yr} — Expert Comparison`, domain: "techreviewer.io", path: `/fintech/best-${slug}`, snippet: `We compared the top 12 ${kw} solutions across pricing, features, and integrations. See our picks for growing fintechs and enterprise teams.`, contentType: "comparison" });
+    entries.push({ type: "organic", position: 2, title: `Top 10 ${kw} Tools: Reviews & Pricing (${yr})`, domain: "fintechadvisor.com", path: `/reviews/${slug}-tools`, snippet: `Updated for ${yr}. Our analysts tested each platform hands-on. Compare features, pricing, and API quality side by side.`, contentType: "listicle" });
+    entries.push({ type: "paa", title: "People Also Ask", domain: "", path: "", snippet: `• What is the best ${kw} for startups?\n• How much does ${kw} cost?\n• Is ${kw} worth the investment?` });
+    entries.push({ type: "organic", position: 3, title: `${kw} Guide: What to Look For in ${yr}`, domain: "businessfintech.io", path: `/guides/${slug}`, snippet: `Choosing the right ${kw} is critical. This guide covers key evaluation criteria, questions to ask vendors, and red flags to avoid.`, contentType: "guide" });
+    entries.push({ type: "organic", position: 4, title: `${kwCap} — Official Site`, domain: `${kw.replace(/\s+/g, "")}.com`, path: `/`, snippet: `The leading ${kw} platform trusted by 5,000+ businesses. Start free. Scale as you grow. 24/7 support included.`, contentType: "official" });
+  } else if (result.intent === "Transactional") {
+    entries.push({ type: "organic", position: 1, title: `${kwCap} — Start Free Trial`, domain: `top${kw.replace(/\s+/g, "")}.io`, path: `/`, snippet: `Start your 14-day free trial. No credit card required. Used by thousands of fintech companies worldwide.`, contentType: "landing" });
+    entries.push({ type: "organic", position: 2, title: `${kwCap} Pricing — Compare Plans`, domain: "fintech-tools.io", path: `/pricing/${slug}`, snippet: `Compare ${kw} pricing across all tiers. See which plan fits your fintech's growth stage and targets.`, contentType: "landing" });
+    entries.push({ type: "paa", title: "People Also Ask", domain: "", path: "", snippet: `• How much does ${kw} cost?\n• Is there a free version of ${kw}?\n• What integrations does ${kw} support?` });
+    entries.push({ type: "organic", position: 3, title: `Get Started with ${kw} Today`, domain: "fintechplatform.com", path: `/signup`, snippet: `Join 8,000+ fintech teams already using ${kw}. Set up in under 10 minutes. Integrates with your existing stack.`, contentType: "landing" });
+  } else if (result.intent === "Navigational") {
+    entries.push({ type: "organic", position: 1, title: `${kwCap} — Official Site`, domain: `${kw.replace(/\s+/g, "")}.com`, path: `/`, snippet: `The official home of ${kw}. Documentation, pricing, and getting started guides. Trusted by teams worldwide.`, contentType: "official" });
+    entries.push({ type: "organic", position: 2, title: `${kwCap} Reviews — ${reviewCount} Verified Ratings`, domain: "g2.com", path: `/products/${slug}/reviews`, snippet: `See what real users say about ${kw}. ${reviewCount} verified reviews. Average rating 4.${kw.length % 4 + 5}/5 stars on G2.`, contentType: "review" });
+    entries.push({ type: "organic", position: 3, title: `Best ${kwCap} Alternatives (${yr})`, domain: "alternativeto.net", path: `/${slug}`, snippet: `Looking for alternatives to ${kw}? Here are the top-rated options according to the fintech community.`, contentType: "comparison" });
+  } else {
+    entries.push({ type: "organic", position: 1, title: `What Is ${kw}? Complete Guide for ${yr}`, domain: "fintechexplained.io", path: `/guides/${slug}`, snippet: `${kwCap} is a critical component of modern financial infrastructure. This guide covers how it works, key benefits, and implementation strategies.`, contentType: "guide" });
+    entries.push({ type: "organic", position: 2, title: `${kwCap}: How It Works & Why It Matters`, domain: "moneytechinsider.com", path: `/learn/${slug}`, snippet: `Understand the mechanics of ${kw} and why fintech leaders are prioritising it in ${yr}. Includes real-world examples and case studies.`, contentType: "guide" });
+    entries.push({ type: "paa", title: "People Also Ask", domain: "", path: "", snippet: `• How does ${kw} work?\n• What are the benefits of ${kw}?\n• Who uses ${kw} today?` });
+    entries.push({ type: "video", title: `${kwCap} Explained in 5 Minutes`, domain: "youtube.com", path: `/watch`, snippet: `Video · 5:23 · FinTech Simplified — 142K views · How ${kw} is transforming payments and financial services.` });
+    entries.push({ type: "organic", position: 3, title: `${kwCap}: Benefits, Challenges & Best Practices`, domain: "paymentsintelligence.io", path: `/articles/${slug}`, snippet: `A fintech leader's guide to ${kw}. Includes common implementation pitfalls, ROI data, and expert recommendations.`, contentType: "guide" });
+    entries.push({ type: "organic", position: 4, title: `Top 7 ${kw} Best Practices in ${yr}`, domain: "fintechweekly.co", path: `/best-practices/${slug}`, snippet: `Industry experts share their top advice on ${kw}. Updated with the latest regulatory and technology developments.`, contentType: "listicle" });
+  }
+
+  return { targetPositionMin: targetMin, targetPositionMax: targetMax, timeToRankMin: timeMin, timeToRankMax: timeMax, winningFormat, winningFormatDetail, daRequired, features, entries };
+}
+
+const SERP_CONTENT_LABEL: Record<string, string> = { guide: "Guide", comparison: "Comparison", listicle: "Listicle", landing: "Landing page", official: "Official site", video: "Video", review: "Review" };
+const SERP_CONTENT_DOT: Record<string, string>  = { guide: "bg-blue-400", comparison: "bg-violet-400", listicle: "bg-amber-400", landing: "bg-green-400", official: "bg-slate-400", video: "bg-red-400", review: "bg-orange-400" };
+
+function SerpSnapshotCard({ result }: { result: Result }) {
+  const data = useMemo(() => generateSerpSnapshot(result), [result]);
+
+  return (
+    <Card className="border border-slate-100 shadow-sm overflow-hidden">
+      <CardContent className="p-5">
+
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-4">
+          <Search className="w-4 h-4 text-violet-600" />
+          <h4 className="text-sm font-semibold text-slate-900">SERP Snapshot</h4>
+          <span className="text-[10px] text-muted-foreground">illustrative competitive landscape</span>
+        </div>
+
+        {/* 3-col stat row */}
+        <div className="grid grid-cols-3 gap-2.5 mb-4">
+          {[
+            { label: "Target positions", value: `${data.targetPositionMin}–${data.targetPositionMax}` },
+            { label: "Time to rank",     value: `${data.timeToRankMin}–${data.timeToRankMax} mo` },
+            { label: "DA needed",        value: `${data.daRequired}+` },
+          ].map(({ label, value }) => (
+            <div key={label} className="bg-slate-50 rounded-lg border border-slate-100 px-3 py-2 text-center">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
+              <p className="text-sm font-black text-slate-800 tabular-nums">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Winning format */}
+        <div className="flex items-start gap-2.5 rounded-lg bg-violet-50 border border-violet-100 px-3 py-2.5 mb-4">
+          <BookOpen className="w-3.5 h-3.5 text-violet-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-violet-400 mb-0.5">Winning content format</p>
+            <p className="text-[12px] font-bold text-violet-800">{data.winningFormat}</p>
+            <p className="text-[11px] text-violet-600 leading-snug mt-0.5">{data.winningFormatDetail}</p>
+          </div>
+        </div>
+
+        {/* SERP features */}
+        <div className="mb-4">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-2">Likely SERP features</p>
+          <div className="flex flex-wrap gap-1.5">
+            {data.features.map((f) => (
+              <span key={f.id} className={`text-[10px] font-semibold rounded-full px-2.5 py-0.5 border border-current/20 ${f.bg} ${f.text}`}>
+                {f.label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Simulated SERP results */}
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-2">Simulated competitive landscape</p>
+          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white divide-y divide-slate-100">
+            {data.entries.map((entry, i) => {
+              if (entry.type === "ad") return (
+                <div key={i} className="px-3 py-2.5 bg-amber-50/50">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[8px] font-bold border border-amber-400 text-amber-700 rounded px-1 leading-tight">Ad</span>
+                    <span className="text-[9.5px] text-green-700 font-medium truncate">{entry.domain}{entry.path}</span>
+                  </div>
+                  <p className="text-[11px] text-blue-700 font-semibold leading-snug">{entry.title}</p>
+                  <p className="text-[9.5px] text-slate-500 leading-snug mt-0.5 line-clamp-2">{entry.snippet}</p>
+                </div>
+              );
+              if (entry.type === "featured_snippet") return (
+                <div key={i} className="px-3 py-2.5 bg-blue-50/30 border-l-2 border-blue-400">
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <span className="text-[8px] font-bold border border-blue-300 text-blue-700 rounded px-1 leading-tight">Featured Snippet</span>
+                  </div>
+                  <p className="text-[11px] text-blue-700 font-semibold leading-snug">{entry.title}</p>
+                  <p className="text-[9.5px] text-slate-500 leading-snug mt-0.5 line-clamp-2">{entry.snippet}</p>
+                  <p className="text-[9.5px] text-green-700 font-medium mt-0.5">{entry.domain}{entry.path}</p>
+                </div>
+              );
+              if (entry.type === "paa") return (
+                <div key={i} className="px-3 py-2.5 bg-slate-50/70">
+                  <p className="text-[9px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">People Also Ask</p>
+                  {entry.snippet.split("\n").map((q, qi) => (
+                    <div key={qi} className="flex items-center gap-1.5 py-0.5">
+                      <ChevronDown className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                      <span className="text-[10.5px] text-slate-700 font-medium">{q.replace("• ", "")}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+              if (entry.type === "video") return (
+                <div key={i} className="px-3 py-2.5 flex items-start gap-2.5">
+                  <div className="w-11 h-7 rounded bg-red-100 flex items-center justify-center shrink-0 mt-0.5 border border-red-200">
+                    <span className="text-[9px] text-red-600 font-black">▶</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-blue-700 font-semibold leading-snug">{entry.title}</p>
+                    <p className="text-[9.5px] text-slate-500 leading-snug mt-0.5">{entry.snippet}</p>
+                  </div>
+                </div>
+              );
+              return (
+                <div key={i} className="px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[9px] font-bold text-slate-400 tabular-nums w-4 shrink-0">{entry.position}.</span>
+                    <span className="text-[9.5px] text-green-700 font-medium truncate">{entry.domain}{entry.path}</span>
+                    {entry.contentType && (
+                      <span className="ml-auto shrink-0 flex items-center gap-1 text-[8.5px] text-slate-400">
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${SERP_CONTENT_DOT[entry.contentType] ?? "bg-slate-300"}`} />
+                        {SERP_CONTENT_LABEL[entry.contentType] ?? entry.contentType}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-blue-700 font-semibold leading-snug">{entry.title}</p>
+                  <p className="text-[9.5px] text-slate-500 leading-snug mt-0.5 line-clamp-2">{entry.snippet}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[9px] text-slate-400 mt-1.5 text-center italic">
+            Illustrative landscape only — actual SERP varies by location, device, and personalisation.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Keyword Brief Generator ──────────────────────────────────────────────
 
 type KeywordBrief = {
@@ -3373,6 +3608,9 @@ export default function KeywordDifficultyEstimator() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* SERP Snapshot */}
+                <SerpSnapshotCard result={result} />
 
                 {/* Tips */}
                 <Card className="border border-slate-100 shadow-sm">
