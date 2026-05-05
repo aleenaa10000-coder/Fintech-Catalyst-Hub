@@ -1184,6 +1184,21 @@ export default function HeadlineAnalyzer() {
                   </CardContent>
                 </Card>
 
+                {/* Sub-60 unlock nudge */}
+                {result.overallScore < 60 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    className="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3"
+                  >
+                    <span className="mt-0.5 text-base shrink-0">🎯</span>
+                    <p className="text-xs text-indigo-800 leading-relaxed">
+                      <span className="font-semibold">Score 60 or above</span> to unlock a personalized content strategy quote — use the rewrite suggestions below to get there.
+                    </p>
+                  </motion.div>
+                )}
+
                 {/* Dimension breakdown */}
                 <Card className="border border-slate-100 shadow-sm">
                   <CardContent className="p-5 space-y-4">
