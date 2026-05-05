@@ -28,6 +28,7 @@ import {
   Share2,
   Link2,
   Loader2,
+  FileDown,
 } from "lucide-react";
 
 const FINTECH_KEYWORDS = [
@@ -875,6 +876,72 @@ const COLOR_MAP: Record<string, { bg: string; text: string; bar: string; badge: 
   },
 };
 
+function buildTextReport(r: Analysis): string {
+  const date = new Date().toLocaleString("en-US", {
+    weekday: "long", year: "numeric", month: "long",
+    day: "numeric", hour: "numeric", minute: "2-digit",
+  });
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://fintechpresshub.com";
+  const divider = "═".repeat(46);
+
+  const dimensionLines = r.dimensions
+    .map((d) =>
+      [
+        `${d.label.padEnd(24)} ${String(d.score).padStart(2)} / ${d.max}`,
+        `  ${d.feedback}`,
+        `  Tip: ${d.tip}`,
+      ].join("\n")
+    )
+    .join("\n\n");
+
+  const flagLines = r.flags.length > 0
+    ? r.flags.map((f) => `  • ${f}`).join("\n")
+    : "  None detected.";
+
+  const rewriteLines = r.rewrites
+    .map((rw) => `${rw.label}\n  "${rw.text}"`)
+    .join("\n\n");
+
+  return [
+    "HEADLINE ANALYSIS REPORT",
+    "FintechPressHub · Headline Analyzer",
+    `Generated: ${date}`,
+    "",
+    divider,
+    "",
+    "HEADLINE ANALYZED",
+    `"${r.headline}"`,
+    "",
+    `OVERALL SCORE: ${r.overallScore} / 100  —  ${r.verdict}`,
+    `Characters: ${r.charCount}  ·  Words: ${r.wordCount}`,
+    "",
+    divider,
+    "",
+    "SCORE BREAKDOWN",
+    "",
+    dimensionLines,
+    "",
+    divider,
+    "",
+    "FLAGS & ISSUES",
+    "",
+    flagLines,
+    "",
+    divider,
+    "",
+    "REWRITE SUGGESTIONS",
+    "",
+    rewriteLines,
+    "",
+    divider,
+    "",
+    "Analyze your own headlines free at:",
+    `${origin}/tools/headline-analyzer`,
+    "",
+    `© ${new Date().getFullYear()} FintechPressHub`,
+  ].join("\n");
+}
+
 type HistoryEntry = {
   id: string;
   headline: string;
@@ -996,6 +1063,19 @@ export default function HeadlineAnalyzer() {
   const clearHistory = () => {
     setHistory([]);
     try { window.localStorage.removeItem(HISTORY_KEY); } catch {}
+  };
+
+  const downloadReport = () => {
+    if (!result) return;
+    const text = buildTextReport(result);
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `headline-score-${result.overallScore}-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    trackEvent("report_downloaded", { score: result.overallScore, verdict: result.verdict });
   };
 
   const fetchAndAnalyze = async () => {
@@ -1884,6 +1964,15 @@ export default function HeadlineAnalyzer() {
                           </Button>
                         </a>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-8 text-xs font-medium mt-2 text-slate-600"
+                        onClick={downloadReport}
+                      >
+                        <FileDown className="w-3 h-3 mr-1.5" />
+                        Download .txt report
+                      </Button>
                     </CardContent>
                   </Card>
                 </motion.div>
