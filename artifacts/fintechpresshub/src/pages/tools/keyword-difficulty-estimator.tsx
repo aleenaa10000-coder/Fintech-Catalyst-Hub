@@ -20,6 +20,7 @@ import {
   Check,
   Layers,
   Crosshair,
+  Trophy,
 } from "lucide-react";
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
@@ -288,6 +289,43 @@ type QuadrantInfo = {
   labelColor: string;
 };
 
+const CONFETTI_COLORS = [
+  "bg-emerald-400", "bg-lime-400", "bg-violet-500",
+  "bg-yellow-400", "bg-pink-400", "bg-cyan-400", "bg-orange-400",
+];
+
+function QuickWinBurst() {
+  const [particles] = useState(() =>
+    Array.from({ length: 56 }, (_, i) => ({
+      id: i,
+      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+      x: (Math.random() - 0.5) * 780,
+      y: -(Math.random() * 560 + 100),
+      rotate: Math.random() * 720 - 360,
+      w: Math.random() * 10 + 5,
+      h: Math.random() * 7 + 4,
+      delay: Math.random() * 0.35,
+      duration: 1.4 + Math.random() * 0.9,
+      isCircle: i % 4 === 0,
+    }))
+  );
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center overflow-hidden">
+      {particles.map((p) => (
+        <motion.div
+          key={p.id}
+          initial={{ x: 0, y: 80, opacity: 1, rotate: 0, scale: 1 }}
+          animate={{ x: p.x, y: p.y, opacity: 0, rotate: p.rotate, scale: 0.1 }}
+          transition={{ duration: p.duration, ease: "easeOut", delay: p.delay }}
+          className={`absolute ${p.color} ${p.isCircle ? "rounded-full" : "rounded-[2px]"}`}
+          style={{ width: p.w, height: p.h }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function getQuadrantInfo(score: number, intent: Intent): QuadrantInfo {
   const highValue = intentValue(intent) === 1;
   const highDifficulty = score >= 50;
@@ -417,11 +455,20 @@ export default function KeywordDifficultyEstimator() {
                   Results for "{result.keyword}"
                 </h3>
 
+                {/* Quick Win confetti burst */}
+                {result.score < 30 && result.intent === "Commercial" && (
+                  <QuickWinBurst key={result.keyword} />
+                )}
+
                 {/* Score + stats */}
                 <div className="grid sm:grid-cols-3 gap-4">
                   {/* Difficulty score */}
                   <Card
-                    className={`border shadow-sm sm:col-span-1 ${SCORE_BG(result.score)}`}
+                    className={`border shadow-sm sm:col-span-1 ${SCORE_BG(result.score)} ${
+                      result.score < 30 && result.intent === "Commercial"
+                        ? "ring-2 ring-emerald-300 ring-offset-2 shadow-lg shadow-emerald-100"
+                        : ""
+                    }`}
                   >
                     <CardContent className="p-5 text-center">
                       <motion.div
@@ -440,6 +487,17 @@ export default function KeywordDifficultyEstimator() {
                       >
                         {result.label}
                       </span>
+                      {result.score < 30 && result.intent === "Commercial" && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0, y: 6 }}
+                          animate={{ scale: 1, opacity: 1, y: 0 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 16, delay: 0.3 }}
+                          className="mt-3 inline-flex items-center gap-1.5 bg-emerald-500 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md"
+                        >
+                          <Trophy className="w-3 h-3" />
+                          Quick Win!
+                        </motion.div>
+                      )}
                     </CardContent>
                   </Card>
 
