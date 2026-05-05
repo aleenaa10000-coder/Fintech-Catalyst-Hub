@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "wouter";
 import jsPDF from "jspdf";
 import { motion, AnimatePresence } from "framer-motion";
@@ -43,6 +43,7 @@ import {
   ChevronUp,
   Mail,
   Send,
+  AlertTriangle,
 } from "lucide-react";
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
@@ -649,6 +650,48 @@ export default function KeywordDifficultyEstimator() {
   const [emailInput, setEmailInput] = useState("");
   const [emailSent, setEmailSent] = useState(false);
 
+  const cannibalizationSet = useMemo((): Set<string> => {
+    const flagged = new Set<string>();
+    if (history.length < 2) return flagged;
+
+    const STOP = new Set([
+      "what","is","how","to","for","in","the","a","an","of","and","or","vs",
+      "best","guide","use","from","are","be","with","on","at","by","that",
+      "this","your","their","our","not","but","more","less","get","do","so",
+      "as","it","if","can","about","when","where","why","will","would",
+    ]);
+
+    function tokenize(kw: string): Set<string> {
+      return new Set(
+        kw.toLowerCase().split(/\s+/)
+          .map((w) => w.replace(/[^a-z]/g, "").replace(/s$/, ""))
+          .filter((w) => w.length > 2 && !STOP.has(w))
+      );
+    }
+
+    function overlapCoefficient(a: Set<string>, b: Set<string>): number {
+      if (!a.size || !b.size) return 0;
+      let shared = 0;
+      a.forEach((w) => { if (b.has(w)) shared++; });
+      return shared / Math.min(a.size, b.size);
+    }
+
+    const tokenCache = new Map<string, Set<string>>();
+    history.forEach((h) => tokenCache.set(h.keyword, tokenize(h.keyword)));
+
+    for (let i = 0; i < history.length; i++) {
+      for (let j = i + 1; j < history.length; j++) {
+        const tA = tokenCache.get(history[i].keyword)!;
+        const tB = tokenCache.get(history[j].keyword)!;
+        if (overlapCoefficient(tA, tB) > 0.7) {
+          flagged.add(history[i].keyword);
+          flagged.add(history[j].keyword);
+        }
+      }
+    }
+    return flagged;
+  }, [history]);
+
   const toggleCompare = (kw: string) => {
     setCompareSet((prev) => {
       const next = new Set(prev);
@@ -1077,6 +1120,14 @@ export default function KeywordDifficultyEstimator() {
                                     <span className={`text-[11px] font-semibold truncate flex-1 ${isActive ? "text-violet-700" : "text-slate-700"}`}>
                                       {h.keyword}
                                     </span>
+                                    {cannibalizationSet.has(h.keyword) && (
+                                      <span
+                                        title="Caution: These terms have high semantic overlap. Consider targeting them within a single high-authority pillar page rather than separate articles."
+                                        className="shrink-0 flex items-center"
+                                      >
+                                        <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                      </span>
+                                    )}
                                     <span className={`text-xs font-black tabular-nums shrink-0 ${SCORE_COLOR(h.score)}`}>
                                       {h.score}
                                     </span>
@@ -1260,6 +1311,14 @@ export default function KeywordDifficultyEstimator() {
                             } ${isActive ? "opacity-80" : ""}`}
                           />
                           <span className="max-w-[100px] truncate">{h.keyword}</span>
+                          {cannibalizationSet.has(h.keyword) && (
+                            <span
+                              title="Caution: These terms have high semantic overlap. Consider targeting them within a single high-authority pillar page rather than separate articles."
+                              className="shrink-0 flex items-center"
+                            >
+                              <AlertTriangle className="w-3 h-3 text-amber-500" />
+                            </span>
+                          )}
                           <span className={`font-bold tabular-nums ${isActive ? "text-violet-200" : "text-slate-400"}`}>
                             {h.score}
                           </span>
