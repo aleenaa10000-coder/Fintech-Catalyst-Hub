@@ -22,6 +22,7 @@ import {
   Link2,
   ListOrdered,
   Clock,
+  Tag,
 } from "lucide-react";
 
 type Audience = "founders" | "marketers" | "developers" | "consumers" | "investors";
@@ -70,6 +71,7 @@ type Brief = {
   h1: string;
   intro: string;
   h2s: { heading: string; notes: string }[];
+  entities: string[];
   faqHeadings: string[];
   internalLinks: string[];
   externalLinkTypes: string[];
@@ -238,6 +240,69 @@ const CTA_TEMPLATES: Record<Audience, string> = {
   investors: "Invite readers to subscribe to your deal-flow newsletter or request a private briefing.",
 };
 
+// ── Semantic SEO Entities ─────────────────────────────────────────────────
+
+const ENTITY_BUCKETS: { signals: string[]; entities: string[] }[] = [
+  {
+    signals: ["cbdc", "central bank digital", "digital currency", "digital pound", "digital euro", "digital dollar"],
+    entities: ["ISO 20022", "Distributed Ledger Technology (DLT)", "Cryptography", "Central Bank", "Monetary Policy", "SWIFT", "BIS (Bank for International Settlements)", "Tokenisation", "Settlement Finality", "Programmable Money"],
+  },
+  {
+    signals: ["blockchain", "defi", "crypto", "web3", "nft", "smart contract", "dao", "ethereum", "bitcoin", "stablecoin", "token"],
+    entities: ["Smart Contract", "Distributed Ledger Technology (DLT)", "Proof of Stake", "Gas Fees", "Private Key", "ERC-20 Token", "Layer 2 Protocol", "Liquidity Pool", "Decentralised Finance (DeFi)", "Wallet Address"],
+  },
+  {
+    signals: ["open banking", "psd2", "banking as a service", "baas", "embedded finance", "embedded banking", "api banking"],
+    entities: ["PSD2 (Payment Services Directive 2)", "OAuth 2.0", "API Gateway", "Consent Management", "FAPI (Financial-grade API)", "TPP (Third Party Provider)", "ASPSP", "Account Information Service (AIS)", "Payment Initiation Service (PIS)", "Open Finance"],
+  },
+  {
+    signals: ["kyc", "aml", "know your customer", "anti-money laundering", "compliance", "regtech", "sanctions", "fraud detection", "financial crime"],
+    entities: ["FATF (Financial Action Task Force)", "Suspicious Activity Report (SAR)", "Customer Due Diligence (CDD)", "Enhanced Due Diligence (EDD)", "Politically Exposed Person (PEP)", "Sanctions Screening", "Risk-Based Approach", "FinCEN", "6AMLD", "Perpetual KYC"],
+  },
+  {
+    signals: ["neobank", "challenger bank", "digital bank", "fintech bank", "mobile bank", "online bank"],
+    entities: ["Customer Acquisition Cost (CAC)", "APY (Annual Percentage Yield)", "Regulatory Sandbox", "Net Promoter Score (NPS)", "Monthly Active Users (MAU)", "Churn Rate", "LTV (Lifetime Value)", "FCA Authorisation", "FSCS Protection", "Unit Economics"],
+  },
+  {
+    signals: ["payment", "transaction", "gateway", "checkout", "merchant", "acquiring", "issuing", "card", "pos", "point of sale"],
+    entities: ["PCI DSS", "3DS (3D Secure)", "Acquirer", "Issuer", "Interchange Fee", "Chargeback", "BIN (Bank Identification Number)", "Authorisation Code", "Payment Rail", "Tokenisation"],
+  },
+  {
+    signals: ["lending", "loan", "credit", "bnpl", "buy now pay later", "mortgage", "underwriting", "debt"],
+    entities: ["Annual Percentage Rate (APR)", "Credit Score", "Underwriting", "LTV (Loan-to-Value)", "Debt-to-Income (DTI) Ratio", "FICO Score", "Origination Fee", "Default Rate", "Open Banking Credit", "Credit Bureau"],
+  },
+  {
+    signals: ["wealth", "investment", "portfolio", "robo", "asset management", "etf", "trading", "fund"],
+    entities: ["AUM (Assets Under Management)", "Alpha", "Beta (Market Sensitivity)", "Sharpe Ratio", "Rebalancing", "Dollar-Cost Averaging (DCA)", "MiFID II", "Suitability Assessment", "Risk Appetite", "ETF (Exchange-Traded Fund)"],
+  },
+  {
+    signals: ["insurance", "insurtech", "underwriting", "claims", "actuarial", "risk pool", "reinsurance"],
+    entities: ["Actuarial Model", "Loss Ratio", "Parametric Insurance", "Risk Pool", "UBI (Usage-Based Insurance)", "Embedded Insurance", "Reinsurance", "API-First Underwriting", "GDPR (Health Data Compliance)", "No-Claims Discount (NCD)"],
+  },
+  {
+    signals: ["seo", "content", "marketing", "keyword", "search", "ranking", "organic", "backlink", "link building"],
+    entities: ["Search Intent", "E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness)", "Topical Authority", "Semantic Search", "TF-IDF", "Core Web Vitals", "Anchor Text", "Domain Authority (DA)", "Crawl Budget", "Schema Markup"],
+  },
+];
+
+const ENTITY_FALLBACK_BY_AUDIENCE: Record<Audience, string[]> = {
+  founders: ["Total Addressable Market (TAM)", "Product-Market Fit", "Regulatory Sandbox", "Unit Economics", "Burn Rate", "MRR (Monthly Recurring Revenue)", "Term Sheet", "Cap Table", "Go-to-Market (GTM)", "Series A Funding"],
+  marketers: ["Customer Acquisition Cost (CAC)", "Conversion Rate Optimisation (CRO)", "Content Marketing Funnel", "Search Intent", "Topical Authority", "E-E-A-T", "Organic Traffic", "Buyer Persona", "Marketing Qualified Lead (MQL)", "Attribution Model"],
+  developers: ["REST API", "Webhook", "OAuth 2.0", "Rate Limiting", "Idempotency Key", "Sandbox Environment", "TLS Encryption", "JSON Web Token (JWT)", "API Versioning", "SDK (Software Development Kit)"],
+  consumers: ["Annual Percentage Rate (APR)", "APY (Annual Percentage Yield)", "FSCS Protection", "Open Banking", "Two-Factor Authentication (2FA)", "Digital Wallet", "Cashback Reward", "Credit Score", "IBAN", "FCA Regulation"],
+  investors: ["Total Addressable Market (TAM)", "Revenue Multiple", "EBITDA", "Net Revenue Retention (NRR)", "Gross Margin", "Burn Multiple", "Lead Investor", "Cap Table", "Due Diligence", "Liquidity Event"],
+};
+
+function generateEntities(keyword: string, audience: Audience): string[] {
+  const kw = keyword.toLowerCase();
+  for (const bucket of ENTITY_BUCKETS) {
+    if (bucket.signals.some((s) => kw.includes(s))) {
+      return bucket.entities;
+    }
+  }
+  return ENTITY_FALLBACK_BY_AUDIENCE[audience];
+}
+
 function generateBrief(form: FormState): Brief {
   const kw = form.keyword.trim();
   const capKw = kw.charAt(0).toUpperCase() + kw.slice(1);
@@ -255,6 +320,7 @@ function generateBrief(form: FormState): Brief {
     h1: `${capKw}: What ${AUDIENCE_LABELS[form.audience].split(" ")[0]}s Need to Know in 2025`,
     intro: `Open with a 2–3 sentence hook that immediately establishes why ${kw} is relevant right now. Include a surprising statistic or a provocative question. Briefly outline what the article covers and who it's for. Keep the intro under 120 words.`,
     h2s: H2_TEMPLATES[form.audience](capKw),
+    entities: generateEntities(kw, form.audience),
     faqHeadings: FAQ_TEMPLATES[form.audience](kw),
     internalLinks: FINTECH_INTERNAL_LINKS.slice(0, 4),
     externalLinkTypes: EXTERNAL_LINK_TYPES,
@@ -291,6 +357,10 @@ function briefToText(brief: Brief): string {
     `-----------------------`,
     ...brief.h2s.map((h, i) => `${i + 1}. ${h.heading}\n   Notes: ${h.notes}`),
     ``,
+    `SEMANTIC SEO ENTITIES (must-include)`,
+    `-------------------------------------`,
+    ...brief.entities.map((e) => `• ${e}`),
+    ``,
     `FAQ SECTION (suggested questions)`,
     `----------------------------------`,
     ...brief.faqHeadings.map((q, i) => `${i + 1}. ${q}`),
@@ -315,6 +385,24 @@ function briefToText(brief: Brief): string {
     `---`,
     brief.cta,
   ].join("\n");
+}
+
+function EntityPill({ entity }: { entity: string }) {
+  const [checked, setChecked] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => setChecked((v) => !v)}
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium transition-all duration-150 select-none ${
+        checked
+          ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+          : "bg-white border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-700 hover:bg-rose-50"
+      }`}
+    >
+      {checked && <Check className="w-3 h-3 shrink-0" />}
+      <span className={checked ? "line-through" : ""}>{entity}</span>
+    </button>
+  );
 }
 
 export default function ContentBriefGenerator() {
@@ -586,6 +674,33 @@ export default function ContentBriefGenerator() {
                         </motion.div>
                       ))}
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* Semantic SEO Entities */}
+                <Card className="border border-slate-100 shadow-sm">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                          <Tag className="w-4 h-4 text-rose-600" /> Semantic SEO Entities
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Must-include terms for topical authority. Click each pill to check it off as you write.
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-rose-500 bg-rose-50 border border-rose-100 rounded px-1.5 py-0.5 mt-0.5">
+                        {brief.entities.length} entities
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {brief.entities.map((entity) => (
+                        <EntityPill key={`${brief.keyword}-${entity}`} entity={entity} />
+                      ))}
+                    </div>
+                    <p className="mt-3 text-[10px] text-slate-400 leading-relaxed">
+                      These entities signal topical depth to search engines. Mention each naturally at least once — don't force them.
+                    </p>
                   </CardContent>
                 </Card>
 
