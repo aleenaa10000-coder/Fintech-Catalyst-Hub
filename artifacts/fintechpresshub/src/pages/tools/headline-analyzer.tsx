@@ -29,6 +29,12 @@ import {
   Link2,
   Loader2,
   FileDown,
+  Pin,
+  PinOff,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  GitCompare,
 } from "lucide-react";
 
 const FINTECH_KEYWORDS = [
@@ -981,6 +987,19 @@ export default function HeadlineAnalyzer() {
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState(0);
+  const [pinnedResult, setPinnedResult] = useState<Analysis | null>(null);
+
+  const pinForComparison = () => {
+    if (!result) return;
+    setPinnedResult(result);
+    setResult(null);
+    setHeadline("");
+    setSelectedVibe(null);
+  };
+
+  const clearPin = () => {
+    setPinnedResult(null);
+  };
 
   const PROCESSING_STEPS = [
     "Scanning SERPs...",
@@ -1047,6 +1066,7 @@ export default function HeadlineAnalyzer() {
     setUrlMode(false);
     setCompetitorUrl("");
     setFetchError(null);
+    setPinnedResult(null);
   };
 
   const recallHistory = (entry: HistoryEntry) => {
@@ -1202,6 +1222,32 @@ export default function HeadlineAnalyzer() {
                   Reset
                 </Button>
               </div>
+
+              {/* ── Comparison Mode Banner ── */}
+              {pinnedResult && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-5 flex items-center gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3"
+                >
+                  <GitCompare className="w-4 h-4 text-violet-600 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-violet-500 mb-0.5">Comparison Mode</p>
+                    <p className="text-xs text-violet-800 truncate">
+                      <span className="font-semibold">A:</span> "{pinnedResult.headline}"
+                      <span className="ml-2 font-bold text-violet-600">({pinnedResult.overallScore}/100)</span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearPin}
+                    className="shrink-0 flex items-center gap-1 text-[10px] font-semibold text-violet-500 hover:text-violet-700 transition-colors"
+                  >
+                    <PinOff className="w-3 h-3" />
+                    Clear
+                  </button>
+                </motion.div>
+              )}
 
               {/* ── Recent analyses history strip ── */}
               {history.length > 0 && (
@@ -1514,7 +1560,7 @@ export default function HeadlineAnalyzer() {
                           <span className="text-[10px] text-muted-foreground">/ 100</span>
                         </div>
                       </div>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className={`text-sm font-semibold ${verdictColors.text} mb-1`}>{result.verdict}</p>
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           Analysed: <span className="italic text-slate-600">"{result.headline}"</span>
@@ -1522,10 +1568,209 @@ export default function HeadlineAnalyzer() {
                         <p className="text-xs text-muted-foreground mt-1">
                           {result.charCount} characters · {result.wordCount} words
                         </p>
+                        {!pinnedResult && (
+                          <button
+                            type="button"
+                            onClick={pinForComparison}
+                            className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 active:scale-95 transition-all"
+                          >
+                            <Pin className="w-3 h-3" />
+                            Pin as A — Compare with another headline
+                          </button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* ── A/B Comparison Diff View ── */}
+                {pinnedResult && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                  >
+                    <Card className="border border-violet-200 shadow-sm overflow-hidden">
+                      {/* Header */}
+                      <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 flex items-center gap-2">
+                        <GitCompare className="w-4 h-4 text-white shrink-0" />
+                        <h4 className="text-sm font-bold text-white">A/B Headline Comparison</h4>
+                        <span className="ml-auto text-[10px] font-semibold bg-white/20 text-white rounded-full px-2.5 py-0.5">
+                          Diff View
+                        </span>
+                      </div>
+
+                      <CardContent className="p-5 space-y-5">
+                        {/* Headline labels */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1">
+                              <Pin className="w-3 h-3" /> A — Pinned
+                            </p>
+                            <p className="text-xs text-slate-700 leading-snug font-medium line-clamp-3">"{pinnedResult.headline}"</p>
+                          </div>
+                          <div className="rounded-lg border border-violet-200 bg-violet-50 p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-violet-500 mb-1 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" /> B — New
+                            </p>
+                            <p className="text-xs text-violet-900 leading-snug font-medium line-clamp-3">"{result.headline}"</p>
+                          </div>
+                        </div>
+
+                        {/* Overall score delta */}
+                        {(() => {
+                          const delta = result.overallScore - pinnedResult.overallScore;
+                          const aColors = COLOR_MAP[pinnedResult.verdictColor];
+                          const bColors = COLOR_MAP[result.verdictColor];
+                          return (
+                            <div className="rounded-xl border border-slate-100 bg-white p-4">
+                              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">Overall Score</p>
+                              <div className="flex items-center gap-3">
+                                {/* A score */}
+                                <div className="flex-1 flex flex-col items-center gap-1">
+                                  <div className="relative w-16 h-16">
+                                    <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e2e8f0" strokeWidth="3.5" />
+                                      <circle cx="18" cy="18" r="15.9" fill="none"
+                                        stroke={pinnedResult.verdictColor === "emerald" ? "#10b981" : pinnedResult.verdictColor === "blue" ? "#3b82f6" : pinnedResult.verdictColor === "amber" ? "#f59e0b" : "#ef4444"}
+                                        strokeWidth="3.5" strokeDasharray={`${pinnedResult.overallScore} 100`} strokeLinecap="round" />
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                      <span className="text-lg font-extrabold text-slate-900 leading-none">{pinnedResult.overallScore}</span>
+                                    </div>
+                                  </div>
+                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${aColors.badge}`}>{pinnedResult.verdict}</span>
+                                  <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">Headline A</span>
+                                </div>
+
+                                {/* Delta arrow */}
+                                <div className="flex flex-col items-center gap-0.5">
+                                  {delta > 0 ? (
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <ArrowUp className="w-5 h-5 text-emerald-500" />
+                                      <span className="text-sm font-extrabold text-emerald-600">+{delta}</span>
+                                    </div>
+                                  ) : delta < 0 ? (
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <ArrowDown className="w-5 h-5 text-red-400" />
+                                      <span className="text-sm font-extrabold text-red-500">{delta}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <Minus className="w-5 h-5 text-slate-400" />
+                                      <span className="text-sm font-extrabold text-slate-400">0</span>
+                                    </div>
+                                  )}
+                                  <span className="text-[8px] text-slate-400 uppercase tracking-wider font-semibold">pts</span>
+                                </div>
+
+                                {/* B score */}
+                                <div className="flex-1 flex flex-col items-center gap-1">
+                                  <div className="relative w-16 h-16">
+                                    <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e2e8f0" strokeWidth="3.5" />
+                                      <circle cx="18" cy="18" r="15.9" fill="none"
+                                        stroke={result.verdictColor === "emerald" ? "#10b981" : result.verdictColor === "blue" ? "#3b82f6" : result.verdictColor === "amber" ? "#f59e0b" : "#ef4444"}
+                                        strokeWidth="3.5" strokeDasharray={`${result.overallScore} 100`} strokeLinecap="round" />
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                      <span className="text-lg font-extrabold text-slate-900 leading-none">{result.overallScore}</span>
+                                    </div>
+                                  </div>
+                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${bColors.badge}`}>{result.verdict}</span>
+                                  <span className="text-[9px] text-violet-500 font-semibold uppercase tracking-wider">Headline B</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Dimension-by-dimension diff table */}
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Dimension Breakdown</p>
+                          {result.dimensions.map((bDim, i) => {
+                            const aDim = pinnedResult.dimensions[i];
+                            if (!aDim) return null;
+                            const delta = bDim.audienceMatch ? null : bDim.score - aDim.score;
+                            const aColor = COLOR_MAP[aDim.color];
+                            const bColor = COLOR_MAP[bDim.color];
+                            return (
+                              <div key={bDim.label} className="rounded-lg border border-slate-100 bg-white p-3 space-y-2">
+                                <div className="flex items-center gap-1.5">
+                                  <bDim.icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span className="text-xs font-semibold text-slate-700">{bDim.label}</span>
+                                  {delta !== null && (
+                                    <span className={`ml-auto inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                      delta > 0 ? "bg-emerald-100 text-emerald-700" :
+                                      delta < 0 ? "bg-red-100 text-red-600" :
+                                      "bg-slate-100 text-slate-500"
+                                    }`}>
+                                      {delta > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : delta < 0 ? <ArrowDown className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
+                                      {delta > 0 ? `+${delta}` : delta === 0 ? "No change" : delta}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {/* A bar */}
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">A</span>
+                                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${aColor.badge}`}>
+                                        {aDim.audienceMatch ? aDim.audienceMatch.tier : `${aDim.score}/${aDim.max}`}
+                                      </span>
+                                    </div>
+                                    {!aDim.audienceMatch && (
+                                      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                        <div className={`h-full rounded-full ${aColor.bar}`} style={{ width: `${Math.round((aDim.score / aDim.max) * 100)}%` }} />
+                                      </div>
+                                    )}
+                                    <p className="text-[10px] text-slate-500 leading-snug line-clamp-2">{aDim.feedback}</p>
+                                  </div>
+                                  {/* B bar */}
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[9px] font-semibold text-violet-400 uppercase tracking-wider">B</span>
+                                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${bColor.badge}`}>
+                                        {bDim.audienceMatch ? bDim.audienceMatch.tier : `${bDim.score}/${bDim.max}`}
+                                      </span>
+                                    </div>
+                                    {!bDim.audienceMatch && (
+                                      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                        <div className={`h-full rounded-full ${bColor.bar}`} style={{ width: `${Math.round((bDim.score / bDim.max) * 100)}%` }} />
+                                      </div>
+                                    )}
+                                    <p className="text-[10px] text-slate-500 leading-snug line-clamp-2">{bDim.feedback}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Winner callout */}
+                        {(() => {
+                          const delta = result.overallScore - pinnedResult.overallScore;
+                          if (delta === 0) return (
+                            <p className="text-center text-xs text-slate-500 font-medium py-1">Both headlines scored equally — it's a tie.</p>
+                          );
+                          const winner = delta > 0 ? "B" : "A";
+                          const winnerScore = delta > 0 ? result.overallScore : pinnedResult.overallScore;
+                          const winnerVerdict = delta > 0 ? result.verdict : pinnedResult.verdict;
+                          return (
+                            <div className={`rounded-xl p-4 text-center ${delta > 0 ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}>
+                              <p className={`text-xs font-bold mb-0.5 ${delta > 0 ? "text-emerald-700" : "text-amber-700"}`}>
+                                Headline {winner} wins by {Math.abs(delta)} points
+                              </p>
+                              <p className={`text-[11px] ${delta > 0 ? "text-emerald-600" : "text-amber-600"}`}>
+                                Score {winnerScore}/100 · {winnerVerdict}
+                              </p>
+                            </div>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
 
                 {/* Sub-60 unlock nudge */}
                 {result.overallScore < 60 && (
