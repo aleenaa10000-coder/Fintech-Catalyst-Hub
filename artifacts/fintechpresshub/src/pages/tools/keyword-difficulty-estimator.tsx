@@ -19,6 +19,7 @@ import {
   Copy,
   Check,
   Layers,
+  Crosshair,
 } from "lucide-react";
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
@@ -275,6 +276,30 @@ const CLUSTER_COLOR: Record<Cluster, string> = {
   "Fintech General": "bg-teal-50 text-teal-700 border-teal-200",
 };
 
+function intentValue(intent: Intent): number {
+  return intent === "Commercial" || intent === "Transactional" ? 1 : 0;
+}
+
+type QuadrantInfo = {
+  label: string;
+  sublabel: string;
+  dotColor: string;
+  ringColor: string;
+  labelColor: string;
+};
+
+function getQuadrantInfo(score: number, intent: Intent): QuadrantInfo {
+  const highValue = intentValue(intent) === 1;
+  const highDifficulty = score >= 50;
+  if (!highDifficulty && highValue)
+    return { label: "Quick Win", sublabel: "Low difficulty · High commercial value", dotColor: "bg-emerald-500", ringColor: "bg-emerald-400", labelColor: "text-emerald-700" };
+  if (highDifficulty && highValue)
+    return { label: "Long-term Target", sublabel: "High value · Needs authority building", dotColor: "bg-amber-500", ringColor: "bg-amber-400", labelColor: "text-amber-700" };
+  if (!highDifficulty && !highValue)
+    return { label: "Filler Content", sublabel: "Easy to rank · Low commercial intent", dotColor: "bg-slate-400", ringColor: "bg-slate-300", labelColor: "text-slate-600" };
+  return { label: "Supporting Asset", sublabel: "Hard to rank · Use as cluster support", dotColor: "bg-blue-500", ringColor: "bg-blue-400", labelColor: "text-blue-700" };
+}
+
 export default function KeywordDifficultyEstimator() {
   const [keyword, setKeyword] = useState("");
   const [result, setResult] = useState<Result | null>(null);
@@ -465,6 +490,107 @@ export default function KeywordDifficultyEstimator() {
                     </Card>
                   </div>
                 </div>
+
+                {/* Opportunity Assessment Grid */}
+                {(() => {
+                  const qInfo = getQuadrantInfo(result.score, result.intent);
+                  const dotXPct = 5 + (result.score / 100) * 90;
+                  const dotYPct = 5 + (1 - intentValue(result.intent)) * 90;
+                  return (
+                    <Card className="border border-slate-100 shadow-sm overflow-hidden">
+                      <CardContent className="p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Crosshair className="w-4 h-4 text-violet-600" />
+                          <h4 className="text-sm font-semibold text-slate-900">
+                            Opportunity Assessment
+                          </h4>
+                          <span className={`ml-auto text-[10px] font-bold border rounded-full px-2 py-0.5 ${qInfo.labelColor} border-current bg-white`}>
+                            {qInfo.label}
+                          </span>
+                        </div>
+
+                        <div className="flex gap-3 items-stretch">
+                          {/* Y-axis label */}
+                          <div className="flex flex-col items-center justify-between py-1 shrink-0">
+                            <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider rotate-[-90deg] whitespace-nowrap origin-center" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: "0.12em" }}>
+                              High Value
+                            </span>
+                            <span className="text-[9px] font-semibold text-slate-300 uppercase tracking-wider" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: "0.12em" }}>
+                              Low Value
+                            </span>
+                          </div>
+
+                          <div className="flex-1 flex flex-col gap-1">
+                            {/* Grid */}
+                            <div className="relative w-full" style={{ paddingBottom: "56%" }}>
+                              <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0.5 rounded-lg overflow-hidden border border-slate-100">
+                                {/* Top-left: Quick Win */}
+                                <div className="bg-emerald-50 flex flex-col items-start justify-start p-2.5 border-r border-b border-slate-100">
+                                  <span className="text-[10px] font-bold text-emerald-700 leading-tight">Quick Win</span>
+                                  <span className="text-[9px] text-emerald-500 mt-0.5 leading-tight hidden sm:block">Low difficulty · High value</span>
+                                </div>
+                                {/* Top-right: Long-term Target */}
+                                <div className="bg-amber-50 flex flex-col items-end justify-start p-2.5 border-b border-slate-100">
+                                  <span className="text-[10px] font-bold text-amber-700 leading-tight">Long-term Target</span>
+                                  <span className="text-[9px] text-amber-500 mt-0.5 leading-tight hidden sm:block">High difficulty · High value</span>
+                                </div>
+                                {/* Bottom-left: Filler Content */}
+                                <div className="bg-slate-50 flex flex-col items-start justify-end p-2.5 border-r border-slate-100">
+                                  <span className="text-[10px] font-bold text-slate-500 leading-tight">Filler Content</span>
+                                  <span className="text-[9px] text-slate-400 mt-0.5 leading-tight hidden sm:block">Low difficulty · Low value</span>
+                                </div>
+                                {/* Bottom-right: Supporting Asset */}
+                                <div className="bg-blue-50 flex flex-col items-end justify-end p-2.5">
+                                  <span className="text-[10px] font-bold text-blue-700 leading-tight">Supporting Asset</span>
+                                  <span className="text-[9px] text-blue-500 mt-0.5 leading-tight hidden sm:block">High difficulty · Low value</span>
+                                </div>
+
+                                {/* Divider lines */}
+                                <div className="absolute inset-0 pointer-events-none">
+                                  <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-200" />
+                                  <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-200" />
+                                </div>
+
+                                {/* Pulse dot */}
+                                <motion.div
+                                  key={`dot-${result.keyword}`}
+                                  initial={{ scale: 0, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  transition={{ type: "spring", stiffness: 400, damping: 18, delay: 0.15 }}
+                                  className="absolute z-10"
+                                  style={{ left: `${dotXPct}%`, top: `${dotYPct}%`, transform: "translate(-50%, -50%)" }}
+                                >
+                                  {/* Outer ring pulse */}
+                                  <motion.div
+                                    animate={{ scale: [1, 1.9, 1], opacity: [0.6, 0, 0.6] }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                    className={`absolute inset-0 rounded-full ${qInfo.ringColor}`}
+                                    style={{ width: 20, height: 20, margin: -4 }}
+                                  />
+                                  <div className={`w-3 h-3 rounded-full ${qInfo.dotColor} shadow-lg ring-2 ring-white`} />
+                                </motion.div>
+                              </div>
+                            </div>
+
+                            {/* X-axis labels */}
+                            <div className="flex justify-between px-1 mt-0.5">
+                              <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">← Low Difficulty</span>
+                              <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">High Difficulty →</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quadrant result summary */}
+                        <div className={`mt-3 rounded-lg px-3 py-2 border border-current/10 bg-white flex items-center gap-2`}>
+                          <div className={`w-2 h-2 rounded-full ${qInfo.dotColor} shrink-0`} />
+                          <p className={`text-xs font-medium ${qInfo.labelColor}`}>
+                            <span className="font-bold">{qInfo.label}:</span> {qInfo.sublabel}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* Long-tail suggestions */}
                 <Card className="border border-slate-100 shadow-sm">
