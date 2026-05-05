@@ -80,14 +80,48 @@ type Brief = {
   thingsToAvoid: string[];
 };
 
-const FINTECH_INTERNAL_LINKS = [
-  "Your services page — link from any mention of 'working with an agency'",
-  "Relevant blog post on a related topic",
-  "Pricing page — link from any mention of 'getting started' or 'cost'",
-  "Case studies or testimonials page",
-  "Write For Us page — link from any contributor call-to-action",
-  "Contact page — link from the conclusion CTA",
-];
+const INTERNAL_LINKS_BY_AUDIENCE: Record<Audience, string[]> = {
+  founders: [
+    "/services — link from any mention of 'fintech content strategy' or 'growing your pipeline'; anchor: 'fintech content agency'",
+    "/services#white-label — link from any mention of 'white-label publishing', 'branded content', or 'partner media'; anchor: 'white-label content solutions'",
+    "/blog/category/roi-frameworks — link from any mention of 'content ROI', 'measuring results', or 'attribution'; anchor: 'fintech content ROI framework'",
+    "/case-studies — link from any mention of 'proof points', 'client results', or 'growth case study'; anchor: 'fintech content case studies'",
+    "/pricing — link from any mention of 'investment', 'budget', or 'cost of content'; anchor: 'content marketing pricing'",
+    "/contact — link from the conclusion CTA; anchor: 'book a strategy call'",
+  ],
+  marketers: [
+    "/services#content-production — link from any mention of 'outsourcing content' or 'specialist writers'; anchor: 'fintech content production service'",
+    "/tools/keyword-difficulty-estimator — link from any mention of 'keyword research', 'difficulty scores', or 'search opportunity'; anchor: 'fintech keyword difficulty estimator'",
+    "/tools/content-brief-generator — link from any mention of 'content briefs', 'article structure', or 'editorial planning'; anchor: 'fintech content brief generator'",
+    "/blog/category/seo-strategy — link from any mention of 'organic growth', 'search rankings', or 'SEO playbook'; anchor: 'fintech SEO strategy guides'",
+    "/case-studies — link from any mention of 'campaign results', 'traffic growth', or 'pipeline influence'; anchor: 'fintech marketing case studies'",
+    "/write-for-us — link from any call-to-action for contributors or guest authors; anchor: 'write for FintechPressHub'",
+  ],
+  developers: [
+    "/blog/category/api-integration — link from any mention of 'integration patterns', 'API design', or 'connecting systems'; anchor: 'fintech API integration guides'",
+    "/blog/category/open-banking-tech — link from any mention of 'open banking architecture', 'PSD2 implementation', or 'banking APIs'; anchor: 'open banking technical resources'",
+    "/blog/category/security-compliance — link from any mention of 'PCI DSS', 'GDPR', 'data protection', or 'secure coding'; anchor: 'fintech security and compliance guides'",
+    "/case-studies#technical — link from any mention of 'real-world implementation', 'production deployment', or 'developer success story'; anchor: 'technical fintech case studies'",
+    "/services#technical-content — link from any mention of 'developer documentation', 'API reference writing', or 'technical copywriting'; anchor: 'fintech technical content writing'",
+    "/contact — link from any 'need expert guidance' reference or the conclusion; anchor: 'speak to a fintech technical writer'",
+  ],
+  consumers: [
+    "/blog/category/personal-finance — link from any mention of 'managing money', 'saving', or 'budgeting tips'; anchor: 'personal finance guides'",
+    "/blog/category/fintech-reviews — link from any mention of a product, app, or service; anchor: 'fintech product reviews'",
+    "/blog/glossary — link from the first use of any technical term (APY, KYC, IBAN, etc.); anchor: 'fintech glossary'",
+    "/blog/category/how-to-guides — link from any step-by-step reference or 'getting started' mention; anchor: 'fintech how-to guides'",
+    "/tools — link from any mention of 'free tools', 'calculators', or 'check your options'; anchor: 'free fintech tools'",
+    "/contact — link from the conclusion CTA; anchor: 'get in touch'",
+  ],
+  investors: [
+    "/blog/category/market-intelligence — link from any mention of TAM, market size, or sector trends; anchor: 'fintech market intelligence'",
+    "/blog/category/funding-and-ma — link from any mention of 'funding rounds', 'M&A activity', or 'valuations'; anchor: 'fintech funding and M&A tracker'",
+    "/blog/category/regulatory-outlook — link from any mention of 'regulatory risk', 'licensing', or 'compliance landscape'; anchor: 'fintech regulatory outlook'",
+    "/services#thought-leadership — link from any mention of 'positioning', 'category leadership', or 'investor relations content'; anchor: 'fintech thought leadership content'",
+    "/case-studies#enterprise — link from any mention of 'institutional results' or 'enterprise-grade outcomes'; anchor: 'enterprise fintech case studies'",
+    "/contact#newsletter — link from any call to 'stay informed' or 'follow deal flow'; anchor: 'subscribe to fintech insights'",
+  ],
+};
 
 const EXTERNAL_LINK_TYPES = [
   "Regulatory body or official government source (e.g. FCA, CFPB, EBA)",
@@ -322,7 +356,7 @@ function generateBrief(form: FormState): Brief {
     h2s: H2_TEMPLATES[form.audience](capKw),
     entities: generateEntities(kw, form.audience),
     faqHeadings: FAQ_TEMPLATES[form.audience](kw),
-    internalLinks: FINTECH_INTERNAL_LINKS.slice(0, 4),
+    internalLinks: INTERNAL_LINKS_BY_AUDIENCE[form.audience],
     externalLinkTypes: EXTERNAL_LINK_TYPES,
     cta: CTA_TEMPLATES[form.audience],
     toneGuidance: TONE_GUIDANCE[form.tone],
@@ -678,31 +712,33 @@ export default function ContentBriefGenerator() {
                 </Card>
 
                 {/* Semantic SEO Entities */}
-                <Card className="border border-slate-100 shadow-sm">
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div>
-                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                          <Tag className="w-4 h-4 text-rose-600" /> Semantic SEO Entities
-                        </h4>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Must-include terms for topical authority. Click each pill to check it off as you write.
-                        </p>
+                {brief.entities && brief.entities.length > 0 && (
+                  <Card className="border border-slate-100 shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                            <Tag className="w-4 h-4 text-rose-600" /> Semantic SEO Entities
+                          </h4>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Must-include terms for topical authority. Click each pill to check it off as you write.
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-rose-500 bg-rose-50 border border-rose-100 rounded px-1.5 py-0.5 mt-0.5">
+                          {brief.entities.length} entities
+                        </span>
                       </div>
-                      <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-rose-500 bg-rose-50 border border-rose-100 rounded px-1.5 py-0.5 mt-0.5">
-                        {brief.entities.length} entities
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {brief.entities.map((entity) => (
-                        <EntityPill key={`${brief.keyword}-${entity}`} entity={entity} />
-                      ))}
-                    </div>
-                    <p className="mt-3 text-[10px] text-slate-400 leading-relaxed">
-                      These entities signal topical depth to search engines. Mention each naturally at least once — don't force them.
-                    </p>
-                  </CardContent>
-                </Card>
+                      <div className="flex flex-wrap gap-2">
+                        {brief.entities.map((entity) => (
+                          <EntityPill key={`${brief.keyword}-${entity}`} entity={entity} />
+                        ))}
+                      </div>
+                      <p className="mt-3 text-[10px] text-slate-400 leading-relaxed">
+                        These entities signal topical depth to search engines. Mention each naturally at least once — don't force them.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* FAQ + Links + Tone side-by-side cards */}
                 <div className="grid sm:grid-cols-2 gap-4">
