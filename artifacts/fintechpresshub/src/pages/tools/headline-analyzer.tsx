@@ -607,6 +607,12 @@ const COLOR_MAP: Record<string, { bg: string; text: string; bar: string; badge: 
     bar: "bg-blue-500",
     badge: "bg-blue-100 text-blue-700",
   },
+  violet: {
+    bg: "bg-violet-50",
+    text: "text-violet-700",
+    bar: "bg-violet-500",
+    badge: "bg-violet-100 text-violet-700",
+  },
 };
 
 export default function HeadlineAnalyzer() {
