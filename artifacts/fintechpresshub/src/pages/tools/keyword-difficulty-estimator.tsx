@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -33,6 +33,7 @@ import {
   Trophy,
   BookOpen,
   Download,
+  Link2,
 } from "lucide-react";
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
@@ -386,10 +387,24 @@ export default function KeywordDifficultyEstimator() {
   const [copied, setCopied] = useState<number | null>(null);
   const [copiedCluster, setCopiedCluster] = useState<number | null>(null);
   const [history, setHistory] = useState<Result[]>([]);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    if (q && q.trim().length >= 2) {
+      const kw = q.trim();
+      setKeyword(kw);
+      const r = estimateDifficulty(kw);
+      setResult(r);
+      setHistory([r]);
+    }
+  }, []);
 
   const reset = () => {
     setKeyword("");
     setResult(null);
+    window.history.replaceState(null, "", window.location.pathname);
   };
 
   const analyse = () => {
@@ -402,6 +417,17 @@ export default function KeywordDifficultyEstimator() {
       );
       return [r, ...deduped].slice(0, 10);
     });
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}?q=${encodeURIComponent(r.keyword)}`,
+    );
+  };
+
+  const copyShareLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const copyLongTail = (idx: number, text: string) => {
@@ -723,21 +749,46 @@ export default function KeywordDifficultyEstimator() {
                 exit={{ opacity: 0, y: 8 }}
                 className="mt-6 space-y-4"
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
                     Results for "{result.keyword}"
                   </h3>
-                  <motion.button
-                    type="button"
+                  <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.2 }}
-                    onClick={() => downloadAnalysis(result)}
-                    className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-600 border border-violet-200 bg-violet-50 hover:bg-violet-100 hover:border-violet-300 px-3 py-1.5 rounded-lg transition-all"
+                    className="flex items-center gap-1.5 shrink-0"
                   >
-                    <Download className="w-3 h-3" />
-                    Export Brief
-                  </motion.button>
+                    <button
+                      type="button"
+                      onClick={copyShareLink}
+                      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold border px-3 py-1.5 rounded-lg transition-all ${
+                        copiedLink
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : "text-slate-600 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+                      }`}
+                    >
+                      {copiedLink ? (
+                        <>
+                          <Check className="w-3 h-3" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Link2 className="w-3 h-3" />
+                          Share
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadAnalysis(result)}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-600 border border-violet-200 bg-violet-50 hover:bg-violet-100 hover:border-violet-300 px-3 py-1.5 rounded-lg transition-all"
+                    >
+                      <Download className="w-3 h-3" />
+                      Export Brief
+                    </button>
+                  </motion.div>
                 </div>
 
                 {/* Quick Win confetti burst */}
