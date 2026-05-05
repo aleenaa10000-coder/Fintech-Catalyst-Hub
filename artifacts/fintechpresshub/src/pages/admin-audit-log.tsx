@@ -621,7 +621,7 @@ export default function AdminAuditLog() {
   useEffect(() => {
     if (!query.data) return;
     setCompareIds((prev) =>
-      prev.filter((id: number) => query.data!.some((e: { id: number }) => e.id === id)),
+      prev.filter((id: number) => query.data?.some((e: { id: number }) => e.id === id) ?? false),
     );
   }, [query.data]);
 

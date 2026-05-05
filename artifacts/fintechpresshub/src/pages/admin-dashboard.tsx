@@ -347,7 +347,7 @@ export default function AdminDashboard() {
                     className="ml-1.5 h-5 min-w-5 px-1.5 text-[10px] font-semibold"
                     data-testid="badge-pending-headshots-header"
                   >
-                    {data!.authorPhotoRequests!.pending}
+                    {data?.authorPhotoRequests?.pending ?? 0}
                   </Badge>
                 ) : null}
               </Link>

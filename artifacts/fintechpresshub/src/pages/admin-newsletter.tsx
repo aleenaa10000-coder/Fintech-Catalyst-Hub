@@ -131,6 +131,32 @@ export default function AdminNewsletter() {
     );
   }, []);
 
+  function quickScore(keyword: string): number {
+    const kw = keyword.trim().toLowerCase();
+    const words = kw.split(/\s+/);
+    const wc = words.length;
+    const HIGH = ["best","top","review","vs","compare","alternative","price","cost","buy","cheap","free","tool","software","platform","service","agency","company","provider","solution"];
+    const INFO = ["what","how","why","when","who","guide","tutorial","learn","explained","definition","meaning","difference","examples","tips","strategies","benefits","pros","cons"];
+    let s = 50;
+    if (wc === 1) s += 30; else if (wc === 2) s += 15; else if (wc === 3) s += 5; else if (wc >= 4) s -= 10;
+    s += words.filter(w => HIGH.includes(w)).length * 8;
+    s -= words.filter(w => INFO.includes(w)).length * 6;
+    if (kw.includes("fintech")) s += 5;
+    return Math.max(5, Math.min(97, Math.round(s)));
+  }
+
+  const difficultyDistribution = useMemo(() => {
+    const leadsWithKeyword = seoBriefLeads.filter(l => l.keyword);
+    const buckets = { easy: 0, medium: 0, hard: 0 };
+    for (const lead of leadsWithKeyword) {
+      const score = quickScore(lead.keyword!);
+      if (score < 35) buckets.easy++;
+      else if (score < 55) buckets.medium++;
+      else buckets.hard++;
+    }
+    return { ...buckets, total: leadsWithKeyword.length };
+  }, [seoBriefLeads]);
+
   const topKeywords = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const lead of seoBriefLeads) {
@@ -577,6 +603,38 @@ export default function AdminNewsletter() {
                 )}
               </div>
             </div>
+
+            {difficultyDistribution.total > 0 && (
+              <div className="mb-5 p-4 rounded-xl bg-white border border-violet-100">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-3">Keyword Difficulty Breakdown</p>
+                <div className="flex gap-3 mb-3">
+                  {[
+                    { label: "Easy", count: difficultyDistribution.easy,   bar: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50",  ring: "ring-emerald-200" },
+                    { label: "Medium", count: difficultyDistribution.medium, bar: "bg-amber-400",   text: "text-amber-700",  bg: "bg-amber-50",    ring: "ring-amber-200" },
+                    { label: "Hard",   count: difficultyDistribution.hard,   bar: "bg-red-400",     text: "text-red-700",    bg: "bg-red-50",      ring: "ring-red-200" },
+                  ].map(({ label, count, text, bg, ring }) => (
+                    <div key={label} className={`flex-1 rounded-lg px-3 py-2.5 ring-1 ${bg} ${ring}`}>
+                      <p className={`text-lg font-bold leading-none ${text}`}>{count}</p>
+                      <p className={`text-[10px] font-semibold mt-0.5 ${text} opacity-80`}>{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
+                  {difficultyDistribution.easy > 0 && (
+                    <div className="bg-emerald-400 rounded-full transition-all" style={{ width: `${(difficultyDistribution.easy / difficultyDistribution.total) * 100}%` }} />
+                  )}
+                  {difficultyDistribution.medium > 0 && (
+                    <div className="bg-amber-400 rounded-full transition-all" style={{ width: `${(difficultyDistribution.medium / difficultyDistribution.total) * 100}%` }} />
+                  )}
+                  {difficultyDistribution.hard > 0 && (
+                    <div className="bg-red-400 rounded-full transition-all" style={{ width: `${(difficultyDistribution.hard / difficultyDistribution.total) * 100}%` }} />
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  Based on keyword scoring across {difficultyDistribution.total} lead{difficultyDistribution.total !== 1 ? "s" : ""} with a tracked keyword.
+                </p>
+              </div>
+            )}
 
             {topKeywords.length > 0 && (
               <div className="mb-5 p-4 rounded-xl bg-white border border-violet-100">
