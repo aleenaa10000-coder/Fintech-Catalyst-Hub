@@ -25,6 +25,7 @@ import {
   ArrowUpRight,
   Lightbulb,
   Wand2,
+  Share2,
 } from "lucide-react";
 
 const FINTECH_KEYWORDS = [
@@ -876,6 +877,7 @@ export default function HeadlineAnalyzer() {
   const [headline, setHeadline] = useState("");
   const [result, setResult] = useState<Analysis | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState(0);
@@ -1592,6 +1594,59 @@ export default function HeadlineAnalyzer() {
                   </Card>
                 </motion.div>
                 )}
+
+                {/* Share results */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut", delay: 0.1 }}
+                >
+                  <Card className="border border-slate-100 shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Share2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Share your score</p>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 border border-slate-100 px-3.5 py-3 mb-3">
+                        <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line font-mono select-all">
+                          {`I just scored my fintech headline ${result.overallScore}/100 on FintechPressHub's free Headline Analyzer.\n\nVerdict: ${result.verdict}\n"${result.headline}"\n\nTest your own → ${typeof window !== "undefined" ? window.location.origin : ""}/tools/headline-analyzer`}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-8 text-xs font-medium"
+                          onClick={() => {
+                            const text = `I just scored my fintech headline ${result.overallScore}/100 on FintechPressHub's free Headline Analyzer.\n\nVerdict: ${result.verdict}\n"${result.headline}"\n\nTest your own → ${typeof window !== "undefined" ? window.location.origin : ""}/tools/headline-analyzer`;
+                            navigator.clipboard.writeText(text);
+                            setShareCopied(true);
+                            setTimeout(() => setShareCopied(false), 2000);
+                            trackEvent("results_shared", { method: "copy", score: result.overallScore });
+                          }}
+                        >
+                          {shareCopied
+                            ? <Check className="w-3 h-3 mr-1.5 text-emerald-500" />
+                            : <Copy className="w-3 h-3 mr-1.5" />}
+                          {shareCopied ? "Copied!" : "Copy snippet"}
+                        </Button>
+                        <a
+                          href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent((typeof window !== "undefined" ? window.location.origin : "") + "/tools/headline-analyzer")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1"
+                          onClick={() => trackEvent("results_shared", { method: "linkedin", score: result.overallScore })}
+                        >
+                          <Button variant="outline" size="sm" className="w-full h-8 text-xs font-medium text-[#0A66C2] border-[#0A66C2]/30 hover:bg-[#0A66C2]/5">
+                            <Share2 className="w-3 h-3 mr-1.5" />
+                            Share on LinkedIn
+                          </Button>
+                        </a>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
               </motion.div>
             )}
           </AnimatePresence>
