@@ -125,6 +125,31 @@ const VAGUE_WORDS = [
   "interesting", "important", "good", "great", "better", "best practice",
 ];
 
+// ── Audience Jargon Dictionaries ──────────────────────────────────────────
+// Expert/CTO tier: deep technical, architecture, and protocol terminology.
+// Each match adds 2 jargon points.
+const EXPERT_JARGON_TERMS = [
+  "api layer", "interoperable", "protocol", "microservice", "orchestration",
+  "sdk", "webhook", "distributed ledger", "zero-knowledge", "cryptographic",
+  "tokenization", "latency", "throughput", "middleware", "idempotent",
+  "asynchronous", "event-driven", "consensus mechanism", "smart contract",
+  "merkle", "sharding", "layer 2", "rollup", "iso 20022", "swift gpi",
+  "rtgs", "oauth", "pki", "mutual tls", "graphql", "grpc", "kubernetes",
+  "cicd", "message queue", "event sourcing", "cqrs", "rate limiting",
+  "circuit breaker", "data pipeline", "reconciliation engine",
+];
+// Practitioner tier: industry-standard fintech acronyms and professional terms.
+// Each match adds 1 jargon point.
+const PRACTITIONER_JARGON_TERMS = [
+  "api", "baas", "kyc", "aml", "psd2", "saas", "cbdc", "defi",
+  "robo-advisor", "neobank", "regtech", "insuretech", "wealthtech",
+  "b2b", "roi", "arr", "mrr", "cac", "ltv", "bnpl", "p2p",
+  "embedded finance", "open banking", "blockchain", "crypto",
+  "stablecoin", "ipo", "vc", "sme", "fintech", "regulation",
+  "compliance", "underwriting", "securitisation", "liquidity",
+  "yield", "collateral", "portfolio", "arbitrage", "chargeback",
+];
+
 type ScoreDimension = {
   label: string;
   score: number;
@@ -143,6 +168,13 @@ type ScoreDimension = {
     count: number;
     isSweetSpot: boolean;
     truncationWarning: boolean;
+  };
+  /** Audience calibration gauge — only populated by the Audience Match dimension */
+  audienceMatch?: {
+    tier: "General/Business" | "Practitioner" | "Expert/CTO";
+    jargonScore: number;
+    expertTerms: string[];
+    practitionerTerms: string[];
   };
 };
 
