@@ -909,10 +909,65 @@ export default function HeadlineAnalyzer() {
                               <span className="text-xs font-semibold text-slate-700">{dim.label}</span>
                             </div>
                             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.badge}`}>
-                              {dim.score} / {dim.max}
+                              {dim.audienceMatch ? dim.audienceMatch.tier : `${dim.score} / ${dim.max}`}
                             </span>
                           </div>
-                          {dim.charMarkers ? (
+                          {dim.audienceMatch ? (
+                            /* ── Audience Match: three-segment calibration gauge ── */
+                            <div className="space-y-1.5 mt-1">
+                              {/* Segment track */}
+                              <div className="flex gap-1 h-2">
+                                {(["General/Business", "Practitioner", "Expert/CTO"] as const).map((tier) => {
+                                  const active = dim.audienceMatch!.tier === tier;
+                                  const segColor = tier === "Expert/CTO"
+                                    ? active ? "bg-violet-500" : "bg-slate-100"
+                                    : tier === "Practitioner"
+                                    ? active ? "bg-blue-500" : "bg-slate-100"
+                                    : active ? "bg-emerald-500" : "bg-slate-100";
+                                  return (
+                                    <motion.div
+                                      key={tier}
+                                      initial={{ opacity: 0 }}
+                                      animate={{ opacity: 1 }}
+                                      transition={{ delay: i * 0.07 + 0.2 }}
+                                      className={`flex-1 rounded-full ${segColor} transition-colors`}
+                                    />
+                                  );
+                                })}
+                              </div>
+                              {/* Tier labels */}
+                              <div className="flex justify-between">
+                                {(["General/Business", "Practitioner", "Expert/CTO"] as const).map((tier) => {
+                                  const active = dim.audienceMatch!.tier === tier;
+                                  return (
+                                    <span
+                                      key={tier}
+                                      className={`text-[9px] font-semibold leading-tight ${
+                                        active ? c.text : "text-slate-300"
+                                      }`}
+                                    >
+                                      {tier}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                              {/* Detected terms chips */}
+                              {(dim.audienceMatch.expertTerms.length > 0 || dim.audienceMatch.practitionerTerms.length > 0) && (
+                                <div className="flex flex-wrap gap-1 pt-0.5">
+                                  {dim.audienceMatch.expertTerms.slice(0, 3).map((t) => (
+                                    <span key={t} className="rounded-full bg-violet-100 px-2 py-0.5 text-[9px] font-semibold text-violet-700">
+                                      {t}
+                                    </span>
+                                  ))}
+                                  {dim.audienceMatch.practitionerTerms.slice(0, 3).map((t) => (
+                                    <span key={t} className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700">
+                                      {t}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ) : dim.charMarkers ? (
                             /* ── Character Count: ruler bar with threshold markers ── */
                             <div className="space-y-0.5">
                               <div className="relative">
