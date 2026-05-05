@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Link } from "wouter";
 import jsPDF from "jspdf";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,6 +45,9 @@ import {
   Send,
   AlertTriangle,
   Clock,
+  Network,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
@@ -635,6 +638,456 @@ function ComparePanelOverlay({
           </div>
         )}
       </div>
+    </motion.div>
+  );
+}
+
+// ── Cluster Map helpers ────────────────────────────────────────────────────
+
+const CLUSTER_ZONE_CONFIG: Record<
+  Cluster,
+  { cx: number; cy: number; bgColor: string; strokeColor: string; labelColor: string }
+> = {
+  "Infrastructure & Security": {
+    cx: 118, cy: 162,
+    bgColor: "rgba(8,145,178,0.07)",
+    strokeColor: "rgba(8,145,178,0.28)",
+    labelColor: "#0e7490",
+  },
+  "Commercial Solutions": {
+    cx: 354, cy: 162,
+    bgColor: "rgba(79,70,229,0.07)",
+    strokeColor: "rgba(79,70,229,0.28)",
+    labelColor: "#4338ca",
+  },
+  "Fintech General": {
+    cx: 590, cy: 162,
+    bgColor: "rgba(13,148,136,0.07)",
+    strokeColor: "rgba(13,148,136,0.28)",
+    labelColor: "#0f766e",
+  },
+};
+
+function getClusterBubbleOffsets(count: number): Array<{ dx: number; dy: number }> {
+  if (count === 0) return [];
+  if (count === 1) return [{ dx: 0, dy: 0 }];
+  const positions: Array<{ dx: number; dy: number }> = [];
+  const rings = [
+    { r: 0, slots: 1 },
+    { r: 52, slots: 6 },
+    { r: 94, slots: 8 },
+  ];
+  let placed = 0;
+  for (const ring of rings) {
+    if (placed >= count) break;
+    const n = Math.min(ring.slots, count - placed);
+    if (ring.r === 0) {
+      positions.push({ dx: 0, dy: 0 });
+      placed++;
+    } else {
+      for (let i = 0; i < n; i++) {
+        const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+        positions.push({ dx: Math.cos(angle) * ring.r, dy: Math.sin(angle) * ring.r });
+      }
+      placed += n;
+    }
+  }
+  return positions;
+}
+
+function clusterBubbleR(kw: string): number {
+  return Math.max(15, 27 - kw.trim().split(/\s+/).length * 2);
+}
+
+function clusterBubbleFill(score: number): string {
+  return score >= 75 ? "#ef4444" : score >= 55 ? "#f97316" : score >= 35 ? "#f59e0b" : "#22c55e";
+}
+
+function clusterBubbleFillLight(score: number): string {
+  return score >= 75
+    ? "rgba(239,68,68,0.13)"
+    : score >= 55
+      ? "rgba(249,115,22,0.13)"
+      : score >= 35
+        ? "rgba(245,158,11,0.13)"
+        : "rgba(34,197,94,0.13)";
+}
+
+function KeywordClusterMap({
+  history,
+  result,
+  onSelect,
+}: {
+  history: HistoryEntry[];
+  result: Result | null;
+  onSelect: (entry: HistoryEntry) => void;
+}) {
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [dragOrigin, setDragOrigin] = useState({ mx: 0, my: 0, px: 0, py: 0 });
+  const [hovered, setHovered] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const VW = 708;
+  const VH = 330;
+  const ZONE_RX = 102;
+  const ZONE_RY = 126;
+
+  const clusterGroups = useMemo(() => {
+    const g: Record<Cluster, HistoryEntry[]> = {
+      "Infrastructure & Security": [],
+      "Commercial Solutions": [],
+      "Fintech General": [],
+    };
+    history.forEach((h) => g[h.cluster].push(h));
+    return g;
+  }, [history]);
+
+  const gaps = useMemo(
+    () => (Object.keys(clusterGroups) as Cluster[]).filter((c) => clusterGroups[c].length === 0),
+    [clusterGroups],
+  );
+
+  const zoomIn  = useCallback(() => setZoom((z) => Math.min(3.5, +(z * 1.28).toFixed(3))), []);
+  const zoomOut = useCallback(() => setZoom((z) => Math.max(0.55, +(z / 1.28).toFixed(3))), []);
+  const resetView = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }); }, []);
+
+  const handleWheel = useCallback((e: WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.11;
+    setZoom((z) => Math.max(0.55, Math.min(3.5, +(z * delta).toFixed(3))));
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [handleWheel]);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as SVGElement).closest("g[data-bubble]")) return;
+    setDragging(true);
+    setDragOrigin({ mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y });
+  };
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!dragging) return;
+    setPan({ x: dragOrigin.px + e.clientX - dragOrigin.mx, y: dragOrigin.py + e.clientY - dragOrigin.my });
+  };
+  const onMouseUp = () => setDragging(false);
+
+  const tx = VW / 2 + pan.x;
+  const ty = VH / 2 + pan.y;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+    >
+      <Card className="border border-slate-100 shadow-sm overflow-hidden">
+        <CardContent className="p-5">
+          {/* Header */}
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <Network className="w-4 h-4 text-violet-600 shrink-0" />
+            <h4 className="text-sm font-semibold text-slate-900">Keyword Cluster Map</h4>
+            <span className="text-[10px] text-muted-foreground">
+              {history.length} keyword{history.length !== 1 ? "s" : ""} · grouped by topic cluster
+            </span>
+            <div className="ml-auto flex items-center gap-1">
+              <button type="button" onClick={zoomIn}
+                className="p-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-violet-600 transition-colors" title="Zoom in">
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+              <button type="button" onClick={zoomOut}
+                className="p-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-violet-600 transition-colors" title="Zoom out">
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <button type="button" onClick={resetView}
+                className="px-2 py-1 text-[10px] font-semibold rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-violet-600 transition-colors">
+                Fit
+              </button>
+            </div>
+          </div>
+
+          {/* Chart canvas */}
+          <div
+            ref={containerRef}
+            className="relative rounded-xl overflow-hidden border border-slate-100 bg-gradient-to-br from-slate-50 to-white"
+            style={{ cursor: dragging ? "grabbing" : "grab", userSelect: "none" }}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseUp}
+          >
+            <svg
+              viewBox={`0 0 ${VW} ${VH}`}
+              className="w-full"
+              style={{ height: 310, display: "block" }}
+            >
+              <defs>
+                <filter id="kcm-shadow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodColor="#0f172a" floodOpacity="0.12" />
+                </filter>
+                <filter id="kcm-glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="4" result="blur" />
+                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+              </defs>
+
+              <g transform={`translate(${tx} ${ty}) scale(${zoom}) translate(-${VW / 2} -${VH / 2})`}>
+
+                {/* Grid dots (subtle background) */}
+                {Array.from({ length: 8 }, (_, row) =>
+                  Array.from({ length: 14 }, (_, col) => (
+                    <circle
+                      key={`dot-${row}-${col}`}
+                      cx={col * 54 + 27} cy={row * 46 + 18}
+                      r={1} fill="#cbd5e1" opacity={0.35}
+                    />
+                  ))
+                )}
+
+                {/* Connector lines between zones */}
+                {[
+                  { x1: 220, x2: 252 },
+                  { x1: 456, x2: 488 },
+                ].map(({ x1, x2 }, i) => (
+                  <line key={i} x1={x1} y1={VH / 2} x2={x2} y2={VH / 2}
+                    stroke="#cbd5e1" strokeWidth={1.5} strokeDasharray="4 3" />
+                ))}
+
+                {/* Cluster zones */}
+                {(Object.keys(CLUSTER_ZONE_CONFIG) as Cluster[]).map((cluster) => {
+                  const cfg = CLUSTER_ZONE_CONFIG[cluster];
+                  const count = clusterGroups[cluster].length;
+                  return (
+                    <g key={cluster}>
+                      <ellipse
+                        cx={cfg.cx} cy={cfg.cy}
+                        rx={ZONE_RX} ry={ZONE_RY}
+                        fill={cfg.bgColor}
+                        stroke={cfg.strokeColor}
+                        strokeWidth={1.5}
+                        strokeDasharray="5 3.5"
+                      />
+                      {/* Cluster label — above zone */}
+                      <text
+                        x={cfg.cx} y={cfg.cy - ZONE_RY - 10}
+                        textAnchor="middle"
+                        fontSize={8.5} fontWeight={700}
+                        fill={cfg.labelColor}
+                        letterSpacing={0.6}
+                        style={{ textTransform: "uppercase" } as React.CSSProperties}
+                      >
+                        {cluster}
+                      </text>
+                      {/* Empty zone placeholder */}
+                      {count === 0 && (
+                        <>
+                          <text x={cfg.cx} y={cfg.cy - 8} textAnchor="middle" fontSize={9} fill="#94a3b8">
+                            No keywords yet
+                          </text>
+                          <text x={cfg.cx} y={cfg.cy + 8} textAnchor="middle" fontSize={8} fill="#cbd5e1">
+                            Topical gap
+                          </text>
+                        </>
+                      )}
+                    </g>
+                  );
+                })}
+
+                {/* Bubbles */}
+                {(Object.keys(clusterGroups) as Cluster[]).map((cluster) => {
+                  const entries = clusterGroups[cluster];
+                  const cfg = CLUSTER_ZONE_CONFIG[cluster];
+                  const offsets = getClusterBubbleOffsets(entries.length);
+
+                  return entries.map((entry, i) => {
+                    const off = offsets[i] ?? { dx: 0, dy: 0 };
+                    const bx = cfg.cx + off.dx;
+                    const by = cfg.cy + off.dy;
+                    const br = clusterBubbleR(entry.keyword);
+                    const fill = clusterBubbleFill(entry.score);
+                    const fillLight = clusterBubbleFillLight(entry.score);
+                    const isActive = result?.keyword.toLowerCase() === entry.keyword.toLowerCase();
+                    const isHov = hovered === entry.keyword;
+                    const shortLabel = entry.keyword.length > 11
+                      ? entry.keyword.slice(0, 10) + "…"
+                      : entry.keyword;
+
+                    // Tooltip placement: above by default, flip below if near top
+                    const tipY = by < 70 ? by + br + 4 : by - br - 4;
+                    const tipAnchorY = by < 70 ? tipY + 38 : tipY;
+
+                    return (
+                      <g
+                        key={entry.keyword}
+                        data-bubble="1"
+                        style={{ cursor: "pointer" }}
+                        onClick={(e) => { e.stopPropagation(); onSelect(entry); }}
+                        onMouseEnter={() => setHovered(entry.keyword)}
+                        onMouseLeave={() => setHovered(null)}
+                      >
+                        {/* Outer glow ring for active / hovered */}
+                        {(isActive || isHov) && (
+                          <circle cx={bx} cy={by} r={br + 6}
+                            fill="none" stroke={fill} strokeWidth={2} opacity={0.35} />
+                        )}
+                        {isActive && (
+                          <circle cx={bx} cy={by} r={br + 10}
+                            fill="none" stroke={fill} strokeWidth={1} opacity={0.15} />
+                        )}
+
+                        {/* Bubble body */}
+                        <circle
+                          cx={bx} cy={by} r={br}
+                          fill={isActive ? fill : fillLight}
+                          stroke={fill}
+                          strokeWidth={isActive ? 2 : 1.5}
+                          filter={isActive ? "url(#kcm-shadow)" : undefined}
+                          opacity={isHov && !isActive ? 0.92 : 1}
+                        />
+
+                        {/* Score label inside bubble */}
+                        <text
+                          x={bx} y={by + 1}
+                          textAnchor="middle" dominantBaseline="middle"
+                          fontSize={Math.max(8, Math.round(br * 0.58))}
+                          fontWeight={700}
+                          fill={isActive ? "white" : fill}
+                          style={{ pointerEvents: "none" } as React.CSSProperties}
+                        >
+                          {entry.score}
+                        </text>
+
+                        {/* Keyword label below bubble */}
+                        <text
+                          x={bx} y={by + br + 11}
+                          textAnchor="middle"
+                          fontSize={7.5}
+                          fontWeight={isActive ? 700 : 400}
+                          fill={isActive ? "#3730a3" : "#475569"}
+                          style={{ pointerEvents: "none" } as React.CSSProperties}
+                        >
+                          {shortLabel}
+                        </text>
+
+                        {/* Hover tooltip */}
+                        {isHov && (
+                          <g style={{ pointerEvents: "none" } as React.CSSProperties}>
+                            <rect
+                              x={bx - 66} y={tipY - (by < 70 ? 0 : 40)}
+                              width={132} height={38}
+                              rx={5} ry={5}
+                              fill="white"
+                              stroke="#e2e8f0"
+                              strokeWidth={1}
+                              filter="url(#kcm-shadow)"
+                            />
+                            <text
+                              x={bx} y={tipY - (by < 70 ? 0 : 40) + 14}
+                              textAnchor="middle"
+                              fontSize={8.5} fontWeight={600} fill="#1e293b"
+                            >
+                              {entry.keyword.length > 20 ? entry.keyword.slice(0, 19) + "…" : entry.keyword}
+                            </text>
+                            <text
+                              x={bx} y={tipY - (by < 70 ? 0 : 40) + 26}
+                              textAnchor="middle"
+                              fontSize={7.5} fill="#64748b"
+                            >
+                              {entry.score}/100 · {entry.label} · {entry.intent}
+                            </text>
+                            {/* Arrow */}
+                            {by >= 70 && (
+                              <polygon
+                                points={`${bx - 5},${by - br - 5} ${bx + 5},${by - br - 5} ${bx},${by - br + 1}`}
+                                fill="white" stroke="#e2e8f0" strokeWidth={1}
+                              />
+                            )}
+                            {by < 70 && (
+                              <polygon
+                                points={`${bx - 5},${by + br + 3} ${bx + 5},${by + br + 3} ${bx},${by + br + 9}`}
+                                fill="white" stroke="#e2e8f0" strokeWidth={1}
+                              />
+                            )}
+                          </g>
+                        )}
+                      </g>
+                    );
+                  });
+                })}
+              </g>
+            </svg>
+
+            {/* Difficulty legend */}
+            <div className="absolute bottom-2 left-2 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-md px-2 py-1 border border-slate-100 shadow-sm">
+              {[
+                { color: "#22c55e", label: "Easy" },
+                { color: "#f59e0b", label: "Medium" },
+                { color: "#f97316", label: "Hard" },
+                { color: "#ef4444", label: "V.Hard" },
+              ].map(({ color, label }) => (
+                <div key={label} className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+                  <span className="text-[8.5px] text-slate-500 font-medium">{label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Interaction hint */}
+            <div className="absolute bottom-2 right-2 text-[8.5px] text-slate-400 bg-white/90 rounded px-1.5 py-0.5 border border-slate-100">
+              Scroll · Drag · Click bubble to load
+            </div>
+          </div>
+
+          {/* Topical gap alert */}
+          {gaps.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2.5"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                <span className="font-bold">Topical gap detected.</span>{" "}
+                No keywords yet in the{" "}
+                {gaps.map((g, i) => (
+                  <span key={g}>
+                    {i > 0 && i === gaps.length - 1 ? " or " : i > 0 ? ", " : ""}
+                    <span className="font-semibold">"{g}"</span>
+                  </span>
+                ))}{" "}
+                cluster{gaps.length > 1 ? "s" : ""}. Expanding here can help you build broader Topical Authority.
+              </p>
+            </motion.div>
+          )}
+
+          {/* Overlap summary row */}
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {(Object.keys(clusterGroups) as Cluster[]).map((cluster) => {
+              const entries = clusterGroups[cluster];
+              const cfg = CLUSTER_ZONE_CONFIG[cluster];
+              const avgScore = entries.length
+                ? Math.round(entries.reduce((s, e) => s + e.score, 0) / entries.length)
+                : null;
+              return (
+                <div key={cluster} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-center">
+                  <p className="text-[9px] font-bold uppercase tracking-wide mb-1" style={{ color: cfg.labelColor }}>
+                    {cluster.split(" & ")[0].split(" ")[0]}
+                  </p>
+                  <p className="text-lg font-black text-slate-800">{entries.length}</p>
+                  <p className="text-[8.5px] text-slate-400">
+                    {entries.length === 0 ? "gap" : avgScore !== null ? `avg ${avgScore}/100` : "—"}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
@@ -1740,6 +2193,25 @@ export default function KeywordDifficultyEstimator() {
                     </p>
                   </CardContent>
                 </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Keyword Cluster Map ── */}
+          <AnimatePresence>
+            {history.length >= 1 && (
+              <motion.div
+                key="cluster-map"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                className="mt-4"
+              >
+                <KeywordClusterMap
+                  history={history}
+                  result={result}
+                  onSelect={(entry) => { setResult(entry); setKeyword(entry.keyword); }}
+                />
               </motion.div>
             )}
           </AnimatePresence>
