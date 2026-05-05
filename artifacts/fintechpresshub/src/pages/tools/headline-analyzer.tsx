@@ -7,6 +7,7 @@ import { PageMeta } from "@/components/PageMeta";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Newspaper,
   ArrowLeft,
@@ -35,6 +36,11 @@ import {
   ArrowDown,
   Minus,
   GitCompare,
+  X,
+  Mail,
+  Building2,
+  FileText,
+  Send,
 } from "lucide-react";
 
 const FINTECH_KEYWORDS = [
@@ -988,6 +994,44 @@ export default function HeadlineAnalyzer() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState(0);
   const [pinnedResult, setPinnedResult] = useState<Analysis | null>(null);
+  const [briefModalOpen, setBriefModalOpen] = useState(false);
+  const [briefEmail, setBriefEmail] = useState("");
+  const [briefName, setBriefName] = useState("");
+  const [briefSubmitting, setBriefSubmitting] = useState(false);
+  const [briefSubmitted, setBriefSubmitted] = useState(false);
+
+  const submitBrief = async () => {
+    if (!briefEmail.trim() || briefSubmitting) return;
+    setBriefSubmitting(true);
+    try {
+      await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: briefEmail.trim().toLowerCase(),
+          source: `content-brief-request|${briefName.trim()}`,
+        }),
+      });
+      setBriefSubmitted(true);
+      trackEvent("content_brief_requested", {
+        score: result?.overallScore ?? 0,
+        verdict: result?.verdict ?? "",
+        headline: result?.headline ?? "",
+      });
+    } catch {
+      setBriefSubmitting(false);
+    }
+  };
+
+  const closeBriefModal = () => {
+    setBriefModalOpen(false);
+    setTimeout(() => {
+      setBriefSubmitted(false);
+      setBriefSubmitting(false);
+      setBriefEmail("");
+      setBriefName("");
+    }, 300);
+  };
 
   const pinForComparison = () => {
     if (!result) return;
@@ -2144,18 +2188,20 @@ export default function HeadlineAnalyzer() {
                       <p className="text-sm text-indigo-100 leading-relaxed mb-5">
                         Our specialized fintech writers can turn your optimized headline into a 1,500-word authority piece that drives leads.
                       </p>
-                      <Link href="/contact" onClick={() =>
-                        trackEvent("quote_cta_clicked", {
-                          score: result.overallScore,
-                          verdict: result.verdict,
-                          source: "headline_analyzer",
-                        })
-                      }>
-                        <Button className="w-full bg-white text-indigo-700 hover:bg-indigo-50 font-semibold h-10 shadow-sm transition-colors">
-                          Get a Content Strategy Quote
-                          <ArrowUpRight className="w-4 h-4 ml-1.5 shrink-0" />
-                        </Button>
-                      </Link>
+                      <Button
+                        onClick={() => {
+                          setBriefModalOpen(true);
+                          trackEvent("content_brief_modal_opened", {
+                            score: result.overallScore,
+                            verdict: result.verdict,
+                            source: "headline_analyzer",
+                          });
+                        }}
+                        className="w-full bg-white text-indigo-700 hover:bg-indigo-50 font-semibold h-11 shadow-sm transition-colors"
+                      >
+                        <FileText className="w-4 h-4 mr-2 shrink-0" />
+                        Generate Free Content Brief for this Headline
+                      </Button>
                     </div>
                   </Card>
                 </motion.div>
@@ -2227,6 +2273,177 @@ export default function HeadlineAnalyzer() {
           </AnimatePresence>
         </div>
       </section>
+
+      {/* ── Content Brief Modal ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {briefModalOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="brief-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+              onClick={closeBriefModal}
+            />
+
+            {/* Modal panel */}
+            <motion.div
+              key="brief-modal"
+              initial={{ opacity: 0, scale: 0.96, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+            >
+              <div className="relative w-full max-w-md pointer-events-auto">
+                <div className="rounded-2xl overflow-hidden shadow-2xl bg-white">
+                  {/* Modal header */}
+                  <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 px-6 pt-6 pb-5 relative">
+                    <button
+                      onClick={closeBriefModal}
+                      className="absolute top-4 right-4 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5 text-white" />
+                    </button>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-200">Free SEO Asset</p>
+                        <h3 className="text-base font-bold text-white leading-snug">Content Brief Generator</h3>
+                      </div>
+                    </div>
+                    {result && (
+                      <div className="rounded-lg bg-white/10 border border-white/20 px-3 py-2">
+                        <p className="text-[10px] text-indigo-200 font-semibold uppercase tracking-wider mb-0.5">Headline scored {result.overallScore}/100</p>
+                        <p className="text-xs text-white/90 leading-snug italic line-clamp-2">"{result.headline}"</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Modal body */}
+                  <div className="px-6 py-5">
+                    <AnimatePresence mode="wait">
+                      {!briefSubmitted ? (
+                        <motion.div
+                          key="brief-form"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="space-y-4"
+                        >
+                          <p className="text-sm text-slate-600 leading-relaxed">
+                            We will send you a full SEO brief with recommended LSI keywords, subheadings, and target audience data for this specific headline.
+                          </p>
+
+                          <div className="space-y-3">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                                <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                Business name
+                              </Label>
+                              <Input
+                                type="text"
+                                value={briefName}
+                                onChange={(e) => setBriefName(e.target.value)}
+                                placeholder="e.g. Acme Fintech Ltd"
+                                className="h-10 text-sm"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                                <Mail className="w-3.5 h-3.5 text-slate-400" />
+                                Work email <span className="text-red-400">*</span>
+                              </Label>
+                              <Input
+                                type="email"
+                                value={briefEmail}
+                                onChange={(e) => setBriefEmail(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && briefEmail.trim()) submitBrief();
+                                }}
+                                placeholder="you@company.com"
+                                className="h-10 text-sm"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg border border-indigo-100 bg-indigo-50/60 px-3.5 py-2.5 flex gap-2.5">
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
+                            <p className="text-[11px] text-indigo-800 leading-relaxed">
+                              Your brief will include <strong>LSI keywords</strong>, recommended <strong>subheadings</strong>, <strong>target audience insights</strong>, and a suggested content structure — all tailored to your headline.
+                            </p>
+                          </div>
+
+                          <Button
+                            onClick={submitBrief}
+                            disabled={!briefEmail.trim() || briefSubmitting}
+                            className="w-full h-11 bg-gradient-to-r from-indigo-600 to-violet-600 hover:opacity-90 text-white font-semibold text-sm transition-all disabled:opacity-50"
+                          >
+                            {briefSubmitting ? (
+                              <span className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Sending request…
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-2">
+                                <Send className="w-4 h-4" />
+                                Send Me the Free Brief
+                              </span>
+                            )}
+                          </Button>
+
+                          <p className="text-center text-[10px] text-slate-400 leading-relaxed">
+                            No spam, ever. We'll only send your content brief. Unsubscribe any time.
+                          </p>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="brief-success"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="py-4 text-center space-y-3"
+                        >
+                          <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+                            <Check className="w-7 h-7 text-emerald-600" />
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="text-base font-bold text-slate-900">Brief request received!</h4>
+                            <p className="text-sm text-slate-500 leading-relaxed">
+                              We'll send your personalised SEO content brief to <span className="font-semibold text-slate-700">{briefEmail}</span> within 24 hours.
+                            </p>
+                          </div>
+                          <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-left space-y-1.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600">Your brief will include</p>
+                            {["Recommended LSI keywords", "Suggested H2/H3 subheadings", "Target audience profile", "Content structure & word count guide"].map((item) => (
+                              <div key={item} className="flex items-center gap-2">
+                                <Check className="w-3 h-3 text-emerald-500 shrink-0" />
+                                <span className="text-xs text-emerald-800">{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <Button
+                            onClick={closeBriefModal}
+                            variant="outline"
+                            className="w-full h-10 text-sm font-semibold"
+                          >
+                            Close
+                          </Button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
