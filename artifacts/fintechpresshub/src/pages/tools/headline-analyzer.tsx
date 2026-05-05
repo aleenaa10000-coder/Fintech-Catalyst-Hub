@@ -20,6 +20,7 @@ import {
   Ruler,
   RefreshCw,
   BarChart2,
+  Users,
 } from "lucide-react";
 
 const FINTECH_KEYWORDS = [
