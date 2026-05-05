@@ -48,6 +48,8 @@ import {
   Network,
   ZoomIn,
   ZoomOut,
+  Gauge,
+  ArrowRight,
 } from "lucide-react";
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
@@ -1086,6 +1088,267 @@ function KeywordClusterMap({
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// ── Content Gap Score ─────────────────────────────────────────────────────
+
+type GapCategory =
+  | "Payments"
+  | "Security & Compliance"
+  | "Lending & Credit"
+  | "Wealth Tech"
+  | "InsurTech"
+  | "Neobanking";
+
+type EssentialTopic = {
+  id: string;
+  name: string;
+  category: GapCategory;
+  signals: string[];
+  suggestedKw: string;
+};
+
+const ESSENTIAL_TOPICS: EssentialTopic[] = [
+  // Payments (6)
+  { id: "pay-proc",     name: "Payment Processing",    category: "Payments",              signals: ["payment processing", "payment processor", "merchant acquiring"],           suggestedKw: "payment processing fintech" },
+  { id: "open-bank",    name: "Open Banking",          category: "Payments",              signals: ["open banking", "psd2", "account access api"],                              suggestedKw: "open banking API solutions" },
+  { id: "dig-pay",      name: "Digital Payments",      category: "Payments",              signals: ["digital payment", "mobile pay", "contactless", "e-wallet"],                suggestedKw: "digital payments platform" },
+  { id: "bnpl",         name: "Buy Now Pay Later",     category: "Payments",              signals: ["bnpl", "buy now pay later", "pay later", "instalment credit"],             suggestedKw: "best BNPL platform" },
+  { id: "xborder",      name: "Cross-Border Payments", category: "Payments",              signals: ["cross-border", "cross border", "remittance", "international transfer"],    suggestedKw: "cross-border payment solutions" },
+  { id: "gateway",      name: "Payment Gateway",       category: "Payments",              signals: ["payment gateway", "checkout api", "payment link", "merchant payment"],     suggestedKw: "payment gateway comparison" },
+  // Security & Compliance (6)
+  { id: "kyc",          name: "KYC / Identity",        category: "Security & Compliance", signals: ["kyc", "know your customer", "identity verification", "ekyc"],              suggestedKw: "KYC verification fintech" },
+  { id: "aml",          name: "AML Compliance",        category: "Security & Compliance", signals: ["aml", "anti-money laundering", "financial crime", "sanctions screening"],  suggestedKw: "AML compliance software" },
+  { id: "fraud",        name: "Fraud Detection",       category: "Security & Compliance", signals: ["fraud detection", "fraud prevention", "chargeback", "risk scoring"],       suggestedKw: "fraud detection fintech" },
+  { id: "datasec",      name: "Data Security",         category: "Security & Compliance", signals: ["data security", "encryption", "gdpr fintech", "pci dss", "cybersecurity"], suggestedKw: "fintech data security" },
+  { id: "regtech",      name: "RegTech & Compliance",  category: "Security & Compliance", signals: ["regtech", "regulatory compliance", "fca compliance", "sec fintech"],       suggestedKw: "regtech compliance platform" },
+  { id: "apisec",       name: "API Security",          category: "Security & Compliance", signals: ["api security", "api authentication", "oauth fintech", "token security"],   suggestedKw: "fintech API security" },
+  // Lending & Credit (4)
+  { id: "diglend",      name: "Digital Lending",       category: "Lending & Credit",      signals: ["digital lending", "online lending", "fintech loan", "lending platform"],   suggestedKw: "digital lending platform" },
+  { id: "credscor",     name: "Credit Scoring",        category: "Lending & Credit",      signals: ["credit scoring", "credit score", "alternative credit", "credit risk ai"],  suggestedKw: "fintech credit scoring" },
+  { id: "embfin",       name: "Embedded Finance",      category: "Lending & Credit",      signals: ["embedded finance", "embedded banking", "banking as a service", "baas"],    suggestedKw: "embedded finance solutions" },
+  { id: "p2plend",      name: "P2P Lending",           category: "Lending & Credit",      signals: ["p2p lending", "peer-to-peer lending", "marketplace lending"],              suggestedKw: "peer-to-peer lending platform" },
+  // Wealth Tech (4)
+  { id: "robo",         name: "Robo Advisors",         category: "Wealth Tech",           signals: ["robo advisor", "robo-advisor", "automated investing", "digital advisor"],  suggestedKw: "robo advisor fintech" },
+  { id: "wlth",         name: "Wealth Management",     category: "Wealth Tech",           signals: ["wealthtech", "digital wealth", "portfolio management", "asset management fintech"], suggestedKw: "wealthtech platform" },
+  { id: "crypto",       name: "Crypto & DeFi",         category: "Wealth Tech",           signals: ["crypto", "defi", "decentralised finance", "web3 finance", "blockchain finance"], suggestedKw: "crypto fintech platform" },
+  { id: "trading",      name: "Trading Platforms",     category: "Wealth Tech",           signals: ["trading platform", "stock trading fintech", "brokerage api", "retail investor"], suggestedKw: "fintech trading platform" },
+  // InsurTech (2)
+  { id: "insurtech",    name: "InsurTech",             category: "InsurTech",             signals: ["insurtech", "insurance tech", "digital insurance", "insurance platform"],  suggestedKw: "insurtech platform" },
+  { id: "embinsure",    name: "Embedded Insurance",    category: "InsurTech",             signals: ["embedded insurance", "parametric insurance", "usage-based insurance"],     suggestedKw: "embedded insurance solutions" },
+  // Neobanking (2)
+  { id: "neobank",      name: "Neobanks",              category: "Neobanking",            signals: ["neobank", "challenger bank", "digital bank", "virtual bank"],              suggestedKw: "best neobank 2025" },
+  { id: "baas",         name: "Banking as a Service",  category: "Neobanking",            signals: ["banking as a service", "baas", "bank api", "white label banking"],         suggestedKw: "banking as a service platform" },
+];
+
+const GAP_CATEGORY_CFG: Record<GapCategory, { color: string; bgColor: string; borderColor: string; barColor: string }> = {
+  "Payments":               { color: "#6d28d9", bgColor: "rgba(109,40,217,0.06)", borderColor: "rgba(109,40,217,0.22)", barColor: "#7c3aed" },
+  "Security & Compliance":  { color: "#0e7490", bgColor: "rgba(8,145,178,0.06)",  borderColor: "rgba(8,145,178,0.22)",  barColor: "#0891b2" },
+  "Lending & Credit":       { color: "#b45309", bgColor: "rgba(180,83,9,0.06)",   borderColor: "rgba(180,83,9,0.22)",   barColor: "#d97706" },
+  "Wealth Tech":            { color: "#047857", bgColor: "rgba(4,120,87,0.06)",   borderColor: "rgba(4,120,87,0.22)",   barColor: "#10b981" },
+  "InsurTech":              { color: "#be185d", bgColor: "rgba(190,24,93,0.06)",  borderColor: "rgba(190,24,93,0.22)",  barColor: "#ec4899" },
+  "Neobanking":             { color: "#4338ca", bgColor: "rgba(67,56,202,0.06)",  borderColor: "rgba(67,56,202,0.22)",  barColor: "#6366f1" },
+};
+
+function topicIsCovered(topic: EssentialTopic, history: HistoryEntry[]): boolean {
+  const histText = history.map((h) => h.keyword).join(" ").toLowerCase();
+  return topic.signals.some((sig) => histText.includes(sig.toLowerCase()));
+}
+
+const GAP_RING_R = 46;
+const GAP_RING_CIRC = 2 * Math.PI * GAP_RING_R;
+
+function computeGapAnalysis(history: HistoryEntry[]) {
+  const covered: EssentialTopic[] = [];
+  const missing: EssentialTopic[] = [];
+  const byCategory = {} as Record<GapCategory, { covered: number; total: number }>;
+
+  for (const topic of ESSENTIAL_TOPICS) {
+    if (!byCategory[topic.category]) byCategory[topic.category] = { covered: 0, total: 0 };
+    byCategory[topic.category].total++;
+    if (topicIsCovered(topic, history)) {
+      covered.push(topic);
+      byCategory[topic.category].covered++;
+    } else {
+      missing.push(topic);
+    }
+  }
+
+  const pct = Math.round((covered.length / ESSENTIAL_TOPICS.length) * 100);
+  const grade = pct >= 75 ? "A" : pct >= 55 ? "B" : pct >= 35 ? "C" : pct >= 20 ? "D" : "F";
+  const gradeColor = pct >= 75 ? "text-emerald-600" : pct >= 55 ? "text-blue-600" : pct >= 35 ? "text-amber-600" : pct >= 20 ? "text-orange-600" : "text-red-600";
+  const ringColor  = pct >= 75 ? "#10b981" : pct >= 55 ? "#3b82f6" : pct >= 35 ? "#f59e0b" : pct >= 20 ? "#f97316" : "#ef4444";
+  const coverageLabel = pct < 35 ? "Thin coverage — expand your topic range to build authority." : pct < 65 ? "Partial coverage — fill the gaps below to deepen topical authority." : "Strong coverage — a few more clusters will complete your topical map.";
+
+  return { pct, grade, gradeColor, ringColor, coverageLabel, covered, missing, byCategory, total: ESSENTIAL_TOPICS.length };
+}
+
+function ContentGapScore({
+  history,
+  onSuggest,
+}: {
+  history: HistoryEntry[];
+  onSuggest: (kw: string) => void;
+}) {
+  const gap = useMemo(() => computeGapAnalysis(history), [history]);
+  const [showAll, setShowAll] = useState(false);
+  const dashOffset = GAP_RING_CIRC * (1 - gap.pct / 100);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+    >
+      <Card className="border border-slate-100 shadow-sm overflow-hidden">
+        <CardContent className="p-5">
+
+          {/* Header */}
+          <div className="flex items-center gap-2 mb-4">
+            <Gauge className="w-4 h-4 text-violet-600 shrink-0" />
+            <h4 className="text-sm font-semibold text-slate-900">Content Gap Score</h4>
+            <span className="text-[10px] text-muted-foreground ml-0.5">
+              vs {gap.total} essential fintech topics
+            </span>
+          </div>
+
+          <div className="flex gap-5 items-start">
+
+            {/* Score ring */}
+            <div className="shrink-0 flex flex-col items-center gap-2">
+              <svg width={114} height={114} viewBox="0 0 114 114" aria-label={`${gap.pct}% topical coverage`}>
+                {/* Track */}
+                <circle cx={57} cy={57} r={GAP_RING_R} fill="none" stroke="#e2e8f0" strokeWidth={10} />
+                {/* Arc */}
+                <motion.circle
+                  cx={57} cy={57} r={GAP_RING_R}
+                  fill="none"
+                  stroke={gap.ringColor}
+                  strokeWidth={10}
+                  strokeLinecap="round"
+                  strokeDasharray={GAP_RING_CIRC}
+                  initial={{ strokeDashoffset: GAP_RING_CIRC }}
+                  animate={{ strokeDashoffset: dashOffset }}
+                  transition={{ duration: 1.1, ease: "easeOut", delay: 0.1 }}
+                  transform="rotate(-90 57 57)"
+                />
+                {/* Inner labels */}
+                <text x={57} y={51} textAnchor="middle" dominantBaseline="middle" fontSize={22} fontWeight={800} fill="#0f172a">
+                  {gap.pct}%
+                </text>
+                <text x={57} y={67} textAnchor="middle" fontSize={8.5} fill="#94a3b8" fontWeight={500} letterSpacing={0.3}>
+                  covered
+                </text>
+              </svg>
+
+              {/* Grade badge */}
+              <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-black text-lg border-current bg-white shadow-sm ${gap.gradeColor}`}>
+                {gap.grade}
+              </div>
+              <span className="text-[9px] text-slate-400 font-medium tabular-nums">
+                {gap.covered.length} / {gap.total} topics
+              </span>
+            </div>
+
+            {/* Category breakdown bars */}
+            <div className="flex-1 min-w-0 space-y-2.5">
+              {(Object.keys(GAP_CATEGORY_CFG) as GapCategory[]).map((cat) => {
+                const stats = gap.byCategory[cat];
+                if (!stats) return null;
+                const cfg = GAP_CATEGORY_CFG[cat];
+                const catPct = Math.round((stats.covered / stats.total) * 100);
+                return (
+                  <div key={cat}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10.5px] font-semibold text-slate-600 leading-none">{cat}</span>
+                      <span className="text-[10px] font-bold tabular-nums leading-none" style={{ color: cfg.color }}>
+                        {stats.covered}/{stats.total}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{ background: cfg.barColor }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${catPct}%` }}
+                        transition={{ duration: 0.75, ease: "easeOut", delay: 0.12 }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Tip line */}
+              <p className="text-[10.5px] text-muted-foreground leading-relaxed pt-1">
+                {gap.coverageLabel}
+              </p>
+            </div>
+          </div>
+
+          {/* Missing topics */}
+          {gap.missing.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  Uncovered topics — click to analyse
+                </p>
+                {gap.missing.length > 8 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAll((v) => !v)}
+                    className="text-[10px] font-semibold text-violet-600 hover:text-violet-800 transition-colors"
+                  >
+                    {showAll ? "Show fewer" : `+${gap.missing.length - 8} more`}
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <AnimatePresence>
+                  {(showAll ? gap.missing : gap.missing.slice(0, 8)).map((topic, i) => {
+                    const cfg = GAP_CATEGORY_CFG[topic.category];
+                    return (
+                      <motion.button
+                        key={topic.id}
+                        type="button"
+                        initial={{ opacity: 0, scale: 0.86 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.86 }}
+                        transition={{ delay: i * 0.03 }}
+                        onClick={() => onSuggest(topic.suggestedKw)}
+                        title={`Analyse: "${topic.suggestedKw}"`}
+                        className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-2.5 py-1 rounded-full border transition-all hover:shadow-sm active:scale-95"
+                        style={{ backgroundColor: cfg.bgColor, borderColor: cfg.borderColor, color: cfg.color }}
+                      >
+                        <ArrowRight className="w-2.5 h-2.5 shrink-0" />
+                        {topic.name}
+                      </motion.button>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
+
+          {/* Full coverage celebration */}
+          {gap.missing.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-4 pt-4 border-t border-slate-100"
+            >
+              <div className="flex items-center gap-2.5 rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3">
+                <Trophy className="w-5 h-5 text-emerald-600 shrink-0" />
+                <p className="text-sm font-semibold text-emerald-800">
+                  Full topical coverage! You've analysed keywords across all essential fintech areas.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
         </CardContent>
       </Card>
     </motion.div>
@@ -2211,6 +2474,24 @@ export default function KeywordDifficultyEstimator() {
                   history={history}
                   result={result}
                   onSelect={(entry) => { setResult(entry); setKeyword(entry.keyword); }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Content Gap Score ── */}
+          <AnimatePresence>
+            {history.length >= 1 && (
+              <motion.div
+                key="content-gap-score"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                className="mt-4"
+              >
+                <ContentGapScore
+                  history={history}
+                  onSuggest={(kw) => { setKeyword(kw); }}
                 />
               </motion.div>
             )}
