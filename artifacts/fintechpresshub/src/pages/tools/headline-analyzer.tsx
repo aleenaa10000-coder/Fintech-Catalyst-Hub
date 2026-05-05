@@ -1627,6 +1627,123 @@ export default function HeadlineAnalyzer() {
                   </CardContent>
                 </Card>
 
+                {/* ── Competitive Edge ── */}
+                {(() => {
+                  const TOP10_AVG = 68;
+                  const userScore = result.overallScore;
+                  const isWin = userScore > 70;
+                  const engagementDelta =
+                    userScore > TOP10_AVG
+                      ? Math.round(((userScore - TOP10_AVG) / TOP10_AVG) * 100)
+                      : null;
+                  const userPct  = Math.min(userScore, 100);
+                  const top10Pct = TOP10_AVG;
+
+                  return (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
+                    >
+                      <Card className="border border-slate-100 shadow-sm overflow-hidden">
+                        {/* Header row */}
+                        <div className="flex items-center justify-between px-5 pt-4 pb-0">
+                          <div className="flex items-center gap-2">
+                            <BarChart2 className="w-4 h-4 text-indigo-500 shrink-0" />
+                            <h4 className="text-sm font-bold text-slate-900">Competitive Edge</h4>
+                          </div>
+                          {isWin && (
+                            <motion.span
+                              initial={{ scale: 0.7, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ type: "spring", stiffness: 350, damping: 20, delay: 0.25 }}
+                              className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-700 tracking-wide"
+                            >
+                              <Zap className="w-3 h-3" />
+                              WIN
+                            </motion.span>
+                          )}
+                        </div>
+
+                        <CardContent className="px-5 pt-4 pb-5 space-y-4">
+                          {/* Bar 1 — User score */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-700">Your Headline Score</span>
+                              <span className={`text-xs font-bold ${
+                                userScore >= 80 ? "text-emerald-600" :
+                                userScore >= 60 ? "text-blue-600" :
+                                userScore >= 40 ? "text-amber-600" : "text-red-500"
+                              }`}>{userScore} / 100</span>
+                            </div>
+                            <div className="h-3 rounded-full bg-slate-100 overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${userPct}%` }}
+                                transition={{ duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.1 }}
+                                className={`relative h-full rounded-full overflow-hidden ${
+                                  userScore >= 80 ? "bg-gradient-to-r from-emerald-400 to-emerald-500" :
+                                  userScore >= 60 ? "bg-gradient-to-r from-blue-400 to-indigo-500" :
+                                  userScore >= 40 ? "bg-gradient-to-r from-amber-400 to-orange-400" :
+                                  "bg-gradient-to-r from-red-400 to-red-500"
+                                }`}
+                              >
+                                <div className="absolute inset-0 animate-shimmer-bar bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+                              </motion.div>
+                            </div>
+                          </div>
+
+                          {/* Bar 2 — Top 10 avg */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-500">Top 10 Ranking Avg</span>
+                              <span className="text-xs font-bold text-slate-400">{TOP10_AVG} / 100</span>
+                            </div>
+                            <div className="h-3 rounded-full bg-slate-100 overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${top10Pct}%` }}
+                                transition={{ duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.2 }}
+                                className="relative h-full rounded-full overflow-hidden bg-gradient-to-r from-slate-300 to-slate-400"
+                              >
+                                <div className="absolute inset-0 animate-shimmer-bar bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+                              </motion.div>
+                            </div>
+                          </div>
+
+                          {/* Insight line */}
+                          <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.45 }}
+                            className={`text-xs leading-relaxed font-medium rounded-lg px-3.5 py-2.5 ${
+                              engagementDelta !== null
+                                ? "bg-emerald-50 text-emerald-800 border border-emerald-100"
+                                : "bg-amber-50 text-amber-800 border border-amber-100"
+                            }`}
+                          >
+                            {engagementDelta !== null ? (
+                              <>
+                                Your headline is{" "}
+                                <span className="font-bold">{engagementDelta}% more engaging</span>{" "}
+                                than the current search competition for these keywords.
+                              </>
+                            ) : (
+                              <>
+                                Your headline is{" "}
+                                <span className="font-bold">
+                                  {Math.round(((TOP10_AVG - userScore) / TOP10_AVG) * 100)}% below
+                                </span>{" "}
+                                the top 10 average — use the rewrite suggestions below to close the gap.
+                              </>
+                            )}
+                          </motion.p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })()}
+
                 {/* ── A/B Comparison Diff View ── */}
                 {pinnedResult && (
                   <motion.div
