@@ -26,6 +26,8 @@ import {
   Lightbulb,
   Wand2,
   Share2,
+  Link2,
+  Loader2,
 } from "lucide-react";
 
 const FINTECH_KEYWORDS = [
@@ -878,6 +880,10 @@ export default function HeadlineAnalyzer() {
   const [result, setResult] = useState<Analysis | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [urlMode, setUrlMode] = useState(false);
+  const [competitorUrl, setCompetitorUrl] = useState("");
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState(0);
@@ -931,6 +937,55 @@ export default function HeadlineAnalyzer() {
     setHeadline("");
     setResult(null);
     setSelectedVibe(null);
+    setUrlMode(false);
+    setCompetitorUrl("");
+    setFetchError(null);
+  };
+
+  const fetchAndAnalyze = async () => {
+    if (!competitorUrl.trim() || isFetching) return;
+    setIsFetching(true);
+    setFetchError(null);
+    try {
+      const res = await fetch(`/api/tools/fetch-title?url=${encodeURIComponent(competitorUrl.trim())}`);
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setFetchError(data.error ?? "Couldn't fetch that page. Try a different URL.");
+        setIsFetching(false);
+        return;
+      }
+      const fetched = data.title as string;
+      setHeadline(fetched);
+      setUrlMode(false);
+      setIsFetching(false);
+      setResult(null);
+      setIsProcessing(true);
+      setProcessingStep(0);
+      const interval = setInterval(() => setProcessingStep((s) => (s + 1) % PROCESSING_STEPS.length), 500);
+      setTimeout(() => {
+        clearInterval(interval);
+        setIsProcessing(false);
+        const analysisResult = analyzeHeadline(fetched);
+        setResult(analysisResult);
+        if (analysisResult.overallScore >= 60) {
+          trackEvent("headline_threshold_reached", {
+            score: analysisResult.overallScore,
+            verdict: analysisResult.verdict,
+            wordCount: analysisResult.wordCount,
+            charCount: analysisResult.charCount,
+            source: "competitor_url",
+          });
+        }
+        trackEvent("competitor_url_analyzed", {
+          score: analysisResult.overallScore,
+          verdict: analysisResult.verdict,
+          domain: (() => { try { return new URL(competitorUrl.trim()).hostname; } catch { return "unknown"; } })(),
+        });
+      }, 1500);
+    } catch {
+      setFetchError("Network error. Check the URL and try again.");
+      setIsFetching(false);
+    }
   };
 
   const copyRewrite = (text: string, idx: number) => {
@@ -1000,31 +1055,88 @@ export default function HeadlineAnalyzer() {
               </div>
 
               <div className="space-y-3 mb-5">
-                <Label className="text-sm font-semibold text-slate-700">Your Headline</Label>
-                <textarea
-                  value={headline}
-                  onChange={(e) => setHeadline(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey && canAnalyze) {
-                      e.preventDefault();
-                      analyze();
-                    }
-                  }}
-                  placeholder="e.g. How Open Banking Is Changing the Payments Landscape in 2025"
-                  rows={3}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-slate-800 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none leading-relaxed"
-                />
+                {/* Mode tabs */}
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] text-muted-foreground">
-                    {headline.length} characters · {headline.trim().split(/\s+/).filter(Boolean).length} words
-                    {headline.length > 0 && headline.length < 50 && (
-                      <span className="ml-2 text-amber-600">· {50 - headline.length} chars to ideal minimum</span>
-                    )}
-                    {headline.length > 70 && (
-                      <span className="ml-2 text-red-500">· {headline.length - 70} chars over ideal maximum</span>
-                    )}
-                  </p>
+                  <Label className="text-sm font-semibold text-slate-700">
+                    {urlMode ? "Competitor URL" : "Your Headline"}
+                  </Label>
+                  <div className="flex gap-0.5 p-0.5 bg-slate-100 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => { setUrlMode(false); setFetchError(null); }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                        !urlMode ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                      }`}
+                    >
+                      <Wand2 className="w-3 h-3" />
+                      Type headline
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setUrlMode(true); setFetchError(null); }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                        urlMode ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                      }`}
+                    >
+                      <Link2 className="w-3 h-3" />
+                      Paste a URL
+                    </button>
+                  </div>
                 </div>
+
+                {urlMode ? (
+                  <div className="space-y-2">
+                    <input
+                      type="url"
+                      value={competitorUrl}
+                      onChange={(e) => { setCompetitorUrl(e.target.value); setFetchError(null); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && competitorUrl.trim() && !isFetching) {
+                          e.preventDefault();
+                          fetchAndAnalyze();
+                        }
+                      }}
+                      placeholder="https://techcrunch.com/2025/01/fintech-article"
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-slate-800 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    />
+                    {fetchError && (
+                      <p className="flex items-center gap-1.5 text-xs text-red-500">
+                        <AlertTriangle className="w-3 h-3 shrink-0" />
+                        {fetchError}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      We'll fetch the page title server-side and score it — nothing is stored.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <textarea
+                      value={headline}
+                      onChange={(e) => setHeadline(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey && canAnalyze) {
+                          e.preventDefault();
+                          analyze();
+                        }
+                      }}
+                      placeholder="e.g. How Open Banking Is Changing the Payments Landscape in 2025"
+                      rows={3}
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-slate-800 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none leading-relaxed"
+                    />
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] text-muted-foreground">
+                        {headline.length} characters · {headline.trim().split(/\s+/).filter(Boolean).length} words
+                        {headline.length > 0 && headline.length < 50 && (
+                          <span className="ml-2 text-amber-600">· {50 - headline.length} chars to ideal minimum</span>
+                        )}
+                        {headline.length > 70 && (
+                          <span className="ml-2 text-red-500">· {headline.length - 70} chars over ideal maximum</span>
+                        )}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* ── Live Search Preview ─────────────────────────────────────── */}
@@ -1084,53 +1196,69 @@ export default function HeadlineAnalyzer() {
                 );
               })()}
 
-              <button
-                onClick={analyze}
-                disabled={!canAnalyze}
-                className={`relative w-full h-11 rounded-md font-semibold text-sm text-white overflow-hidden transition-all
-                  ${isProcessing
-                    ? "cursor-not-allowed"
-                    : canAnalyze
-                    ? "hover:opacity-90 active:scale-[0.99]"
-                    : "opacity-50 cursor-not-allowed"
-                  }`}
-              >
-                {/* Background — pulses during processing */}
-                <span
-                  className={`absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_100%] transition-all
-                    ${isProcessing ? "animate-[shimmer-bg_1.2s_linear_infinite]" : ""}`}
-                  style={isProcessing ? {} : { backgroundSize: "100% 100%" }}
-                />
-
-                {/* Idle state */}
-                {!isProcessing && (
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    Analyze Headline
+              {urlMode ? (
+                /* ── URL fetch button ── */
+                <button
+                  onClick={fetchAndAnalyze}
+                  disabled={!competitorUrl.trim() || isFetching}
+                  className={`relative w-full h-11 rounded-md font-semibold text-sm text-white overflow-hidden transition-all bg-gradient-to-r from-indigo-600 to-violet-600
+                    ${isFetching || !competitorUrl.trim() ? "opacity-50 cursor-not-allowed" : "hover:opacity-90 active:scale-[0.99]"}`}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    {isFetching
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Link2 className="w-4 h-4" />}
+                    {isFetching ? "Fetching title…" : "Fetch & Analyze"}
                   </span>
-                )}
+                </button>
+              ) : (
+                /* ── Type-headline analyze button ── */
+                <button
+                  onClick={analyze}
+                  disabled={!canAnalyze}
+                  className={`relative w-full h-11 rounded-md font-semibold text-sm text-white overflow-hidden transition-all
+                    ${isProcessing
+                      ? "cursor-not-allowed"
+                      : canAnalyze
+                      ? "hover:opacity-90 active:scale-[0.99]"
+                      : "opacity-50 cursor-not-allowed"
+                    }`}
+                >
+                  {/* Background — pulses during processing */}
+                  <span
+                    className={`absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_100%] transition-all
+                      ${isProcessing ? "animate-[shimmer-bg_1.2s_linear_infinite]" : ""}`}
+                    style={isProcessing ? {} : { backgroundSize: "100% 100%" }}
+                  />
 
-                {/* Processing state */}
-                {isProcessing && (
-                  <span className="relative z-10 flex items-center justify-center gap-2.5">
-                    {/* Spinning ring */}
-                    <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />
-                    {/* Cycling label */}
-                    <AnimatePresence mode="wait">
-                      <motion.span
-                        key={processingStep}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.18 }}
-                        className="text-sm font-semibold tracking-wide"
-                      >
-                        {PROCESSING_STEPS[processingStep]}
-                      </motion.span>
-                    </AnimatePresence>
-                  </span>
-                )}
-              </button>
+                  {/* Idle state */}
+                  {!isProcessing && (
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      Analyze Headline
+                    </span>
+                  )}
+
+                  {/* Processing state */}
+                  {isProcessing && (
+                    <span className="relative z-10 flex items-center justify-center gap-2.5">
+                      <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />
+                      <AnimatePresence mode="wait">
+                        <motion.span
+                          key={processingStep}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.18 }}
+                          className="text-sm font-semibold tracking-wide"
+                        >
+                          {PROCESSING_STEPS[processingStep]}
+                        </motion.span>
+                      </AnimatePresence>
+                    </span>
+                  )}
+                </button>
+              )}
 
               {/* Progress bar — fills linearly over the 1.5s processing window */}
               <AnimatePresence>

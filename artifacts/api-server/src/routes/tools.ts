@@ -333,4 +333,96 @@ router.post("/tools/financial-health-score/email-report", async (req, res) => {
   });
 });
 
+router.get("/tools/fetch-title", async (req, res) => {
+  const rawUrl = req.query.url as string | undefined;
+  if (!rawUrl) {
+    res.status(400).json({ error: "Missing url parameter." });
+    return;
+  }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(rawUrl);
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      throw new Error("Bad protocol");
+    }
+  } catch {
+    res.status(400).json({ error: "Invalid URL. Make sure it starts with https://." });
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const resp = await fetch(parsedUrl.href, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; FintechPressHub-Analyzer/1.0)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      },
+    });
+
+    if (!resp.ok) {
+      res.status(400).json({ error: `Page returned ${resp.status}. Make sure the URL is publicly accessible.` });
+      return;
+    }
+
+    const contentType = resp.headers.get("content-type") ?? "";
+    if (!contentType.includes("html")) {
+      res.status(400).json({ error: "URL doesn't point to an HTML page." });
+      return;
+    }
+
+    const reader = resp.body?.getReader();
+    if (!reader) {
+      res.status(500).json({ error: "Could not read response." });
+      return;
+    }
+
+    let html = "";
+    let bytes = 0;
+    const decoder = new TextDecoder();
+    while (bytes < 50_000) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      html += decoder.decode(value, { stream: true });
+      bytes += value.byteLength;
+    }
+    reader.cancel().catch(() => {});
+
+    const ogMatch =
+      html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"'<>]+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"'<>]+)["'][^>]+property=["']og:title["']/i);
+    const titleMatch = html.match(/<title[^>]*>([^<]{1,300})<\/title>/i);
+
+    const raw = ogMatch?.[1] ?? titleMatch?.[1] ?? "";
+    const title = raw
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, " ")
+      .trim();
+
+    if (!title) {
+      res.status(400).json({ error: "No title tag found on that page." });
+      return;
+    }
+
+    res.json({ title });
+  } catch (err: unknown) {
+    const isAbort = err instanceof Error && err.name === "AbortError";
+    res.status(400).json({
+      error: isAbort
+        ? "The page took too long to respond. Try a different URL."
+        : "Couldn't reach that page. Make sure it's publicly accessible.",
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+});
+
 export default router;
