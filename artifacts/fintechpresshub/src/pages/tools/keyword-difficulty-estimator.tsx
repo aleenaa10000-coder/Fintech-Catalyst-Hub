@@ -50,6 +50,7 @@ import {
   ZoomOut,
   Gauge,
   ArrowRight,
+  Users,
 } from "lucide-react";
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
@@ -2194,6 +2195,275 @@ function ContentRoadmap({ result }: { result: Result }) {
   );
 }
 
+// ── Competitor Comparison ─────────────────────────────────────────────────
+
+type CompetitorEntry = {
+  rank: number;
+  domain: string;
+  da: number;
+  wordCount: number;
+  kwDensity: number;
+};
+
+const COMPETITOR_POOL: Record<Cluster, string[]> = {
+  "Infrastructure & Security": [
+    "finextra.com", "bankingtech.com", "fintechfutures.com", "finovate.com",
+    "sifted.eu", "paymentssource.com", "complianceweek.com", "tearsheet.co",
+    "helpnetsecurity.com", "crowdfundinsider.com",
+  ],
+  "Commercial Solutions": [
+    "g2.com", "capterra.com", "nerdwallet.com", "bankrate.com",
+    "investopedia.com", "finder.com", "techradar.com", "pcmag.com",
+    "businessinsider.com", "thebalancemoney.com",
+  ],
+  "Fintech General": [
+    "techcrunch.com", "forbes.com", "pymnts.com", "fintechnews.org",
+    "thefinancialbrand.com", "fintechmagazine.com", "americanbanker.com",
+    "businesswire.com", "reuters.com", "wsj.com",
+  ],
+};
+
+function kwHash(kw: string, salt = 0): number {
+  let h = 5381 + salt;
+  for (let i = 0; i < kw.length; i++) {
+    h = (((h << 5) + h) ^ kw.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+
+function seededRange(seed: number, min: number, max: number): number {
+  return Math.round(min + (seed % (max - min)));
+}
+
+function generateCompetitors(result: Result): CompetitorEntry[] {
+  const pool = COMPETITOR_POOL[result.cluster];
+
+  const i0 = kwHash(result.keyword, 0) % pool.length;
+  const i1Raw = kwHash(result.keyword, 1) % pool.length;
+  const i1 = i1Raw === i0 ? (i1Raw + 1) % pool.length : i1Raw;
+  const i2Raw = kwHash(result.keyword, 2) % pool.length;
+  const i2 = i2Raw === i0 || i2Raw === i1 ? (i2Raw + 2) % pool.length : i2Raw;
+
+  const daMin = result.score >= 70 ? 72 : result.score >= 40 ? 48 : 24;
+  const daMax = result.score >= 70 ? 92 : result.score >= 40 ? 80 : 58;
+
+  const wcMin = result.intent === "Informational" ? 2400 :
+    result.intent === "Commercial" ? 1400 :
+    result.intent === "Transactional" ? 900 : 650;
+  const wcMax = result.intent === "Informational" ? 5600 :
+    result.intent === "Commercial" ? 3200 :
+    result.intent === "Transactional" ? 2200 : 1600;
+
+  return [
+    {
+      rank: 1,
+      domain: pool[i0],
+      da: seededRange(kwHash(result.keyword, 10), daMin + 6, daMax),
+      wordCount: seededRange(kwHash(result.keyword, 20), wcMin + 400, wcMax),
+      kwDensity: Math.round((0.6 + (kwHash(result.keyword, 30) % 180) / 100) * 10) / 10,
+    },
+    {
+      rank: 2,
+      domain: pool[i1],
+      da: seededRange(kwHash(result.keyword, 11), daMin + 2, daMax - 6),
+      wordCount: seededRange(kwHash(result.keyword, 21), wcMin + 100, wcMax - 400),
+      kwDensity: Math.round((0.5 + (kwHash(result.keyword, 31) % 200) / 100) * 10) / 10,
+    },
+    {
+      rank: 3,
+      domain: pool[i2],
+      da: seededRange(kwHash(result.keyword, 12), daMin, daMax - 12),
+      wordCount: seededRange(kwHash(result.keyword, 22), wcMin, wcMax - 600),
+      kwDensity: Math.round((0.4 + (kwHash(result.keyword, 32) % 220) / 100) * 10) / 10,
+    },
+  ];
+}
+
+function getProposedBenchmark(score: number) {
+  return {
+    words: score >= 70 ? 5500 : score >= 40 ? 3800 : 2200,
+    density: 1.2,
+  };
+}
+
+function CompetitorComparisonTable({ result }: { result: Result }) {
+  const competitors = useMemo(() => generateCompetitors(result), [result.keyword]);
+  const proposed = getProposedBenchmark(result.score);
+  const ideas = useMemo(() => generateClusterIdeas(result.cluster, result.keyword), [result.keyword]);
+
+  const avgWords = Math.round(competitors.reduce((a, c) => a + c.wordCount, 0) / competitors.length);
+  const beatenOnDepth = competitors.filter((c) => proposed.words > c.wordCount * 1.1).length;
+  const depthVsAvg = Math.round(((proposed.words - avgWords) / avgWords) * 100);
+  const underOptimized = competitors.filter((c) => c.kwDensity < 0.85);
+  const overStuffed = competitors.filter((c) => c.kwDensity > 2.1);
+
+  return (
+    <Card className="border border-slate-100 shadow-sm overflow-hidden">
+      <CardContent className="p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-violet-600 shrink-0" />
+            <div>
+              <h4 className="text-sm font-semibold text-slate-900 leading-tight">Top 3 Competitor Benchmarks</h4>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Estimated SERP profile for "{result.keyword}"
+              </p>
+            </div>
+          </div>
+          <span className="shrink-0 text-[9px] font-semibold text-slate-400 bg-slate-50 border border-slate-100 rounded px-1.5 py-0.5 mt-0.5 uppercase tracking-wider">
+            Heuristic
+          </span>
+        </div>
+
+        {/* Table */}
+        <div className="rounded-xl overflow-hidden border border-slate-100">
+          {/* Header row */}
+          <div className="grid grid-cols-[24px_1fr_56px_1fr_1fr] gap-2 bg-slate-50 border-b border-slate-100 px-3 py-2">
+            {["#", "Domain", "DA", "Word Count", "KW Density"].map((col) => (
+              <span key={col} className="text-[9px] font-bold uppercase tracking-wider text-slate-400 leading-none">{col}</span>
+            ))}
+          </div>
+
+          {competitors.map((c, idx) => {
+            const depthWin = proposed.words > c.wordCount * 1.1;
+            const depthLoss = c.wordCount > proposed.words * 1.1;
+            const densityWin = c.kwDensity < 0.85 || c.kwDensity > 2.1;
+            const daColor = c.da >= 75 ? "text-red-600" : c.da >= 55 ? "text-orange-500" : "text-slate-500";
+            const daBarColor = c.da >= 75 ? "bg-red-400" : c.da >= 55 ? "bg-orange-400" : "bg-slate-300";
+            const daLabel = c.da >= 75 ? "High auth" : c.da >= 55 ? "Established" : "Niche";
+
+            return (
+              <div
+                key={idx}
+                className={`grid grid-cols-[24px_1fr_56px_1fr_1fr] gap-2 px-3 py-3 items-start border-b border-slate-50 last:border-b-0 ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`}
+              >
+                {/* Rank */}
+                <span className="text-xs font-bold text-slate-300 mt-0.5">#{c.rank}</span>
+
+                {/* Domain */}
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-slate-700 truncate leading-tight">{c.domain}</p>
+                  <p className={`text-[9px] font-medium mt-0.5 ${daColor}`}>{daLabel}</p>
+                </div>
+
+                {/* DA */}
+                <div>
+                  <span className={`text-xs font-black tabular-nums ${daColor}`}>{c.da}</span>
+                  <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden mt-1">
+                    <div className={`h-full rounded-full ${daBarColor}`} style={{ width: `${c.da}%` }} />
+                  </div>
+                </div>
+
+                {/* Word Count */}
+                <div className="space-y-1">
+                  <span className="text-[11px] font-semibold text-slate-700 tabular-nums block">
+                    {c.wordCount.toLocaleString()}w
+                  </span>
+                  {depthWin ? (
+                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1 py-0.5 leading-none">
+                      <Check className="w-2 h-2" /> We're deeper
+                    </span>
+                  ) : depthLoss ? (
+                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 rounded px-1 py-0.5 leading-none">
+                      ↑ They're longer
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-0.5 leading-none">
+                      ≈ Similar
+                    </span>
+                  )}
+                </div>
+
+                {/* KW Density */}
+                <div className="space-y-1">
+                  <span className="text-[11px] font-semibold text-slate-700 tabular-nums block">{c.kwDensity}%</span>
+                  {c.kwDensity < 0.85 ? (
+                    <span className="inline-flex items-center text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1 py-0.5 leading-none">
+                      Under-optimized
+                    </span>
+                  ) : c.kwDensity > 2.1 ? (
+                    <span className="inline-flex items-center text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1 py-0.5 leading-none">
+                      Over-stuffed
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-0.5 leading-none">
+                      Optimized
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Our proposed benchmark */}
+        <div className="mt-4 rounded-xl bg-violet-50 border border-violet-100 px-4 py-3">
+          <p className="text-[10px] font-bold text-violet-700 uppercase tracking-wider mb-2">
+            Our Proposed Content
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-white border border-violet-200 text-violet-700 rounded-full px-2.5 py-1">
+              📏 {proposed.words.toLocaleString()} words
+            </span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-white border border-violet-200 text-violet-700 rounded-full px-2.5 py-1">
+              🎯 {proposed.density}% KW density
+            </span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-white border border-violet-200 text-violet-700 rounded-full px-2.5 py-1">
+              📚 {ideas.length} cluster articles
+            </span>
+          </div>
+        </div>
+
+        {/* Insight cards */}
+        <div className="mt-3 space-y-2">
+          {beatenOnDepth > 0 && (
+            <div className="flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2.5">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" />
+              <p className="text-[11px] text-emerald-800 leading-relaxed">
+                <span className="font-bold">Content Depth:</span> Our {proposed.words.toLocaleString()}-word pillar would outrank {beatenOnDepth} of the 3 top-ranking pages on depth alone
+                {depthVsAvg !== 0 ? ` (${depthVsAvg > 0 ? "+" : ""}${depthVsAvg}% vs. competitor average)` : ""}.
+              </p>
+            </div>
+          )}
+          {underOptimized.length > 0 && (
+            <div className="flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2.5">
+              <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" />
+              <p className="text-[11px] text-emerald-800 leading-relaxed">
+                <span className="font-bold">KW Density Gap:</span>{" "}
+                {underOptimized.length} competitor{underOptimized.length > 1 ? "s are" : " is"} under-optimizing
+                at &lt;0.85% — our targeted 1.2% signals stronger topical relevance to crawlers.
+              </p>
+            </div>
+          )}
+          {overStuffed.length > 0 && (
+            <div className="flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2.5">
+              <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" />
+              <p className="text-[11px] text-emerald-800 leading-relaxed">
+                <span className="font-bold">Clean Coverage:</span>{" "}
+                {overStuffed.length} competitor{overStuffed.length > 1 ? "s are" : " is"} over-stuffing
+                at &gt;2.1% — our 1.2% avoids over-optimisation penalties while staying on-topic.
+              </p>
+            </div>
+          )}
+          <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2.5">
+            <Lightbulb className="w-3.5 h-3.5 text-blue-600 mt-0.5 shrink-0" />
+            <p className="text-[11px] text-blue-800 leading-relaxed">
+              <span className="font-bold">Topical Coverage:</span> Our {ideas.length} cluster articles
+              on "{ideas[0]?.split(":")[0] ?? result.cluster}" establish topical authority that
+              thin single-page competitors cannot match on depth or breadth.
+            </p>
+          </div>
+        </div>
+
+        <p className="mt-3 text-[9.5px] text-slate-400 leading-relaxed">
+          * Estimates are algorithmically generated from keyword difficulty, search intent, and cluster signals. Use as directional benchmarks — not absolute SERP data.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Skeleton screens ──────────────────────────────────────────────────────
 
 function ClusterMapSkeleton() {
@@ -4034,6 +4304,22 @@ export default function KeywordDifficultyEstimator() {
                   />
                 </motion.div>
               )
+            )}
+          </AnimatePresence>
+
+          {/* ── Competitor Comparison ── */}
+          <AnimatePresence mode="wait">
+            {result && !analysisLoading && (
+              <motion.div
+                key={`competitor-${result.keyword}`}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                className="mt-4"
+              >
+                <CompetitorComparisonTable result={result} />
+              </motion.div>
             )}
           </AnimatePresence>
 
