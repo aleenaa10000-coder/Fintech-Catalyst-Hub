@@ -381,12 +381,54 @@ function getQuadrantInfo(score: number, intent: Intent): QuadrantInfo {
   return { label: "Supporting Asset", sublabel: "Hard to rank · Use as cluster support", dotColor: "bg-blue-500", ringColor: "bg-blue-400", labelColor: "text-blue-700" };
 }
 
+function SparkLine({ scores, active }: { scores: number[]; active: boolean }) {
+  if (scores.length < 2) return null;
+  const W = 36;
+  const H = 14;
+  const xs = scores.map((_, i) => (i / (scores.length - 1)) * W);
+  const ys = scores.map((s) => H - (Math.min(100, Math.max(0, s)) / 100) * H);
+  const pts = xs.map((x, i) => `${x},${ys[i]}`).join(" ");
+  const last = scores[scores.length - 1];
+  const color = active
+    ? "rgba(255,255,255,0.85)"
+    : last >= 75
+      ? "#f87171"
+      : last >= 55
+        ? "#fb923c"
+        : last >= 35
+          ? "#fbbf24"
+          : "#22c55e";
+  return (
+    <svg width={W} height={H} className="shrink-0 overflow-visible" aria-hidden>
+      <polyline
+        points={pts}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.85}
+      />
+      {scores.map((_, i) => (
+        <circle
+          key={i}
+          cx={xs[i]}
+          cy={ys[i]}
+          r={i === scores.length - 1 ? 2.5 : 1.5}
+          fill={color}
+          opacity={i === scores.length - 1 ? 1 : 0.5}
+        />
+      ))}
+    </svg>
+  );
+}
+
 export default function KeywordDifficultyEstimator() {
   const [keyword, setKeyword] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
   const [copiedCluster, setCopiedCluster] = useState<number | null>(null);
-  const [history, setHistory] = useState<Result[]>([]);
+  const [history, setHistory] = useState<(Result & { scores: number[] })[]>([]);
   const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
@@ -397,7 +439,7 @@ export default function KeywordDifficultyEstimator() {
       setKeyword(kw);
       const r = estimateDifficulty(kw);
       setResult(r);
-      setHistory([r]);
+      setHistory([{ ...r, scores: [r.score] }]);
     }
   }, []);
 
@@ -412,10 +454,14 @@ export default function KeywordDifficultyEstimator() {
     const r = estimateDifficulty(keyword);
     setResult(r);
     setHistory((prev) => {
-      const deduped = prev.filter(
-        (h) => h.keyword.toLowerCase() !== r.keyword.toLowerCase(),
+      const idx = prev.findIndex(
+        (h) => h.keyword.toLowerCase() === r.keyword.toLowerCase(),
       );
-      return [r, ...deduped].slice(0, 10);
+      const existingScores = idx >= 0 ? prev[idx].scores : [];
+      const scores = [...existingScores, r.score].slice(-5);
+      const entry = { ...r, scores };
+      const filtered = prev.filter((_, i) => i !== idx);
+      return [entry, ...filtered].slice(0, 10);
     });
     window.history.replaceState(
       null,
@@ -608,10 +654,13 @@ export default function KeywordDifficultyEstimator() {
                                     : "bg-green-500"
                             } ${isActive ? "opacity-80" : ""}`}
                           />
-                          <span className="max-w-[140px] truncate">{h.keyword}</span>
+                          <span className="max-w-[100px] truncate">{h.keyword}</span>
                           <span className={`font-bold tabular-nums ${isActive ? "text-violet-200" : "text-slate-400"}`}>
                             {h.score}
                           </span>
+                          {h.scores.length >= 2 && (
+                            <SparkLine scores={h.scores} active={isActive} />
+                          )}
                         </motion.button>
                       );
                     })}
