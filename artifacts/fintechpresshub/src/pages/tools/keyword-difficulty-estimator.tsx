@@ -647,27 +647,62 @@ export default function KeywordDifficultyEstimator() {
                   </CardContent>
                 </Card>
 
-                <Card className="border border-violet-100 bg-violet-50 shadow-sm">
-                  <CardContent className="p-4">
-                    <p className="text-xs text-violet-800 leading-relaxed">
-                      Want to rank for competitive fintech keywords?{" "}
-                      <Link
-                        href="/services"
-                        className="font-semibold underline underline-offset-2 hover:text-violet-900"
-                      >
-                        See our fintech SEO services
-                      </Link>{" "}
-                      or{" "}
-                      <Link
-                        href="/contact"
-                        className="font-semibold underline underline-offset-2 hover:text-violet-900"
-                      >
-                        book a free strategy call
-                      </Link>
-                      .
-                    </p>
-                  </CardContent>
-                </Card>
+                {(() => {
+                  const ctaConfig: Record<Intent, { text: string; linkLabel: string; linkHref: string; ctaLabel: string; ctaHref: string }> = {
+                    Commercial: {
+                      text: `Ready to convert traffic for "${result.keyword}"? Our SEO experts specialize in high-intent fintech content.`,
+                      linkLabel: "See our conversion-focused services",
+                      linkHref: "/services",
+                      ctaLabel: "book a strategy call",
+                      ctaHref: "/contact",
+                    },
+                    Transactional: {
+                      text: `Targeting buyers searching for "${result.keyword}"? We build bottom-funnel content that drives action.`,
+                      linkLabel: "Explore our fintech content services",
+                      linkHref: "/services",
+                      ctaLabel: "get a free audit",
+                      ctaHref: "/contact",
+                    },
+                    Informational: {
+                      text: `Need an authority-building whitepaper for "${result.keyword}"? See how our editorial team can lead the conversation.`,
+                      linkLabel: "See our thought leadership packages",
+                      linkHref: "/services",
+                      ctaLabel: "talk to our editors",
+                      ctaHref: "/contact",
+                    },
+                    Navigational: {
+                      text: `Building brand visibility around "${result.keyword}"? We help fintech brands own their branded search results.`,
+                      linkLabel: "See our brand SEO services",
+                      linkHref: "/services",
+                      ctaLabel: "book a free strategy call",
+                      ctaHref: "/contact",
+                    },
+                  };
+                  const cta = ctaConfig[result.intent];
+                  return (
+                    <Card className="border border-violet-100 bg-violet-50 shadow-sm">
+                      <CardContent className="p-4">
+                        <p className="text-xs text-violet-800 leading-relaxed">
+                          {cta.text}{" "}
+                          <Link
+                            href={cta.linkHref}
+                            className="font-semibold underline underline-offset-2 hover:text-violet-900"
+                          >
+                            {cta.linkLabel}
+                          </Link>{" "}
+                          or{" "}
+                          <Link
+                            href={cta.ctaHref}
+                            className="font-semibold underline underline-offset-2 hover:text-violet-900"
+                          >
+                            {cta.ctaLabel}
+                          </Link>
+                          .
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
               </motion.div>
             )}
           </AnimatePresence>
