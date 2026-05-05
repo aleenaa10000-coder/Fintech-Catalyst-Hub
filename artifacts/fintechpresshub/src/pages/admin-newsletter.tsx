@@ -131,6 +131,41 @@ export default function AdminNewsletter() {
     );
   }, []);
 
+  function csvEscape(v: string | null | undefined): string {
+    const s = v ?? "";
+    return s.includes(",") || s.includes('"') || s.includes("\n")
+      ? `"${s.replace(/"/g, '""')}"`
+      : s;
+  }
+
+  function downloadFilteredCsv() {
+    const statusLabels: Record<string, string> = {
+      new: "New", in_progress: "In Progress", sent: "Sent", actioned: "Actioned",
+    };
+    const difficultyLabel = (kw: string | null): string => {
+      if (!kw) return "";
+      const s = quickScore(kw);
+      return s < 35 ? "Easy" : s < 55 ? "Medium" : "Hard";
+    };
+    const header = ["Email", "Keyword", "Difficulty", "Status", "Submitted"].join(",");
+    const rows = displayedSeoBriefLeads.map((l) => [
+      csvEscape(l.email),
+      csvEscape(l.keyword),
+      csvEscape(difficultyLabel(l.keyword)),
+      csvEscape(statusLabels[leadStatuses[l.id] ?? l.briefStatus ?? "new"]),
+      csvEscape(l.createdAt ? new Date(l.createdAt).toISOString().slice(0, 10) : ""),
+    ].join(","));
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const suffix = kwFilter.trim() ? `_${kwFilter.trim().replace(/\s+/g, "-")}` : "";
+    a.download = `seo-brief-leads${suffix}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function buildMailto(email: string | null, keyword: string | null): string {
     if (!email) return "#";
     const kw = keyword?.trim() || null;
@@ -646,6 +681,19 @@ export default function AdminNewsletter() {
                   </span>
                 )}
               </div>
+              {displayedSeoBriefLeads.length > 0 && (
+                <button
+                  type="button"
+                  onClick={downloadFilteredCsv}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-violet-700 hover:text-violet-900 transition-colors"
+                  title={kwFilter.trim() ? `Export ${displayedSeoBriefLeads.length} filtered leads as CSV` : "Export all leads as CSV"}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {kwFilter.trim()
+                    ? `Export filtered (${displayedSeoBriefLeads.length})`
+                    : "Export all leads CSV"}
+                </button>
+              )}
             </div>
 
             {difficultyDistribution.total > 0 && (
