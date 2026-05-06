@@ -50,3 +50,6 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm --filter @workspace/fintechpresshub exec vitest run
