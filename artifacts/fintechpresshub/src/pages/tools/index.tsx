@@ -16,6 +16,7 @@ import {
   FileEdit,
   Newspaper,
   ArrowRight,
+  Search,
 } from "lucide-react";
 
 const TOOLS = [
@@ -99,6 +100,15 @@ const TOOLS = [
     title: "Headline Analyzer",
     description:
       "Score any fintech headline out of 100 across clarity, keyword presence, emotional pull, and character count — with 3 instant rewrite suggestions.",
+  },
+  {
+    href: "/tools/link-prospector",
+    icon: Search,
+    color: "bg-cyan-50 text-cyan-600",
+    badge: "Link Building",
+    title: "Link Prospector",
+    description:
+      "Paste up to 50 domains (with optional DA and traffic) to bulk-score your backlink prospects — then rank by highest SEO value or easiest win for monthly outreach planning.",
   },
 ];
 

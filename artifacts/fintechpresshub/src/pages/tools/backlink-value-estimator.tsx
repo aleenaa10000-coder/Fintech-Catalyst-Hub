@@ -26,7 +26,15 @@ import {
   DollarSign,
   FileDown,
   Loader2,
+  Bookmark,
+  BookmarkCheck,
+  Trash2,
+  X,
+  Trophy,
+  SortDesc,
+  TrendingUp,
 } from "lucide-react";
+import { useMemo } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -389,11 +397,27 @@ function parseFormFromParams(): Partial<FormState> {
   return result;
 }
 
+type SavedOpportunity = {
+  id: string;
+  domain: string;
+  score: number;
+  label: string;
+  linkValueMin: number;
+  linkValueMax: number;
+  acquisitionStars: number;
+  acquisitionLabel: string;
+};
+
+type SortMode = "highest-value" | "easiest-win";
+
 export default function BacklinkValueEstimator() {
   const [form, setForm] = useState<FormState>(DEFAULTS);
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [savedOpportunities, setSavedOpportunities] = useState<SavedOpportunity[]>([]);
+  const [sortMode, setSortMode] = useState<SortMode>("highest-value");
+  const [alreadySaved, setAlreadySaved] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -597,6 +621,50 @@ export default function BacklinkValueEstimator() {
     }
   };
 
+  const saveOpportunity = () => {
+    if (!result) return;
+    const entry: SavedOpportunity = {
+      id: `${Date.now()}-${form.domain}`,
+      domain: form.domain,
+      score: result.score,
+      label: result.label,
+      linkValueMin: result.linkValue.min,
+      linkValueMax: result.linkValue.max,
+      acquisitionStars: result.acquisition.stars,
+      acquisitionLabel: result.acquisition.label,
+    };
+    setSavedOpportunities((prev) => {
+      const exists = prev.some(
+        (p) => p.domain === entry.domain && p.score === entry.score,
+      );
+      if (exists) { setAlreadySaved(true); return prev; }
+      setAlreadySaved(false);
+      return [...prev, entry];
+    });
+  };
+
+  const removeOpportunity = (id: string) =>
+    setSavedOpportunities((prev) => prev.filter((p) => p.id !== id));
+
+  const sortedOpportunities = useMemo(() => {
+    return [...savedOpportunities].sort((a, b) => {
+      if (sortMode === "highest-value") {
+        return b.score !== a.score
+          ? b.score - a.score
+          : b.linkValueMin - a.linkValueMin;
+      }
+      return a.acquisitionStars !== b.acquisitionStars
+        ? a.acquisitionStars - b.acquisitionStars
+        : b.score - a.score;
+    });
+  }, [savedOpportunities, sortMode]);
+
+  const isSaved =
+    !!result &&
+    savedOpportunities.some(
+      (p) => p.domain === form.domain && p.score === result.score,
+    );
+
   const canEstimate =
     (parseFloat(form.da) > 0 || parseFloat(form.traffic) > 0) &&
     form.domain.trim().length > 0;
@@ -614,7 +682,9 @@ export default function BacklinkValueEstimator() {
       />
 
       <section className="py-12 md:py-16">
-        <div className="container mx-auto px-4 max-w-3xl">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className={`${savedOpportunities.length > 0 ? "grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6 items-start" : ""}`}>
+          <div>
           <Link
             href="/tools"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary mb-8 transition-colors"
@@ -826,7 +896,7 @@ export default function BacklinkValueEstimator() {
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
                     Results for {form.domain}
                   </h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Button
                       type="button"
                       variant="outline"
@@ -867,6 +937,31 @@ export default function BacklinkValueEstimator() {
                         <>
                           <FileDown className="w-3.5 h-3.5" />
                           Export PDF
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={saveOpportunity}
+                      className={`shrink-0 gap-1.5 text-xs font-semibold transition-all ${
+                        isSaved
+                          ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+                          : alreadySaved
+                            ? "border-amber-400 bg-amber-50 text-amber-700"
+                            : "border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50"
+                      }`}
+                    >
+                      {isSaved ? (
+                        <>
+                          <BookmarkCheck className="w-3.5 h-3.5" />
+                          Saved
+                        </>
+                      ) : (
+                        <>
+                          <Bookmark className="w-3.5 h-3.5" />
+                          Save
                         </>
                       )}
                     </Button>
@@ -1075,7 +1170,8 @@ export default function BacklinkValueEstimator() {
                                 width: `${(b.contribution / [40, 25, 20, 10, 5][result.breakdown.indexOf(b)]) * 100}%`,
                               }}
                               transition={{ duration: 0.6, delay: result.breakdown.indexOf(b) * 0.08 }}
-                              className="h-1.5 rounded-full bg-emerald-500"
+                              className="h-1.5 rounded-full"
+                              style={{ background: "linear-gradient(to right, #f97316, #3b82f6)" }}
                             />
                           </div>
                         </div>
@@ -1154,6 +1250,145 @@ export default function BacklinkValueEstimator() {
               </motion.div>
             )}
           </AnimatePresence>
+          </div>{/* end main content col */}
+
+          {/* Compare Opportunities Sidebar */}
+          <AnimatePresence>
+            {savedOpportunities.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 24 }}
+                transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                className="sticky top-6"
+              >
+                <Card className="border border-emerald-100 shadow-md overflow-hidden">
+                  {/* Header */}
+                  <div className="bg-gradient-to-r from-emerald-600 to-blue-600 px-4 py-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="w-4 h-4 text-white/90" />
+                        <span className="text-sm font-bold text-white">Compare Opportunities</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-white/70 bg-white/20 rounded-full px-2 py-0.5">
+                        {savedOpportunities.length} saved
+                      </span>
+                    </div>
+                    {/* Sort tabs */}
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setSortMode("highest-value")}
+                        className={`flex-1 flex items-center justify-center gap-1 text-[10px] font-bold py-1.5 rounded-md transition-all ${
+                          sortMode === "highest-value"
+                            ? "bg-white text-emerald-700 shadow-sm"
+                            : "text-white/80 hover:bg-white/20"
+                        }`}
+                      >
+                        <TrendingUp className="w-2.5 h-2.5" />
+                        Highest Value
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSortMode("easiest-win")}
+                        className={`flex-1 flex items-center justify-center gap-1 text-[10px] font-bold py-1.5 rounded-md transition-all ${
+                          sortMode === "easiest-win"
+                            ? "bg-white text-blue-700 shadow-sm"
+                            : "text-white/80 hover:bg-white/20"
+                        }`}
+                      >
+                        <SortDesc className="w-2.5 h-2.5" />
+                        Easiest Win
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Entries */}
+                  <div className="divide-y divide-slate-50 max-h-[520px] overflow-y-auto">
+                    <AnimatePresence initial={false}>
+                      {sortedOpportunities.map((opp, idx) => (
+                        <motion.div
+                          key={opp.id}
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="px-4 py-3 hover:bg-slate-50/80 transition-colors group"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start gap-2 min-w-0">
+                              <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-slate-100 text-[10px] font-black text-slate-500 flex items-center justify-center">
+                                {idx + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-800 truncate max-w-[160px]" title={opp.domain}>
+                                  {opp.domain}
+                                </p>
+                                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                  <span className={`text-[10px] font-black ${
+                                    opp.score >= 80 ? "text-emerald-600"
+                                    : opp.score >= 65 ? "text-blue-600"
+                                    : opp.score >= 50 ? "text-amber-500"
+                                    : "text-red-500"
+                                  }`}>
+                                    {opp.score}/100
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground">·</span>
+                                  <span className="text-[10px] text-violet-600 font-semibold">
+                                    {fmtMoney(opp.linkValueMin)}–{fmtMoney(opp.linkValueMax)}
+                                  </span>
+                                </div>
+                                {/* Difficulty stars */}
+                                <div className="flex items-center gap-1 mt-1">
+                                  {Array.from({ length: 5 }).map((_, si) => (
+                                    <Star
+                                      key={si}
+                                      className={`w-2.5 h-2.5 ${
+                                        si < opp.acquisitionStars
+                                          ? "text-amber-400 fill-amber-400"
+                                          : "text-slate-200 fill-slate-200"
+                                      }`}
+                                    />
+                                  ))}
+                                  <span className="text-[9px] text-muted-foreground ml-0.5">{opp.acquisitionLabel}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeOpportunity(opp.id)}
+                              className="opacity-0 group-hover:opacity-100 shrink-0 p-1 rounded text-slate-300 hover:text-red-400 hover:bg-red-50 transition-all"
+                              title="Remove"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-4 py-3 bg-slate-50 border-t border-slate-100">
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      Run an estimate then click <span className="font-semibold text-slate-700">Save</span> to add to your list. Hover any row to remove it.
+                    </p>
+                    {savedOpportunities.length >= 3 && (
+                      <button
+                        type="button"
+                        onClick={() => setSavedOpportunities([])}
+                        className="mt-2 text-[10px] text-red-400 hover:text-red-600 font-semibold transition-colors"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          </div>{/* end grid wrapper */}
         </div>
       </section>
     </div>
