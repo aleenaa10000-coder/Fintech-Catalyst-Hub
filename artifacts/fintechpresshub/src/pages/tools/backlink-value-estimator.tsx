@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import {
   Link2,
   ArrowLeft,
+  ArrowLeftRight,
   Sparkles,
   RotateCcw,
   CheckCircle2,
@@ -496,6 +497,9 @@ export default function BacklinkValueEstimator() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [savedOpportunities, setSavedOpportunities] = useState<SavedOpportunity[]>([]);
   const [sortMode, setSortMode] = useState<SortMode>("value-score");
+  const [compareMode, setCompareMode] = useState(false);
+  const [formB, setFormB] = useState<FormState>(DEFAULTS);
+  const [resultB, setResultB] = useState<Result | null>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pitchCopyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -520,19 +524,21 @@ export default function BacklinkValueEstimator() {
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const setFieldB = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setFormB((prev) => ({ ...prev, [key]: value }));
+
   const reset = () => {
     setForm(DEFAULTS);
+    setFormB(DEFAULTS);
     setResult(null);
+    setResultB(null);
     window.history.replaceState(null, "", window.location.pathname);
   };
 
-  const estimate = () => {
-    const computed = estimateValue(form);
-    setResult(computed);
-    // Auto-save every estimate — deduplicate by domain + score
+  const autoSave = (f: FormState, computed: Result) => {
     const entry: SavedOpportunity = {
-      id: `${Date.now()}-${form.domain}`,
-      domain: form.domain,
+      id: `${Date.now()}-${f.domain}`,
+      domain: f.domain,
       score: computed.score,
       label: computed.label,
       linkValueMin: computed.linkValue.min,
@@ -542,12 +548,30 @@ export default function BacklinkValueEstimator() {
       priority: null,
     };
     setSavedOpportunities((prev) => {
-      const exists = prev.some(
-        (p) => p.domain === entry.domain && p.score === entry.score,
-      );
+      const exists = prev.some((p) => p.domain === entry.domain && p.score === entry.score);
       if (exists) return prev;
       return [...prev, entry];
     });
+  };
+
+  const estimate = () => {
+    const computed = estimateValue(form);
+    setResult(computed);
+    autoSave(form, computed);
+    if (compareMode) {
+      const canRunB =
+        (parseFloat(formB.da) > 0 || parseFloat(formB.traffic) > 0) &&
+        formB.domain.trim().length > 0;
+      if (canRunB) {
+        const computedB = estimateValue(formB);
+        setResultB(computedB);
+        autoSave(formB, computedB);
+      } else {
+        setResultB(null);
+      }
+    } else {
+      setResultB(null);
+    }
   };
 
   const copyShareUrl = async () => {
@@ -829,16 +853,30 @@ export default function BacklinkValueEstimator() {
                     </p>
                   </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={reset}
-                  className="text-muted-foreground"
-                >
-                  <RotateCcw className="w-4 h-4 mr-1.5" />
-                  Reset
-                </Button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setCompareMode((v) => !v); setResultB(null); }}
+                    className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
+                      compareMode
+                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                        : "border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50"
+                    }`}
+                  >
+                    <ArrowLeftRight className="w-3.5 h-3.5" />
+                    Compare
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={reset}
+                    className="text-muted-foreground"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1.5" />
+                    Reset
+                  </Button>
+                </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-5 mb-5">
@@ -991,13 +1029,133 @@ export default function BacklinkValueEstimator() {
                 </div>
               </div>
 
+              {/* Domain B form — shown only in compare mode */}
+              {compareMode && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-6 pt-6 border-t border-blue-100"
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-black text-blue-700">B</div>
+                    <span className="text-sm font-bold text-slate-800">Domain B — Comparison Opportunity</span>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-blue-500" />
+                        Referring Domain <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        placeholder="e.g. bankingtech.com"
+                        value={formB.domain}
+                        onChange={(e) => setFieldB("domain", e.target.value)}
+                        className="h-11 border-blue-200 focus-visible:ring-blue-400"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        <Star className="w-4 h-4 text-blue-500" />
+                        Domain Authority (DA)
+                      </Label>
+                      <Input
+                        type="number" min="0" max="100" placeholder="45"
+                        value={formB.da}
+                        onChange={(e) => setFieldB("da", e.target.value)}
+                        className="h-11 border-blue-200 focus-visible:ring-blue-400"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        <Users className="w-4 h-4 text-blue-500" />
+                        Monthly Organic Traffic
+                      </Label>
+                      <Input
+                        type="number" min="0" placeholder="25000"
+                        value={formB.traffic}
+                        onChange={(e) => setFieldB("traffic", e.target.value)}
+                        className="h-11 border-blue-200 focus-visible:ring-blue-400"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        <Target className="w-4 h-4 text-blue-500" />
+                        Niche Relevance
+                      </Label>
+                      <div className="flex flex-col gap-1.5">
+                        {(["high", "medium", "low"] as Relevance[]).map((r) => (
+                          <label key={r} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition-all text-sm ${
+                            formB.relevance === r
+                              ? "border-blue-400 bg-blue-50 text-blue-800 font-medium"
+                              : "border-border text-muted-foreground hover:border-blue-300"
+                          }`}>
+                            <input type="radio" name="relevance-b" value={r} checked={formB.relevance === r}
+                              onChange={() => setFieldB("relevance", r)} className="accent-blue-600" />
+                            {RELEVANCE_LABELS[r]}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                          <Link2 className="w-4 h-4 text-blue-500" />
+                          Link Placement
+                        </Label>
+                        <div className="flex flex-col gap-1.5">
+                          {(["editorial","sidebar","footer","sponsored"] as Placement[]).map((p) => (
+                            <label key={p} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition-all text-sm ${
+                              formB.placement === p
+                                ? "border-blue-400 bg-blue-50 text-blue-800 font-medium"
+                                : "border-border text-muted-foreground hover:border-blue-300"
+                            }`}>
+                              <input type="radio" name="placement-b" value={p} checked={formB.placement === p}
+                                onChange={() => setFieldB("placement", p)} className="accent-blue-600" />
+                              {PLACEMENT_LABELS[p]}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-blue-500" />
+                          Link Type
+                        </Label>
+                        <div className="flex gap-2">
+                          {(["dofollow","nofollow"] as const).map((t) => (
+                            <button key={t} type="button" onClick={() => setFieldB("linkType", t)}
+                              className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all ${
+                                formB.linkType === t
+                                  ? "border-blue-400 bg-blue-600 text-white"
+                                  : "border-border text-muted-foreground hover:border-blue-300"
+                              }`}>
+                              {t.charAt(0).toUpperCase() + t.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
               <Button
                 onClick={estimate}
                 disabled={!canEstimate}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11"
+                className={`w-full font-semibold h-11 mt-5 ${compareMode ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"} text-white`}
               >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Estimate Backlink Value
+                {compareMode ? (
+                  <>
+                    <ArrowLeftRight className="w-4 h-4 mr-2" />
+                    Compare Both Domains
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Estimate Backlink Value
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>
@@ -1013,7 +1171,7 @@ export default function BacklinkValueEstimator() {
               >
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                    Results for {form.domain}
+                    {compareMode && resultB ? `Domain A: ${form.domain}` : `Results for ${form.domain}`}
                   </h3>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Button
@@ -1065,6 +1223,136 @@ export default function BacklinkValueEstimator() {
                     </span>
                   </div>
                 </div>
+
+                {/* Head-to-Head Comparison Panel */}
+                {compareMode && resultB && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 }}
+                  >
+                    <Card className="border border-blue-100 shadow-[0_2px_16px_rgba(0,0,0,0.07)] overflow-hidden">
+                      {/* Header */}
+                      <div className="bg-gradient-to-r from-emerald-600 via-blue-600 to-blue-700 px-5 py-3 flex items-center gap-2">
+                        <ArrowLeftRight className="w-4 h-4 text-white/80" />
+                        <span className="text-sm font-bold text-white">Head-to-Head Comparison</span>
+                      </div>
+                      <CardContent className="p-0">
+                        {/* Score row */}
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-0 divide-x divide-slate-100">
+                          <div className={`p-5 flex flex-col items-center gap-1 ${result.score >= resultB.score ? "bg-emerald-50/60" : ""}`}>
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-black">A</span>
+                              {form.domain || "Domain A"}
+                            </div>
+                            <div className={`text-5xl font-black ${SCORE_COLOR(result.score)}`}>{result.score}</div>
+                            <div className="text-xs text-muted-foreground">/ 100</div>
+                            <div className={`text-xs font-bold mt-1 ${SCORE_COLOR(result.score)}`}>{result.label}</div>
+                            {result.score > resultB.score && (
+                              <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-600 text-white px-2.5 py-1 rounded-full">
+                                <Trophy className="w-2.5 h-2.5" /> Winner
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-center justify-center px-3 py-4 gap-1 bg-slate-50">
+                            <ArrowLeftRight className="w-4 h-4 text-slate-300" />
+                            <span className="text-[10px] text-slate-400 font-bold">VS</span>
+                          </div>
+                          <div className={`p-5 flex flex-col items-center gap-1 ${resultB.score > result.score ? "bg-blue-50/60" : ""}`}>
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-black">B</span>
+                              {formB.domain || "Domain B"}
+                            </div>
+                            <div className={`text-5xl font-black ${SCORE_COLOR(resultB.score)}`}>{resultB.score}</div>
+                            <div className="text-xs text-muted-foreground">/ 100</div>
+                            <div className={`text-xs font-bold mt-1 ${SCORE_COLOR(resultB.score)}`}>{resultB.label}</div>
+                            {resultB.score > result.score && (
+                              <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold bg-blue-600 text-white px-2.5 py-1 rounded-full">
+                                <Trophy className="w-2.5 h-2.5" /> Winner
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Factor breakdown */}
+                        <div className="border-t border-slate-100 px-5 py-4">
+                          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">Factor Breakdown</p>
+                          {(() => {
+                            const MAX_PTS = [40, 25, 20, 10, 5];
+                            return result.breakdown.map((bA, i) => {
+                              const bB = resultB.breakdown[i];
+                              const aWins = bA.contribution >= bB.contribution;
+                              return (
+                                <div key={bA.factor} className="mb-3">
+                                  <div className="flex items-center justify-between text-xs mb-1">
+                                    <span className="font-semibold text-slate-600">{bA.factor}</span>
+                                    <div className="flex items-center gap-2 text-[11px]">
+                                      <span className={`font-bold ${aWins ? "text-emerald-700" : "text-slate-400"}`}>A: {bA.contribution}/{MAX_PTS[i]}</span>
+                                      <span className="text-slate-300">·</span>
+                                      <span className={`font-bold ${!aWins ? "text-blue-700" : "text-slate-400"}`}>B: {bB.contribution}/{MAX_PTS[i]}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-emerald-500 rounded-full transition-all"
+                                        style={{ width: `${Math.round((bA.contribution / MAX_PTS[i]) * 100)}%` }}
+                                      />
+                                    </div>
+                                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-blue-500 rounded-full transition-all"
+                                        style={{ width: `${Math.round((bB.contribution / MAX_PTS[i]) * 100)}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+
+                        {/* Link value + verdict */}
+                        <div className="border-t border-slate-100 px-5 py-4 bg-slate-50/50">
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Domain A — Est. Value</p>
+                              <p className="text-base font-black text-violet-700">{fmtMoney(result.linkValue.min)}–{fmtMoney(result.linkValue.max)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Domain B — Est. Value</p>
+                              <p className="text-base font-black text-blue-700">{fmtMoney(resultB.linkValue.min)}–{fmtMoney(resultB.linkValue.max)}</p>
+                            </div>
+                          </div>
+                          {result.score !== resultB.score && (
+                            <div className={`rounded-lg px-4 py-3 text-sm font-medium leading-relaxed ${
+                              result.score > resultB.score
+                                ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
+                                : "bg-blue-50 border border-blue-200 text-blue-800"
+                            }`}>
+                              <span className="font-bold">
+                                {result.score > resultB.score ? `Domain A (${form.domain || "A"})` : `Domain B (${formB.domain || "B"})`}
+                              </span>{" "}
+                              is the stronger opportunity —{" "}
+                              {Math.abs(result.score - resultB.score)} points higher and worth an estimated{" "}
+                              <span className="font-bold">
+                                {result.score > resultB.score
+                                  ? `${fmtMoney(result.linkValue.min)}–${fmtMoney(result.linkValue.max)}`
+                                  : `${fmtMoney(resultB.linkValue.min)}–${fmtMoney(resultB.linkValue.max)}`}
+                              </span>{" "}
+                              in market value. Prioritise this one in your outreach pipeline.
+                            </div>
+                          )}
+                          {result.score === resultB.score && (
+                            <div className="rounded-lg px-4 py-3 text-sm font-medium bg-amber-50 border border-amber-200 text-amber-800">
+                              Both domains score equally. Use link value and acquisition difficulty to decide — lower acquisition difficulty with higher link value wins.
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
 
                 {/* Score */}
                 <Card className={`border shadow-[0_2px_16px_rgba(0,0,0,0.06)] ${SCORE_BG(result.score)}`}>
