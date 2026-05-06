@@ -1094,6 +1094,135 @@ export default function BacklinkValueEstimator() {
     }
   };
 
+  const exportSavedComparePDF = async (oppA: SavedOpportunity, oppB: SavedOpportunity) => {
+    setComparePdfLoading(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 48;
+      const contentW = pageW - margin * 2;
+      let y = margin;
+
+      // Header bar
+      doc.setFillColor(37, 99, 235);
+      doc.rect(0, 0, pageW, 56, "F");
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text("FintechPressHub", margin, 34);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("Saved Estimates — Head-to-Head Comparison Report", margin, 48);
+      y = 76;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(120, 120, 120);
+      doc.text(`Generated: ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`, margin, y);
+      y += 18;
+
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, pageW - margin, y);
+      y += 14;
+
+      const aColor: [number, number, number] = [16, 110, 80];
+      const bColor: [number, number, number] = [37, 99, 235];
+      const colW = (contentW - 20) / 2;
+
+      // Domain A box
+      doc.setFillColor(240, 253, 244);
+      doc.roundedRect(margin, y, colW, 72, 4, 4, "F");
+      doc.setFillColor(16, 110, 80);
+      doc.roundedRect(margin, y, colW, 6, 4, 4, "F");
+      doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(80, 80, 80);
+      doc.text(`Domain A: ${oppA.domain || "Domain A"}`, margin + 8, y + 20);
+      doc.setFontSize(28); doc.setFont("helvetica", "bold"); doc.setTextColor(...aColor);
+      doc.text(`${oppA.score}`, margin + 8, y + 52);
+      doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(80, 80, 80);
+      doc.text(`/ 100 — ${oppA.label}`, margin + 8 + 38, y + 52);
+      if (oppA.score > oppB.score) {
+        doc.setFillColor(16, 110, 80);
+        doc.roundedRect(margin + colW - 58, y + 38, 50, 16, 3, 3, "F");
+        doc.setFontSize(7); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
+        doc.text("WINNER", margin + colW - 43, y + 49);
+      }
+
+      // Domain B box
+      doc.setFillColor(239, 246, 255);
+      doc.roundedRect(margin + colW + 20, y, colW, 72, 4, 4, "F");
+      doc.setFillColor(37, 99, 235);
+      doc.roundedRect(margin + colW + 20, y, colW, 6, 4, 4, "F");
+      doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(80, 80, 80);
+      doc.text(`Domain B: ${oppB.domain || "Domain B"}`, margin + colW + 28, y + 20);
+      doc.setFontSize(28); doc.setFont("helvetica", "bold"); doc.setTextColor(...bColor);
+      doc.text(`${oppB.score}`, margin + colW + 28, y + 52);
+      doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(80, 80, 80);
+      doc.text(`/ 100 — ${oppB.label}`, margin + colW + 28 + 38, y + 52);
+      if (oppB.score > oppA.score) {
+        doc.setFillColor(37, 99, 235);
+        doc.roundedRect(margin + colW * 2 + 20 - 58, y + 38, 50, 16, 3, 3, "F");
+        doc.setFontSize(7); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
+        doc.text("WINNER", margin + colW * 2 + 20 - 43, y + 49);
+      }
+      y += 88;
+
+      doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.5);
+      doc.line(margin, y, pageW - margin, y); y += 14;
+
+      // Metrics table
+      doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.setTextColor(30, 30, 30);
+      doc.text("Key Metrics", margin, y); y += 14;
+
+      const metrics = [
+        ["Est. Market Value", `${fmtMoney(oppA.linkValueMin)}–${fmtMoney(oppA.linkValueMax)}`, `${fmtMoney(oppB.linkValueMin)}–${fmtMoney(oppB.linkValueMax)}`],
+        ["Acquisition Difficulty", `${oppA.acquisitionStars}/5 stars — ${oppA.acquisitionLabel}`, `${oppB.acquisitionStars}/5 stars — ${oppB.acquisitionLabel}`],
+        ["Value for Money", fmtMoney(((oppA.linkValueMin + oppA.linkValueMax) / 2) / Math.max(1, oppA.acquisitionStars)), fmtMoney(((oppB.linkValueMin + oppB.linkValueMax) / 2) / Math.max(1, oppB.acquisitionStars))],
+        ["Outreach Priority", oppA.priority ? PRIORITY_LABELS[oppA.priority] : "Unscheduled", oppB.priority ? PRIORITY_LABELS[oppB.priority] : "Unscheduled"],
+      ];
+
+      metrics.forEach(([label, a, b]) => {
+        doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(90, 90, 90);
+        doc.text(label, margin, y);
+        doc.setFont("helvetica", "normal"); doc.setTextColor(...aColor);
+        const aLines = doc.splitTextToSize(a, colW);
+        doc.text(aLines, margin + 130, y);
+        doc.setTextColor(...bColor);
+        const bLines = doc.splitTextToSize(b, colW);
+        doc.text(bLines, margin + 130 + colW + 10, y);
+        y += Math.max(aLines.length, bLines.length) * 13 + 4;
+      });
+
+      y += 10;
+      doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.5);
+      doc.line(margin, y, pageW - margin, y); y += 10;
+
+      // Verdict
+      const vfmA = ((oppA.linkValueMin + oppA.linkValueMax) / 2) / Math.max(1, oppA.acquisitionStars);
+      const vfmB = ((oppB.linkValueMin + oppB.linkValueMax) / 2) / Math.max(1, oppB.acquisitionStars);
+      const winner = vfmA >= vfmB ? oppA.domain || "Domain A" : oppB.domain || "Domain B";
+      const winnerVfm = fmtMoney(vfmA >= vfmB ? vfmA : vfmB);
+      const lines = doc.splitTextToSize(
+        `Value for Money Verdict: ${winner} offers better value — ${winnerVfm} estimated value per star of acquisition difficulty.`,
+        contentW,
+      );
+      doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(16, 110, 80);
+      doc.text(lines, margin, y);
+      y += lines.length * 14 + 20;
+
+      doc.setDrawColor(200, 200, 200); doc.line(margin, y, pageW - margin, y); y += 10;
+      doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(160, 160, 160);
+      doc.text("Generated by FintechPressHub Backlink Value Estimator · fintechpresshub.com", margin, y);
+
+      const safeA = (oppA.domain || "A").replace(/[^a-zA-Z0-9.-]/g, "_");
+      const safeB = (oppB.domain || "B").replace(/[^a-zA-Z0-9.-]/g, "_");
+      doc.save(`saved-comparison-${safeA}-vs-${safeB}.pdf`);
+    } finally {
+      setComparePdfLoading(false);
+    }
+  };
+
   const removeOpportunity = (id: string) => {
     setSavedOpportunities((prev) => prev.filter((p) => p.id !== id));
     setCheckedSaved((prev) => { const next = new Set(prev); next.delete(id); return next; });
@@ -2597,7 +2726,7 @@ export default function BacklinkValueEstimator() {
                 <Button
                   type="button"
                   size="sm"
-                  onClick={exportComparePDF.bind(null, oppA, oppB)}
+                  onClick={() => exportSavedComparePDF(oppA, oppB)}
                   disabled={comparePdfLoading}
                   className="gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
                 >
