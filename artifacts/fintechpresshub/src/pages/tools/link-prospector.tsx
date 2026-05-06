@@ -28,6 +28,26 @@ import {
 type Relevance = "high" | "medium" | "low";
 type Placement = "editorial" | "sidebar" | "footer" | "sponsored";
 
+type OutreachStatus = "not_started" | "emailed" | "replied" | "won";
+
+const STATUS_CYCLE: OutreachStatus[] = ["not_started", "emailed", "replied", "won"];
+
+const STATUS_STYLES: Record<OutreachStatus, string> = {
+  not_started: "bg-slate-100 border-slate-200 text-slate-500",
+  emailed:     "bg-blue-50 border-blue-300 text-blue-700",
+  replied:     "bg-amber-50 border-amber-300 text-amber-700",
+  won:         "bg-emerald-50 border-emerald-300 text-emerald-700",
+};
+
+const STATUS_LABELS: Record<OutreachStatus, string> = {
+  not_started: "Not Started",
+  emailed:     "Emailed",
+  replied:     "Replied",
+  won:         "Won ✓",
+};
+
+const LS_STATUS_KEY = "lp-outreach-status";
+
 type FormState = {
   domain: string;
   da: string;
@@ -224,6 +244,22 @@ export default function LinkProspector() {
   const [error, setError] = useState("");
   const [ran, setRan] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [statusMap, setStatusMap] = useState<Record<string, OutreachStatus>>(() => {
+    try {
+      const stored = localStorage.getItem(LS_STATUS_KEY);
+      return stored ? (JSON.parse(stored) as Record<string, OutreachStatus>) : {};
+    } catch { return {}; }
+  });
+
+  const cycleStatus = (domain: string) => {
+    setStatusMap((prev) => {
+      const current = prev[domain] ?? "not_started";
+      const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(current) + 1) % STATUS_CYCLE.length];
+      const updated = { ...prev, [domain]: next };
+      try { localStorage.setItem(LS_STATUS_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
 
   const runWithText = useCallback((text: string, pushUrl = true) => {
     setError("");
@@ -541,6 +577,7 @@ export default function LinkProspector() {
                           <th className={thCls("acquisitionStars")} onClick={() => handleSort("acquisitionStars")}>
                             <span className="flex items-center gap-1">Difficulty <SortIcon col="acquisitionStars" active={sortKey} dir={sortDir} /></span>
                           </th>
+                          <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5">Status</th>
                           <th className="px-3 py-2.5" />
                         </tr>
                       </thead>
@@ -585,6 +622,16 @@ export default function LinkProspector() {
                                 </span>
                                 <span className="text-[11px] text-slate-500">{r.acquisition.label}</span>
                               </div>
+                            </td>
+                            <td className="px-3 py-3">
+                              <button
+                                type="button"
+                                onClick={() => cycleStatus(r.domain)}
+                                className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all whitespace-nowrap ${STATUS_STYLES[statusMap[r.domain] ?? "not_started"]}`}
+                                title="Click to advance outreach status"
+                              >
+                                {STATUS_LABELS[statusMap[r.domain] ?? "not_started"]}
+                              </button>
                             </td>
                             <td className="px-3 py-3">
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

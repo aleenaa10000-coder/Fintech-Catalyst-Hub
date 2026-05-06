@@ -1226,6 +1226,37 @@ export default function BacklinkValueEstimator() {
                       <span className="font-semibold">Strategy Tip: </span>
                       {result.acquisition.strategyTip}
                     </div>
+
+                    {/* Domain Health Status */}
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Domain Health Status</p>
+                      {(() => {
+                        const daVal = parseFloat(form.da) || 0;
+                        const trafficVal = parseFloat(form.traffic) || 0;
+                        const isCaution = daVal > 60 && trafficVal < 5000;
+                        return isCaution ? (
+                          <TooltipProvider delayDuration={100}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-300 text-amber-800 cursor-help">
+                                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                                  <span className="text-xs font-semibold">Caution: Potential Link Farm / Low Engagement</span>
+                                  <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 opacity-70" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="max-w-[280px] text-center leading-snug bg-slate-900 text-white text-xs p-3">
+                                Sites with high authority but very low organic traffic are often penalized or low-quality. We recommend a manual audit before proceeding.
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800">
+                            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span className="text-xs font-semibold">Healthy Search Presence</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </CardContent>
                 </Card>
 
