@@ -167,6 +167,16 @@ export const PAGE_META = {
     description:
       "Score any fintech article headline out of 100 across clarity, keyword presence, emotional pull, and character count — with instant rewrite suggestions.",
   },
+  linkProspector: {
+    title: "Link Prospector | Free Fintech Link Building Tool",
+    description:
+      "Paste a list of domains to bulk-score your backlink prospects — then rank them by highest value or easiest win for your outreach plan.",
+  },
+  outreachEmailGenerator: {
+    title: "Outreach Email Generator | Free Fintech Link Building Tool",
+    description:
+      "Generate a personalised link-building outreach email in seconds. Choose your tone, fill in the details, and compare subject line variants scored on open-rate factors.",
+  },
   adminServices: {
     title: "Admin · Services | FintechPressHub",
     description: "Manage services.",

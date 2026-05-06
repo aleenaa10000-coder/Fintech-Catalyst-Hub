@@ -35,6 +35,7 @@ import {
   TrendingUp,
   Calendar,
   Download,
+  Mail,
 } from "lucide-react";
 import { useMemo } from "react";
 import {

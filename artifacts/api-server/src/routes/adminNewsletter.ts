@@ -82,11 +82,12 @@ async function loadDetail() {
     last30DayCount,
     last7DayCount,
     latestSubscribedAt: rows[0]?.createdAt?.toISOString() ?? null,
-    subscribers: rows.map((r: { id: number; email: string | null; createdAt: Date; source: string | null; briefStatus: BriefLeadStatus | null; briefStatusUpdatedAt: Date | null }) => ({
+    subscribers: rows.map((r: { id: number; email: string | null; createdAt: Date; source: string | null; keyword: string | null; briefStatus: BriefLeadStatus | null; briefStatusUpdatedAt: Date | null }) => ({
       id: r.id,
       email: r.email,
       createdAt: r.createdAt.toISOString(),
       source: r.source,
+      keyword: r.keyword,
       briefStatus: r.briefStatus ?? null,
       briefStatusUpdatedAt: r.briefStatusUpdatedAt?.toISOString() ?? null,
     })),
@@ -106,7 +107,7 @@ router.patch(
   "/admin/newsletter/brief-leads/:id/status",
   requireAdmin,
   async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id ?? "", 10);
+    const id = parseInt(String(req.params.id ?? ""), 10);
     if (isNaN(id)) {
       res.status(400).json({ error: "Invalid id" });
       return;
