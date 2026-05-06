@@ -471,17 +471,18 @@ type SavedOpportunity = {
   priority: Priority;
 };
 
-type SortMode = "highest-value" | "easiest-win";
+type SortMode = "value-score" | "market-price";
 
 export default function BacklinkValueEstimator() {
   const [form, setForm] = useState<FormState>(DEFAULTS);
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedPitch, setCopiedPitch] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [savedOpportunities, setSavedOpportunities] = useState<SavedOpportunity[]>([]);
-  const [sortMode, setSortMode] = useState<SortMode>("highest-value");
-  const [alreadySaved, setAlreadySaved] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>("value-score");
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pitchCopyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const fromParams = parseFormFromParams();
@@ -497,6 +498,7 @@ export default function BacklinkValueEstimator() {
     }
     return () => {
       if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      if (pitchCopyTimeoutRef.current) clearTimeout(pitchCopyTimeoutRef.current);
     };
   }, []);
 
@@ -510,7 +512,27 @@ export default function BacklinkValueEstimator() {
   };
 
   const estimate = () => {
-    setResult(estimateValue(form));
+    const computed = estimateValue(form);
+    setResult(computed);
+    // Auto-save every estimate — deduplicate by domain + score
+    const entry: SavedOpportunity = {
+      id: `${Date.now()}-${form.domain}`,
+      domain: form.domain,
+      score: computed.score,
+      label: computed.label,
+      linkValueMin: computed.linkValue.min,
+      linkValueMax: computed.linkValue.max,
+      acquisitionStars: computed.acquisition.stars,
+      acquisitionLabel: computed.acquisition.label,
+      priority: null,
+    };
+    setSavedOpportunities((prev) => {
+      const exists = prev.some(
+        (p) => p.domain === entry.domain && p.score === entry.score,
+      );
+      if (exists) return prev;
+      return [...prev, entry];
+    });
   };
 
   const copyShareUrl = async () => {
@@ -684,29 +706,6 @@ export default function BacklinkValueEstimator() {
     }
   };
 
-  const saveOpportunity = () => {
-    if (!result) return;
-    const entry: SavedOpportunity = {
-      id: `${Date.now()}-${form.domain}`,
-      domain: form.domain,
-      score: result.score,
-      label: result.label,
-      linkValueMin: result.linkValue.min,
-      linkValueMax: result.linkValue.max,
-      acquisitionStars: result.acquisition.stars,
-      acquisitionLabel: result.acquisition.label,
-      priority: null,
-    };
-    setSavedOpportunities((prev) => {
-      const exists = prev.some(
-        (p) => p.domain === entry.domain && p.score === entry.score,
-      );
-      if (exists) { setAlreadySaved(true); return prev; }
-      setAlreadySaved(false);
-      return [...prev, entry];
-    });
-  };
-
   const removeOpportunity = (id: string) =>
     setSavedOpportunities((prev) => prev.filter((p) => p.id !== id));
 
@@ -720,9 +719,9 @@ export default function BacklinkValueEstimator() {
 
   const exportCSV = () => {
     const header = [
-      "Domain", "Score", "Label",
-      "Est. Value Min", "Est. Value Max",
-      "Difficulty Stars", "Difficulty",
+      "Domain", "Value Score", "Label",
+      "Est. Market Price Min", "Est. Market Price Max",
+      "Acquisition Difficulty (Stars)", "Acquisition Difficulty",
       "Priority", "Outreach Date",
     ];
     const rows = sortedOpportunities.map((opp) => [
@@ -743,7 +742,7 @@ export default function BacklinkValueEstimator() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `outreach-calendar-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `prospect-list-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -752,18 +751,19 @@ export default function BacklinkValueEstimator() {
 
   const sortedOpportunities = useMemo(() => {
     return [...savedOpportunities].sort((a, b) => {
-      if (sortMode === "highest-value") {
+      if (sortMode === "value-score") {
         return b.score !== a.score
           ? b.score - a.score
           : b.linkValueMin - a.linkValueMin;
       }
-      return a.acquisitionStars !== b.acquisitionStars
-        ? a.acquisitionStars - b.acquisitionStars
+      // market-price: sort by estimated link value (max) descending
+      return b.linkValueMax !== a.linkValueMax
+        ? b.linkValueMax - a.linkValueMax
         : b.score - a.score;
     });
   }, [savedOpportunities, sortMode]);
 
-  const isSaved =
+  const _isSaved =
     !!result &&
     savedOpportunities.some(
       (p) => p.domain === form.domain && p.score === result.score,
@@ -1044,31 +1044,10 @@ export default function BacklinkValueEstimator() {
                         </>
                       )}
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={saveOpportunity}
-                      className={`shrink-0 gap-1.5 text-xs font-semibold transition-all ${
-                        isSaved
-                          ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-                          : alreadySaved
-                            ? "border-amber-400 bg-amber-50 text-amber-700"
-                            : "border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50"
-                      }`}
-                    >
-                      {isSaved ? (
-                        <>
-                          <BookmarkCheck className="w-3.5 h-3.5" />
-                          Saved
-                        </>
-                      ) : (
-                        <>
-                          <Bookmark className="w-3.5 h-3.5" />
-                          Save
-                        </>
-                      )}
-                    </Button>
+                    <span className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-emerald-700 border border-emerald-300 bg-emerald-50 rounded-md px-2.5 py-1.5">
+                      <BookmarkCheck className="w-3.5 h-3.5" />
+                      Auto-saved
+                    </span>
                   </div>
                 </div>
 
@@ -1379,17 +1358,54 @@ export default function BacklinkValueEstimator() {
                             </span>
                             .
                           </p>
-                          <div className="mt-4">
+                          <div className="mt-4 flex items-center gap-2 flex-wrap">
                             <Link href={contactUrl}>
                               <Button
                                 type="button"
                                 size="sm"
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-1.5 text-xs w-full sm:w-auto"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-1.5 text-xs"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                                 Draft Pitch with AI
                               </Button>
                             </Link>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(pitchAngle);
+                                } catch {
+                                  const el = document.createElement("textarea");
+                                  el.value = pitchAngle;
+                                  document.body.appendChild(el);
+                                  el.select();
+                                  document.execCommand("copy");
+                                  document.body.removeChild(el);
+                                }
+                                setCopiedPitch(true);
+                                if (pitchCopyTimeoutRef.current) clearTimeout(pitchCopyTimeoutRef.current);
+                                pitchCopyTimeoutRef.current = setTimeout(() => setCopiedPitch(false), 2000);
+                              }}
+                              className={`gap-1.5 text-xs font-semibold transition-all ${
+                                copiedPitch
+                                  ? "border-indigo-400 bg-indigo-50 text-indigo-700"
+                                  : "border-indigo-200 text-indigo-700 hover:border-indigo-400 hover:bg-indigo-50"
+                              }`}
+                            >
+                              {copiedPitch ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5" />
+                                  Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5" />
+                                  Copy pitch
+                                </>
+                              )}
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
@@ -1487,7 +1503,7 @@ export default function BacklinkValueEstimator() {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <Trophy className="w-4 h-4 text-white/90" />
-                        <span className="text-sm font-bold text-white">Compare Opportunities</span>
+                        <span className="text-sm font-bold text-white">Saved Estimates</span>
                       </div>
                       <span className="text-[10px] font-bold text-white/70 bg-white/20 rounded-full px-2 py-0.5">
                         {savedOpportunities.length} saved
@@ -1497,27 +1513,27 @@ export default function BacklinkValueEstimator() {
                     <div className="flex gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setSortMode("highest-value")}
+                        onClick={() => setSortMode("value-score")}
                         className={`flex-1 flex items-center justify-center gap-1 text-[10px] font-bold py-1.5 rounded-md transition-all ${
-                          sortMode === "highest-value"
+                          sortMode === "value-score"
                             ? "bg-white text-emerald-700 shadow-sm"
                             : "text-white/80 hover:bg-white/20"
                         }`}
                       >
                         <TrendingUp className="w-2.5 h-2.5" />
-                        Highest Value
+                        Value Score
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSortMode("easiest-win")}
+                        onClick={() => setSortMode("market-price")}
                         className={`flex-1 flex items-center justify-center gap-1 text-[10px] font-bold py-1.5 rounded-md transition-all ${
-                          sortMode === "easiest-win"
+                          sortMode === "market-price"
                             ? "bg-white text-blue-700 shadow-sm"
                             : "text-white/80 hover:bg-white/20"
                         }`}
                       >
-                        <SortDesc className="w-2.5 h-2.5" />
-                        Easiest Win
+                        <DollarSign className="w-2.5 h-2.5" />
+                        Market Price
                       </button>
                     </div>
                   </div>
@@ -1606,7 +1622,7 @@ export default function BacklinkValueEstimator() {
                   {/* Footer */}
                   <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 space-y-2.5">
                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      Click <span className="font-semibold text-slate-700">+ Schedule</span> on any row to tag it with an outreach window. Click again to cycle or clear.
+                      Estimates are saved automatically. Click <span className="font-semibold text-slate-700">+ Schedule</span> on any row to tag an outreach window.
                     </p>
                     <button
                       type="button"
@@ -1614,7 +1630,7 @@ export default function BacklinkValueEstimator() {
                       className="w-full flex items-center justify-center gap-1.5 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg transition-colors"
                     >
                       <Download className="w-3 h-3" />
-                      Export Outreach Calendar (.csv)
+                      Download Full Prospect List (.csv)
                     </button>
                     {savedOpportunities.length >= 2 && (
                       <button
