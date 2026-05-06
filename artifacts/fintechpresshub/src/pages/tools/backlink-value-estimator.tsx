@@ -1123,7 +1123,8 @@ export default function BacklinkValueEstimator() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
                 >
-                  <Card className="border border-violet-100 bg-gradient-to-br from-violet-50 to-indigo-50 shadow-sm">
+                  <div className="rounded-xl p-[1.5px] bg-gradient-to-br from-purple-400 via-violet-400 to-blue-400 shadow-sm">
+                  <Card className="border-0 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-[10px] shadow-none">
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div>
@@ -1168,6 +1169,7 @@ export default function BacklinkValueEstimator() {
                       </div>
                     </CardContent>
                   </Card>
+                  </div>
                 </motion.div>
 
                 {/* Acquisition Difficulty */}
@@ -1285,7 +1287,7 @@ export default function BacklinkValueEstimator() {
                               }}
                               transition={{ duration: 0.6, delay: result.breakdown.indexOf(b) * 0.08 }}
                               className="h-1.5 rounded-full"
-                              style={{ background: "linear-gradient(to right, #f97316, #3b82f6)" }}
+                              style={{ background: "linear-gradient(to right, #10b981, #3b82f6)" }}
                             />
                           </div>
                         </div>
@@ -1449,14 +1451,17 @@ export default function BacklinkValueEstimator() {
                       href={`/tools/outreach-email-generator?targetDomain=${encodeURIComponent(form.domain)}&linkValueMin=${result.linkValue.min}&linkValueMax=${result.linkValue.max}&topic=${encodeURIComponent("fintech")}`}
                       className="shrink-0"
                     >
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-1.5 text-xs"
-                      >
-                        <Mail className="w-3.5 h-3.5" />
-                        Write outreach email
-                      </Button>
+                      <div className="relative inline-flex">
+                        <span className="absolute inset-0 rounded-md bg-blue-500/50 animate-ping" />
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="relative bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-1.5 text-xs"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          Write outreach email
+                        </Button>
+                      </div>
                     </Link>
                   </CardContent>
                 </Card>
