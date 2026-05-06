@@ -51,5 +51,11 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Build API server
+        # Compiles the Express backend with esbuild. Catches import errors,
+        # missing modules, and bundler failures that tsc --noEmit cannot see
+        # (e.g. runtime-only imports that are absent from node_modules).
+        run: pnpm --filter @workspace/api-server run build
+
       - name: Unit tests
         run: pnpm --filter @workspace/fintechpresshub exec vitest run
