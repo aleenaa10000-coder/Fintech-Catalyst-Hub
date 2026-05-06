@@ -93,6 +93,12 @@ type SMEQuestion = {
   context: string;
 };
 
+type ExpertHook = {
+  focus: string;
+  question: string;
+  why: string;
+};
+
 type Brief = {
   keyword: string;
   audience: string;
@@ -1790,6 +1796,147 @@ function ContentScoreCard({ score }: { score: ContentScore }) {
   );
 }
 
+// ── Tone Preview ───────────────────────────────────────────────────────────
+
+const AUDIENCE_LABEL: Record<Audience, string> = {
+  founders: "founders", marketers: "fintech marketers", developers: "developers",
+  consumers: "consumers", investors: "investors",
+};
+
+const TONE_PREVIEW: Record<Tone, (kw: string, al: string) => string> = {
+  authoritative: (kw, al) =>
+    `The rise of ${kw} is not a trend to be monitored — it is a structural shift that ${al} can no longer afford to defer. Early adopters have already demonstrated measurable competitive advantages; those who lag will inherit their competitors' market positions instead.`,
+  educational: (kw, al) =>
+    `Before exploring how ${kw} works in practice, it helps to understand the core mechanism behind it. At its most fundamental level, ${kw} solves a coordination problem that ${al} have historically addressed with manual processes — and that gap is precisely where the value accumulates.`,
+  conversational: (kw, al) =>
+    `Here is the thing about ${kw} that most ${al} don't realise until they are already three months into the project: the technical lift is rarely the hard part. The harder part is aligning the internal stakeholders who didn't know they cared until the first demo.`,
+  "data-driven": (kw, al) =>
+    `Across implementations analysed in ${new Date().getFullYear()}, organisations deploying ${kw} reported a median time-to-value of under 90 days — compared to six to nine months for legacy alternatives. For ${al} evaluating the build-vs-buy question, that delta compounds significantly at scale.`,
+};
+
+const TONE_BADGE: Record<Tone, string> = {
+  authoritative: "bg-slate-900 text-white",
+  educational: "bg-blue-600 text-white",
+  conversational: "bg-amber-500 text-white",
+  "data-driven": "bg-emerald-600 text-white",
+};
+
+function TonePreviewCard({ tone, keyword, audience }: { tone: Tone; keyword: string; audience: Audience }) {
+  const label = ({ authoritative: "Authoritative", educational: "Educational", conversational: "Conversational", "data-driven": "Data-Driven" } as Record<Tone, string>)[tone];
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 mb-4">
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className={`text-[10px] font-bold uppercase tracking-widest rounded px-2 py-0.5 ${TONE_BADGE[tone]}`}>
+          {label}
+        </span>
+        <span className="text-[11px] text-slate-400">— sample opening voice</span>
+      </div>
+      <p className="text-[12px] text-slate-700 leading-relaxed italic border-l-2 border-slate-300 pl-3">
+        {TONE_PREVIEW[tone](keyword, AUDIENCE_LABEL[audience])}
+      </p>
+    </div>
+  );
+}
+
+// ── Expert Insight Hooks ───────────────────────────────────────────────────
+
+const FOCUS_COLORS: Record<string, string> = {
+  "Future Outlook":          "bg-violet-100 text-violet-700 border-violet-200",
+  "Implementation Hurdles":  "bg-orange-100 text-orange-700 border-orange-200",
+  "ROI Benchmarks":          "bg-emerald-100 text-emerald-700 border-emerald-200",
+  "Common Pitfalls":         "bg-rose-100 text-rose-700 border-rose-200",
+};
+
+function generateExpertHooks(keyword: string, intentScore: number, audience: Audience): ExpertHook[] {
+  const isTechnical = intentScore <= 60 || audience === "developers";
+  if (isTechnical) {
+    return [
+      {
+        focus: "Future Outlook",
+        question: `In three to five years, how do you expect ${keyword} to evolve — and what architectural decisions should practitioners be making today to stay ahead of that curve?`,
+        why: "Forward-looking expert takes are almost entirely absent from search results on this topic. A specific timeline with concrete recommendations makes this uniquely quotable and shareable among senior practitioners.",
+      },
+      {
+        focus: "Implementation Hurdles",
+        question: `What is the single most underestimated technical hurdle when implementing ${keyword} at scale, and how did you ultimately work around it?`,
+        why: "Practitioners carry hard-won pattern recognition on failure modes that no documentation covers. This answer creates irreplaceable content that developers trust and vendors cannot replicate.",
+      },
+      {
+        focus: "Future Outlook",
+        question: `Which emerging standards or regulatory requirements around ${keyword} should technical teams be building toward right now — before they become mandatory?`,
+        why: "The intersection of technical roadmap and regulatory trajectory is a near-empty content space. An insider view positions the article as essential reading for senior engineers and architects.",
+      },
+    ];
+  }
+  return [
+    {
+      focus: "ROI Benchmarks",
+      question: `What measurable ROI did ${keyword} deliver in the first 12 months of adoption — and which metrics are most meaningful to a CFO or board when making the internal business case?`,
+      why: "Concrete ROI data tied to specific timeframes is rare in commercial fintech content. A practitioner number with business context is the most-cited quote type in this category — and the hardest to fabricate.",
+    },
+    {
+      focus: "Common Pitfalls",
+      question: `What is the most expensive mistake you have seen organisations make when adopting ${keyword}, and what warning signs should others watch for before committing budget?`,
+      why: "Risk-focused content consistently outperforms promotional content in trust-building and long-tail search. A frank practitioner answer here is almost impossible to find and equally hard to replicate.",
+    },
+    {
+      focus: "ROI Benchmarks",
+      question: `How do you benchmark the commercial success of ${keyword} against industry averages — and what does genuinely good performance look like versus what vendors claim in their marketing?`,
+      why: "The gap between vendor-claimed outcomes and independently verified benchmarks is a credibility gap that expert-sourced content is uniquely positioned to close.",
+    },
+  ];
+}
+
+function ExpertInsightHooks({ hooks }: { hooks: ExpertHook[] }) {
+  return (
+    <Card className="border border-violet-100 shadow-sm bg-gradient-to-br from-violet-50/50 to-white">
+      <CardContent className="p-5">
+        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-1">
+          <Lightbulb className="w-4 h-4 text-violet-600" />
+          Expert Insight Hooks
+        </h4>
+        <p className="text-[11px] text-muted-foreground mb-4 leading-relaxed">
+          Ask these to unlock practitioner quotes that no AI can generate — targeted to the intent and depth this topic demands.
+        </p>
+        <div className="space-y-3">
+          {hooks.map((hook, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className="rounded-xl border border-violet-100 bg-white shadow-sm overflow-hidden"
+            >
+              <div className="flex items-start gap-3 px-4 py-3.5">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-violet-600 text-white text-[10px] font-extrabold flex items-center justify-center mt-0.5">
+                  {i + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="mb-2">
+                    <span className={`inline-block text-[9px] font-bold uppercase tracking-widest rounded px-1.5 py-0.5 border ${FOCUS_COLORS[hook.focus] ?? "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                      {hook.focus}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-slate-900 leading-snug mb-2">
+                    "{hook.question}"
+                  </p>
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-violet-500 mt-0.5 shrink-0">Why this works</span>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">{hook.why}</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+        <p className="mt-4 text-[10px] text-slate-400 leading-relaxed border-t border-violet-100 pt-3">
+          One authentic expert quote anchored to a specific benchmark, failure, or prediction will separate this piece from every AI-generated competitor in this SERP.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Search Intent Alignment ────────────────────────────────────────────────
 
 function computeIntentAlignment(keyword: string, form: FormState): IntentAlignment {
@@ -2007,6 +2154,7 @@ export default function ContentBriefGenerator() {
   const [professionalBranding, setProfessionalBranding] = useState(false);
   const [contentScore, setContentScore] = useState<ContentScore | null>(null);
   const [intentAlignment, setIntentAlignment] = useState<IntentAlignment | null>(null);
+  const [expertHooks, setExpertHooks] = useState<ExpertHook[] | null>(null);
 
   // Load checked state from sessionStorage when briefKey changes
   useEffect(() => {
@@ -2056,6 +2204,7 @@ export default function ContentBriefGenerator() {
     setIsGenerating(false);
     setContentScore(null);
     setIntentAlignment(null);
+    setExpertHooks(null);
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   };
@@ -2092,7 +2241,9 @@ export default function ContentBriefGenerator() {
       const generated = generateBrief(capturedForm);
       setBrief(generated);
       setContentScore(computeContentScore(generated, capturedForm));
-      setIntentAlignment(computeIntentAlignment(capturedForm.keyword, capturedForm));
+      const alignment = computeIntentAlignment(capturedForm.keyword, capturedForm);
+      setIntentAlignment(alignment);
+      setExpertHooks(generateExpertHooks(capturedForm.keyword, alignment.score, capturedForm.audience));
     }, TOTAL_DURATION);
   };
 
@@ -2648,6 +2799,8 @@ export default function ContentBriefGenerator() {
                       Tone-specific writing rules for this brief — paired for quick editorial reference.
                     </p>
 
+                    <TonePreviewCard tone={brief.tone as Tone} keyword={brief.keyword} audience={brief.audience as Audience} />
+
                     <div className="rounded-lg border border-slate-200 overflow-hidden mb-4">
                       <div className="grid grid-cols-2 border-b border-slate-200">
                         <div className="px-3 py-2 flex items-center gap-1.5 bg-emerald-100/70">
@@ -2826,6 +2979,9 @@ export default function ContentBriefGenerator() {
                     </p>
                   </CardContent>
                 </Card>
+
+                {/* Expert Insight Hooks */}
+                {expertHooks && <ExpertInsightHooks hooks={expertHooks} />}
 
                 {/* CTA guidance */}
                 <Card className="border border-rose-100 bg-rose-50 shadow-sm">
