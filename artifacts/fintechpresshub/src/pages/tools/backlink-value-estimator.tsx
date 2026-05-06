@@ -495,6 +495,7 @@ export default function BacklinkValueEstimator() {
   const [copied, setCopied] = useState(false);
   const [copiedPitch, setCopiedPitch] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [comparePdfLoading, setComparePdfLoading] = useState(false);
   const [savedOpportunities, setSavedOpportunities] = useState<SavedOpportunity[]>([]);
   const [sortMode, setSortMode] = useState<SortMode>("value-score");
   const [compareMode, setCompareMode] = useState(false);
@@ -742,6 +743,211 @@ export default function BacklinkValueEstimator() {
       doc.save(`backlink-assessment-${safeName}.pdf`);
     } finally {
       setPdfLoading(false);
+    }
+  };
+
+  const exportComparePDF = async () => {
+    if (!result || !resultB) return;
+    setComparePdfLoading(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 48;
+      const contentW = pageW - margin * 2;
+      let y = margin;
+
+      const SECTION = 28;
+
+      const addText = (
+        text: string,
+        size: number,
+        style: "normal" | "bold" = "normal",
+        color: [number, number, number] = [30, 30, 30],
+        indent = 0,
+      ) => {
+        doc.setFontSize(size);
+        doc.setFont("helvetica", style);
+        doc.setTextColor(...color);
+        const lines = doc.splitTextToSize(text, contentW - indent);
+        doc.text(lines, margin + indent, y);
+        y += lines.length * (size * 1.35);
+      };
+
+      const addRule = (color: [number, number, number] = [220, 220, 220]) => {
+        doc.setDrawColor(...color);
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, pageW - margin, y);
+        y += 10;
+      };
+
+      // Header bar — blue gradient represented as solid blue
+      doc.setFillColor(37, 99, 235);
+      doc.rect(0, 0, pageW, 56, "F");
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text("FintechPressHub", margin, 34);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("Head-to-Head Backlink Comparison Report", margin, 48);
+      y = 80;
+
+      // Date
+      addText(
+        `Generated: ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`,
+        9, "normal", [120, 120, 120],
+      );
+      y += SECTION / 2;
+      addRule();
+      y += 4;
+
+      // ── Domain scores ──────────────────────────────────────────
+      addText("Domain Scores", 13, "bold", [30, 30, 30]);
+      y += 8;
+
+      const colW = (contentW - 20) / 2;
+
+      // Domain A box
+      const aColor: [number, number, number] = [16, 110, 80];
+      const bColor: [number, number, number] = [37, 99, 235];
+
+      doc.setFillColor(240, 253, 244);
+      doc.roundedRect(margin, y, colW, 72, 4, 4, "F");
+      doc.setFillColor(16, 110, 80);
+      doc.roundedRect(margin, y, colW, 6, 4, 4, "F");
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Domain A: ${form.domain || "Domain A"}`, margin + 8, y + 20);
+      doc.setFontSize(28);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...aColor);
+      doc.text(`${result.score}`, margin + 8, y + 52);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      doc.text(`/ 100 — ${result.label}`, margin + 8 + 38, y + 52);
+      if (result.score > resultB.score) {
+        doc.setFillColor(16, 110, 80);
+        doc.roundedRect(margin + colW - 58, y + 38, 50, 16, 3, 3, "F");
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(255, 255, 255);
+        doc.text("WINNER", margin + colW - 43, y + 49);
+      }
+
+      // Domain B box
+      doc.setFillColor(239, 246, 255);
+      doc.roundedRect(margin + colW + 20, y, colW, 72, 4, 4, "F");
+      doc.setFillColor(37, 99, 235);
+      doc.roundedRect(margin + colW + 20, y, colW, 6, 4, 4, "F");
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Domain B: ${formB.domain || "Domain B"}`, margin + colW + 28, y + 20);
+      doc.setFontSize(28);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...bColor);
+      doc.text(`${resultB.score}`, margin + colW + 28, y + 52);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      doc.text(`/ 100 — ${resultB.label}`, margin + colW + 28 + 38, y + 52);
+      if (resultB.score > result.score) {
+        doc.setFillColor(37, 99, 235);
+        doc.roundedRect(margin + colW * 2 + 20 - 58, y + 38, 50, 16, 3, 3, "F");
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(255, 255, 255);
+        doc.text("WINNER", margin + colW * 2 + 20 - 43, y + 49);
+      }
+
+      y += 88;
+      addRule();
+      y += 4;
+
+      // ── Factor breakdown ───────────────────────────────────────
+      addText("Factor Breakdown", 12, "bold");
+      y += 8;
+      const MAX_PTS = [40, 25, 20, 10, 5];
+      result.breakdown.forEach((bA, i) => {
+        const bB = resultB.breakdown[i];
+        const aWins = bA.contribution >= bB.contribution;
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(50, 50, 50);
+        doc.text(bA.factor, margin, y);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(aWins ? 16 : 150, aWins ? 110 : 150, aWins ? 80 : 150);
+        doc.text(`A: ${bA.contribution}/${MAX_PTS[i]}`, pageW - margin - 80, y);
+        doc.setTextColor(!aWins ? 37 : 150, !aWins ? 99 : 150, !aWins ? 235 : 150);
+        doc.text(`B: ${bB.contribution}/${MAX_PTS[i]}`, pageW - margin - 30, y);
+        y += 12;
+        // Bar A
+        const barAW = Math.round((bA.contribution / MAX_PTS[i]) * (colW - 4));
+        doc.setFillColor(16, 110, 80);
+        doc.roundedRect(margin, y, barAW, 4, 2, 2, "F");
+        doc.setFillColor(225, 240, 225);
+        doc.roundedRect(margin + barAW, y, colW - 4 - barAW, 4, 2, 2, "F");
+        // Bar B
+        const barBW = Math.round((bB.contribution / MAX_PTS[i]) * (colW - 4));
+        doc.setFillColor(37, 99, 235);
+        doc.roundedRect(margin + colW + 16, y, barBW, 4, 2, 2, "F");
+        doc.setFillColor(219, 234, 254);
+        doc.roundedRect(margin + colW + 16 + barBW, y, colW - 4 - barBW, 4, 2, 2, "F");
+        y += 12;
+      });
+
+      y += SECTION / 2;
+      addRule();
+      y += 4;
+
+      // ── Estimated link values ──────────────────────────────────
+      addText("Estimated Link Values", 12, "bold");
+      y += 8;
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...aColor);
+      doc.text(`Domain A: ${fmtMoney(result.linkValue.min)}–${fmtMoney(result.linkValue.max)}`, margin, y);
+      doc.setTextColor(...bColor);
+      doc.text(`Domain B: ${fmtMoney(resultB.linkValue.min)}–${fmtMoney(resultB.linkValue.max)}`, margin + colW + 20, y);
+      y += SECTION;
+      addRule();
+      y += 4;
+
+      // ── Verdict ────────────────────────────────────────────────
+      addText("Verdict", 12, "bold");
+      y += 6;
+      if (result.score !== resultB.score) {
+        const winner = result.score > resultB.score ? `Domain A (${form.domain || "A"})` : `Domain B (${formB.domain || "B"})`;
+        const winnerVal = result.score > resultB.score
+          ? `${fmtMoney(result.linkValue.min)}–${fmtMoney(result.linkValue.max)}`
+          : `${fmtMoney(resultB.linkValue.min)}–${fmtMoney(resultB.linkValue.max)}`;
+        addText(
+          `${winner} is the stronger opportunity — ${Math.abs(result.score - resultB.score)} points higher and worth an estimated ${winnerVal} in market value. Prioritise this one in your outreach pipeline.`,
+          10, "normal", [50, 80, 50],
+        );
+      } else {
+        addText(
+          "Both domains score equally. Use link value and acquisition difficulty to decide — lower acquisition difficulty with higher link value wins.",
+          10, "normal", [120, 80, 20],
+        );
+      }
+
+      y += SECTION;
+      addRule([200, 200, 200]);
+      addText(
+        "Generated by FintechPressHub Backlink Value Estimator · fintechpresshub.com",
+        8, "normal", [160, 160, 160],
+      );
+
+      const safeA = (form.domain || "A").replace(/[^a-zA-Z0-9.-]/g, "_");
+      const safeB = (formB.domain || "B").replace(/[^a-zA-Z0-9.-]/g, "_");
+      doc.save(`backlink-comparison-${safeA}-vs-${safeB}.pdf`);
+    } finally {
+      setComparePdfLoading(false);
     }
   };
 
@@ -1348,6 +1554,27 @@ export default function BacklinkValueEstimator() {
                               Both domains score equally. Use link value and acquisition difficulty to decide — lower acquisition difficulty with higher link value wins.
                             </div>
                           )}
+                          <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={exportComparePDF}
+                              disabled={comparePdfLoading}
+                              className="gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              {comparePdfLoading ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  Generating…
+                                </>
+                              ) : (
+                                <>
+                                  <FileDown className="w-3.5 h-3.5" />
+                                  Export Comparison PDF
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -1698,10 +1925,48 @@ export default function BacklinkValueEstimator() {
                     >
                       <Card className="border border-indigo-100 bg-gradient-to-br from-indigo-50 to-purple-50 shadow-sm">
                         <CardContent className="p-5">
-                          <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                            <MessageSquare className="w-4 h-4 text-indigo-600" />
-                            Suggested Outreach Angle
-                          </h4>
+                          <div className="flex items-center justify-between gap-3 mb-3">
+                            <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                              <MessageSquare className="w-4 h-4 text-indigo-600" />
+                              Suggested Outreach Angle
+                            </h4>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(pitchAngle);
+                                } catch {
+                                  const el = document.createElement("textarea");
+                                  el.value = pitchAngle;
+                                  document.body.appendChild(el);
+                                  el.select();
+                                  document.execCommand("copy");
+                                  document.body.removeChild(el);
+                                }
+                                setCopiedPitch(true);
+                                if (pitchCopyTimeoutRef.current) clearTimeout(pitchCopyTimeoutRef.current);
+                                pitchCopyTimeoutRef.current = setTimeout(() => setCopiedPitch(false), 2000);
+                              }}
+                              className={`shrink-0 gap-1.5 text-xs font-semibold transition-all ${
+                                copiedPitch
+                                  ? "bg-indigo-500 hover:bg-indigo-500 text-white"
+                                  : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                              }`}
+                            >
+                              {copiedPitch ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5" />
+                                  Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5" />
+                                  Copy to Clipboard
+                                </>
+                              )}
+                            </Button>
+                          </div>
                           <p className="text-sm text-indigo-900 leading-relaxed bg-white/70 border border-indigo-100 rounded-lg px-4 py-3 italic">
                             "{pitchAngle}"
                           </p>
@@ -1731,43 +1996,6 @@ export default function BacklinkValueEstimator() {
                                 Draft Pitch with AI
                               </Button>
                             </Link>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                try {
-                                  await navigator.clipboard.writeText(pitchAngle);
-                                } catch {
-                                  const el = document.createElement("textarea");
-                                  el.value = pitchAngle;
-                                  document.body.appendChild(el);
-                                  el.select();
-                                  document.execCommand("copy");
-                                  document.body.removeChild(el);
-                                }
-                                setCopiedPitch(true);
-                                if (pitchCopyTimeoutRef.current) clearTimeout(pitchCopyTimeoutRef.current);
-                                pitchCopyTimeoutRef.current = setTimeout(() => setCopiedPitch(false), 2000);
-                              }}
-                              className={`gap-1.5 text-xs font-semibold transition-all ${
-                                copiedPitch
-                                  ? "border-indigo-400 bg-indigo-50 text-indigo-700"
-                                  : "border-indigo-200 text-indigo-700 hover:border-indigo-400 hover:bg-indigo-50"
-                              }`}
-                            >
-                              {copiedPitch ? (
-                                <>
-                                  <Check className="w-3.5 h-3.5" />
-                                  Copied!
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3.5 h-3.5" />
-                                  Copy pitch
-                                </>
-                              )}
-                            </Button>
                           </div>
                         </CardContent>
                       </Card>
