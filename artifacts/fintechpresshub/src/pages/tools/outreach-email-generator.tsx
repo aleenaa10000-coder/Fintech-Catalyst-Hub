@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -19,8 +19,11 @@ import {
   BarChart2,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
+  Trophy,
+  Zap,
 } from "lucide-react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Tone = "professional" | "conversational" | "data-led";
 
@@ -46,11 +49,43 @@ const DEFAULTS: FormState = {
   linkValueMax: "",
 };
 
+type SubjectScore = {
+  length: number;     // 0–25
+  powerWords: number; // 0–25
+  personal: number;   // 0–25
+  curiosity: number;  // 0–25
+  total: number;      // 0–100
+};
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
 const TONES: { id: Tone; label: string; sublabel: string; icon: typeof Mail }[] = [
-  { id: "professional", label: "Professional", sublabel: "Formal, confident, agency-style", icon: Briefcase },
-  { id: "conversational", label: "Conversational", sublabel: "Warm, human, relationship-first", icon: MessageCircle },
-  { id: "data-led", label: "Data-Led", sublabel: "Metric-driven, value-first pitch", icon: BarChart2 },
+  { id: "professional",   label: "Professional",   sublabel: "Formal, confident, agency-style",  icon: Briefcase      },
+  { id: "conversational", label: "Conversational", sublabel: "Warm, human, relationship-first",  icon: MessageCircle  },
+  { id: "data-led",       label: "Data-Led",       sublabel: "Metric-driven, value-first pitch", icon: BarChart2      },
 ];
+
+const TONE_COLORS: Record<Tone, { ring: string; bg: string; text: string; icon: string; bar: string }> = {
+  professional:    { ring: "border-blue-400",    bg: "bg-blue-50",    text: "text-blue-700",    icon: "text-blue-500",    bar: "bg-blue-500"    },
+  conversational:  { ring: "border-emerald-400", bg: "bg-emerald-50", text: "text-emerald-700", icon: "text-emerald-500", bar: "bg-emerald-500" },
+  "data-led":      { ring: "border-violet-400",  bg: "bg-violet-50",  text: "text-violet-700",  icon: "text-violet-500",  bar: "bg-violet-500"  },
+};
+
+const POWER_WORDS = [
+  "exclusive", "proven", "free", "new", "introducing", "important", "guarantee",
+  "opportunity", "resource", "partnership", "discover", "insider", "results",
+  "guide", "report", "data", "expert", "featured", "complete", "your", "you",
+  "instantly", "today", "now", "how", "why", "announcement",
+];
+
+const SCORE_DIMS: { key: keyof SubjectScore; label: string; tip: string }[] = [
+  { key: "length",     label: "Length",         tip: "Optimal: 40–60 characters" },
+  { key: "powerWords", label: "Power words",    tip: "High-impact vocabulary" },
+  { key: "personal",   label: "Personalisation", tip: "Contains recipient's brand name" },
+  { key: "curiosity",  label: "Curiosity gap",  tip: "Creates intrigue or tension" },
+];
+
+// ─── Pure helpers ─────────────────────────────────────────────────────────────
 
 function fmtDomain(raw: string): string {
   return raw.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
@@ -65,25 +100,89 @@ function siteName(domain: string): string {
   return capitalize(d.split(".")[0]);
 }
 
-type GeneratedEmail = { subject: string; body: string };
+function scoreSubjectLine(subject: string, domain: string): SubjectScore {
+  const lower = subject.toLowerCase();
+  const site   = siteName(domain).toLowerCase();
+  const domainBase = fmtDomain(domain).split(".")[0].toLowerCase();
 
-function generateEmail(form: FormState, tone: Tone): GeneratedEmail {
-  const domain = fmtDomain(form.targetDomain) || "yourtargetsite.com";
-  const name = form.yourName.trim() || "Your Name";
+  // Length score (optimal 40–60)
+  const len = subject.length;
+  let lengthScore: number;
+  if (len >= 40 && len <= 60)      lengthScore = 25;
+  else if (len >= 30 && len < 40)  lengthScore = 18;
+  else if (len > 60 && len <= 75)  lengthScore = 15;
+  else if (len > 75 && len <= 90)  lengthScore = 8;
+  else if (len < 30 && len >= 20)  lengthScore = 10;
+  else                             lengthScore = 4;
+
+  // Power word score (each unique hit = 8 pts, capped at 25)
+  const found = POWER_WORDS.filter((w) => lower.includes(w));
+  const powerScore = Math.min(25, found.length * 8);
+
+  // Personalisation: site name or domain base appears in subject
+  const hasPersonal = lower.includes(site) || lower.includes(domainBase);
+  const personalScore = hasPersonal ? 25 : 0;
+
+  // Curiosity gap: ?, em-dash, colon, numbers, brackets, contrast words
+  let curiositySignals = 0;
+  if (/\?/.test(subject))                                   curiositySignals += 10;
+  if (/[—:]/.test(subject))                                 curiositySignals += 8;
+  if (/\d/.test(subject))                                   curiositySignals += 7;
+  if (/\bvs\.?\b|\bbut\b|\byet\b|\bsurprise\b/.test(lower)) curiositySignals += 5;
+  if (/\[.*\]/.test(subject))                               curiositySignals += 5;
+  const curiosityScore = Math.min(25, curiositySignals);
+
+  return {
+    length:     lengthScore,
+    powerWords: powerScore,
+    personal:   personalScore,
+    curiosity:  curiosityScore,
+    total:      lengthScore + powerScore + personalScore + curiosityScore,
+  };
+}
+
+function generateSubjectVariants(form: FormState, tone: Tone): [string, string] {
+  const domain  = fmtDomain(form.targetDomain) || "yourtargetsite.com";
   const company = form.yourCompany.trim() || "Your Company";
-  const website = fmtDomain(form.yourWebsite) || "yourwebsite.com";
-  const pitch = form.contentPitch.trim() || "our recent in-depth guide on this topic";
-  const topic = form.topic.trim() || "fintech";
-  const site = siteName(domain);
+  const topic   = form.topic.trim() || "fintech";
+  const site    = siteName(domain);
   const hasValue = form.linkValueMin && form.linkValueMax;
-  const valueRange = hasValue
-    ? `$${form.linkValueMin}–$${form.linkValueMax}`
-    : "a high-authority link placement";
+  const valueRange = hasValue ? `$${form.linkValueMin}–$${form.linkValueMax}` : null;
 
   if (tone === "professional") {
-    return {
-      subject: `Content partnership opportunity — ${company} × ${site}`,
-      body: `Hi ${site} team,
+    return [
+      `Content partnership opportunity — ${company} × ${site}`,
+      `${site}: a ${topic} resource your readers will thank you for`,
+    ];
+  }
+  if (tone === "conversational") {
+    return [
+      `Quick question about ${site}'s ${topic} coverage`,
+      `Thought you'd want to see this — new ${topic} content for ${site}'s audience`,
+    ];
+  }
+  // data-led
+  return [
+    valueRange
+      ? `${capitalize(topic)} resource for ${site} — estimated SEO value ${valueRange}`
+      : `${capitalize(topic)} resource for ${site} — worth a look`,
+    `How ${site} can close its ${topic} content gap with one addition`,
+  ];
+}
+
+function generateEmailBody(form: FormState, tone: Tone, subject: string): string {
+  const domain  = fmtDomain(form.targetDomain) || "yourtargetsite.com";
+  const name    = form.yourName.trim() || "Your Name";
+  const company = form.yourCompany.trim() || "Your Company";
+  const website = fmtDomain(form.yourWebsite) || "yourwebsite.com";
+  const pitch   = form.contentPitch.trim() || "our recent in-depth guide on this topic";
+  const topic   = form.topic.trim() || "fintech";
+  const site    = siteName(domain);
+  const hasValue = form.linkValueMin && form.linkValueMax;
+  const valueRange = hasValue ? `$${form.linkValueMin}–$${form.linkValueMax}` : "a high-authority link placement";
+
+  if (tone === "professional") {
+    return `Hi ${site} team,
 
 I'm ${name} from ${company} (${website}). I came across ${domain} while researching ${topic} resources for fintech professionals, and your coverage stood out.
 
@@ -98,14 +197,11 @@ Would you have 15 minutes this week for a quick call, or would email work better
 Best regards,
 ${name}
 ${company}
-${website}`,
-    };
+${website}`;
   }
 
   if (tone === "conversational") {
-    return {
-      subject: `Quick question about ${site}'s ${topic} coverage`,
-      body: `Hey ${site} team,
+    return `Hey ${site} team,
 
 Huge fan of the work you're doing over at ${domain} — your ${topic} content is genuinely some of the best in the space.
 
@@ -119,14 +215,10 @@ If it's not a fit, completely understood. Either way, keep up the great work!
 
 Cheers,
 ${name}
-${company} · ${website}`,
-    };
+${company} · ${website}`;
   }
 
-  // data-led
-  return {
-    subject: `${capitalize(topic)} resource for ${site} — ${hasValue ? `estimated SEO value ${valueRange}` : "worth a look"}`,
-    body: `Hi ${site} team,
+  return `Hi ${site} team,
 
 I'm ${name}, ${topic} content lead at ${company} (${website}).
 
@@ -134,7 +226,9 @@ I'm reaching out because ${domain} ranks well for ${topic} content, and I believ
 
 ${company} has recently published ${pitch}. It fills a specific gap in the current ${topic} content landscape — covering angles and data points that your readers are actively searching for.
 
-${hasValue ? `Based on your domain authority and traffic profile, a link from your ${topic} content is estimated to be worth ${valueRange} in organic authority to our campaign — which gives you a sense of how seriously we're approaching this outreach.` : `We've been selective with our outreach, and your site is one of a small number we've identified as a genuinely strong fit.`}
+${hasValue
+  ? `Based on your domain authority and traffic profile, a link from your ${topic} content is estimated to be worth ${valueRange} in organic authority to our campaign — which gives you a sense of how seriously we're approaching this outreach.`
+  : `We've been selective with our outreach, and your site is one of a small number we've identified as a genuinely strong fit.`}
 
 I can share the full resource for your review immediately. If it's a good fit, I'm flexible on format — guest post, resource page mention, or editorial inclusion.
 
@@ -143,37 +237,224 @@ Would a 15-minute call this week work to discuss? I'm also happy to keep this to
 Best,
 ${name}
 ${company}
-${website}`,
-  };
+${website}`;
 }
 
 function parseParams(): Partial<FormState> {
   const params = new URLSearchParams(window.location.search);
   const result: Partial<FormState> = {};
-  const td = params.get("targetDomain");
-  const lmin = params.get("linkValueMin");
-  const lmax = params.get("linkValueMax");
+  const td    = params.get("targetDomain");
+  const lmin  = params.get("linkValueMin");
+  const lmax  = params.get("linkValueMax");
   const topic = params.get("topic");
-  if (td) result.targetDomain = td;
-  if (lmin) result.linkValueMin = lmin;
-  if (lmax) result.linkValueMax = lmax;
+  if (td)    result.targetDomain = td;
+  if (lmin)  result.linkValueMin = lmin;
+  if (lmax)  result.linkValueMax = lmax;
   if (topic) result.topic = topic;
   return result;
 }
 
-const TONE_COLORS: Record<Tone, { ring: string; bg: string; text: string; icon: string }> = {
-  professional:    { ring: "border-blue-400",    bg: "bg-blue-50",    text: "text-blue-700",   icon: "text-blue-500"   },
-  conversational:  { ring: "border-emerald-400", bg: "bg-emerald-50", text: "text-emerald-700", icon: "text-emerald-500" },
-  "data-led":      { ring: "border-violet-400",  bg: "bg-violet-50",  text: "text-violet-700",  icon: "text-violet-500"  },
-};
+// ─── Sub-component: score bar ─────────────────────────────────────────────────
+
+function ScoreDimBar({
+  label, score, max = 25, bar, tip,
+}: {
+  label: string; score: number; max?: number; bar: string; tip: string;
+}) {
+  const pct = Math.round((score / max) * 100);
+  return (
+    <div title={tip}>
+      <div className="flex items-center justify-between mb-0.5">
+        <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide">{label}</span>
+        <span className="text-[9px] font-bold text-slate-600">{score}/{max}</span>
+      </div>
+      <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
+        <motion.div
+          className={`h-full rounded-full ${bar}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Sub-component: A/B subject tester ────────────────────────────────────────
+
+function SubjectABTester({
+  variants,
+  scores,
+  selectedIdx,
+  onSelect,
+  tone,
+  targetDomain,
+}: {
+  variants: [string, string];
+  scores: [SubjectScore, SubjectScore];
+  selectedIdx: 0 | 1;
+  onSelect: (idx: 0 | 1) => void;
+  tone: Tone;
+  targetDomain: string;
+}) {
+  const colors = TONE_COLORS[tone];
+  const [copiedIdx, setCopiedIdx] = useState<0 | 1 | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const winnerIdx = scores[0].total >= scores[1].total ? 0 : 1;
+
+  const copy = async (idx: 0 | 1) => {
+    try { await navigator.clipboard.writeText(variants[idx]); }
+    catch {
+      const el = document.createElement("textarea");
+      el.value = variants[idx];
+      document.body.appendChild(el); el.select();
+      document.execCommand("copy"); document.body.removeChild(el);
+    }
+    setCopiedIdx(idx);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  const scoreDiff = Math.abs(scores[0].total - scores[1].total);
+
+  return (
+    <Card className="border border-amber-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-amber-100 bg-gradient-to-r from-amber-50 to-yellow-50 flex items-center gap-2">
+        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+          <Zap className="w-3.5 h-3.5 text-amber-600" />
+        </div>
+        <div className="min-w-0">
+          <h4 className="text-xs font-bold text-amber-900">A/B Subject Line Tester</h4>
+          <p className="text-[10px] text-amber-700 leading-snug">
+            Scored on length, power words, personalisation &amp; curiosity gap.{" "}
+            {scoreDiff > 0 ? (
+              <span className="font-semibold">Variant {winnerIdx === 0 ? "A" : "B"} leads by {scoreDiff} pts.</span>
+            ) : (
+              <span className="font-semibold">Both variants tied.</span>
+            )}
+          </p>
+        </div>
+      </div>
+
+      <CardContent className="p-4 grid sm:grid-cols-2 gap-3">
+        {([0, 1] as const).map((idx) => {
+          const isWinner  = idx === winnerIdx && scoreDiff > 0;
+          const isSelected = idx === selectedIdx;
+          const score = scores[idx];
+
+          return (
+            <motion.div
+              key={idx}
+              layout
+              className={`relative rounded-xl border-2 p-3.5 transition-all cursor-pointer ${
+                isSelected
+                  ? `${colors.ring} ${colors.bg}`
+                  : "border-slate-200 bg-white hover:border-slate-300"
+              }`}
+              onClick={() => onSelect(idx)}
+            >
+              {/* Labels row */}
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
+                  isSelected ? `${colors.bg} ${colors.text} border ${colors.ring}` : "bg-slate-100 text-slate-600"
+                }`}>
+                  {idx === 0 ? "A" : "B"}
+                </span>
+                {isWinner && (
+                  <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-700 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded-md">
+                    <Trophy className="w-2.5 h-2.5" />
+                    Recommended
+                  </span>
+                )}
+                {isSelected && !isWinner && (
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${colors.bg} ${colors.text}`}>
+                    Active
+                  </span>
+                )}
+                <div className="ml-auto flex items-center gap-1">
+                  <span className={`text-xs font-black ${isSelected ? colors.text : "text-slate-700"}`}>
+                    {score.total}
+                    <span className="text-[9px] font-normal text-slate-400">/100</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Subject text */}
+              <p className={`text-[11px] font-semibold leading-snug mb-3 ${
+                isSelected ? colors.text : "text-slate-700"
+              }`}>
+                {variants[idx]}
+              </p>
+
+              {/* Score breakdown */}
+              <div className="space-y-1.5 mb-3">
+                {SCORE_DIMS.map((dim) => (
+                  <ScoreDimBar
+                    key={dim.key}
+                    label={dim.label}
+                    score={score[dim.key] as number}
+                    tip={dim.tip}
+                    bar={isSelected ? colors.bar : "bg-slate-400"}
+                  />
+                ))}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onSelect(idx); }}
+                  className={`flex-1 text-[10px] font-bold py-1.5 rounded-lg border transition-all ${
+                    isSelected
+                      ? `${colors.ring} ${colors.bg} ${colors.text}`
+                      : "border-slate-200 text-slate-600 hover:border-slate-400 bg-white"
+                  }`}
+                >
+                  {isSelected ? "✓ Selected" : "Use this one"}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); copy(idx); }}
+                  className="flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-slate-400 transition-all"
+                >
+                  {copiedIdx === idx
+                    ? <><Check className="w-3 h-3 text-emerald-500" /> Copied</>
+                    : <><Copy className="w-3 h-3" /> Copy</>}
+                </button>
+              </div>
+            </motion.div>
+          );
+        })}
+      </CardContent>
+
+      {/* Scoring explanation */}
+      <div className="px-4 pb-4">
+        <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5 grid grid-cols-2 gap-x-4 gap-y-1">
+          {SCORE_DIMS.map((dim) => (
+            <div key={dim.key} className="flex items-start gap-1.5">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-wide shrink-0 w-20 leading-tight pt-px">{dim.label}</span>
+              <span className="text-[9px] text-slate-400 leading-tight">{dim.tip}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
 
 export default function OutreachEmailGenerator() {
-  const [form, setForm] = useState<FormState>(DEFAULTS);
-  const [tone, setTone] = useState<Tone>("professional");
-  const [email, setEmail] = useState<GeneratedEmail | null>(null);
-  const [copied, setCopied] = useState<"subject" | "body" | "all" | null>(null);
+  const [form, setForm]         = useState<FormState>(DEFAULTS);
+  const [tone, setTone]         = useState<Tone>("professional");
+  const [body, setBody]         = useState<string | null>(null);
+  const [variants, setVariants] = useState<[string, string] | null>(null);
+  const [scores, setScores]     = useState<[SubjectScore, SubjectScore] | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState<0 | 1>(0);
+  const [copied, setCopied]     = useState<"subject" | "body" | "all" | null>(null);
   const [bodyExpanded, setBodyExpanded] = useState(true);
-  const copiedRef = { current: null as ReturnType<typeof setTimeout> | null };
+  const copiedRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const p = parseParams();
@@ -190,23 +471,34 @@ export default function OutreachEmailGenerator() {
     form.yourCompany.trim().length > 0 &&
     form.contentPitch.trim().length > 0;
 
-  const generate = () => {
-    setEmail(generateEmail(form, tone));
+  const generate = (t: Tone = tone) => {
+    const vars = generateSubjectVariants(form, t);
+    const s0   = scoreSubjectLine(vars[0], form.targetDomain);
+    const s1   = scoreSubjectLine(vars[1], form.targetDomain);
+    const winnerIdx: 0 | 1 = s1.total > s0.total ? 1 : 0;
+    setVariants(vars);
+    setScores([s0, s1]);
+    setSelectedIdx(winnerIdx);
+    setBody(generateEmailBody(form, t, vars[winnerIdx]));
     setBodyExpanded(true);
   };
 
   const reset = () => {
     setForm(DEFAULTS);
-    setEmail(null);
+    setBody(null);
+    setVariants(null);
+    setScores(null);
     setCopied(null);
   };
 
-  const copy = async (type: "subject" | "body" | "all") => {
-    if (!email) return;
+  const activeSubject = variants ? variants[selectedIdx] : null;
+
+  const copyText = async (type: "subject" | "body" | "all") => {
+    if (!activeSubject || !body) return;
     const text =
-      type === "subject" ? email.subject
-      : type === "body" ? email.body
-      : `Subject: ${email.subject}\n\n${email.body}`;
+      type === "subject" ? activeSubject
+      : type === "body"  ? body
+      : `Subject: ${activeSubject}\n\n${body}`;
     try { await navigator.clipboard.writeText(text); }
     catch {
       const el = document.createElement("textarea");
@@ -219,6 +511,7 @@ export default function OutreachEmailGenerator() {
   };
 
   const colors = TONE_COLORS[tone];
+  const hasResults = body !== null && variants !== null && scores !== null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -227,7 +520,7 @@ export default function OutreachEmailGenerator() {
       <PageHero
         eyebrow="Free Tool"
         title="Outreach Email Generator"
-        description="Generate a personalised link-building outreach email in seconds. Choose your tone, fill in the details, and copy a ready-to-send template — no fluff, no generic spam."
+        description="Generate a personalised link-building outreach email in seconds. Choose your tone, fill in the details, and compare two subject line variants — scored on open-rate factors — before you hit send."
       />
 
       <section className="py-12 md:py-16">
@@ -273,7 +566,7 @@ export default function OutreachEmailGenerator() {
                   <div className="grid grid-cols-3 gap-2">
                     {TONES.map((t) => {
                       const Icon = t.icon;
-                      const c = TONE_COLORS[t.id];
+                      const c    = TONE_COLORS[t.id];
                       const active = tone === t.id;
                       return (
                         <button
@@ -313,15 +606,13 @@ export default function OutreachEmailGenerator() {
                     <p className="text-[10px] text-muted-foreground">The site you want a link from</p>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700">
-                      Topic / niche
-                    </Label>
+                    <Label className="text-xs font-semibold text-slate-700">Topic / niche</Label>
                     <Input
                       value={form.topic}
                       onChange={(e) => setField("topic", e.target.value)}
                       placeholder="fintech SEO, open banking…"
                     />
-                    <p className="text-[10px] text-muted-foreground">The subject area (optional but helps personalise)</p>
+                    <p className="text-[10px] text-muted-foreground">Helps personalise both variants</p>
                   </div>
                 </div>
 
@@ -348,9 +639,7 @@ export default function OutreachEmailGenerator() {
                     />
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
-                    <Label className="text-xs font-semibold text-slate-700">
-                      Your website
-                    </Label>
+                    <Label className="text-xs font-semibold text-slate-700">Your website</Label>
                     <Input
                       value={form.yourWebsite}
                       onChange={(e) => setField("yourWebsite", e.target.value)}
@@ -371,10 +660,12 @@ export default function OutreachEmailGenerator() {
                     rows={3}
                     className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
-                  <p className="text-[10px] text-muted-foreground">Describe the piece you want them to link to — be specific, it makes the pitch stronger.</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Be specific — it makes both the pitch and subject lines stronger.
+                  </p>
                 </div>
 
-                {/* Link value (optional, pre-filled from estimator) */}
+                {/* Link value */}
                 {(form.linkValueMin || form.linkValueMax) ? (
                   <div className="rounded-lg border border-violet-100 bg-violet-50 px-4 py-3 flex items-center gap-3">
                     <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
@@ -385,7 +676,7 @@ export default function OutreachEmailGenerator() {
                         Estimated link value pre-filled from your assessment
                       </p>
                       <p className="text-[10px] text-violet-600">
-                        ${form.linkValueMin}–${form.linkValueMax} — used in the Data-Led tone
+                        ${form.linkValueMin}–${form.linkValueMax} — used in the Data-Led subject variant
                       </p>
                     </div>
                   </div>
@@ -418,7 +709,7 @@ export default function OutreachEmailGenerator() {
                       />
                     </div>
                     <p className="text-[10px] text-muted-foreground sm:col-span-2 -mt-2">
-                      Used in the Data-Led tone only.{" "}
+                      Used in the Data-Led variant only.{" "}
                       <Link href="/tools/backlink-value-estimator" className="underline hover:text-blue-600">
                         Estimate it first →
                       </Link>
@@ -427,28 +718,43 @@ export default function OutreachEmailGenerator() {
                 )}
 
                 <Button
-                  onClick={generate}
+                  onClick={() => generate()}
                   disabled={!canGenerate}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-11"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Generate outreach email
+                  Generate email + compare subject lines
                 </Button>
               </CardContent>
             </Card>
 
             {/* ── Tips sidebar ── */}
             <div className="space-y-4">
+              <Card className="border border-amber-100 bg-amber-50 shadow-sm">
+                <CardContent className="p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-600" />
+                    How subject scoring works
+                  </h3>
+                  <ul className="space-y-2 text-xs text-amber-800 leading-relaxed">
+                    <li><span className="font-bold">Length (25 pts)</span> — 40–60 chars hits the sweet spot for most email clients. Too short = no context; too long = truncated.</li>
+                    <li><span className="font-bold">Power words (25 pts)</span> — Words that drive action: "exclusive", "resource", "partnership", "how", "data", etc.</li>
+                    <li><span className="font-bold">Personalisation (25 pts)</span> — The recipient's brand name in the subject boosts open rates by up to 26%.</li>
+                    <li><span className="font-bold">Curiosity gap (25 pts)</span> — Questions, em-dashes, colons, and numbers create tension that compels the open.</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
               <Card className="border border-blue-100 bg-blue-50 shadow-sm">
                 <CardContent className="p-5 space-y-3">
                   <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2">
                     <Mail className="w-4 h-4 text-blue-600" />
-                    Outreach tips
+                    Tone guide
                   </h3>
                   <ul className="space-y-2.5 text-xs text-blue-800 leading-relaxed">
                     <li><span className="font-bold">Professional</span> — best for cold outreach to high-DA publications with formal editorial teams.</li>
-                    <li><span className="font-bold">Conversational</span> — works well for niche blogs and smaller sites where you want to build a relationship first.</li>
-                    <li><span className="font-bold">Data-Led</span> — use this when you have real metrics to back your pitch. Editors respond to specificity.</li>
+                    <li><span className="font-bold">Conversational</span> — works well for niche blogs and smaller sites where you want a relationship first.</li>
+                    <li><span className="font-bold">Data-Led</span> — use this when you have real metrics. Editors respond to specificity.</li>
                   </ul>
                 </CardContent>
               </Card>
@@ -457,11 +763,11 @@ export default function OutreachEmailGenerator() {
                 <CardContent className="p-5 space-y-3">
                   <h3 className="text-sm font-bold text-slate-900">What makes a great pitch</h3>
                   <ul className="space-y-2 text-xs text-slate-600 leading-relaxed">
-                    <li className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">✓</span>Specific content — don't say "great article", say exactly what you're pitching</li>
-                    <li className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">✓</span>Audience-first framing — explain why their readers benefit, not just you</li>
-                    <li className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">✓</span>Low friction CTA — a 15-min call or email reply, not "let me know if interested"</li>
-                    <li className="flex gap-2"><span className="text-red-400 font-bold shrink-0">✗</span>Avoid "I love your content" with no specifics — it reads as a template instantly</li>
-                    <li className="flex gap-2"><span className="text-red-400 font-bold shrink-0">✗</span>Don't mention DA, PageRank, or SEO value to editorial contacts — use value-to-reader framing instead</li>
+                    <li className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">✓</span>Specific content — name the exact piece you're pitching</li>
+                    <li className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">✓</span>Audience-first framing — explain why their readers benefit</li>
+                    <li className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">✓</span>Low-friction CTA — a 15-min call or email reply</li>
+                    <li className="flex gap-2"><span className="text-red-400 font-bold shrink-0">✗</span>Avoid generic "I love your content" openers</li>
+                    <li className="flex gap-2"><span className="text-red-400 font-bold shrink-0">✗</span>Don't mention DA or SEO value to editorial contacts</li>
                   </ul>
                 </CardContent>
               </Card>
@@ -474,16 +780,16 @@ export default function OutreachEmailGenerator() {
                     <Link href="/tools/backlink-value-estimator" className="font-semibold underline underline-offset-2 hover:text-emerald-900">
                       Backlink Value Estimator
                     </Link>{" "}
-                    first — the link value will pre-fill the Data-Led template automatically.
+                    first — the value will pre-fill the Data-Led variant automatically.
                   </p>
                 </CardContent>
               </Card>
             </div>
           </div>
 
-          {/* ── Generated email ── */}
+          {/* ── Results ── */}
           <AnimatePresence>
-            {email && (
+            {hasResults && (
               <motion.div
                 key={`${tone}-${form.targetDomain}`}
                 initial={{ opacity: 0, y: 20 }}
@@ -499,35 +805,53 @@ export default function OutreachEmailGenerator() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => copy("all")}
+                    onClick={() => copyText("all")}
                     className={`gap-1.5 text-xs font-semibold transition-all ${
                       copied === "all"
                         ? "border-blue-400 bg-blue-50 text-blue-700"
                         : "border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50"
                     }`}
                   >
-                    {copied === "all" ? <><Check className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy full email</>}
+                    {copied === "all"
+                      ? <><Check className="w-3.5 h-3.5" /> Copied!</>
+                      : <><Copy className="w-3.5 h-3.5" /> Copy full email</>}
                   </Button>
                 </div>
 
-                {/* Subject line */}
+                {/* A/B tester */}
+                <SubjectABTester
+                  variants={variants!}
+                  scores={scores!}
+                  selectedIdx={selectedIdx}
+                  onSelect={setSelectedIdx}
+                  tone={tone}
+                  targetDomain={form.targetDomain}
+                />
+
+                {/* Active subject line summary */}
                 <Card className={`border ${colors.ring} ${colors.bg} shadow-sm`}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Subject line</p>
-                        <p className={`text-sm font-bold ${colors.text} leading-snug`}>{email.subject}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                          Active subject line · Variant {selectedIdx === 0 ? "A" : "B"} · Score {scores![selectedIdx].total}/100
+                        </p>
+                        <p className={`text-sm font-bold ${colors.text} leading-snug`}>
+                          {activeSubject}
+                        </p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => copy("subject")}
+                        onClick={() => copyText("subject")}
                         className={`shrink-0 flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
                           copied === "subject"
                             ? `${colors.ring} ${colors.bg} ${colors.text}`
                             : "border-slate-200 text-slate-500 hover:border-slate-400"
                         }`}
                       >
-                        {copied === "subject" ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
+                        {copied === "subject"
+                          ? <><Check className="w-3 h-3" /> Copied</>
+                          : <><Copy className="w-3 h-3" /> Copy</>}
                       </button>
                     </div>
                   </CardContent>
@@ -545,16 +869,20 @@ export default function OutreachEmailGenerator() {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); copy("body"); }}
+                          onClick={(e) => { e.stopPropagation(); copyText("body"); }}
                           className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
                             copied === "body"
                               ? "border-blue-400 bg-blue-50 text-blue-700"
                               : "border-slate-200 text-slate-500 hover:border-slate-400"
                           }`}
                         >
-                          {copied === "body" ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
+                          {copied === "body"
+                            ? <><Check className="w-3 h-3" /> Copied</>
+                            : <><Copy className="w-3 h-3" /> Copy</>}
                         </button>
-                        {bodyExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                        {bodyExpanded
+                          ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                          : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                       </div>
                     </button>
 
@@ -569,7 +897,7 @@ export default function OutreachEmailGenerator() {
                         >
                           <div className="px-5 pb-5 border-t border-slate-100">
                             <pre className="mt-4 text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
-                              {email.body}
+                              {body}
                             </pre>
                           </div>
                         </motion.div>
@@ -578,12 +906,12 @@ export default function OutreachEmailGenerator() {
                   </CardContent>
                 </Card>
 
-                {/* Tone variants prompt */}
+                {/* Tone switch quick-links */}
                 <Card className="border border-slate-100 shadow-sm bg-slate-50">
                   <CardContent className="p-4">
                     <p className="text-xs text-slate-600 leading-relaxed">
                       <span className="font-bold text-slate-800">Not quite right?</span>{" "}
-                      Switch tone above and click Generate again to get a different angle — no data is re-entered.
+                      Switch tone to get new email copy and a fresh set of subject line variants — no data re-entry.
                     </p>
                     <div className="flex items-center gap-2 mt-3 flex-wrap">
                       {TONES.filter((t) => t.id !== tone).map((t) => {
@@ -592,7 +920,7 @@ export default function OutreachEmailGenerator() {
                           <button
                             key={t.id}
                             type="button"
-                            onClick={() => { setTone(t.id); setEmail(generateEmail(form, t.id)); }}
+                            onClick={() => { setTone(t.id); generate(t.id); }}
                             className={`text-[11px] font-bold px-3 py-1.5 rounded-full border transition-all ${c.ring} ${c.bg} ${c.text} hover:opacity-80`}
                           >
                             Try {t.label} →
