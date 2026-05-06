@@ -28,6 +28,9 @@ import {
   Lightbulb,
   FileCode,
   HelpCircle,
+  Building2,
+  Briefcase,
+  FileDown,
 } from "lucide-react";
 
 type Audience = "founders" | "marketers" | "developers" | "consumers" | "investors";
@@ -40,6 +43,7 @@ type FormState = {
   tone: Tone;
   wordCount: WordCount;
   competitors: string;
+  clientName: string;
 };
 
 const DEFAULTS: FormState = {
@@ -48,6 +52,7 @@ const DEFAULTS: FormState = {
   tone: "authoritative",
   wordCount: "1200",
   competitors: "",
+  clientName: "",
 };
 
 const AUDIENCE_LABELS: Record<Audience, string> = {
@@ -939,6 +944,586 @@ const GENERATING_MESSAGES = [
   "Finalizing Your Brief...",
 ];
 
+// ─── Strategic Context Generator ──────────────────────────────────────────────
+function generateStrategicContext(brief: Brief): {
+  opportunity: string;
+  competitive: string;
+  objective: string;
+} {
+  const kw = brief.keyword.toLowerCase();
+  let category = "fintech products and services";
+  let competitorLandscape =
+    "generic financial content publishers, vendor blogs, and comparison aggregators";
+  let intentProfile = "high-intent informational and commercial-investigation queries";
+
+  if (/embed|baas|banking.as|infrastructure|core.bank/.test(kw)) {
+    category = "embedded finance and banking-as-a-service infrastructure";
+    competitorLandscape =
+      "API-first vendors, open banking aggregators, and developer-focused technical publishers";
+    intentProfile = "developer-led research and enterprise procurement queries";
+  } else if (/payment|checkout|acquiring|bnpl|buy.now/.test(kw)) {
+    category = "payments and checkout technology";
+    competitorLandscape =
+      "payment gateway vendors, fintech media outlets, and SaaS comparison sites";
+    intentProfile = "commercial-investigation and vendor-shortlisting queries";
+  } else if (/regulat|compliance|kyc|aml|gdpr|psd2|fca|cfpb/.test(kw)) {
+    category = "regulatory compliance and risk management";
+    competitorLandscape =
+      "legal and compliance publishers, regtech vendors, and official regulatory bodies";
+    intentProfile =
+      "high-urgency informational and regulatory-guidance queries with strong recency signals";
+  } else if (/invest|wealth|portfolio|asset|robo|wealthtech/.test(kw)) {
+    category = "investment and wealth management technology";
+    competitorLandscape =
+      "wealthtech vendors, registered financial advisors, and investment media";
+    intentProfile = "high-intent research, product-comparison, and due-diligence queries";
+  } else if (/open.bank|sdk|integrat|developer/.test(kw)) {
+    category = "open banking and API integration";
+    competitorLandscape =
+      "open banking platform providers, developer documentation hubs, and fintech publications";
+    intentProfile = "technical research, integration planning, and platform-selection queries";
+  } else if (/credit|lending|loan|mortgage|underwrite/.test(kw)) {
+    category = "credit and lending technology";
+    competitorLandscape =
+      "lenders, credit reference agencies, and consumer financial media";
+    intentProfile =
+      "product-comparison, eligibility, and rate-shopping queries with mixed intent";
+  }
+
+  const audienceShort = brief.audience.split("/")[0].trim().toLowerCase();
+  const toneLabel = brief.tone.split(" — ")[0];
+
+  return {
+    opportunity: `The "${brief.keyword}" keyword cluster operates within the ${category} space — a vertical where independent, expertise-led editorial content consistently outperforms vendor-produced material in organic rankings. Keyword difficulty modelling indicates moderate-to-high competition, making structural completeness, semantic entity coverage, and E-E-A-T signals the primary ranking levers. The ${brief.targetWordCount} target aligns with the minimum content depth required for full topical coverage of this query cluster. Pillar-level treatment is warranted given the long-tail density around this keyword.`,
+    competitive: `The current SERP for "${brief.keyword}" is dominated by ${competitorLandscape}. The majority of ranking content follows one of two patterns: shallow overview articles (sub-1,000 words) optimised for impressions rather than intent satisfaction, and long-form vendor guides with high commercial bias that fail to serve ${audienceShort}s' specific decision context. This creates a clear gap for authoritative, audience-specific content targeting ${brief.audience.toLowerCase()} — a segment chronically underserved by the existing corpus. The ${toneLabel} register is selected to differentiate from the dominant voice in the current SERP.`,
+    objective: `This brief is engineered to capture ${intentProfile} from ${brief.audience.toLowerCase()}, building topical authority across the broader "${brief.keyword.split(" ")[0]}" cluster while driving qualified awareness of specialist fintech content capabilities. The H2 framework, semantic entity set, and FAQ cluster are structured to satisfy the primary query intent while creating featured snippet eligibility for a minimum of two sub-queries. Target outcome: first-page organic ranking within 90 days, with a secondary goal of editorial inbound links from tier-2 fintech publications.`,
+  };
+}
+
+// ─── PDF Downloader ────────────────────────────────────────────────────────────
+async function downloadBriefAsPDF(
+  brief: Brief,
+  clientName: string,
+  branded: boolean
+): Promise<void> {
+  const { jsPDF } = await import("jspdf");
+  const PW = 210, PH = 297, ML = 18, MR = 18;
+  const CW = PW - ML - MR;
+
+  const C = {
+    NAVY:  [15, 23, 42]     as const,
+    ROSE:  [225, 29, 72]    as const,
+    S800:  [30, 41, 59]     as const,
+    S700:  [51, 65, 85]     as const,
+    S600:  [71, 85, 105]    as const,
+    S400:  [148, 163, 184]  as const,
+    S200:  [226, 232, 240]  as const,
+    S100:  [241, 245, 249]  as const,
+    S50:   [248, 250, 252]  as const,
+    WHITE: [255, 255, 255]  as const,
+    CYAN:  [14, 116, 144]   as const,
+    INDIGO:[79, 70, 229]    as const,
+    EMLD:  [22, 101, 52]    as const,
+    RED:   [185, 28, 28]    as const,
+  };
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  let pageNum = 1;
+  let y = 22;
+
+  // ── chrome helpers ──────────────────────────────────────────────────────────
+  const pageFooter = () => {
+    doc.setDrawColor(...C.S200);
+    doc.setLineWidth(0.25);
+    doc.line(ML, PH - 13, PW - MR, PH - 13);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...C.S400);
+    doc.text("FintechPressHub · fintechpresshub.com", ML, PH - 9);
+    doc.text(`${pageNum}`, PW - MR, PH - 9, { align: "right" });
+  };
+
+  const pageHeader = () => {
+    doc.setFillColor(...C.ROSE);
+    doc.rect(0, 0, PW, 1.5, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...C.ROSE);
+    doc.text("FINTECHPRESSHUB", ML, 9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...C.S400);
+    doc.text(brief.keyword.toUpperCase(), PW - MR, 9, { align: "right" });
+    doc.setDrawColor(...C.S200);
+    doc.setLineWidth(0.25);
+    doc.line(ML, 12, PW - MR, 12);
+  };
+
+  // ── content writer ──────────────────────────────────────────────────────────
+  const ensureSpace = (needed: number) => {
+    if (y + needed > PH - 20) {
+      pageFooter();
+      doc.addPage();
+      pageNum++;
+      pageHeader();
+      y = 22;
+    }
+  };
+
+  const sectionHeader = (title: string) => {
+    ensureSpace(20);
+    doc.setFillColor(...C.ROSE);
+    doc.rect(ML, y, 2.5, 10, "F");
+    doc.setFillColor(...C.S50);
+    doc.rect(ML + 2.5, y, CW - 2.5, 10, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...C.S800);
+    doc.text(title, ML + 6, y + 6.8);
+    y += 15;
+  };
+
+  const miniLabel = (text: string) => {
+    ensureSpace(8);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...C.ROSE);
+    doc.text(text.toUpperCase(), ML, y);
+    y += 4;
+  };
+
+  const body = (text: string, indent = 0) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...C.S800);
+    const lines = doc.splitTextToSize(text, CW - indent - 2);
+    lines.forEach((line: string) => {
+      ensureSpace(5);
+      doc.text(line, ML + indent, y);
+      y += 4.5;
+    });
+    y += 1.5;
+  };
+
+  const bodySmall = (text: string, indent = 0) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...C.S600);
+    const lines = doc.splitTextToSize(text, CW - indent - 2);
+    lines.forEach((line: string) => {
+      ensureSpace(5);
+      doc.text(line, ML + indent, y);
+      y += 4;
+    });
+    y += 1;
+  };
+
+  const bullet = (text: string, indent = 2) => {
+    ensureSpace(6);
+    doc.setFillColor(...C.ROSE);
+    doc.rect(ML + indent, y - 2, 1.5, 1.5, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...C.S800);
+    const lines = doc.splitTextToSize(text, CW - indent - 6);
+    lines.forEach((line: string, i: number) => {
+      ensureSpace(5);
+      doc.text(line, ML + indent + 4, i === 0 ? y : y);
+      if (i === 0) y += 4.2;
+      else { doc.text(line, ML + indent + 4, y); y += 4.2; }
+    });
+    y += 1;
+  };
+
+  const gap = (n = 4) => { y += n; };
+
+  const hr = () => {
+    ensureSpace(5);
+    doc.setDrawColor(...C.S100);
+    doc.setLineWidth(0.25);
+    doc.line(ML, y, PW - MR, y);
+    y += 5;
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // COVER PAGE (branded only)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (branded) {
+    doc.setFillColor(...C.NAVY);
+    doc.rect(0, 0, PW, PH, "F");
+
+    // subtle grid
+    doc.setDrawColor(25, 35, 55);
+    doc.setLineWidth(0.1);
+    for (let i = 0; i <= 10; i++) doc.line(ML + i * (CW / 10), 38, ML + i * (CW / 10), PH - 28);
+    for (let i = 0; i <= 14; i++) doc.line(ML, 38 + i * 18, PW - MR, 38 + i * 18);
+
+    // rose top stripe
+    doc.setFillColor(...C.ROSE);
+    doc.rect(0, 0, PW, 2, "F");
+
+    // agency name
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...C.ROSE);
+    doc.text("FINTECHPRESSHUB", ML, 16);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...C.S400);
+    doc.text("FINTECH SEO & CONTENT MARKETING", ML, 22);
+
+    // rose left accent bar
+    doc.setFillColor(...C.ROSE);
+    doc.rect(ML, 55, 2.5, 95, "F");
+
+    // brief type label
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...C.ROSE);
+    doc.text("CONTENT STRATEGY BRIEF", ML + 6, 64);
+
+    // keyword — large display
+    const capKw = brief.keyword.charAt(0).toUpperCase() + brief.keyword.slice(1);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(36);
+    doc.setTextColor(...C.WHITE);
+    const kwLines = doc.splitTextToSize(capKw, CW - 8);
+    let kwY = 82;
+    kwLines.forEach((ln: string) => { doc.text(ln, ML + 6, kwY); kwY += 15; });
+    const kwBottom = kwY;
+
+    // subtitle
+    const subtitle = clientName.trim()
+      ? `Custom Content Strategy for ${clientName.trim()}`
+      : "Custom Content Strategy Brief";
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12.5);
+    doc.setTextColor(...C.S400);
+    const subLines = doc.splitTextToSize(subtitle, CW - 8);
+    let subY = kwBottom + 4;
+    subLines.forEach((ln: string) => { doc.text(ln, ML + 6, subY); subY += 7; });
+
+    // divider
+    doc.setDrawColor(...C.S700);
+    doc.setLineWidth(0.3);
+    doc.line(ML + 6, subY + 8, PW - MR, subY + 8);
+
+    // meta row
+    const metaY = subY + 18;
+    const metas = [
+      { label: "AUDIENCE",  val: brief.audience.split("/")[0].trim() },
+      { label: "TONE",      val: brief.tone.split(" — ")[0] },
+      { label: "WORDS",     val: brief.targetWordCount },
+      { label: "PREPARED",  val: new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" }) },
+    ];
+    metas.forEach((m, i) => {
+      const x = ML + 6 + i * (CW / 4);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(5.5);
+      doc.setTextColor(...C.ROSE);
+      doc.text(m.label, x, metaY);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(...C.S400);
+      doc.text(m.val, x, metaY + 5.5);
+    });
+
+    // bottom rose bar
+    doc.setFillColor(...C.ROSE);
+    doc.rect(0, PH - 10, PW, 10, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...C.WHITE);
+    doc.text("fintechpresshub.com", PW / 2, PH - 5.5, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.text("Fintech SEO & Content Marketing", PW / 2, PH - 2, { align: "center" });
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // STRATEGIC CONTEXT PAGE
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    doc.addPage();
+    pageNum++;
+    pageHeader();
+    y = 22;
+
+    const ctx = generateStrategicContext(brief);
+    sectionHeader("Strategic Context");
+
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...C.S600);
+    const preamble = `This brief was developed using FintechPressHub's multi-signal content opportunity framework — combining keyword difficulty analysis, topical authority mapping, and audience intent modelling to identify high-value content gaps in the ${brief.audience.split("/")[0].trim().toLowerCase()} segment.`;
+    const pLines = doc.splitTextToSize(preamble, CW);
+    pLines.forEach((ln: string) => { ensureSpace(5); doc.text(ln, ML, y); y += 4.5; });
+    gap(5);
+
+    const ctxSections: Array<{ title: string; text: string }> = [
+      { title: "Content Opportunity",   text: ctx.opportunity  },
+      { title: "Competitive Landscape", text: ctx.competitive  },
+      { title: "Content Objective",     text: ctx.objective    },
+    ];
+    ctxSections.forEach((s) => {
+      ensureSpace(18);
+      doc.setFillColor(...C.S100);
+      doc.rect(ML, y - 2, CW, 8, "F");
+      doc.setFillColor(...C.ROSE);
+      doc.rect(ML, y - 2, 1.5, 8, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...C.S800);
+      doc.text(s.title, ML + 4, y + 3.5);
+      y += 11;
+      body(s.text, 2);
+      gap(3);
+    });
+
+    pageFooter();
+    doc.addPage();
+    pageNum++;
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // BRIEF CONTENT PAGES
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  pageHeader();
+  y = 22;
+
+  // ── Overview grid ────────────────────────────────────────────────────────
+  sectionHeader("Overview");
+  const overviewItems = [
+    { label: "Keyword",      val: brief.keyword           },
+    { label: "Audience",     val: brief.audience          },
+    { label: "Tone",         val: brief.tone.split(" — ")[0] },
+    { label: "Word Count",   val: brief.targetWordCount   },
+    { label: "Reading Time", val: brief.readingTime       },
+    { label: "Prepared",     val: new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" }) },
+  ];
+  const colW = (CW - 2) / 2;
+  overviewItems.forEach((item, i) => {
+    if (i % 2 === 0) {
+      ensureSpace(12);
+      const rY = y;
+      // Left cell
+      doc.setFillColor(...C.S50);
+      doc.rect(ML, rY, colW, 11, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6);
+      doc.setTextColor(...C.S600);
+      doc.text(item.label.toUpperCase(), ML + 2, rY + 4);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(...C.S800);
+      const lv = doc.splitTextToSize(item.val, colW - 4);
+      doc.text(lv[0] ?? "", ML + 2, rY + 8.5);
+      // Right cell
+      const next = overviewItems[i + 1];
+      if (next) {
+        doc.setFillColor(...C.S50);
+        doc.rect(ML + colW + 2, rY, colW, 11, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6);
+        doc.setTextColor(...C.S600);
+        doc.text(next.label.toUpperCase(), ML + colW + 4, rY + 4);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(...C.S800);
+        const rv = doc.splitTextToSize(next.val, colW - 4);
+        doc.text(rv[0] ?? "", ML + colW + 4, rY + 8.5);
+      }
+      y += 13;
+    }
+  });
+  gap(3);
+
+  // ── SEO Copy ─────────────────────────────────────────────────────────────
+  sectionHeader("SEO Copy");
+  miniLabel("Meta Title");    body(brief.metaTitle);
+  miniLabel("Meta Description"); body(brief.metaDescription);
+  miniLabel("H1");            body(brief.h1);
+  miniLabel("Intro Guidance"); body(brief.intro);
+  gap(2);
+
+  // ── Content Structure ────────────────────────────────────────────────────
+  sectionHeader("Content Structure (H2s)");
+  brief.h2s.forEach((h, i) => {
+    ensureSpace(16);
+    doc.setFillColor(...C.ROSE);
+    doc.rect(ML, y - 1, 6, 6, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...C.WHITE);
+    doc.text(`${i + 1}`, ML + 3, y + 3.5, { align: "center" });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...C.S800);
+    const hLines = doc.splitTextToSize(h.heading, CW - 10);
+    hLines.forEach((ln: string, j: number) => {
+      ensureSpace(5);
+      doc.text(ln, ML + 8, y + (j === 0 ? 3.5 : 3.5 + j * 4.5));
+    });
+    y += hLines.length * 4.5 + 3;
+    bodySmall(h.notes, 6);
+    gap(1);
+  });
+  gap(2);
+
+  // ── Semantic Entities ────────────────────────────────────────────────────
+  sectionHeader("Semantic SEO Entities");
+  bodySmall("Must-include terms for topical authority. Mention each naturally at least once.");
+  gap(3);
+  const pillW = 28, pillH = 6.5, pillGap = 2;
+  let px = ML;
+  brief.entities.forEach((e) => {
+    if (px + pillW > PW - MR) { px = ML; y += pillH + pillGap; ensureSpace(pillH + pillGap); }
+    doc.setFillColor(...C.S100);
+    doc.rect(px, y - 4, pillW, pillH, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...C.S800);
+    doc.text(e, px + pillW / 2, y - 0.2, { align: "center" });
+    px += pillW + pillGap;
+  });
+  y += pillH + 4;
+  gap(3);
+
+  // ── FAQ ──────────────────────────────────────────────────────────────────
+  sectionHeader("FAQ Suggestions");
+  brief.faqHeadings.forEach((q, i) => { bullet(`${i + 1}.  ${q}`); });
+  gap(2);
+
+  // ── Internal Links ───────────────────────────────────────────────────────
+  sectionHeader("Internal Link Opportunities");
+  brief.internalLinks.forEach((l) => { bullet(l); });
+  gap(2);
+
+  // ── External Link Types ──────────────────────────────────────────────────
+  sectionHeader("External Link Types");
+  brief.externalLinkTypes.forEach((l) => { bullet(l); });
+  gap(2);
+
+  // ── Style Guardrails table ───────────────────────────────────────────────
+  sectionHeader("Style Guardrails");
+  ensureSpace(12);
+  const halfW = (CW - 2) / 2;
+  doc.setFillColor(...C.S800);
+  doc.rect(ML, y, halfW, 8, "F");
+  doc.setFillColor(150, 20, 40);
+  doc.rect(ML + halfW + 2, y, halfW, 8, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(...C.WHITE);
+  doc.text("WRITE LIKE THIS", ML + 3, y + 5.2);
+  doc.text("AVOID THIS", ML + halfW + 5, y + 5.2);
+  y += 10;
+  brief.styleGuardrails.forEach((g) => {
+    const lLines = doc.splitTextToSize(g.writeLike, halfW - 5);
+    const rLines = doc.splitTextToSize(g.avoid, halfW - 5);
+    const rowH = Math.max(lLines.length, rLines.length) * 4.2 + 6;
+    ensureSpace(rowH);
+    doc.setFillColor(...C.S50);
+    doc.rect(ML, y, halfW, rowH, "F");
+    doc.setFillColor(255, 248, 248);
+    doc.rect(ML + halfW + 2, y, halfW, rowH, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...C.EMLD);
+    lLines.forEach((ln: string, i: number) => doc.text(ln, ML + 3, y + 4 + i * 4.2));
+    doc.setTextColor(...C.RED);
+    rLines.forEach((ln: string, i: number) => doc.text(ln, ML + halfW + 5, y + 4 + i * 4.2));
+    y += rowH + 1;
+  });
+  gap(4);
+
+  // ── Competing Angles ─────────────────────────────────────────────────────
+  sectionHeader("Competing Content Angles");
+  brief.competingAngles.forEach((a, i) => {
+    ensureSpace(14);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...C.S800);
+    const angleLines = doc.splitTextToSize(`#${i + 1}  ${a.angle}`, CW);
+    angleLines.forEach((ln: string) => { ensureSpace(5); doc.text(ln, ML, y); y += 4.5; });
+    bodySmall(a.why, 4);
+    gap(1);
+  });
+
+  // ── Flesch-Kincaid ───────────────────────────────────────────────────────
+  sectionHeader("Flesch–Kincaid Reading Level");
+  ensureSpace(18);
+  doc.setFillColor(...C.INDIGO);
+  doc.rect(ML, y - 2, 22, 14, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6.5);
+  doc.setTextColor(...C.WHITE);
+  doc.text("TARGET", ML + 11, y + 2.5, { align: "center" });
+  doc.setFontSize(11);
+  doc.text(brief.fleschKincaid.gradeLevel.replace("Grade ", "Gr. "), ML + 11, y + 9.5, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...C.S800);
+  const fkLines = doc.splitTextToSize(brief.fleschKincaid.rationale, CW - 26);
+  fkLines.forEach((ln: string, i: number) => doc.text(ln, ML + 25, y + 3 + i * 4.5));
+  y += Math.max(14, fkLines.length * 4.5) + 4;
+  miniLabel("Example Sentence Structures");
+  brief.fleschKincaid.exampleStructures.forEach((s, i) => {
+    ensureSpace(10);
+    doc.setFillColor(...C.S100);
+    doc.rect(ML, y - 2, CW, 9, "F");
+    doc.setFillColor(...C.INDIGO);
+    doc.rect(ML, y - 2, 1.5, 9, "F");
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...C.S600);
+    const sLines = doc.splitTextToSize(`${i + 1}.  ${s}`, CW - 6);
+    sLines.forEach((ln: string, j: number) => doc.text(ln, ML + 4, y + 2 + j * 4));
+    y += sLines.length * 4 + 5;
+  });
+  gap(4);
+
+  // ── SME Questions ────────────────────────────────────────────────────────
+  sectionHeader("SME Interview Questions");
+  bodySmall("Ask before drafting. Pull 2–3 direct quotes into the article.");
+  gap(3);
+  (brief.smeQuestions ?? []).forEach((q, i) => {
+    ensureSpace(18);
+    doc.setFillColor(...C.CYAN);
+    doc.rect(ML, y - 2, 7, 7, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...C.WHITE);
+    doc.text(`Q${i + 1}`, ML + 3.5, y + 2.8, { align: "center" });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...C.S800);
+    const qLines = doc.splitTextToSize(`"${q.question}"`, CW - 10);
+    qLines.forEach((ln: string, j: number) => doc.text(ln, ML + 9, y + (j === 0 ? 2.5 : 2.5 + j * 4.5)));
+    y += qLines.length * 4.5 + 3;
+    bodySmall(q.context, 6);
+    gap(3);
+  });
+
+  // ── CTA ──────────────────────────────────────────────────────────────────
+  sectionHeader("CTA Guidance");
+  ensureSpace(18);
+  doc.setFillColor(...C.S50);
+  doc.rect(ML, y, CW, 16, "F");
+  doc.setFillColor(...C.ROSE);
+  doc.rect(ML, y, 2.5, 16, "F");
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...C.S800);
+  const ctaLines = doc.splitTextToSize(brief.cta, CW - 8);
+  ctaLines.forEach((ln: string, i: number) => doc.text(ln, ML + 5, y + 5 + i * 4.5));
+  y += 20;
+
+  pageFooter();
+
+  // ── save ─────────────────────────────────────────────────────────────────
+  const slug = brief.keyword.replace(/\s+/g, "-").toLowerCase();
+  const cSlug = clientName.trim() ? `-${clientName.trim().replace(/\s+/g, "-").toLowerCase()}` : "";
+  doc.save(`${slug}${cSlug}-content-brief.pdf`);
+}
+
 function EntityPill({
   entity,
   checked,
@@ -980,6 +1565,7 @@ export default function ContentBriefGenerator() {
   const [checkedLinks, setCheckedLinks] = useState<Record<number, boolean>>({});
   const [checkedH2s, setCheckedH2s] = useState<Record<number, boolean>>({});
   const loadedKeyRef = useRef<string | null>(null);
+  const [professionalBranding, setProfessionalBranding] = useState(false);
 
   // Load checked state from sessionStorage when briefKey changes
   useEffect(() => {
@@ -1084,15 +1670,9 @@ export default function ContentBriefGenerator() {
     setTimeout(() => setCopiedMd(false), 2000);
   };
 
-  const downloadBrief = () => {
+  const handleDownloadPDF = () => {
     if (!brief) return;
-    const blob = new Blob([briefToText(brief)], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${brief.keyword.replace(/\s+/g, "-").toLowerCase()}-content-brief.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBriefAsPDF(brief, form.clientName, professionalBranding);
   };
 
   const canGenerate = form.keyword.trim().length >= 3;
@@ -1223,6 +1803,25 @@ export default function ContentBriefGenerator() {
                     ))}
                   </div>
                 </div>
+
+                {/* Client Name */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-rose-600" />
+                    Client Name
+                    <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                  </Label>
+                  <input
+                    type="text"
+                    value={form.clientName}
+                    onChange={(e) => setField("clientName", e.target.value)}
+                    placeholder="e.g. Acme Financial Services"
+                    className="w-full h-10 rounded-lg border border-border bg-white px-3 text-sm text-slate-800 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent transition"
+                  />
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    Appears on the PDF cover page when Professional Branding is enabled.
+                  </p>
+                </div>
               </div>
 
               <Button
@@ -1338,9 +1937,33 @@ export default function ContentBriefGenerator() {
                         <><FileCode className="w-4 h-4" /> Copy as Markdown</>
                       )}
                     </Button>
-                    <Button size="sm" variant="outline" onClick={downloadBrief} className="gap-1.5">
-                      <Download className="w-4 h-4" />
-                      Download
+                    {/* Professional Branding toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setProfessionalBranding((v) => !v)}
+                      title={professionalBranding ? "Switch to plain PDF" : "Enable Professional Branding"}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 select-none ${
+                        professionalBranding
+                          ? "bg-slate-900 border-slate-700 text-white shadow-sm"
+                          : "bg-white border-slate-200 text-slate-500 hover:border-slate-400 hover:text-slate-700"
+                      }`}
+                    >
+                      <Briefcase className="w-3 h-3" />
+                      {professionalBranding ? "Branded" : "Plain"}
+                    </button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleDownloadPDF}
+                      className={`gap-1.5 transition-all duration-200 ${
+                        professionalBranding
+                          ? "bg-slate-900 border-slate-800 text-white hover:bg-slate-800 hover:border-slate-700"
+                          : ""
+                      }`}
+                    >
+                      <FileDown className="w-4 h-4" />
+                      {professionalBranding ? "Download Branded PDF" : "Download PDF"}
                     </Button>
                   </div>
                 </div>
