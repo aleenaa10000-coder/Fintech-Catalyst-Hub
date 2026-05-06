@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -19,6 +19,8 @@ import {
   DollarSign,
   Shield,
   Star,
+  Link2,
+  Check,
 } from "lucide-react";
 
 type Relevance = "high" | "medium" | "low";
@@ -210,28 +212,66 @@ export default function LinkProspector() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [error, setError] = useState("");
   const [ran, setRan] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const run = () => {
+  const runWithText = useCallback((text: string, pushUrl = true) => {
     setError("");
-    const lines = textarea.split("\n").filter((l) => l.trim());
+    const lines = text.split("\n").filter((l) => l.trim());
     if (lines.length === 0) { setError("Paste at least one domain to get started."); return; }
     if (lines.length > 50) { setError("Maximum 50 domains per batch."); return; }
-
     const parsed = lines.map(parseLine).filter(Boolean) as { domain: string; da: number; traffic: number }[];
     if (parsed.length === 0) { setError("Couldn't parse any valid domains. Check the format."); return; }
-
     setResults(parsed.map((p) => estimateOne(p.domain, p.da, p.traffic)));
     setRan(true);
-  };
+    if (pushUrl) {
+      try {
+        const encoded = btoa(unescape(encodeURIComponent(text)));
+        const url = new URL(window.location.href);
+        url.searchParams.set("data", encoded);
+        window.history.replaceState(null, "", url.toString());
+      } catch {
+        // ignore encoding errors
+      }
+    }
+  }, []);
+
+  const run = () => runWithText(textarea);
+
+  // On mount, restore state from URL if present
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const encoded = params.get("data");
+      if (encoded) {
+        const text = decodeURIComponent(escape(atob(encoded)));
+        setTextarea(text);
+        runWithText(text, false);
+      }
+    } catch {
+      // ignore malformed URL params
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const reset = () => {
     setTextarea("");
     setResults([]);
     setRan(false);
     setError("");
+    setCopied(false);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("data");
+    window.history.replaceState(null, "", url.toString());
   };
 
   const loadExample = () => { setTextarea(EXAMPLE); setRan(false); };
+
+  const copyShareLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -398,6 +438,15 @@ export default function LinkProspector() {
                       className={`text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all ${sortKey === "acquisitionStars" && sortDir === "asc" ? "bg-blue-600 text-white border-blue-600" : "border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-700"}`}
                     >
                       Easiest Win
+                    </button>
+                    <button
+                      type="button"
+                      onClick={copyShareLink}
+                      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all ${copied ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "border-slate-200 text-slate-600 hover:border-slate-400 hover:text-slate-800"}`}
+                      title="Copy a shareable link to these results"
+                    >
+                      {copied ? <Check className="w-3 h-3" /> : <Link2 className="w-3 h-3" />}
+                      {copied ? "Copied!" : "Share"}
                     </button>
                   </div>
                 </div>

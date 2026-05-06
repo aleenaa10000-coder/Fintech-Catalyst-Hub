@@ -3785,7 +3785,6 @@ export default function KeywordDifficultyEstimator() {
                   exit={{ opacity: 0, width: 0, x: -20 }}
                   transition={{ duration: 0.22, ease: "easeInOut" }}
                   className="shrink-0 overflow-hidden sticky top-6 self-start hidden lg:block"
-                  style={{ width: 256 }}
                 >
                   <div className="w-64 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     {/* Sidebar header */}
@@ -5064,7 +5063,7 @@ export default function KeywordDifficultyEstimator() {
                     </button>
                     <p className="text-[10px] text-slate-400 text-center leading-relaxed">
                       No spam. Unsubscribe any time. By submitting you agree to our{" "}
-                      <Link href="/privacy" className="underline hover:text-slate-600">
+                      <Link href="/privacy-policy" className="underline hover:text-slate-600">
                         privacy policy
                       </Link>
                       .
