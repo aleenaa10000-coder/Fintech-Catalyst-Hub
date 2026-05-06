@@ -1,11 +1,10 @@
 import { Link, useLocation } from "wouter";
-import { Menu, Sun, Moon } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { prefetchRoute } from "@/lib/route-prefetch";
-import { useTheme } from "@/contexts/ThemeContext";
 import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
 
 const NAV_LINKS = [
@@ -22,7 +21,6 @@ export function Header() {
   const [location] = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -71,20 +69,6 @@ export function Header() {
             </Link>
           ))}
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            {theme === "dark" ? (
-              <Sun className="w-4 h-4" />
-            ) : (
-              <Moon className="w-4 h-4" />
-            )}
-          </Button>
-
           <Link
             href="/contact"
             onMouseEnter={() => prefetchRoute("/contact")}
@@ -102,20 +86,6 @@ export function Header() {
 
         {/* Mobile Nav */}
         <div className="flex items-center gap-2 md:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            {theme === "dark" ? (
-              <Sun className="w-4 h-4" />
-            ) : (
-              <Moon className="w-4 h-4" />
-            )}
-          </Button>
-
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
