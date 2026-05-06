@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -21,6 +21,8 @@ import {
   Target,
   ShieldCheck,
   Info,
+  Copy,
+  Check,
 } from "lucide-react";
 import {
   Tooltip,
@@ -245,9 +247,64 @@ const SCORE_BG = (s: number) =>
 const LABEL_ICON = (s: number) =>
   s >= 60 ? CheckCircle2 : s >= 40 ? AlertTriangle : XCircle;
 
+function buildShareUrl(form: FormState): string {
+  const params = new URLSearchParams({
+    domain: form.domain,
+    da: form.da,
+    traffic: form.traffic,
+    relevance: form.relevance,
+    linkType: form.linkType,
+    placement: form.placement,
+  });
+  return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+}
+
+function parseFormFromParams(): Partial<FormState> {
+  const params = new URLSearchParams(window.location.search);
+  const result: Partial<FormState> = {};
+  const domain = params.get("domain");
+  const da = params.get("da");
+  const traffic = params.get("traffic");
+  const relevance = params.get("relevance");
+  const linkType = params.get("linkType");
+  const placement = params.get("placement");
+  if (domain) result.domain = domain;
+  if (da) result.da = da;
+  if (traffic) result.traffic = traffic;
+  if (relevance && ["high", "medium", "low"].includes(relevance))
+    result.relevance = relevance as FormState["relevance"];
+  if (linkType && ["dofollow", "nofollow"].includes(linkType))
+    result.linkType = linkType as FormState["linkType"];
+  if (
+    placement &&
+    ["editorial", "sidebar", "footer", "sponsored"].includes(placement)
+  )
+    result.placement = placement as FormState["placement"];
+  return result;
+}
+
 export default function BacklinkValueEstimator() {
   const [form, setForm] = useState<FormState>(DEFAULTS);
   const [result, setResult] = useState<Result | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const fromParams = parseFormFromParams();
+    if (Object.keys(fromParams).length > 0) {
+      const merged = { ...DEFAULTS, ...fromParams };
+      setForm(merged);
+      const canRun =
+        (parseFloat(merged.da) > 0 || parseFloat(merged.traffic) > 0) &&
+        merged.domain.trim().length > 0;
+      if (canRun) {
+        setResult(estimateValue(merged));
+      }
+    }
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -255,10 +312,31 @@ export default function BacklinkValueEstimator() {
   const reset = () => {
     setForm(DEFAULTS);
     setResult(null);
+    window.history.replaceState(null, "", window.location.pathname);
   };
 
   const estimate = () => {
     setResult(estimateValue(form));
+  };
+
+  const copyShareUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(buildShareUrl(form));
+      setCopied(true);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: select a temporary input
+      const el = document.createElement("input");
+      el.value = buildShareUrl(form);
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const canEstimate =
@@ -486,9 +564,34 @@ export default function BacklinkValueEstimator() {
                 exit={{ opacity: 0, y: 8 }}
                 className="mt-6 space-y-4"
               >
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                  Results for {form.domain}
-                </h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+                    Results for {form.domain}
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copyShareUrl}
+                    className={`shrink-0 gap-1.5 text-xs font-semibold transition-all ${
+                      copied
+                        ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+                        : "border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50"
+                    }`}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy shareable link
+                      </>
+                    )}
+                  </Button>
+                </div>
 
                 {/* Score */}
                 <Card className={`border shadow-sm ${SCORE_BG(result.score)}`}>
