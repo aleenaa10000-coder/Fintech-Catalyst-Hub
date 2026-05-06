@@ -393,7 +393,7 @@ type Analysis = {
   wordCount: number;
   overallScore: number;
   verdict: string;
-  verdictColor: string;
+  verdictColor: "emerald" | "blue" | "amber" | "red";
   dimensions: ScoreDimension[];
   rewrites: { label: string; text: string }[];
   flags: string[];

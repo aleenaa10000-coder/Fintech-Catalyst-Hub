@@ -172,8 +172,8 @@ function estimateDifficulty(keyword: string): Result {
   if (wordCount === 1) score += 30;
   else if (wordCount === 2) score += 15;
   else if (wordCount === 3) score += 5;
-  else if (wordCount >= 4) score -= 10;
   else if (wordCount >= 6) score -= 20;
+  else if (wordCount >= 4) score -= 10;
 
   // High-competition words boost difficulty
   const highCompHits = words.filter((w) =>

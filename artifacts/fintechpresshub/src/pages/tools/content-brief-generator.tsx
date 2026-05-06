@@ -1156,11 +1156,10 @@ async function downloadBriefAsPDF(
     doc.setFontSize(8);
     doc.setTextColor(...C.S800);
     const lines = doc.splitTextToSize(text, CW - indent - 6);
-    lines.forEach((line: string, i: number) => {
+    lines.forEach((line: string) => {
       ensureSpace(5);
-      doc.text(line, ML + indent + 4, i === 0 ? y : y);
-      if (i === 0) y += 4.2;
-      else { doc.text(line, ML + indent + 4, y); y += 4.2; }
+      doc.text(line, ML + indent + 4, y);
+      y += 4.2;
     });
     y += 1;
   };
