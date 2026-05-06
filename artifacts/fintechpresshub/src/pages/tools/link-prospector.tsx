@@ -22,6 +22,7 @@ import {
   Link2,
   Check,
   Download,
+  Mail,
 } from "lucide-react";
 
 type Relevance = "high" | "medium" | "low";
@@ -197,6 +198,15 @@ function buildEstimatorUrl(r: ProspectResult): string {
     placement: "editorial",
   });
   return `/tools/backlink-value-estimator?${p.toString()}`;
+}
+
+function buildPitchUrl(r: ProspectResult): string {
+  const p = new URLSearchParams({
+    targetDomain: r.domain,
+    linkValueMin: String(r.linkValue.min),
+    linkValueMax: String(r.linkValue.max),
+  });
+  return `/tools/outreach-email-generator?${p.toString()}`;
 }
 
 const EXAMPLE = `moz.com,91,250000
@@ -499,6 +509,14 @@ export default function LinkProspector() {
                       <Download className="w-3 h-3" />
                       Export CSV
                     </button>
+                    <Link
+                      href={buildPitchUrl(sorted[0])}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-400 transition-all"
+                      title={`Draft an outreach email for ${sorted[0].domain}`}
+                    >
+                      <Mail className="w-3 h-3" />
+                      Pitch Top Prospect
+                    </Link>
                   </div>
                 </div>
 
@@ -569,15 +587,27 @@ export default function LinkProspector() {
                               </div>
                             </td>
                             <td className="px-3 py-3">
-                              <Link href={buildEstimatorUrl(r)}>
-                                <button
-                                  type="button"
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50"
-                                  title="Open full analysis"
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                </button>
-                              </Link>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Link href={buildPitchUrl(r)}>
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md text-violet-600 hover:text-violet-700 hover:bg-violet-50 border border-transparent hover:border-violet-200 transition-all whitespace-nowrap"
+                                    title={`Draft outreach email for ${r.domain}`}
+                                  >
+                                    <Mail className="w-3 h-3" />
+                                    Pitch
+                                  </button>
+                                </Link>
+                                <Link href={buildEstimatorUrl(r)}>
+                                  <button
+                                    type="button"
+                                    className="p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                                    title="Open full analysis"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </button>
+                                </Link>
+                              </div>
                             </td>
                           </motion.tr>
                         ))}
