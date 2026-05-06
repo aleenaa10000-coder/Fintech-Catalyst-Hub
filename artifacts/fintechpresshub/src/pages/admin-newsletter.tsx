@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronsUpDown,
   X,
+  Search,
 } from "lucide-react";
 import {
   ResponsiveContainer,
