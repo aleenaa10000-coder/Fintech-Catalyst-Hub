@@ -33,6 +33,13 @@ import {
   Gauge,
   ClipboardCheck,
   PenLine,
+  ClipboardList,
+  BookmarkPlus,
+  BookmarkCheck,
+  History,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 type Audience = "founders" | "marketers" | "developers" | "consumers" | "investors";
@@ -2188,6 +2195,31 @@ function EntityPill({
   );
 }
 
+type SavedBrief = {
+  id: string;
+  keyword: string;
+  audience: Audience;
+  savedAt: number;
+  brief: Brief;
+  form: FormState;
+};
+
+const HISTORY_LS_KEY = "cbg:history:v1";
+const MAX_HISTORY = 5;
+
+function loadSavedBriefs(): SavedBrief[] {
+  try { return JSON.parse(localStorage.getItem(HISTORY_LS_KEY) ?? "[]"); } catch { return []; }
+}
+
+function timeAgo(ts: number): string {
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
 export default function ContentBriefGenerator() {
   const [form, setForm] = useState<FormState>(DEFAULTS);
   const [brief, setBrief] = useState<Brief | null>(null);
@@ -2209,6 +2241,10 @@ export default function ContentBriefGenerator() {
   const [intentAlignment, setIntentAlignment] = useState<IntentAlignment | null>(null);
   const [expertHooks, setExpertHooks] = useState<ExpertHook[] | null>(null);
   const [writerMode, setWriterMode] = useState(false);
+  const [copiedChecklist, setCopiedChecklist] = useState(false);
+  const [savedBriefs, setSavedBriefs] = useState<SavedBrief[]>(loadSavedBriefs);
+  const [savedConfirmed, setSavedConfirmed] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Load checked state from sessionStorage when briefKey changes
   useEffect(() => {
@@ -2340,6 +2376,67 @@ export default function ContentBriefGenerator() {
     setTimeout(() => setCopied(false), 3000);
   };
 
+  const copyChecklist = () => {
+    if (!brief) return;
+    const lines: string[] = [
+      `# Writing Checklist — ${brief.keyword}`,
+      ``,
+      `## Sections to Draft`,
+      ``,
+      ...brief.h2s.map((h) => `- [ ] ${h.heading}`),
+      ``,
+      `## Semantic Entities to Include`,
+      ``,
+      ...brief.entities.map((e) => `- [ ] ${e}`),
+    ];
+    navigator.clipboard.writeText(lines.join("\n"));
+    setCopiedChecklist(true);
+    setTimeout(() => setCopiedChecklist(false), 2000);
+  };
+
+  const saveBrief = () => {
+    if (!brief) return;
+    const entry: SavedBrief = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      keyword: brief.keyword,
+      audience: form.audience,
+      savedAt: Date.now(),
+      brief,
+      form,
+    };
+    setSavedBriefs((prev) => {
+      const updated = [entry, ...prev.filter((b) => b.keyword !== brief.keyword)].slice(0, MAX_HISTORY);
+      try { localStorage.setItem(HISTORY_LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+      return updated;
+    });
+    setSavedConfirmed(true);
+    setTimeout(() => setSavedConfirmed(false), 2500);
+  };
+
+  const deleteSavedBrief = (id: string) => {
+    setSavedBriefs((prev) => {
+      const updated = prev.filter((b) => b.id !== id);
+      try { localStorage.setItem(HISTORY_LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+      return updated;
+    });
+  };
+
+  const recallSavedBrief = (entry: SavedBrief) => {
+    setForm(entry.form);
+    setBrief(entry.brief);
+    setBriefKey(`cbg:${entry.brief.keyword.trim().toLowerCase()}:${entry.form.audience}:${entry.form.tone}`);
+    setCheckedEntities({});
+    setCheckedLinks({});
+    setCheckedH2s({});
+    const score = computeContentScore(entry.brief, entry.form);
+    setContentScore(score);
+    const alignment = computeIntentAlignment(entry.form.keyword, entry.form);
+    setIntentAlignment(alignment);
+    setExpertHooks(generateExpertHooks(entry.form.keyword, alignment.score, entry.form.audience));
+    setWriterMode(false);
+    setHistoryOpen(false);
+  };
+
   const canGenerate = form.keyword.trim().length >= 3;
 
   return (
@@ -2361,6 +2458,85 @@ export default function ContentBriefGenerator() {
             <ArrowLeft className="w-4 h-4" />
             All free tools
           </Link>
+
+          {/* Saved Briefs History */}
+          <AnimatePresence>
+            {savedBriefs.length > 0 && (
+              <motion.div
+                key="history-panel"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+                className="mb-5"
+              >
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen((v) => !v)}
+                  className="w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <History className="w-4 h-4 text-amber-600" />
+                    <span className="text-xs font-semibold text-amber-800">
+                      Saved Briefs ({savedBriefs.length}/{MAX_HISTORY})
+                    </span>
+                  </div>
+                  {historyOpen ? (
+                    <ChevronUp className="w-4 h-4 text-amber-500" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-amber-500" />
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {historyOpen && (
+                    <motion.div
+                      key="history-list"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.22, ease: "easeOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-2 space-y-2">
+                        {savedBriefs.map((entry) => (
+                          <div
+                            key={entry.id}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-100 bg-white shadow-sm"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-900 truncate">{entry.keyword}</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                                {AUDIENCE_LABELS[entry.audience]} · {timeAgo(entry.savedAt)}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => recallSavedBrief(entry)}
+                              className="shrink-0 text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg px-2.5 py-1 transition-colors"
+                            >
+                              Load
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteSavedBrief(entry.id)}
+                              className="shrink-0 p-1.5 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+                              title="Remove from history"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-2 px-1">
+                        Up to {MAX_HISTORY} briefs saved in your browser. Loading a brief restores the full result.
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence>
             {!writerMode && (
@@ -2622,6 +2798,38 @@ export default function ContentBriefGenerator() {
                         <><FileDown className="w-4 h-4" /> Download Markdown</>
                       )}
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={copyChecklist}
+                      className={`gap-1.5 transition-all ${
+                        copiedChecklist
+                          ? "border-teal-300 bg-teal-50 text-teal-700"
+                          : "hover:border-teal-300 hover:text-teal-700"
+                      }`}
+                    >
+                      {copiedChecklist ? (
+                        <><Check className="w-4 h-4 text-teal-600" /> Checklist Copied</>
+                      ) : (
+                        <><ClipboardList className="w-4 h-4" /> Copy Checklist</>
+                      )}
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={saveBrief}
+                      title="Save brief to history (max 5)"
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 select-none ${
+                        savedConfirmed
+                          ? "bg-amber-50 border-amber-300 text-amber-700"
+                          : "bg-white border-slate-200 text-slate-500 hover:border-amber-300 hover:text-amber-600"
+                      }`}
+                    >
+                      {savedConfirmed ? (
+                        <><BookmarkCheck className="w-3 h-3" /> Saved!</>
+                      ) : (
+                        <><BookmarkPlus className="w-3 h-3" /> Save</>
+                      )}
+                    </button>
                     {/* Professional Branding toggle */}
                     <button
                       type="button"
