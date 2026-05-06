@@ -24,6 +24,8 @@ import {
   Clock,
   Tag,
   GraduationCap,
+  ShieldCheck,
+  Lightbulb,
 } from "lucide-react";
 
 type Audience = "founders" | "marketers" | "developers" | "consumers" | "investors";
@@ -67,6 +69,16 @@ type FleschKincaid = {
   exampleStructures: string[];
 };
 
+type StyleGuardrail = {
+  writeLike: string;
+  avoid: string;
+};
+
+type ContentAngle = {
+  angle: string;
+  why: string;
+};
+
 type Brief = {
   keyword: string;
   audience: string;
@@ -86,6 +98,8 @@ type Brief = {
   toneGuidance: string[];
   thingsToAvoid: string[];
   fleschKincaid: FleschKincaid;
+  styleGuardrails: StyleGuardrail[];
+  competingAngles: ContentAngle[];
 };
 
 const INTERNAL_LINKS_BY_AUDIENCE: Record<Audience, string[]> = {
@@ -528,6 +542,70 @@ const FK_DATA: Record<Audience, Record<Tone, FleschKincaid>> = {
   },
 };
 
+const STYLE_GUARDRAILS: Record<Tone, StyleGuardrail[]> = {
+  authoritative: [
+    { writeLike: "Open with a decisive, confident claim backed by evidence", avoid: "Hedging openers — 'It could be argued that…' or 'Some believe…'" },
+    { writeLike: "Use active verbs and impact-first sentence structure", avoid: "Passive constructions that dilute agency ('It was found that…')" },
+    { writeLike: "Attribute every statistic to a named source and year", avoid: "Vague claims like 'studies show' or 'experts agree' with no citation" },
+    { writeLike: "Deploy precise industry terminology to signal genuine expertise", avoid: "Unsubstantiated superlatives — 'the best', 'world-class', 'leading'" },
+    { writeLike: "Keep paragraphs tight — one idea, three sentences maximum", avoid: "Padding with synonyms or restating the same point in different words" },
+  ],
+  educational: [
+    { writeLike: "Define every technical term on first use, in plain language", avoid: "Assuming the reader already knows acronyms — even common ones" },
+    { writeLike: "Use numbered lists and step-by-step structures for any process", avoid: "Dense prose for content that has a natural sequential structure" },
+    { writeLike: "Add a 'Why this matters' sentence after each key concept", avoid: "Defining terms without connecting them to the reader's real situation" },
+    { writeLike: "Aim for an average sentence length under 18 words", avoid: "Multi-clause sentences that require re-reading to parse correctly" },
+    { writeLike: "Ground abstract ideas in concrete, domain-specific examples", avoid: "Generic placeholders ('Company X did Y') — use real analogies instead" },
+  ],
+  conversational: [
+    { writeLike: "Write like you're explaining this to a smart colleague over coffee", avoid: "Boardroom jargon — 'leverage synergies', 'drive value', 'best-in-class'" },
+    { writeLike: "Use contractions naturally throughout (it's, you'll, they're)", avoid: "Stiff, formal constructions that sound like a legal document or press release" },
+    { writeLike: "Use relatable everyday analogies to explain complex financial ideas", avoid: "Industry acronyms without spelling them out — even familiar ones like API or AML" },
+    { writeLike: "Ask rhetorical questions at section breaks to re-engage the reader", avoid: "Lecturing tone — write with the reader, not at them" },
+    { writeLike: "Get to the point by sentence three in every section", avoid: "Long preambles that delay the actual value the reader came for" },
+  ],
+  "data-driven": [
+    { writeLike: "Lead each major section with a specific, cited statistic or benchmark", avoid: "Vague quantifiers — 'many fintechs', 'a large proportion', 'most companies'" },
+    { writeLike: "Name the source, publication, and year for every figure used", avoid: "Orphaned statistics with no attribution, date, or methodology note" },
+    { writeLike: "Use tables or comparison structures when presenting multiple data points", avoid: "Data dumps — always interpret what numbers mean for the reader's context" },
+    { writeLike: "Prefer specific figures and ranges over rounded estimates", avoid: "Statistics older than 3 years without a note or a fresher replacement" },
+    { writeLike: "Acknowledge counter-evidence or limitations in your data", avoid: "Cherry-picking results that only support a predetermined conclusion" },
+  ],
+};
+
+const COMPETING_ANGLES: Record<Audience, ContentAngle[]> = {
+  founders: [
+    { angle: "The real implementation cost breakdown most articles skip", why: "Founders need budget reality, not aspirational case studies. Specificity earns trust and drives shares among peers." },
+    { angle: "What happens when it goes wrong — failure modes and recovery", why: "Competitors focus on the success path. A candid look at failure signals genuine expertise and differentiates the piece." },
+    { angle: "Stage-specific advice (pre-seed vs. Series A vs. Series B)", why: "Generic founder content ignores that 'right for your startup' means entirely different things at different funding stages." },
+    { angle: "Regulatory implications compared across UK, EU, and US markets", why: "Most articles pick one jurisdiction. Multi-market coverage captures searches across geographies and attracts international readers." },
+  ],
+  marketers: [
+    { angle: "The content formats that actually convert in fintech — not just drive traffic", why: "Most fintech content marketing guides optimise for pageviews. Connecting format choice to pipeline metrics is a rare, high-value angle." },
+    { angle: "How to brief and manage specialist fintech writers effectively", why: "Marketers struggle with technical accuracy and quality control — this gap is almost entirely unaddressed in the content corpus." },
+    { angle: "Compliance-safe content marketing: what your legal team will actually approve", why: "A consistent pain point for fintech marketers that no generic content marketing guide addresses." },
+    { angle: "Attribution for long-cycle B2B fintech deals — what attribution models actually work", why: "Standard marketing attribution advice doesn't translate to 6–18 month sales cycles. There's a clear content gap here." },
+  ],
+  developers: [
+    { angle: "Side-by-side SDK comparison with real code — not just feature checklists", why: "Most developer content lists features; showing actual implementation differences in code is far more useful and rarely done." },
+    { angle: "What production monitoring looks like 6 months after go-live", why: "Integration guides end at deployment. The operational reality after launch is almost entirely undocumented." },
+    { angle: "How to handle graceful degradation when the upstream API fails", why: "Resilience patterns for third-party fintech APIs are a common gap — developers need this and it rarely appears in vendor docs." },
+    { angle: "The security review checklist your compliance team will actually ask for", why: "The gap between developer implementation and security audit requirements is a consistent, underserved pain point." },
+  ],
+  consumers: [
+    { angle: "What to do when something goes wrong — complaints, refunds, and protections", why: "Consumer content is overwhelmingly positive and promotional. A clear guide to consumer rights and recourse is almost universally missing." },
+    { angle: "How this compares to what your bank already offers — honestly", why: "Readers already have a mental reference point. Content that acknowledges the comparison directly builds credibility competitors miss." },
+    { angle: "The hidden fees and conditions most review sites don't flag", why: "Fee transparency content consistently outperforms promotional content in trust-building and organic search for high-intent queries." },
+    { angle: "A plain-English walkthrough of the signup process — with screenshots", why: "Anxiety about the unknown is a primary barrier to conversion. Process walkthroughs are high-value, low-competition content." },
+  ],
+  investors: [
+    { angle: "The unit economics benchmarks that separate top-quartile operators from the rest", why: "Generic market size data is everywhere. Specific performance benchmarks for deal evaluation are rare and highly valuable to LPs and analysts." },
+    { angle: "What the cap table and team structure signal about operator quality", why: "Most investor content focuses on market opportunity — the human capital and governance signals are consistently underanalysed." },
+    { angle: "A geography-by-geography regulatory risk matrix", why: "Investors with cross-border exposure need jurisdiction-specific regulatory analysis that most single-market content can't provide." },
+    { angle: "The operational metrics VCs ask for in due diligence — and why", why: "Bridging the founder-investor information gap from the investor's side is a rare and high-authority content angle." },
+  ],
+};
+
 function generateEntities(keyword: string, audience: Audience): string[] {
   const kw = keyword.toLowerCase();
   for (const bucket of ENTITY_BUCKETS) {
@@ -563,6 +641,8 @@ function generateBrief(form: FormState): Brief {
     toneGuidance: TONE_GUIDANCE[form.tone],
     thingsToAvoid: THINGS_TO_AVOID[form.tone],
     fleschKincaid: FK_DATA[form.audience][form.tone],
+    styleGuardrails: STYLE_GUARDRAILS[form.tone],
+    competingAngles: COMPETING_ANGLES[form.audience],
   };
 }
 
@@ -616,6 +696,14 @@ function briefToText(brief: Brief): string {
     `THINGS TO AVOID`,
     `---------------`,
     ...brief.thingsToAvoid.map((t) => `• ${t}`),
+    ``,
+    `STYLE GUARDRAILS`,
+    `----------------`,
+    ...brief.styleGuardrails.map((g) => `Write like this: ${g.writeLike}\nAvoid this:      ${g.avoid}`),
+    ``,
+    `COMPETING CONTENT ANGLES`,
+    `------------------------`,
+    ...brief.competingAngles.map((a, i) => `${i + 1}. ${a.angle}\n   Why: ${a.why}`),
     ``,
     `FLESCH-KINCAID READING LEVEL`,
     `----------------------------`,
@@ -979,34 +1067,100 @@ export default function ContentBriefGenerator() {
                   </Card>
                 </div>
 
-                {/* Tone guidance */}
+                {/* Tone guidance + Style Guardrails */}
                 <Card className="border border-slate-100 shadow-sm">
                   <CardContent className="p-5">
-                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-3">
-                      <MessageSquare className="w-4 h-4 text-rose-600" /> Tone Guidance
+                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-1">
+                      <ShieldCheck className="w-4 h-4 text-rose-600" /> Style Guardrails
                     </h4>
+                    <p className="text-[11px] text-muted-foreground mb-4">
+                      Tone-specific writing rules for this brief — paired for quick editorial reference.
+                    </p>
+
+                    <div className="rounded-lg border border-slate-200 overflow-hidden mb-4">
+                      <div className="grid grid-cols-2 bg-slate-100 border-b border-slate-200">
+                        <div className="px-3 py-2 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Write Like This</span>
+                        </div>
+                        <div className="px-3 py-2 flex items-center gap-1.5 border-l border-slate-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-red-600">Avoid This</span>
+                        </div>
+                      </div>
+                      {brief.styleGuardrails.map((row, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: i * 0.04 }}
+                          className={`grid grid-cols-2 ${i < brief.styleGuardrails.length - 1 ? "border-b border-slate-100" : ""}`}
+                        >
+                          <div className="px-3 py-2.5 flex gap-2 items-start bg-emerald-50/40">
+                            <Check className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" />
+                            <p className="text-xs text-slate-700 leading-relaxed">{row.writeLike}</p>
+                          </div>
+                          <div className="px-3 py-2.5 flex gap-2 items-start border-l border-slate-100 bg-red-50/30">
+                            <span className="mt-1 text-[10px] font-bold text-red-400 shrink-0">✕</span>
+                            <p className="text-xs text-slate-600 leading-relaxed">{row.avoid}</p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
                     <div className="grid sm:grid-cols-2 gap-3">
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-green-600 mb-2">Do</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Additional tone notes</p>
                         <ul className="space-y-1.5">
                           {brief.toneGuidance.map((t, i) => (
-                            <li key={i} className="flex gap-2 text-xs text-slate-700">
-                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />{t}
+                            <li key={i} className="flex gap-2 text-xs text-slate-600">
+                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0" />{t}
                             </li>
                           ))}
                         </ul>
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-red-500 mb-2">Avoid</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Things to flag in review</p>
                         <ul className="space-y-1.5">
                           {brief.thingsToAvoid.map((t, i) => (
-                            <li key={i} className="flex gap-2 text-xs text-slate-700">
-                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />{t}
+                            <li key={i} className="flex gap-2 text-xs text-slate-600">
+                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0" />{t}
                             </li>
                           ))}
                         </ul>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* Competing Content Snapshot */}
+                <Card className="border border-amber-100 shadow-sm">
+                  <CardContent className="p-5">
+                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-1">
+                      <Lightbulb className="w-4 h-4 text-amber-500" /> Competing Content Snapshot
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mb-4">
+                      Angles your competitors are likely missing for this audience — each represents a differentiation opportunity.
+                    </p>
+                    <div className="space-y-2.5">
+                      {brief.competingAngles.map((item, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.06 }}
+                          className="rounded-lg border border-amber-100 bg-amber-50/50 px-4 py-3"
+                        >
+                          <p className="text-xs font-semibold text-amber-900 leading-snug mb-1">
+                            <span className="text-amber-400 font-bold mr-1.5">#{i + 1}</span>{item.angle}
+                          </p>
+                          <p className="text-xs text-slate-600 leading-relaxed">{item.why}</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-[10px] text-slate-400 leading-relaxed">
+                      Review competitor SERPs for this keyword and note which of these angles are absent — prioritise the gaps with the highest search intent match.
+                    </p>
                   </CardContent>
                 </Card>
 
