@@ -505,6 +505,7 @@ export default function BacklinkValueEstimator() {
   const [copiedPitch, setCopiedPitch] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [comparePdfLoading, setComparePdfLoading] = useState(false);
+  const [reportPdfLoading, setReportPdfLoading] = useState(false);
   const [savedOpportunities, setSavedOpportunities] = useState<SavedOpportunity[]>([]);
   const [sortMode, setSortMode] = useState<SortMode>("value-score");
   const [compareMode, setCompareMode] = useState(false);
