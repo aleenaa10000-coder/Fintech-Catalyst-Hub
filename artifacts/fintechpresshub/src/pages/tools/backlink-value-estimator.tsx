@@ -23,6 +23,9 @@ import {
   Info,
   Copy,
   Check,
+  DollarSign,
+  FileDown,
+  Loader2,
 } from "lucide-react";
 import {
   Tooltip,
@@ -78,6 +81,38 @@ const PLACEMENT_MULTIPLIER: Record<Placement, number> = {
   sponsored: 0.4,
 };
 
+type LinkValue = {
+  min: number;
+  max: number;
+};
+
+function computeLinkValue(score: number, traffic: number): LinkValue {
+  // Traffic bonus ranges [min add-on, max add-on]
+  const trafficBonus: [number, number] =
+    traffic >= 500_000
+      ? [800, 1500]
+      : traffic >= 100_000
+        ? [400, 800]
+        : traffic >= 50_000
+          ? [200, 400]
+          : traffic >= 10_000
+            ? [100, 250]
+            : traffic >= 1_000
+              ? [30, 100]
+              : [0, 50];
+
+  // Round to nearest $100
+  const round = (n: number) => Math.round(n / 100) * 100;
+  const min = Math.max(100, round(score * 8 + trafficBonus[0]));
+  const max = Math.max(min + 100, round(score * 18 + trafficBonus[1]));
+  return { min, max };
+}
+
+function fmtMoney(n: number): string {
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  return `$${n}`;
+}
+
 type AcquisitionDifficulty = {
   stars: number;
   label: string;
@@ -94,6 +129,7 @@ type Result = {
   risks: string[];
   pbnRisk: boolean;
   acquisition: AcquisitionDifficulty;
+  linkValue: LinkValue;
 };
 
 function computeAcquisitionDifficulty(
@@ -287,8 +323,9 @@ function estimateValue(form: FormState): Result {
     );
 
   const acquisition = computeAcquisitionDifficulty(da, traffic);
+  const linkValue = computeLinkValue(score, traffic);
 
-  return { score, label, breakdown, verdict, recommendations, risks, pbnRisk, acquisition };
+  return { score, label, breakdown, verdict, recommendations, risks, pbnRisk, acquisition, linkValue };
 }
 
 const SCORE_COLOR = (s: number) =>
@@ -356,6 +393,7 @@ export default function BacklinkValueEstimator() {
   const [form, setForm] = useState<FormState>(DEFAULTS);
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
