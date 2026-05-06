@@ -3134,7 +3134,7 @@ export default function ContentBriefGenerator() {
                       Tone-specific writing rules for this brief — paired for quick editorial reference.
                     </p>
 
-                    <TonePreviewCard tone={brief.tone as Tone} keyword={brief.keyword} audience={brief.audience as Audience} />
+                    <TonePreviewCard tone={form.tone} keyword={brief.keyword} audience={brief.audience as Audience} />
 
                     <div className="rounded-lg border border-slate-200 overflow-hidden mb-4">
                       <div className="grid grid-cols-2 border-b border-slate-200">
