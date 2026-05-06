@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ContentBriefGenerator from "../content-brief-generator";
 
@@ -22,10 +22,9 @@ describe("Content Brief Generator", () => {
   });
 
   it("enables Generate button after entering a keyword of 3+ characters", async () => {
-    const user = userEvent.setup();
     render(<ContentBriefGenerator />);
-    const inputs = screen.getAllByRole("textbox");
-    await user.type(inputs[0], "open banking");
+    const keywordInput = screen.getByPlaceholderText(/embedded finance/i);
+    fireEvent.change(keywordInput, { target: { value: "open banking" } });
     const btn = screen.getByRole("button", { name: /generate content brief/i });
     expect(btn).not.toBeDisabled();
   });
@@ -33,9 +32,9 @@ describe("Content Brief Generator", () => {
   it("generates and displays a content brief after clicking generate", async () => {
     const user = userEvent.setup();
     render(<ContentBriefGenerator />);
-    const inputs = screen.getAllByRole("textbox");
-    await user.type(inputs[0], "embedded finance");
+    const keywordInput = screen.getByPlaceholderText(/embedded finance/i);
+    fireEvent.change(keywordInput, { target: { value: "embedded finance" } });
     await user.click(screen.getByRole("button", { name: /generate content brief/i }));
-    expect(screen.getByText(/download|copy|brief/i)).toBeTruthy();
+    expect(screen.getAllByText(/download|copy|brief/i).length).toBeGreaterThan(0);
   });
 });

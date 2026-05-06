@@ -20,7 +20,7 @@ describe("Readability Checker", () => {
     const user = userEvent.setup();
     render(<ReadabilityChecker />);
     const textarea = screen.getByRole("textbox");
-    await user.type(textarea, "The quick brown fox jumps over the lazy dog.");
+    await user.type(textarea, "The quick brown fox jumps over the lazy dog today and tomorrow.");
     const btn = screen.getByRole("button", { name: /check readability/i });
     expect(btn).not.toBeDisabled();
   });

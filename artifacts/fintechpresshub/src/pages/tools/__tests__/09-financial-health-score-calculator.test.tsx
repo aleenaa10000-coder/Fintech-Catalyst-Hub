@@ -36,7 +36,7 @@ describe("Financial Health Score Calculator", () => {
     await user.type(incomeInput, "5000");
     await user.clear(expensesInput);
     await user.type(expensesInput, "3000");
-    expect(screen.getByText(/your score/i)).toBeTruthy();
+    expect(screen.getAllByText(/your score/i).length).toBeGreaterThan(0);
   });
 
   it("displays a numeric score value after filling key inputs", async () => {

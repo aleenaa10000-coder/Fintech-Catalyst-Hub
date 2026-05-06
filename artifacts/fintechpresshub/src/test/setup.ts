@@ -75,9 +75,12 @@ vi.mock("recharts", async () => {
     LineChart: ({ children }: { children?: unknown }) => createElement("svg", null, children as never),
     PieChart: ({ children }: { children?: unknown }) => createElement("svg", null, children as never),
     AreaChart: ({ children }: { children?: unknown }) => createElement("svg", null, children as never),
+    RadarChart: ({ children }: { children?: unknown }) => createElement("svg", null, children as never),
     Bar: stub, Line: stub, XAxis: stub, YAxis: stub,
     Cell: stub, Tooltip: stub, ReferenceLine: stub,
     CartesianGrid: stub, Legend: stub, Pie: stub, Area: stub,
+    PolarGrid: stub, PolarAngleAxis: stub, PolarRadiusAxis: stub,
+    Radar: stub,
   };
 });
 

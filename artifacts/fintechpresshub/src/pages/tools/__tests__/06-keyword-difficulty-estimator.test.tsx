@@ -36,6 +36,6 @@ describe("Keyword Difficulty Estimator", () => {
     const input = screen.getAllByRole("textbox")[0];
     await user.type(input, "open banking api");
     await user.click(screen.getByRole("button", { name: /^analyse$/i }));
-    expect(screen.getByText(/difficulty/i)).toBeTruthy();
+    expect(screen.getAllByText(/difficulty/i).length).toBeGreaterThan(0);
   });
 });
