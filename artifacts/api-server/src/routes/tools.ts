@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, newsletterSubscribersTable } from "@workspace/db";
 import { EmailFinancialHealthScoreReportBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
+import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/seo";
 
 const router: IRouter = Router();
@@ -323,7 +324,7 @@ router.post("/tools/financial-health-score/email-report", async (req, res) => {
     return;
   }
 
-  console.warn("[tools] Resend email failed:", sendResult.reason);
+  logger.warn({ reason: sendResult.reason }, "[tools] Resend email failed");
   res.json({
     delivered: false,
     deliveryStatus: "failed",

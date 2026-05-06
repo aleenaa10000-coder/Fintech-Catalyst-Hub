@@ -149,6 +149,10 @@ const ADMIN_LOADERS: ReadonlyArray<() => Promise<unknown>> = [
   () => import("@/pages/admin-authors-subscribers"),
   () => import("@/pages/admin-author-subscribers"),
   () => import("@/pages/admin-commissioning-topics"),
+  () => import("@/pages/admin-analytics"),
+  () => import("@/pages/admin-pricing"),
+  () => import("@/pages/admin-authors"),
+  () => import("@/pages/admin-seo-performance"),
 ];
 
 let adminBundlePrefetched = false;
