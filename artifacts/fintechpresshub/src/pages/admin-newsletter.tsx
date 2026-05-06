@@ -131,6 +131,7 @@ export default function AdminNewsletter() {
   }, [richSubscribers]);
 
   const [briefFilter, setBriefFilter] = useState("");
+  const [briefStatusFilter, setBriefStatusFilter] = useState("");
   type BriefSort = { col: "email" | "businessName" | "createdAt"; dir: "asc" | "desc" };
   const [briefSort, setBriefSort] = useState<BriefSort>({ col: "createdAt", dir: "desc" });
 
@@ -144,14 +145,17 @@ export default function AdminNewsletter() {
 
   const displayedBriefLeads = useMemo(() => {
     const q = briefFilter.trim().toLowerCase();
-    const filtered = q
+    const textFiltered = q
       ? briefLeads.filter(
           (l) =>
             l.email?.toLowerCase().includes(q) ||
             l.businessName?.toLowerCase().includes(q),
         )
       : briefLeads;
-    return [...filtered].sort((a, b) => {
+    const statusFiltered = briefStatusFilter
+      ? textFiltered.filter((l) => (l.briefStatus ?? "new") === briefStatusFilter)
+      : textFiltered;
+    return [...statusFiltered].sort((a, b) => {
       let cmp = 0;
       if (briefSort.col === "email") {
         cmp = (a.email ?? "").localeCompare(b.email ?? "");
@@ -162,9 +166,10 @@ export default function AdminNewsletter() {
       }
       return briefSort.dir === "asc" ? cmp : -cmp;
     });
-  }, [briefLeads, briefFilter, briefSort]);
+  }, [briefLeads, briefFilter, briefStatusFilter, briefSort]);
 
   const [kwFilter, setKwFilter] = useState("");
+  const [seoStatusFilter, setSeoStatusFilter] = useState("");
   type SeoSort = { col: "keyword" | "createdAt"; dir: "asc" | "desc" };
   const [seoSort, setSeoSort] = useState<SeoSort>({ col: "createdAt", dir: "desc" });
 
@@ -295,14 +300,17 @@ export default function AdminNewsletter() {
 
   const displayedSeoBriefLeads = useMemo(() => {
     const q = kwFilter.trim().toLowerCase();
-    const filtered = q
+    const textFiltered = q
       ? seoBriefLeads.filter(
           (l) =>
             l.keyword?.toLowerCase().includes(q) ||
             l.email?.toLowerCase().includes(q),
         )
       : seoBriefLeads;
-    return [...filtered].sort((a, b) => {
+    const statusFiltered = seoStatusFilter
+      ? textFiltered.filter((l) => (l.briefStatus ?? "new") === seoStatusFilter)
+      : textFiltered;
+    return [...statusFiltered].sort((a, b) => {
       let cmp = 0;
       if (seoSort.col === "keyword") {
         cmp = (a.keyword ?? "").localeCompare(b.keyword ?? "");
@@ -311,7 +319,7 @@ export default function AdminNewsletter() {
       }
       return seoSort.dir === "asc" ? cmp : -cmp;
     });
-  }, [seoBriefLeads, kwFilter, seoSort]);
+  }, [seoBriefLeads, kwFilter, seoStatusFilter, seoSort]);
 
   // Optimistic status map: id → status (overrides server value while PATCH is in-flight / confirmed)
   const [leadStatuses, setLeadStatuses] = useState<Record<number, string>>({});
@@ -615,22 +623,48 @@ export default function AdminNewsletter() {
               </div>
             ) : (
               <>
-                <div className="relative mb-4 max-w-sm">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                  <input
-                    type="text"
-                    placeholder="Filter by email or business name…"
-                    value={briefFilter}
-                    onChange={(e) => setBriefFilter(e.target.value)}
-                    className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-violet-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 placeholder:text-muted-foreground"
-                  />
-                  {briefFilter && (
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <div className="relative max-w-sm flex-1 min-w-[180px]">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Filter by email or business name…"
+                      value={briefFilter}
+                      onChange={(e) => setBriefFilter(e.target.value)}
+                      className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-violet-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 placeholder:text-muted-foreground"
+                    />
+                    {briefFilter && (
+                      <button
+                        type="button"
+                        onClick={() => setBriefFilter("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-700 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  <select
+                    value={briefStatusFilter}
+                    onChange={(e) => setBriefStatusFilter(e.target.value)}
+                    className={`py-1.5 pl-2.5 pr-7 text-xs rounded-lg border bg-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 appearance-none ${
+                      briefStatusFilter
+                        ? "border-violet-400 text-violet-700 font-semibold"
+                        : "border-violet-200 text-muted-foreground"
+                    }`}
+                  >
+                    <option value="">All statuses</option>
+                    <option value="new">New</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="sent">Sent</option>
+                    <option value="actioned">Actioned</option>
+                  </select>
+                  {(briefFilter || briefStatusFilter) && (
                     <button
                       type="button"
-                      onClick={() => setBriefFilter("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-700 transition-colors"
+                      onClick={() => { setBriefFilter(""); setBriefStatusFilter(""); }}
+                      className="text-[10px] font-semibold text-violet-600 hover:text-violet-800 transition-colors whitespace-nowrap"
                     >
-                      <X className="w-3 h-3" />
+                      Clear all
                     </button>
                   )}
                 </div>
@@ -890,22 +924,48 @@ export default function AdminNewsletter() {
             )}
 
             {seoBriefLeads.length > 0 && (
-              <div className="relative mb-4 max-w-sm">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Filter by keyword or email…"
-                  value={kwFilter}
-                  onChange={(e) => setKwFilter(e.target.value)}
-                  className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-violet-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 placeholder:text-muted-foreground"
-                />
-                {kwFilter && (
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <div className="relative max-w-sm flex-1 min-w-[180px]">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Filter by keyword or email…"
+                    value={kwFilter}
+                    onChange={(e) => setKwFilter(e.target.value)}
+                    className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-violet-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 placeholder:text-muted-foreground"
+                  />
+                  {kwFilter && (
+                    <button
+                      type="button"
+                      onClick={() => setKwFilter("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-700 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                <select
+                  value={seoStatusFilter}
+                  onChange={(e) => setSeoStatusFilter(e.target.value)}
+                  className={`py-1.5 pl-2.5 pr-7 text-xs rounded-lg border bg-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 appearance-none ${
+                    seoStatusFilter
+                      ? "border-violet-400 text-violet-700 font-semibold"
+                      : "border-violet-200 text-muted-foreground"
+                  }`}
+                >
+                  <option value="">All statuses</option>
+                  <option value="new">New</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="sent">Sent</option>
+                  <option value="actioned">Actioned</option>
+                </select>
+                {(kwFilter || seoStatusFilter) && (
                   <button
                     type="button"
-                    onClick={() => setKwFilter("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-700 transition-colors"
+                    onClick={() => { setKwFilter(""); setSeoStatusFilter(""); }}
+                    className="text-[10px] font-semibold text-violet-600 hover:text-violet-800 transition-colors whitespace-nowrap"
                   >
-                    <X className="w-3 h-3" />
+                    Clear all
                   </button>
                 )}
               </div>
