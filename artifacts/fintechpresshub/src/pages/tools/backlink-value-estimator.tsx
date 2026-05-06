@@ -36,6 +36,8 @@ import {
   Calendar,
   Download,
   Mail,
+  MessageSquare,
+  ExternalLink,
 } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -200,6 +202,25 @@ function computeAcquisitionDifficulty(
   };
 
   return { stars, ...configs[stars] };
+}
+
+function generateOutreachAngle(domain: string, relevance: Relevance): string {
+  const domainLabel = domain.trim() || "this domain";
+  if (relevance === "high") {
+    return `Pitch an editorial piece on ${domainLabel} regarding emerging regulatory trends to leverage their high authority in the financial sector.`;
+  }
+  if (relevance === "medium") {
+    return `Pitch a data-driven feature on ${domainLabel} exploring the intersection of fintech innovation and mainstream finance to tap into their engaged adjacent audience.`;
+  }
+  return `Pitch a thought leadership article on ${domainLabel} examining the financial implications relevant to their readers, bridging their niche audience to key fintech trends.`;
+}
+
+function buildContactUrl(domain: string, relevance: Relevance, pitchAngle: string): string {
+  const params = new URLSearchParams({
+    subject: `Outreach Collaboration — ${domain || "Backlink Opportunity"}`,
+    message: `Hi,\n\nI came across ${domain || "your site"} and wanted to explore a potential editorial collaboration.\n\n${pitchAngle}\n\nWould love to discuss further.\n\nBest regards`,
+  });
+  return `/contact?${params.toString()}`;
 }
 
 function estimateValue(form: FormState): Result {
@@ -1316,6 +1337,65 @@ export default function BacklinkValueEstimator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* Suggested Outreach Angle */}
+                {(() => {
+                  const pitchAngle = generateOutreachAngle(
+                    form.domain,
+                    form.relevance as Relevance,
+                  );
+                  const contactUrl = buildContactUrl(
+                    form.domain,
+                    form.relevance as Relevance,
+                    pitchAngle,
+                  );
+                  return (
+                    <motion.div
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <Card className="border border-indigo-100 bg-gradient-to-br from-indigo-50 to-purple-50 shadow-sm">
+                        <CardContent className="p-5">
+                          <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4 text-indigo-600" />
+                            Suggested Outreach Angle
+                          </h4>
+                          <p className="text-sm text-indigo-900 leading-relaxed bg-white/70 border border-indigo-100 rounded-lg px-4 py-3 italic">
+                            "{pitchAngle}"
+                          </p>
+                          <p className="mt-2 text-[11px] text-indigo-600 leading-relaxed">
+                            Based on{" "}
+                            <span className="font-semibold">
+                              {form.domain || "the referring domain"}
+                            </span>{" "}
+                            and{" "}
+                            <span className="font-semibold">
+                              {form.relevance === "high"
+                                ? "high niche relevance"
+                                : form.relevance === "medium"
+                                  ? "medium niche relevance"
+                                  : "low niche relevance"}
+                            </span>
+                            .
+                          </p>
+                          <div className="mt-4">
+                            <Link href={contactUrl}>
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-1.5 text-xs w-full sm:w-auto"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                Draft Pitch with AI
+                              </Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })()}
 
                 {/* Risks */}
                 {result.risks.length > 0 && (

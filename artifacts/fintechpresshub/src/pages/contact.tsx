@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { MapPin, Mail, Phone, Clock, HelpCircle, Plus } from "lucide-react";
 import { PageHero } from "@/components/PageHero";
+import { useEffect } from "react";
 
 const contactFaqs = [
   {
@@ -75,6 +76,18 @@ export default function Contact() {
       message: "",
     },
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const prefillMessage = params.get("message");
+    const prefillSubject = params.get("subject");
+    if (prefillMessage) {
+      form.setValue("message", prefillMessage);
+    }
+    if (prefillSubject) {
+      form.setValue("service", "link-building");
+    }
+  }, [form]);
 
   const submitContact = useSubmitContactForm();
 
