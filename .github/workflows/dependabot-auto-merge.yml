@@ -2,12 +2,13 @@ name: Dependabot auto-merge
 
 # Automatically merges Dependabot PRs once CI passes, but ONLY when the update
 # is a safe one:
-#   - dependency-type must be `direct:development` (i.e. devDependencies)
+#   - dependency-type must be `direct:development` or `direct:production`
 #   - update-type must be `version-update:semver-patch` or
 #     `version-update:semver-minor`
 #
-# Anything else (production deps, indirect deps, or any major bump) is left
-# alone for a human to review.
+# Major bumps and indirect deps are always left for a human to review.
+# PRs that touch .github/workflows/, CODEOWNERS, or dependabot.yml are
+# never auto-merged regardless of update type.
 #
 # Notes:
 # - `gh pr merge --auto` enables auto-merge on the PR; GitHub itself waits for
@@ -75,7 +76,8 @@ jobs:
           if [ "$touches_ci" = "true" ]; then
             echo "Refusing to auto-merge: PR touches CI/automation surface."
             echo "eligible=false" >> "$GITHUB_OUTPUT"
-          elif [ "$dep_type" = "direct:development" ] && \
+          elif { [ "$dep_type" = "direct:development" ] || \
+                 [ "$dep_type" = "direct:production" ]; } && \
                { [ "$update_type" = "version-update:semver-patch" ] || \
                  [ "$update_type" = "version-update:semver-minor" ]; }; then
             echo "eligible=true" >> "$GITHUB_OUTPUT"
@@ -94,5 +96,5 @@ jobs:
         if: steps.gate.outputs.eligible != 'true'
         run: |
           echo "Skipping auto-merge."
-          echo "Only direct:development patch/minor bumps are auto-merged."
+          echo "Only direct:development or direct:production patch/minor bumps are auto-merged."
           echo "This PR is dependency-type='${{ steps.meta.outputs.dependency-type }}', update-type='${{ steps.meta.outputs.update-type }}'."
