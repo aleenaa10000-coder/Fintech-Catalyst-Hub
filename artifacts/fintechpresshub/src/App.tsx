@@ -13,6 +13,7 @@ import { prefetchAdminBundle, prefetchPublicBundle } from "@/lib/route-prefetch"
 import { trackPageview } from "@/lib/analytics";
 import { TopProgressBar } from "@/components/TopProgressBar";
 import { BackToTop } from "@/components/BackToTop";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import {
   HomeSkeleton,
   BlogListSkeleton,

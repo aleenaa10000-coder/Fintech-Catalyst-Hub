@@ -1,10 +1,11 @@
 import { Link, useLocation } from "wouter";
-import { Menu } from "lucide-react";
+import { Menu, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { prefetchRoute } from "@/lib/route-prefetch";
+import { useTheme } from "@/contexts/ThemeContext";
 import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
 
 const NAV_LINKS = [
@@ -21,6 +22,7 @@ export function Header() {
   const [location] = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -68,6 +70,21 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
+          </Button>
+
           <Link
             href="/contact"
             onMouseEnter={() => prefetchRoute("/contact")}
@@ -84,48 +101,64 @@ export function Header() {
         </nav>
 
         {/* Mobile Nav */}
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon">
-              <Menu className="w-5 h-5" />
-              <span className="sr-only">Toggle Menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="flex flex-col gap-6 pt-12">
-            <nav className="flex flex-col gap-4">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsOpen(false)}
-                  onTouchStart={() => prefetchRoute(link.href)}
-                  onFocus={() => prefetchRoute(link.href)}
-                  aria-current={location === link.href ? "page" : undefined}
-                  className={cn(
-                    "text-lg font-medium transition-colors hover:text-primary",
-                    location === link.href
-                      ? "text-blue-600 underline underline-offset-4 decoration-2"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <div className="pt-4 mt-4 border-t border-border">
-                <Link
-                  href="/contact"
-                  onClick={() => setIsOpen(false)}
-                  onTouchStart={() => prefetchRoute("/contact")}
-                  onFocus={() => prefetchRoute("/contact")}
-                >
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold">
-                    Contact Us
-                  </Button>
-                </Link>
-              </div>
-            </nav>
-          </SheetContent>
-        </Sheet>
+        <div className="flex items-center gap-2 md:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
+          </Button>
+
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="w-5 h-5" />
+                <span className="sr-only">Toggle Menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="flex flex-col gap-6 pt-12">
+              <nav className="flex flex-col gap-4">
+                {NAV_LINKS.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setIsOpen(false)}
+                    onTouchStart={() => prefetchRoute(link.href)}
+                    onFocus={() => prefetchRoute(link.href)}
+                    aria-current={location === link.href ? "page" : undefined}
+                    className={cn(
+                      "text-lg font-medium transition-colors hover:text-primary",
+                      location === link.href
+                        ? "text-blue-600 underline underline-offset-4 decoration-2"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                <div className="pt-4 mt-4 border-t border-border">
+                  <Link
+                    href="/contact"
+                    onClick={() => setIsOpen(false)}
+                    onTouchStart={() => prefetchRoute("/contact")}
+                    onFocus={() => prefetchRoute("/contact")}
+                  >
+                    <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold">
+                      Contact Us
+                    </Button>
+                  </Link>
+                </div>
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </header>
   );
