@@ -33,6 +33,8 @@ import {
   Trophy,
   SortDesc,
   TrendingUp,
+  Calendar,
+  Download,
 } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -397,6 +399,44 @@ function parseFormFromParams(): Partial<FormState> {
   return result;
 }
 
+type Priority = "this-week" | "next-month" | "someday" | null;
+
+const PRIORITY_CYCLE: Priority[] = [null, "this-week", "next-month", "someday"];
+
+const PRIORITY_STYLES: Record<string, string> = {
+  "this-week":  "bg-emerald-50 border-emerald-300 text-emerald-700",
+  "next-month": "bg-blue-50   border-blue-300   text-blue-700",
+  "someday":    "bg-slate-100 border-slate-300   text-slate-600",
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  "this-week":  "This Week",
+  "next-month": "Next Month",
+  "someday":    "Someday",
+};
+
+function computeOutreachDate(priority: Priority): string {
+  const now = new Date();
+  if (priority === "this-week") {
+    const d = new Date(now);
+    const day = d.getDay();
+    const daysUntilFri = day <= 5 ? (5 - day === 0 ? 7 : 5 - day) : 6;
+    d.setDate(d.getDate() + daysUntilFri);
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  }
+  if (priority === "next-month") {
+    const d = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    while (d.getDay() !== 1) d.setDate(d.getDate() + 1);
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  }
+  if (priority === "someday") {
+    const d = new Date(now);
+    d.setDate(d.getDate() + 90);
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  }
+  return "Unscheduled";
+}
+
 type SavedOpportunity = {
   id: string;
   domain: string;
@@ -406,6 +446,7 @@ type SavedOpportunity = {
   linkValueMax: number;
   acquisitionStars: number;
   acquisitionLabel: string;
+  priority: Priority;
 };
 
 type SortMode = "highest-value" | "easiest-win";
@@ -632,6 +673,7 @@ export default function BacklinkValueEstimator() {
       linkValueMax: result.linkValue.max,
       acquisitionStars: result.acquisition.stars,
       acquisitionLabel: result.acquisition.label,
+      priority: null,
     };
     setSavedOpportunities((prev) => {
       const exists = prev.some(
@@ -645,6 +687,46 @@ export default function BacklinkValueEstimator() {
 
   const removeOpportunity = (id: string) =>
     setSavedOpportunities((prev) => prev.filter((p) => p.id !== id));
+
+  const cyclePriority = (id: string, current: Priority) => {
+    const idx = PRIORITY_CYCLE.indexOf(current);
+    const next = PRIORITY_CYCLE[(idx + 1) % PRIORITY_CYCLE.length];
+    setSavedOpportunities((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, priority: next } : p)),
+    );
+  };
+
+  const exportCSV = () => {
+    const header = [
+      "Domain", "Score", "Label",
+      "Est. Value Min", "Est. Value Max",
+      "Difficulty Stars", "Difficulty",
+      "Priority", "Outreach Date",
+    ];
+    const rows = sortedOpportunities.map((opp) => [
+      opp.domain,
+      opp.score,
+      opp.label,
+      fmtMoney(opp.linkValueMin),
+      fmtMoney(opp.linkValueMax),
+      opp.acquisitionStars,
+      opp.acquisitionLabel,
+      opp.priority ? PRIORITY_LABELS[opp.priority] : "Unscheduled",
+      computeOutreachDate(opp.priority),
+    ]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `outreach-calendar-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const sortedOpportunities = useMemo(() => {
     return [...savedOpportunities].sort((a, b) => {
@@ -1352,6 +1434,22 @@ export default function BacklinkValueEstimator() {
                                   ))}
                                   <span className="text-[9px] text-muted-foreground ml-0.5">{opp.acquisitionLabel}</span>
                                 </div>
+                                {/* Priority / Schedule pill */}
+                                <button
+                                  type="button"
+                                  onClick={() => cyclePriority(opp.id, opp.priority)}
+                                  title="Click to cycle outreach window"
+                                  className={`mt-1.5 inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full border transition-all ${
+                                    opp.priority
+                                      ? PRIORITY_STYLES[opp.priority]
+                                      : "border-dashed border-slate-300 text-slate-400 hover:border-emerald-400 hover:text-emerald-600"
+                                  }`}
+                                >
+                                  <Calendar className="w-2 h-2" />
+                                  {opp.priority
+                                    ? `${PRIORITY_LABELS[opp.priority]} · ${computeOutreachDate(opp.priority)}`
+                                    : "+ Schedule"}
+                                </button>
                               </div>
                             </div>
                             <button
@@ -1369,15 +1467,23 @@ export default function BacklinkValueEstimator() {
                   </div>
 
                   {/* Footer */}
-                  <div className="px-4 py-3 bg-slate-50 border-t border-slate-100">
+                  <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 space-y-2.5">
                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      Run an estimate then click <span className="font-semibold text-slate-700">Save</span> to add to your list. Hover any row to remove it.
+                      Click <span className="font-semibold text-slate-700">+ Schedule</span> on any row to tag it with an outreach window. Click again to cycle or clear.
                     </p>
-                    {savedOpportunities.length >= 3 && (
+                    <button
+                      type="button"
+                      onClick={exportCSV}
+                      className="w-full flex items-center justify-center gap-1.5 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg transition-colors"
+                    >
+                      <Download className="w-3 h-3" />
+                      Export Outreach Calendar (.csv)
+                    </button>
+                    {savedOpportunities.length >= 2 && (
                       <button
                         type="button"
                         onClick={() => setSavedOpportunities([])}
-                        className="mt-2 text-[10px] text-red-400 hover:text-red-600 font-semibold transition-colors"
+                        className="text-[10px] text-red-400 hover:text-red-600 font-semibold transition-colors"
                       >
                         Clear all
                       </button>
