@@ -26,7 +26,6 @@ import {
   GraduationCap,
   ShieldCheck,
   Lightbulb,
-  FileCode,
   HelpCircle,
   Building2,
   Briefcase,
@@ -874,18 +873,20 @@ function briefToMarkdown(brief: Brief): string {
 
   lines.push(`## Content Structure (H2s)`);
   lines.push(``);
-  brief.h2s.forEach((h, i) => {
-    lines.push(`### ${i + 1}. ${h.heading}`);
+  lines.push(`> Copy each H2 directly into your draft — notes are editorial guidance only.`);
+  lines.push(``);
+  brief.h2s.forEach((h) => {
+    lines.push(`## ${h.heading}`);
     lines.push(``);
-    lines.push(`> **Notes:** ${h.notes}`);
+    lines.push(`*Notes: ${h.notes}*`);
     lines.push(``);
   });
 
   lines.push(`## Semantic SEO Entities`);
   lines.push(``);
-  lines.push(`Must include these terms naturally throughout the article:`);
+  lines.push(`Tick each entity as you mention it naturally in your draft:`);
   lines.push(``);
-  brief.entities.forEach((e) => lines.push(`- ${e}`));
+  brief.entities.forEach((e) => lines.push(`- [ ] ${e}`));
   lines.push(``);
 
   lines.push(`## FAQ Suggestions`);
@@ -2315,16 +2316,28 @@ export default function ContentBriefGenerator() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const copyBriefAsMarkdown = () => {
+  const downloadBriefAsMarkdown = () => {
     if (!brief) return;
-    navigator.clipboard.writeText(briefToMarkdown(brief));
+    const md = briefToMarkdown(brief);
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `content-brief-${brief.keyword.replace(/[\s/\\?%*:|"<>]+/g, "-").toLowerCase()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     setCopiedMd(true);
-    setTimeout(() => setCopiedMd(false), 2000);
+    setTimeout(() => setCopiedMd(false), 2500);
   };
 
   const handleDownloadPDF = () => {
     if (!brief) return;
     downloadBriefAsPDF(brief, form.clientName, professionalBranding, intentAlignment, expertHooks);
+    navigator.clipboard.writeText(briefToText(brief)).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
   };
 
   const canGenerate = form.keyword.trim().length >= 3;
@@ -2596,7 +2609,7 @@ export default function ContentBriefGenerator() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={copyBriefAsMarkdown}
+                      onClick={downloadBriefAsMarkdown}
                       className={`gap-1.5 transition-all ${
                         copiedMd
                           ? "border-violet-300 bg-violet-50 text-violet-700"
@@ -2604,9 +2617,9 @@ export default function ContentBriefGenerator() {
                       }`}
                     >
                       {copiedMd ? (
-                        <><Check className="w-4 h-4 text-violet-600" /> Markdown Copied</>
+                        <><Check className="w-4 h-4 text-violet-600" /> Downloaded!</>
                       ) : (
-                        <><FileCode className="w-4 h-4" /> Copy as Markdown</>
+                        <><FileDown className="w-4 h-4" /> Download Markdown</>
                       )}
                     </Button>
                     {/* Professional Branding toggle */}
@@ -2917,11 +2930,11 @@ export default function ContentBriefGenerator() {
 
                     <div className="rounded-lg border border-slate-200 overflow-hidden mb-4">
                       <div className="grid grid-cols-2 border-b border-slate-200">
-                        <div className="px-3 py-2 flex items-center gap-1.5 bg-emerald-100/70">
+                        <div className="px-3 py-2 flex items-center gap-1.5 bg-emerald-100/60">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                           <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-800">Write Like This</span>
                         </div>
-                        <div className="px-3 py-2 flex items-center gap-1.5 border-l border-slate-200 bg-rose-100/70">
+                        <div className="px-3 py-2 flex items-center gap-1.5 border-l border-rose-100 bg-rose-100/60">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
                           <span className="text-[10px] font-bold uppercase tracking-widest text-rose-800">Avoid This</span>
                         </div>
@@ -2932,13 +2945,13 @@ export default function ContentBriefGenerator() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: i * 0.04 }}
-                          className={`grid grid-cols-2 ${i < brief.styleGuardrails.length - 1 ? "border-b border-emerald-100" : ""}`}
+                          className={`grid grid-cols-2 ${i < brief.styleGuardrails.length - 1 ? "border-b border-slate-100" : ""}`}
                         >
-                          <div className="px-3 py-2.5 flex gap-2 items-start bg-emerald-50">
+                          <div className="px-3 py-2.5 flex gap-2 items-start bg-emerald-50/60">
                             <Check className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" />
                             <p className="text-xs text-slate-700 leading-relaxed">{row.writeLike}</p>
                           </div>
-                          <div className="px-3 py-2.5 flex gap-2 items-start border-l border-rose-100 bg-rose-50">
+                          <div className="px-3 py-2.5 flex gap-2 items-start border-l border-rose-100/60 bg-rose-50/60">
                             <span className="mt-1 text-[10px] font-bold text-rose-400 shrink-0">✕</span>
                             <p className="text-xs text-slate-600 leading-relaxed">{row.avoid}</p>
                           </div>
