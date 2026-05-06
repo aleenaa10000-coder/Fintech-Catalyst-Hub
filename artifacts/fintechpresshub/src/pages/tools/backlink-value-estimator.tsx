@@ -20,7 +20,14 @@ import {
   Users,
   Target,
   ShieldCheck,
+  Info,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type FormState = {
   domain: string;
@@ -76,6 +83,7 @@ type Result = {
   verdict: string;
   recommendations: string[];
   risks: string[];
+  pbnRisk: boolean;
 };
 
 function estimateValue(form: FormState): Result {
@@ -193,21 +201,23 @@ function estimateValue(form: FormState): Result {
       "Document this opportunity in your link pipeline and begin personalised outreach within the week.",
     );
 
+  const pbnRisk = da > 70 && traffic < 10000;
+
   const risks: string[] = [];
   if (placement === "sponsored")
     risks.push(
       "Sponsored links must be tagged with rel='sponsored' to comply with Google's guidelines.",
     );
-  if (da >= 70 && traffic < 500)
+  if (pbnRisk)
     risks.push(
-      "High DA with very low traffic may indicate a link farm or PBN — verify the site's traffic history.",
+      "High DA with disproportionately low traffic may indicate a PBN or expired domain — verify the site's traffic history and link profile before pursuing.",
     );
   if (relevance === "low" && score >= 40)
     risks.push(
       "Irrelevant high-authority links can appear unnatural in your backlink profile.",
     );
 
-  return { score, label, breakdown, verdict, recommendations, risks };
+  return { score, label, breakdown, verdict, recommendations, risks, pbnRisk };
 }
 
 const SCORE_COLOR = (s: number) =>
@@ -499,6 +509,36 @@ export default function BacklinkValueEstimator() {
                       <div className="text-xs text-muted-foreground mt-0.5">
                         / 100
                       </div>
+                      {result.pbnRisk && (
+                        <TooltipProvider delayDuration={100}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.3 }}
+                                className="mt-3 flex flex-col items-center gap-1 cursor-help"
+                              >
+                                <div className="flex items-center gap-1 bg-red-100 border border-red-300 text-red-700 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide leading-none">
+                                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                                  High Risk
+                                </div>
+                                <div className="flex items-center gap-0.5 text-[10px] text-red-600 font-medium leading-tight text-center">
+                                  <span>PBN / Expired Domain</span>
+                                  <Info className="w-3 h-3 shrink-0 opacity-70" />
+                                </div>
+                              </motion.div>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="bottom"
+                              className="max-w-[240px] text-center leading-snug bg-slate-900 text-white text-xs"
+                            >
+                              <p className="font-semibold mb-1">Potential PBN or Expired Domain Risk</p>
+                              <p>A DA above 70 combined with fewer than 10,000 monthly organic visitors is a common fingerprint of private blog networks (PBNs) or expired domains that have been reclaimed for link selling. Verify the site's traffic history and backlink profile before pursuing this opportunity.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                     <div>
                       {LabelIcon && (
