@@ -17,6 +17,7 @@ import {
   Newspaper,
   ArrowRight,
   Search,
+  Mail,
 } from "lucide-react";
 
 const TOOLS = [
@@ -109,6 +110,15 @@ const TOOLS = [
     title: "Link Prospector",
     description:
       "Paste up to 50 domains (with optional DA and traffic) to bulk-score your backlink prospects — then rank by highest SEO value or easiest win for monthly outreach planning.",
+  },
+  {
+    href: "/tools/outreach-email-generator",
+    icon: Mail,
+    color: "bg-blue-50 text-blue-600",
+    badge: "Link Building",
+    title: "Outreach Email Generator",
+    description:
+      "Generate a personalised link-building outreach email in seconds. Choose from Professional, Conversational, or Data-Led tone — ready to copy and send.",
   },
 ];
 

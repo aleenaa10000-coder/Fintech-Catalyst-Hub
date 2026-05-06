@@ -1308,6 +1308,31 @@ export default function BacklinkValueEstimator() {
                   </Card>
                 )}
 
+                {/* Write outreach email CTA */}
+                <Card className="border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm">
+                  <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-blue-900 mb-0.5">Ready to reach out?</p>
+                      <p className="text-[11px] text-blue-700 leading-relaxed">
+                        Generate a personalised outreach email for this domain — link value pre-filled automatically.
+                      </p>
+                    </div>
+                    <Link
+                      href={`/tools/outreach-email-generator?targetDomain=${encodeURIComponent(form.domain)}&linkValueMin=${result.linkValue.min}&linkValueMax=${result.linkValue.max}&topic=${encodeURIComponent("fintech")}`}
+                      className="shrink-0"
+                    >
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-1.5 text-xs"
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        Write outreach email
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
                 <Card className="border border-emerald-100 bg-emerald-50 shadow-sm">
                   <CardContent className="p-4">
                     <p className="text-xs text-emerald-800 leading-relaxed">

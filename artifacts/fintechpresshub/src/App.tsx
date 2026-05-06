@@ -78,6 +78,9 @@ const HeadlineAnalyzer = lazy(
 const LinkProspector = lazy(
   () => import("@/pages/tools/link-prospector"),
 );
+const OutreachEmailGenerator = lazy(
+  () => import("@/pages/tools/outreach-email-generator"),
+);
 const AdminLogin = lazy(() => import("@/pages/admin-login"));
 const AdminServices = lazy(() => import("@/pages/admin-services"));
 const AdminBlog = lazy(() => import("@/pages/admin-blog"));
@@ -293,6 +296,10 @@ function Router() {
             <Route
               path="/tools/link-prospector"
               component={LinkProspector}
+            />
+            <Route
+              path="/tools/outreach-email-generator"
+              component={OutreachEmailGenerator}
             />
             {/* /admin/login is intentionally public — it's the fallback for
                 non-Replit deployments and must be reachable unauthenticated. */}
