@@ -262,7 +262,11 @@ export default function AdminNewsletter() {
   const displayedSeoBriefLeads = useMemo(() => {
     const q = kwFilter.trim().toLowerCase();
     const filtered = q
-      ? seoBriefLeads.filter((l) => l.keyword?.toLowerCase().includes(q))
+      ? seoBriefLeads.filter(
+          (l) =>
+            l.keyword?.toLowerCase().includes(q) ||
+            l.email?.toLowerCase().includes(q),
+        )
       : seoBriefLeads;
     return [...filtered].sort((a, b) => {
       let cmp = 0;
@@ -785,11 +789,11 @@ export default function AdminNewsletter() {
             )}
 
             {seoBriefLeads.length > 0 && (
-              <div className="relative mb-4 max-w-xs">
+              <div className="relative mb-4 max-w-sm">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Filter by keyword…"
+                  placeholder="Filter by keyword or email…"
                   value={kwFilter}
                   onChange={(e) => setKwFilter(e.target.value)}
                   className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-violet-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 placeholder:text-muted-foreground"
@@ -856,7 +860,7 @@ export default function AdminNewsletter() {
                     {displayedSeoBriefLeads.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-8 text-center text-xs text-muted-foreground italic">
-                          No leads match "{kwFilter}"
+                          No leads match "{kwFilter}" — try a different keyword or email
                         </td>
                       </tr>
                     ) : null}
