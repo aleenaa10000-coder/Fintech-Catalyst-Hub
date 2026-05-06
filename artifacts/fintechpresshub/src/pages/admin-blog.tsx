@@ -3439,7 +3439,7 @@ export default function AdminBlog() {
 
   /** Published posts narrowed by the active readability filter. */
   const filteredPosts = useMemo(
-    () => (posts ?? []).filter((p) => matchesReadabilityFilter(p.content as string)),
+    () => (posts ?? []).filter((p: NonNullable<typeof posts>[number]) => matchesReadabilityFilter(p.content as string)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [posts, readabilityFilter],
   );
@@ -5142,7 +5142,7 @@ export default function AdminBlog() {
                 No posts match the selected readability filter.
               </p>
             )}
-            {filteredPosts.map((p) => {
+            {filteredPosts.map((p: (typeof filteredPosts)[number]) => {
               const isEditing = editingId === p.id;
               const isSelected = selectedSlugs.has(p.slug);
               // In preview mode, suppress the "scheduled" badge for any

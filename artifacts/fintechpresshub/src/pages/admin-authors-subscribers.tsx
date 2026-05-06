@@ -156,8 +156,8 @@ export default function AdminAuthorsSubscribers() {
   }
 
   const rows = summaryQuery.data ?? [];
-  const totalSubscribers = rows.reduce((s: number, r) => s + r.subscriberCount, 0);
-  const totalRecent = rows.reduce((s: number, r) => s + r.last30DayCount, 0);
+  const totalSubscribers = rows.reduce((s: number, r: (typeof rows)[number]) => s + r.subscriberCount, 0);
+  const totalRecent = rows.reduce((s: number, r: (typeof rows)[number]) => s + r.last30DayCount, 0);
 
   return (
     <div className="min-h-screen bg-background py-16">
@@ -242,7 +242,7 @@ export default function AdminAuthorsSubscribers() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rows.map((row) => (
+          {rows.map((row: (typeof rows)[number]) => (
             <SummaryCard key={row.authorSlug} row={row} />
           ))}
         </div>

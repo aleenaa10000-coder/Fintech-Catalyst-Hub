@@ -578,7 +578,7 @@ export default function AdminNewsletter() {
                     </tr>
                   </thead>
                   <tbody>
-                    {briefLeads.map((lead) => {
+                    {briefLeads.map((lead: (typeof briefLeads)[number]) => {
                       const effectiveStatus = leadStatuses[lead.id] ?? lead.briefStatus ?? "new";
                       const isUpdating = updatingIds.has(lead.id);
 
@@ -965,7 +965,7 @@ export default function AdminNewsletter() {
                     </tr>
                   </thead>
                   <tbody>
-                    {detail.subscribers.map((s) => (
+                    {detail.subscribers.map((s: (typeof detail.subscribers)[number]) => (
                       <tr
                         key={s.id}
                         className="border-b last:border-b-0"

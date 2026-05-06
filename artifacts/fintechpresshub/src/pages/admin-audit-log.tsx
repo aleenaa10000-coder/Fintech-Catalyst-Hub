@@ -719,7 +719,7 @@ export default function AdminAuditLog() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {entries.map((e) => (
+          {entries.map((e: (typeof entries)[number]) => (
             <AuditRow
               key={e.id}
               entry={e}

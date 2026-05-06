@@ -206,7 +206,7 @@ export default function AdminServices() {
           <p className="text-muted-foreground">Loading...</p>
         ) : (
           <div className="space-y-3">
-            {services?.map((s) => (
+            {services?.map((s: NonNullable<typeof services>[number]) => (
               <Card key={s.id}>
                 <CardContent className="pt-6 flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">

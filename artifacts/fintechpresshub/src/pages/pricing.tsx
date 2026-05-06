@@ -66,7 +66,7 @@ export default function Pricing() {
                   <CardContent><Skeleton className="h-16 w-1/3 mb-8" /><Skeleton className="h-40 w-full" /></CardContent>
                 </Card>
               ))
-            ) : plans?.map((plan, i: number) => (
+            ) : plans?.map((plan: NonNullable<typeof plans>[number], i: number) => (
               <motion.div
                 key={plan.id}
                 initial={{ opacity: 0, y: 20 }}

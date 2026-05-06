@@ -398,7 +398,7 @@ export default function AdminAuthorSubscribers() {
                     </tr>
                   </thead>
                   <tbody>
-                    {subscribers.map((s) => (
+                    {subscribers.map((s: (typeof subscribers)[number]) => (
                       <tr
                         key={s.id}
                         className="border-b last:border-b-0"

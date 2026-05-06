@@ -273,7 +273,7 @@ export default function AdminCommissioningTopics() {
           </p>
         ) : (
           <div className="space-y-3">
-            {topics.map((t) => {
+            {topics.map((t: NonNullable<typeof topics>[number]) => {
               const isEditing = editingId === t.id;
               return (
                 <Card key={t.id} data-testid={`topic-row-${t.id}`}>
