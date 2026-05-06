@@ -41,6 +41,15 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+} from "recharts";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -1264,39 +1273,76 @@ export default function BacklinkValueEstimator() {
 
                 {/* Score Breakdown + Recommendations — two-column on desktop */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                  {/* Score breakdown */}
-                  <Card className="border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
-                    <CardContent className="p-6">
-                      <h4 className="text-sm font-semibold text-slate-900 mb-4">
-                        Score Breakdown
-                      </h4>
-                      <div className="space-y-4">
-                        {result.breakdown.map((b) => (
-                          <div key={b.factor}>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-xs font-semibold text-slate-700">
-                                {b.factor}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {b.note}
-                              </span>
-                            </div>
-                            <div className="w-full bg-slate-100 rounded-full h-1.5">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{
-                                  width: `${(b.contribution / [40, 25, 20, 10, 5][result.breakdown.indexOf(b)]) * 100}%`,
-                                }}
-                                transition={{ duration: 0.6, delay: result.breakdown.indexOf(b) * 0.08 }}
-                                className="h-1.5 rounded-full"
-                                style={{ background: "linear-gradient(to right, #10b981, #3b82f6)" }}
-                              />
-                            </div>
+                  {/* Score breakdown — Radar Chart */}
+                  {(() => {
+                    const MAX_PTS = [40, 25, 20, 10, 5];
+                    const AXIS_LABELS = ["Domain Auth.", "Traffic", "Relevance", "Placement", "Link Type"];
+                    const radarData = result.breakdown.map((b, i) => ({
+                      subject: AXIS_LABELS[i],
+                      value: Math.round((b.contribution / MAX_PTS[i]) * 100),
+                      fullMark: 100,
+                      note: b.note,
+                    }));
+                    const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { subject: string; value: number; note: string } }> }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div className="bg-slate-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg max-w-[200px]">
+                          <p className="font-bold mb-0.5">{d.subject}</p>
+                          <p className="text-white/70">{d.note}</p>
+                          <p className="text-emerald-400 font-semibold mt-1">{d.value}% of max</p>
+                        </div>
+                      );
+                    };
+                    return (
+                      <Card className="border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
+                        <CardContent className="p-6">
+                          <h4 className="text-sm font-semibold text-slate-900 mb-3">
+                            Score Breakdown
+                          </h4>
+                          <div className="w-full" style={{ height: 230 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                              <RadarChart data={radarData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
+                                <PolarGrid stroke="#e2e8f0" />
+                                <PolarAngleAxis
+                                  dataKey="subject"
+                                  tick={{ fill: "#475569", fontSize: 11, fontWeight: 600 }}
+                                />
+                                <PolarRadiusAxis
+                                  angle={90}
+                                  domain={[0, 100]}
+                                  tick={{ fill: "#94a3b8", fontSize: 9 }}
+                                  tickCount={4}
+                                />
+                                <Radar
+                                  dataKey="value"
+                                  stroke="#10b981"
+                                  fill="#10b981"
+                                  fillOpacity={0.18}
+                                  strokeWidth={2}
+                                  dot={{ fill: "#10b981", r: 4, strokeWidth: 0 }}
+                                  isAnimationActive={true}
+                                  animationBegin={100}
+                                  animationDuration={900}
+                                  animationEasing="ease-out"
+                                />
+                                <RechartsTooltip content={<CustomTooltip />} />
+                              </RadarChart>
+                            </ResponsiveContainer>
                           </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                          {/* Compact score legend */}
+                          <div className="mt-3 grid grid-cols-1 gap-1.5">
+                            {result.breakdown.map((b, i) => (
+                              <div key={b.factor} className="flex items-center justify-between text-xs">
+                                <span className="text-slate-600 font-medium">{b.factor}</span>
+                                <span className="text-slate-400">{b.note}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
 
                   {/* Recommendations */}
                   {result.recommendations.length > 0 && (
