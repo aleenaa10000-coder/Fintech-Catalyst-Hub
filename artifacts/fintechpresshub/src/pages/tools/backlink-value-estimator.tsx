@@ -462,6 +462,26 @@ const PRIORITY_LABELS: Record<string, string> = {
   "someday":    "Someday",
 };
 
+function stripToDomain(input: string): string {
+  let s = input.trim();
+  // Remove protocol (http://, https://, ftp://, etc.)
+  s = s.replace(/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//, "");
+  // Remove anything after the first slash (path, query, fragment)
+  s = s.split("/")[0].split("?")[0].split("#")[0];
+  return s;
+}
+
+function parseTrafficInput(raw: string): string {
+  const trimmed = raw.trim().toLowerCase();
+  if (/^\d+(\.\d+)?k$/.test(trimmed)) {
+    return String(Math.round(parseFloat(trimmed) * 1_000));
+  }
+  if (/^\d+(\.\d+)?m$/.test(trimmed)) {
+    return String(Math.round(parseFloat(trimmed) * 1_000_000));
+  }
+  return raw;
+}
+
 function computeOutreachDate(priority: Priority): string {
   const now = new Date();
   if (priority === "this-week") {
@@ -511,6 +531,10 @@ export default function BacklinkValueEstimator() {
   const [compareMode, setCompareMode] = useState(false);
   const [checkedSaved, setCheckedSaved] = useState<Set<string>>(new Set());
   const [savedCompareOpen, setSavedCompareOpen] = useState(false);
+  const [trafficRaw, setTrafficRaw] = useState(DEFAULTS.traffic);
+  const [trafficBRaw, setTrafficBRaw] = useState(DEFAULTS.traffic);
+  const [domainStripped, setDomainStripped] = useState(false);
+  const [domainBStripped, setDomainBStripped] = useState(false);
   const [formB, setFormB] = useState<FormState>(DEFAULTS);
   const [resultB, setResultB] = useState<Result | null>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -521,6 +545,7 @@ export default function BacklinkValueEstimator() {
     if (Object.keys(fromParams).length > 0) {
       const merged = { ...DEFAULTS, ...fromParams };
       setForm(merged);
+      if (merged.traffic) setTrafficRaw(merged.traffic);
       const canRun =
         (parseFloat(merged.da) > 0 || parseFloat(merged.traffic) > 0) &&
         merged.domain.trim().length > 0;
@@ -545,6 +570,10 @@ export default function BacklinkValueEstimator() {
     setFormB(DEFAULTS);
     setResult(null);
     setResultB(null);
+    setTrafficRaw(DEFAULTS.traffic);
+    setTrafficBRaw(DEFAULTS.traffic);
+    setDomainStripped(false);
+    setDomainBStripped(false);
     window.history.replaceState(null, "", window.location.pathname);
   };
 
@@ -1385,14 +1414,27 @@ export default function BacklinkValueEstimator() {
                     Referring Domain <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    placeholder="e.g. thefinancialbrand.com"
+                    placeholder="e.g. thefinancialbrand.com or https://thefinancialbrand.com"
                     value={form.domain}
-                    onChange={(e) => setField("domain", e.target.value)}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const stripped = stripToDomain(raw);
+                      const wasStripped = stripped !== raw && stripped.length > 0 && raw.includes("://");
+                      setDomainStripped(wasStripped);
+                      setField("domain", wasStripped ? stripped : raw);
+                    }}
                     className="h-11"
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    The site that would be linking to you.
-                  </p>
+                  {domainStripped ? (
+                    <p className="text-[11px] text-emerald-600 flex items-center gap-1 font-medium">
+                      <Check className="w-3 h-3" />
+                      URL stripped to root domain
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      Paste a full URL or just the domain — we'll clean it up automatically.
+                    </p>
+                  )}
                 </div>
 
                 {/* DA */}
@@ -1422,16 +1464,27 @@ export default function BacklinkValueEstimator() {
                     Monthly Organic Traffic
                   </Label>
                   <Input
-                    type="number"
-                    min="0"
-                    placeholder="25000"
-                    value={form.traffic}
-                    onChange={(e) => setField("traffic", e.target.value)}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="e.g. 25000 or 25k"
+                    value={trafficRaw}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setTrafficRaw(raw);
+                      setField("traffic", parseTrafficInput(raw));
+                    }}
                     className="h-11"
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    Estimated monthly visitors from search.
-                  </p>
+                  {trafficRaw && parseTrafficInput(trafficRaw) !== trafficRaw ? (
+                    <p className="text-[11px] text-emerald-600 flex items-center gap-1 font-medium">
+                      <Check className="w-3 h-3" />
+                      = {Number(parseTrafficInput(trafficRaw)).toLocaleString()} visitors/mo
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      Type a number or use k / m (e.g. 50k, 1.5m).
+                    </p>
+                  )}
                 </div>
 
                 {/* Relevance */}
@@ -1546,11 +1599,27 @@ export default function BacklinkValueEstimator() {
                         Referring Domain <span className="text-red-500">*</span>
                       </Label>
                       <Input
-                        placeholder="e.g. bankingtech.com"
+                        placeholder="e.g. bankingtech.com or https://bankingtech.com"
                         value={formB.domain}
-                        onChange={(e) => setFieldB("domain", e.target.value)}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const stripped = stripToDomain(raw);
+                          const wasStripped = stripped !== raw && stripped.length > 0 && raw.includes("://");
+                          setDomainBStripped(wasStripped);
+                          setFieldB("domain", wasStripped ? stripped : raw);
+                        }}
                         className="h-11 border-blue-200 focus-visible:ring-blue-400"
                       />
+                      {domainBStripped ? (
+                        <p className="text-[11px] text-blue-600 flex items-center gap-1 font-medium">
+                          <Check className="w-3 h-3" />
+                          URL stripped to root domain
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          Paste a full URL or just the domain — we'll clean it up automatically.
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
@@ -1570,11 +1639,27 @@ export default function BacklinkValueEstimator() {
                         Monthly Organic Traffic
                       </Label>
                       <Input
-                        type="number" min="0" placeholder="25000"
-                        value={formB.traffic}
-                        onChange={(e) => setFieldB("traffic", e.target.value)}
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="e.g. 25000 or 25k"
+                        value={trafficBRaw}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setTrafficBRaw(raw);
+                          setFieldB("traffic", parseTrafficInput(raw));
+                        }}
                         className="h-11 border-blue-200 focus-visible:ring-blue-400"
                       />
+                      {trafficBRaw && parseTrafficInput(trafficBRaw) !== trafficBRaw ? (
+                        <p className="text-[11px] text-blue-600 flex items-center gap-1 font-medium">
+                          <Check className="w-3 h-3" />
+                          = {Number(parseTrafficInput(trafficBRaw)).toLocaleString()} visitors/mo
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          Type a number or use k / m (e.g. 50k, 1.5m).
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
