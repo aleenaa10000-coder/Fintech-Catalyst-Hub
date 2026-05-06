@@ -57,5 +57,14 @@ jobs:
         # (e.g. runtime-only imports that are absent from node_modules).
         run: pnpm --filter @workspace/api-server run build
 
+      - name: Build frontend
+        # Runs vite build + prerender. Catches missing imports, broken aliases,
+        # and Rollup/Vite bundler errors. The prerender step gracefully no-ops
+        # when the API isn't reachable (no DATABASE_URL in CI), so it never
+        # blocks the build — only the Vite bundle itself can fail this step.
+        run: pnpm --filter @workspace/fintechpresshub run build
+        env:
+          SITE_URL: https://www.fintechpresshub.com
+
       - name: Unit tests
         run: pnpm --filter @workspace/fintechpresshub exec vitest run
