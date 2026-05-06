@@ -130,6 +130,18 @@ export default function AdminNewsletter() {
     return richSubscribers.filter((s) => s.source === "seo-brief") as SeoBriefLead[];
   }, [richSubscribers]);
 
+  const [briefFilter, setBriefFilter] = useState("");
+
+  const displayedBriefLeads = useMemo(() => {
+    const q = briefFilter.trim().toLowerCase();
+    if (!q) return briefLeads;
+    return briefLeads.filter(
+      (l) =>
+        l.email?.toLowerCase().includes(q) ||
+        l.businessName?.toLowerCase().includes(q),
+    );
+  }, [briefLeads, briefFilter]);
+
   const [kwFilter, setKwFilter] = useState("");
   type SeoSort = { col: "keyword" | "createdAt"; dir: "asc" | "desc" };
   const [seoSort, setSeoSort] = useState<SeoSort>({ col: "createdAt", dir: "desc" });
@@ -580,6 +592,26 @@ export default function AdminNewsletter() {
                 </p>
               </div>
             ) : (
+              <>
+                <div className="relative mb-4 max-w-sm">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Filter by email or business name…"
+                    value={briefFilter}
+                    onChange={(e) => setBriefFilter(e.target.value)}
+                    className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-violet-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 placeholder:text-muted-foreground"
+                  />
+                  {briefFilter && (
+                    <button
+                      type="button"
+                      onClick={() => setBriefFilter("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-700 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               <div className="overflow-x-auto -mx-6 px-6">
                 <table className="w-full text-sm">
                   <thead>
@@ -592,7 +624,14 @@ export default function AdminNewsletter() {
                     </tr>
                   </thead>
                   <tbody>
-                    {briefLeads.map((lead: (typeof briefLeads)[number]) => {
+                    {displayedBriefLeads.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-xs text-muted-foreground italic">
+                          No leads match "{briefFilter}" — try a different email or business name
+                        </td>
+                      </tr>
+                    ) : null}
+                    {displayedBriefLeads.map((lead: (typeof briefLeads)[number]) => {
                       const effectiveStatus = leadStatuses[lead.id] ?? lead.briefStatus ?? "new";
                       const isUpdating = updatingIds.has(lead.id);
 
@@ -672,6 +711,7 @@ export default function AdminNewsletter() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>
