@@ -31,6 +31,7 @@ import {
   Building2,
   Briefcase,
   FileDown,
+  Gauge,
 } from "lucide-react";
 
 type Audience = "founders" | "marketers" | "developers" | "consumers" | "investors";
@@ -113,6 +114,18 @@ type Brief = {
   styleGuardrails: StyleGuardrail[];
   competingAngles: ContentAngle[];
   smeQuestions: SMEQuestion[];
+};
+
+type ScoreDimension = {
+  key: string;
+  label: string;
+  score: number;
+  rationale: string;
+};
+
+type ContentScore = {
+  overall: number;
+  dimensions: ScoreDimension[];
 };
 
 const INTERNAL_LINKS_BY_AUDIENCE: Record<Audience, string[]> = {
@@ -1524,6 +1537,218 @@ async function downloadBriefAsPDF(
   doc.save(`${slug}${cSlug}-content-brief.pdf`);
 }
 
+// ─── Content Score Estimator ──────────────────────────────────────────────────
+
+function computeContentScore(brief: Brief, form: FormState): ContentScore {
+  const kwLow = brief.keyword.trim().toLowerCase();
+  const wordCount = kwLow.split(/\s+/).filter(Boolean).length;
+
+  // ── 1. Keyword Specificity ──────────────────────────────────────────────────
+  const kwBase =
+    wordCount === 1 ? 18 :
+    wordCount === 2 ? 42 :
+    wordCount === 3 ? 65 :
+    wordCount === 4 ? 80 : 90;
+
+  const isFintechDomain = ENTITY_BUCKETS.some((b) =>
+    b.signals.some((s) => kwLow.includes(s))
+  );
+  const hasModifier = /\b(how|best|guide|vs|compare|top|what|why|review|tutorial|for|with|without|using)\b/.test(kwLow);
+  const hasQualifier = /\b(20[2-9]\d|\d+)\b/.test(kwLow);
+  const hasCompetitors = form.competitors.trim().length > 0;
+
+  const kwSpec = Math.min(
+    100,
+    kwBase +
+      (isFintechDomain ? 8 : 0) +
+      (hasModifier ? 5 : 0) +
+      (hasQualifier ? 5 : 0) +
+      (hasCompetitors ? 5 : 0)
+  );
+
+  const kwRationale =
+    kwSpec >= 85
+      ? "Highly specific keyword with clear fintech context — well-positioned for precise SERP targeting and low-funnel intent capture."
+      : kwSpec >= 70
+      ? "Good keyword precision. A geographic or year-based qualifier could sharpen intent signals further."
+      : kwSpec >= 50
+      ? "Moderate specificity. Consider a long-tail variant (3–4 words) to reduce competition and improve relevance."
+      : "Keyword is quite broad. Adding audience, action, or context modifiers (e.g. 'for SMEs', 'UK 2025') will significantly improve ranking focus.";
+
+  // ── 2. Structural Depth ────────────────────────────────────────────────────
+  const wcBase = ({ "800": 36, "1200": 54, "1800": 72, "2500": 88 } as Record<string, number>)[form.wordCount] ?? 54;
+  const h2Bonus = Math.min(10, Math.round((brief.h2s.length / 8) * 10));
+  const entityBonus = Math.min(10, Math.round((brief.entities.length / 10) * 10));
+  const faqBonus = brief.faqHeadings.length > 0 ? 5 : 0;
+  const smeBonus = (brief.smeQuestions?.length ?? 0) > 0 ? 4 : 0;
+  const anglesBonus = brief.competingAngles.length >= 3 ? 3 : 0;
+
+  const structDepth = Math.min(100, wcBase + h2Bonus + entityBonus + faqBonus + smeBonus + anglesBonus);
+
+  const structRationale =
+    structDepth >= 88
+      ? "Exceptional structural depth — this brief is engineered for full topical authority coverage and featured snippet eligibility."
+      : structDepth >= 72
+      ? "Strong structural depth. The H2 framework and entity set position this piece competitively for the target query cluster."
+      : structDepth >= 55
+      ? "Solid foundation. Increasing the target word count to 1,800+ and adding more semantic entities would boost topical authority."
+      : "Limited structural depth. A higher word count and richer entity coverage are recommended before briefing a writer.";
+
+  // ── 3. Audience Clarity ────────────────────────────────────────────────────
+  const audienceBase: Record<Audience, number> = {
+    founders: 72, marketers: 68, developers: 85, consumers: 62, investors: 83,
+  };
+  const toneBonus: Record<Tone, number> = {
+    authoritative: 5, educational: 8, conversational: 3, "data-driven": 9,
+  };
+  const clientBonus = form.clientName.trim() ? 8 : 0;
+  const competitorBonus = hasCompetitors ? 7 : 0;
+
+  const audienceClarity = Math.min(
+    100,
+    audienceBase[form.audience] + toneBonus[form.tone] + clientBonus + competitorBonus
+  );
+
+  const audienceRationale =
+    audienceClarity >= 90
+      ? "Exceptional audience clarity — writer will have full context on reader role, intent, and decision stage."
+      : audienceClarity >= 78
+      ? "High audience clarity. Tone and audience segment are well-aligned; writers can calibrate voice without ambiguity."
+      : audienceClarity >= 65
+      ? "Clear audience focus. Adding a client name or competitor references would sharpen writer context further."
+      : "Audience definition could be stronger. Specifying tone, client context, or competitor landscape helps writers hit the right register first draft.";
+
+  // ── 4. SERP Differentiation ────────────────────────────────────────────────
+  const anglesScore = Math.min(33, brief.competingAngles.length * 11);
+  const entityDiffScore = Math.min(24, Math.round((brief.entities.length / 10) * 24));
+  const linkDiffScore = Math.min(18, brief.internalLinks.length * 3);
+  const extLinkScore = Math.min(15, Math.round(brief.externalLinkTypes.length * 3.75));
+  const serpCompetitorBonus = hasCompetitors ? 10 : 0;
+
+  const serpDiff = Math.min(100, anglesScore + entityDiffScore + linkDiffScore + extLinkScore + serpCompetitorBonus);
+
+  const serpRationale =
+    serpDiff >= 85
+      ? "Excellent differentiation framework — strong competing angles, entity depth, and link strategy should separate this piece from the current SERP."
+      : serpDiff >= 70
+      ? "Good differentiation signals. Reviewing actual competitor SERPs before drafting will surface any remaining gaps."
+      : serpDiff >= 50
+      ? "Moderate differentiation. Adding competitor URLs and strengthening entity coverage would improve chances of outranking incumbents."
+      : "Low differentiation signals. Competitor research and unique angle development are strongly recommended before briefing a writer.";
+
+  // ── Overall ────────────────────────────────────────────────────────────────
+  const overall = Math.round((kwSpec + structDepth + audienceClarity + serpDiff) / 4);
+
+  return {
+    overall,
+    dimensions: [
+      { key: "keywordSpecificity",   label: "Keyword Specificity",   score: Math.round(kwSpec),        rationale: kwRationale },
+      { key: "structuralDepth",      label: "Structural Depth",      score: Math.round(structDepth),   rationale: structRationale },
+      { key: "audienceClarity",      label: "Audience Clarity",      score: Math.round(audienceClarity), rationale: audienceRationale },
+      { key: "serpDifferentiation",  label: "SERP Differentiation",  score: Math.round(serpDiff),      rationale: serpRationale },
+    ],
+  };
+}
+
+function ContentScoreCard({ score }: { score: ContentScore }) {
+  const colorClass = (s: number) =>
+    s >= 80 ? "text-emerald-600" : s >= 65 ? "text-amber-600" : s >= 45 ? "text-orange-600" : "text-rose-600";
+  const barClass = (s: number) =>
+    s >= 80 ? "bg-emerald-500" : s >= 65 ? "bg-amber-500" : s >= 45 ? "bg-orange-500" : "bg-rose-500";
+  const ringClass = (s: number) =>
+    s >= 80 ? "border-emerald-400 bg-emerald-50" :
+    s >= 65 ? "border-amber-400 bg-amber-50" :
+    s >= 45 ? "border-orange-400 bg-orange-50" : "border-rose-400 bg-rose-50";
+  const label = (s: number) =>
+    s >= 80 ? "Strong" : s >= 65 ? "Good" : s >= 45 ? "Fair" : "Needs Work";
+  const borderClass = (s: number) =>
+    s >= 80 ? "border-emerald-200" : s >= 65 ? "border-amber-200" : s >= 45 ? "border-orange-200" : "border-rose-200";
+
+  const dimensionIcons: Record<string, string> = {
+    keywordSpecificity:  "KW",
+    structuralDepth:     "SD",
+    audienceClarity:     "AC",
+    serpDifferentiation: "SR",
+  };
+
+  return (
+    <Card className={`border shadow-sm overflow-hidden ${borderClass(score.overall)}`}>
+      <div className={`h-1.5 w-full ${barClass(score.overall)}`} />
+      <CardContent className="p-5">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+              <Gauge className="w-4 h-4 text-rose-600 shrink-0" />
+              Content Score Estimator
+            </h4>
+            <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+              Instant quality signal across 4 editorial dimensions — review before briefing a writer.
+            </p>
+          </div>
+
+          {/* Overall score dial */}
+          <div className="shrink-0 flex flex-col items-center gap-1">
+            <div className={`w-[68px] h-[68px] rounded-full flex flex-col items-center justify-center border-4 ${ringClass(score.overall)}`}>
+              <span className={`text-2xl font-black leading-none tabular-nums ${colorClass(score.overall)}`}>
+                {score.overall}
+              </span>
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">/100</span>
+            </div>
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${colorClass(score.overall)}`}>
+              {label(score.overall)}
+            </span>
+          </div>
+        </div>
+
+        {/* Dimension bars */}
+        <div className="space-y-4">
+          {score.dimensions.map((dim, i) => (
+            <motion.div
+              key={dim.key}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.08, duration: 0.3 }}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[9px] font-black tracking-widest rounded px-1.5 py-0.5 ${
+                    dim.score >= 80 ? "bg-emerald-100 text-emerald-700" :
+                    dim.score >= 65 ? "bg-amber-100 text-amber-700" :
+                    dim.score >= 45 ? "bg-orange-100 text-orange-700" :
+                    "bg-rose-100 text-rose-700"
+                  }`}>
+                    {dimensionIcons[dim.key]}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-700">{dim.label}</span>
+                </div>
+                <span className={`text-sm font-black tabular-nums ${colorClass(dim.score)}`}>
+                  {dim.score}
+                </span>
+              </div>
+
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-1.5">
+                <motion.div
+                  className={`h-full rounded-full ${barClass(dim.score)}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${dim.score}%` }}
+                  transition={{ duration: 0.7, delay: i * 0.08, ease: "easeOut" }}
+                />
+              </div>
+
+              <p className="text-[11px] text-slate-500 leading-relaxed">{dim.rationale}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        <p className="mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-400 leading-relaxed">
+          Scores are derived from keyword length and fintech domain signals, structural parameters (word count, H2s, entities), audience targeting precision, and competitive differentiation coverage in this brief.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function EntityPill({
   entity,
   checked,
@@ -1566,6 +1791,7 @@ export default function ContentBriefGenerator() {
   const [checkedH2s, setCheckedH2s] = useState<Record<number, boolean>>({});
   const loadedKeyRef = useRef<string | null>(null);
   const [professionalBranding, setProfessionalBranding] = useState(false);
+  const [contentScore, setContentScore] = useState<ContentScore | null>(null);
 
   // Load checked state from sessionStorage when briefKey changes
   useEffect(() => {
@@ -1613,6 +1839,7 @@ export default function ContentBriefGenerator() {
     setCheckedLinks({});
     setCheckedH2s({});
     setIsGenerating(false);
+    setContentScore(null);
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   };
@@ -1642,10 +1869,13 @@ export default function ContentBriefGenerator() {
       }
     }, MSG_INTERVAL);
 
+    const capturedForm = { ...form };
     timeoutRef.current = setTimeout(() => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       setIsGenerating(false);
-      setBrief(generateBrief(form));
+      const generated = generateBrief(capturedForm);
+      setBrief(generated);
+      setContentScore(computeContentScore(generated, capturedForm));
     }, TOTAL_DURATION);
   };
 
@@ -1909,6 +2139,9 @@ export default function ContentBriefGenerator() {
                 exit={{ opacity: 0, y: 8 }}
                 className="mt-6 space-y-4"
               >
+                {/* Content Score Estimator */}
+                {contentScore && <ContentScoreCard score={contentScore} />}
+
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
                     Brief for "{brief.keyword}"
