@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   Lightbulb,
   FileCode,
+  HelpCircle,
 } from "lucide-react";
 
 type Audience = "founders" | "marketers" | "developers" | "consumers" | "investors";
@@ -80,6 +81,11 @@ type ContentAngle = {
   why: string;
 };
 
+type SMEQuestion = {
+  question: string;
+  context: string;
+};
+
 type Brief = {
   keyword: string;
   audience: string;
@@ -101,6 +107,7 @@ type Brief = {
   fleschKincaid: FleschKincaid;
   styleGuardrails: StyleGuardrail[];
   competingAngles: ContentAngle[];
+  smeQuestions: SMEQuestion[];
 };
 
 const INTERNAL_LINKS_BY_AUDIENCE: Record<Audience, string[]> = {
@@ -607,6 +614,79 @@ const COMPETING_ANGLES: Record<Audience, ContentAngle[]> = {
   ],
 };
 
+const SME_QUESTION_TEMPLATES: Record<Audience, ((kw: string) => SMEQuestion)[]> = {
+  founders: [
+    (kw) => ({
+      question: `What are the biggest hidden implementation costs in ${kw} that most vendors never disclose upfront?`,
+      context: "Founders make budget decisions based on advertised pricing. A practitioner's frank answer exposes real costs and creates credibility that no vendor-produced content can replicate.",
+    }),
+    (kw) => ({
+      question: `After shipping ${kw}, what would you do fundamentally differently from day one — and why?`,
+      context: "Hindsight interviews are rare in fintech content. Forcing a candid reflection on mistakes distinguishes the piece from any polished case study and builds genuine authority.",
+    }),
+    (kw) => ({
+      question: `What regulatory or compliance conversations did ${kw} force you to have earlier than you expected?`,
+      context: "Regulatory friction is a consistent blindspot in founder-focused content. An SME perspective here is almost impossible to find and highly valuable for readers navigating the same path.",
+    }),
+  ],
+  marketers: [
+    (kw) => ({
+      question: `Which content formats have actually moved pipeline for ${kw}, versus those that only generated traffic?`,
+      context: "Most marketing content conflates vanity metrics with revenue impact. A practitioner answer that connects format choice to pipeline creates direct, conversion-focused value competitors rarely provide.",
+    }),
+    (kw) => ({
+      question: `How do you get legal and compliance sign-off on ${kw} content without stripping out everything useful?`,
+      context: "The compliance bottleneck is universally frustrating for fintech marketers. A real workflow answer from someone who has solved this is genuinely rare editorial content.",
+    }),
+    (kw) => ({
+      question: `What's the biggest misconception your buyers have about ${kw} when they first enter the sales funnel?`,
+      context: "Misalignment between marketing messaging and buyer mental models shapes every content decision. An SME answer here directly informs messaging strategy and makes the piece immediately actionable.",
+    }),
+  ],
+  developers: [
+    (kw) => ({
+      question: `What's the most common mistake you see developers make when first integrating ${kw} into a production environment?`,
+      context: "Practitioners have pattern-recognition on failure modes that no documentation covers. This is the highest-value developer content angle and almost entirely absent from the existing corpus.",
+    }),
+    (kw) => ({
+      question: `How does ${kw} behave under load or in edge cases that the official API documentation doesn't address?`,
+      context: "Real-world performance characteristics are almost never published. A developer SME answer here creates a genuinely irreplaceable piece that will rank for high-intent technical searches.",
+    }),
+    (kw) => ({
+      question: `What does a clean ${kw} implementation look like architecturally, versus how most teams actually end up building it?`,
+      context: "The gap between ideal patterns and real-world implementations is an almost entirely undocumented content territory. This question surfaces the opinionated, experience-backed take that developers trust most.",
+    }),
+  ],
+  consumers: [
+    (kw) => ({
+      question: `What questions do people most commonly ask before they trust a product like ${kw} with their money — and how do you answer them?`,
+      context: "Trust signals from a consumer-facing practitioner reveal what actually overcomes buyer hesitation. This is more useful than any UX survey and creates content that directly reduces conversion anxiety.",
+    }),
+    (kw) => ({
+      question: `In what situations does ${kw} genuinely let consumers down, and what should they watch for before signing up?`,
+      context: "Honest limitation content is almost non-existent in consumer fintech. An SME willing to go on record with this creates enormous credibility and earns links from comparison and review sites.",
+    }),
+    (kw) => ({
+      question: `How do you explain ${kw} to someone who has never used anything beyond a traditional high-street bank account?`,
+      context: "The mass-market explanation challenge reveals the communication gap that most fintech content fails to bridge. A practitioner's answer often becomes the most-shared section of the article.",
+    }),
+  ],
+  investors: [
+    (kw) => ({
+      question: `What signals in a ${kw} operator's metrics tell you it's a genuine category winner versus a well-funded pretender?`,
+      context: "Investors have a due-diligence lens that distinguishes exceptional content from generic market overviews. This answer is impossible to replicate without the interview and creates a defensible, high-authority piece.",
+    }),
+    (kw) => ({
+      question: `Where is the regulatory risk in ${kw} most underpriced by the market right now?`,
+      context: "Most investor content on regulatory risk is backward-looking. A practitioner forward-view creates a differentiated, high-authority piece that serious LPs and analysts will reference and share.",
+    }),
+    (kw) => ({
+      question: `What does the team composition and cap table of the best ${kw} operators have in common that deal flow data reveals but public profiles don't?`,
+      context: "Human capital signals in due diligence are almost entirely absent from public investor content. An SME take here is rare, high-value, and fills a genuine gap in the corpus.",
+    }),
+  ],
+};
+
 function generateEntities(keyword: string, audience: Audience): string[] {
   const kw = keyword.toLowerCase();
   for (const bucket of ENTITY_BUCKETS) {
@@ -644,6 +724,7 @@ function generateBrief(form: FormState): Brief {
     fleschKincaid: FK_DATA[form.audience][form.tone],
     styleGuardrails: STYLE_GUARDRAILS[form.tone],
     competingAngles: COMPETING_ANGLES[form.audience],
+    smeQuestions: SME_QUESTION_TEMPLATES[form.audience].map((fn) => fn(kw)),
   };
 }
 
@@ -713,6 +794,10 @@ function briefToText(brief: Brief): string {
     ``,
     `Example Sentence Structures:`,
     ...brief.fleschKincaid.exampleStructures.map((s, i) => `${i + 1}. ${s}`),
+    ``,
+    `SME INTERVIEW QUESTIONS`,
+    `-----------------------`,
+    ...brief.smeQuestions.map((q, i) => `Q${i + 1}: ${q.question}\n     Why ask this: ${q.context}`),
     ``,
     `CTA`,
     `---`,
@@ -818,6 +903,19 @@ function briefToMarkdown(brief: Brief): string {
   lines.push(``);
   brief.fleschKincaid.exampleStructures.forEach((s, i) => lines.push(`${i + 1}. *${s}*`));
   lines.push(``);
+
+  lines.push(`## SME Interview Questions`);
+  lines.push(``);
+  lines.push(`Use these questions to get unique quotes and insights from a Subject Matter Expert before drafting.`);
+  lines.push(``);
+  brief.smeQuestions.forEach((q, i) => {
+    lines.push(`### Q${i + 1}`);
+    lines.push(``);
+    lines.push(`**"${q.question}"**`);
+    lines.push(``);
+    lines.push(`> *Why ask this:* ${q.context}`);
+    lines.push(``);
+  });
 
   lines.push(`## CTA Guidance`);
   lines.push(``);
@@ -1460,6 +1558,49 @@ export default function ContentBriefGenerator() {
                         Use these as structural templates when drafting — replace bracketed placeholders with specific details from your keyword and research.
                       </p>
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* SME Interview Questions */}
+                <Card className="border border-sky-100 shadow-sm bg-gradient-to-br from-sky-50/60 to-white">
+                  <CardContent className="p-5">
+                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-1">
+                      <HelpCircle className="w-4 h-4 text-sky-600" /> Suggested SME Interview Questions
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mb-4 leading-relaxed">
+                      Ask a Subject Matter Expert these questions before drafting — their answers become the unique quotes and insights that separate this piece from anything AI can generate alone.
+                    </p>
+
+                    <div className="space-y-3">
+                      {(brief.smeQuestions ?? []).map((q, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.08 }}
+                          className="rounded-xl border border-sky-100 bg-white shadow-sm overflow-hidden"
+                        >
+                          <div className="flex items-start gap-3 px-4 py-3.5">
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-sky-600 text-white text-[10px] font-extrabold flex items-center justify-center mt-0.5">
+                              Q{i + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-900 leading-snug mb-2">
+                                "{q.question}"
+                              </p>
+                              <div className="flex items-start gap-1.5">
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-sky-500 mt-0.5 shrink-0">Why ask</span>
+                                <p className="text-[11px] text-slate-500 leading-relaxed">{q.context}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    <p className="mt-4 text-[10px] text-slate-400 leading-relaxed border-t border-sky-100 pt-3">
+                      Tip: Record the interview, get a transcript, and pull 2–3 direct quotes into the article. Even a single authentic practitioner quote creates content that AI rewrites cannot replicate.
+                    </p>
                   </CardContent>
                 </Card>
 
