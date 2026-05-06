@@ -1035,7 +1035,7 @@ export default function BacklinkValueEstimator() {
                       ) : (
                         <>
                           <Copy className="w-3.5 h-3.5" />
-                          Share link
+                          Share Results
                         </>
                       )}
                     </Button>
