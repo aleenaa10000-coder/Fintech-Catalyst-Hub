@@ -23,6 +23,7 @@ import {
   ListOrdered,
   Clock,
   Tag,
+  GraduationCap,
 } from "lucide-react";
 
 type Audience = "founders" | "marketers" | "developers" | "consumers" | "investors";
@@ -60,6 +61,12 @@ const TONE_LABELS: Record<Tone, string> = {
   "data-driven": "Data-driven — stats-first, analytical",
 };
 
+type FleschKincaid = {
+  gradeLevel: string;
+  rationale: string;
+  exampleStructures: string[];
+};
+
 type Brief = {
   keyword: string;
   audience: string;
@@ -78,6 +85,7 @@ type Brief = {
   cta: string;
   toneGuidance: string[];
   thingsToAvoid: string[];
+  fleschKincaid: FleschKincaid;
 };
 
 const INTERNAL_LINKS_BY_AUDIENCE: Record<Audience, string[]> = {
@@ -327,6 +335,199 @@ const ENTITY_FALLBACK_BY_AUDIENCE: Record<Audience, string[]> = {
   investors: ["Total Addressable Market (TAM)", "Revenue Multiple", "EBITDA", "Net Revenue Retention (NRR)", "Gross Margin", "Burn Multiple", "Lead Investor", "Cap Table", "Due Diligence", "Liquidity Event"],
 };
 
+const FK_DATA: Record<Audience, Record<Tone, FleschKincaid>> = {
+  founders: {
+    authoritative: {
+      gradeLevel: "Grade 11–12",
+      rationale: "Founders expect business-grade prose — confident, complex enough to signal expertise, but not academic.",
+      exampleStructures: [
+        "In 2025, [X] represents the most significant infrastructure shift in fintech since [Y] — and founders who move early will capture disproportionate market share.",
+        "[Company] secured its Series B because its investors understood that [concept] is not a feature — it is the moat.",
+        "The decision is straightforward: build [capability] now, or spend 18 months catching up to competitors who already did.",
+      ],
+    },
+    educational: {
+      gradeLevel: "Grade 10–11",
+      rationale: "Educational content for founders should demystify complexity without feeling patronising — crisp, structured, and practical.",
+      exampleStructures: [
+        "To understand [X], start with a simple question: what problem does it solve for your customers, and how fast?",
+        "There are three steps to implementing [Y] successfully — and most founders stumble on the second one.",
+        "Think of [X] as [analogy]: it doesn't change what you're building, it changes how quickly you can scale it.",
+      ],
+    },
+    conversational: {
+      gradeLevel: "Grade 9–10",
+      rationale: "Conversational content for founders should feel like peer advice — direct, warm, and free of buzzwords.",
+      exampleStructures: [
+        "Here's the thing about [X]: it looks complicated on paper, but your customers don't actually care about the complexity.",
+        "If you're not thinking about [Y] yet, you probably will be in 12 months — and that's fine, as long as you start now.",
+        "The founders we speak to most often ask one question: 'How do I know if [X] is right for our stage?'",
+      ],
+    },
+    "data-driven": {
+      gradeLevel: "Grade 11–12",
+      rationale: "Founders trust data-heavy arguments — each claim should be anchored to a specific figure or named source.",
+      exampleStructures: [
+        "According to [Source], [X]% of Series A fintechs that implemented [Y] in year one reported [Z]% higher retention by year two.",
+        "The data is clear: [metric] is the single best leading indicator of [outcome] for founders at the $[X]M ARR mark.",
+        "[Statistic] — that figure alone explains why [X] has moved from 'nice to have' to a board-level priority in 2025.",
+      ],
+    },
+  },
+  marketers: {
+    authoritative: {
+      gradeLevel: "Grade 10–11",
+      rationale: "Marketing teams expect confident, strategy-level language — assertive but accessible enough for cross-functional reading.",
+      exampleStructures: [
+        "[X] is not a trend — it is the distribution layer that will define which fintech brands own search in the next three years.",
+        "The most effective fintech content programmes share one trait: they treat [Y] as a strategic asset, not a publishing schedule.",
+        "If your content isn't addressing [X] intent explicitly, you are optimising for traffic that will never convert.",
+      ],
+    },
+    educational: {
+      gradeLevel: "Grade 9–10",
+      rationale: "Marketers learn best from clear, structured playbooks — aim for short sentences and step-by-step logic.",
+      exampleStructures: [
+        "Start with intent: before you write a word about [X], ask what your reader is trying to achieve when they search for it.",
+        "Here's a simple framework for [Y]: break the process into three stages — awareness, evaluation, and decision — then map your content to each.",
+        "Step one is always the same: define the keyword cluster before you touch the brief.",
+      ],
+    },
+    conversational: {
+      gradeLevel: "Grade 8–9",
+      rationale: "Conversational marketing content should feel like a newsletter from a knowledgeable colleague — casual but credible.",
+      exampleStructures: [
+        "You've probably noticed that [X] keeps coming up in your analytics — here's what it actually means for your pipeline.",
+        "Most fintech marketers overthink [Y]; the fix is usually simpler than you'd expect.",
+        "If your [metric] is flatlining, chances are [root cause] — and there's a straightforward way to test that theory.",
+      ],
+    },
+    "data-driven": {
+      gradeLevel: "Grade 10–11",
+      rationale: "Data-driven marketing content needs precision — cite the source and year for every number, and interpret the figures explicitly.",
+      exampleStructures: [
+        "Brands that publish [X] content at a cadence of [Y] per month generate [Z]% more MQLs than those that don't, per [Source, Year].",
+        "[Metric] benchmarks for fintech sit at [X]% (industry average) — anything above [Y]% signals a content strategy that is genuinely working.",
+        "The [Source] report found that [X]% of B2B fintech buyers read at least three pieces of content before requesting a demo.",
+      ],
+    },
+  },
+  developers: {
+    authoritative: {
+      gradeLevel: "Grade 12–13",
+      rationale: "Technical audiences expect precise, high-information-density language — no hedging, no hand-holding on fundamentals.",
+      exampleStructures: [
+        "Implementing [X] without [Y] is not a shortcut — it is a latent security vulnerability that compounds with scale.",
+        "[Protocol] mandates [requirement]; any implementation that omits this step fails compliance at the first audit.",
+        "The correct abstraction here is [pattern]: it decouples [component A] from [component B] and eliminates the class of bugs caused by [issue].",
+      ],
+    },
+    educational: {
+      gradeLevel: "Grade 11–12",
+      rationale: "Educational developer content should build understanding layer by layer — assume intelligence, not prior knowledge of this specific domain.",
+      exampleStructures: [
+        "Before you write a single line of integration code, understand what [X] actually does at the protocol level — it will save hours of debugging.",
+        "The [Y] pattern solves a specific problem: [problem statement]. Here's how to recognise when you need it.",
+        "Think of [X] as a contract between your service and [external system]: if either side breaks the contract, the integration fails silently.",
+      ],
+    },
+    conversational: {
+      gradeLevel: "Grade 10–11",
+      rationale: "Conversational developer content works like a code review comment — direct, helpful, and free of unnecessary formality.",
+      exampleStructures: [
+        "If you've ever wondered why [X] throws a [error type] at exactly this step, the reason is simpler than the stack trace suggests.",
+        "Most developers hit this wall on day two of the integration — here's the fix that actually works.",
+        "You don't need to implement the full [Y] spec on day one; start with [minimal version] and layer in the rest as your use case grows.",
+      ],
+    },
+    "data-driven": {
+      gradeLevel: "Grade 12–13",
+      rationale: "Data-driven technical content should lead with measurable benchmarks — latency, error rates, throughput — and cite the testing conditions.",
+      exampleStructures: [
+        "In load testing at [X] requests per second, [approach A] reduced p99 latency by [Y]ms compared to [approach B] under identical conditions.",
+        "[Library/service] reports a [X]% reduction in failed webhook deliveries after implementing idempotency keys — [Source, Year].",
+        "The [benchmark] shows that [X] scales linearly up to [threshold] before throughput degrades; beyond that, [mitigation] is required.",
+      ],
+    },
+  },
+  consumers: {
+    authoritative: {
+      gradeLevel: "Grade 8–9",
+      rationale: "Consumer content needs authority without complexity — clear, reassuring, and grounded in facts the reader can verify.",
+      exampleStructures: [
+        "[X] is regulated by the [Authority], which means your money is protected up to [limit] — the same protection you get with a high-street bank.",
+        "Independent testing by [Source] found that [X] outperforms the average [category] on [metric] — without any hidden fees.",
+        "The rule is simple: if a [product] doesn't display its [regulatory credential] prominently, look elsewhere.",
+      ],
+    },
+    educational: {
+      gradeLevel: "Grade 7–8",
+      rationale: "Educational consumer content should read like a conversation with a trusted friend who happens to know finance — plain, clear, and patient.",
+      exampleStructures: [
+        "Here's what [X] actually means in plain English: [one-sentence definition] — nothing more complicated than that.",
+        "Step one: [action]. Step two: [action]. Most people stop here, but step three is where you start saving real money.",
+        "Think of [X] like [everyday analogy] — once you see it that way, the rest makes sense.",
+      ],
+    },
+    conversational: {
+      gradeLevel: "Grade 6–7",
+      rationale: "Conversational consumer content should feel warm and effortless — short sentences, common words, and zero jargon.",
+      exampleStructures: [
+        "You don't need to be a finance expert to use [X] — if you can set up a Netflix account, you can do this.",
+        "It takes about five minutes to get started, and there's nothing you can do wrong in the first step.",
+        "Lots of people feel nervous about [X] at first — that's normal, and it gets easier quickly.",
+      ],
+    },
+    "data-driven": {
+      gradeLevel: "Grade 8–9",
+      rationale: "Data-driven consumer content should use relatable numbers — savings amounts, time saved, percentages — not industry metrics.",
+      exampleStructures: [
+        "The average [X] user saves £[amount] per year just by switching from a traditional bank account — that's £[daily equivalent] every day.",
+        "[Source] found that [X]% of people who tried [product] stuck with it after 90 days — a higher retention rate than [comparison].",
+        "Over a [timeframe], the difference between [option A] and [option B] adds up to £[amount] — enough to [relatable outcome].",
+      ],
+    },
+  },
+  investors: {
+    authoritative: {
+      gradeLevel: "Grade 13–14",
+      rationale: "Investor content demands executive-grade prose — dense with precise terminology, free of hedging, and written to be read fast.",
+      exampleStructures: [
+        "[X] is not an emerging category — it is an infrastructural inevitability, and the window for category-defining positioning closes within 24 months.",
+        "The structural tailwind here is regulatory: [framework] compels [behaviour], which in turn creates a durable demand floor for [solution].",
+        "Operators in the [X] space who achieve [metric] by [milestone] consistently command a [Y]x revenue multiple at Series B — the data supports conviction.",
+      ],
+    },
+    educational: {
+      gradeLevel: "Grade 12–13",
+      rationale: "Educational investor content should build the analytical framework first, then layer in the data — assume sophistication, not familiarity with this sub-sector.",
+      exampleStructures: [
+        "To evaluate [X] correctly, start with the unit economics: what does it cost to acquire a [customer type], and what is the realistic LTV at 24 months?",
+        "The category breaks into three distinct business models — each with a different margin profile, burn multiple, and defensibility thesis.",
+        "Before assessing any [X] operator, establish the regulatory baseline: which licences are required, in which jurisdictions, and what the typical timeline to grant looks like.",
+      ],
+    },
+    conversational: {
+      gradeLevel: "Grade 11–12",
+      rationale: "Conversational investor content works like a well-structured LP update — direct, candid, and confident without being overconfident.",
+      exampleStructures: [
+        "The [X] opportunity is real, but the framing most analysts use understates the regulatory complexity — and that's where deal risk actually lives.",
+        "Here's what the deal flow tells us: [observation] — and it's been consistent across the last three quarters.",
+        "If you're building a thesis around [X], the number that matters most isn't TAM — it's [specific metric], and here's why.",
+      ],
+    },
+    "data-driven": {
+      gradeLevel: "Grade 13–14",
+      rationale: "Data-driven investor content must be rigorous — every claim anchored to a named source, every projection tied to an explicit assumption.",
+      exampleStructures: [
+        "The [X] market reached $[size] in [year] (CAGR: [Y]%, [Source]) — with [geography] accounting for [Z]% of total deal volume.",
+        "Median [metric] for [X] operators at Series A sits at [figure], per [Source]; top-quartile performers show [Y]% above the median by month [Z].",
+        "The bull case rests on three assumptions: [assumption 1], [assumption 2], and [assumption 3] — each of which is testable against public comparables.",
+      ],
+    },
+  },
+};
+
 function generateEntities(keyword: string, audience: Audience): string[] {
   const kw = keyword.toLowerCase();
   for (const bucket of ENTITY_BUCKETS) {
@@ -361,6 +562,7 @@ function generateBrief(form: FormState): Brief {
     cta: CTA_TEMPLATES[form.audience],
     toneGuidance: TONE_GUIDANCE[form.tone],
     thingsToAvoid: THINGS_TO_AVOID[form.tone],
+    fleschKincaid: FK_DATA[form.audience][form.tone],
   };
 }
 
@@ -414,6 +616,14 @@ function briefToText(brief: Brief): string {
     `THINGS TO AVOID`,
     `---------------`,
     ...brief.thingsToAvoid.map((t) => `• ${t}`),
+    ``,
+    `FLESCH-KINCAID READING LEVEL`,
+    `----------------------------`,
+    `Target Grade Level: ${brief.fleschKincaid.gradeLevel}`,
+    `Rationale: ${brief.fleschKincaid.rationale}`,
+    ``,
+    `Example Sentence Structures:`,
+    ...brief.fleschKincaid.exampleStructures.map((s, i) => `${i + 1}. ${s}`),
     ``,
     `CTA`,
     `---`,
@@ -796,6 +1006,55 @@ export default function ContentBriefGenerator() {
                           ))}
                         </ul>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Flesch-Kincaid Reading Level */}
+                <Card className="border border-indigo-100 shadow-sm">
+                  <CardContent className="p-5">
+                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-1">
+                      <GraduationCap className="w-4 h-4 text-indigo-600" />
+                      Flesch–Kincaid Reading Level Recommendation
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mb-4">
+                      Calibrated to your selected audience and tone.
+                    </p>
+
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-indigo-600 text-white shrink-0">
+                        <div className="text-center">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5">Target</p>
+                          <p className="text-base font-extrabold leading-tight">{brief.fleschKincaid.gradeLevel.replace("Grade ", "")}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-indigo-800 mb-0.5">{brief.fleschKincaid.gradeLevel}</p>
+                        <p className="text-xs text-slate-600 leading-relaxed">{brief.fleschKincaid.rationale}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-600 mb-2">
+                        Example Sentence Structures
+                      </p>
+                      <div className="space-y-2">
+                        {brief.fleschKincaid.exampleStructures.map((s, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -6 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.06 }}
+                            className="flex gap-2.5 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2.5"
+                          >
+                            <span className="mt-0.5 text-[10px] font-bold text-indigo-400 shrink-0 w-4">{i + 1}.</span>
+                            <p className="text-xs text-slate-700 leading-relaxed italic">{s}</p>
+                          </motion.div>
+                        ))}
+                      </div>
+                      <p className="mt-3 text-[10px] text-slate-400 leading-relaxed">
+                        Use these as structural templates when drafting — replace bracketed placeholders with specific details from your keyword and research.
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
