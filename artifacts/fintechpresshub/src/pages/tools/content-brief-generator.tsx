@@ -33,6 +33,7 @@ import {
   FileDown,
   Gauge,
   ClipboardCheck,
+  PenLine,
 } from "lucide-react";
 
 type Audience = "founders" | "marketers" | "developers" | "consumers" | "investors";
@@ -1032,7 +1033,9 @@ function generateStrategicContext(brief: Brief): {
 async function downloadBriefAsPDF(
   brief: Brief,
   clientName: string,
-  branded: boolean
+  branded: boolean,
+  intentAlignment?: IntentAlignment | null,
+  expertHooks?: ExpertHook[] | null,
 ): Promise<void> {
   const { jsPDF } = await import("jspdf");
   const PW = 210, PH = 297, ML = 18, MR = 18;
@@ -1529,6 +1532,56 @@ async function downloadBriefAsPDF(
     bodySmall(q.context, 6);
     gap(3);
   });
+
+  // ── Search Intent Alignment (PDF) ────────────────────────────────────────
+  if (intentAlignment) {
+    sectionHeader("Search Intent Alignment");
+    ensureSpace(18);
+    doc.setFillColor(238, 242, 255);
+    doc.rect(ML, y, CW, 16, "F");
+    doc.setFillColor(...C.INDIGO);
+    doc.rect(ML, y, 2.5, 16, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...C.INDIGO);
+    doc.text(intentAlignment.zoneName, ML + 5, y + 5.5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...C.S700);
+    doc.text(`${intentAlignment.primaryPct}% ${intentAlignment.primaryIntent}  ·  ${100 - intentAlignment.primaryPct}% ${intentAlignment.secondaryIntent}`, ML + 5, y + 11);
+    y += 20;
+    gap(2);
+  }
+
+  // ── Expert Insight Hooks (PDF) ────────────────────────────────────────────
+  if (expertHooks && expertHooks.length > 0) {
+    sectionHeader("Expert Insight Hooks");
+    bodySmall("Ask these to unlock practitioner quotes no AI can generate.");
+    gap(3);
+    expertHooks.forEach((hook, i) => {
+      ensureSpace(24);
+      doc.setFillColor(245, 243, 255);
+      doc.rect(ML, y - 2, CW, 20, "F");
+      doc.setFillColor(109, 40, 217);
+      doc.rect(ML, y - 2, 7, 7, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.5);
+      doc.setTextColor(...C.WHITE);
+      doc.text(`${i + 1}`, ML + 3.5, y + 2.8, { align: "center" });
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.5);
+      doc.setTextColor(109, 40, 217);
+      doc.text(hook.focus.toUpperCase(), ML + 9, y + 2.5);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(...C.S800);
+      const qLines = doc.splitTextToSize(`"${hook.question}"`, CW - 12);
+      qLines.forEach((ln: string, j: number) => doc.text(ln, ML + 9, y + 7 + j * 4.5));
+      y += qLines.length * 4.5 + 8;
+      bodySmall(hook.why, 6);
+      gap(4);
+    });
+  }
 
   // ── CTA ──────────────────────────────────────────────────────────────────
   sectionHeader("CTA Guidance");
@@ -2155,6 +2208,7 @@ export default function ContentBriefGenerator() {
   const [contentScore, setContentScore] = useState<ContentScore | null>(null);
   const [intentAlignment, setIntentAlignment] = useState<IntentAlignment | null>(null);
   const [expertHooks, setExpertHooks] = useState<ExpertHook[] | null>(null);
+  const [writerMode, setWriterMode] = useState(false);
 
   // Load checked state from sessionStorage when briefKey changes
   useEffect(() => {
@@ -2205,6 +2259,7 @@ export default function ContentBriefGenerator() {
     setContentScore(null);
     setIntentAlignment(null);
     setExpertHooks(null);
+    setWriterMode(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   };
@@ -2270,7 +2325,7 @@ export default function ContentBriefGenerator() {
 
   const handleDownloadPDF = () => {
     if (!brief) return;
-    downloadBriefAsPDF(brief, form.clientName, professionalBranding);
+    downloadBriefAsPDF(brief, form.clientName, professionalBranding, intentAlignment, expertHooks);
   };
 
   const canGenerate = form.keyword.trim().length >= 3;
@@ -2295,6 +2350,15 @@ export default function ContentBriefGenerator() {
             All free tools
           </Link>
 
+          <AnimatePresence>
+            {!writerMode && (
+              <motion.div
+                key="form-card"
+                initial={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                transition={{ duration: 0.35, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
           <Card className="border border-slate-100 shadow-sm">
             <CardContent className="p-6 md:p-8">
               <div className="flex items-center justify-between mb-6">
@@ -2434,6 +2498,9 @@ export default function ContentBriefGenerator() {
               </Button>
             </CardContent>
           </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Generating progress bar */}
           <AnimatePresence>
@@ -2571,8 +2638,56 @@ export default function ContentBriefGenerator() {
                       <FileDown className="w-4 h-4" />
                       {professionalBranding ? "Download Branded PDF" : "Download PDF"}
                     </Button>
+
+                    {/* Writer Mode toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setWriterMode((v) => !v)}
+                      title={writerMode ? "Show brief settings" : "Enter Writer Mode — hides settings, focus on the brief"}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 select-none ${
+                        writerMode
+                          ? "bg-indigo-600 border-indigo-500 text-white shadow-sm"
+                          : "bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600"
+                      }`}
+                    >
+                      <PenLine className="w-3 h-3" />
+                      {writerMode ? "Exit Writer Mode" : "Writer Mode"}
+                    </button>
                   </div>
                 </div>
+
+                {/* Writer Mode banner */}
+                <AnimatePresence>
+                  {writerMode && (
+                    <motion.div
+                      key="writer-mode-banner"
+                      initial={{ opacity: 0, y: -8, height: 0 }}
+                      animate={{ opacity: 1, y: 0, height: "auto" }}
+                      exit={{ opacity: 0, y: -8, height: 0 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between gap-3 rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                            <PenLine className="w-3.5 h-3.5 text-indigo-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-indigo-800 leading-tight">Writer Mode active</p>
+                            <p className="text-[11px] text-indigo-500 leading-tight mt-0.5">Settings hidden — use the checklists below to track your progress as you write.</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setWriterMode(false)}
+                          className="shrink-0 text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 underline underline-offset-2 transition-colors"
+                        >
+                          Show settings
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Overview */}
                 <Card className="border border-slate-100 shadow-sm">
