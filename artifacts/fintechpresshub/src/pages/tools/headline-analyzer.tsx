@@ -732,7 +732,7 @@ function analyzeHeadline(headline: string): Analysis {
   const dims = [...scoringDims, scoreAudienceMatch(headline)];
 
   let verdict: string;
-  let verdictColor: string;
+  let verdictColor: "emerald" | "blue" | "amber" | "red";
   if (overall >= 85) { verdict = "Excellent — publish-ready headline."; verdictColor = "emerald"; }
   else if (overall >= 70) { verdict = "Good — minor tweaks will push it further."; verdictColor = "blue"; }
   else if (overall >= 50) { verdict = "Average — a few specific improvements needed."; verdictColor = "amber"; }
