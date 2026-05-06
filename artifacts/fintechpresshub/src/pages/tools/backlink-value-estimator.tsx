@@ -994,7 +994,7 @@ export default function BacklinkValueEstimator() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 8 }}
-                className="mt-6 space-y-4"
+                className="mt-6 space-y-6"
               >
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
@@ -1052,7 +1052,7 @@ export default function BacklinkValueEstimator() {
                 </div>
 
                 {/* Score */}
-                <Card className={`border shadow-sm ${SCORE_BG(result.score)}`}>
+                <Card className={`border shadow-[0_2px_16px_rgba(0,0,0,0.06)] ${SCORE_BG(result.score)}`}>
                   <CardContent className="p-6 flex items-center gap-6">
                     <div className="text-center min-w-[90px]">
                       <motion.div
@@ -1173,7 +1173,7 @@ export default function BacklinkValueEstimator() {
                 </motion.div>
 
                 {/* Acquisition Difficulty */}
-                <Card className="border border-slate-100 shadow-sm">
+                <Card className="border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
                   <CardContent className="p-5">
                     <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
                       <Target className="w-4 h-4 text-emerald-600" />
@@ -1262,62 +1262,65 @@ export default function BacklinkValueEstimator() {
                   </CardContent>
                 </Card>
 
-                {/* Score breakdown */}
-                <Card className="border border-slate-100 shadow-sm">
-                  <CardContent className="p-5">
-                    <h4 className="text-sm font-semibold text-slate-900 mb-4">
-                      Score Breakdown
-                    </h4>
-                    <div className="space-y-3">
-                      {result.breakdown.map((b) => (
-                        <div key={b.factor}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold text-slate-700">
-                              {b.factor}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {b.note}
-                            </span>
-                          </div>
-                          <div className="w-full bg-slate-100 rounded-full h-1.5">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{
-                                width: `${(b.contribution / [40, 25, 20, 10, 5][result.breakdown.indexOf(b)]) * 100}%`,
-                              }}
-                              transition={{ duration: 0.6, delay: result.breakdown.indexOf(b) * 0.08 }}
-                              className="h-1.5 rounded-full"
-                              style={{ background: "linear-gradient(to right, #10b981, #3b82f6)" }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Recommendations */}
-                {result.recommendations.length > 0 && (
-                  <Card className="border border-slate-100 shadow-sm">
-                    <CardContent className="p-5">
-                      <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        Recommendations
+                {/* Score Breakdown + Recommendations — two-column on desktop */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  {/* Score breakdown */}
+                  <Card className="border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
+                    <CardContent className="p-6">
+                      <h4 className="text-sm font-semibold text-slate-900 mb-4">
+                        Score Breakdown
                       </h4>
-                      <ul className="space-y-2">
-                        {result.recommendations.map((rec, i) => (
-                          <li
-                            key={i}
-                            className="flex gap-2.5 text-sm text-slate-700"
-                          >
-                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                            {rec}
-                          </li>
+                      <div className="space-y-4">
+                        {result.breakdown.map((b) => (
+                          <div key={b.factor}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-xs font-semibold text-slate-700">
+                                {b.factor}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {b.note}
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-100 rounded-full h-1.5">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{
+                                  width: `${(b.contribution / [40, 25, 20, 10, 5][result.breakdown.indexOf(b)]) * 100}%`,
+                                }}
+                                transition={{ duration: 0.6, delay: result.breakdown.indexOf(b) * 0.08 }}
+                                className="h-1.5 rounded-full"
+                                style={{ background: "linear-gradient(to right, #10b981, #3b82f6)" }}
+                              />
+                            </div>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </CardContent>
                   </Card>
-                )}
+
+                  {/* Recommendations */}
+                  {result.recommendations.length > 0 && (
+                    <Card className="border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
+                      <CardContent className="p-6">
+                        <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          Recommendations
+                        </h4>
+                        <ul className="space-y-3">
+                          {result.recommendations.map((rec, i) => (
+                            <li
+                              key={i}
+                              className="flex gap-2.5 text-sm text-slate-700"
+                            >
+                              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
 
                 {/* Suggested Outreach Angle */}
                 {(() => {
