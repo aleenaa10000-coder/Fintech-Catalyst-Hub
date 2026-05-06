@@ -135,6 +135,12 @@ function fmtMoney(n: number): string {
   return `$${n}`;
 }
 
+function fmtTraffic(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString();
+}
+
 type AcquisitionDifficulty = {
   stars: number;
   label: string;
@@ -1140,6 +1146,23 @@ export default function BacklinkValueEstimator() {
                           <h4 className="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-2">
                             <DollarSign className="w-4 h-4 text-violet-600" />
                             Estimated Link Value
+                            <TooltipProvider delayDuration={120}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3.5 h-3.5 text-violet-400 cursor-help hover:text-violet-600 transition-colors shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent
+                                  side="top"
+                                  className="max-w-[260px] text-xs leading-relaxed p-3"
+                                >
+                                  Value is calculated based on market rates for DA&nbsp;
+                                  <span className="font-semibold text-violet-700">{parseFloat(form.da) || 0}</span>
+                                  &nbsp;and&nbsp;
+                                  <span className="font-semibold text-violet-700">{fmtTraffic(parseFloat(form.traffic) || 0)}</span>
+                                  &nbsp;monthly visitors in the Fintech niche. Higher DA and traffic levels command premium placement fees based on SEO marketplace benchmarks.
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </h4>
                           <p className="text-xs text-muted-foreground mb-3">
                             Market cost if acquired via a professional PR/SEO agency.
