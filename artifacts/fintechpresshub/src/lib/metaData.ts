@@ -19,7 +19,6 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   authors: "Authors",
   tools: "Tools",
   "financial-health-score-calculator": "Financial Health Score Calculator",
-  "content-roi-calculator": "Content ROI Calculator",
   "meta-description-generator": "Meta Description Generator",
   "guest-post-pitch-generator": "Guest Post Pitch Generator",
   "readability-checker": "Readability Checker",
@@ -126,11 +125,6 @@ export const PAGE_META = {
     title: "Financial Health Score Calculator | Debt-to-Income Checker",
     description:
       "Free Financial Health Score Calculator. Get your 0–100 score instantly with a debt-to-income ratio check, savings rate, emergency fund coverage, and personalized tips.",
-  },
-  contentRoiCalculator: {
-    title: "Content ROI Calculator | Free Fintech Marketing Tool",
-    description:
-      "Estimate the revenue impact of your fintech content marketing. Enter traffic, conversion rate, and deal size to see projected ROI, net revenue, and payback period.",
   },
   metaDescriptionGenerator: {
     title: "Meta Description Generator for Fintech | Free SEO Tool",

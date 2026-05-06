@@ -31,15 +31,6 @@ const TOOLS = [
       "Get a 0–100 snapshot of your financial health in under a minute. We calculate your debt-to-income ratio, savings rate, emergency fund coverage, and more.",
   },
   {
-    href: "/tools/content-roi-calculator",
-    icon: TrendingUp,
-    color: "bg-green-50 text-green-600",
-    badge: "Marketing",
-    title: "Content ROI Calculator",
-    description:
-      "Estimate the revenue impact of your content marketing investment. Enter your traffic, conversion rate, and deal size to see projected returns.",
-  },
-  {
     href: "/tools/meta-description-generator",
     icon: FileText,
     color: "bg-purple-50 text-purple-600",

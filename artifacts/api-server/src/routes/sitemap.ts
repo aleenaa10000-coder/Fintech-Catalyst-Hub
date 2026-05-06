@@ -21,7 +21,6 @@ const STATIC_ROUTES: Array<{
   { path: "/write-for-us", changefreq: "monthly", priority: "0.6", lastmod: "2026-04-25" },
   { path: "/editorial-guidelines", changefreq: "yearly", priority: "0.4", lastmod: "2026-04-28" },
   { path: "/tools/financial-health-score-calculator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
-  { path: "/tools/content-roi-calculator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
   { path: "/tools/meta-description-generator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
   { path: "/tools/guest-post-pitch-generator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
   { path: "/tools/readability-checker", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },

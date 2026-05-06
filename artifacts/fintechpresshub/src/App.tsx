@@ -51,9 +51,6 @@ const ToolsIndex = lazy(() => import("@/pages/tools/index"));
 const FinancialHealthScoreCalculator = lazy(
   () => import("@/pages/tools/financial-health-score-calculator"),
 );
-const ContentROICalculator = lazy(
-  () => import("@/pages/tools/content-roi-calculator"),
-);
 const MetaDescriptionGenerator = lazy(
   () => import("@/pages/tools/meta-description-generator"),
 );
@@ -260,10 +257,6 @@ function Router() {
             <Route
               path="/tools/financial-health-score-calculator"
               component={FinancialHealthScoreCalculator}
-            />
-            <Route
-              path="/tools/content-roi-calculator"
-              component={ContentROICalculator}
             />
             <Route
               path="/tools/meta-description-generator"
