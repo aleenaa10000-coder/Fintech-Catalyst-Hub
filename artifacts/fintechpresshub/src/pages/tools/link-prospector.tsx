@@ -21,6 +21,7 @@ import {
   Star,
   Link2,
   Check,
+  Download,
 } from "lucide-react";
 
 type Relevance = "high" | "medium" | "low";
@@ -273,6 +274,47 @@ export default function LinkProspector() {
     });
   };
 
+  const downloadCsv = () => {
+    const headers = [
+      "Domain",
+      "Score",
+      "Label",
+      "DA",
+      "Monthly Traffic",
+      "Est. Value Min ($)",
+      "Est. Value Max ($)",
+      "Difficulty Stars",
+      "Difficulty Label",
+      "Outreach Strategy",
+    ];
+    const escape = (v: string | number) => {
+      const s = String(v);
+      return s.includes(",") || s.includes('"') || s.includes("\n")
+        ? `"${s.replace(/"/g, '""')}"`
+        : s;
+    };
+    const rows = sorted.map((r) => [
+      escape(r.domain),
+      escape(r.score),
+      escape(r.label),
+      escape(r.da),
+      escape(r.traffic),
+      escape(r.linkValue.min),
+      escape(r.linkValue.max),
+      escape(r.acquisition.stars),
+      escape(r.acquisition.label),
+      escape(r.acquisition.strategyTip),
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `link-prospects-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortDir((d) => (d === "desc" ? "asc" : "desc"));
@@ -447,6 +489,15 @@ export default function LinkProspector() {
                     >
                       {copied ? <Check className="w-3 h-3" /> : <Link2 className="w-3 h-3" />}
                       {copied ? "Copied!" : "Share"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadCsv}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-700 transition-all"
+                      title="Download results as CSV"
+                    >
+                      <Download className="w-3 h-3" />
+                      Export CSV
                     </button>
                   </div>
                 </div>
