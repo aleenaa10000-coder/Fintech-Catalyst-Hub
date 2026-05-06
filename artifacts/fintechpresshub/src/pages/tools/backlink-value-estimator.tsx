@@ -1058,7 +1058,7 @@ export default function BacklinkValueEstimator() {
               <div style="font-size:16px;font-weight:900;color:#f59e0b;">${"★".repeat(result.acquisition.stars)}${"☆".repeat(5 - result.acquisition.stars)}</div>
             </div>
             <div style="font-size:13px;font-weight:700;color:#475569;">${result.acquisition.label}</div>
-            <div style="flex:1;font-size:11px;color:#64748b;">${result.acquisition.explanation}</div>
+            <div style="flex:1;font-size:11px;color:#64748b;">${result.acquisition.strategyTip}</div>
           </div>
 
           <!-- Suggested Outreach Angle -->
