@@ -963,6 +963,137 @@ export default function BacklinkValueEstimator() {
     }
   };
 
+  const downloadReport = async () => {
+    if (!result) return;
+    setReportPdfLoading(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore — html2pdf.js has no bundled TS types
+      const html2pdf = (await import("html2pdf.js")).default;
+      const pitchAngle = generateOutreachAngle(form.domain, form.relevance as Relevance);
+      const scoreColor =
+        result.score >= 80 ? "#059669"
+        : result.score >= 65 ? "#2563eb"
+        : result.score >= 50 ? "#d97706"
+        : "#dc2626";
+      const labelBg =
+        result.score >= 80 ? "#f0fdf4"
+        : result.score >= 65 ? "#eff6ff"
+        : result.score >= 50 ? "#fffbeb"
+        : "#fef2f2";
+      const barPct = result.breakdown.map((b) => {
+        const maxPts = [40, 25, 20, 10, 5];
+        const idx = result.breakdown.indexOf(b);
+        return Math.round((b.contribution / maxPts[idx]) * 100);
+      });
+      const barColors = ["#059669", "#2563eb", "#7c3aed", "#d97706", "#0891b2"];
+      const breakdownRows = result.breakdown
+        .map((b, i) => `
+          <tr>
+            <td style="padding:6px 8px;font-size:11px;color:#475569;white-space:nowrap">${b.factor}</td>
+            <td style="padding:6px 8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="flex:1;height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden;">
+                  <div style="width:${barPct[i]}%;height:100%;background:${barColors[i]};border-radius:99px;"></div>
+                </div>
+                <span style="font-size:11px;font-weight:700;color:${barColors[i]};white-space:nowrap">${b.contribution} pts</span>
+              </div>
+            </td>
+          </tr>`)
+        .join("");
+      const html = `
+        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;padding:40px 48px;color:#1e293b;background:#fff;max-width:680px;">
+
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #2563eb;padding-bottom:16px;margin-bottom:24px;">
+            <div>
+              <div style="font-size:22px;font-weight:900;letter-spacing:-0.5px;color:#2563eb;">FintechPressHub</div>
+              <div style="font-size:11px;color:#64748b;margin-top:2px;font-weight:500;text-transform:uppercase;letter-spacing:1px;">Backlink Value Report</div>
+            </div>
+            <div style="font-size:10px;color:#94a3b8;text-align:right;">
+              Generated ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}<br/>
+              fintechpresshub.com
+            </div>
+          </div>
+
+          <!-- Domain + Score -->
+          <div style="display:flex;gap:20px;align-items:stretch;margin-bottom:24px;">
+            <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px 24px;">
+              <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Referring Domain</div>
+              <div style="font-size:20px;font-weight:900;color:#0f172a;word-break:break-all;">${form.domain || "—"}</div>
+              <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap;">
+                <span style="font-size:11px;color:#475569;">DA: <b>${form.da || "N/A"}</b></span>
+                <span style="font-size:11px;color:#475569;">Traffic: <b>${form.traffic ? Number(form.traffic).toLocaleString() : "N/A"}/mo</b></span>
+                <span style="font-size:11px;color:#475569;">Relevance: <b>${form.relevance}</b></span>
+                <span style="font-size:11px;color:#475569;">Link type: <b>${form.linkType}</b></span>
+              </div>
+            </div>
+            <div style="width:140px;background:${labelBg};border:1px solid #e2e8f0;border-radius:10px;padding:20px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Value Score</div>
+              <div style="font-size:52px;font-weight:900;line-height:1;color:${scoreColor};">${result.score}</div>
+              <div style="font-size:11px;color:#64748b;margin-top:4px;">/ 100</div>
+              <div style="font-size:12px;font-weight:700;color:${scoreColor};margin-top:6px;background:${labelBg};border:1px solid ${scoreColor}44;border-radius:99px;padding:2px 10px;">${result.label}</div>
+            </div>
+          </div>
+
+          <!-- Value Estimate -->
+          <div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #ddd6fe;border-radius:10px;padding:20px 24px;margin-bottom:20px;">
+            <div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">💰 Estimated Market Value</div>
+            <div style="font-size:32px;font-weight:900;color:#6d28d9;">${fmtMoney(result.linkValue.min)}<span style="color:#a78bfa;font-weight:400;font-size:22px;margin:0 8px;">–</span>${fmtMoney(result.linkValue.max)}</div>
+            <div style="font-size:11px;color:#7c3aed;margin-top:6px;">Market cost if acquired via a professional PR/SEO agency in the fintech niche.</div>
+          </div>
+
+          <!-- Score Breakdown -->
+          <div style="margin-bottom:20px;">
+            <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Score Breakdown</div>
+            <table style="width:100%;border-collapse:collapse;">
+              ${breakdownRows}
+            </table>
+          </div>
+
+          <!-- Acquisition Difficulty -->
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Acquisition Difficulty</div>
+              <div style="font-size:16px;font-weight:900;color:#f59e0b;">${"★".repeat(result.acquisition.stars)}${"☆".repeat(5 - result.acquisition.stars)}</div>
+            </div>
+            <div style="font-size:13px;font-weight:700;color:#475569;">${result.acquisition.label}</div>
+            <div style="flex:1;font-size:11px;color:#64748b;">${result.acquisition.explanation}</div>
+          </div>
+
+          <!-- Suggested Outreach Angle -->
+          <div style="background:linear-gradient(135deg,#eef2ff,#f5f3ff);border:1px solid #c7d2fe;border-radius:10px;padding:20px 24px;margin-bottom:24px;">
+            <div style="font-size:10px;font-weight:700;color:#4338ca;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">✉ Suggested Outreach Angle</div>
+            <div style="font-size:13px;color:#3730a3;font-style:italic;line-height:1.7;border-left:3px solid #6366f1;padding-left:14px;">"${pitchAngle}"</div>
+          </div>
+
+          <!-- Footer -->
+          <div style="border-top:1px solid #e2e8f0;padding-top:14px;text-align:center;">
+            <div style="font-size:10px;color:#94a3b8;">Generated by FintechPressHub Backlink Value Estimator · fintechpresshub.com · Free SEO tools for fintech marketers</div>
+          </div>
+        </div>`;
+
+      const container = document.createElement("div");
+      container.style.cssText = "position:fixed;left:-9999px;top:0;width:720px;";
+      container.innerHTML = html;
+      document.body.appendChild(container);
+      const safeDomain = (form.domain || "report").replace(/[^a-zA-Z0-9.-]/g, "_");
+      await html2pdf()
+        .set({
+          margin: 0,
+          filename: `backlink-report-${safeDomain}.pdf`,
+          image: { type: "jpeg", quality: 0.97 },
+          html2canvas: { scale: 2, useCORS: true, logging: false },
+          jsPDF: { unit: "px", format: [720, 1200], orientation: "portrait" },
+        })
+        .from(container)
+        .save();
+      document.body.removeChild(container);
+    } finally {
+      setReportPdfLoading(false);
+    }
+  };
+
   const removeOpportunity = (id: string) => {
     setSavedOpportunities((prev) => prev.filter((p) => p.id !== id));
     setCheckedSaved((prev) => { const next = new Set(prev); next.delete(id); return next; });
@@ -1432,6 +1563,25 @@ export default function BacklinkValueEstimator() {
                         <>
                           <Copy className="w-3.5 h-3.5" />
                           Share Results
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={downloadReport}
+                      disabled={reportPdfLoading}
+                      className="shrink-0 gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-all"
+                    >
+                      {reportPdfLoading ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Generating…
+                        </>
+                      ) : (
+                        <>
+                          <FileDown className="w-3.5 h-3.5" />
+                          Download Report
                         </>
                       )}
                     </Button>
