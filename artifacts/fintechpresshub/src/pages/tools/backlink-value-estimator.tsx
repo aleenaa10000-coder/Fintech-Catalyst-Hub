@@ -1420,7 +1420,7 @@ export default function BacklinkValueEstimator() {
 
                 {/* Risks */}
                 {result.risks.length > 0 && (
-                  <Card className="border border-amber-100 bg-amber-50 shadow-sm">
+                  <Card className="border border-amber-100 bg-amber-50 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
                     <CardContent className="p-5">
                       <h4 className="text-sm font-semibold text-amber-900 mb-3 flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-amber-600" />
@@ -1442,7 +1442,7 @@ export default function BacklinkValueEstimator() {
                 )}
 
                 {/* Write outreach email CTA */}
-                <Card className="border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm">
+                <Card className="border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
                   <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-blue-900 mb-0.5">Ready to reach out?</p>
@@ -1469,7 +1469,7 @@ export default function BacklinkValueEstimator() {
                   </CardContent>
                 </Card>
 
-                <Card className="border border-emerald-100 bg-emerald-50 shadow-sm">
+                <Card className="border border-emerald-100 bg-emerald-50 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
                   <CardContent className="p-4">
                     <p className="text-xs text-emerald-800 leading-relaxed">
                       Want a done-for-you fintech link building campaign?{" "}
