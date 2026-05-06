@@ -939,12 +939,19 @@ const GENERATING_MESSAGES = [
   "Finalizing Your Brief...",
 ];
 
-function EntityPill({ entity }: { entity: string }) {
-  const [checked, setChecked] = useState(false);
+function EntityPill({
+  entity,
+  checked,
+  onToggle,
+}: {
+  entity: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
   return (
     <button
       type="button"
-      onClick={() => setChecked((v) => !v)}
+      onClick={onToggle}
       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium transition-all duration-150 select-none ${
         checked
           ? "bg-emerald-50 border-emerald-300 text-emerald-700"
@@ -967,6 +974,41 @@ export default function ContentBriefGenerator() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Session-persistent interactive state
+  const [briefKey, setBriefKey] = useState<string | null>(null);
+  const [checkedEntities, setCheckedEntities] = useState<Record<string, boolean>>({});
+  const [checkedLinks, setCheckedLinks] = useState<Record<number, boolean>>({});
+  const [checkedH2s, setCheckedH2s] = useState<Record<number, boolean>>({});
+  const loadedKeyRef = useRef<string | null>(null);
+
+  // Load checked state from sessionStorage when briefKey changes
+  useEffect(() => {
+    if (!briefKey) { loadedKeyRef.current = null; return; }
+    loadedKeyRef.current = null;
+    try {
+      const saved = sessionStorage.getItem(briefKey);
+      if (saved) {
+        const d = JSON.parse(saved);
+        setCheckedEntities(d.entities ?? {});
+        setCheckedLinks(d.links ?? {});
+        setCheckedH2s(d.h2s ?? {});
+      }
+    } catch { /* ignore */ }
+    loadedKeyRef.current = briefKey;
+  }, [briefKey]);
+
+  // Save checked state to sessionStorage on every change (guard prevents premature writes)
+  useEffect(() => {
+    if (!briefKey || loadedKeyRef.current !== briefKey) return;
+    try {
+      sessionStorage.setItem(briefKey, JSON.stringify({
+        entities: checkedEntities,
+        links: checkedLinks,
+        h2s: checkedH2s,
+      }));
+    } catch { /* ignore */ }
+  }, [briefKey, checkedEntities, checkedLinks, checkedH2s]);
+
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -980,6 +1022,10 @@ export default function ContentBriefGenerator() {
   const reset = () => {
     setForm(DEFAULTS);
     setBrief(null);
+    setBriefKey(null);
+    setCheckedEntities({});
+    setCheckedLinks({});
+    setCheckedH2s({});
     setIsGenerating(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -991,6 +1037,11 @@ export default function ContentBriefGenerator() {
   const generate = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    const key = `cbg:${form.keyword.trim().toLowerCase()}:${form.audience}:${form.tone}`;
+    setBriefKey(key);
+    setCheckedEntities({});
+    setCheckedLinks({});
+    setCheckedH2s({});
     setBrief(null);
     setIsGenerating(true);
     setGenMessageIdx(0);
@@ -1011,6 +1062,13 @@ export default function ContentBriefGenerator() {
       setBrief(generateBrief(form));
     }, TOTAL_DURATION);
   };
+
+  // Derived progress values
+  const h2Total = brief?.h2s.length ?? 0;
+  const h2Done = Object.values(checkedH2s).filter(Boolean).length;
+  const h2Pct = h2Total > 0 ? Math.round((h2Done / h2Total) * 100) : 0;
+  const entityTotal = brief?.entities.length ?? 0;
+  const entityDone = Object.values(checkedEntities).filter(Boolean).length;
 
   const copyBrief = () => {
     if (!brief) return;
@@ -1335,25 +1393,69 @@ export default function ContentBriefGenerator() {
                 {/* H2s */}
                 <Card className="border border-slate-100 shadow-sm">
                   <CardContent className="p-5 space-y-3">
-                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                      <ListOrdered className="w-4 h-4 text-rose-600" /> Content Structure (H2s)
-                    </h4>
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                        <ListOrdered className="w-4 h-4 text-rose-600" /> Content Structure (H2s)
+                      </h4>
+                      <span className={`text-[11px] font-semibold tabular-nums transition-colors ${h2Pct === 100 ? "text-emerald-600" : "text-muted-foreground"}`}>
+                        {h2Done}/{h2Total} covered
+                      </span>
+                    </div>
+
+                    {/* H2 progress bar */}
+                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <motion.div
+                        className={`h-full rounded-full transition-colors duration-500 ${h2Pct === 100 ? "bg-emerald-500" : "bg-rose-500"}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${h2Pct}%` }}
+                        transition={{ duration: 0.35, ease: "easeOut" }}
+                      />
+                    </div>
+                    <AnimatePresence>
+                      {h2Pct === 100 && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          className="text-[11px] text-emerald-600 font-medium"
+                        >
+                          All sections covered — ready for editorial review.
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+
                     <div className="space-y-2">
                       {brief.h2s.map((h, i) => (
-                        <motion.div
+                        <motion.button
                           key={i}
+                          type="button"
+                          onClick={() => setCheckedH2s((prev) => ({ ...prev, [i]: !prev[i] }))}
                           initial={{ opacity: 0, x: -8 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: i * 0.05 }}
-                          className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3"
+                          className={`w-full text-left rounded-lg border px-4 py-3 transition-all duration-150 ${
+                            checkedH2s[i]
+                              ? "border-emerald-200 bg-emerald-50/60 opacity-75"
+                              : "border-slate-100 bg-slate-50 hover:border-rose-200 hover:bg-rose-50/20"
+                          }`}
                         >
-                          <p className="text-sm font-semibold text-slate-900 leading-snug">
-                            <span className="text-rose-500 mr-1.5">H2</span>{h.heading}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{h.notes}</p>
-                        </motion.div>
+                          <div className="flex items-start gap-2.5">
+                            <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all duration-150 ${
+                              checkedH2s[i] ? "bg-emerald-500 border-emerald-500" : "border-slate-300 bg-white"
+                            }`}>
+                              {checkedH2s[i] && <Check className="w-2.5 h-2.5 text-white" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-semibold leading-snug transition-colors ${checkedH2s[i] ? "line-through text-slate-400" : "text-slate-900"}`}>
+                                <span className={`mr-1.5 ${checkedH2s[i] ? "text-slate-300" : "text-rose-500"}`}>H2</span>{h.heading}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{h.notes}</p>
+                            </div>
+                          </div>
+                        </motion.button>
                       ))}
                     </div>
+                    <p className="text-[10px] text-slate-400">Click each section to mark it as drafted.</p>
                   </CardContent>
                 </Card>
 
@@ -1361,22 +1463,43 @@ export default function ContentBriefGenerator() {
                 {brief.entities && brief.entities.length > 0 && (
                   <Card className="border border-slate-100 shadow-sm">
                     <CardContent className="p-5">
-                      <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex items-start justify-between gap-3 mb-2">
                         <div>
                           <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                             <Tag className="w-4 h-4 text-rose-600" /> Semantic SEO Entities
                           </h4>
                           <p className="text-[11px] text-muted-foreground mt-0.5">
-                            Must-include terms for topical authority. Click each pill to check it off as you write.
+                            Must-include terms for topical authority. Click each pill as you add it to your draft.
                           </p>
                         </div>
-                        <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-rose-500 bg-rose-50 border border-rose-100 rounded px-1.5 py-0.5 mt-0.5">
-                          {brief.entities.length} entities
+                        <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wider rounded px-1.5 py-0.5 mt-0.5 transition-colors ${
+                          entityDone === entityTotal && entityTotal > 0
+                            ? "text-emerald-700 bg-emerald-50 border border-emerald-200"
+                            : "text-rose-500 bg-rose-50 border border-rose-100"
+                        }`}>
+                          {entityDone}/{entityTotal} included
                         </span>
                       </div>
+
+                      {/* Entity progress bar */}
+                      <div className="h-1 bg-slate-100 rounded-full overflow-hidden mb-3">
+                        <motion.div
+                          className={`h-full rounded-full transition-colors duration-500 ${entityDone === entityTotal && entityTotal > 0 ? "bg-emerald-500" : "bg-rose-400"}`}
+                          animate={{ width: `${entityTotal > 0 ? Math.round((entityDone / entityTotal) * 100) : 0}%` }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                        />
+                      </div>
+
                       <div className="flex flex-wrap gap-2">
                         {brief.entities.map((entity) => (
-                          <EntityPill key={`${brief.keyword}-${entity}`} entity={entity} />
+                          <EntityPill
+                            key={`${brief.keyword}-${entity}`}
+                            entity={entity}
+                            checked={!!checkedEntities[entity]}
+                            onToggle={() =>
+                              setCheckedEntities((prev) => ({ ...prev, [entity]: !prev[entity] }))
+                            }
+                          />
                         ))}
                       </div>
                       <p className="mt-3 text-[10px] text-slate-400 leading-relaxed">
@@ -1403,14 +1526,36 @@ export default function ContentBriefGenerator() {
 
                   <Card className="border border-slate-100 shadow-sm">
                     <CardContent className="p-5 space-y-2">
-                      <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-3">
-                        <Link2 className="w-4 h-4 text-rose-600" /> Internal Link Opportunities
-                      </h4>
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                          <Link2 className="w-4 h-4 text-rose-600" /> Internal Link Opportunities
+                        </h4>
+                        <span className={`text-[9px] font-bold uppercase tracking-wider rounded px-1.5 py-0.5 transition-colors ${
+                          Object.values(checkedLinks).filter(Boolean).length === brief.internalLinks.length && brief.internalLinks.length > 0
+                            ? "text-emerald-700 bg-emerald-50 border border-emerald-200"
+                            : "text-slate-400 bg-slate-50 border border-slate-100"
+                        }`}>
+                          {Object.values(checkedLinks).filter(Boolean).length}/{brief.internalLinks.length} placed
+                        </span>
+                      </div>
                       {brief.internalLinks.map((l, i) => (
-                        <p key={i} className="text-xs text-slate-700 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 leading-snug">
-                          {l}
-                        </p>
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setCheckedLinks((prev) => ({ ...prev, [i]: !prev[i] }))}
+                          className={`w-full text-left text-xs rounded-lg border px-3 py-2 leading-snug transition-all duration-150 select-none ${
+                            checkedLinks[i]
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-700 line-through opacity-60"
+                              : "bg-slate-50 border-slate-100 text-slate-700 hover:border-rose-200 hover:bg-rose-50/30"
+                          }`}
+                        >
+                          <span className="flex items-start gap-1.5">
+                            {checkedLinks[i] && <Check className="w-3 h-3 text-emerald-500 shrink-0 mt-0.5" />}
+                            {l}
+                          </span>
+                        </button>
                       ))}
+                      <p className="text-[10px] text-slate-400 pt-1">Click each link once you've placed it in the draft.</p>
                     </CardContent>
                   </Card>
                 </div>
