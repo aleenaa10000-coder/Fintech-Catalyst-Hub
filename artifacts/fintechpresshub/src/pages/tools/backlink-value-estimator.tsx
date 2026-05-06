@@ -2593,7 +2593,26 @@ export default function BacklinkValueEstimator() {
                 {vfmWinner === "A" ? oppB.domain || "Domain B" : oppA.domain || "Domain A"}.
               </div>
 
-              <div className="flex justify-end mt-1">
+              <div className="flex items-center justify-between mt-1 gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={exportComparePDF.bind(null, oppA, oppB)}
+                  disabled={comparePdfLoading}
+                  className="gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {comparePdfLoading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Generating…
+                    </>
+                  ) : (
+                    <>
+                      <FileDown className="w-3.5 h-3.5" />
+                      Export Comparison PDF
+                    </>
+                  )}
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
