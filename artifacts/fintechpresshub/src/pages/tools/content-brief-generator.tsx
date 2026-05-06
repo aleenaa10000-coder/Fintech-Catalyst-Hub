@@ -32,6 +32,7 @@ import {
   Briefcase,
   FileDown,
   Gauge,
+  ClipboardCheck,
 } from "lucide-react";
 
 type Audience = "founders" | "marketers" | "developers" | "consumers" | "investors";
@@ -126,6 +127,14 @@ type ScoreDimension = {
 type ContentScore = {
   overall: number;
   dimensions: ScoreDimension[];
+};
+
+type IntentAlignment = {
+  score: number;
+  zoneName: string;
+  primaryIntent: string;
+  secondaryIntent: string;
+  primaryPct: number;
 };
 
 const INTERNAL_LINKS_BY_AUDIENCE: Record<Audience, string[]> = {
@@ -1781,6 +1790,179 @@ function ContentScoreCard({ score }: { score: ContentScore }) {
   );
 }
 
+// ── Search Intent Alignment ────────────────────────────────────────────────
+
+function computeIntentAlignment(keyword: string, form: FormState): IntentAlignment {
+  const kw = keyword.toLowerCase();
+
+  const eduSignals    = ["how", "what", "why", "guide", "tutorial", "learn", "basics", "explained", "definition", "overview", "introduction", "understand", "beginner"];
+  const infoSignals   = ["best", "top", "tips", "strategies", "trends", "checklist", "review", "comparison", "vs", "examples"];
+  const commercialSig = ["software", "platform", "solution", "api", "integration", "saas", "enterprise", "provider", "vendor", "service", "tool", "system", "embedded", "infrastructure", "b2b", "fintech"];
+  const transactional = ["pricing", "cost", "buy", "demo", "trial", "hire", "agency", "quote", "plans", "get started"];
+
+  const eduCount  = eduSignals.filter((s) => kw.includes(s)).length;
+  const infoCount = infoSignals.filter((s) => kw.includes(s)).length;
+  const comCount  = commercialSig.filter((s) => kw.includes(s)).length;
+  const trxCount  = transactional.filter((s) => kw.includes(s)).length;
+
+  let score = 45;
+  score -= eduCount * 18;
+  score -= infoCount * 8;
+  score += comCount * 12;
+  score += trxCount * 20;
+
+  const audienceMod: Record<string, number> = { investors: 12, developers: 8, founders: 6, marketers: 2, consumers: -8 };
+  const toneMod: Record<string, number> = { "data-driven": 6, authoritative: 4, conversational: -4, educational: -12 };
+  score += audienceMod[form.audience] ?? 0;
+  score += toneMod[form.tone] ?? 0;
+  score = Math.max(2, Math.min(98, Math.round(score)));
+
+  let zoneName: string, primaryIntent: string, secondaryIntent: string, primaryPct: number;
+  if (score <= 20) {
+    zoneName = "Purely Educational"; primaryIntent = "Educational / Conceptual"; secondaryIntent = "Practical Application"; primaryPct = 80;
+  } else if (score <= 40) {
+    zoneName = "Informational"; primaryIntent = "Informational Research"; secondaryIntent = "Comparative Evaluation"; primaryPct = 70;
+  } else if (score <= 60) {
+    zoneName = "Research / Comparative"; primaryIntent = "Comparative Research"; secondaryIntent = "Commercial Evaluation"; primaryPct = 60;
+  } else if (score <= 80) {
+    zoneName = "Commercial / Professional"; primaryIntent = "Commercial / Professional"; secondaryIntent = "Educational Context"; primaryPct = 70;
+  } else {
+    zoneName = "High Commercial Intent"; primaryIntent = "Commercial / Transactional"; secondaryIntent = "Trust-Building Content"; primaryPct = 75;
+  }
+  return { score, zoneName, primaryIntent, secondaryIntent, primaryPct };
+}
+
+const INTENT_ZONES = [
+  { label: "Purely\nEducational" },
+  { label: "Informational" },
+  { label: "Research /\nComparative" },
+  { label: "Commercial /\nProfessional" },
+  { label: "High Commercial\nIntent" },
+];
+
+function SearchIntentMeter({ alignment }: { alignment: IntentAlignment }) {
+  const zoneIdx =
+    alignment.score <= 20 ? 0 :
+    alignment.score <= 40 ? 1 :
+    alignment.score <= 60 ? 2 :
+    alignment.score <= 80 ? 3 : 4;
+
+  return (
+    <Card className="border border-indigo-100 shadow-sm overflow-hidden">
+      <div className="h-1.5 w-full bg-gradient-to-r from-blue-400 via-purple-400 via-amber-400 to-orange-500" />
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+              <Target className="w-4 h-4 text-indigo-500 shrink-0" />
+              Search Intent Alignment
+            </h4>
+            <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+              Detected from keyword signals, audience, and tone.
+            </p>
+          </div>
+          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 whitespace-nowrap">
+            {alignment.zoneName}
+          </span>
+        </div>
+
+        {/* Gradient track with animated pointer */}
+        <div className="relative mb-1">
+          <div className="h-3 rounded-full bg-gradient-to-r from-blue-400 via-purple-400 via-amber-400 to-orange-500" />
+          <motion.div
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
+            initial={{ left: "0%", opacity: 0 }}
+            animate={{ left: `${alignment.score}%`, opacity: 1 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+          >
+            <div className="w-4 h-4 rounded-full bg-white border-[3px] border-slate-800 shadow-lg" />
+          </motion.div>
+        </div>
+
+        {/* Zone labels */}
+        <div className="grid grid-cols-5 mt-3 mb-5">
+          {INTENT_ZONES.map((z, i) => (
+            <div
+              key={i}
+              className={`text-center px-0.5 ${i === zoneIdx ? "text-slate-900 font-semibold" : "text-slate-400"}`}
+            >
+              <p className="text-[9px] leading-tight whitespace-pre-line">{z.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Ranking instruction */}
+        <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-4 py-3">
+          <p className="text-[12px] text-slate-700 leading-relaxed">
+            To rank for this term,{" "}
+            <span className="font-bold text-indigo-700">{alignment.primaryPct}%</span>
+            {" "}of the content should focus on{" "}
+            <span className="font-semibold text-slate-900">{alignment.primaryIntent}</span>,
+            with a secondary focus on{" "}
+            <span className="font-semibold text-slate-700">{alignment.secondaryIntent}</span>.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Brief Readiness Checklist ──────────────────────────────────────────────
+
+function BriefReadinessChecklist({ form }: { form: FormState }) {
+  const items = [
+    { label: "Target keyword",      ok: form.keyword.trim().length > 0,    required: true  },
+    { label: "Audience selected",   ok: !!form.audience,                   required: true  },
+    { label: "Tone selected",       ok: !!form.tone,                       required: true  },
+    { label: "Word count set",      ok: !!form.wordCount,                  required: true  },
+    { label: "Client / Brand Name", ok: form.clientName.trim().length > 0, required: false },
+    { label: "Competitor URLs",     ok: form.competitors.trim().length > 0, required: false },
+  ];
+  const allRequired  = items.filter((i) => i.required).every((i) => i.ok);
+  const optionalMissing = items.filter((i) => !i.required && !i.ok).length;
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+          <ClipboardCheck className="w-3.5 h-3.5" />
+          Brief Readiness
+        </p>
+        {allRequired && optionalMissing === 0 ? (
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
+            Ready
+          </span>
+        ) : allRequired ? (
+          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">
+            {optionalMissing} optional missing
+          </span>
+        ) : (
+          <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 rounded-full px-2.5 py-0.5">
+            Fill required fields
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-y-2 gap-x-3">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center gap-1.5 min-w-0">
+            {item.ok ? (
+              <Check className="w-3 h-3 text-emerald-500 shrink-0" />
+            ) : item.required ? (
+              <span className="w-3 h-3 rounded-full border-2 border-slate-300 shrink-0 inline-block" />
+            ) : (
+              <span className="w-3 h-3 shrink-0 flex items-center justify-center text-amber-400 text-[11px] font-bold leading-none">–</span>
+            )}
+            <span className={`text-[11px] truncate ${item.ok ? "text-slate-700" : "text-slate-400"}`}>
+              {item.label}
+              {!item.required && <span className="text-[9px] text-slate-300 ml-0.5">(opt)</span>}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function EntityPill({
   entity,
   checked,
@@ -1824,6 +2006,7 @@ export default function ContentBriefGenerator() {
   const loadedKeyRef = useRef<string | null>(null);
   const [professionalBranding, setProfessionalBranding] = useState(false);
   const [contentScore, setContentScore] = useState<ContentScore | null>(null);
+  const [intentAlignment, setIntentAlignment] = useState<IntentAlignment | null>(null);
 
   // Load checked state from sessionStorage when briefKey changes
   useEffect(() => {
@@ -1872,6 +2055,7 @@ export default function ContentBriefGenerator() {
     setCheckedH2s({});
     setIsGenerating(false);
     setContentScore(null);
+    setIntentAlignment(null);
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   };
@@ -1908,6 +2092,7 @@ export default function ContentBriefGenerator() {
       const generated = generateBrief(capturedForm);
       setBrief(generated);
       setContentScore(computeContentScore(generated, capturedForm));
+      setIntentAlignment(computeIntentAlignment(capturedForm.keyword, capturedForm));
     }, TOTAL_DURATION);
   };
 
@@ -2086,6 +2271,8 @@ export default function ContentBriefGenerator() {
                 </div>
               </div>
 
+              <BriefReadinessChecklist form={form} />
+
               <Button
                 onClick={generate}
                 disabled={!canGenerate || isGenerating}
@@ -2171,6 +2358,9 @@ export default function ContentBriefGenerator() {
                 exit={{ opacity: 0, y: 8 }}
                 className="mt-6 space-y-4"
               >
+                {/* Search Intent Alignment */}
+                {intentAlignment && <SearchIntentMeter alignment={intentAlignment} />}
+
                 {/* Content Score Estimator */}
                 {contentScore && <ContentScoreCard score={contentScore} />}
 
