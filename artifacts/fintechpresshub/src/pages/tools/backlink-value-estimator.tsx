@@ -1499,9 +1499,9 @@ export default function BacklinkValueEstimator() {
           <AnimatePresence>
             {savedOpportunities.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, x: 24 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 24 }}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
                 transition={{ type: "spring", stiffness: 320, damping: 28 }}
                 className="sticky top-6"
               >
