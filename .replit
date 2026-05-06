@@ -139,7 +139,6 @@ REPORT_FROM_EMAIL = "FintechPressHub <hello@fintechpresshub.com>"
 ADMIN_EMAILS = "hello@fintechpresshub.com,jasmine.offpageseospecialist@hotmail.com"
 CONTACT_NOTIFY_TO = "hello@fintechpresshub.com"
 PITCH_RECIPIENT_EMAIL = "hello@fintechpresshub.com"
-RESEND_API_KEY = "re_Tf8YoMWQ_5hmKK9gJh1Fxxo93WuDw2pMp"
 
 [userenv.production]
 INDEXNOW_KEY = "cYBulNRfdK5MiecIhrEQr0r8jh0TI-ow"
