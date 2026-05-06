@@ -131,16 +131,38 @@ export default function AdminNewsletter() {
   }, [richSubscribers]);
 
   const [briefFilter, setBriefFilter] = useState("");
+  type BriefSort = { col: "email" | "businessName" | "createdAt"; dir: "asc" | "desc" };
+  const [briefSort, setBriefSort] = useState<BriefSort>({ col: "createdAt", dir: "desc" });
+
+  const toggleBriefSort = useCallback((col: BriefSort["col"]) => {
+    setBriefSort((prev) =>
+      prev.col === col
+        ? { col, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { col, dir: "asc" },
+    );
+  }, []);
 
   const displayedBriefLeads = useMemo(() => {
     const q = briefFilter.trim().toLowerCase();
-    if (!q) return briefLeads;
-    return briefLeads.filter(
-      (l) =>
-        l.email?.toLowerCase().includes(q) ||
-        l.businessName?.toLowerCase().includes(q),
-    );
-  }, [briefLeads, briefFilter]);
+    const filtered = q
+      ? briefLeads.filter(
+          (l) =>
+            l.email?.toLowerCase().includes(q) ||
+            l.businessName?.toLowerCase().includes(q),
+        )
+      : briefLeads;
+    return [...filtered].sort((a, b) => {
+      let cmp = 0;
+      if (briefSort.col === "email") {
+        cmp = (a.email ?? "").localeCompare(b.email ?? "");
+      } else if (briefSort.col === "businessName") {
+        cmp = (a.businessName ?? "").localeCompare(b.businessName ?? "");
+      } else {
+        cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      return briefSort.dir === "asc" ? cmp : -cmp;
+    });
+  }, [briefLeads, briefFilter, briefSort]);
 
   const [kwFilter, setKwFilter] = useState("");
   type SeoSort = { col: "keyword" | "createdAt"; dir: "asc" | "desc" };
@@ -616,9 +638,48 @@ export default function AdminNewsletter() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-violet-100 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="py-2 pr-4 font-medium">Email</th>
-                      <th className="py-2 pr-4 font-medium">Business / Name</th>
-                      <th className="py-2 pr-4 font-medium">Requested</th>
+                      <th className="py-2 pr-4 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => toggleBriefSort("email")}
+                          className="inline-flex items-center gap-1 hover:text-slate-700 transition-colors"
+                        >
+                          Email
+                          {briefSort.col === "email" ? (
+                            briefSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                          ) : (
+                            <ChevronsUpDown className="w-3 h-3 opacity-40" />
+                          )}
+                        </button>
+                      </th>
+                      <th className="py-2 pr-4 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => toggleBriefSort("businessName")}
+                          className="inline-flex items-center gap-1 hover:text-slate-700 transition-colors"
+                        >
+                          Business / Name
+                          {briefSort.col === "businessName" ? (
+                            briefSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                          ) : (
+                            <ChevronsUpDown className="w-3 h-3 opacity-40" />
+                          )}
+                        </button>
+                      </th>
+                      <th className="py-2 pr-4 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => toggleBriefSort("createdAt")}
+                          className="inline-flex items-center gap-1 hover:text-slate-700 transition-colors"
+                        >
+                          Requested
+                          {briefSort.col === "createdAt" ? (
+                            briefSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                          ) : (
+                            <ChevronsUpDown className="w-3 h-3 opacity-40" />
+                          )}
+                        </button>
+                      </th>
                       <th className="py-2 pr-6 font-medium">Status</th>
                       <th className="py-2 font-medium">Reply</th>
                     </tr>
