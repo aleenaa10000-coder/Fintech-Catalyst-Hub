@@ -40,6 +40,7 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  Search,
 } from "lucide-react";
 
 type Audience = "founders" | "marketers" | "developers" | "consumers" | "investors";
@@ -2573,13 +2574,16 @@ export default function ContentBriefGenerator() {
                     <BookOpen className="w-4 h-4 text-rose-600" />
                     Target Keyword / Topic <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    placeholder="e.g. embedded finance, open banking regulation, BNPL for businesses"
-                    value={form.keyword}
-                    onChange={(e) => setField("keyword", e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter" && canGenerate) generate(); }}
-                    className="h-11"
-                  />
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      placeholder="e.g. embedded finance, open banking regulation, BNPL for businesses"
+                      value={form.keyword}
+                      onChange={(e) => setField("keyword", e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && canGenerate) generate(); }}
+                      className="h-11 pl-9"
+                    />
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
                     Enter the main keyword or topic the article should rank for.
                   </p>

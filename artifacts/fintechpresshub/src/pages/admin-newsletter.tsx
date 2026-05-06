@@ -103,22 +103,32 @@ export default function AdminNewsletter() {
     [detailQuery.data],
   );
 
+  type RichSubscriberRow = {
+    id: number;
+    email: string | null;
+    createdAt: string;
+    source: string | null;
+    keyword: string | null;
+    briefStatus: string | null;
+    briefStatusUpdatedAt: string | null;
+  };
+
+  const richSubscribers = (detailQuery.data?.subscribers ?? []) as unknown as RichSubscriberRow[];
+
   const briefLeads = useMemo(() => {
-    return (detailQuery.data?.subscribers ?? [])
-      .filter((s: { source: string | null }) => s.source?.startsWith("content-brief-request"))
-      .map((s: { id: number; email: string | null; createdAt: string; source: string | null; briefStatus: string | null; briefStatusUpdatedAt: string | null }) => ({
+    return richSubscribers
+      .filter((s) => s.source?.startsWith("content-brief-request"))
+      .map((s) => ({
         ...s,
         businessName: s.source?.split("|")[1]?.trim() ?? "—",
       }));
-  }, [detailQuery.data]);
+  }, [richSubscribers]);
 
-  type SeoBriefLead = { id: number; email: string | null; createdAt: string; source: string | null; keyword: string | null; briefStatus: string | null; briefStatusUpdatedAt: string | null };
+  type SeoBriefLead = RichSubscriberRow;
 
   const seoBriefLeads = useMemo(() => {
-    return (detailQuery.data?.subscribers ?? []).filter(
-      (s: { source: string | null }) => s.source === "seo-brief",
-    ) as SeoBriefLead[];
-  }, [detailQuery.data]);
+    return richSubscribers.filter((s) => s.source === "seo-brief") as SeoBriefLead[];
+  }, [richSubscribers]);
 
   const [kwFilter, setKwFilter] = useState("");
   type SeoSort = { col: "keyword" | "createdAt"; dir: "asc" | "desc" };
