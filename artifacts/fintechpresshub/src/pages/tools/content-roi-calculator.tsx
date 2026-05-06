@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -15,6 +15,8 @@ import {
   MousePointerClick,
   Percent,
   ArrowLeft,
+  Copy,
+  Check,
 } from "lucide-react";
 
 type Inputs = {
@@ -43,14 +45,75 @@ function fmtX(n: number) {
   return `${n.toFixed(1)}x`;
 }
 
+function buildShareUrl(inputs: Inputs): string {
+  const params = new URLSearchParams({
+    monthlyTraffic: inputs.monthlyTraffic,
+    conversionRate: inputs.conversionRate,
+    avgDealSize: inputs.avgDealSize,
+    contentCost: inputs.contentCost,
+    timeframeMonths: inputs.timeframeMonths,
+  });
+  return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+}
+
+function parseInputsFromParams(): Partial<Inputs> {
+  const params = new URLSearchParams(window.location.search);
+  const result: Partial<Inputs> = {};
+  const monthlyTraffic = params.get("monthlyTraffic");
+  const conversionRate = params.get("conversionRate");
+  const avgDealSize = params.get("avgDealSize");
+  const contentCost = params.get("contentCost");
+  const timeframeMonths = params.get("timeframeMonths");
+  if (monthlyTraffic) result.monthlyTraffic = monthlyTraffic;
+  if (conversionRate) result.conversionRate = conversionRate;
+  if (avgDealSize) result.avgDealSize = avgDealSize;
+  if (contentCost) result.contentCost = contentCost;
+  if (timeframeMonths) result.timeframeMonths = timeframeMonths;
+  return result;
+}
+
 export default function ContentROICalculator() {
   const [inputs, setInputs] = useState<Inputs>(DEFAULTS);
+  const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const fromParams = parseInputsFromParams();
+    if (Object.keys(fromParams).length > 0) {
+      setInputs((prev) => ({ ...prev, ...fromParams }));
+    }
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   const setField =
     (key: keyof Inputs) => (e: React.ChangeEvent<HTMLInputElement>) =>
       setInputs((prev) => ({ ...prev, [key]: e.target.value }));
 
-  const reset = () => setInputs(DEFAULTS);
+  const reset = () => {
+    setInputs(DEFAULTS);
+    window.history.replaceState(null, "", window.location.pathname);
+  };
+
+  const copyShareUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(buildShareUrl(inputs));
+      setCopied(true);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const el = document.createElement("input");
+      el.value = buildShareUrl(inputs);
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const metrics = useMemo(() => {
     const traffic = parseFloat(inputs.monthlyTraffic) || 0;
@@ -253,9 +316,36 @@ export default function ContentROICalculator() {
             <div className="lg:col-span-2 flex flex-col gap-4">
               <Card className="border border-slate-100 shadow-sm">
                 <CardContent className="p-6">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-4">
-                    Projected ROI
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+                      Projected ROI
+                    </h3>
+                    {metrics.hasData && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={copyShareUrl}
+                        className={`shrink-0 gap-1.5 text-xs font-semibold transition-all ${
+                          copied
+                            ? "border-green-400 bg-green-50 text-green-700"
+                            : "border-slate-200 text-slate-600 hover:border-green-400 hover:text-green-700 hover:bg-green-50"
+                        }`}
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            Share
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                   {metrics.hasData ? (
                     <>
                       <motion.div

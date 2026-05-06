@@ -78,6 +78,13 @@ const PLACEMENT_MULTIPLIER: Record<Placement, number> = {
   sponsored: 0.4,
 };
 
+type AcquisitionDifficulty = {
+  stars: number;
+  label: string;
+  strategyTip: string;
+  tipType: "easy" | "mid" | "hard";
+};
+
 type Result = {
   score: number;
   label: string;
@@ -86,7 +93,67 @@ type Result = {
   recommendations: string[];
   risks: string[];
   pbnRisk: boolean;
+  acquisition: AcquisitionDifficulty;
 };
+
+function computeAcquisitionDifficulty(
+  da: number,
+  traffic: number,
+): AcquisitionDifficulty {
+  // Base star from DA
+  let stars =
+    da >= 80
+      ? 5
+      : da >= 66
+        ? 4
+        : da >= 46
+          ? 3
+          : da >= 26
+            ? 2
+            : 1;
+
+  // Traffic modifier — high traffic raises bar, low traffic lowers it
+  if (traffic >= 500_000 && stars < 5) stars = Math.min(5, stars + 1);
+  else if (traffic < 1_000 && stars > 1) stars = Math.max(1, stars - 1);
+
+  const configs: Record<
+    number,
+    { label: string; strategyTip: string; tipType: "easy" | "mid" | "hard" }
+  > = {
+    1: {
+      label: "Very Easy",
+      tipType: "easy",
+      strategyTip:
+        "This site likely accepts paid placements or direct link insertions — acquisition is straightforward. Negotiate a rate, but ensure any paid link carries rel='sponsored' to comply with Google's guidelines.",
+    },
+    2: {
+      label: "Easy",
+      tipType: "easy",
+      strategyTip:
+        "A well-crafted guest post pitch targeting their audience will typically land this link. Personalise the topic angle to match their recent editorial coverage before reaching out.",
+    },
+    3: {
+      label: "Moderate",
+      tipType: "mid",
+      strategyTip:
+        "Relationship Building or Guest Post Pitch — Engage with their content for a few weeks first, then pitch a co-authored piece or a curated data roundup. Cold pitches rarely work at this tier.",
+    },
+    4: {
+      label: "Hard",
+      tipType: "hard",
+      strategyTip:
+        "Original Data / Research Outreach — This site expects genuine, unique value. Lead with proprietary fintech data, a commissioned survey, or a fresh industry benchmark report. A generic pitch will be ignored.",
+    },
+    5: {
+      label: "Elite",
+      tipType: "hard",
+      strategyTip:
+        "Original Data / Research Outreach or High-Profile PR — Only industry-defining reports, original research, or major brand news will earn a link here. Build a data study or launch a PR campaign with newsworthy findings before approaching this outlet.",
+    },
+  };
+
+  return { stars, ...configs[stars] };
+}
 
 function estimateValue(form: FormState): Result {
   const da = Math.min(100, Math.max(0, parseFloat(form.da) || 0));
@@ -219,7 +286,9 @@ function estimateValue(form: FormState): Result {
       "Irrelevant high-authority links can appear unnatural in your backlink profile.",
     );
 
-  return { score, label, breakdown, verdict, recommendations, risks, pbnRisk };
+  const acquisition = computeAcquisitionDifficulty(da, traffic);
+
+  return { score, label, breakdown, verdict, recommendations, risks, pbnRisk, acquisition };
 }
 
 const SCORE_COLOR = (s: number) =>
@@ -655,6 +724,65 @@ export default function BacklinkValueEstimator() {
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {result.verdict}
                       </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Acquisition Difficulty */}
+                <Card className="border border-slate-100 shadow-sm">
+                  <CardContent className="p-5">
+                    <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                      <Target className="w-4 h-4 text-emerald-600" />
+                      Acquisition Difficulty
+                    </h4>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: i * 0.08, type: "spring", stiffness: 400, damping: 20 }}
+                          >
+                            <Star
+                              className={`w-6 h-6 ${
+                                i < result.acquisition.stars
+                                  ? result.acquisition.tipType === "easy"
+                                    ? "fill-emerald-400 text-emerald-400"
+                                    : result.acquisition.tipType === "mid"
+                                      ? "fill-amber-400 text-amber-400"
+                                      : "fill-rose-500 text-rose-500"
+                                  : "fill-slate-100 text-slate-200"
+                              }`}
+                            />
+                          </motion.div>
+                        ))}
+                      </div>
+                      <div>
+                        <span className={`text-sm font-bold ${
+                          result.acquisition.tipType === "easy"
+                            ? "text-emerald-700"
+                            : result.acquisition.tipType === "mid"
+                              ? "text-amber-700"
+                              : "text-rose-700"
+                        }`}>
+                          {result.acquisition.label}
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          ({result.acquisition.stars}/5 stars)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className={`mt-4 rounded-lg px-4 py-3 border text-sm leading-relaxed ${
+                      result.acquisition.tipType === "easy"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                        : result.acquisition.tipType === "mid"
+                          ? "bg-amber-50 border-amber-200 text-amber-800"
+                          : "bg-rose-50 border-rose-200 text-rose-800"
+                    }`}>
+                      <span className="font-semibold">Strategy Tip: </span>
+                      {result.acquisition.strategyTip}
                     </div>
                   </CardContent>
                 </Card>
