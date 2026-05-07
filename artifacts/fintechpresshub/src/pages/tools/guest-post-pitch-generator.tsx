@@ -410,6 +410,19 @@ export default function GuestPostPitchGenerator() {
                 <Sparkles className="w-4 h-4 mr-2" />
                 Generate Pitch Email
               </Button>
+
+              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+                <p className="text-sm text-blue-800 leading-relaxed">
+                  💡 <span className="font-semibold">Pro Tip:</span> 70% of guest posts are rejected due to poor site authority. Want us to handle the outreach to high-DR sites for you?{" "}
+                  <Link
+                    href="/services"
+                    className="font-semibold underline underline-offset-2 hover:text-blue-900"
+                  >
+                    See our services
+                  </Link>
+                  .
+                </p>
+              </div>
             </CardContent>
           </Card>
 
