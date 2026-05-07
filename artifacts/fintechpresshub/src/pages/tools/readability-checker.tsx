@@ -361,6 +361,13 @@ export default function ReadabilityChecker() {
     const level = levelFromScore(score);
     const tips = getTips(score, avgSentenceLen, words.length, checkedText, words);
     const visualSegments = buildVisualSegments(checkedText);
+    const passiveCount = visualSegments.flat().filter((s) => s.passive).length;
+    const passiveRatio = sentences.length > 0 ? passiveCount / sentences.length : 0;
+    if (passiveRatio > 0.2 && passiveCount > 0) {
+      tips.push(
+        `${passiveCount} of your ${sentences.length} sentences use passive voice (${Math.round(passiveRatio * 100)}%). Aim for under 20% — try rewriting with an active subject where possible.`,
+      );
+    }
     return {
       score,
       grade,
@@ -371,6 +378,7 @@ export default function ReadabilityChecker() {
       sentenceCount: sentences.length,
       avgSentenceLen,
       avgSyllables,
+      passiveCount,
     };
   }, [checkedText]);
 
@@ -640,7 +648,7 @@ export default function ReadabilityChecker() {
                 </Card>
 
                 {/* Stats row */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                   {[
                     {
                       label: "Word count",
@@ -662,6 +670,10 @@ export default function ReadabilityChecker() {
                       label: "Reading time",
                       value: `${Math.max(1, Math.ceil(results.wordCount / 200))} min read`,
                     },
+                    {
+                      label: "Passive voice",
+                      value: `${results.passiveCount} sentence${results.passiveCount !== 1 ? "s" : ""}`,
+                    },
                   ].map(({ label, value }) => (
                     <Card key={label} className="border border-slate-100 shadow-sm">
                       <CardContent className="p-3 text-center">
@@ -677,14 +689,21 @@ export default function ReadabilityChecker() {
                 </div>
 
                 {/* Tips */}
-                {results.score > 80 ? (
-                  <Card className="border border-green-100 bg-green-50 shadow-sm">
-                    <CardContent className="p-5">
-                      <div className="flex gap-3 items-start">
-                        <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                        <p className="text-sm font-medium text-green-800">
-                          Great job! Your content is highly readable and ready for a general audience.
-                        </p>
+                {results.score >= 80 && results.tips.length === 0 ? (
+                  <Card className="border-0 shadow-md overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-5 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                          <Sparkles className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-white font-bold text-base leading-tight">
+                            Perfect Score
+                          </p>
+                          <p className="text-green-100 text-sm mt-0.5 leading-snug">
+                            Excellent clarity! Your content is easy to read and perfectly optimized for a broad audience.
+                          </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
