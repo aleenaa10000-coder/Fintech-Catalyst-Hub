@@ -714,32 +714,47 @@ export default function GuestPostPitchGenerator() {
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {suggestions.map((pub) => (
-                      <a
+                      <div
                         key={pub.name}
-                        href={pub.guestPostUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex flex-col gap-1 rounded-lg border border-slate-200 bg-white p-3 transition-all hover:border-orange-300 hover:shadow-sm"
+                        className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 transition-all hover:border-orange-200 hover:shadow-sm"
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <span className="text-sm font-semibold text-slate-800 group-hover:text-orange-600 transition-colors">
-                            {pub.name}
-                          </span>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
-                              pub.drTier === "High"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-amber-100 text-amber-700"
-                            }`}>
-                              DR {pub.drTier}
+                          <a
+                            href={pub.guestPostUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex items-center gap-1 min-w-0"
+                          >
+                            <span className="text-sm font-semibold text-slate-800 group-hover:text-orange-600 transition-colors truncate">
+                              {pub.name}
                             </span>
-                            <ExternalLink className="w-3 h-3 text-slate-300 group-hover:text-orange-400 transition-colors" />
-                          </div>
+                            <ExternalLink className="w-3 h-3 shrink-0 text-slate-300 group-hover:text-orange-400 transition-colors" />
+                          </a>
+                          <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 ${
+                            pub.drTier === "High"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-amber-100 text-amber-700"
+                          }`}>
+                            DR {pub.drTier}
+                          </span>
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-snug">
                           {pub.description}
                         </p>
-                      </a>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm((prev) => ({ ...prev, targetBlog: pub.name }))
+                          }
+                          className={`self-start text-[11px] font-semibold px-2 py-0.5 rounded transition-colors ${
+                            form.targetBlog === pub.name
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-slate-100 text-slate-600 hover:bg-orange-50 hover:text-orange-600"
+                          }`}
+                        >
+                          {form.targetBlog === pub.name ? "✓ Selected" : "Use this →"}
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </motion.div>
