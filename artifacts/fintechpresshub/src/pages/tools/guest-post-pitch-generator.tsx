@@ -437,6 +437,7 @@ export default function GuestPostPitchGenerator() {
   const [editedPitch, setEditedPitch] = useState("");
   const [copied, setCopied] = useState(false);
   const [copiedSubject, setCopiedSubject] = useState(false);
+  const [copiedPreviewSubject, setCopiedPreviewSubject] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [variation, setVariation] = useState(0);
   const [pitchWordDelta, setPitchWordDelta] = useState<number | null>(null);
@@ -861,6 +862,9 @@ export default function GuestPostPitchGenerator() {
                 const preview = buildPitch(form, 0);
                 const lines = preview.split("\n").filter(Boolean);
                 const subjectLine = lines[0] ?? "";
+                const subjectText = subjectLine.startsWith("Subject: ")
+                  ? subjectLine.slice("Subject: ".length).trim()
+                  : subjectLine.trim();
                 const openingLines = lines.slice(1, 4).join(" ").replace(/\s+/g, " ").trim();
                 const truncated = openingLines.length > 200 ? openingLines.slice(0, 200) + "…" : openingLines;
                 return (
@@ -868,7 +872,26 @@ export default function GuestPostPitchGenerator() {
                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                       Live Preview
                     </span>
-                    <p className="text-xs font-semibold text-slate-700 leading-snug">{subjectLine}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs font-semibold text-slate-700 leading-snug flex-1">{subjectLine}</p>
+                      {subjectText && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(subjectText);
+                            setCopiedPreviewSubject(true);
+                            setTimeout(() => setCopiedPreviewSubject(false), 2000);
+                          }}
+                          className="shrink-0 flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border transition-colors border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:border-slate-300 hover:text-slate-700"
+                        >
+                          {copiedPreviewSubject ? (
+                            <><Check className="w-3 h-3 text-green-500" /><span className="text-green-600">Copied</span></>
+                          ) : (
+                            <><Copy className="w-3 h-3" />Copy Subject</>
+                          )}
+                        </button>
+                      )}
+                    </div>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">{truncated}</p>
                   </div>
                 );
