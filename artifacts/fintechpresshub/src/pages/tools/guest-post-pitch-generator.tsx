@@ -60,6 +60,7 @@ type Publication = {
   description: string;
   drTier: "High" | "Medium";
   tags: string[];
+  editorName?: string;
 };
 
 const PUBLICATIONS: Publication[] = [
@@ -70,6 +71,7 @@ const PUBLICATIONS: Publication[] = [
     description: "Retail banking, digital strategy, credit unions",
     drTier: "High",
     tags: ["banking","digital banking","credit union","retail","lending","digital","brand","marketing"],
+    editorName: "Jim Marous",
   },
   {
     name: "Tearsheet",
@@ -78,6 +80,7 @@ const PUBLICATIONS: Publication[] = [
     description: "Fintech, embedded finance, open banking, payments",
     drTier: "High",
     tags: ["payments","embedded finance","open banking","banking","fintech","b2b","saas","neobank"],
+    editorName: "Zack Miller",
   },
   {
     name: "Finextra",
@@ -94,6 +97,7 @@ const PUBLICATIONS: Publication[] = [
     description: "Payments, digital commerce, crypto, fraud",
     drTier: "High",
     tags: ["payments","digital commerce","crypto","fraud","fintech","cards","buy now pay later","bnpl"],
+    editorName: "Karen Webster",
   },
   {
     name: "Finovate",
@@ -102,6 +106,7 @@ const PUBLICATIONS: Publication[] = [
     description: "Fintech innovation, AI in banking, investing",
     drTier: "High",
     tags: ["fintech","banking","ai","innovation","payments","investing","wealthtech","demo"],
+    editorName: "Greg Palmer",
   },
   {
     name: "American Banker",
@@ -110,6 +115,7 @@ const PUBLICATIONS: Publication[] = [
     description: "Banking regulation, lending, compliance, fintech",
     drTier: "High",
     tags: ["banking","lending","regulation","compliance","fintech","mortgage","credit","cra"],
+    editorName: "Rob Blackwell",
   },
   {
     name: "The Paypers",
@@ -118,6 +124,7 @@ const PUBLICATIONS: Publication[] = [
     description: "Payments, e-commerce, open banking, fraud",
     drTier: "Medium",
     tags: ["payments","e-commerce","open banking","fraud","fintech","psd2","acquiring","issuing"],
+    editorName: "Mirela Ciobanu",
   },
   {
     name: "Payments Journal",
@@ -126,6 +133,7 @@ const PUBLICATIONS: Publication[] = [
     description: "Payments technology, fraud, compliance, banking",
     drTier: "Medium",
     tags: ["payments","fraud","compliance","banking","cards","debit","credit","tokenisation"],
+    editorName: "Ryan McEndarfer",
   },
   {
     name: "Fintech Futures",
@@ -134,6 +142,7 @@ const PUBLICATIONS: Publication[] = [
     description: "Global fintech, banking, payments, core banking",
     drTier: "Medium",
     tags: ["fintech","banking","payments","core banking","digital","saas","cloud","api"],
+    editorName: "Tanya Andreasyan",
   },
   {
     name: "The Block",
@@ -142,6 +151,7 @@ const PUBLICATIONS: Publication[] = [
     description: "Crypto, blockchain, DeFi, Web3 research",
     drTier: "Medium",
     tags: ["crypto","blockchain","defi","web3","bitcoin","ethereum","stablecoin","tokenisation","nft"],
+    editorName: "Frank Chaparro",
   },
   {
     name: "Crowdfund Insider",
@@ -150,6 +160,7 @@ const PUBLICATIONS: Publication[] = [
     description: "Crowdfunding, blockchain, crypto, alternative finance",
     drTier: "Medium",
     tags: ["crowdfunding","blockchain","crypto","investing","alternative finance","equity","defi"],
+    editorName: "JD Alois",
   },
   {
     name: "Insuretech Insights",
@@ -489,7 +500,12 @@ export default function GuestPostPitchGenerator() {
   const targetBlogInputRef = useRef<HTMLInputElement>(null);
 
   function selectPublication(name: string) {
-    setForm((prev) => ({ ...prev, targetBlog: name }));
+    const pub = PUBLICATIONS.find((p) => p.name === name);
+    setForm((prev) => ({
+      ...prev,
+      targetBlog: name,
+      ...(pub?.editorName ? { targetEditorName: pub.editorName } : {}),
+    }));
     const el = targetBlogInputRef.current;
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1137,13 +1153,22 @@ export default function GuestPostPitchGenerator() {
                 exit={{ opacity: 0, y: 8 }}
                 className="mt-6 space-y-4"
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
                     Your Pitch — edit before sending
                   </h3>
-                  <button
-                    type="button"
-                    onClick={() => setEmailPreviewMode((v) => !v)}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setCompareOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md border transition-all border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600 hover:bg-orange-50"
+                    >
+                      <SlidersHorizontal className="w-3 h-3" />
+                      Compare tones
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEmailPreviewMode((v) => !v)}
                     className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md border transition-all ${
                       emailPreviewMode
                         ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
@@ -1157,6 +1182,7 @@ export default function GuestPostPitchGenerator() {
                       <><Eye className="w-3 h-3" /> Email Preview</>
                     )}
                   </button>
+                  </div>
                 </div>
 
                 <Card className="border border-slate-100 shadow-sm overflow-hidden">
