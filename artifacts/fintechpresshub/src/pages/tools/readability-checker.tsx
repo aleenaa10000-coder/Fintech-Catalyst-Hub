@@ -124,6 +124,27 @@ const SYNONYM_MAP: Record<string, string> = {
   infrastructure: "system",
 };
 
+const WEAK_WORD_MAP: Record<string, string> = {
+  very: "use a stronger adjective instead",
+  really: "use a more precise word",
+  basically: "omit or use 'essentially'",
+  stuff: "use a specific noun",
+  things: "use a specific noun",
+  nice: "try 'effective', 'clear', or 'strong'",
+  good: "try 'strong', 'effective', or 'valuable'",
+  bad: "try 'poor', 'weak', or 'ineffective'",
+  big: "try 'significant', 'major', or 'substantial'",
+  small: "try 'minor', 'limited', or 'modest'",
+  just: "omit or use 'simply'",
+  got: "use 'received', 'achieved', or 'gained'",
+  get: "use 'obtain', 'achieve', or 'gain'",
+  lots: "use 'many', 'numerous', or 'a range of'",
+  maybe: "use 'perhaps' or make a definitive claim",
+  kind: "omit or use a precise word",
+  sort: "omit or use a precise word",
+  thing: "use a specific noun",
+};
+
 function getTips(
   score: number,
   avgSentenceLen: number,
@@ -243,23 +264,36 @@ function buildVisualSegments(rawText: string): SentenceSegment[][] {
 function renderSentenceTokens(sentenceText: string) {
   const tokens = sentenceText.split(/([a-zA-Z]+)/);
   return tokens.map((token, i) => {
-    const synonym = SYNONYM_MAP[token.toLowerCase()];
-    if (synonym && /^[a-zA-Z]+$/.test(token)) {
+    const lower = token.toLowerCase();
+    if (!/^[a-zA-Z]+$/.test(token)) return token;
+
+    const synonym = SYNONYM_MAP[lower];
+    if (synonym) {
       return (
         <span
           key={i}
           className="relative underline decoration-dotted decoration-amber-500 underline-offset-2 cursor-help font-medium text-amber-800"
-          style={{
-            zIndex: 50,
-            position: "relative",
-            filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))",
-          }}
+          style={{ zIndex: 50, position: "relative", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))" }}
           title={`Simpler alternative: "${synonym}"`}
         >
           {token}
         </span>
       );
     }
+
+    const weakHint = WEAK_WORD_MAP[lower];
+    if (weakHint) {
+      return (
+        <span
+          key={i}
+          className="underline decoration-dashed decoration-rose-400 underline-offset-2 cursor-help text-rose-700"
+          title={`Weak word — ${weakHint}`}
+        >
+          {token}
+        </span>
+      );
+    }
+
     return token;
   });
 }
@@ -849,8 +883,8 @@ export default function ReadabilityChecker() {
                       value: `${results.passiveCount} sentence${results.passiveCount !== 1 ? "s" : ""}`,
                     },
                   ].map(({ label, value }) => (
-                    <Card key={label} className="border border-slate-100 shadow-sm">
-                      <CardContent className="p-3 text-center">
+                    <Card key={label} className="border border-slate-100 shadow-sm transition-shadow duration-200 hover:shadow-md">
+                      <CardContent className="p-3 flex flex-col items-center justify-center text-center h-full">
                         <div className="text-lg font-bold text-slate-900">
                           {value}
                         </div>
@@ -963,10 +997,16 @@ export default function ReadabilityChecker() {
                       ))}
                     </div>
 
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                      <span className="inline-block w-2 h-0.5 border-b-2 border-dotted border-amber-500" />
-                      Dotted-underlined words have simpler alternatives — hover to see them.
-                    </p>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                        <span className="inline-block w-2 h-0.5 border-b-2 border-dotted border-amber-500" />
+                        Dotted amber — complex word with a simpler alternative (hover to see it).
+                      </p>
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                        <span className="inline-block w-2 h-0.5 border-b-2 border-dashed border-rose-400" />
+                        Dashed rose — weak or vague word (hover for a stronger suggestion).
+                      </p>
+                    </div>
 
                     <Button
                       onClick={copyImproved}
