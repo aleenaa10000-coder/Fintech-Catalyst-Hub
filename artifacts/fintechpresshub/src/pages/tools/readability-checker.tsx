@@ -188,8 +188,33 @@ interface SentenceSegment {
   passive: boolean;
 }
 
-const PASSIVE_RE =
-  /\b(is|are|was|were|be|been|being|has\s+been|have\s+been|had\s+been|will\s+be|would\s+be|can\s+be|could\s+be|should\s+be|may\s+be|might\s+be|must\s+be)\s+\w*(ed|en|t)\b/i;
+const PASSIVE_IRREGULARS = [
+  // -en / -n endings
+  "shown","known","grown","blown","flown","thrown","drawn",
+  "driven","written","risen","given","taken","spoken","broken",
+  "stolen","chosen","woven","beaten","eaten","fallen","shaken",
+  "forgotten","gotten","worn","torn","sworn","borne","born","done","gone",
+  // -t endings (genuine irregular past participles)
+  "built","dealt","felt","meant","sent","spent","left","lost",
+  "kept","slept","wept","caught","taught","bought","brought",
+  "thought","sought","found","bound","wound",
+  // other irregulars
+  "run","won","hung","begun","rung","sung","sunk","held",
+  "told","sold","led","fed","fled","spread","read","heard",
+  "hurt","cut","put","set","hit","let","burst","cast","shut",
+  "paid","said","laid","made",
+].join("|");
+
+const PASSIVE_AUX =
+  "(?:am|is|are|was|were|be|been|being" +
+  "|has\\s+been|have\\s+been|had\\s+been" +
+  "|will\\s+be|would\\s+be|can\\s+be|could\\s+be" +
+  "|should\\s+be|may\\s+be|might\\s+be|must\\s+be)";
+
+const PASSIVE_RE = new RegExp(
+  `\\b${PASSIVE_AUX}\\s+(?:[a-zA-Z]+ed|${PASSIVE_IRREGULARS})\\b`,
+  "i",
+);
 
 function isPassive(text: string): boolean {
   return PASSIVE_RE.test(text);
