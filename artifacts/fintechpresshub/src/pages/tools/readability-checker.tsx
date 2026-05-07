@@ -239,51 +239,136 @@ function renderSentenceTokens(sentenceText: string) {
   });
 }
 
-function Sparkline({ scores }: { scores: number[] }) {
+function ScoreHistoryChart({ scores }: { scores: number[] }) {
   if (scores.length < 2) return null;
-  const W = 96, H = 28, pad = 3;
-  const yScale = (s: number) => pad + (1 - s / 100) * (H - pad * 2);
+
+  const VW = 360, VH = 160;
+  const padL = 28, padR = 10, padT = 22, padB = 22;
+  const chartW = VW - padL - padR;
+  const chartH = VH - padT - padB;
+
   const xScale = (i: number) =>
-    pad + (i / (scores.length - 1)) * (W - pad * 2);
-  const pts = scores.map((s, i) => ({ x: xScale(i), y: yScale(s) }));
-  const d = pts
+    padL + (scores.length === 1 ? chartW / 2 : (i / (scores.length - 1)) * chartW);
+  const yScale = (v: number) =>
+    padT + (1 - Math.max(0, Math.min(100, v)) / 100) * chartH;
+
+  const pts = scores.map((s, i) => ({ x: xScale(i), y: yScale(s), s }));
+  const linePath = pts
     .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
     .join(" ");
+
   const last = scores[scores.length - 1];
-  const stroke =
-    last >= 65 ? "#16a34a" : last >= 45 ? "#d97706" : "#dc2626";
+  const delta = Math.round(last - scores[0]);
+  const lineStroke = last >= 65 ? "#16a34a" : last >= 45 ? "#d97706" : "#dc2626";
+
+  const bands = [
+    { from: 65, to: 100, fill: "#dcfce7" },
+    { from: 45, to: 65,  fill: "#fef9c3" },
+    { from: 0,  to: 45,  fill: "#fee2e2" },
+  ];
+
   return (
-    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-      <svg
-        width={W}
-        height={H}
-        className="overflow-visible"
-        aria-hidden="true"
-      >
-        <path
-          d={d}
-          fill="none"
-          stroke={stroke}
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {pts.map((p, i) => (
-          <circle
-            key={i}
-            cx={p.x}
-            cy={p.y}
-            r={i === pts.length - 1 ? 3 : 2}
-            fill={i === pts.length - 1 ? stroke : "white"}
-            stroke={stroke}
-            strokeWidth={1.5}
+    <Card className="border border-slate-100 shadow-sm">
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-slate-900">Score History</h4>
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="text-muted-foreground">
+              {scores.length} checks
+            </span>
+            <span
+              className={`font-semibold tabular-nums ${
+                delta > 0 ? "text-green-600" : delta < 0 ? "text-red-500" : "text-slate-400"
+              }`}
+            >
+              {delta > 0 ? "+" : ""}{delta} overall
+            </span>
+          </div>
+        </div>
+
+        <svg
+          viewBox={`0 0 ${VW} ${VH}`}
+          className="w-full"
+          aria-label="Score improvement chart"
+        >
+          {bands.map(({ from, to, fill }) => (
+            <rect
+              key={from}
+              x={padL}
+              y={yScale(to)}
+              width={chartW}
+              height={yScale(from) - yScale(to)}
+              fill={fill}
+              opacity="0.6"
+            />
+          ))}
+
+          {[0, 45, 65, 100].map((v) => (
+            <g key={v}>
+              <line
+                x1={padL}
+                y1={yScale(v)}
+                x2={VW - padR}
+                y2={yScale(v)}
+                stroke="#cbd5e1"
+                strokeWidth="0.5"
+                strokeDasharray={v === 0 || v === 100 ? undefined : "3 3"}
+              />
+              <text
+                x={padL - 4}
+                y={yScale(v)}
+                textAnchor="end"
+                dominantBaseline="middle"
+                fontSize="9"
+                fill="#94a3b8"
+              >
+                {v}
+              </text>
+            </g>
+          ))}
+
+          <path
+            d={linePath}
+            fill="none"
+            stroke={lineStroke}
+            strokeWidth="2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
           />
-        ))}
-      </svg>
-      <span className="whitespace-nowrap">
-        {scores.length} check{scores.length !== 1 ? "s" : ""}
-      </span>
-    </div>
+
+          {pts.map((p, i) => {
+            const dotColor = p.s >= 65 ? "#16a34a" : p.s >= 45 ? "#d97706" : "#dc2626";
+            const isLast = i === pts.length - 1;
+            return (
+              <g key={i}>
+                <circle cx={p.x} cy={p.y} r={isLast ? 5 : 4} fill={dotColor} stroke="white" strokeWidth="1.5" />
+                <text x={p.x} y={p.y - 9} textAnchor="middle" fontSize="9.5" fontWeight="700" fill={dotColor}>
+                  {Math.round(p.s)}
+                </text>
+                <text x={p.x} y={VH - 4} textAnchor="middle" fontSize="8.5" fill="#94a3b8">
+                  #{i + 1}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+
+        <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-100 border border-green-200" />
+            Easy (65–100)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-yellow-100 border border-yellow-200" />
+            Moderate (45–65)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-100 border border-red-200" />
+            Difficult (0–45)
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -523,7 +608,11 @@ export default function ReadabilityChecker() {
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
                     Your Results
                   </h3>
-                  <Sparkline scores={scoreHistory} />
+                  {scoreHistory.length > 1 && (
+                    <span className="text-[11px] text-muted-foreground">
+                      {scoreHistory.length} checks
+                    </span>
+                  )}
                 </div>
 
                 {/* Score card */}
@@ -687,6 +776,9 @@ export default function ReadabilityChecker() {
                     </Card>
                   ))}
                 </div>
+
+                {/* Score History Chart */}
+                <ScoreHistoryChart scores={scoreHistory} />
 
                 {/* Tips */}
                 {results.score >= 80 && results.tips.length === 0 ? (
