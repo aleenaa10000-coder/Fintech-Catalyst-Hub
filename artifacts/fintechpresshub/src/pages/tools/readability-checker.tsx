@@ -215,7 +215,8 @@ function renderSentenceTokens(sentenceText: string) {
       return (
         <span
           key={i}
-          className="underline decoration-dotted decoration-amber-500 underline-offset-2 cursor-help font-medium text-amber-800"
+          className="relative z-10 underline decoration-dotted decoration-amber-500 underline-offset-2 cursor-help font-medium text-amber-800"
+          style={{ zIndex: 10 }}
           title={`Simpler alternative: "${synonym}"`}
         >
           {token}
@@ -670,17 +671,18 @@ export default function ReadabilityChecker() {
 
                     <div className="text-sm text-slate-700 leading-relaxed space-y-3 bg-slate-50 rounded-lg p-4 border border-slate-100">
                       {results.visualSegments.map((para, pi) => (
-                        <p key={pi} className="flex flex-wrap gap-x-1 gap-y-0.5">
+                        <p key={pi}>
                           {para.map((seg, si) => {
                             const bg =
                               seg.difficulty === "hard"
-                                ? "bg-red-100 rounded px-1 py-0.5"
+                                ? "bg-red-100"
                                 : seg.difficulty === "moderate"
-                                  ? "bg-yellow-100 rounded px-1 py-0.5"
+                                  ? "bg-yellow-100"
                                   : "";
                             return (
                               <span key={si} className={bg}>
                                 {renderSentenceTokens(seg.text)}
+                                {si < para.length - 1 ? " " : ""}
                               </span>
                             );
                           })}
