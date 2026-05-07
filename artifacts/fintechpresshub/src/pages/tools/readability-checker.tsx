@@ -628,7 +628,7 @@ export default function ReadabilityChecker() {
                 </Card>
 
                 {/* Stats row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   {[
                     {
                       label: "Word count",
@@ -645,6 +645,10 @@ export default function ReadabilityChecker() {
                     {
                       label: "Avg syllables",
                       value: `${results.avgSyllables.toFixed(2)} / word`,
+                    },
+                    {
+                      label: "Reading time",
+                      value: `${Math.max(1, Math.ceil(results.wordCount / 200))} min read`,
                     },
                   ].map(({ label, value }) => (
                     <Card key={label} className="border border-slate-100 shadow-sm">
