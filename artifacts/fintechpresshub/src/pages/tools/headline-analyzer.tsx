@@ -43,6 +43,7 @@ import {
   Send,
   Clock,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 
 const FINTECH_KEYWORDS = [
@@ -1228,6 +1229,39 @@ export default function HeadlineAnalyzer() {
   const clearHistory = () => {
     setHistory([]);
     try { window.localStorage.removeItem(HISTORY_KEY); } catch {}
+  };
+
+  const deleteEntry = (id: string) => {
+    setHistory((prev) => {
+      const next = prev.filter((e) => e.id !== id);
+      try { window.localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const exportHistoryCSV = () => {
+    if (history.length === 0) return;
+    const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const rows = [
+      ["id", "timestamp", "date", "headline", "score", "verdict"].join(","),
+      ...history.map((e) =>
+        [
+          escape(e.id),
+          e.analyzedAt,
+          escape(new Date(e.analyzedAt).toLocaleString()),
+          escape(e.headline),
+          e.score,
+          escape(e.verdict),
+        ].join(",")
+      ),
+    ];
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "headline-history.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const downloadReport = () => {
@@ -2866,6 +2900,14 @@ export default function HeadlineAnalyzer() {
                           >
                             <GitCompare className="w-3 h-3" /> A/B Compare
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteEntry(entry.id)}
+                            className="flex items-center justify-center w-7 rounded-lg border border-slate-200 bg-white hover:border-red-200 hover:text-red-500 text-slate-400 transition-all"
+                            title="Delete entry"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                         </div>
                       </motion.div>
                     );
@@ -2873,9 +2915,20 @@ export default function HeadlineAnalyzer() {
                 )}
               </div>
 
-              {/* Footer hint */}
-              <div className="px-5 py-3 border-t border-slate-100 text-[10px] text-slate-400 shrink-0">
-                Last {history.length} of 10 analyses saved in your browser.
+              {/* Footer */}
+              <div className="px-5 py-3 border-t border-slate-100 shrink-0 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={exportHistoryCSV}
+                  disabled={history.length === 0}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-indigo-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <FileDown className="w-3.5 h-3.5" />
+                  Export CSV
+                </button>
+                <span className="text-[10px] text-slate-400">
+                  {history.length} of 10 saved
+                </span>
               </div>
             </motion.div>
           </>
