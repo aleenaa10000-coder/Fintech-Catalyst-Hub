@@ -402,6 +402,7 @@ export default function ReadabilityChecker() {
   };
 
   const [copyImprovedState, setCopyImprovedState] = useState<"idle" | "copied">("idle");
+  const [copyMdState, setCopyMdState] = useState<"idle" | "copied">("idle");
 
   const copyText = async () => {
     await navigator.clipboard.writeText(text);
@@ -424,6 +425,45 @@ export default function ReadabilityChecker() {
         }),
       150,
     );
+  };
+
+  const copyAsMarkdown = async () => {
+    if (!results) return;
+    const lines: string[] = [];
+    lines.push(`## Readability Report`);
+    lines.push(``);
+    lines.push(`**Score:** ${results.score.toFixed(0)} / 100 — ${results.level.label}`);
+    lines.push(`**Grade level:** ${results.grade}`);
+    lines.push(``);
+    lines.push(`### Stats`);
+    lines.push(``);
+    lines.push(`| Metric | Value |`);
+    lines.push(`| --- | --- |`);
+    lines.push(`| Word count | ${results.wordCount.toLocaleString()} |`);
+    lines.push(`| Sentences | ${results.sentenceCount.toLocaleString()} |`);
+    lines.push(`| Avg sentence length | ${results.avgSentenceLen.toFixed(1)} words |`);
+    lines.push(`| Avg syllables per word | ${results.avgSyllables.toFixed(2)} |`);
+    lines.push(`| Reading time | ${Math.max(1, Math.ceil(results.wordCount / 200))} min |`);
+    lines.push(`| Passive voice | ${results.passiveCount} sentence${results.passiveCount !== 1 ? "s" : ""} |`);
+    lines.push(``);
+    if (results.tips.length > 0) {
+      lines.push(`### Improvement Tips`);
+      lines.push(``);
+      results.tips.forEach((tip) => lines.push(`- ${tip}`));
+      lines.push(``);
+    }
+    if (scoreHistory.length >= 2) {
+      lines.push(`### Score History`);
+      lines.push(``);
+      scoreHistory.forEach((s, i) => lines.push(`- Check #${i + 1}: ${Math.round(s)}`));
+      const delta = Math.round(scoreHistory[scoreHistory.length - 1] - scoreHistory[0]);
+      lines.push(`- **Overall change: ${delta > 0 ? "+" : ""}${delta}**`);
+      lines.push(``);
+    }
+    await navigator.clipboard.writeText(lines.join("\n"));
+    navigator.vibrate?.(40);
+    setCopyMdState("copied");
+    setTimeout(() => setCopyMdState("idle"), 1500);
   };
 
   const copyImproved = async () => {
@@ -608,11 +648,31 @@ export default function ReadabilityChecker() {
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
                     Your Results
                   </h3>
-                  {scoreHistory.length > 1 && (
-                    <span className="text-[11px] text-muted-foreground">
-                      {scoreHistory.length} checks
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {scoreHistory.length > 1 && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {scoreHistory.length} checks
+                      </span>
+                    )}
+                    <Button
+                      onClick={copyAsMarkdown}
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                    >
+                      {copyMdState === "copied" ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 mr-1 text-green-500" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3 mr-1" />
+                          Copy as Markdown
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Score card */}
