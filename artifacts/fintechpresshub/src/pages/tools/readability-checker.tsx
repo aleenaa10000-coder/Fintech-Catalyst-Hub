@@ -49,6 +49,14 @@ function fleschScore(words: string[], sentences: string[]): number {
   return Math.max(0, Math.min(100, score));
 }
 
+function vibeFromScore(score: number): { label: string; classes: string } {
+  if (score > 80)
+    return { label: "Vibe: Conversational ☕", classes: "bg-green-100 text-green-700 border-green-200" };
+  if (score >= 40)
+    return { label: "Vibe: Professional 💼", classes: "bg-blue-100 text-blue-700 border-blue-200" };
+  return { label: "Vibe: Deep Technical 🧠", classes: "bg-purple-100 text-purple-700 border-purple-200" };
+}
+
 function gradeFromScore(score: number): string {
   if (score >= 90) return "5th grade";
   if (score >= 80) return "6th grade";
@@ -781,8 +789,13 @@ export default function ReadabilityChecker() {
                         <div className="text-sm text-muted-foreground mt-1">
                           Flesch Reading Ease Score
                         </div>
-                        <div className="text-sm font-medium text-slate-700 mt-0.5">
-                          {results.grade} reading level
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                          <span className="text-sm font-medium text-slate-700">
+                            {results.grade} reading level
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${vibeFromScore(results.score).classes}`}>
+                            {vibeFromScore(results.score).label}
+                          </span>
                         </div>
                       </div>
                     </div>
