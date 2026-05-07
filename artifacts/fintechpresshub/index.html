@@ -80,9 +80,44 @@
       }
     }
     </script>
+
+    <!-- Replit badge deduplication
+         Replit's dev proxy injects the "Made with Replit" badge script on
+         every HMR reload, which can stamp multiple badge elements into the
+         DOM. The CSS below hides any sibling duplicates immediately; the
+         MutationObserver script removes them from the DOM as soon as they
+         appear, keeping exactly one badge pinned to the bottom-right. -->
+    <style>
+      #replit-badge + #replit-badge,
+      [data-replit-badge] ~ [data-replit-badge],
+      replit-badge ~ replit-badge,
+      .replit-badge ~ .replit-badge { display: none !important; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (function () {
+        var SELECTORS = [
+          '#replit-badge',
+          '[data-replit-badge]',
+          'replit-badge',
+          '.replit-badge',
+        ];
+        function dedup() {
+          SELECTORS.forEach(function (sel) {
+            var els = document.querySelectorAll(sel);
+            if (els.length > 1) {
+              Array.prototype.slice.call(els, 0, els.length - 1)
+                .forEach(function (el) { el.remove(); });
+            }
+          });
+        }
+        var mo = new MutationObserver(dedup);
+        mo.observe(document.body, { childList: true, subtree: false });
+        dedup();
+      })();
+    </script>
   </body>
 </html>
