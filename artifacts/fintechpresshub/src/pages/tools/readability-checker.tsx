@@ -723,35 +723,35 @@ export default function ReadabilityChecker() {
                 exit={{ opacity: 0, y: 8 }}
                 className="mt-6 space-y-4"
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                    Your Results
-                  </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+                      Your Results
+                    </h3>
                     {scoreHistory.length > 1 && (
                       <span className="text-[11px] text-muted-foreground">
                         {scoreHistory.length} checks
                       </span>
                     )}
-                    <Button
-                      onClick={copyAsMarkdown}
-                      variant="outline"
-                      size="sm"
-                      className="h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
-                    >
-                      {copyMdState === "copied" ? (
-                        <>
-                          <CheckCircle2 className="w-3 h-3 mr-1 text-green-500" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3 mr-1" />
-                          Copy as Markdown
-                        </>
-                      )}
-                    </Button>
                   </div>
+                  <Button
+                    onClick={copyAsMarkdown}
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto h-9 sm:h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                  >
+                    {copyMdState === "copied" ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 mr-1 text-green-500" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 mr-1" />
+                        Copy as Markdown
+                      </>
+                    )}
+                  </Button>
                 </div>
 
                 {/* Score card */}
@@ -903,7 +903,7 @@ export default function ReadabilityChecker() {
                       value: `${results.passiveCount} sentence${results.passiveCount !== 1 ? "s" : ""}`,
                     },
                   ].map(({ label, value }) => (
-                    <Card key={label} className="border border-slate-100 shadow-sm transition-shadow duration-200 hover:shadow-md">
+                    <Card key={label} className="border border-slate-100 shadow-sm transition-shadow duration-200 hover:shadow-md h-full">
                       <CardContent className="p-3 flex flex-col items-center justify-center text-center h-full">
                         <div className="text-lg font-bold text-slate-900">
                           {value}
