@@ -15,6 +15,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Send,
   Copy,
   Check,
@@ -444,6 +450,7 @@ export default function GuestPostPitchGenerator() {
   const [copied, setCopied] = useState(false);
   const [copiedSubject, setCopiedSubject] = useState(false);
   const [copiedPreviewSubject, setCopiedPreviewSubject] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [variation, setVariation] = useState(0);
   const [pitchWordDelta, setPitchWordDelta] = useState<number | null>(null);
@@ -849,6 +856,16 @@ export default function GuestPostPitchGenerator() {
                       </button>
                     ))}
                   </div>
+                  {canGenerate && (
+                    <button
+                      type="button"
+                      onClick={() => setCompareOpen(true)}
+                      className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-semibold text-orange-600 hover:text-orange-700 transition-colors"
+                    >
+                      <SlidersHorizontal className="w-3 h-3" />
+                      Compare all tones side by side
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1197,6 +1214,75 @@ export default function GuestPostPitchGenerator() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          <Dialog open={compareOpen} onOpenChange={setCompareOpen}>
+            <DialogContent className="max-w-5xl w-full p-0 overflow-hidden">
+              <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
+                <DialogTitle className="flex items-center gap-2 text-slate-900">
+                  <SlidersHorizontal className="w-5 h-5 text-orange-500" />
+                  Tone Comparison
+                </DialogTitle>
+                <p className="text-[12px] text-muted-foreground">
+                  Same pitch, three voices. Pick the one that fits and it will be loaded into the editor.
+                </p>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 max-h-[70vh] overflow-hidden">
+                {TONE_OPTIONS.map((opt) => {
+                  const tonePitch = buildPitch({ ...form, tone: opt.value }, variation);
+                  const lines = tonePitch.split("\n").filter(Boolean);
+                  const subjectLine = lines[0] ?? "";
+                  const bodyPreview = lines.slice(1).join("\n");
+                  const toneColors: Record<string, { badge: string; btn: string }> = {
+                    friendly: { badge: "bg-emerald-100 text-emerald-700", btn: "bg-emerald-600 hover:bg-emerald-700" },
+                    formal:   { badge: "bg-indigo-100 text-indigo-700",   btn: "bg-indigo-600 hover:bg-indigo-700"   },
+                    direct:   { badge: "bg-amber-100 text-amber-700",     btn: "bg-amber-600 hover:bg-amber-700"     },
+                  };
+                  const colors = toneColors[opt.value];
+                  const isActive = form.tone === opt.value;
+                  return (
+                    <div key={opt.value} className={`flex flex-col ${isActive ? "bg-slate-50" : "bg-white"}`}>
+                      <div className="px-5 pt-5 pb-3 flex items-center justify-between gap-2 shrink-0">
+                        <div>
+                          <span className={`inline-block text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full mb-1 ${colors.badge}`}>
+                            {opt.label}
+                          </span>
+                          <p className="text-[11px] text-muted-foreground">{opt.description}</p>
+                        </div>
+                        {isActive && (
+                          <span className="shrink-0 text-[10px] font-bold text-slate-400 bg-slate-200 rounded px-1.5 py-0.5">Current</span>
+                        )}
+                      </div>
+                      <div className="px-5 pb-2 shrink-0">
+                        <p className="text-[11px] font-semibold text-slate-600 leading-snug">{subjectLine}</p>
+                      </div>
+                      <div className="flex-1 overflow-y-auto px-5 pb-4">
+                        <pre className="text-[11px] text-slate-700 leading-relaxed whitespace-pre-wrap font-sans">
+                          {bodyPreview}
+                        </pre>
+                      </div>
+                      <div className="px-5 py-4 border-t border-slate-100 shrink-0">
+                        <Button
+                          size="sm"
+                          className={`w-full h-8 text-xs font-semibold text-white ${colors.btn}`}
+                          onClick={() => {
+                            setTone(opt.value);
+                            setEditedPitch(tonePitch);
+                            setPitch(tonePitch);
+                            setGenerated(true);
+                            setCompareOpen(false);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                        >
+                          {isActive ? "Keep this tone" : `Use ${opt.label} tone`}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
             <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
