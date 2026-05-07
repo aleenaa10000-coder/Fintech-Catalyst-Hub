@@ -27,12 +27,138 @@ import {
   ChevronDown,
   Trash2,
   Mail,
+  ExternalLink,
+  Newspaper,
 } from "lucide-react";
 
 const MINOR_WORDS = new Set([
   "a","an","the","and","but","or","nor","for","so","yet",
   "at","by","in","of","on","to","up","as","is","it",
 ]);
+
+type Publication = {
+  name: string;
+  siteUrl: string;
+  guestPostUrl: string;
+  description: string;
+  drTier: "High" | "Medium";
+  tags: string[];
+};
+
+const PUBLICATIONS: Publication[] = [
+  {
+    name: "The Financial Brand",
+    siteUrl: "https://thefinancialbrand.com",
+    guestPostUrl: "https://thefinancialbrand.com/about/write-for-us/",
+    description: "Retail banking, digital strategy, credit unions",
+    drTier: "High",
+    tags: ["banking","digital banking","credit union","retail","lending","digital","brand","marketing"],
+  },
+  {
+    name: "Tearsheet",
+    siteUrl: "https://tearsheet.co",
+    guestPostUrl: "https://tearsheet.co/contact/",
+    description: "Fintech, embedded finance, open banking, payments",
+    drTier: "High",
+    tags: ["payments","embedded finance","open banking","banking","fintech","b2b","saas","neobank"],
+  },
+  {
+    name: "Finextra",
+    siteUrl: "https://finextra.com",
+    guestPostUrl: "https://www.finextra.com/communitylounge/bloglounge",
+    description: "Banking technology, payments, regtech, blockchain",
+    drTier: "High",
+    tags: ["banking","payments","regtech","blockchain","open banking","compliance","swift","iso20022"],
+  },
+  {
+    name: "PYMNTS",
+    siteUrl: "https://pymnts.com",
+    guestPostUrl: "https://www.pymnts.com/contact-us/",
+    description: "Payments, digital commerce, crypto, fraud",
+    drTier: "High",
+    tags: ["payments","digital commerce","crypto","fraud","fintech","cards","buy now pay later","bnpl"],
+  },
+  {
+    name: "Finovate",
+    siteUrl: "https://finovate.com",
+    guestPostUrl: "https://finovate.com/contact/",
+    description: "Fintech innovation, AI in banking, investing",
+    drTier: "High",
+    tags: ["fintech","banking","ai","innovation","payments","investing","wealthtech","demo"],
+  },
+  {
+    name: "American Banker",
+    siteUrl: "https://americanbanker.com",
+    guestPostUrl: "https://www.americanbanker.com/opinion",
+    description: "Banking regulation, lending, compliance, fintech",
+    drTier: "High",
+    tags: ["banking","lending","regulation","compliance","fintech","mortgage","credit","cra"],
+  },
+  {
+    name: "The Paypers",
+    siteUrl: "https://thepaypers.com",
+    guestPostUrl: "https://thepaypers.com/contribute",
+    description: "Payments, e-commerce, open banking, fraud",
+    drTier: "Medium",
+    tags: ["payments","e-commerce","open banking","fraud","fintech","psd2","acquiring","issuing"],
+  },
+  {
+    name: "Payments Journal",
+    siteUrl: "https://paymentsjournal.com",
+    guestPostUrl: "https://www.paymentsjournal.com/write-for-us/",
+    description: "Payments technology, fraud, compliance, banking",
+    drTier: "Medium",
+    tags: ["payments","fraud","compliance","banking","cards","debit","credit","tokenisation"],
+  },
+  {
+    name: "Fintech Futures",
+    siteUrl: "https://fintechfutures.com",
+    guestPostUrl: "https://www.fintechfutures.com/contact-us/",
+    description: "Global fintech, banking, payments, core banking",
+    drTier: "Medium",
+    tags: ["fintech","banking","payments","core banking","digital","saas","cloud","api"],
+  },
+  {
+    name: "The Block",
+    siteUrl: "https://theblock.co",
+    guestPostUrl: "https://www.theblock.co/contact",
+    description: "Crypto, blockchain, DeFi, Web3 research",
+    drTier: "Medium",
+    tags: ["crypto","blockchain","defi","web3","bitcoin","ethereum","stablecoin","tokenisation","nft"],
+  },
+  {
+    name: "Crowdfund Insider",
+    siteUrl: "https://crowdfundinsider.com",
+    guestPostUrl: "https://www.crowdfundinsider.com/contact/",
+    description: "Crowdfunding, blockchain, crypto, alternative finance",
+    drTier: "Medium",
+    tags: ["crowdfunding","blockchain","crypto","investing","alternative finance","equity","defi"],
+  },
+  {
+    name: "Insuretech Insights",
+    siteUrl: "https://insurtechinsights.com",
+    guestPostUrl: "https://insurtechinsights.com/contact/",
+    description: "Insurtech, insurance technology, AI in insurance",
+    drTier: "Medium",
+    tags: ["insurtech","insurance","ai","underwriting","claims","telematics","embedded insurance"],
+  },
+];
+
+function getSuggestions(topic: string): Publication[] {
+  const words = topic.toLowerCase().split(/\W+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const scored = PUBLICATIONS.map((pub) => {
+    const score = pub.tags.filter((tag) =>
+      words.some((w) => tag.includes(w) || w.includes(tag.split(" ")[0]))
+    ).length + (pub.drTier === "High" ? 0.5 : 0);
+    return { pub, score };
+  });
+  return scored
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+    .map(({ pub }) => pub);
+}
 
 const HISTORY_KEY = "fph:pitch-history";
 const MAX_HISTORY = 5;
@@ -567,6 +693,59 @@ export default function GuestPostPitchGenerator() {
               </div>
             </CardContent>
           </Card>
+
+          <AnimatePresence>
+            {form.proposedTopic.trim().length > 1 && (() => {
+              const suggestions = getSuggestions(form.proposedTopic);
+              if (suggestions.length === 0) return null;
+              return (
+                <motion.div
+                  key="suggestions"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  className="mt-6"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Newspaper className="w-4 h-4 text-slate-400" />
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+                      Suggested Publications
+                    </h3>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {suggestions.map((pub) => (
+                      <a
+                        key={pub.name}
+                        href={pub.guestPostUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex flex-col gap-1 rounded-lg border border-slate-200 bg-white p-3 transition-all hover:border-orange-300 hover:shadow-sm"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-sm font-semibold text-slate-800 group-hover:text-orange-600 transition-colors">
+                            {pub.name}
+                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
+                              pub.drTier === "High"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-amber-100 text-amber-700"
+                            }`}>
+                              DR {pub.drTier}
+                            </span>
+                            <ExternalLink className="w-3 h-3 text-slate-300 group-hover:text-orange-400 transition-colors" />
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-snug">
+                          {pub.description}
+                        </p>
+                      </a>
+                    ))}
+                  </div>
+                </motion.div>
+              );
+            })()}
+          </AnimatePresence>
 
           <AnimatePresence>
             {generated && (
