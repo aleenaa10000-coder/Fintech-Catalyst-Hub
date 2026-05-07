@@ -20,7 +20,11 @@ import {
   Globe,
   BookOpen,
   Lightbulb,
+  Heart,
+  SlidersHorizontal,
 } from "lucide-react";
+
+type Tone = "friendly" | "formal" | "direct";
 
 type FormState = {
   senderName: string;
@@ -30,6 +34,8 @@ type FormState = {
   targetEditorName: string;
   proposedTopic: string;
   yourExpertise: string;
+  recentArticle: string;
+  tone: Tone;
 };
 
 const DEFAULTS: FormState = {
@@ -40,7 +46,15 @@ const DEFAULTS: FormState = {
   targetEditorName: "",
   proposedTopic: "",
   yourExpertise: "",
+  recentArticle: "",
+  tone: "friendly",
 };
+
+const TONE_OPTIONS: { value: Tone; label: string; description: string }[] = [
+  { value: "friendly", label: "Friendly", description: "Warm and personable" },
+  { value: "formal", label: "Formal", description: "Professional and polished" },
+  { value: "direct", label: "Direct", description: "Concise and to the point" },
+];
 
 function buildPitch(form: FormState): string {
   const {
@@ -51,6 +65,8 @@ function buildPitch(form: FormState): string {
     targetEditorName,
     proposedTopic,
     yourExpertise,
+    recentArticle,
+    tone,
   } = form;
 
   const rawEditor = targetEditorName.trim();
@@ -62,12 +78,70 @@ function buildPitch(form: FormState): string {
   const topic = proposedTopic.trim() || "a topic in fintech";
   const expertise =
     yourExpertise.trim() || "fintech content strategy and SEO growth";
+  const article = recentArticle.trim();
+
+  const articleSentence = article
+    ? `I particularly enjoyed your recent piece on ${article}, which prompted me to reach out with this related idea.`
+    : "";
+
+  if (tone === "formal") {
+    const openingLine = `I am writing to express my interest in contributing a guest article to ${blog}.${articleSentence ? " " + articleSentence : ""}`;
+    return `Subject: Guest Post Submission — ${topic}
+
+Dear ${editor},
+
+My name is ${name}, ${role} at ${company}. ${openingLine}
+
+I would like to propose an article on the topic of "${topic}". Given the rigorous editorial standards of ${blog}, I believe this subject would provide genuine value to your readership and aligns with the calibre of content you consistently publish.
+
+Regarding my background: ${expertise}. My work is grounded in practical experience and would include substantiated examples, data-driven insights, and actionable guidance.
+
+The proposed article would be:
+- Approximately 1,200–1,800 words
+- Entirely original and not published or submitted elsewhere
+- Optimised for readability without compromising analytical depth
+- Delivered within 2–3 business days of acceptance
+
+I would welcome the opportunity to provide an outline for your review prior to submitting a full draft, or to proceed directly as you prefer.
+
+Thank you for your consideration. I look forward to your response.
+
+Yours sincerely,
+${name}
+${role}, ${company}`;
+  }
+
+  if (tone === "direct") {
+    const articleLine = articleSentence ? `\n\n${articleSentence}` : "";
+    return `Subject: Guest Post Pitch — ${topic}
+
+Hi ${editor},
+
+I'm ${name}, ${role} at ${company}.${articleLine}
+
+I'd like to pitch a guest post on "${topic}" for ${blog}. It's a challenge fintech teams are actively navigating — your audience would find it directly useful.
+
+My background: ${expertise}. The piece would be practical, not theoretical — real examples, actionable takeaways, original data where possible.
+
+Specs:
+- 1,200–1,800 words
+- 100% original
+- Ready within 2–3 days of a green light
+
+Prefer an outline first, or a full draft? Either works for me.
+
+Best,
+${name}
+${role}, ${company}`;
+  }
+
+  const introLine = `My name is ${name}, ${role} at ${company}. I've been a reader of ${blog} for a while now and genuinely appreciate the quality of fintech content you publish — it consistently hits the right balance of depth and accessibility.${articleSentence ? " " + articleSentence : ""}`;
 
   return `Subject: Guest Post Pitch — ${topic}
 
 Hi ${editor},
 
-My name is ${name}, ${role} at ${company}. I've been a reader of ${blog} for a while now and genuinely appreciate the quality of fintech content you publish — it consistently hits the right balance of depth and accessibility.
+${introLine}
 
 I'd love to contribute a guest post on the topic of "${topic}". I think it would resonate strongly with your audience because it addresses a challenge that most fintech teams are actively navigating right now.
 
@@ -99,6 +173,9 @@ export default function GuestPostPitchGenerator() {
     (key: keyof FormState) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const setTone = (value: Tone) =>
+    setForm((prev) => ({ ...prev, tone: value }));
 
   const reset = () => {
     setForm(DEFAULTS);
@@ -257,6 +334,22 @@ export default function GuestPostPitchGenerator() {
 
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-orange-600" />
+                    Recent Article You Liked
+                  </Label>
+                  <Input
+                    placeholder="e.g., Your recent piece on Neobank regulation"
+                    value={form.recentArticle}
+                    onChange={setField("recentArticle")}
+                    className="h-11"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    If provided, a personalised sentence referencing this article will be added to the opening paragraph.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                     <Lightbulb className="w-4 h-4 text-orange-600" />
                     Your Relevant Expertise
                   </Label>
@@ -270,6 +363,34 @@ export default function GuestPostPitchGenerator() {
                   <p className="text-[11px] text-muted-foreground">
                     This is your credibility hook — be specific.
                   </p>
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                    <SlidersHorizontal className="w-4 h-4 text-orange-600" />
+                    Tone
+                  </Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {TONE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setTone(opt.value)}
+                        className={`rounded-lg border px-4 py-3 text-left transition-all ${
+                          form.tone === opt.value
+                            ? "border-orange-500 bg-orange-50 ring-1 ring-orange-500"
+                            : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className={`block text-sm font-semibold ${form.tone === opt.value ? "text-orange-700" : "text-slate-700"}`}>
+                          {opt.label}
+                        </span>
+                        <span className="block text-[11px] text-muted-foreground mt-0.5">
+                          {opt.description}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
