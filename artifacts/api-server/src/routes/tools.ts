@@ -2,8 +2,11 @@ import { Router, type IRouter } from "express";
 import { db, newsletterSubscribersTable } from "@workspace/db";
 import { EmailFinancialHealthScoreReportBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/seo";
+import { sendMail } from "../lib/mailer";
+import { formRateLimiter } from "../lib/rateLimiter";
 
 const router: IRouter = Router();
 
@@ -424,6 +427,39 @@ router.get("/tools/fetch-title", async (req, res) => {
   } finally {
     clearTimeout(timeout);
   }
+});
+
+const SendPitchBody = z.object({
+  senderEmail: z.string().email().max(254),
+  recipientEmail: z.string().email().max(254),
+  subject: z.string().min(1).max(500),
+  body: z.string().min(10).max(5000),
+});
+
+router.post("/tools/send-pitch", formRateLimiter, async (req, res) => {
+  const parsed = SendPitchBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input", issues: parsed.error.issues });
+    return;
+  }
+
+  const { senderEmail, recipientEmail, subject, body } = parsed.data;
+
+  const sent = await sendMail({
+    to: recipientEmail,
+    subject,
+    text: body,
+    replyTo: senderEmail,
+  });
+
+  if (!sent) {
+    logger.warn({ to: recipientEmail }, "[tools] send-pitch email failed");
+    res.status(502).json({ ok: false, error: "Couldn't send the email right now. Please try again." });
+    return;
+  }
+
+  logger.info({ to: recipientEmail }, "[tools] send-pitch sent");
+  res.json({ ok: true });
 });
 
 export default router;

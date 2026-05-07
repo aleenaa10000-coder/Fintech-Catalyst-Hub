@@ -462,6 +462,12 @@ export default function GuestPostPitchGenerator() {
   const [urlError, setUrlError] = useState<string | null>(null);
   const [targetBlogHighlighted, setTargetBlogHighlighted] = useState(false);
   const [emailPreviewMode, setEmailPreviewMode] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
+  const [senderEmail, setSenderEmail] = useState("");
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [sendError, setSendError] = useState("");
   const pitchTextareaRef = useRef<HTMLTextAreaElement>(null);
   const targetBlogInputRef = useRef<HTMLInputElement>(null);
 
@@ -520,7 +526,47 @@ export default function GuestPostPitchGenerator() {
     setVariation(0);
     setPitchWordDelta(null);
     setEmailPreviewMode(false);
+    setSendOpen(false);
+    setSendStatus("idle");
+    setSendError("");
   };
+
+  async function sendPitch() {
+    const lines = editedPitch.split("\n");
+    const firstLine = lines[0] ?? "";
+    const subject = firstLine.startsWith("Subject: ")
+      ? firstLine.slice("Subject: ".length).trim()
+      : firstLine.trim();
+    const body = lines.slice(firstLine.startsWith("Subject: ") ? 2 : 0).join("\n").trim();
+
+    setSending(true);
+    setSendStatus("idle");
+    setSendError("");
+    try {
+      const res = await fetch("/api/tools/send-pitch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderEmail: senderEmail.trim(),
+          recipientEmail: recipientEmail.trim(),
+          subject,
+          body,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setSendStatus("sent");
+      } else {
+        setSendStatus("error");
+        setSendError(data.error ?? "Something went wrong. Please try again.");
+      }
+    } catch {
+      setSendStatus("error");
+      setSendError("Network error. Please check your connection and try again.");
+    } finally {
+      setSending(false);
+    }
+  }
 
   const generate = () => {
     const nextVariation = 0;
@@ -929,7 +975,7 @@ export default function GuestPostPitchGenerator() {
                           {copiedPreviewSubject ? (
                             <><Check className="w-3 h-3 text-green-500" /><span className="text-green-600">Copied</span></>
                           ) : (
-                            <><Copy className="w-3 h-3" />Copy Subject</>
+                            <><Copy className="w-3 h-3" />Copy</>
                           )}
                         </button>
                       )}
@@ -1330,6 +1376,83 @@ export default function GuestPostPitchGenerator() {
                           Open in Gmail
                         </a>
                       </Button>
+                    </div>
+
+                    {/* Send Now panel */}
+                    <div className="border-t border-slate-100 pt-4 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => { setSendOpen((o) => !o); setSendStatus("idle"); setSendError(""); }}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-orange-600 transition-colors w-full"
+                      >
+                        <Send className="w-3.5 h-3.5 shrink-0" />
+                        Send this pitch directly
+                        <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform duration-200 ${sendOpen ? "rotate-180" : ""}`} />
+                      </button>
+
+                      <AnimatePresence>
+                        {sendOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            {sendStatus === "sent" ? (
+                              <div className="mt-3 flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3">
+                                <Check className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="text-sm font-semibold text-green-800">Pitch sent!</p>
+                                  <p className="text-xs text-green-700 mt-0.5">Your pitch has been delivered to <span className="font-medium">{recipientEmail}</span>. Good luck!</p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-3 space-y-3">
+                                <p className="text-[11px] text-muted-foreground">We'll send the pitch from our server on your behalf. Make sure the editor's email is correct.</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <div className="space-y-1">
+                                    <Label htmlFor="sender-email" className="text-xs font-medium">Your email (reply-to)</Label>
+                                    <Input
+                                      id="sender-email"
+                                      type="email"
+                                      placeholder="you@yourcompany.com"
+                                      value={senderEmail}
+                                      onChange={(e) => setSenderEmail(e.target.value)}
+                                      className="h-9 text-sm"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label htmlFor="recipient-email" className="text-xs font-medium">Editor's email</Label>
+                                    <Input
+                                      id="recipient-email"
+                                      type="email"
+                                      placeholder="editor@publication.com"
+                                      value={recipientEmail}
+                                      onChange={(e) => setRecipientEmail(e.target.value)}
+                                      className="h-9 text-sm"
+                                    />
+                                  </div>
+                                </div>
+                                {sendStatus === "error" && (
+                                  <p className="text-xs text-red-600 font-medium">{sendError}</p>
+                                )}
+                                <Button
+                                  onClick={sendPitch}
+                                  disabled={sending || !senderEmail.trim() || !recipientEmail.trim()}
+                                  className="h-9 px-5 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm"
+                                >
+                                  {sending ? (
+                                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Sending…</>
+                                  ) : (
+                                    <><Send className="w-3.5 h-3.5 mr-1.5" />Send pitch</>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </CardContent>
                 </Card>
