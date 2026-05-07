@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   XCircle,
   Sparkles,
+  Eye,
 } from "lucide-react";
 
 function countSyllables(word: string): number {
@@ -179,6 +180,51 @@ function getTips(
   return tips;
 }
 
+interface SentenceSegment {
+  text: string;
+  wordCount: number;
+  difficulty: "hard" | "moderate" | "normal";
+}
+
+function buildVisualSegments(rawText: string): SentenceSegment[][] {
+  const paragraphs = rawText.split(/\n+/).filter((p) => p.trim().length > 0);
+  return paragraphs.map((para) => {
+    const sentenceTexts = para
+      .trim()
+      .replace(/([.!?]+)\s+/g, "$1\u0000")
+      .split("\u0000")
+      .filter((s) => s.trim().length > 0);
+    return sentenceTexts.map((text) => {
+      const wordCount = text
+        .trim()
+        .split(/\s+/)
+        .filter((w) => w.replace(/[^a-zA-Z]/g, "").length > 0).length;
+      const difficulty: "hard" | "moderate" | "normal" =
+        wordCount > 25 ? "hard" : wordCount > 15 ? "moderate" : "normal";
+      return { text, wordCount, difficulty };
+    });
+  });
+}
+
+function renderSentenceTokens(sentenceText: string) {
+  const tokens = sentenceText.split(/([a-zA-Z]+)/);
+  return tokens.map((token, i) => {
+    const synonym = SYNONYM_MAP[token.toLowerCase()];
+    if (synonym && /^[a-zA-Z]+$/.test(token)) {
+      return (
+        <span
+          key={i}
+          className="underline decoration-dotted decoration-amber-500 underline-offset-2 cursor-help font-medium text-amber-800"
+          title={`Simpler alternative: "${synonym}"`}
+        >
+          {token}
+        </span>
+      );
+    }
+    return token;
+  });
+}
+
 export default function ReadabilityChecker() {
   const [text, setText] = useState("");
   const [checked, setChecked] = useState(false);
@@ -206,11 +252,13 @@ export default function ReadabilityChecker() {
     const grade = gradeFromScore(score);
     const level = levelFromScore(score);
     const tips = getTips(score, avgSentenceLen, words.length, checkedText, words);
+    const visualSegments = buildVisualSegments(checkedText);
     return {
       score,
       grade,
       level,
       tips,
+      visualSegments,
       wordCount: words.length,
       sentenceCount: sentences.length,
       avgSentenceLen,
@@ -395,6 +443,53 @@ export default function ReadabilityChecker() {
                         </li>
                       ))}
                     </ul>
+                  </CardContent>
+                </Card>
+
+                {/* Visual Analysis */}
+                <Card className="border border-slate-100 shadow-sm">
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-teal-600" />
+                        Visual Analysis
+                      </h4>
+                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <span className="inline-block w-3 h-3 rounded-sm bg-red-100 border border-red-300 shrink-0" />
+                          Very hard (&gt;25 words)
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="inline-block w-3 h-3 rounded-sm bg-yellow-100 border border-yellow-300 shrink-0" />
+                          Moderately hard (&gt;15 words)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-sm text-slate-700 leading-relaxed space-y-3 bg-slate-50 rounded-lg p-4 border border-slate-100">
+                      {results.visualSegments.map((para, pi) => (
+                        <p key={pi} className="flex flex-wrap gap-x-1 gap-y-0.5">
+                          {para.map((seg, si) => {
+                            const bg =
+                              seg.difficulty === "hard"
+                                ? "bg-red-100 rounded px-1 py-0.5"
+                                : seg.difficulty === "moderate"
+                                  ? "bg-yellow-100 rounded px-1 py-0.5"
+                                  : "";
+                            return (
+                              <span key={si} className={bg}>
+                                {renderSentenceTokens(seg.text)}
+                              </span>
+                            );
+                          })}
+                        </p>
+                      ))}
+                    </div>
+
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-0.5 border-b-2 border-dotted border-amber-500" />
+                      Dotted-underlined words have simpler alternatives — hover to see them.
+                    </p>
                   </CardContent>
                 </Card>
 
