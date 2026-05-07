@@ -277,3 +277,15 @@
   0%   { background-position: 100% 0; }
   100% { background-position: -100% 0; }
 }
+
+/* Prevent the Replit "Made with Replit" badge from overlapping
+   nav/sidebar links on narrow viewports. The badge is injected
+   by Replit's runtime as a fixed bottom-right element. */
+@media (max-width: 640px) {
+  #replit-badge-container,
+  div[id^="replit-badge"],
+  iframe[src*="replit.com/badge"] {
+    bottom: 64px !important;
+    right: 8px !important;
+  }
+}

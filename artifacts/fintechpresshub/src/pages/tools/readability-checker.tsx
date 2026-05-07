@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -226,6 +226,54 @@ function renderSentenceTokens(sentenceText: string) {
   });
 }
 
+function Sparkline({ scores }: { scores: number[] }) {
+  if (scores.length < 2) return null;
+  const W = 96, H = 28, pad = 3;
+  const yScale = (s: number) => pad + (1 - s / 100) * (H - pad * 2);
+  const xScale = (i: number) =>
+    pad + (i / (scores.length - 1)) * (W - pad * 2);
+  const pts = scores.map((s, i) => ({ x: xScale(i), y: yScale(s) }));
+  const d = pts
+    .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+    .join(" ");
+  const last = scores[scores.length - 1];
+  const stroke =
+    last >= 65 ? "#16a34a" : last >= 45 ? "#d97706" : "#dc2626";
+  return (
+    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+      <svg
+        width={W}
+        height={H}
+        className="overflow-visible"
+        aria-hidden="true"
+      >
+        <path
+          d={d}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={1.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {pts.map((p, i) => (
+          <circle
+            key={i}
+            cx={p.x}
+            cy={p.y}
+            r={i === pts.length - 1 ? 3 : 2}
+            fill={i === pts.length - 1 ? stroke : "white"}
+            stroke={stroke}
+            strokeWidth={1.5}
+          />
+        ))}
+      </svg>
+      <span className="whitespace-nowrap">
+        {scores.length} check{scores.length !== 1 ? "s" : ""}
+      </span>
+    </div>
+  );
+}
+
 function applySimplifications(rawText: string): string {
   let result = rawText;
   for (const [complex, simple] of Object.entries(SYNONYM_MAP)) {
@@ -244,18 +292,39 @@ export default function ReadabilityChecker() {
   const [text, setText] = useState("");
   const [checked, setChecked] = useState(false);
   const [checkedText, setCheckedText] = useState("");
+  const [scoreHistory, setScoreHistory] = useState<number[]>([]);
+  const [copyTextState, setCopyTextState] = useState<"idle" | "copied">("idle");
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const reset = () => {
     setText("");
     setChecked(false);
     setCheckedText("");
+    setScoreHistory([]);
   };
 
   const [copyImprovedState, setCopyImprovedState] = useState<"idle" | "copied">("idle");
 
+  const copyText = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopyTextState("copied");
+    setTimeout(() => setCopyTextState("idle"), 2000);
+  };
+
   const check = () => {
+    const { sentences, words } = tokenize(text);
+    const newScore = Math.round(fleschScore(words, sentences));
+    setScoreHistory((prev) => [...prev, newScore]);
     setCheckedText(text);
     setChecked(true);
+    setTimeout(
+      () =>
+        resultsRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        }),
+      150,
+    );
   };
 
   const copyImproved = async () => {
@@ -328,16 +397,38 @@ export default function ReadabilityChecker() {
                     </p>
                   </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={reset}
-                  className="text-muted-foreground"
-                >
-                  <RotateCcw className="w-4 h-4 mr-1.5" />
-                  Reset
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={copyText}
+                    disabled={!text.trim()}
+                    className="text-muted-foreground"
+                  >
+                    {copyTextState === "copied" ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 mr-1.5 text-teal-500" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 mr-1.5" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={reset}
+                    className="text-muted-foreground"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1.5" />
+                    Reset
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -379,14 +470,18 @@ export default function ReadabilityChecker() {
           <AnimatePresence>
             {checked && results && (
               <motion.div
+                ref={resultsRef}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 8 }}
                 className="mt-6 space-y-4"
               >
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                  Your Results
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+                    Your Results
+                  </h3>
+                  <Sparkline scores={scoreHistory} />
+                </div>
 
                 {/* Score card */}
                 <Card
