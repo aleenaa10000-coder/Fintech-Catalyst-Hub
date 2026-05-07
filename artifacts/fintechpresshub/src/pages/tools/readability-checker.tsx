@@ -571,7 +571,7 @@ export default function ReadabilityChecker() {
                           {[0, 40, 60, 80, 100].map((tick) => (
                             <span
                               key={tick}
-                              className="absolute text-[9px] text-muted-foreground leading-none"
+                              className="absolute text-[7px] sm:text-[9px] text-muted-foreground leading-none"
                               style={{
                                 left: `${tick}%`,
                                 transform:
@@ -588,9 +588,15 @@ export default function ReadabilityChecker() {
                         </div>
 
                         {/* Zone name labels */}
-                        <div className="flex text-[10px] text-muted-foreground">
-                          <div style={{ width: "40%" }} className="text-center px-0.5 truncate">Academic</div>
-                          <div style={{ width: "20%" }} className="text-center px-0.5 truncate">Tech Docs</div>
+                        <div className="flex text-[7px] sm:text-[10px] text-muted-foreground">
+                          <div style={{ width: "40%" }} className="text-center px-0.5 truncate">
+                            <span className="hidden sm:inline">Academic</span>
+                            <span className="sm:hidden">Acad.</span>
+                          </div>
+                          <div style={{ width: "20%" }} className="text-center px-0.5 truncate">
+                            <span className="hidden sm:inline">Tech Docs</span>
+                            <span className="sm:hidden">Tech</span>
+                          </div>
                           <div style={{ width: "20%" }} className="text-center px-0.5 truncate">Blogs</div>
                           <div style={{ width: "20%" }} className="text-center px-0.5 truncate">Social</div>
                         </div>
