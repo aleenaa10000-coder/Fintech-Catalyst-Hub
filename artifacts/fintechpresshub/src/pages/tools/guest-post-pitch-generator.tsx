@@ -9,6 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Send,
   Copy,
   Check,
@@ -603,13 +609,28 @@ export default function GuestPostPitchGenerator() {
 
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-3xl">
-          <Link
-            href="/tools"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary mb-8 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            All free tools
-          </Link>
+          <div className="flex items-center justify-between mb-8">
+            <Link
+              href="/tools"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              All free tools
+            </Link>
+            {history.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(true)}
+                className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-orange-600 transition-colors"
+              >
+                <Clock className="w-4 h-4" />
+                Recent Pitches
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-100 text-[11px] font-bold text-orange-600">
+                  {history.length}
+                </span>
+              </button>
+            )}
+          </div>
 
           <Card className="border border-slate-100 shadow-sm">
             <CardContent className="p-6 md:p-8">
@@ -1177,94 +1198,93 @@ export default function GuestPostPitchGenerator() {
             )}
           </AnimatePresence>
 
-          {history.length > 0 && (
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={() => setHistoryOpen((o) => !o)}
-                className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left transition-colors hover:bg-slate-100"
-              >
-                <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                  <Clock className="w-4 h-4 text-slate-400" />
+          <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+            <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+              <SheetHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
+                <SheetTitle className="flex items-center gap-2 text-slate-900">
+                  <Clock className="w-5 h-5 text-orange-500" />
                   Recent Pitches
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[11px] font-bold text-slate-600">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-100 text-[11px] font-bold text-orange-600">
                     {history.length}
                   </span>
-                </span>
-                <ChevronDown
-                  className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${historyOpen ? "rotate-180" : ""}`}
-                />
-              </button>
+                </SheetTitle>
+                <p className="text-[12px] text-muted-foreground">
+                  Last {history.length} generated pitch{history.length !== 1 ? "es" : ""}. Click Restore to load one back into the editor.
+                </p>
+              </SheetHeader>
 
-              <AnimatePresence>
-                {historyOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+                {history.map((entry, i) => (
+                  <div
+                    key={entry.id}
+                    className="rounded-lg border border-slate-200 bg-white p-4 space-y-3 shadow-sm"
                   >
-                    <div className="mt-2 space-y-2">
-                      {history.map((entry) => (
-                        <div
-                          key={entry.id}
-                          className="rounded-lg border border-slate-200 bg-white p-3 flex items-start justify-between gap-3"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-slate-800 truncate">
-                              {toTitleCase(entry.topic)}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              {entry.blog} · <span className="capitalize">{entry.tone}</span> · {timeAgo(entry.timestamp)}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 px-2.5 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50"
-                              onClick={() => {
-                                setEditedPitch(entry.pitch);
-                                setGenerated(true);
-                                window.scrollTo({ top: 0, behavior: "smooth" });
-                              }}
-                            >
-                              Restore
-                            </Button>
-                            <button
-                              type="button"
-                              className="p-1.5 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                              onClick={() =>
-                                setHistory((prev) => {
-                                  const next = prev.filter((e) => e.id !== entry.id);
-                                  saveHistory(next);
-                                  return next;
-                                })
-                              }
-                              aria-label="Delete entry"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        className="w-full text-center text-[11px] text-muted-foreground hover:text-red-500 py-1 transition-colors"
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-800 leading-snug">
+                          {toTitleCase(entry.topic)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {entry.blog} · <span className="capitalize">{entry.tone}</span> · {timeAgo(entry.timestamp)}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-bold text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">
+                        #{history.length - i}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-3">
+                      {entry.pitch.split("\n").filter(Boolean).slice(1, 3).join(" ")}
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        className="flex-1 h-8 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white"
                         onClick={() => {
-                          saveHistory([]);
-                          setHistory([]);
+                          setEditedPitch(entry.pitch);
+                          setGenerated(true);
                           setHistoryOpen(false);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
                       >
-                        Clear all history
+                        <RotateCcw className="w-3 h-3 mr-1.5" />
+                        Restore
+                      </Button>
+                      <button
+                        type="button"
+                        className="h-8 px-2.5 rounded border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors"
+                        onClick={() =>
+                          setHistory((prev) => {
+                            const next = prev.filter((e) => e.id !== entry.id);
+                            saveHistory(next);
+                            return next;
+                          })
+                        }
+                        aria-label="Delete entry"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
+                  </div>
+                ))}
+              </div>
+
+              {history.length > 0 && (
+                <div className="px-6 py-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    className="w-full text-center text-[11px] text-muted-foreground hover:text-red-500 py-1 transition-colors"
+                    onClick={() => {
+                      saveHistory([]);
+                      setHistory([]);
+                      setHistoryOpen(false);
+                    }}
+                  >
+                    Clear all history
+                  </button>
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
         </div>
       </section>
     </div>
