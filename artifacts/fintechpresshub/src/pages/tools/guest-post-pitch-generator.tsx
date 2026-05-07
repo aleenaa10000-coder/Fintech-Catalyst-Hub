@@ -22,7 +22,25 @@ import {
   Lightbulb,
   Heart,
   SlidersHorizontal,
+  Download,
 } from "lucide-react";
+
+const MINOR_WORDS = new Set([
+  "a","an","the","and","but","or","nor","for","so","yet",
+  "at","by","in","of","on","to","up","as","is","it",
+]);
+
+function toTitleCase(str: string): string {
+  return str
+    .trim()
+    .split(/\s+/)
+    .map((word, i) => {
+      const lower = word.toLowerCase();
+      if (i !== 0 && MINOR_WORDS.has(lower)) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(" ");
+}
 
 type Tone = "friendly" | "formal" | "direct";
 
@@ -76,6 +94,7 @@ function buildPitch(form: FormState): string {
   const role = senderRole.trim() || "content lead";
   const blog = targetBlog.trim() || "your publication";
   const topic = proposedTopic.trim() || "a topic in fintech";
+  const subject = `Guest Post Proposal: ${toTitleCase(topic)} | ${toTitleCase(name)}`;
   const expertise =
     yourExpertise.trim() || "fintech content strategy and SEO growth";
   const article = recentArticle.trim();
@@ -86,7 +105,7 @@ function buildPitch(form: FormState): string {
 
   if (tone === "formal") {
     const openingLine = `I am writing to express my interest in contributing a guest article to ${blog}.${articleSentence ? " " + articleSentence : ""}`;
-    return `Subject: Guest Post Submission — ${topic}
+    return `Subject: ${subject}
 
 Dear ${editor},
 
@@ -113,7 +132,7 @@ ${role}, ${company}`;
 
   if (tone === "direct") {
     const articleLine = articleSentence ? `\n\n${articleSentence}` : "";
-    return `Subject: Guest Post Pitch — ${topic}
+    return `Subject: ${subject}
 
 Hi ${editor},
 
@@ -137,7 +156,7 @@ ${role}, ${company}`;
 
   const introLine = `My name is ${name}, ${role} at ${company}. I've been a reader of ${blog} for a while now and genuinely appreciate the quality of fintech content you publish — it consistently hits the right balance of depth and accessibility.${articleSentence ? " " + articleSentence : ""}`;
 
-  return `Subject: Guest Post Pitch — ${topic}
+  return `Subject: ${subject}
 
 Hi ${editor},
 
@@ -203,6 +222,16 @@ export default function GuestPostPitchGenerator() {
     navigator.clipboard.writeText(editedPitch);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const download = () => {
+    const blob = new Blob([editedPitch], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "guest-post-pitch.txt";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const canGenerate =
@@ -461,26 +490,36 @@ export default function GuestPostPitchGenerator() {
                         </p>
                       );
                     })()}
-                    <Button
-                      onClick={copy}
-                      className={`w-full h-11 font-semibold transition-all duration-200 ${
-                        copied
-                          ? "bg-green-600 hover:bg-green-700 text-white"
-                          : "bg-orange-500 hover:bg-orange-600 text-white"
-                      }`}
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="w-4 h-4 mr-2" />
-                          Copied to clipboard!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4 mr-2" />
-                          Copy pitch to clipboard
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={copy}
+                        className={`flex-1 h-11 font-semibold transition-all duration-200 ${
+                          copied
+                            ? "bg-green-600 hover:bg-green-700 text-white"
+                            : "bg-orange-500 hover:bg-orange-600 text-white"
+                        }`}
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="w-4 h-4 mr-2" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copy to clipboard
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={download}
+                        variant="outline"
+                        className="h-11 px-4 font-semibold border-slate-200 text-slate-700 hover:bg-slate-50"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download .txt
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
 
