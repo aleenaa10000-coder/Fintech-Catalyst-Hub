@@ -2226,6 +2226,7 @@ export default function ContentBriefGenerator() {
   const [brief, setBrief] = useState<Brief | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedMd, setCopiedMd] = useState(false);
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [genMessageIdx, setGenMessageIdx] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -2351,6 +2352,13 @@ export default function ContentBriefGenerator() {
     navigator.clipboard.writeText(briefToText(brief));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyBriefAsMarkdown = () => {
+    if (!brief) return;
+    navigator.clipboard.writeText(briefToMarkdown(brief));
+    setCopiedMarkdown(true);
+    setTimeout(() => setCopiedMarkdown(false), 2000);
   };
 
   const downloadBriefAsMarkdown = () => {
@@ -2784,6 +2792,22 @@ export default function ContentBriefGenerator() {
                         <><Check className="w-4 h-4 text-green-600" /> Copied</>
                       ) : (
                         <><Copy className="w-4 h-4" /> Copy</>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={copyBriefAsMarkdown}
+                      className={`gap-1.5 transition-all ${
+                        copiedMarkdown
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                          : "hover:border-emerald-300 hover:text-emerald-700"
+                      }`}
+                    >
+                      {copiedMarkdown ? (
+                        <><Check className="w-4 h-4 text-emerald-600" /> Copied MD!</>
+                      ) : (
+                        <><ClipboardCheck className="w-4 h-4" /> Copy Markdown</>
                       )}
                     </Button>
                     <Button
