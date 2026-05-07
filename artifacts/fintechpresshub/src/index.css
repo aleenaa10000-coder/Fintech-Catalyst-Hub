@@ -278,14 +278,25 @@
   100% { background-position: -100% 0; }
 }
 
-/* Prevent the Replit "Made with Replit" badge from overlapping
-   nav/sidebar links on narrow viewports. The badge is injected
-   by Replit's runtime as a fixed bottom-right element. */
+/* Ensure the Replit "Made with Replit" badge is pinned to the
+   bottom-right corner on all viewports. The BackToTop button is
+   positioned above it (bottom-20) so the two never overlap. */
+#replit-badge-container,
+div[id^="replit-badge"],
+iframe[src*="replit.com/badge"] {
+  position: fixed !important;
+  bottom: 16px !important;
+  right: 16px !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: 40 !important;
+}
+
 @media (max-width: 640px) {
   #replit-badge-container,
   div[id^="replit-badge"],
   iframe[src*="replit.com/badge"] {
-    bottom: 64px !important;
+    bottom: 16px !important;
     right: 8px !important;
   }
 }

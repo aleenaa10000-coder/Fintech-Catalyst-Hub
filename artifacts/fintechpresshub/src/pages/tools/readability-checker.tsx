@@ -445,14 +445,34 @@ export default function ReadabilityChecker() {
                   rows={10}
                   className="resize-y text-sm"
                 />
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">
-                    {text.trim()
-                      ? `${text.trim().split(/\s+/).length} words`
-                      : "0 words"}
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                    {(() => {
+                      const trimmed = text.trim();
+                      const wordCount = trimmed ? trimmed.split(/\s+/).length : 0;
+                      const sentenceCount = trimmed
+                        ? trimmed.split(/[.!?]+/).filter((s) => s.trim().length > 0).length
+                        : 0;
+                      const charCount = text.length;
+                      return (
+                        <>
+                          <span>
+                            <span className="font-semibold text-slate-700">{wordCount}</span> words
+                          </span>
+                          <span className="text-slate-300">·</span>
+                          <span>
+                            <span className="font-semibold text-slate-700">{sentenceCount}</span> sentences
+                          </span>
+                          <span className="text-slate-300">·</span>
+                          <span>
+                            <span className="font-semibold text-slate-700">{charCount}</span> chars
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
                   {!canCheck && text.trim().length > 0 && (
-                    <span className="text-[11px] text-amber-600">
+                    <span className="text-[11px] text-amber-600 shrink-0">
                       Enter at least 10 words to analyse.
                     </span>
                   )}
