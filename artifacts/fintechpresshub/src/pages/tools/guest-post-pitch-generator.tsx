@@ -46,6 +46,7 @@ import {
   Loader2,
   Eye,
   Pencil,
+  ArrowLeftRight,
 } from "lucide-react";
 
 const MINOR_WORDS = new Set([
@@ -496,6 +497,7 @@ export default function GuestPostPitchGenerator() {
   const [pitchWordDelta, setPitchWordDelta] = useState<number | null>(null);
   const [history, setHistory] = useState<PitchEntry[]>(loadHistory);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyCompareEntry, setHistoryCompareEntry] = useState<PitchEntry | null>(null);
   const [urlFetching, setUrlFetching] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [targetBlogHighlighted, setTargetBlogHighlighted] = useState(false);
@@ -690,7 +692,8 @@ export default function GuestPostPitchGenerator() {
       ? firstLine.slice("Subject: ".length).trim()
       : firstLine.trim();
     const body = editedPitch.split("\n").slice(2).join("\n").trim();
-    return `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const to = recipientEmail.trim();
+    return `https://mail.google.com/mail/?view=cm&fs=1&tf=1${to ? `&to=${encodeURIComponent(to)}` : ""}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   })();
 
   const canGenerate =
@@ -1522,47 +1525,61 @@ export default function GuestPostPitchGenerator() {
                       );
                     })()}
 
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={copy}
-                        className={`flex-1 h-11 font-semibold transition-all duration-200 ${
-                          copied
-                            ? "bg-green-600 hover:bg-green-700 text-white"
-                            : "bg-orange-500 hover:bg-orange-600 text-white"
-                        }`}
-                      >
-                        {copied ? (
-                          <>
-                            <Check className="w-4 h-4 mr-2" />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-4 h-4 mr-2" />
-                            Copy to clipboard
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        onClick={download}
-                        variant="outline"
-                        className="h-11 px-4 font-semibold border-slate-200 text-slate-700 hover:bg-slate-50"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download .txt
-                      </Button>
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="h-11 px-4 font-semibold border-slate-200 text-slate-700 hover:bg-slate-50"
-                      >
-                        <a href={gmailHref} target="_blank" rel="noopener noreferrer">
-                          <svg className="w-4 h-4 mr-2 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill="currentColor"/>
-                          </svg>
-                          Open in Gmail
-                        </a>
-                      </Button>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={copy}
+                          className={`flex-1 h-11 font-semibold transition-all duration-200 ${
+                            copied
+                              ? "bg-green-600 hover:bg-green-700 text-white"
+                              : "bg-orange-500 hover:bg-orange-600 text-white"
+                          }`}
+                        >
+                          {copied ? (
+                            <>
+                              <Check className="w-4 h-4 mr-2" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copy to clipboard
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          onClick={download}
+                          variant="outline"
+                          className="h-11 px-4 font-semibold border-slate-200 text-slate-700 hover:bg-slate-50"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download .txt
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="flex-1 h-10 px-3 font-semibold border-slate-200 text-slate-700 hover:bg-slate-50"
+                        >
+                          <a href={mailtoHref}>
+                            <Mail className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                            Open in Email
+                          </a>
+                        </Button>
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="flex-1 h-10 px-3 font-semibold border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                        >
+                          <a href={gmailHref} target="_blank" rel="noopener noreferrer">
+                            <svg className="w-3.5 h-3.5 mr-1.5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill="currentColor"/>
+                            </svg>
+                            Draft in Gmail
+                          </a>
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Send Now panel */}
@@ -1782,6 +1799,17 @@ export default function GuestPostPitchGenerator() {
                         <RotateCcw className="w-3 h-3 mr-1.5" />
                         Restore
                       </Button>
+                      {generated && (
+                        <button
+                          type="button"
+                          className="h-8 px-2.5 rounded border border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-colors"
+                          onClick={() => setHistoryCompareEntry(entry)}
+                          aria-label="Compare with current pitch"
+                          title="Compare with current pitch"
+                        >
+                          <ArrowLeftRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="h-8 px-2.5 rounded border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors"
@@ -1841,6 +1869,79 @@ export default function GuestPostPitchGenerator() {
               )}
             </SheetContent>
           </Sheet>
+
+          {/* Pitch History Comparison Dialog */}
+          <Dialog
+            open={historyCompareEntry !== null}
+            onOpenChange={(open) => { if (!open) setHistoryCompareEntry(null); }}
+          >
+            <DialogContent className="max-w-4xl w-full p-0 gap-0 overflow-hidden">
+              <DialogHeader className="px-6 pt-5 pb-4 border-b border-slate-100">
+                <DialogTitle className="flex items-center gap-2 text-slate-900">
+                  <ArrowLeftRight className="w-4 h-4 text-indigo-500" />
+                  Compare Pitches
+                  {historyCompareEntry && (
+                    <span className="text-xs font-normal text-muted-foreground ml-1">
+                      — {toTitleCase(historyCompareEntry.topic)} · {historyCompareEntry.blog} · {timeAgo(historyCompareEntry.timestamp)}
+                    </span>
+                  )}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 max-h-[65vh] overflow-hidden">
+                {/* Historical pitch */}
+                <div className="flex flex-col overflow-hidden">
+                  <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2 shrink-0">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                      Previous · {historyCompareEntry ? toTitleCase(historyCompareEntry.tone) : ""}
+                    </span>
+                  </div>
+                  <pre className="flex-1 overflow-y-auto px-4 py-4 text-[12px] leading-relaxed text-slate-700 whitespace-pre-wrap font-sans">
+                    {historyCompareEntry?.pitch ?? ""}
+                  </pre>
+                </div>
+                {/* Current pitch */}
+                <div className="flex flex-col overflow-hidden">
+                  <div className="px-4 py-2.5 bg-orange-50 border-b border-orange-100 flex items-center gap-2 shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                    <span className="text-[11px] font-bold text-orange-600 uppercase tracking-widest">
+                      Current · {toTitleCase(form.tone)}
+                    </span>
+                  </div>
+                  <pre className="flex-1 overflow-y-auto px-4 py-4 text-[12px] leading-relaxed text-slate-700 whitespace-pre-wrap font-sans">
+                    {editedPitch}
+                  </pre>
+                </div>
+              </div>
+              <div className="px-6 py-3 border-t border-slate-100 flex justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs font-semibold border-slate-200"
+                  onClick={() => setHistoryCompareEntry(null)}
+                >
+                  Close
+                </Button>
+                {historyCompareEntry && (
+                  <Button
+                    size="sm"
+                    className="text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white"
+                    onClick={() => {
+                      if (historyCompareEntry) {
+                        setEditedPitch(historyCompareEntry.pitch);
+                        setGenerated(true);
+                        setHistoryCompareEntry(null);
+                        setHistoryOpen(false);
+                      }
+                    }}
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1.5" />
+                    Restore previous
+                  </Button>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </section>
     </div>
