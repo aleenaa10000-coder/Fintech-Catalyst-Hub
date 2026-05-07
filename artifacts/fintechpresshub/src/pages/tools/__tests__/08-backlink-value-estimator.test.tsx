@@ -1,7 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import BacklinkValueEstimator from "../backlink-value-estimator";
+
+async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
+  const textInputs = screen.getAllByRole("textbox");
+  await user.type(textInputs[0], "techcrunch.com");
+  const daInputs = screen.getAllByRole("spinbutton");
+  fireEvent.change(daInputs[0], { target: { value: "85" } });
+  const updatedTextInputs = screen.getAllByRole("textbox");
+  await user.type(updatedTextInputs[updatedTextInputs.length - 1], "500000");
+}
 
 describe("Backlink Value Estimator", () => {
   it("renders without crashing and shows input fields", () => {
@@ -25,13 +34,7 @@ describe("Backlink Value Estimator", () => {
   it("enables Estimate button after filling domain, DA, and traffic", async () => {
     const user = userEvent.setup();
     render(<BacklinkValueEstimator />);
-    const textInputs = screen.getAllByRole("textbox");
-    await user.type(textInputs[0], "techcrunch.com");
-    const numberInputs = screen.getAllByRole("spinbutton");
-    await user.clear(numberInputs[0]);
-    await user.type(numberInputs[0], "85");
-    await user.clear(numberInputs[1]);
-    await user.type(numberInputs[1], "500000");
+    await fillRequiredFields(user);
     const btn = screen.getByRole("button", { name: /estimate backlink value/i });
     expect(btn).not.toBeDisabled();
   });
@@ -39,13 +42,7 @@ describe("Backlink Value Estimator", () => {
   it("displays estimated backlink value after clicking estimate", async () => {
     const user = userEvent.setup();
     render(<BacklinkValueEstimator />);
-    const textInputs = screen.getAllByRole("textbox");
-    await user.type(textInputs[0], "techcrunch.com");
-    const numberInputs = screen.getAllByRole("spinbutton");
-    await user.clear(numberInputs[0]);
-    await user.type(numberInputs[0], "85");
-    await user.clear(numberInputs[1]);
-    await user.type(numberInputs[1], "500000");
+    await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /estimate backlink value/i }));
     expect(screen.getAllByText(/estimated/i).length).toBeGreaterThan(0);
   });

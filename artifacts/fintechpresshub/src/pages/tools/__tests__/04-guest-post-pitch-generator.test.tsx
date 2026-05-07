@@ -14,6 +14,17 @@ async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await user.type(inputs[6], "fintech payments and digital banking");
 }
 
+function getPitchTextareaValue(): string {
+  const el = screen
+    .getAllByRole("textbox")
+    .find(
+      (e) =>
+        e.tagName === "TEXTAREA" &&
+        (e as HTMLTextAreaElement).value.includes("Subject:"),
+    ) as HTMLTextAreaElement | undefined;
+  return el?.value ?? "";
+}
+
 describe("Guest Post Pitch Generator", () => {
   it("renders without crashing and shows input fields", () => {
     render(<GuestPostPitchGenerator />);
@@ -40,7 +51,7 @@ describe("Guest Post Pitch Generator", () => {
     render(<GuestPostPitchGenerator />);
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
-    expect(screen.getByText(/jane smith/i)).toBeTruthy();
+    expect(screen.getAllByText(/jane smith/i).length).toBeGreaterThan(0);
   });
 
   it("Regenerate button is not visible before a pitch is generated", () => {
@@ -62,14 +73,12 @@ describe("Guest Post Pitch Generator", () => {
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
 
-    const pitchArea = screen.getAllByRole("textbox").find(
-      (el) => (el as HTMLTextAreaElement).value?.includes("Jane Smith"),
-    ) as HTMLTextAreaElement;
-    const firstPitch = pitchArea.value;
+    const firstPitch = getPitchTextareaValue();
+    expect(firstPitch).toContain("Subject:");
 
     await user.click(screen.getByRole("button", { name: /regenerate/i }));
-    const secondPitch = pitchArea.value;
 
+    const secondPitch = getPitchTextareaValue();
     expect(secondPitch).not.toEqual(firstPitch);
   });
 
@@ -83,5 +92,13 @@ describe("Guest Post Pitch Generator", () => {
     const inputs = screen.getAllByRole("textbox");
     expect((inputs[0] as HTMLInputElement).value).toBe("Jane Smith");
     expect((inputs[3] as HTMLInputElement).value).toBe("FintechPressHub");
+  });
+
+  it("Copy subject line button appears after pitch is generated", async () => {
+    const user = userEvent.setup();
+    render(<GuestPostPitchGenerator />);
+    await fillRequiredFields(user);
+    await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
+    expect(screen.getByRole("button", { name: /copy subject/i })).toBeTruthy();
   });
 });
