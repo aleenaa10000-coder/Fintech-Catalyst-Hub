@@ -328,9 +328,19 @@ function buildPitch(form: FormState, variation: number = 0): string {
   } = form;
 
   const rawEditor = targetEditorName.trim();
-  const firstName = rawEditor ? rawEditor.split(/\s+/)[0] : "";
-  const informalGreeting = firstName ? `Hi ${firstName},` : "Hi there,";
-  const formalGreeting = firstName ? `Dear ${firstName},` : "Hi there,";
+  // If the editor name starts with an honorific (Dr., Mr., etc.) keep "Title FirstName";
+  // otherwise use first name only. This way "Dr. Sarah Jones" → "Hi Dr. Sarah," and
+  // "Frank Chaparro" → "Hi Frank,".
+  const HONORIFICS = new Set(["dr.", "mr.", "ms.", "mrs.", "prof.", "sir", "rev."]);
+  const editorParts = rawEditor ? rawEditor.split(/\s+/) : [];
+  const greetingName = editorParts.length === 0
+    ? ""
+    : HONORIFICS.has(editorParts[0].toLowerCase())
+      ? editorParts.slice(0, 2).join(" ")
+      : editorParts[0];
+  const informalGreeting = greetingName ? `Hi ${greetingName},` : "Hi there,";
+  const formalGreeting = greetingName ? `Dear ${greetingName},` : "Hi there,";
+  // Sign-off uses the sender's full name (including any title) exactly as entered.
   const name = senderName.trim() || "Your Name";
   const company = senderCompany.trim() || "Your Company";
   const role = senderRole.trim() || "content lead";
@@ -1121,6 +1131,16 @@ export default function GuestPostPitchGenerator() {
                           <p className={`text-[11px] leading-snug ${isSelected ? "text-orange-800/70" : "text-muted-foreground"}`}>
                             {pub.description}
                           </p>
+                          {pub.editorName && (
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border w-fit ${
+                              isSelected
+                                ? "bg-orange-100 border-orange-200 text-orange-700"
+                                : "bg-slate-50 border-slate-200 text-slate-500"
+                            }`}>
+                              <User className="w-2.5 h-2.5 shrink-0" />
+                              {pub.editorName}
+                            </span>
+                          )}
                           <div className="flex items-center justify-between mt-0.5">
                             <span className={`text-[11px] font-semibold ${isSelected ? "text-orange-600" : "text-slate-400"}`}>
                               {isSelected ? "✓ Selected as target" : "Click to select"}
