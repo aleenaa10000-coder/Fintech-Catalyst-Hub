@@ -16,6 +16,7 @@ import {
   XCircle,
   Sparkles,
   Eye,
+  Copy,
 } from "lucide-react";
 
 function countSyllables(word: string): number {
@@ -225,6 +226,20 @@ function renderSentenceTokens(sentenceText: string) {
   });
 }
 
+function applySimplifications(rawText: string): string {
+  let result = rawText;
+  for (const [complex, simple] of Object.entries(SYNONYM_MAP)) {
+    const regex = new RegExp(`\\b${complex}\\b`, "gi");
+    result = result.replace(regex, (match) => {
+      if (/^[A-Z]/.test(match)) {
+        return simple.charAt(0).toUpperCase() + simple.slice(1);
+      }
+      return simple;
+    });
+  }
+  return result;
+}
+
 export default function ReadabilityChecker() {
   const [text, setText] = useState("");
   const [checked, setChecked] = useState(false);
@@ -236,9 +251,18 @@ export default function ReadabilityChecker() {
     setCheckedText("");
   };
 
+  const [copyImprovedState, setCopyImprovedState] = useState<"idle" | "copied">("idle");
+
   const check = () => {
     setCheckedText(text);
     setChecked(true);
+  };
+
+  const copyImproved = async () => {
+    const improved = applySimplifications(checkedText);
+    await navigator.clipboard.writeText(improved);
+    setCopyImprovedState("copied");
+    setTimeout(() => setCopyImprovedState("idle"), 2000);
   };
 
   const results = useMemo(() => {
@@ -368,29 +392,112 @@ export default function ReadabilityChecker() {
                 <Card
                   className={`border shadow-sm ring-1 ${results.level.ring}`}
                 >
-                  <CardContent className="p-6 flex items-center gap-6">
-                    <div className="text-center min-w-[80px]">
-                      <div
-                        className={`text-5xl font-black ${results.level.color}`}
-                      >
-                        {results.score.toFixed(0)}
+                  <CardContent className="p-6 space-y-5">
+                    {/* Score + label row */}
+                    <div className="flex items-center gap-6">
+                      <div className="text-center min-w-[80px]">
+                        <div
+                          className={`text-5xl font-black ${results.level.color}`}
+                        >
+                          {results.score.toFixed(0)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          / 100
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        / 100
+                      <div>
+                        <div
+                          className={`flex items-center gap-1.5 font-semibold text-base ${results.level.color}`}
+                        >
+                          <results.level.Icon className="w-5 h-5" />
+                          {results.level.label}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          Flesch Reading Ease Score
+                        </div>
+                        <div className="text-sm font-medium text-slate-700 mt-0.5">
+                          {results.grade} reading level
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <div
-                        className={`flex items-center gap-1.5 font-semibold text-base ${results.level.color}`}
-                      >
-                        <results.level.Icon className="w-5 h-5" />
-                        {results.level.label}
+
+                    {/* Benchmark scale */}
+                    <div className="border-t border-slate-100 pt-4">
+                      <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                        Benchmark
                       </div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Flesch Reading Ease Score
-                      </div>
-                      <div className="text-sm font-medium text-slate-700 mt-0.5">
-                        {results.grade} reading level
+                      <div className="relative pt-3">
+                        {/* Needle */}
+                        <div
+                          className="absolute z-10 top-0"
+                          style={{
+                            left: `${Math.min(Math.max(results.score, 0), 100)}%`,
+                            transform: "translateX(-50%)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 0,
+                              height: 0,
+                              borderLeft: "5px solid transparent",
+                              borderRight: "5px solid transparent",
+                              borderTop: "8px solid #1e293b",
+                            }}
+                          />
+                        </div>
+
+                        {/* Zone bar */}
+                        <div className="flex h-4 rounded-full overflow-hidden">
+                          <div
+                            className="bg-rose-400"
+                            style={{ width: "40%" }}
+                            title="Academic (0–40)"
+                          />
+                          <div
+                            className="bg-amber-400"
+                            style={{ width: "20%" }}
+                            title="Technical Docs (40–60)"
+                          />
+                          <div
+                            className="bg-sky-400"
+                            style={{ width: "20%" }}
+                            title="Standard Blogs (60–80)"
+                          />
+                          <div
+                            className="bg-emerald-400"
+                            style={{ width: "20%" }}
+                            title="Social Media (80–100)"
+                          />
+                        </div>
+
+                        {/* Tick numbers */}
+                        <div className="relative h-4 mt-0.5">
+                          {[0, 40, 60, 80, 100].map((tick) => (
+                            <span
+                              key={tick}
+                              className="absolute text-[9px] text-muted-foreground leading-none"
+                              style={{
+                                left: `${tick}%`,
+                                transform:
+                                  tick === 0
+                                    ? "none"
+                                    : tick === 100
+                                      ? "translateX(-100%)"
+                                      : "translateX(-50%)",
+                              }}
+                            >
+                              {tick}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Zone name labels */}
+                        <div className="flex text-[10px] text-muted-foreground">
+                          <div style={{ width: "40%" }} className="text-center px-0.5 truncate">Academic</div>
+                          <div style={{ width: "20%" }} className="text-center px-0.5 truncate">Tech Docs</div>
+                          <div style={{ width: "20%" }} className="text-center px-0.5 truncate">Blogs</div>
+                          <div style={{ width: "20%" }} className="text-center px-0.5 truncate">Social</div>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -490,6 +597,25 @@ export default function ReadabilityChecker() {
                       <span className="inline-block w-2 h-0.5 border-b-2 border-dotted border-amber-500" />
                       Dotted-underlined words have simpler alternatives — hover to see them.
                     </p>
+
+                    <Button
+                      onClick={copyImproved}
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-9 text-xs font-semibold border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300"
+                    >
+                      {copyImprovedState === "copied" ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-teal-500" />
+                          Copied improved text!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 mr-1.5" />
+                          Copy improved text
+                        </>
+                      )}
+                    </Button>
                   </CardContent>
                 </Card>
 
