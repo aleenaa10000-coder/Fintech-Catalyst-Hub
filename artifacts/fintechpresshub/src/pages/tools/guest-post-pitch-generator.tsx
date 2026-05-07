@@ -23,12 +23,27 @@ import {
   Heart,
   SlidersHorizontal,
   Download,
+  Clock,
+  ChevronDown,
+  Trash2,
 } from "lucide-react";
 
 const MINOR_WORDS = new Set([
   "a","an","the","and","but","or","nor","for","so","yet",
   "at","by","in","of","on","to","up","as","is","it",
 ]);
+
+const HISTORY_KEY = "fph:pitch-history";
+const MAX_HISTORY = 5;
+
+type PitchEntry = {
+  id: string;
+  timestamp: number;
+  topic: string;
+  blog: string;
+  tone: Tone;
+  pitch: string;
+};
 
 type StrengthLevel = "weak" | "good" | "strong" | "excellent";
 
@@ -207,12 +222,34 @@ ${name}
 ${role}, ${company}`;
 }
 
+function loadHistory(): PitchEntry[] {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]") as PitchEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(entries: PitchEntry[]) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+}
+
+function timeAgo(ts: number): string {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 export default function GuestPostPitchGenerator() {
   const [form, setForm] = useState<FormState>(DEFAULTS);
   const [pitch, setPitch] = useState("");
   const [editedPitch, setEditedPitch] = useState("");
   const [copied, setCopied] = useState(false);
   const [generated, setGenerated] = useState(false);
+  const [history, setHistory] = useState<PitchEntry[]>(loadHistory);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const pitchTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -242,6 +279,19 @@ export default function GuestPostPitchGenerator() {
     setPitch(result);
     setEditedPitch(result);
     setGenerated(true);
+    const entry: PitchEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      timestamp: Date.now(),
+      topic: form.proposedTopic.trim() || "a topic in fintech",
+      blog: form.targetBlog.trim() || "your publication",
+      tone: form.tone,
+      pitch: result,
+    };
+    setHistory((prev) => {
+      const next = [entry, ...prev].slice(0, MAX_HISTORY);
+      saveHistory(next);
+      return next;
+    });
   };
 
   const copy = () => {
@@ -609,6 +659,95 @@ export default function GuestPostPitchGenerator() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {history.length > 0 && (
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => setHistoryOpen((o) => !o)}
+                className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left transition-colors hover:bg-slate-100"
+              >
+                <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <Clock className="w-4 h-4 text-slate-400" />
+                  Recent Pitches
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[11px] font-bold text-slate-600">
+                    {history.length}
+                  </span>
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${historyOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {historyOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-2 space-y-2">
+                      {history.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="rounded-lg border border-slate-200 bg-white p-3 flex items-start justify-between gap-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-slate-800 truncate">
+                              {toTitleCase(entry.topic)}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {entry.blog} · <span className="capitalize">{entry.tone}</span> · {timeAgo(entry.timestamp)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2.5 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50"
+                              onClick={() => {
+                                setEditedPitch(entry.pitch);
+                                setGenerated(true);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }}
+                            >
+                              Restore
+                            </Button>
+                            <button
+                              type="button"
+                              className="p-1.5 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                              onClick={() =>
+                                setHistory((prev) => {
+                                  const next = prev.filter((e) => e.id !== entry.id);
+                                  saveHistory(next);
+                                  return next;
+                                })
+                              }
+                              aria-label="Delete entry"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        className="w-full text-center text-[11px] text-muted-foreground hover:text-red-500 py-1 transition-colors"
+                        onClick={() => {
+                          saveHistory([]);
+                          setHistory([]);
+                          setHistoryOpen(false);
+                        }}
+                      >
+                        Clear all history
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
       </section>
     </div>
