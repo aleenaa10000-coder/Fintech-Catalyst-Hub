@@ -507,10 +507,10 @@ export default function ReadabilityChecker() {
     const lines: string[] = [];
     lines.push(`## Readability Report`);
     lines.push(``);
-    lines.push(`**Score:** ${results.score.toFixed(0)} / 100 — ${results.level.label}`);
-    lines.push(`**Grade level:** ${results.grade}`);
+    lines.push(`**Flesch Score:** ${results.score.toFixed(0)} / 100 — ${results.level.label}`);
+    lines.push(`**Grade Level:** ${results.grade}`);
     lines.push(``);
-    lines.push(`### Stats`);
+    lines.push(`### Key Stats`);
     lines.push(``);
     lines.push(`| Metric | Value |`);
     lines.push(`| --- | --- |`);
@@ -535,6 +535,10 @@ export default function ReadabilityChecker() {
       lines.push(`- **Overall change: ${delta > 0 ? "+" : ""}${delta}**`);
       lines.push(``);
     }
+    lines.push(`### Original Text`);
+    lines.push(``);
+    lines.push(checkedText);
+    lines.push(``);
     await navigator.clipboard.writeText(lines.join("\n"));
     navigator.vibrate?.(40);
     setCopyMdState("copied");
