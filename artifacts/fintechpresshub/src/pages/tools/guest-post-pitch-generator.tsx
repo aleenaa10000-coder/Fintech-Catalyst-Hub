@@ -893,49 +893,66 @@ export default function GuestPostPitchGenerator() {
                     </h3>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {suggestions.map((pub) => (
-                      <div
-                        key={pub.name}
-                        className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 transition-all hover:border-orange-200 hover:shadow-sm"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <a
-                            href={pub.guestPostUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group flex items-center gap-1 min-w-0"
-                          >
-                            <span className="text-sm font-semibold text-slate-800 group-hover:text-orange-600 transition-colors truncate">
-                              {pub.name}
-                            </span>
-                            <ExternalLink className="w-3 h-3 shrink-0 text-slate-300 group-hover:text-orange-400 transition-colors" />
-                          </a>
-                          <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 ${
-                            pub.drTier === "High"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-amber-100 text-amber-700"
-                          }`}>
-                            DR {pub.drTier}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-snug">
-                          {pub.description}
-                        </p>
-                        <button
-                          type="button"
+                    {suggestions.map((pub) => {
+                      const isSelected = form.targetBlog === pub.name;
+                      return (
+                        <div
+                          key={pub.name}
+                          role="button"
+                          tabIndex={0}
                           onClick={() =>
                             setForm((prev) => ({ ...prev, targetBlog: pub.name }))
                           }
-                          className={`self-start text-[11px] font-semibold px-2 py-0.5 rounded transition-colors ${
-                            form.targetBlog === pub.name
-                              ? "bg-orange-100 text-orange-700"
-                              : "bg-slate-100 text-slate-600 hover:bg-orange-50 hover:text-orange-600"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setForm((prev) => ({ ...prev, targetBlog: pub.name }));
+                            }
+                          }}
+                          className={`relative flex flex-col gap-2 rounded-lg border p-3 cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 ${
+                            isSelected
+                              ? "border-orange-400 bg-orange-50 shadow-sm ring-1 ring-orange-400"
+                              : "border-slate-200 bg-white hover:border-orange-200 hover:shadow-sm"
                           }`}
                         >
-                          {form.targetBlog === pub.name ? "✓ Selected" : "Use this →"}
-                        </button>
-                      </div>
-                    ))}
+                          {isSelected && (
+                            <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-white text-[10px] font-bold">
+                              ✓
+                            </span>
+                          )}
+                          <div className="flex items-start justify-between gap-2 pr-6">
+                            <span className={`text-sm font-semibold truncate ${isSelected ? "text-orange-700" : "text-slate-800"}`}>
+                              {pub.name}
+                            </span>
+                            <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 ${
+                              pub.drTier === "High"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-amber-100 text-amber-700"
+                            }`}>
+                              DR {pub.drTier}
+                            </span>
+                          </div>
+                          <p className={`text-[11px] leading-snug ${isSelected ? "text-orange-800/70" : "text-muted-foreground"}`}>
+                            {pub.description}
+                          </p>
+                          <div className="flex items-center justify-between mt-0.5">
+                            <span className={`text-[11px] font-semibold ${isSelected ? "text-orange-600" : "text-slate-400"}`}>
+                              {isSelected ? "✓ Selected as target" : "Click to select"}
+                            </span>
+                            <a
+                              href={pub.guestPostUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-orange-600 transition-colors"
+                            >
+                              Guidelines
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </motion.div>
               );
