@@ -369,7 +369,7 @@ export default function ReadabilityChecker() {
       <PageHero
         eyebrow="Free Tool"
         title="Readability Checker"
-        description="Paste your article and get an instant Flesch readability score, grade level, sentence stats, and actionable tips to make your content clearer."
+        description="Paste your content and get an instant Flesch readability score, grade level, and actionable tips to make your writing clearer."
       />
 
       <section className="py-12 md:py-16">
