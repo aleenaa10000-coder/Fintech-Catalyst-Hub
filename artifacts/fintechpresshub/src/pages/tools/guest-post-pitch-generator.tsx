@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -168,6 +168,14 @@ export default function GuestPostPitchGenerator() {
   const [editedPitch, setEditedPitch] = useState("");
   const [copied, setCopied] = useState(false);
   const [generated, setGenerated] = useState(false);
+  const pitchTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = pitchTextareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [editedPitch]);
 
   const setField =
     (key: keyof FormState) =>
@@ -420,24 +428,28 @@ export default function GuestPostPitchGenerator() {
                 <Card className="border border-slate-100 shadow-sm">
                   <CardContent className="p-4 space-y-3">
                     <Textarea
+                      ref={pitchTextareaRef}
                       value={editedPitch}
                       onChange={(e) => setEditedPitch(e.target.value)}
-                      rows={20}
-                      className="text-sm font-mono resize-y"
+                      className="text-sm font-sans resize-none overflow-hidden leading-relaxed"
+                      style={{ minHeight: "200px" }}
                     />
                     <Button
                       onClick={copy}
-                      variant="outline"
-                      className="w-full"
+                      className={`w-full h-11 font-semibold transition-all duration-200 ${
+                        copied
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : "bg-orange-500 hover:bg-orange-600 text-white"
+                      }`}
                     >
                       {copied ? (
                         <>
-                          <Check className="w-4 h-4 mr-1.5 text-green-600" />
+                          <Check className="w-4 h-4 mr-2" />
                           Copied to clipboard!
                         </>
                       ) : (
                         <>
-                          <Copy className="w-4 h-4 mr-1.5" />
+                          <Copy className="w-4 h-4 mr-2" />
                           Copy pitch to clipboard
                         </>
                       )}
