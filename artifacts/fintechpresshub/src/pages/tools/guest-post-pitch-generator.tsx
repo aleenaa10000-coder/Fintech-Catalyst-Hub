@@ -53,7 +53,8 @@ function buildPitch(form: FormState): string {
     yourExpertise,
   } = form;
 
-  const editor = targetEditorName.trim() || "there";
+  const rawEditor = targetEditorName.trim();
+  const editor = rawEditor ? rawEditor.split(/\s+/)[0] : "there";
   const name = senderName.trim() || "Your Name";
   const company = senderCompany.trim() || "Your Company";
   const role = senderRole.trim() || "content lead";
@@ -237,7 +238,7 @@ export default function GuestPostPitchGenerator() {
                     className="h-11"
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Defaults to "there" if left blank.
+                    Defaults to "Hi there," if left blank. First name only if a full name is entered.
                   </p>
                 </div>
 
