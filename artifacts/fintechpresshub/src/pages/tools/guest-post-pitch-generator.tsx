@@ -444,7 +444,19 @@ export default function GuestPostPitchGenerator() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [urlFetching, setUrlFetching] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [targetBlogHighlighted, setTargetBlogHighlighted] = useState(false);
   const pitchTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const targetBlogInputRef = useRef<HTMLInputElement>(null);
+
+  function selectPublication(name: string) {
+    setForm((prev) => ({ ...prev, targetBlog: name }));
+    const el = targetBlogInputRef.current;
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTargetBlogHighlighted(true);
+      setTimeout(() => setTargetBlogHighlighted(false), 1400);
+    }
+  }
 
   async function fetchTitleFromUrl(url: string) {
     setUrlFetching(true);
@@ -663,10 +675,15 @@ export default function GuestPostPitchGenerator() {
                     Target Publication <span className="text-red-500">*</span>
                   </Label>
                   <Input
+                    ref={targetBlogInputRef}
                     placeholder="Fintech Magazine"
                     value={form.targetBlog}
                     onChange={setField("targetBlog")}
-                    className="h-11"
+                    className={`h-11 transition-all duration-300 ${
+                      targetBlogHighlighted
+                        ? "ring-2 ring-orange-400 border-orange-400 bg-orange-50"
+                        : ""
+                    }`}
                   />
                 </div>
 
@@ -900,13 +917,11 @@ export default function GuestPostPitchGenerator() {
                           key={pub.name}
                           role="button"
                           tabIndex={0}
-                          onClick={() =>
-                            setForm((prev) => ({ ...prev, targetBlog: pub.name }))
-                          }
+                          onClick={() => selectPublication(pub.name)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setForm((prev) => ({ ...prev, targetBlog: pub.name }));
+                              selectPublication(pub.name);
                             }
                           }}
                           className={`relative flex flex-col gap-2 rounded-lg border p-3 cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 ${
@@ -1026,24 +1041,24 @@ export default function GuestPostPitchGenerator() {
                       return (
                         <div className="space-y-1.5">
                           <p className={`text-xs text-right -mt-1 font-medium ${
-                            overLimit ? "text-red-500" : nearLimit ? "text-amber-500" : "text-muted-foreground"
+                            overLimit ? "text-amber-600" : nearLimit ? "text-amber-500" : "text-muted-foreground"
                           }`}>
                             {words} words · {readLabel}
-                            {overLimit && ` · ${words - 250} over limit`}
+                            {overLimit && ` · ${words - 250} over recommended`}
                           </p>
                           {overLimit && (
-                            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 flex items-start gap-2">
-                              <span className="text-red-500 text-base leading-none mt-0.5 shrink-0">⚠</span>
-                              <p className="text-xs text-red-700 leading-snug">
-                                <span className="font-semibold">Pitch is too long.</span> Most editors prefer pitch emails under 250 words — longer ones are less likely to be read. Trim the body copy and cut filler sentences before sending.
+                            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 flex items-start gap-2">
+                              <span className="text-lg leading-none mt-0.5 shrink-0">💡</span>
+                              <p className="text-xs text-amber-800 leading-snug">
+                                <span className="font-semibold">Optimization Tip:</span> Your pitch is {words} words. Editors prefer pitches under 250 words for quicker reading. Consider trimming the expertise section for better results.
                               </p>
                             </div>
                           )}
                           {nearLimit && (
                             <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 flex items-start gap-2">
-                              <span className="text-amber-500 text-base leading-none mt-0.5 shrink-0">⚠</span>
-                              <p className="text-xs text-amber-700 leading-snug">
-                                <span className="font-semibold">Getting long.</span> You're approaching the 250-word recommended limit. Consider tightening the opening paragraph.
+                              <span className="text-lg leading-none mt-0.5 shrink-0">💡</span>
+                              <p className="text-xs text-amber-800 leading-snug">
+                                <span className="font-semibold">Optimization Note:</span> You're approaching the 250-word recommended limit. Consider tightening the opening paragraph to keep editors engaged.
                               </p>
                             </div>
                           )}
