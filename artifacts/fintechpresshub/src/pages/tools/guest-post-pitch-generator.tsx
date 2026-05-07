@@ -1093,7 +1093,7 @@ export default function GuestPostPitchGenerator() {
                       Suggested Publications
                     </h3>
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="grid gap-2 md:grid-cols-2">
                     {suggestions.map((pub) => {
                       const isSelected = form.targetBlog === pub.name;
                       return (
@@ -1208,7 +1208,7 @@ export default function GuestPostPitchGenerator() {
                   </div>
                 </div>
 
-                <Card className="border border-slate-100 shadow-sm overflow-hidden">
+                <Card className="border border-slate-100 shadow-sm overflow-hidden -mx-4 sm:mx-0 rounded-none sm:rounded-xl">
                   <CardContent className="p-4 space-y-3">
                     {(() => {
                       const firstLine = editedPitch.split("\n")[0] ?? "";
@@ -1691,6 +1691,53 @@ export default function GuestPostPitchGenerator() {
                 </p>
               </DialogHeader>
 
+              {(() => {
+                const fieldDiffs: Array<{ key: keyof FormState; label: string }> = [
+                  { key: "targetEditorName", label: "Editor name" },
+                  { key: "recentArticle",    label: "Recent article" },
+                  { key: "yourExpertise",    label: "Expertise" },
+                  { key: "senderCompany",    label: "Company" },
+                  { key: "senderRole",       label: "Role" },
+                ];
+                const added   = fieldDiffs.filter((d) => String(form[d.key]).trim());
+                const missing = fieldDiffs.filter((d) => !String(form[d.key]).trim());
+                return (
+                  <div className="px-6 py-3 bg-slate-50/80 border-b border-slate-100">
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        Personalisation Score Changelog
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-500">
+                        {added.length}/{fieldDiffs.length} fields filled
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {added.map((d) => (
+                        <span
+                          key={d.key}
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-green-50 border-green-200 text-green-700"
+                        >
+                          <Check className="w-2.5 h-2.5 shrink-0" />
+                          {d.label} added
+                        </span>
+                      ))}
+                      {missing.map((d) => (
+                        <span
+                          key={d.key}
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-slate-100 border-slate-200 text-slate-400"
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full border border-slate-300 inline-block shrink-0" />
+                          {d.label} missing
+                        </span>
+                      ))}
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-blue-50 border-blue-200 text-blue-700">
+                        Tone: <span className="capitalize ml-0.5">{form.tone}</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 max-h-[70vh] overflow-hidden">
                 {TONE_OPTIONS.map((opt) => {
                   const tonePitch = buildPitch({ ...form, tone: opt.value }, variation);
@@ -1712,6 +1759,14 @@ export default function GuestPostPitchGenerator() {
                             {opt.label}
                           </span>
                           <p className="text-[11px] text-muted-foreground">{opt.description}</p>
+                          {!isActive && (
+                            <p className="text-[10px] text-slate-400 mt-1">
+                              Tone changed:{" "}
+                              <span className="capitalize font-medium text-slate-500">{form.tone}</span>
+                              {" → "}
+                              <span className="capitalize font-medium text-slate-600">{opt.label}</span>
+                            </p>
+                          )}
                         </div>
                         {isActive && (
                           <span className="shrink-0 text-[10px] font-bold text-slate-400 bg-slate-200 rounded px-1.5 py-0.5">Current</span>
