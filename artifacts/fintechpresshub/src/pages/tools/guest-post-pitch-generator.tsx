@@ -416,6 +416,22 @@ ${name}
 ${role}, ${company}`;
 }
 
+function segmentize(
+  text: string,
+  tokens: string[],
+): Array<{ text: string; highlight: boolean }> {
+  const valid = tokens
+    .filter((t) => t.trim().length > 1)
+    .map((t) => t.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (!valid.length) return [{ text, highlight: false }];
+  const rx = new RegExp(`(${valid.join("|")})`, "gi");
+  const parts = text.split(rx).filter((p) => p.length > 0);
+  return parts.map((p) => ({
+    text: p,
+    highlight: valid.some((t) => new RegExp(`^${t}$`, "i").test(p)),
+  }));
+}
+
 function loadHistory(): PitchEntry[] {
   try {
     return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]") as PitchEntry[];
@@ -1246,9 +1262,31 @@ export default function GuestPostPitchGenerator() {
 
                               {/* Email body */}
                               <div className="px-6 py-5 bg-white">
-                                <pre className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap font-sans">
-                                  {bodyText}
-                                </pre>
+                                {(() => {
+                                  const rawEditor = form.targetEditorName.trim();
+                                  const firstName = rawEditor ? rawEditor.split(/\s+/)[0] : "";
+                                  const tokens = [
+                                    firstName,
+                                    form.proposedTopic.trim(),
+                                    form.recentArticle.trim(),
+                                    form.targetBlog.trim(),
+                                    form.senderName.trim(),
+                                  ].filter(Boolean);
+                                  const segs = segmentize(bodyText, tokens);
+                                  return (
+                                    <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap font-sans">
+                                      {segs.map((seg, i) =>
+                                        seg.highlight ? (
+                                          <mark key={i} className="bg-yellow-100 text-slate-900 rounded-sm px-0.5 not-italic">
+                                            {seg.text}
+                                          </mark>
+                                        ) : (
+                                          <span key={i}>{seg.text}</span>
+                                        ),
+                                      )}
+                                    </p>
+                                  );
+                                })()}
                               </div>
 
                               {/* Footer bar */}
@@ -1357,6 +1395,87 @@ export default function GuestPostPitchGenerator() {
                         </AnimatePresence>
                       );
                     })()}
+
+                    {/* Personalization highlights panel + Strength breakdown */}
+                    {(() => {
+                      const rawEditor = form.targetEditorName.trim();
+                      const firstName = rawEditor ? rawEditor.split(/\s+/)[0] : "";
+                      const tokens = [
+                        firstName,
+                        form.proposedTopic.trim(),
+                        form.recentArticle.trim(),
+                        form.targetBlog.trim(),
+                        form.senderName.trim(),
+                      ].filter(Boolean);
+                      const bodyOnly = editedPitch.split("\n").slice(2).join("\n").trim();
+                      const segs = segmentize(bodyOnly, tokens);
+                      const hasHighlights = !emailPreviewMode && segs.some((s) => s.highlight);
+
+                      const { level } = getPitchStrength(form);
+                      const cfg = STRENGTH_CONFIG[level];
+                      const criteria = [
+                        { label: "Editor name",    met: !!form.targetEditorName.trim() },
+                        { label: "Recent article", met: !!form.recentArticle.trim() },
+                        { label: "Expertise",      met: !!form.yourExpertise.trim() },
+                        { label: "Company & role", met: !!(form.senderCompany.trim() && form.senderRole.trim()) },
+                        { label: "Full detail",    met: form.recentArticle.trim().length > 100 && form.yourExpertise.trim().length > 100 },
+                      ];
+
+                      return (
+                        <div className="space-y-2.5">
+                          {hasHighlights && (
+                            <div className="rounded-md border border-yellow-200 bg-yellow-50/50 px-3 pt-2.5 pb-3">
+                              <span className="text-[10px] font-bold text-yellow-700 uppercase tracking-widest block mb-2">
+                                ✦ Personalised fields highlighted
+                              </span>
+                              <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-sans">
+                                {segs.map((seg, i) =>
+                                  seg.highlight ? (
+                                    <mark key={i} className="bg-yellow-200 text-slate-900 rounded-sm px-0.5 not-italic">
+                                      {seg.text}
+                                    </mark>
+                                  ) : (
+                                    <span key={i}>{seg.text}</span>
+                                  ),
+                                )}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                Pitch Strength
+                              </span>
+                              <span className={`text-xs font-bold ${cfg.color}`}>{cfg.label}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {criteria.map((c) => (
+                                <span
+                                  key={c.label}
+                                  className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                                    c.met
+                                      ? "bg-green-50 border-green-200 text-green-700"
+                                      : "bg-slate-100 border-slate-200 text-slate-400"
+                                  }`}
+                                >
+                                  {c.met ? (
+                                    <Check className="w-2.5 h-2.5 shrink-0" />
+                                  ) : (
+                                    <span className="w-2.5 h-2.5 rounded-full border border-slate-300 shrink-0 inline-block" />
+                                  )}
+                                  {c.label}
+                                </span>
+                              ))}
+                            </div>
+                            {level !== "excellent" && (
+                              <p className="text-[10px] text-muted-foreground leading-snug">{cfg.tip}</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <div className="flex gap-2">
                       <Button
                         onClick={copy}
