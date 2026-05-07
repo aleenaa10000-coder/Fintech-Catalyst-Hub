@@ -8,6 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft,
   Sparkles,
   RotateCcw,
@@ -22,6 +34,10 @@ import {
   Trophy,
   Zap,
   ClipboardCheck,
+  Clock,
+  Trash2,
+  ArrowLeftRight,
+  Download,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -58,7 +74,21 @@ type SubjectScore = {
   total: number;      // 0–100
 };
 
+type EmailEntry = {
+  id: string;
+  timestamp: number;
+  targetDomain: string;
+  topic: string;
+  tone: Tone;
+  subject: string;
+  body: string;
+  form: FormState;
+};
+
 // ─── Constants ────────────────────────────────────────────────────────────────
+
+const HISTORY_KEY = "fph:outreach-history";
+const MAX_HISTORY = 5;
 
 const TONES: { id: Tone; label: string; sublabel: string; icon: typeof Mail }[] = [
   { id: "professional",   label: "Professional",   sublabel: "Formal, confident, agency-style",  icon: Briefcase      },
@@ -99,6 +129,30 @@ function capitalize(s: string): string {
 function siteName(domain: string): string {
   const d = fmtDomain(domain);
   return capitalize(d.split(".")[0]);
+}
+
+function toTitleCase(s: string): string {
+  return s.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function timeAgo(ts: number): string {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function loadHistory(): EmailEntry[] {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]") as EmailEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(entries: EmailEntry[]) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
 }
 
 function scoreSubjectLine(subject: string, domain: string): SubjectScore {
@@ -456,6 +510,9 @@ export default function OutreachEmailGenerator() {
   const [copied, setCopied]     = useState<"subject" | "body" | "all" | null>(null);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
   const [bodyExpanded, setBodyExpanded] = useState(true);
+  const [history, setHistory]   = useState<EmailEntry[]>(loadHistory);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyCompareEntry, setHistoryCompareEntry] = useState<EmailEntry | null>(null);
   const copiedRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -478,11 +535,28 @@ export default function OutreachEmailGenerator() {
     const s0   = scoreSubjectLine(vars[0], form.targetDomain);
     const s1   = scoreSubjectLine(vars[1], form.targetDomain);
     const winnerIdx: 0 | 1 = s1.total > s0.total ? 1 : 0;
+    const emailBody = generateEmailBody(form, t, vars[winnerIdx]);
     setVariants(vars);
     setScores([s0, s1]);
     setSelectedIdx(winnerIdx);
-    setBody(generateEmailBody(form, t, vars[winnerIdx]));
+    setBody(emailBody);
     setBodyExpanded(true);
+
+    const entry: EmailEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      timestamp: Date.now(),
+      targetDomain: form.targetDomain.trim(),
+      topic: form.topic.trim() || "digital marketing",
+      tone: t,
+      subject: vars[winnerIdx],
+      body: emailBody,
+      form: { ...form },
+    };
+    setHistory((prev) => {
+      const next = [entry, ...prev].slice(0, MAX_HISTORY);
+      saveHistory(next);
+      return next;
+    });
   };
 
   const reset = () => {
@@ -491,6 +565,22 @@ export default function OutreachEmailGenerator() {
     setVariants(null);
     setScores(null);
     setCopied(null);
+  };
+
+  const restoreEntry = (entry: EmailEntry) => {
+    setForm(entry.form);
+    setTone(entry.tone);
+    const vars = generateSubjectVariants(entry.form, entry.tone);
+    const s0   = scoreSubjectLine(vars[0], entry.form.targetDomain);
+    const s1   = scoreSubjectLine(vars[1], entry.form.targetDomain);
+    const winnerIdx: 0 | 1 = s1.total > s0.total ? 1 : 0;
+    setVariants(vars);
+    setScores([s0, s1]);
+    setSelectedIdx(winnerIdx);
+    setBody(entry.body);
+    setBodyExpanded(true);
+    setHistoryOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const activeSubject = variants ? variants[selectedIdx] : null;
@@ -578,14 +668,30 @@ export default function OutreachEmailGenerator() {
                       <p className="text-xs text-muted-foreground">Fill in what you know — the rest is generated.</p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={reset}
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-slate-700 transition-colors"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Reset
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setHistoryOpen(true)}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-slate-700 transition-colors"
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      History
+                      {history.length > 0 && (
+                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-600">
+                          {history.length}
+                        </span>
+                      )}
+                    </button>
+                    <span className="text-slate-200">|</span>
+                    <button
+                      type="button"
+                      onClick={reset}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-slate-700 transition-colors"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Reset
+                    </button>
+                  </div>
                 </div>
 
                 {/* Tone selector */}
@@ -996,6 +1102,225 @@ export default function OutreachEmailGenerator() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* ── History Sheet ── */}
+          <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+            <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+              <SheetHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
+                <SheetTitle className="flex items-center gap-2 text-slate-900">
+                  <Clock className="w-5 h-5 text-blue-500" />
+                  Saved Emails
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-600">
+                    {history.length}
+                  </span>
+                </SheetTitle>
+                <p className="text-[12px] text-muted-foreground">
+                  Last {history.length} generated email{history.length !== 1 ? "s" : ""}. Click Restore to load one back into the editor.
+                </p>
+              </SheetHeader>
+
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+                {history.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <p className="text-sm font-medium text-slate-500">No emails saved yet</p>
+                    <p className="text-xs text-muted-foreground">Generate your first email and it will appear here.</p>
+                  </div>
+                )}
+                {history.map((entry, i) => (
+                  <div
+                    key={entry.id}
+                    className="rounded-lg border border-slate-200 bg-white p-4 space-y-3 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-800 leading-snug">
+                          {toTitleCase(entry.topic)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {fmtDomain(entry.targetDomain)} · <span className="capitalize">{entry.tone}</span> · {timeAgo(entry.timestamp)}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-bold text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">
+                        #{history.length - i}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2 italic">
+                      {entry.subject}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
+                      {entry.body.split("\n").filter(Boolean).slice(0, 2).join(" ")}
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        className="flex-1 h-8 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => restoreEntry(entry)}
+                      >
+                        <RotateCcw className="w-3 h-3 mr-1.5" />
+                        Restore
+                      </Button>
+                      {hasResults && (
+                        <button
+                          type="button"
+                          className="h-8 px-2.5 rounded border border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-colors"
+                          onClick={() => setHistoryCompareEntry(entry)}
+                          aria-label="Compare with current email"
+                          title="Compare with current email"
+                        >
+                          <ArrowLeftRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="h-8 px-2.5 rounded border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors"
+                        onClick={() =>
+                          setHistory((prev) => {
+                            const next = prev.filter((e) => e.id !== entry.id);
+                            saveHistory(next);
+                            return next;
+                          })
+                        }
+                        aria-label="Delete entry"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {history.length > 0 && (
+                <div className="px-6 py-4 border-t border-slate-100 space-y-2">
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-800 border border-slate-200 rounded-md py-2 transition-colors hover:bg-slate-50"
+                    onClick={() => {
+                      const header = "id,timestamp,date,targetDomain,topic,tone,subject,body";
+                      const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
+                      const rows = history.map((e) => {
+                        const date = new Date(e.timestamp).toISOString().split("T")[0];
+                        return [e.id, e.timestamp, date, escape(e.targetDomain), escape(e.topic), escape(e.tone), escape(e.subject), escape(e.body)].join(",");
+                      });
+                      const csv = [header, ...rows].join("\n");
+                      const blob = new Blob([csv], { type: "text/csv" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `outreach-history-${new Date().toISOString().split("T")[0]}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Export as CSV
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full text-center text-[11px] text-muted-foreground hover:text-red-500 py-1 transition-colors"
+                    onClick={() => {
+                      saveHistory([]);
+                      setHistory([]);
+                      setHistoryOpen(false);
+                    }}
+                  >
+                    Clear all history
+                  </button>
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
+
+          {/* ── Compare Dialog ── */}
+          <Dialog
+            open={historyCompareEntry !== null}
+            onOpenChange={(open) => { if (!open) setHistoryCompareEntry(null); }}
+          >
+            <DialogContent className="max-w-4xl w-full p-0 gap-0 overflow-hidden">
+              <DialogHeader className="px-6 pt-5 pb-4 border-b border-slate-100">
+                <DialogTitle className="flex items-center gap-2 text-slate-900">
+                  <ArrowLeftRight className="w-4 h-4 text-indigo-500" />
+                  Compare Emails
+                  {historyCompareEntry && (
+                    <span className="text-xs font-normal text-muted-foreground ml-1">
+                      — {toTitleCase(historyCompareEntry.topic)} · {fmtDomain(historyCompareEntry.targetDomain)} · {timeAgo(historyCompareEntry.timestamp)}
+                    </span>
+                  )}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 max-h-[65vh] overflow-hidden">
+                {/* Historical email */}
+                <div className="flex flex-col overflow-hidden">
+                  <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2 shrink-0">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                      Previous · {historyCompareEntry ? toTitleCase(historyCompareEntry.tone) : ""}
+                    </span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto px-4 py-4">
+                    {historyCompareEntry && (
+                      <>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Subject</p>
+                        <p className="text-[12px] font-semibold text-slate-700 mb-3 leading-snug">{historyCompareEntry.subject}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Body</p>
+                        <pre className="text-[12px] leading-relaxed text-slate-700 whitespace-pre-wrap font-sans">
+                          {historyCompareEntry.body}
+                        </pre>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {/* Current email */}
+                <div className="flex flex-col overflow-hidden">
+                  <div className="px-4 py-2.5 bg-blue-50 border-b border-blue-100 flex items-center gap-2 shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                    <span className="text-[11px] font-bold text-blue-600 uppercase tracking-widest">
+                      Current · {toTitleCase(tone)}
+                    </span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto px-4 py-4">
+                    {activeSubject && (
+                      <>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Subject</p>
+                        <p className="text-[12px] font-semibold text-slate-700 mb-3 leading-snug">{activeSubject}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Body</p>
+                        <pre className="text-[12px] leading-relaxed text-slate-700 whitespace-pre-wrap font-sans">
+                          {body}
+                        </pre>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 py-3 border-t border-slate-100 flex justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs font-semibold border-slate-200"
+                  onClick={() => setHistoryCompareEntry(null)}
+                >
+                  Close
+                </Button>
+                {historyCompareEntry && (
+                  <Button
+                    size="sm"
+                    className="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => {
+                      if (historyCompareEntry) {
+                        restoreEntry(historyCompareEntry);
+                        setHistoryCompareEntry(null);
+                      }
+                    }}
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1.5" />
+                    Restore previous
+                  </Button>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </section>
     </div>
