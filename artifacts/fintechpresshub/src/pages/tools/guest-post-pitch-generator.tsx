@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Sparkles,
   RotateCcw,
+  RefreshCw,
   User,
   Building2,
   Globe,
@@ -242,7 +243,40 @@ const TONE_OPTIONS: { value: Tone; label: string; description: string }[] = [
   { value: "direct", label: "Direct", description: "Concise and to the point" },
 ];
 
-function buildPitch(form: FormState): string {
+const FRIENDLY_OPENINGS = [
+  (blog: string) =>
+    `I've been a reader of ${blog} for a while now and genuinely appreciate the quality of fintech content you publish — it consistently hits the right balance of depth and accessibility.`,
+  (blog: string) =>
+    `I came across ${blog} while researching for a recent project and was genuinely impressed by the calibre of your fintech coverage — it's rare to find analysis that's both rigorous and immediately practical.`,
+  (blog: string) =>
+    `A colleague recommended ${blog} to me recently, and after spending time with your archive I can see why — your take on fintech consistently cuts through the noise in a way I find genuinely useful.`,
+  (blog: string) =>
+    `I've followed ${blog} for some time and always appreciate how you cover fintech with real depth without losing accessibility for busy practitioners.`,
+];
+
+const FORMAL_OPENINGS = [
+  (blog: string) =>
+    `I am writing to express my interest in contributing a guest article to ${blog}.`,
+  (blog: string) =>
+    `I am reaching out to propose a guest article contribution to ${blog}, whose editorial standards I hold in high regard.`,
+  (blog: string) =>
+    `I write to put forward a guest post proposal for ${blog}, a publication I have followed closely for its rigorous fintech coverage.`,
+  (blog: string) =>
+    `Having followed ${blog}'s coverage of the fintech landscape, I am writing to propose a guest article that I believe would serve your readership well.`,
+];
+
+const DIRECT_PITCHES = [
+  (topic: string, blog: string) =>
+    `I'd like to pitch a guest post on "${topic}" for ${blog}. It's a challenge fintech teams are actively navigating — your audience would find it directly useful.`,
+  (topic: string, blog: string) =>
+    `I'm pitching "${topic}" for ${blog}. It's timely, practical, and directly relevant to what your readers are working through right now.`,
+  (topic: string, blog: string) =>
+    `Guest post idea for ${blog}: "${topic}". Fintech teams are grappling with this right now — the piece gives them a clear, actionable framework.`,
+  (topic: string, blog: string) =>
+    `Here's my pitch for ${blog}: "${topic}". This is a challenge your readers are actively navigating — I can give them a practical playbook.`,
+];
+
+function buildPitch(form: FormState, variation: number = 0): string {
   const {
     senderName,
     senderCompany,
@@ -271,8 +305,10 @@ function buildPitch(form: FormState): string {
     ? `I particularly enjoyed your recent piece on ${article}, which prompted me to reach out with this related idea.`
     : "";
 
+  const idx = Math.abs(variation) % 4;
+
   if (tone === "formal") {
-    const openingLine = `I am writing to express my interest in contributing a guest article to ${blog}.${articleSentence ? " " + articleSentence : ""}`;
+    const openingLine = `${FORMAL_OPENINGS[idx](blog)}${articleSentence ? " " + articleSentence : ""}`;
     return `Subject: ${subject}
 
 Dear ${editor},
@@ -300,13 +336,14 @@ ${role}, ${company}`;
 
   if (tone === "direct") {
     const articleLine = articleSentence ? `\n\n${articleSentence}` : "";
+    const pitchLine = DIRECT_PITCHES[idx](topic, blog);
     return `Subject: ${subject}
 
 Hi ${editor},
 
 I'm ${name}, ${role} at ${company}.${articleLine}
 
-I'd like to pitch a guest post on "${topic}" for ${blog}. It's a challenge fintech teams are actively navigating — your audience would find it directly useful.
+${pitchLine}
 
 My background: ${expertise}. The piece would be practical, not theoretical — real examples, actionable takeaways, original data where possible.
 
@@ -322,7 +359,8 @@ ${name}
 ${role}, ${company}`;
   }
 
-  const introLine = `My name is ${name}, ${role} at ${company}. I've been a reader of ${blog} for a while now and genuinely appreciate the quality of fintech content you publish — it consistently hits the right balance of depth and accessibility.${articleSentence ? " " + articleSentence : ""}`;
+  const readerOpening = FRIENDLY_OPENINGS[idx](blog);
+  const introLine = `My name is ${name}, ${role} at ${company}. ${readerOpening}${articleSentence ? " " + articleSentence : ""}`;
 
   return `Subject: ${subject}
 
@@ -375,6 +413,7 @@ export default function GuestPostPitchGenerator() {
   const [editedPitch, setEditedPitch] = useState("");
   const [copied, setCopied] = useState(false);
   const [generated, setGenerated] = useState(false);
+  const [variation, setVariation] = useState(0);
   const [history, setHistory] = useState<PitchEntry[]>(loadHistory);
   const [historyOpen, setHistoryOpen] = useState(false);
   const pitchTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -399,13 +438,37 @@ export default function GuestPostPitchGenerator() {
     setPitch("");
     setEditedPitch("");
     setGenerated(false);
+    setVariation(0);
   };
 
   const generate = () => {
-    const result = buildPitch(form);
+    const nextVariation = 0;
+    setVariation(nextVariation);
+    const result = buildPitch(form, nextVariation);
     setPitch(result);
     setEditedPitch(result);
     setGenerated(true);
+    const entry: PitchEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      timestamp: Date.now(),
+      topic: form.proposedTopic.trim() || "a topic in fintech",
+      blog: form.targetBlog.trim() || "your publication",
+      tone: form.tone,
+      pitch: result,
+    };
+    setHistory((prev) => {
+      const next = [entry, ...prev].slice(0, MAX_HISTORY);
+      saveHistory(next);
+      return next;
+    });
+  };
+
+  const regenerate = () => {
+    const nextVariation = variation + 1;
+    setVariation(nextVariation);
+    const result = buildPitch(form, nextVariation);
+    setPitch(result);
+    setEditedPitch(result);
     const entry: PitchEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       timestamp: Date.now(),
@@ -670,14 +733,28 @@ export default function GuestPostPitchGenerator() {
                 );
               })()}
 
-              <Button
-                onClick={generate}
-                disabled={!canGenerate}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold h-11"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate Pitch Email
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={generate}
+                  disabled={!canGenerate}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold h-11"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate Pitch Email
+                </Button>
+                {generated && (
+                  <Button
+                    onClick={regenerate}
+                    disabled={!canGenerate}
+                    variant="outline"
+                    className="h-11 px-4 font-semibold border-orange-300 text-orange-700 hover:bg-orange-50 hover:border-orange-400"
+                    title="Get a fresh opening angle on the same inputs"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Regenerate
+                  </Button>
+                )}
+              </div>
 
               <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
                 <p className="text-sm text-blue-800 leading-relaxed">
