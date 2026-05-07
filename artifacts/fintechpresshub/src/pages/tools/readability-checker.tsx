@@ -308,8 +308,9 @@ export default function ReadabilityChecker() {
 
   const copyText = async () => {
     await navigator.clipboard.writeText(text);
+    navigator.vibrate?.(40);
     setCopyTextState("copied");
-    setTimeout(() => setCopyTextState("idle"), 2000);
+    setTimeout(() => setCopyTextState("idle"), 1500);
   };
 
   const check = () => {
@@ -331,8 +332,9 @@ export default function ReadabilityChecker() {
   const copyImproved = async () => {
     const improved = applySimplifications(checkedText);
     await navigator.clipboard.writeText(improved);
+    navigator.vibrate?.(40);
     setCopyImprovedState("copied");
-    setTimeout(() => setCopyImprovedState("idle"), 2000);
+    setTimeout(() => setCopyImprovedState("idle"), 1500);
   };
 
   const results = useMemo(() => {
@@ -710,8 +712,14 @@ export default function ReadabilityChecker() {
                                       borderRadius: "2px",
                                     }
                                   : {};
+                            const tooltip =
+                              seg.difficulty === "hard"
+                                ? `Very hard sentence — ${seg.wordCount} words (aim for under 25)`
+                                : seg.difficulty === "moderate"
+                                  ? `Moderately hard sentence — ${seg.wordCount} words (aim for under 15)`
+                                  : undefined;
                             return (
-                              <span key={si} style={highlightStyle}>
+                              <span key={si} style={highlightStyle} title={tooltip}>
                                 {renderSentenceTokens(seg.text)}
                                 {si < para.length - 1 ? " " : ""}
                               </span>
