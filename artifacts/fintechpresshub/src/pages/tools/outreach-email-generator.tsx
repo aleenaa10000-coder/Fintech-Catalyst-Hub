@@ -21,6 +21,7 @@ import {
   ChevronUp,
   Trophy,
   Zap,
+  ClipboardCheck,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -453,6 +454,7 @@ export default function OutreachEmailGenerator() {
   const [scores, setScores]     = useState<[SubjectScore, SubjectScore] | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<0 | 1>(0);
   const [copied, setCopied]     = useState<"subject" | "body" | "all" | null>(null);
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
   const [bodyExpanded, setBodyExpanded] = useState(true);
   const copiedRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -492,6 +494,34 @@ export default function OutreachEmailGenerator() {
   };
 
   const activeSubject = variants ? variants[selectedIdx] : null;
+
+  const copyAsMarkdown = async () => {
+    if (!activeSubject || !body) return;
+    const lines: string[] = [];
+    lines.push(`# Outreach Email`);
+    lines.push(``);
+    lines.push(`| Field | Value |`);
+    lines.push(`|---|---|`);
+    if (form.yourName)    lines.push(`| **From** | ${form.yourName}${form.yourCompany ? ` — ${form.yourCompany}` : ""} |`);
+    if (form.targetDomain) lines.push(`| **To** | ${form.targetDomain} |`);
+    if (form.topic)       lines.push(`| **Topic** | ${form.topic} |`);
+    lines.push(`| **Tone** | ${tone.charAt(0).toUpperCase() + tone.slice(1)} |`);
+    lines.push(``);
+    lines.push(`---`);
+    lines.push(``);
+    lines.push(`**Subject:** ${activeSubject}`);
+    lines.push(``);
+    lines.push(body);
+    const md = lines.join("\n");
+    try { await navigator.clipboard.writeText(md); }
+    catch {
+      const el = document.createElement("textarea");
+      el.value = md; document.body.appendChild(el); el.select();
+      document.execCommand("copy"); document.body.removeChild(el);
+    }
+    setCopiedMarkdown(true);
+    setTimeout(() => setCopiedMarkdown(false), 2000);
+  };
 
   const copyText = async (type: "subject" | "body" | "all") => {
     if (!activeSubject || !body) return;
@@ -801,21 +831,38 @@ export default function OutreachEmailGenerator() {
                   <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">
                     Generated email
                   </h3>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyText("all")}
-                    className={`gap-1.5 text-xs font-semibold transition-all ${
-                      copied === "all"
-                        ? "border-blue-400 bg-blue-50 text-blue-700"
-                        : "border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50"
-                    }`}
-                  >
-                    {copied === "all"
-                      ? <><Check className="w-3.5 h-3.5" /> Copied!</>
-                      : <><Copy className="w-3.5 h-3.5" /> Copy full email</>}
-                  </Button>
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyText("all")}
+                      className={`gap-1.5 text-xs font-semibold transition-all ${
+                        copied === "all"
+                          ? "border-blue-400 bg-blue-50 text-blue-700"
+                          : "border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50"
+                      }`}
+                    >
+                      {copied === "all"
+                        ? <><Check className="w-3.5 h-3.5" /> Copied!</>
+                        : <><Copy className="w-3.5 h-3.5" /> Copy full email</>}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={copyAsMarkdown}
+                      className={`gap-1.5 text-xs font-semibold transition-all ${
+                        copiedMarkdown
+                          ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+                          : "border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50"
+                      }`}
+                    >
+                      {copiedMarkdown
+                        ? <><Check className="w-3.5 h-3.5" /> Copied MD!</>
+                        : <><ClipboardCheck className="w-3.5 h-3.5" /> Copy Markdown</>}
+                    </Button>
+                  </div>
                 </div>
 
                 {/* A/B tester */}

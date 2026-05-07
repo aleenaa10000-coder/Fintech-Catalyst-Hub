@@ -47,6 +47,7 @@ import {
   Eye,
   Pencil,
   ArrowLeftRight,
+  ClipboardCheck,
 } from "lucide-react";
 
 const MINOR_WORDS = new Set([
@@ -507,6 +508,7 @@ export default function GuestPostPitchGenerator() {
   const [recipientEmail, setRecipientEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
   const [sendStatus, setSendStatus] = useState<"idle" | "sent" | "error">("idle");
   const [sendError, setSendError] = useState("");
   const pitchTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -666,6 +668,26 @@ export default function GuestPostPitchGenerator() {
     navigator.clipboard.writeText(editedPitch);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyAsMarkdown = () => {
+    const lines: string[] = [];
+    const topic = form.proposedTopic || "Guest Post Pitch";
+    lines.push(`# Guest Post Pitch: ${topic}`);
+    lines.push(``);
+    lines.push(`| Field | Value |`);
+    lines.push(`|---|---|`);
+    if (form.senderName)   lines.push(`| **From** | ${form.senderName}${form.senderRole ? `, ${form.senderRole}` : ""}${form.senderCompany ? ` at ${form.senderCompany}` : ""} |`);
+    if (form.targetBlog)   lines.push(`| **Publication** | ${form.targetBlog} |`);
+    if (form.targetEditorName) lines.push(`| **Editor** | ${form.targetEditorName} |`);
+    lines.push(`| **Tone** | ${form.tone.charAt(0).toUpperCase() + form.tone.slice(1)} |`);
+    lines.push(``);
+    lines.push(`---`);
+    lines.push(``);
+    lines.push(editedPitch);
+    navigator.clipboard.writeText(lines.join("\n"));
+    setCopiedMarkdown(true);
+    setTimeout(() => setCopiedMarkdown(false), 2000);
   };
 
   const download = () => {
@@ -1688,6 +1710,27 @@ export default function GuestPostPitchGenerator() {
                           Download .txt
                         </Button>
                       </div>
+                      <Button
+                        onClick={copyAsMarkdown}
+                        variant="outline"
+                        className={`w-full h-10 font-semibold transition-all duration-200 ${
+                          copiedMarkdown
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                            : "border-slate-200 text-slate-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50"
+                        }`}
+                      >
+                        {copiedMarkdown ? (
+                          <>
+                            <Check className="w-4 h-4 mr-2 text-emerald-600" />
+                            Copied as Markdown!
+                          </>
+                        ) : (
+                          <>
+                            <ClipboardCheck className="w-4 h-4 mr-2" />
+                            Copy as Markdown
+                          </>
+                        )}
+                      </Button>
                       <Button
                         onClick={downloadPdf}
                         disabled={pdfExporting}
