@@ -447,6 +447,20 @@ export default function GuestPostPitchGenerator() {
                       className="text-sm font-sans resize-none overflow-hidden leading-relaxed"
                       style={{ minHeight: "200px" }}
                     />
+                    {(() => {
+                      const words = editedPitch.trim() ? editedPitch.trim().split(/\s+/).length : 0;
+                      const readSec = Math.round((words / 238) * 60);
+                      const readMin = Math.floor(readSec / 60);
+                      const readRemSec = readSec % 60;
+                      const readLabel = readMin > 0
+                        ? `~${readMin}m ${readRemSec > 0 ? `${readRemSec}s` : ""}read`
+                        : `~${readSec}s read`;
+                      return (
+                        <p className="text-xs text-muted-foreground text-right -mt-1">
+                          {words} words · {readLabel}
+                        </p>
+                      );
+                    })()}
                     <Button
                       onClick={copy}
                       className={`w-full h-11 font-semibold transition-all duration-200 ${
