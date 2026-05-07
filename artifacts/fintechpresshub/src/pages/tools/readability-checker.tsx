@@ -678,28 +678,40 @@ export default function ReadabilityChecker() {
                       </h4>
                       <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-1.5">
-                          <span className="inline-block w-3 h-3 rounded-sm bg-red-100 border border-red-300 shrink-0" />
+                          <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: "rgba(251, 191, 200, 0.7)" }} />
                           Very hard (&gt;25 words)
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <span className="inline-block w-3 h-3 rounded-sm bg-yellow-100 border border-yellow-300 shrink-0" />
+                          <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: "rgba(253, 224, 71, 0.6)" }} />
                           Moderately hard (&gt;15 words)
                         </span>
                       </div>
                     </div>
 
-                    <div className="text-sm text-slate-700 leading-relaxed space-y-3 bg-slate-50 rounded-lg p-4 border border-slate-100">
+                    <div className="text-sm text-slate-700 space-y-3 bg-slate-50 rounded-lg p-4 border border-slate-100" style={{ lineHeight: "2" }}>
                       {results.visualSegments.map((para, pi) => (
                         <p key={pi}>
                           {para.map((seg, si) => {
-                            const bg =
+                            const highlightStyle: React.CSSProperties =
                               seg.difficulty === "hard"
-                                ? "bg-red-100"
+                                ? {
+                                    backgroundColor: "rgba(251, 191, 200, 0.55)",
+                                    padding: "0.1em 0.25em",
+                                    boxDecorationBreak: "clone",
+                                    WebkitBoxDecorationBreak: "clone",
+                                    borderRadius: "2px",
+                                  }
                                 : seg.difficulty === "moderate"
-                                  ? "bg-yellow-100"
-                                  : "";
+                                  ? {
+                                      backgroundColor: "rgba(253, 224, 71, 0.45)",
+                                      padding: "0.1em 0.25em",
+                                      boxDecorationBreak: "clone",
+                                      WebkitBoxDecorationBreak: "clone",
+                                      borderRadius: "2px",
+                                    }
+                                  : {};
                             return (
-                              <span key={si} className={bg}>
+                              <span key={si} style={highlightStyle}>
                                 {renderSentenceTokens(seg.text)}
                                 {si < para.length - 1 ? " " : ""}
                               </span>
