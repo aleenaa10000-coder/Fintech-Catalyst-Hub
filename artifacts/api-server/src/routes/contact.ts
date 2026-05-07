@@ -38,19 +38,26 @@ router.post("/contact", formRateLimiter, async (req, res) => {
     return;
   }
   const body = parsed.data;
-  const [row] = await db
-    .insert(contactSubmissionsTable)
-    .values({
-      name: body.name,
-      email: body.email,
-      company: body.company ?? null,
-      phone: body.phone ?? null,
-      website: body.website || null,
-      service: body.service ?? null,
-      budget: body.budget ?? null,
-      message: body.message,
-    })
-    .returning();
+  let row: typeof contactSubmissionsTable.$inferSelect | undefined;
+  try {
+    [row] = await db
+      .insert(contactSubmissionsTable)
+      .values({
+        name: body.name,
+        email: body.email,
+        company: body.company ?? null,
+        phone: body.phone ?? null,
+        website: body.website || null,
+        service: body.service ?? null,
+        budget: body.budget ?? null,
+        message: body.message,
+      })
+      .returning();
+  } catch (err) {
+    logger.error({ err }, "Contact DB insert failed");
+    res.status(500).json({ error: "Failed to save your message. Please try again." });
+    return;
+  }
   if (!row) {
     res.status(500).json({ error: "Failed to save" });
     return;
