@@ -290,7 +290,9 @@ function buildPitch(form: FormState, variation: number = 0): string {
   } = form;
 
   const rawEditor = targetEditorName.trim();
-  const editor = rawEditor ? rawEditor.split(/\s+/)[0] : "there";
+  const firstName = rawEditor ? rawEditor.split(/\s+/)[0] : "";
+  const informalGreeting = firstName ? `Hi ${firstName},` : "Hi there,";
+  const formalGreeting = firstName ? `Dear ${firstName},` : "Hi there,";
   const name = senderName.trim() || "Your Name";
   const company = senderCompany.trim() || "Your Company";
   const role = senderRole.trim() || "content lead";
@@ -311,7 +313,7 @@ function buildPitch(form: FormState, variation: number = 0): string {
     const openingLine = `${FORMAL_OPENINGS[idx](blog)}${articleSentence ? " " + articleSentence : ""}`;
     return `Subject: ${subject}
 
-Dear ${editor},
+${formalGreeting}
 
 My name is ${name}, ${role} at ${company}. ${openingLine}
 
@@ -339,7 +341,7 @@ ${role}, ${company}`;
     const pitchLine = DIRECT_PITCHES[idx](topic, blog);
     return `Subject: ${subject}
 
-Hi ${editor},
+${informalGreeting}
 
 I'm ${name}, ${role} at ${company}.${articleLine}
 
@@ -364,7 +366,7 @@ ${role}, ${company}`;
 
   return `Subject: ${subject}
 
-Hi ${editor},
+${informalGreeting}
 
 ${introLine}
 

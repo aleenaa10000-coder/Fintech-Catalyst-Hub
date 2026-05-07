@@ -101,4 +101,75 @@ describe("Guest Post Pitch Generator", () => {
     await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
     expect(screen.getByRole("button", { name: /copy subject/i })).toBeTruthy();
   });
+
+  it("greeting uses only first name when a full name is provided", async () => {
+    const user = userEvent.setup();
+    render(<GuestPostPitchGenerator />);
+    const inputs = screen.getAllByRole("textbox");
+    await user.type(inputs[0], "Jane Smith");
+    await user.type(inputs[1], "FinTech Co");
+    await user.type(inputs[2], "Content Strategist");
+    await user.type(inputs[3], "FintechPressHub");
+    await user.type(inputs[4], "Pat Miller");
+    await user.type(inputs[5], "Digital Payments Trends");
+    await user.type(inputs[6], "fintech payments");
+    await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
+    const pitch = getPitchTextareaValue();
+    expect(pitch).toContain("Hi Pat,");
+    expect(pitch).not.toContain("Hi Pat Miller,");
+  });
+
+  it("greeting defaults to 'Hi there,' when editor name is empty", async () => {
+    const user = userEvent.setup();
+    render(<GuestPostPitchGenerator />);
+    const inputs = screen.getAllByRole("textbox");
+    await user.type(inputs[0], "Jane Smith");
+    await user.type(inputs[1], "FinTech Co");
+    await user.type(inputs[2], "Content Strategist");
+    await user.type(inputs[3], "FintechPressHub");
+    await user.type(inputs[5], "Digital Payments Trends");
+    await user.type(inputs[6], "fintech payments");
+    await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
+    const pitch = getPitchTextareaValue();
+    expect(pitch).toContain("Hi there,");
+  });
+
+  it("formal tone uses 'Dear [FirstName],' when a name is provided", async () => {
+    const user = userEvent.setup();
+    render(<GuestPostPitchGenerator />);
+    const inputs = screen.getAllByRole("textbox");
+    await user.type(inputs[0], "Jane Smith");
+    await user.type(inputs[1], "FinTech Co");
+    await user.type(inputs[2], "Content Strategist");
+    await user.type(inputs[3], "FintechPressHub");
+    await user.type(inputs[4], "Alex Johnson");
+    await user.type(inputs[5], "Digital Payments Trends");
+    await user.type(inputs[6], "fintech payments");
+    const toneButtons = screen.getAllByRole("button");
+    const formalBtn = toneButtons.find((b) => b.textContent?.includes("Formal"));
+    if (formalBtn) await user.click(formalBtn);
+    await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
+    const pitch = getPitchTextareaValue();
+    expect(pitch).toContain("Dear Alex,");
+    expect(pitch).not.toContain("Dear Alex Johnson,");
+  });
+
+  it("formal tone defaults to 'Hi there,' when editor name is empty", async () => {
+    const user = userEvent.setup();
+    render(<GuestPostPitchGenerator />);
+    const inputs = screen.getAllByRole("textbox");
+    await user.type(inputs[0], "Jane Smith");
+    await user.type(inputs[1], "FinTech Co");
+    await user.type(inputs[2], "Content Strategist");
+    await user.type(inputs[3], "FintechPressHub");
+    await user.type(inputs[5], "Digital Payments Trends");
+    await user.type(inputs[6], "fintech payments");
+    const toneButtons = screen.getAllByRole("button");
+    const formalBtn = toneButtons.find((b) => b.textContent?.includes("Formal"));
+    if (formalBtn) await user.click(formalBtn);
+    await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
+    const pitch = getPitchTextareaValue();
+    expect(pitch).toContain("Hi there,");
+    expect(pitch).not.toContain("Dear there,");
+  });
 });
