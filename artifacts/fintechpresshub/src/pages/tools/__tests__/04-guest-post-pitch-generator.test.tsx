@@ -172,4 +172,51 @@ describe("Guest Post Pitch Generator", () => {
     expect(pitch).toContain("Hi there,");
     expect(pitch).not.toContain("Dear there,");
   });
+
+  it("subject line title-cases the topic while preserving acronyms", async () => {
+    const user = userEvent.setup();
+    render(<GuestPostPitchGenerator />);
+    const inputs = screen.getAllByRole("textbox");
+    await user.type(inputs[0], "Jane Smith");
+    await user.type(inputs[1], "FinTech Co");
+    await user.type(inputs[2], "Content Strategist");
+    await user.type(inputs[3], "FintechPressHub");
+    await user.type(inputs[4], "Sarah");
+    await user.type(inputs[5], "structural risks of using LLMs in fintech");
+    await user.type(inputs[6], "fintech payments");
+    await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
+    const pitch = getPitchTextareaValue();
+    expect(pitch).toContain("Structural Risks of Using LLMs in Fintech");
+    expect(pitch).not.toContain("Structural Risks Of Using Llms In Fintech");
+  });
+
+  it("email body wraps the topic in double quotation marks", async () => {
+    const user = userEvent.setup();
+    render(<GuestPostPitchGenerator />);
+    await fillRequiredFields(user);
+    await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
+    const pitch = getPitchTextareaValue();
+    expect(pitch).toMatch(/"5 Trends Reshaping Digital Payments in 2025"/);
+  });
+
+  it("Regenerate button shows a word-count delta badge after first regenerate", async () => {
+    const user = userEvent.setup();
+    render(<GuestPostPitchGenerator />);
+    await fillRequiredFields(user);
+    await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
+    const regenBtn = screen.getByRole("button", { name: /regenerate/i });
+    expect(regenBtn.textContent).not.toMatch(/[+-]\d+w|~same/);
+    await user.click(regenBtn);
+    expect(screen.getByRole("button", { name: /regenerate/i }).textContent).toMatch(/[+-]?\d+w|~same/);
+  });
+
+  it("word-count delta resets to hidden after a fresh Generate", async () => {
+    const user = userEvent.setup();
+    render(<GuestPostPitchGenerator />);
+    await fillRequiredFields(user);
+    await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
+    await user.click(screen.getByRole("button", { name: /regenerate/i }));
+    await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
+    expect(screen.getByRole("button", { name: /regenerate/i }).textContent).not.toMatch(/[+-]\d+w|~same/);
+  });
 });

@@ -206,7 +206,7 @@ function toTitleCase(str: string): string {
     .map((word, i) => {
       const lower = word.toLowerCase();
       if (i !== 0 && MINOR_WORDS.has(lower)) return lower;
-      return lower.charAt(0).toUpperCase() + lower.slice(1);
+      return word.charAt(0).toUpperCase() + word.slice(1);
     })
     .join(" ");
 }
@@ -417,6 +417,7 @@ export default function GuestPostPitchGenerator() {
   const [copiedSubject, setCopiedSubject] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [variation, setVariation] = useState(0);
+  const [pitchWordDelta, setPitchWordDelta] = useState<number | null>(null);
   const [history, setHistory] = useState<PitchEntry[]>(loadHistory);
   const [historyOpen, setHistoryOpen] = useState(false);
   const pitchTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -442,6 +443,7 @@ export default function GuestPostPitchGenerator() {
     setEditedPitch("");
     setGenerated(false);
     setVariation(0);
+    setPitchWordDelta(null);
   };
 
   const generate = () => {
@@ -451,6 +453,7 @@ export default function GuestPostPitchGenerator() {
     setPitch(result);
     setEditedPitch(result);
     setGenerated(true);
+    setPitchWordDelta(null);
     const entry: PitchEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       timestamp: Date.now(),
@@ -469,7 +472,10 @@ export default function GuestPostPitchGenerator() {
   const regenerate = () => {
     const nextVariation = variation + 1;
     setVariation(nextVariation);
+    const prevWords = editedPitch.trim() ? editedPitch.trim().split(/\s+/).length : 0;
     const result = buildPitch(form, nextVariation);
+    const newWords = result.trim() ? result.trim().split(/\s+/).length : 0;
+    setPitchWordDelta(newWords - prevWords);
     setPitch(result);
     setEditedPitch(result);
     const entry: PitchEntry = {
@@ -755,6 +761,11 @@ export default function GuestPostPitchGenerator() {
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Regenerate
+                    {pitchWordDelta !== null && (
+                      <span className="ml-2 text-[10px] font-bold bg-orange-100 text-orange-700 rounded-full px-1.5 py-0.5 leading-none">
+                        {pitchWordDelta === 0 ? "~same" : pitchWordDelta > 0 ? `+${pitchWordDelta}w` : `${pitchWordDelta}w`}
+                      </span>
+                    )}
                   </Button>
                 )}
               </div>
