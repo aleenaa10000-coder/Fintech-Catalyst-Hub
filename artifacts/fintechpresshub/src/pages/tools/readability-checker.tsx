@@ -242,7 +242,7 @@ function isPassive(text: string): boolean {
 }
 
 function buildVisualSegments(rawText: string): SentenceSegment[][] {
-  const paragraphs = rawText.split(/\n+/).filter((p) => p.trim().length > 0);
+  const paragraphs = rawText.trim().split(/\n+/).filter((p) => p.trim().length > 0);
   return paragraphs.map((para) => {
     const sentenceTexts = para
       .trim()
@@ -431,6 +431,19 @@ function ScoreHistoryChart({ scores }: { scores: number[] }) {
   );
 }
 
+function simplifyText(text: string): string {
+  let result = text;
+  for (const [complex, simple] of Object.entries(SYNONYM_MAP)) {
+    const regex = new RegExp(`\\b${complex}\\b`, "gi");
+    result = result.replace(regex, (match) =>
+      /^[A-Z]/.test(match)
+        ? simple.charAt(0).toUpperCase() + simple.slice(1)
+        : simple,
+    );
+  }
+  return result;
+}
+
 function applySimplifications(rawText: string): string {
   let result = rawText;
   for (const [complex, simple] of Object.entries(SYNONYM_MAP)) {
@@ -458,10 +471,13 @@ export default function ReadabilityChecker() {
     setChecked(false);
     setCheckedText("");
     setScoreHistory([]);
+    setActiveRewrite(null);
   };
 
   const [copyImprovedState, setCopyImprovedState] = useState<"idle" | "copied">("idle");
   const [copyMdState, setCopyMdState] = useState<"idle" | "copied">("idle");
+  const [activeRewrite, setActiveRewrite] = useState<{ original: string; rewritten: string } | null>(null);
+  const [copyRewriteState, setCopyRewriteState] = useState<"idle" | "copied">("idle");
 
   const copyText = async () => {
     await navigator.clipboard.writeText(text);
@@ -960,10 +976,14 @@ export default function ReadabilityChecker() {
                       </div>
                     </div>
 
-                    <div className="text-sm text-slate-700 space-y-3 bg-slate-50 rounded-lg p-4 border border-slate-100" style={{ lineHeight: "2" }}>
+                    <div
+                      className="text-sm text-slate-700 bg-slate-50 rounded-lg p-4 border border-slate-100"
+                      style={{ lineHeight: "2", fontSize: "0.875rem", fontFamily: "inherit" }}
+                    >
                       {results.visualSegments.map((para, pi) => (
-                        <p key={pi}>
+                        <p key={pi} className="m-0" style={{ marginBottom: pi < results.visualSegments.length - 1 ? "0.75rem" : 0 }}>
                           {para.map((seg, si) => {
+                            const isHighlighted = seg.difficulty === "hard" || seg.difficulty === "moderate" || seg.passive;
                             const baseStyle: React.CSSProperties = {
                               padding: "0.1em 0.25em",
                               boxDecorationBreak: "clone",
@@ -985,9 +1005,23 @@ export default function ReadabilityChecker() {
                               tooltipParts.push(`Moderately hard sentence — ${seg.wordCount} words (aim for under 15)`);
                             if (seg.passive)
                               tooltipParts.push("Contains passive voice — consider rewriting in active voice");
+                            if (isHighlighted)
+                              tooltipParts.push("Click to see a suggested rewrite");
                             const tooltip = tooltipParts.length > 0 ? tooltipParts.join(" · ") : undefined;
                             return (
-                              <span key={si} style={highlightStyle} title={tooltip}>
+                              <span
+                                key={si}
+                                style={highlightStyle}
+                                title={tooltip}
+                                className={isHighlighted ? "cursor-pointer" : undefined}
+                                onClick={isHighlighted ? () => {
+                                  const rewritten = simplifyText(seg.text);
+                                  setActiveRewrite((prev) =>
+                                    prev?.original === seg.text ? null : { original: seg.text, rewritten },
+                                  );
+                                  setCopyRewriteState("idle");
+                                } : undefined}
+                              >
                                 {renderSentenceTokens(seg.text)}
                                 {si < para.length - 1 ? " " : ""}
                               </span>
@@ -996,6 +1030,45 @@ export default function ReadabilityChecker() {
                         </p>
                       ))}
                     </div>
+
+                    {activeRewrite && (
+                      <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
+                        <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                          Suggested Rewrite
+                        </div>
+                        <p className="text-[11px] text-slate-400 line-through leading-relaxed m-0">
+                          {activeRewrite.original}
+                        </p>
+                        <p className="text-sm text-slate-900 leading-relaxed m-0">
+                          {activeRewrite.rewritten === activeRewrite.original
+                            ? "No simpler word substitutions found — try shortening or splitting this sentence."
+                            : activeRewrite.rewritten}
+                        </p>
+                        <Button
+                          onClick={async () => {
+                            await navigator.clipboard.writeText(activeRewrite.rewritten);
+                            navigator.vibrate?.(40);
+                            setCopyRewriteState("copied");
+                            setTimeout(() => setCopyRewriteState("idle"), 1500);
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-600 hover:bg-slate-50"
+                        >
+                          {copyRewriteState === "copied" ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 mr-1 text-green-500" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 mr-1" />
+                              Copy rewrite
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
 
                     <div className="flex flex-col gap-1">
                       <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
