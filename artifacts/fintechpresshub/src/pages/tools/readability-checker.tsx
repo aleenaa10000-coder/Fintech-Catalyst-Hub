@@ -717,7 +717,7 @@ export default function ReadabilityChecker() {
                       {copyImprovedState === "copied" ? (
                         <>
                           <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-teal-500" />
-                          Copied improved text!
+                          Copied!
                         </>
                       ) : (
                         <>
