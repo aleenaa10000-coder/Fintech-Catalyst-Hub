@@ -30,6 +30,8 @@ import {
   Mail,
   ExternalLink,
   Newspaper,
+  Link2,
+  Loader2,
 } from "lucide-react";
 
 const MINOR_WORDS = new Set([
@@ -180,8 +182,8 @@ const STRENGTH_CONFIG: Record<
   { label: string; color: string; bar: string; tip: string }
 > = {
   weak:      { label: "Weak",      color: "text-red-600",    bar: "bg-red-400",    tip: "Add your role, company, expertise, editor name, and a recent article to strengthen it." },
-  good:      { label: "Good",      color: "text-amber-600",  bar: "bg-amber-400",  tip: "Add the editor's name and a recent article you liked to personalise further." },
-  strong:    { label: "Strong",    color: "text-blue-600",   bar: "bg-blue-500",   tip: "Great — add a recent article you liked to reach an excellent pitch." },
+  good:      { label: "Good",      color: "text-amber-600",  bar: "bg-amber-400",  tip: "Fill all fields and write 100+ characters in both the Recent Article and Expertise fields to unlock a stronger rating." },
+  strong:    { label: "Strong",    color: "text-blue-600",   bar: "bg-blue-500",   tip: "Almost there — expand your Recent Article and Expertise to 100+ characters each to reach Excellent." },
   excellent: { label: "Excellent", color: "text-green-600",  bar: "bg-green-500",  tip: "Your pitch is highly personalised and ready to send." },
 };
 
@@ -192,10 +194,21 @@ function getPitchStrength(form: FormState): { score: number; level: StrengthLeve
   if (form.targetEditorName.trim()) score++;
   if (form.recentArticle.trim())    score++;
   if (form.yourExpertise.trim())    score++;
-  const level: StrengthLevel =
-    score <= 1 ? "weak" :
-    score <= 3 ? "good" :
-    score === 4 ? "strong" : "excellent";
+
+  const recentArticleLong = form.recentArticle.trim().length > 100;
+  const expertiseLong = form.yourExpertise.trim().length > 100;
+  const bothLong = recentArticleLong && expertiseLong;
+
+  let level: StrengthLevel;
+  if (score <= 1) {
+    level = "weak";
+  } else if (score <= 3) {
+    level = "good";
+  } else if (score === 4) {
+    level = bothLong ? "strong" : "good";
+  } else {
+    level = bothLong ? "excellent" : "good";
+  }
   return { score, level };
 }
 
@@ -409,6 +422,15 @@ function timeAgo(ts: number): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+function isUrl(value: string): boolean {
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export default function GuestPostPitchGenerator() {
   const [form, setForm] = useState<FormState>(DEFAULTS);
   const [pitch, setPitch] = useState("");
@@ -420,7 +442,31 @@ export default function GuestPostPitchGenerator() {
   const [pitchWordDelta, setPitchWordDelta] = useState<number | null>(null);
   const [history, setHistory] = useState<PitchEntry[]>(loadHistory);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [urlFetching, setUrlFetching] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
   const pitchTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  async function fetchTitleFromUrl(url: string) {
+    setUrlFetching(true);
+    setUrlError(null);
+    try {
+      const resp = await fetch(
+        `/api/tools/fetch-title?url=${encodeURIComponent(url)}`,
+        { credentials: "include" },
+      );
+      const data = await resp.json() as { title?: string; error?: string };
+      if (!resp.ok || !data.title) {
+        setUrlError(data.error ?? "Couldn't fetch a title from that URL.");
+      } else {
+        setForm((prev) => ({ ...prev, recentArticle: data.title! }));
+        setUrlError(null);
+      }
+    } catch {
+      setUrlError("Network error — couldn't reach the page.");
+    } finally {
+      setUrlFetching(false);
+    }
+  }
 
   useEffect(() => {
     const el = pitchTextareaRef.current;
@@ -654,19 +700,62 @@ export default function GuestPostPitchGenerator() {
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-orange-600" />
-                    Recent Article You Liked
-                  </Label>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                      <Heart className="w-4 h-4 text-orange-600" />
+                      Recent Article You Liked
+                    </Label>
+                    <button
+                      type="button"
+                      disabled={urlFetching}
+                      onClick={async () => {
+                        try {
+                          const text = await navigator.clipboard.readText();
+                          if (isUrl(text)) {
+                            await fetchTitleFromUrl(text);
+                          } else {
+                            setUrlError("Clipboard doesn't contain a URL. Copy a link first.");
+                          }
+                        } catch {
+                          setUrlError("Couldn't read clipboard. Paste the URL directly into the field.");
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-orange-600 hover:text-orange-700 border border-orange-200 hover:border-orange-300 bg-orange-50 hover:bg-orange-100 rounded px-2 py-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    >
+                      {urlFetching ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Link2 className="w-3 h-3" />
+                      )}
+                      Paste from URL
+                    </button>
+                  </div>
                   <Input
                     placeholder="e.g., Your recent piece on Neobank regulation"
                     value={form.recentArticle}
-                    onChange={setField("recentArticle")}
+                    onChange={(e) => {
+                      setUrlError(null);
+                      setField("recentArticle")(e);
+                    }}
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData("text");
+                      if (isUrl(pasted)) {
+                        e.preventDefault();
+                        void fetchTitleFromUrl(pasted);
+                      }
+                    }}
                     className="h-11"
+                    disabled={urlFetching}
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    If provided, a personalised sentence referencing this article will be added to the opening paragraph.
-                  </p>
+                  {urlError ? (
+                    <p className="text-[11px] text-red-600 leading-snug">{urlError}</p>
+                  ) : urlFetching ? (
+                    <p className="text-[11px] text-orange-600 leading-snug">Fetching page title…</p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      Paste a URL and the title will be auto-filled — or type it directly. A personalised sentence referencing this article will be added to the opening paragraph.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
