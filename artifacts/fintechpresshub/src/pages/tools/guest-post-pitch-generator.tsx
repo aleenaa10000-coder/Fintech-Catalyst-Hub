@@ -30,6 +30,32 @@ const MINOR_WORDS = new Set([
   "at","by","in","of","on","to","up","as","is","it",
 ]);
 
+type StrengthLevel = "weak" | "good" | "strong" | "excellent";
+
+const STRENGTH_CONFIG: Record<
+  StrengthLevel,
+  { label: string; color: string; bar: string; tip: string }
+> = {
+  weak:      { label: "Weak",      color: "text-red-600",    bar: "bg-red-400",    tip: "Add your role, company, expertise, editor name, and a recent article to strengthen it." },
+  good:      { label: "Good",      color: "text-amber-600",  bar: "bg-amber-400",  tip: "Add the editor's name and a recent article you liked to personalise further." },
+  strong:    { label: "Strong",    color: "text-blue-600",   bar: "bg-blue-500",   tip: "Great — add a recent article you liked to reach an excellent pitch." },
+  excellent: { label: "Excellent", color: "text-green-600",  bar: "bg-green-500",  tip: "Your pitch is highly personalised and ready to send." },
+};
+
+function getPitchStrength(form: FormState): { score: number; level: StrengthLevel } {
+  let score = 0;
+  if (form.senderCompany.trim())    score++;
+  if (form.senderRole.trim())       score++;
+  if (form.targetEditorName.trim()) score++;
+  if (form.recentArticle.trim())    score++;
+  if (form.yourExpertise.trim())    score++;
+  const level: StrengthLevel =
+    score <= 1 ? "weak" :
+    score <= 3 ? "good" :
+    score === 4 ? "strong" : "excellent";
+  return { score, level };
+}
+
 function toTitleCase(str: string): string {
   return str
     .trim()
@@ -430,6 +456,33 @@ export default function GuestPostPitchGenerator() {
                   </div>
                 </div>
               </div>
+
+              {(() => {
+                const { score, level } = getPitchStrength(form);
+                const cfg = STRENGTH_CONFIG[level];
+                const pct = Math.round((score / 5) * 100);
+                return (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
+                        Pitch Strength
+                      </span>
+                      <span className={`text-sm font-bold ${cfg.color}`}>
+                        {cfg.label}
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${cfg.bar}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      {cfg.tip}
+                    </p>
+                  </div>
+                );
+              })()}
 
               <Button
                 onClick={generate}
