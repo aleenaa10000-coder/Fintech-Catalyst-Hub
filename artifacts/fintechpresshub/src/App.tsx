@@ -216,10 +216,27 @@ function ProtectedAdminRoute({ component: Component }: { component: ComponentTyp
   return <Component />;
 }
 
+/**
+ * Wraps a public route in its own ErrorBoundary so a crash in one page
+ * doesn't take down the whole application shell. The root-level ErrorBoundary
+ * in <App> is the last-resort fallback; this gives per-page isolation first.
+ */
+function SafeRoute({ path, component: Component }: { path: string; component: ComponentType }) {
+  return (
+    <Route path={path}>
+      <ErrorBoundary>
+        <Component />
+      </ErrorBoundary>
+    </Route>
+  );
+}
+
 function AdminRoute({ path, component }: { path: string; component: ComponentType }) {
   return (
     <Route path={path}>
-      <ProtectedAdminRoute component={component} />
+      <ErrorBoundary>
+        <ProtectedAdminRoute component={component} />
+      </ErrorBoundary>
     </Route>
   );
 }
@@ -235,68 +252,68 @@ function Router() {
         <AdminHealthBanner />
         <Suspense fallback={<RouteFallback />}>
           <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/about" component={About} />
-            <Route path="/services" component={Services} />
-            <Route path="/services/:slug" component={ServiceDetail} />
-            <Route path="/pricing" component={Pricing} />
-            <Route path="/blog" component={Blog} />
-            <Route path="/blog/:slug" component={BlogPost} />
-            <Route path="/authors" component={AuthorsIndex} />
-            <Route path="/authors/:slug" component={AuthorPage} />
-            <Route path="/write-for-us" component={WriteForUs} />
-            <Route path="/contact" component={Contact} />
-            <Route path="/privacy-policy" component={PrivacyPolicy} />
-            <Route path="/refund-policy" component={RefundPolicy} />
-            <Route path="/cookie-policy" component={CookiePolicy} />
-            <Route path="/status" component={StatusPage} />
-            <Route path="/terms" component={Terms} />
-            <Route path="/editorial-guidelines" component={EditorialGuidelines} />
-            <Route path="/community-guidelines" component={CommunityGuidelines} />
-            <Route path="/tools" component={ToolsIndex} />
-            <Route
+            <SafeRoute path="/" component={Home} />
+            <SafeRoute path="/about" component={About} />
+            <SafeRoute path="/services" component={Services} />
+            <SafeRoute path="/services/:slug" component={ServiceDetail} />
+            <SafeRoute path="/pricing" component={Pricing} />
+            <SafeRoute path="/blog" component={Blog} />
+            <SafeRoute path="/blog/:slug" component={BlogPost} />
+            <SafeRoute path="/authors" component={AuthorsIndex} />
+            <SafeRoute path="/authors/:slug" component={AuthorPage} />
+            <SafeRoute path="/write-for-us" component={WriteForUs} />
+            <SafeRoute path="/contact" component={Contact} />
+            <SafeRoute path="/privacy-policy" component={PrivacyPolicy} />
+            <SafeRoute path="/refund-policy" component={RefundPolicy} />
+            <SafeRoute path="/cookie-policy" component={CookiePolicy} />
+            <SafeRoute path="/status" component={StatusPage} />
+            <SafeRoute path="/terms" component={Terms} />
+            <SafeRoute path="/editorial-guidelines" component={EditorialGuidelines} />
+            <SafeRoute path="/community-guidelines" component={CommunityGuidelines} />
+            <SafeRoute path="/tools" component={ToolsIndex} />
+            <SafeRoute
               path="/tools/financial-health-score-calculator"
               component={FinancialHealthScoreCalculator}
             />
-            <Route
+            <SafeRoute
               path="/tools/meta-description-generator"
               component={MetaDescriptionGenerator}
             />
-            <Route
+            <SafeRoute
               path="/tools/guest-post-pitch-generator"
               component={GuestPostPitchGenerator}
             />
-            <Route
+            <SafeRoute
               path="/tools/readability-checker"
               component={ReadabilityChecker}
             />
-            <Route
+            <SafeRoute
               path="/tools/keyword-difficulty-estimator"
               component={KeywordDifficultyEstimator}
             />
-            <Route
+            <SafeRoute
               path="/tools/backlink-value-estimator"
               component={BacklinkValueEstimator}
             />
-            <Route
+            <SafeRoute
               path="/tools/content-brief-generator"
               component={ContentBriefGenerator}
             />
-            <Route
+            <SafeRoute
               path="/tools/headline-analyzer"
               component={HeadlineAnalyzer}
             />
-            <Route
+            <SafeRoute
               path="/tools/link-prospector"
               component={LinkProspector}
             />
-            <Route
+            <SafeRoute
               path="/tools/outreach-email-generator"
               component={OutreachEmailGenerator}
             />
             {/* /admin/login is intentionally public — it's the fallback for
                 non-Replit deployments and must be reachable unauthenticated. */}
-            <Route path="/admin/login" component={AdminLogin} />
+            <SafeRoute path="/admin/login" component={AdminLogin} />
             <AdminRoute path="/admin" component={AdminDashboard} />
             <AdminRoute path="/admin/services" component={AdminServices} />
             <AdminRoute path="/admin/blog" component={AdminBlog} />
