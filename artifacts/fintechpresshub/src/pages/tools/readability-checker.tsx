@@ -165,7 +165,7 @@ function getTips(
       );
     } else {
       tips.push(
-        "Replace multi-syllable jargon with simpler alternatives — even a fintech audience prefers plain language.",
+        "Replace multi-syllable jargon with simpler alternatives — even a professional audience prefers plain language.",
       );
     }
   }
@@ -176,7 +176,7 @@ function getTips(
     );
   if (score >= 80)
     tips.push(
-      "Excellent readability. Your content should be accessible to a broad fintech audience.",
+      "Excellent readability. Your content should be accessible to a broad professional audience.",
     );
   return tips;
 }
@@ -368,7 +368,7 @@ export default function ReadabilityChecker() {
       <PageHero
         eyebrow="Free Tool"
         title="Readability Checker"
-        description="Paste your fintech article and get an instant Flesch readability score, grade level, sentence stats, and actionable tips to make your content clearer."
+        description="Paste your article and get an instant Flesch readability score, grade level, sentence stats, and actionable tips to make your content clearer."
       />
 
       <section className="py-12 md:py-16">
@@ -436,7 +436,7 @@ export default function ReadabilityChecker() {
                   Article Text
                 </Label>
                 <Textarea
-                  placeholder="Paste your blog post, landing page copy, or any fintech content here…"
+                  placeholder="Paste your blog post, landing page copy, or any professional content here…"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   rows={10}
@@ -717,7 +717,7 @@ export default function ReadabilityChecker() {
                 <Card className="border border-teal-100 bg-teal-50 shadow-sm">
                   <CardContent className="p-4">
                     <p className="text-xs text-teal-800 leading-relaxed">
-                      Want expert fintech writers who nail readability every
+                      Want expert professional writers who nail readability every
                       time?{" "}
                       <Link
                         href="/services"

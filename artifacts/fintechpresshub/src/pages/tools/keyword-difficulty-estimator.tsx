@@ -55,7 +55,7 @@ import {
 
 type Intent = "Informational" | "Commercial" | "Transactional" | "Navigational";
 
-type Cluster = "Infrastructure & Security" | "Commercial Solutions" | "Fintech General";
+type Cluster = "Infrastructure & Security" | "Commercial Solutions" | "Digital General";
 
 type Result = {
   keyword: string;
@@ -99,7 +99,7 @@ const NAVIGATIONAL_SIGNALS = [
 const FINTECH_LONG_TAIL_TEMPLATES = [
   "{kw} for startups",
   "{kw} in 2025",
-  "best {kw} for fintech",
+  "best {kw} for professionals",
   "how to use {kw}",
   "{kw} explained for beginners",
   "{kw} vs {kw} alternatives",
@@ -114,7 +114,7 @@ const FINTECH_LONG_TAIL_TEMPLATES = [
 function detectCluster(kw: string): Cluster {
   if (kw.includes("security") || kw.includes("api")) return "Infrastructure & Security";
   if (kw.includes("best") || kw.includes("platform")) return "Commercial Solutions";
-  return "Fintech General";
+  return "Digital General";
 }
 
 function detectIntent(words: string[]): { intent: Intent; reason: string } {
@@ -304,7 +304,7 @@ const INTENT_COLOR: Record<Intent, string> = {
 const CLUSTER_COLOR: Record<Cluster, string> = {
   "Infrastructure & Security": "bg-cyan-50   text-cyan-700   border-cyan-200   shadow-[0_0_0_1px_rgba(8,145,178,0.35)]",
   "Commercial Solutions":      "bg-indigo-50 text-indigo-700 border-indigo-200 shadow-[0_0_0_1px_rgba(79,70,229,0.35)]",
-  "Fintech General":           "bg-teal-50   text-teal-700   border-teal-200   shadow-[0_0_0_1px_rgba(13,148,136,0.35)]",
+  "Digital General":           "bg-teal-50   text-teal-700   border-teal-200   shadow-[0_0_0_1px_rgba(13,148,136,0.35)]",
 };
 
 function intentValue(intent: Intent): number {
@@ -321,23 +321,23 @@ type QuadrantInfo = {
 
 const CLUSTER_CONTENT_TEMPLATES: Record<Cluster, string[]> = {
   "Infrastructure & Security": [
-    "How to Secure {kw}: A Complete Fintech Compliance Guide",
+    "How to Secure {kw}: A Complete Compliance Guide for Professionals",
     "{kw} Best Practices: What Enterprise Security Teams Get Right",
     "The {kw} Implementation Checklist for Regulated Industries",
     "{kw} vs Alternatives: A Technical Security Breakdown",
-    "What Every Fintech CTO Must Know About {kw}",
+    "What Every Professional CTO Must Know About {kw}",
   ],
   "Commercial Solutions": [
     "Best {kw} Tools in 2025: An Honest Comparison",
-    "How to Choose the Right {kw} for Your Fintech Stack",
+    "How to Choose the Right {kw} for Your Tech Stack",
     "{kw} Pricing Explained: What You're Actually Paying For",
-    "Why High-Growth Fintechs Are Switching to {kw}",
-    "{kw} ROI: Real Case Studies from Fintech Leaders",
+    "Why High-Growth Teams Are Switching to {kw}",
+    "{kw} ROI: Real Case Studies from Industry Leaders",
   ],
-  "Fintech General": [
-    "What Is {kw}? A Plain-English Guide for Fintech Teams",
-    "How {kw} Is Reshaping Financial Services in 2025",
-    "{kw} Trends Every Fintech Founder Should Track",
+  "Digital General": [
+    "What Is {kw}? A Plain-English Guide for Professional Teams",
+    "How {kw} Is Reshaping Digital Services in 2025",
+    "{kw} Trends Every Professional Should Track",
     "The Beginner's Guide to {kw}: Concepts, Tools & Strategy",
     "{kw} Best Practices: Lessons from Industry Leaders",
   ],
@@ -663,7 +663,7 @@ const CLUSTER_ZONE_CONFIG: Record<
     strokeColor: "rgba(79,70,229,0.28)",
     labelColor: "#4338ca",
   },
-  "Fintech General": {
+  "Digital General": {
     cx: 590, cy: 162,
     bgColor: "rgba(13,148,136,0.07)",
     strokeColor: "rgba(13,148,136,0.28)",
@@ -741,7 +741,7 @@ function KeywordClusterMap({
     const g: Record<Cluster, HistoryEntry[]> = {
       "Infrastructure & Security": [],
       "Commercial Solutions": [],
-      "Fintech General": [],
+      "Digital General": [],
     };
     history.forEach((h) => g[h.cluster].push(h));
     return g;
@@ -1170,34 +1170,34 @@ function generateSerpSnapshot(result: Result): SerpData {
   const entries: SerpEntry[] = [];
 
   if (result.intent === "Informational" && result.score < 55) {
-    entries.push({ type: "featured_snippet", title: `What is ${kw}? — Quick Answer`, domain: "fintech-authority.io", path: `/guides/${slug}`, snippet: `${kwCap} refers to a suite of financial technology solutions that enable... [Google extracts this as a featured snippet from a well-structured definition section]`, contentType: "guide" });
+    entries.push({ type: "featured_snippet", title: `What is ${kw}? — Quick Answer`, domain: "industry-authority.io", path: `/guides/${slug}`, snippet: `${kwCap} refers to a suite of financial technology solutions that enable... [Google extracts this as a featured snippet from a well-structured definition section]`, contentType: "guide" });
   }
   if (result.intent === "Commercial" || result.intent === "Transactional") {
-    entries.push({ type: "ad", title: `${kwCap} — Trusted by 10,000+ Fintech Teams`, domain: "ads.sponsor.com", path: `/${slug}`, snippet: `Get started with ${kw} today. Free demo available. No credit card required. Rated #1 by fintech leaders.` });
+    entries.push({ type: "ad", title: `${kwCap} — Trusted by 10,000+ Professional Teams`, domain: "ads.sponsor.com", path: `/${slug}`, snippet: `Get started with ${kw} today. Free demo available. No credit card required. Rated #1 by industry leaders.` });
   }
 
   if (result.intent === "Commercial") {
-    entries.push({ type: "organic", position: 1, title: `Best ${kw} Platforms in ${yr} — Expert Comparison`, domain: "techreviewer.io", path: `/fintech/best-${slug}`, snippet: `We compared the top 12 ${kw} solutions across pricing, features, and integrations. See our picks for growing fintechs and enterprise teams.`, contentType: "comparison" });
-    entries.push({ type: "organic", position: 2, title: `Top 10 ${kw} Tools: Reviews & Pricing (${yr})`, domain: "fintechadvisor.com", path: `/reviews/${slug}-tools`, snippet: `Updated for ${yr}. Our analysts tested each platform hands-on. Compare features, pricing, and API quality side by side.`, contentType: "listicle" });
+    entries.push({ type: "organic", position: 1, title: `Best ${kw} Platforms in ${yr} — Expert Comparison`, domain: "techreviewer.io", path: `/best-${slug}`, snippet: `We compared the top 12 ${kw} solutions across pricing, features, and integrations. See our picks for growing companies and enterprise teams.`, contentType: "comparison" });
+    entries.push({ type: "organic", position: 2, title: `Top 10 ${kw} Tools: Reviews & Pricing (${yr})`, domain: "digitaladvisor.com", path: `/reviews/${slug}-tools`, snippet: `Updated for ${yr}. Our analysts tested each platform hands-on. Compare features, pricing, and API quality side by side.`, contentType: "listicle" });
     entries.push({ type: "paa", title: "People Also Ask", domain: "", path: "", snippet: `• What is the best ${kw} for startups?\n• How much does ${kw} cost?\n• Is ${kw} worth the investment?` });
-    entries.push({ type: "organic", position: 3, title: `${kw} Guide: What to Look For in ${yr}`, domain: "businessfintech.io", path: `/guides/${slug}`, snippet: `Choosing the right ${kw} is critical. This guide covers key evaluation criteria, questions to ask vendors, and red flags to avoid.`, contentType: "guide" });
+    entries.push({ type: "organic", position: 3, title: `${kw} Guide: What to Look For in ${yr}`, domain: "businessinsights.io", path: `/guides/${slug}`, snippet: `Choosing the right ${kw} is critical. This guide covers key evaluation criteria, questions to ask vendors, and red flags to avoid.`, contentType: "guide" });
     entries.push({ type: "organic", position: 4, title: `${kwCap} — Official Site`, domain: `${kw.replace(/\s+/g, "")}.com`, path: `/`, snippet: `The leading ${kw} platform trusted by 5,000+ businesses. Start free. Scale as you grow. 24/7 support included.`, contentType: "official" });
   } else if (result.intent === "Transactional") {
-    entries.push({ type: "organic", position: 1, title: `${kwCap} — Start Free Trial`, domain: `top${kw.replace(/\s+/g, "")}.io`, path: `/`, snippet: `Start your 14-day free trial. No credit card required. Used by thousands of fintech companies worldwide.`, contentType: "landing" });
-    entries.push({ type: "organic", position: 2, title: `${kwCap} Pricing — Compare Plans`, domain: "fintech-tools.io", path: `/pricing/${slug}`, snippet: `Compare ${kw} pricing across all tiers. See which plan fits your fintech's growth stage and targets.`, contentType: "landing" });
+    entries.push({ type: "organic", position: 1, title: `${kwCap} — Start Free Trial`, domain: `top${kw.replace(/\s+/g, "")}.io`, path: `/`, snippet: `Start your 14-day free trial. No credit card required. Used by thousands of companies worldwide.`, contentType: "landing" });
+    entries.push({ type: "organic", position: 2, title: `${kwCap} Pricing — Compare Plans`, domain: "digital-tools.io", path: `/pricing/${slug}`, snippet: `Compare ${kw} pricing across all tiers. See which plan fits your team's growth stage and targets.`, contentType: "landing" });
     entries.push({ type: "paa", title: "People Also Ask", domain: "", path: "", snippet: `• How much does ${kw} cost?\n• Is there a free version of ${kw}?\n• What integrations does ${kw} support?` });
-    entries.push({ type: "organic", position: 3, title: `Get Started with ${kw} Today`, domain: "fintechplatform.com", path: `/signup`, snippet: `Join 8,000+ fintech teams already using ${kw}. Set up in under 10 minutes. Integrates with your existing stack.`, contentType: "landing" });
+    entries.push({ type: "organic", position: 3, title: `Get Started with ${kw} Today`, domain: "digitalplatform.com", path: `/signup`, snippet: `Join 8,000+ professional teams already using ${kw}. Set up in under 10 minutes. Integrates with your existing stack.`, contentType: "landing" });
   } else if (result.intent === "Navigational") {
     entries.push({ type: "organic", position: 1, title: `${kwCap} — Official Site`, domain: `${kw.replace(/\s+/g, "")}.com`, path: `/`, snippet: `The official home of ${kw}. Documentation, pricing, and getting started guides. Trusted by teams worldwide.`, contentType: "official" });
     entries.push({ type: "organic", position: 2, title: `${kwCap} Reviews — ${reviewCount} Verified Ratings`, domain: "g2.com", path: `/products/${slug}/reviews`, snippet: `See what real users say about ${kw}. ${reviewCount} verified reviews. Average rating 4.${kw.length % 4 + 5}/5 stars on G2.`, contentType: "review" });
-    entries.push({ type: "organic", position: 3, title: `Best ${kwCap} Alternatives (${yr})`, domain: "alternativeto.net", path: `/${slug}`, snippet: `Looking for alternatives to ${kw}? Here are the top-rated options according to the fintech community.`, contentType: "comparison" });
+    entries.push({ type: "organic", position: 3, title: `Best ${kwCap} Alternatives (${yr})`, domain: "alternativeto.net", path: `/${slug}`, snippet: `Looking for alternatives to ${kw}? Here are the top-rated options according to the professional community.`, contentType: "comparison" });
   } else {
-    entries.push({ type: "organic", position: 1, title: `What Is ${kw}? Complete Guide for ${yr}`, domain: "fintechexplained.io", path: `/guides/${slug}`, snippet: `${kwCap} is a critical component of modern financial infrastructure. This guide covers how it works, key benefits, and implementation strategies.`, contentType: "guide" });
-    entries.push({ type: "organic", position: 2, title: `${kwCap}: How It Works & Why It Matters`, domain: "moneytechinsider.com", path: `/learn/${slug}`, snippet: `Understand the mechanics of ${kw} and why fintech leaders are prioritising it in ${yr}. Includes real-world examples and case studies.`, contentType: "guide" });
+    entries.push({ type: "organic", position: 1, title: `What Is ${kw}? Complete Guide for ${yr}`, domain: "digitalexplained.io", path: `/guides/${slug}`, snippet: `${kwCap} is a critical component of modern financial infrastructure. This guide covers how it works, key benefits, and implementation strategies.`, contentType: "guide" });
+    entries.push({ type: "organic", position: 2, title: `${kwCap}: How It Works & Why It Matters`, domain: "moneytechinsider.com", path: `/learn/${slug}`, snippet: `Understand the mechanics of ${kw} and why digital leaders are prioritising it in ${yr}. Includes real-world examples and case studies.`, contentType: "guide" });
     entries.push({ type: "paa", title: "People Also Ask", domain: "", path: "", snippet: `• How does ${kw} work?\n• What are the benefits of ${kw}?\n• Who uses ${kw} today?` });
     entries.push({ type: "video", title: `${kwCap} Explained in 5 Minutes`, domain: "youtube.com", path: `/watch`, snippet: `Video · 5:23 · FinTech Simplified — 142K views · How ${kw} is transforming payments and financial services.` });
-    entries.push({ type: "organic", position: 3, title: `${kwCap}: Benefits, Challenges & Best Practices`, domain: "paymentsintelligence.io", path: `/articles/${slug}`, snippet: `A fintech leader's guide to ${kw}. Includes common implementation pitfalls, ROI data, and expert recommendations.`, contentType: "guide" });
-    entries.push({ type: "organic", position: 4, title: `Top 7 ${kw} Best Practices in ${yr}`, domain: "fintechweekly.co", path: `/best-practices/${slug}`, snippet: `Industry experts share their top advice on ${kw}. Updated with the latest regulatory and technology developments.`, contentType: "listicle" });
+    entries.push({ type: "organic", position: 3, title: `${kwCap}: Benefits, Challenges & Best Practices`, domain: "paymentsintelligence.io", path: `/articles/${slug}`, snippet: `A professional's guide to ${kw}. Includes common implementation pitfalls, ROI data, and expert recommendations.`, contentType: "guide" });
+    entries.push({ type: "organic", position: 4, title: `Top 7 ${kw} Best Practices in ${yr}`, domain: "digitalweekly.co", path: `/best-practices/${slug}`, snippet: `Industry experts share their top advice on ${kw}. Updated with the latest regulatory and technology developments.`, contentType: "listicle" });
   }
 
   return { targetPositionMin: targetMin, targetPositionMax: targetMax, timeToRankMin: timeMin, timeToRankMax: timeMax, winningFormat, winningFormatDetail, daRequired, features, entries };
@@ -1364,10 +1364,10 @@ function briefFormat(entry: HistoryEntry): string {
 }
 
 function briefAudience(entry: HistoryEntry): string {
-  if (entry.intent === "Transactional") return "Fintech buyers & decision-makers";
+  if (entry.intent === "Transactional") return "Professional buyers & decision-makers";
   if (entry.intent === "Navigational") return "Existing customers & users";
-  if (entry.intent === "Commercial") return "Fintech leaders evaluating solutions";
-  return "Fintech practitioners & content teams";
+  if (entry.intent === "Commercial") return "Professional leaders evaluating solutions";
+  return "Professional practitioners & content teams";
 }
 
 function briefH2s(entry: HistoryEntry): string[] {
@@ -1406,7 +1406,7 @@ function briefH2s(entry: HistoryEntry): string[] {
   return [
     `What is ${kw}?`,
     `How ${kw} works in practice`,
-    `Key benefits of ${kw} for fintech companies`,
+    `Key benefits of ${kw} for professionals`,
     `${kw} vs traditional alternatives`,
     `Common challenges with ${kw} (and how to overcome them)`,
     `How to implement ${kw}: a step-by-step guide`,
@@ -1416,29 +1416,29 @@ function briefH2s(entry: HistoryEntry): string[] {
 
 function briefInternalLinks(entry: HistoryEntry): { anchor: string; page: string }[] {
   const common = [
-    { anchor: "fintech content marketing guide", page: "/blog/fintech-content-marketing" },
+    { anchor: "content marketing guide", page: "/blog/fintech-content-marketing" },
     { anchor: "keyword difficulty estimator", page: "/tools/keyword-difficulty-estimator" },
   ];
   if (entry.cluster === "Infrastructure & Security") {
     return [
-      { anchor: "API banking best practices", page: "/blog/api-banking-guide" },
-      { anchor: "fintech security & compliance overview", page: "/blog/fintech-compliance" },
+      { anchor: "API best practices", page: "/blog/api-banking-guide" },
+      { anchor: "security & compliance overview", page: "/blog/fintech-compliance" },
       { anchor: "RegTech explained for marketers", page: "/blog/regtech-guide" },
       ...common,
     ];
   }
   if (entry.cluster === "Commercial Solutions") {
     return [
-      { anchor: "fintech product marketing strategies", page: "/blog/fintech-product-marketing" },
-      { anchor: "how to write fintech case studies", page: "/blog/fintech-case-studies" },
-      { anchor: "fintech pricing page copywriting tips", page: "/blog/pricing-page-copy" },
+      { anchor: "product marketing strategies", page: "/blog/fintech-product-marketing" },
+      { anchor: "how to write professional case studies", page: "/blog/fintech-case-studies" },
+      { anchor: "pricing page copywriting tips", page: "/blog/pricing-page-copy" },
       ...common,
     ];
   }
   return [
-    { anchor: "fintech SEO guide", page: "/blog/fintech-seo" },
-    { anchor: "content strategy for fintech startups", page: "/blog/fintech-content-strategy" },
-    { anchor: "top fintech blog topics", page: "/blog/fintech-blog-topics" },
+    { anchor: "SEO strategy guide", page: "/blog/fintech-seo" },
+    { anchor: "content strategy for startups", page: "/blog/fintech-content-strategy" },
+    { anchor: "top blog topics for professionals", page: "/blog/fintech-blog-topics" },
     ...common,
   ];
 }
@@ -1447,22 +1447,22 @@ function briefMeta(entry: HistoryEntry): string {
   const kw = entry.keyword;
   const yr = new Date().getFullYear();
   if (entry.intent === "Commercial") {
-    return `Compare the best ${kw} solutions in ${yr}. Expert reviews, feature breakdowns, and top picks to help fintech teams make the right choice.`;
+    return `Compare the best ${kw} solutions in ${yr}. Expert reviews, feature breakdowns, and top picks to help professional teams make the right choice.`;
   }
   if (entry.intent === "Transactional") {
-    return `Get started with ${kw} today. Explore features, pricing, and integrations — request a free demo to see if it's right for your fintech.`;
+    return `Get started with ${kw} today. Explore features, pricing, and integrations — request a free demo to see if it's right for your team.`;
   }
   if (entry.intent === "Navigational") {
     return `Explore everything about ${kw}. Find documentation, guides, and support resources to get the most from your ${kw} platform.`;
   }
-  return `Learn everything about ${kw}. This expert guide covers how it works, key benefits for fintech companies, and implementation best practices.`;
+  return `Learn everything about ${kw}. This expert guide covers how it works, key benefits for professionals, and implementation best practices.`;
 }
 
 function briefCta(entry: HistoryEntry): string {
   if (entry.intent === "Transactional") return "Start your free trial today";
   if (entry.intent === "Commercial") return "Request a free content strategy consultation";
   if (entry.intent === "Navigational") return "Book a product demo";
-  return "Subscribe to the FintechPressHub newsletter for weekly fintech content insights";
+  return "Subscribe to the FintechPressHub newsletter for weekly content insights";
 }
 
 function generateBrief(entry: HistoryEntry): KeywordBrief {
@@ -1773,7 +1773,7 @@ function ContentGapScore({
             <Gauge className="w-4 h-4 text-violet-600 shrink-0" />
             <h4 className="text-sm font-semibold text-slate-900">Content Gap Score</h4>
             <span className="text-[10px] text-muted-foreground ml-0.5">
-              vs {gap.total} essential fintech topics
+              vs {gap.total} essential topics
             </span>
           </div>
 
@@ -1904,7 +1904,7 @@ function ContentGapScore({
               <div className="flex items-center gap-2.5 rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3">
                 <Trophy className="w-5 h-5 text-emerald-600 shrink-0" />
                 <p className="text-sm font-semibold text-emerald-800">
-                  Full topical coverage! You've analysed keywords across all essential fintech areas.
+                  Full topical coverage! You've analysed keywords across all essential topic areas.
                 </p>
               </div>
             </motion.div>
@@ -2216,7 +2216,7 @@ const COMPETITOR_POOL: Record<Cluster, string[]> = {
     "investopedia.com", "finder.com", "techradar.com", "pcmag.com",
     "businessinsider.com", "thebalancemoney.com",
   ],
-  "Fintech General": [
+  "Digital General": [
     "techcrunch.com", "forbes.com", "pymnts.com", "fintechnews.org",
     "thefinancialbrand.com", "fintechmagazine.com", "americanbanker.com",
     "businesswire.com", "reuters.com", "wsj.com",
@@ -2697,7 +2697,7 @@ function CampaignExportModal({
               <p className="text-[10px] text-slate-400 mt-1.5 leading-snug">
                 Report title:{" "}
                 <span className="text-violet-600 font-semibold">
-                  "{clientName.trim()} — Fintech Content Growth Campaign"
+                  "{clientName.trim()} — Digital Content Growth Campaign"
                 </span>
               </p>
             )}
@@ -3529,7 +3529,7 @@ export default function KeywordDifficultyEstimator() {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7);
       doc.setTextColor(255, 255, 255);
-      doc.text(`${clientName} — Fintech Content Growth Campaign`, margin, 9);
+      doc.text(`${clientName} — Digital Content Growth Campaign`, margin, 9);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(216, 180, 254);
       doc.text(`Keyword ${num} of ${total}  ·  ${kw.length > 40 ? kw.slice(0, 38) + "…" : kw}`, pw - margin, 9, { align: "right" });
@@ -3545,7 +3545,7 @@ export default function KeywordDifficultyEstimator() {
     doc.text("FINTECHPRESSHUB", margin, 20);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
-    doc.text("FINTECH SEO & CONTENT MARKETING", margin, 27);
+    doc.text("DIGITAL SEO & CONTENT MARKETING", margin, 27);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
@@ -3556,7 +3556,7 @@ export default function KeywordDifficultyEstimator() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     doc.setTextColor(196, 181, 253);
-    doc.text("Fintech Content Growth Campaign", margin, tY + 2);
+    doc.text("Digital Content Growth Campaign", margin, tY + 2);
 
     let y = 88;
     doc.setDrawColor(226, 232, 240);
@@ -3567,7 +3567,7 @@ export default function KeywordDifficultyEstimator() {
     const meta: [string, string][] = [
       ["Report generated", today],
       ["Keywords in campaign", `${entries.length}`],
-      ["Prepared by", "FintechPressHub — Fintech SEO & Content Marketing"],
+      ["Prepared by", "FintechPressHub — Digital SEO & Content Marketing"],
     ];
     meta.forEach(([label, value]) => {
       doc.setFont("helvetica", "normal");
@@ -3740,7 +3740,7 @@ export default function KeywordDifficultyEstimator() {
     ctaHead.forEach((l) => { doc.text(l, margin, ctaY); ctaY += 8; });
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(196, 181, 253);
     const ctaBody = doc.splitTextToSize(
-      "FintechPressHub delivers high-authority fintech content that ranks. Book a strategy call to start your campaign.",
+      "FintechPressHub delivers high-authority professional content that ranks. Book a strategy call to start your campaign.",
       contentW,
     ) as string[];
     ctaBody.forEach((l) => { doc.text(l, margin, ctaY); ctaY += 5; });
@@ -3755,7 +3755,7 @@ export default function KeywordDifficultyEstimator() {
     doc.text("Generated by FintechPressHub Keyword Difficulty Estimator", margin, y + 5);
     doc.text("All difficulty estimates are heuristic — based on keyword structure and competitive signals.", margin, y + 10);
 
-    const fileName = `${clientName.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-fintech-content-growth-campaign.pdf`;
+    const fileName = `${clientName.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-digital-content-growth-campaign.pdf`;
     doc.save(fileName);
   };
 
@@ -3768,7 +3768,7 @@ export default function KeywordDifficultyEstimator() {
       <PageHero
         eyebrow="Free Tool"
         title="Keyword Difficulty Estimator"
-        description="Enter any fintech keyword to get an estimated difficulty score, search intent classification, projected volume range, and 6 ready-to-use long-tail variations."
+        description="Enter any keyword to get an estimated difficulty score, search intent classification, projected volume range, and 6 ready-to-use long-tail variations."
       />
 
       <section className="py-12 md:py-16">
@@ -4020,11 +4020,11 @@ export default function KeywordDifficultyEstimator() {
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                   <Search className="w-4 h-4 text-violet-600" />
-                  Fintech Keyword or Phrase
+                  Keyword or Phrase
                 </Label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="e.g. fintech SEO agency, open banking API, best BNPL platform"
+                    placeholder="e.g. digital SEO agency, open banking API, best content platform"
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     onKeyDown={(e) => {
@@ -4898,7 +4898,7 @@ export default function KeywordDifficultyEstimator() {
                 {(() => {
                   const ctaConfig: Record<Intent, { text: string; linkLabel: string; linkHref: string; ctaLabel: string; ctaHref: string }> = {
                     Commercial: {
-                      text: `Ready to convert traffic for "${result.keyword}"? Our SEO experts specialize in high-intent fintech content.`,
+                      text: `Ready to convert traffic for "${result.keyword}"? Our SEO experts specialize in high-intent professional content.`,
                       linkLabel: "See our conversion-focused services",
                       linkHref: "/services",
                       ctaLabel: "book a strategy call",
@@ -4906,7 +4906,7 @@ export default function KeywordDifficultyEstimator() {
                     },
                     Transactional: {
                       text: `Targeting buyers searching for "${result.keyword}"? We build bottom-funnel content that drives action.`,
-                      linkLabel: "Explore our fintech content services",
+                      linkLabel: "Explore our professional content services",
                       linkHref: "/services",
                       ctaLabel: "get a free audit",
                       ctaHref: "/contact",
@@ -4919,7 +4919,7 @@ export default function KeywordDifficultyEstimator() {
                       ctaHref: "/contact",
                     },
                     Navigational: {
-                      text: `Building brand visibility around "${result.keyword}"? We help fintech brands own their branded search results.`,
+                      text: `Building brand visibility around "${result.keyword}"? We help professional brands own their branded search results.`,
                       linkLabel: "See our brand SEO services",
                       linkHref: "/services",
                       ctaLabel: "book a free strategy call",
@@ -4995,7 +4995,7 @@ export default function KeywordDifficultyEstimator() {
                   <h2 className="text-base font-bold">Want this brief in your inbox?</h2>
                 </div>
                 <p className="text-sm text-violet-200 leading-relaxed">
-                  Your PDF has been downloaded. Enter your email and we'll send you a copy plus fintech SEO tips from our editorial team.
+                  Your PDF has been downloaded. Enter your email and we'll send you a copy plus professional SEO tips from our editorial team.
                 </p>
               </div>
 
@@ -5011,7 +5011,7 @@ export default function KeywordDifficultyEstimator() {
                     </div>
                     <p className="text-sm font-semibold text-slate-800">You're on the list!</p>
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      Check your inbox for your SEO Strategy Brief and our fintech content tips.
+                      Check your inbox for your SEO Strategy Brief and our professional content tips.
                     </p>
                     <button
                       type="button"

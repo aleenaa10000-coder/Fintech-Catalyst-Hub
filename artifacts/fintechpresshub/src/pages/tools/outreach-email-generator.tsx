@@ -144,7 +144,7 @@ function scoreSubjectLine(subject: string, domain: string): SubjectScore {
 function generateSubjectVariants(form: FormState, tone: Tone): [string, string] {
   const domain  = fmtDomain(form.targetDomain) || "yourtargetsite.com";
   const company = form.yourCompany.trim() || "Your Company";
-  const topic   = form.topic.trim() || "fintech";
+  const topic   = form.topic.trim() || "digital marketing";
   const site    = siteName(domain);
   const hasValue = form.linkValueMin && form.linkValueMax;
   const valueRange = hasValue ? `$${form.linkValueMin}–$${form.linkValueMax}` : null;
@@ -176,7 +176,7 @@ function generateEmailBody(form: FormState, tone: Tone, subject: string): string
   const company = form.yourCompany.trim() || "Your Company";
   const website = fmtDomain(form.yourWebsite) || "yourwebsite.com";
   const pitch   = form.contentPitch.trim() || "our recent in-depth guide on this topic";
-  const topic   = form.topic.trim() || "fintech";
+  const topic   = form.topic.trim() || "digital marketing";
   const site    = siteName(domain);
   const hasValue = form.linkValueMin && form.linkValueMax;
   const valueRange = hasValue ? `$${form.linkValueMin}–$${form.linkValueMax}` : "a high-authority link placement";
@@ -184,7 +184,7 @@ function generateEmailBody(form: FormState, tone: Tone, subject: string): string
   if (tone === "professional") {
     return `Hi ${site} team,
 
-I'm ${name} from ${company} (${website}). I came across ${domain} while researching ${topic} resources for fintech professionals, and your coverage stood out.
+I'm ${name} from ${company} (${website}). I came across ${domain} while researching ${topic} resources for digital professionals, and your coverage stood out.
 
 We've recently published ${pitch} — it covers ${topic} in a way I believe your readers would find genuinely useful as a follow-on resource.
 
@@ -610,7 +610,7 @@ export default function OutreachEmailGenerator() {
                     <Input
                       value={form.topic}
                       onChange={(e) => setField("topic", e.target.value)}
-                      placeholder="fintech SEO, open banking…"
+                      placeholder="digital SEO, content marketing…"
                     />
                     <p className="text-[10px] text-muted-foreground">Helps personalise both variants</p>
                   </div>
@@ -656,7 +656,7 @@ export default function OutreachEmailGenerator() {
                   <textarea
                     value={form.contentPitch}
                     onChange={(e) => setField("contentPitch", e.target.value)}
-                    placeholder="our 2025 Fintech SEO State of the Market report with 12 months of first-party ranking data"
+                    placeholder="our 2025 Digital SEO State of the Market report with 12 months of first-party ranking data"
                     rows={3}
                     className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />

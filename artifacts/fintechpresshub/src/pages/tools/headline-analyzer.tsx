@@ -170,7 +170,7 @@ const TOPIC_CLUSTER_LABELS: Array<{
 // ── Format → headline template map ────────────────────────────────────────
 // [Topic] is replaced at click-time with the detected cluster label.
 const FORMAT_TEMPLATES: Record<string, string> = {
-  "How-To Guides":                      "How to [Topic] in 2026: A Practical Guide for Fintech Teams",
+  "How-To Guides":                      "How to [Topic] in 2026: A Practical Guide for Professional Teams",
   "Case Studies":                        "How [Company] Used [Topic] to Drive Results: A 2026 Case Study",
   "Regulatory Roundups":                 "The 2026 [Topic] Regulatory Roundup: What Leaders Need to Know Now",
   "Deep-Dive Explainers":               "How [Topic] Actually Works in 2026: A Complete Explainer",
@@ -178,34 +178,34 @@ const FORMAT_TEMPLATES: Record<string, string> = {
   "Partnership Announcements":          "Why This [Topic] Partnership Could Reshape the Market in 2026",
   "Market Analysis Reports":            "[Topic] in 2026: Market Size, Growth Drivers and Key Trends",
   "Regulatory Watch Pieces":            "Regulatory Watch: What New [Topic] Rules Mean for Your Business in 2026",
-  "Protocol Deep Dives":                "Inside [Topic]: How It Works and Why It Matters for Fintech in 2026",
+  "Protocol Deep Dives":                "Inside [Topic]: How It Works and Why It Matters for Professionals in 2026",
   "Market Outlooks":                    "[Topic] Market Outlook 2026: Trends, Forecasts and Opportunities",
-  "Technology Primers":                 "What Is [Topic]? A Plain-English Primer for Fintech Professionals",
+  "Technology Primers":                 "What Is [Topic]? A Plain-English Primer for Digital Professionals",
   "Compliance Checklists":              "The Ultimate [Topic] Compliance Checklist for 2026",
   "Product Launch Analyses":            "Breaking Down the Latest [Topic] Launch and What It Means for the Market",
   "Data-Driven Reports":                "[Topic] by the Numbers: Key Stats and Trends Shaping 2026",
-  "Use Case Stories":                   "5 Real-World [Topic] Use Cases Redefining Fintech in 2026",
-  "Trend Reports":                      "The Top [Topic] Trends Every Fintech Leader Must Watch in 2026",
+  "Use Case Stories":                   "5 Real-World [Topic] Use Cases Redefining Digital in 2026",
+  "Trend Reports":                      "The Top [Topic] Trends Every Professional Leader Must Watch in 2026",
   "Investor Roundtables":               "What [Topic] Investors Are Watching Most Closely in 2026",
   "Threat Intelligence Reports":        "2026 [Topic] Threat Report: Emerging Risks and How to Stay Ahead",
-  "Best Practice Guides":               "Best Practices for [Topic] in 2026: What Top Fintech Teams Are Doing",
-  "Incident Case Studies":              "Lessons From a Major [Topic] Failure and What Every Fintech Must Know",
+  "Best Practice Guides":               "Best Practices for [Topic] in 2026: What Top Professional Teams Are Doing",
+  "Incident Case Studies":              "Lessons From a Major [Topic] Failure and What Every Professional Must Know",
   "Market Data Reports":                "[Topic] Market Data 2026: Key Benchmarks and What They Signal",
   "Underwriting Deep Dives":            "Inside Next-Gen [Topic] Underwriting: How AI Is Changing the Rules",
-  "Borrower Case Studies":              "How One Fintech Cut [Topic] Defaults Using Alternative Data in 2026",
+  "Borrower Case Studies":              "How One Company Cut [Topic] Defaults Using Alternative Data in 2026",
   "Product Comparison Guides":          "[Topic] Head-to-Head: Comparing the Top Providers in 2026",
   "User Adoption Stories":              "How [Company] Scaled [Topic] Adoption Without Sacrificing Compliance",
   "Founder Interviews":                 "Building a [Topic] Business in 2026: Lessons From Founders Who Did It",
   "Technology Migration Case Studies":  "How [Company] Modernised Its [Topic] Stack Without Downtime",
   "Vendor Comparisons":                 "The Best [Topic] Vendors in 2026: An Independent Comparison",
   "CTO Interviews":                     "Inside the [Topic] Stack: A CTO's Playbook for 2026",
-  "Implementation Guides":              "How to Implement [Topic] in Your Fintech Stack: A 2026 Playbook",
-  "ROI Case Studies":                   "The ROI of [Topic]: How Leading Fintechs Are Measuring Returns in 2026",
+  "Implementation Guides":              "How to Implement [Topic] in Your Professional Stack: A 2026 Playbook",
+  "ROI Case Studies":                   "The ROI of [Topic]: How Leading Professionals Are Measuring Returns in 2026",
   "Funding Roundup Reports":            "[Topic] Funding Roundup: The Biggest Deals and Trends of 2026",
   "Founder Spotlights":                 "Meet the Founders Reinventing [Topic] in 2026",
   "Market Opportunity Analyses":        "The [Topic] Opportunity in 2026: Market Size, Gaps and Who Will Win",
   "Expert Roundups":                    "12 Experts Predict the Biggest [Topic] Shifts of 2026",
-  "Regulatory Analyses":                "How New [Topic] Rules Will Reshape the Fintech Industry in 2026",
+  "Regulatory Analyses":                "How New [Topic] Rules Will Reshape the Digital Industry in 2026",
 };
 
 function detectTopicCluster(headline: string): typeof TOPIC_CLUSTER_LABELS[number] | null {
@@ -430,7 +430,7 @@ function scoreCharCount(h: string): ScoreDimension {
   } else if (n >= 40 && n < 50) {
     score = 18;
     feedback = `${n} characters — slightly short. Target 50–60 for the sweet spot.`;
-    tip = "Add a specific detail (a number, a context qualifier, or a fintech keyword) to reach 50+ characters.";
+    tip = "Add a specific detail (a number, a context qualifier, or a target keyword) to reach 50+ characters.";
   } else if (n > 0) {
     score = 10;
     feedback = `${n} characters — too short. Headlines under 40 chars tend to lack context.`;
@@ -512,15 +512,15 @@ function scoreFintechKeyword(h: string): ScoreDimension {
 
   if (matched.length >= 2) {
     score = 25;
-    feedback = `Strong fintech signal — "${matched.slice(0, 2).join('", "')}" detected.`;
+    feedback = `Strong industry signal — "${matched.slice(0, 2).join('", "')}" detected.`;
     tip = "Good. Ensure the primary keyword appears within the first 3 words if possible.";
   } else if (matched.length === 1) {
     score = 18;
-    feedback = `One fintech keyword detected: "${matched[0]}".`;
+    feedback = `One industry keyword detected: "${matched[0]}".`;
     tip = "Add a second relevant term to strengthen topical signal (e.g. a sector, a role, or a technology).";
   } else {
     score = 5;
-    feedback = "No recognisable fintech keywords found.";
+    feedback = "No recognisable industry keywords found.";
     tip = "Add your primary keyword explicitly — search engines and readers use it to judge relevance instantly.";
   }
 
@@ -581,11 +581,11 @@ function scoreEmotionalPull(h: string): ScoreDimension {
     if (authorityHits.length) categories.push(`authority (${authorityHits.join(", ")})`);
     if (growthHits.length)    categories.push(`growth (${growthHits.join(", ")})`);
     if (urgencyHits.length)   categories.push(`urgency (${urgencyHits.join(", ")})`);
-    signals.push(`fintech power words — ${categories.join("; ")}`);
+    signals.push(`professional power words — ${categories.join("; ")}`);
   } else if (fintechCount === 1) {
     score += 5;
     const hit = [...authorityHits, ...growthHits, ...urgencyHits][0]!;
-    signals.push(`fintech power word (${hit})`);
+    signals.push(`professional power word (${hit})`);
   } else if (genericCount >= 2) {
     score += 7; signals.push(`${genericCount} power words`);
   } else if (genericCount === 1) {
@@ -769,12 +769,12 @@ function analyzeHeadline(headline: string): Analysis {
   // ── Keyword hygiene ──────────────────────────────────────────────────────
   const detectedKws = FINTECH_KEYWORDS.filter((kw) => lower.includes(kw));
   if (detectedKws.length >= 3)
-    flags.push(`${detectedKws.length} fintech keywords detected (${detectedKws.slice(0, 3).join(", ")}) — risk of keyword stuffing. Pick one primary focus.`);
+    flags.push(`${detectedKws.length} industry keywords detected (${detectedKws.slice(0, 3).join(", ")}) — risk of keyword stuffing. Pick one primary focus.`);
 
   // ── Clickbait & trust signals ────────────────────────────────────────────
   const clickbaitMatch = lower.match(/you won't believe|shocking|mind.blowing|incredible|unbelievable|jaw.dropping/);
   if (clickbaitMatch)
-    flags.push(`Clickbait language detected ("${clickbaitMatch[0]}") — erodes trust with B2B fintech decision-makers.`);
+    flags.push(`Clickbait language detected ("${clickbaitMatch[0]}") — erodes trust with B2B decision-makers.`);
 
   if (/click here|read more|find out more/i.test(headline))
     flags.push("Weak CTA language ('click here', 'read more') — state the value directly instead.");
@@ -800,7 +800,7 @@ function analyzeHeadline(headline: string): Analysis {
 
   const overusedMatch = lower.match(/\b(you need to know|everything you need|what you need to know)\b/);
   if (overusedMatch)
-    flags.push(`"${overusedMatch[0]}" is overused in fintech content — swap for a specific claim or data point.`);
+    flags.push(`"${overusedMatch[0]}" is overused in professional content — swap for a specific claim or data point.`);
 
   // ── Superlatives without proof ───────────────────────────────────────────
   if (/\b(best|top|greatest|most powerful|most important)\b/i.test(headline) && !/\d/.test(headline))
@@ -1337,7 +1337,7 @@ export default function HeadlineAnalyzer() {
       <PageHero
         eyebrow="Free Tool"
         title="Headline Analyzer"
-        description="Paste any fintech article headline to get a score across clarity, keyword presence, emotional pull, and character count — with rewrite suggestions tailored to fintech audiences."
+        description="Paste any article headline to get a score across clarity, keyword presence, emotional pull, and character count — with rewrite suggestions tailored to professional audiences."
       />
 
       <section className="py-12 md:py-16 bg-gradient-to-b from-white via-blue-50/50 to-indigo-50/40">
@@ -1460,7 +1460,7 @@ export default function HeadlineAnalyzer() {
                           fetchAndAnalyze();
                         }
                       }}
-                      placeholder="https://techcrunch.com/2025/01/fintech-article"
+                      placeholder="https://techcrunch.com/2025/01/digital-marketing-article"
                       className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-slate-800 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     />
                     {fetchError && (
@@ -1596,7 +1596,7 @@ export default function HeadlineAnalyzer() {
                     )}
                     {/* Meta description */}
                     <p className="mt-1.5 text-[13px] text-slate-600 leading-snug line-clamp-2">
-                      Explore expert fintech insights and analysis — published by FintechPressHub, your trusted source for fintech SEO and content marketing strategy.
+                      Explore expert insights and analysis — published by FintechPressHub, your trusted source for digital SEO and content marketing strategy.
                     </p>
                   </motion.div>
                 );
@@ -2496,7 +2496,7 @@ export default function HeadlineAnalyzer() {
                         Ready to turn this headline into a ranking article?
                       </h3>
                       <p className="text-sm text-indigo-100 leading-relaxed mb-5">
-                        Our specialized fintech writers can turn your optimized headline into a 1,500-word authority piece that drives leads.
+                        Our specialized writers can turn your optimized headline into a 1,500-word authority piece that drives leads.
                       </p>
                       <Button
                         onClick={() => {
@@ -2531,7 +2531,7 @@ export default function HeadlineAnalyzer() {
                       </div>
                       <div className="rounded-lg bg-slate-50 border border-slate-100 px-3.5 py-3 mb-3">
                         <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line font-mono select-all">
-                          {`I just scored my fintech headline ${result.overallScore}/100 on FintechPressHub's free Headline Analyzer.\n\nVerdict: ${result.verdict}\n"${result.headline}"\n\nTest your own → ${typeof window !== "undefined" ? window.location.origin : ""}/tools/headline-analyzer`}
+                          {`I just scored my headline ${result.overallScore}/100 on FintechPressHub's free Headline Analyzer.\n\nVerdict: ${result.verdict}\n"${result.headline}"\n\nTest your own → ${typeof window !== "undefined" ? window.location.origin : ""}/tools/headline-analyzer`}
                         </p>
                       </div>
                       <div className="flex gap-2">
@@ -2540,7 +2540,7 @@ export default function HeadlineAnalyzer() {
                           size="sm"
                           className="flex-1 h-8 text-xs font-medium"
                           onClick={() => {
-                            const text = `I just scored my fintech headline ${result.overallScore}/100 on FintechPressHub's free Headline Analyzer.\n\nVerdict: ${result.verdict}\n"${result.headline}"\n\nTest your own → ${typeof window !== "undefined" ? window.location.origin : ""}/tools/headline-analyzer`;
+                            const text = `I just scored my headline ${result.overallScore}/100 on FintechPressHub's free Headline Analyzer.\n\nVerdict: ${result.verdict}\n"${result.headline}"\n\nTest your own → ${typeof window !== "undefined" ? window.location.origin : ""}/tools/headline-analyzer`;
                             navigator.clipboard.writeText(text);
                             setShareCopied(true);
                             setTimeout(() => setShareCopied(false), 2000);

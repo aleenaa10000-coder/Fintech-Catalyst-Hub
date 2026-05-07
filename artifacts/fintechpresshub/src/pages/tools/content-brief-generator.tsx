@@ -66,7 +66,7 @@ const DEFAULTS: FormState = {
 };
 
 const AUDIENCE_LABELS: Record<Audience, string> = {
-  founders: "Fintech founders / CEOs",
+  founders: "Professional founders / CEOs",
   marketers: "Marketing & growth teams",
   developers: "Developers & technical leads",
   consumers: "Personal finance consumers",
@@ -153,44 +153,44 @@ type IntentAlignment = {
 
 const INTERNAL_LINKS_BY_AUDIENCE: Record<Audience, string[]> = {
   founders: [
-    "/services — link from any mention of 'fintech content strategy' or 'growing your pipeline'; anchor: 'fintech content agency'",
+    "/services — link from any mention of 'content strategy' or 'growing your pipeline'; anchor: 'content agency'",
     "/services#white-label — link from any mention of 'white-label publishing', 'branded content', or 'partner media'; anchor: 'white-label content solutions'",
-    "/blog/category/roi-frameworks — link from any mention of 'content ROI', 'measuring results', or 'attribution'; anchor: 'fintech content ROI framework'",
-    "/case-studies — link from any mention of 'proof points', 'client results', or 'growth case study'; anchor: 'fintech content case studies'",
+    "/blog/category/roi-frameworks — link from any mention of 'content ROI', 'measuring results', or 'attribution'; anchor: 'content ROI framework'",
+    "/case-studies — link from any mention of 'proof points', 'client results', or 'growth case study'; anchor: 'content case studies'",
     "/pricing — link from any mention of 'investment', 'budget', or 'cost of content'; anchor: 'content marketing pricing'",
     "/contact — link from the conclusion CTA; anchor: 'book a strategy call'",
   ],
   marketers: [
-    "/services#content-production — link from any mention of 'outsourcing content' or 'specialist writers'; anchor: 'fintech content production service'",
-    "/tools/keyword-difficulty-estimator — link from any mention of 'keyword research', 'difficulty scores', or 'search opportunity'; anchor: 'fintech keyword difficulty estimator'",
-    "/tools/content-brief-generator — link from any mention of 'content briefs', 'article structure', or 'editorial planning'; anchor: 'fintech content brief generator'",
-    "/blog/category/seo-strategy — link from any mention of 'organic growth', 'search rankings', or 'SEO playbook'; anchor: 'fintech SEO strategy guides'",
-    "/case-studies — link from any mention of 'campaign results', 'traffic growth', or 'pipeline influence'; anchor: 'fintech marketing case studies'",
+    "/services#content-production — link from any mention of 'outsourcing content' or 'specialist writers'; anchor: 'content production service'",
+    "/tools/keyword-difficulty-estimator — link from any mention of 'keyword research', 'difficulty scores', or 'search opportunity'; anchor: 'keyword difficulty estimator'",
+    "/tools/content-brief-generator — link from any mention of 'content briefs', 'article structure', or 'editorial planning'; anchor: 'content brief generator'",
+    "/blog/category/seo-strategy — link from any mention of 'organic growth', 'search rankings', or 'SEO playbook'; anchor: 'SEO strategy guides'",
+    "/case-studies — link from any mention of 'campaign results', 'traffic growth', or 'pipeline influence'; anchor: 'digital marketing case studies'",
     "/write-for-us — link from any call-to-action for contributors or guest authors; anchor: 'write for FintechPressHub'",
   ],
   developers: [
-    "/blog/category/api-integration — link from any mention of 'integration patterns', 'API design', or 'connecting systems'; anchor: 'fintech API integration guides'",
+    "/blog/category/api-integration — link from any mention of 'integration patterns', 'API design', or 'connecting systems'; anchor: 'API integration guides'",
     "/blog/category/open-banking-tech — link from any mention of 'open banking architecture', 'PSD2 implementation', or 'banking APIs'; anchor: 'open banking technical resources'",
-    "/blog/category/security-compliance — link from any mention of 'PCI DSS', 'GDPR', 'data protection', or 'secure coding'; anchor: 'fintech security and compliance guides'",
-    "/case-studies#technical — link from any mention of 'real-world implementation', 'production deployment', or 'developer success story'; anchor: 'technical fintech case studies'",
-    "/services#technical-content — link from any mention of 'developer documentation', 'API reference writing', or 'technical copywriting'; anchor: 'fintech technical content writing'",
-    "/contact — link from any 'need expert guidance' reference or the conclusion; anchor: 'speak to a fintech technical writer'",
+    "/blog/category/security-compliance — link from any mention of 'PCI DSS', 'GDPR', 'data protection', or 'secure coding'; anchor: 'security and compliance guides'",
+    "/case-studies#technical — link from any mention of 'real-world implementation', 'production deployment', or 'developer success story'; anchor: 'technical case studies'",
+    "/services#technical-content — link from any mention of 'developer documentation', 'API reference writing', or 'technical copywriting'; anchor: 'technical content writing'",
+    "/contact — link from any 'need expert guidance' reference or the conclusion; anchor: 'speak to a technical writer'",
   ],
   consumers: [
     "/blog/category/personal-finance — link from any mention of 'managing money', 'saving', or 'budgeting tips'; anchor: 'personal finance guides'",
-    "/blog/category/fintech-reviews — link from any mention of a product, app, or service; anchor: 'fintech product reviews'",
-    "/blog/glossary — link from the first use of any technical term (APY, KYC, IBAN, etc.); anchor: 'fintech glossary'",
-    "/blog/category/how-to-guides — link from any step-by-step reference or 'getting started' mention; anchor: 'fintech how-to guides'",
-    "/tools — link from any mention of 'free tools', 'calculators', or 'check your options'; anchor: 'free fintech tools'",
+    "/blog/category/fintech-reviews — link from any mention of a product, app, or service; anchor: 'product reviews'",
+    "/blog/glossary — link from the first use of any technical term (APY, KYC, IBAN, etc.); anchor: 'financial glossary'",
+    "/blog/category/how-to-guides — link from any step-by-step reference or 'getting started' mention; anchor: 'how-to guides'",
+    "/tools — link from any mention of 'free tools', 'calculators', or 'check your options'; anchor: 'free digital tools'",
     "/contact — link from the conclusion CTA; anchor: 'get in touch'",
   ],
   investors: [
-    "/blog/category/market-intelligence — link from any mention of TAM, market size, or sector trends; anchor: 'fintech market intelligence'",
-    "/blog/category/funding-and-ma — link from any mention of 'funding rounds', 'M&A activity', or 'valuations'; anchor: 'fintech funding and M&A tracker'",
-    "/blog/category/regulatory-outlook — link from any mention of 'regulatory risk', 'licensing', or 'compliance landscape'; anchor: 'fintech regulatory outlook'",
-    "/services#thought-leadership — link from any mention of 'positioning', 'category leadership', or 'investor relations content'; anchor: 'fintech thought leadership content'",
-    "/case-studies#enterprise — link from any mention of 'institutional results' or 'enterprise-grade outcomes'; anchor: 'enterprise fintech case studies'",
-    "/contact#newsletter — link from any call to 'stay informed' or 'follow deal flow'; anchor: 'subscribe to fintech insights'",
+    "/blog/category/market-intelligence — link from any mention of TAM, market size, or sector trends; anchor: 'market intelligence'",
+    "/blog/category/funding-and-ma — link from any mention of 'funding rounds', 'M&A activity', or 'valuations'; anchor: 'funding and M&A tracker'",
+    "/blog/category/regulatory-outlook — link from any mention of 'regulatory risk', 'licensing', or 'compliance landscape'; anchor: 'regulatory outlook'",
+    "/services#thought-leadership — link from any mention of 'positioning', 'category leadership', or 'investor relations content'; anchor: 'thought leadership content'",
+    "/case-studies#enterprise — link from any mention of 'institutional results' or 'enterprise-grade outcomes'; anchor: 'enterprise case studies'",
+    "/contact#newsletter — link from any call to 'stay informed' or 'follow deal flow'; anchor: 'subscribe to industry insights'",
   ],
 };
 
@@ -198,7 +198,7 @@ const EXTERNAL_LINK_TYPES = [
   "Regulatory body or official government source (e.g. FCA, CFPB, EBA)",
   "Original research or industry report (e.g. McKinsey, Accenture, Statista)",
   "Peer-reviewed academic source (where applicable)",
-  "Major fintech publication for context (e.g. The Financial Brand, Tearsheet)",
+  "Major industry publication for context (e.g. The Financial Brand, Tearsheet)",
 ];
 
 const TONE_GUIDANCE: Record<Tone, string[]> = {
@@ -224,7 +224,7 @@ const TONE_GUIDANCE: Record<Tone, string[]> = {
     "Lead each section with a statistic or data point.",
     "Always cite the source and year for every number used.",
     "Use tables or comparison structures where multiple data points exist.",
-    "Prefer specific figures over vague claims (e.g. '42% of fintechs' not 'many fintechs').",
+    "Prefer specific figures over vague claims (e.g. '42% of companies' not 'many companies').",
   ],
 };
 
@@ -254,27 +254,27 @@ const THINGS_TO_AVOID: Record<Tone, string[]> = {
 const H2_TEMPLATES: Record<Audience, (kw: string) => { heading: string; notes: string }[]> = {
   founders: (kw) => [
     { heading: `What Is ${kw}? A Founder's Overview`, notes: "Define the concept clearly. Link to any regulatory definitions." },
-    { heading: `Why ${kw} Matters for Fintech Startups in 2025`, notes: "Market context, growth trends, VC interest." },
+    { heading: `Why ${kw} Matters for Startups in 2025`, notes: "Market context, growth trends, VC interest." },
     { heading: `The Business Case: ROI and Revenue Impact`, notes: "Include data on financial upside. Cite industry reports." },
     { heading: `Key Challenges Founders Face with ${kw}`, notes: "Be honest about difficulty. Show you understand the pain." },
     { heading: `How to Get Started: A Practical Framework`, notes: "Step-by-step, actionable. Numbered list preferred." },
     { heading: `Choosing the Right Partners and Vendors`, notes: "Criteria checklist. Do not name-drop vendors without justification." },
-    { heading: `What Leading Fintechs Are Doing Differently`, notes: "2–3 mini case studies or examples." },
+    { heading: `What Leading Companies Are Doing Differently`, notes: "2–3 mini case studies or examples." },
     { heading: `Conclusion: Your Next Step with ${kw}`, notes: "Summarise, then lead into CTA." },
   ],
   marketers: (kw) => [
-    { heading: `${kw}: What Every Fintech Marketer Needs to Know`, notes: "Set the scene — why this topic matters for growth teams." },
-    { heading: `How ${kw} Fits into the Fintech Marketing Funnel`, notes: "TOFU / MOFU / BOFU breakdown." },
+    { heading: `${kw}: What Every Digital Marketer Needs to Know`, notes: "Set the scene — why this topic matters for growth teams." },
+    { heading: `How ${kw} Fits into the Digital Marketing Funnel`, notes: "TOFU / MOFU / BOFU breakdown." },
     { heading: `Content and SEO Opportunities Around ${kw}`, notes: "Keyword clusters, content types, search intent breakdown." },
     { heading: `Campaign Ideas and Use Cases`, notes: "3–5 concrete campaign angles with brief descriptions." },
     { heading: `Measuring Success: KPIs and Metrics`, notes: "Specific metrics, not vague ones. Include benchmarks where possible." },
-    { heading: `Common Mistakes Fintech Marketers Make`, notes: "Make this honest and specific — not generic." },
+    { heading: `Common Mistakes Digital Marketers Make`, notes: "Make this honest and specific — not generic." },
     { heading: `Tools and Platforms Worth Knowing`, notes: "Brief overview, no paid placements unless disclosed." },
     { heading: `Conclusion and Next Steps`, notes: "Tie back to the opening, close with CTA." },
   ],
   developers: (kw) => [
     { heading: `${kw} Explained for Developers`, notes: "Technical-first definition. No fluff." },
-    { heading: `Architecture and Integration Overview`, notes: "How it fits into a typical fintech stack. Diagrams encouraged." },
+    { heading: `Architecture and Integration Overview`, notes: "How it fits into a typical tech stack. Diagrams encouraged." },
     { heading: `API Design Considerations`, notes: "REST vs GraphQL, auth patterns, versioning." },
     { heading: `Security and Compliance Requirements`, notes: "PCI DSS, GDPR, open banking standards — be specific." },
     { heading: `Common Implementation Pitfalls`, notes: "Real issues developers hit. Cite community resources or docs." },
@@ -306,7 +306,7 @@ const H2_TEMPLATES: Record<Audience, (kw: string) => { heading: string; notes: s
 
 const FAQ_TEMPLATES: Record<Audience, (kw: string) => string[]> = {
   founders: (kw) => [
-    `What is ${kw} and why does it matter for fintech startups?`,
+    `What is ${kw} and why does it matter for startups?`,
     `How much does it cost to implement ${kw}?`,
     `What regulations apply to ${kw} in the UK/EU/US?`,
     `How long does it take to build a ${kw} solution?`,
@@ -314,11 +314,11 @@ const FAQ_TEMPLATES: Record<Audience, (kw: string) => string[]> = {
   marketers: (kw) => [
     `How do I create content around ${kw} that ranks?`,
     `What is the search intent behind ${kw}?`,
-    `How do fintech companies use ${kw} in their marketing?`,
+    `How do digital companies use ${kw} in their marketing?`,
     `What metrics should I track for ${kw} campaigns?`,
   ],
   developers: (kw) => [
-    `How do I integrate ${kw} into my fintech app?`,
+    `How do I integrate ${kw} into my app?`,
     `What are the security requirements for ${kw}?`,
     `Which SDKs or APIs support ${kw}?`,
     `How do I test a ${kw} implementation?`,
@@ -338,7 +338,7 @@ const FAQ_TEMPLATES: Record<Audience, (kw: string) => string[]> = {
 };
 
 const CTA_TEMPLATES: Record<Audience, string> = {
-  founders: "End with a direct CTA to book a strategy call or request a fintech content audit.",
+  founders: "End with a direct CTA to book a strategy call or request a content audit.",
   marketers: "Close with an offer — a free content calendar template, SEO audit, or strategy call.",
   developers: "Link to documentation, a GitHub repo, or a technical contact form.",
   consumers: "Use a soft CTA — 'Ready to explore your options?' with a link to a comparison or contact page.",
@@ -404,7 +404,7 @@ const FK_DATA: Record<Audience, Record<Tone, FleschKincaid>> = {
       gradeLevel: "Grade 11–12",
       rationale: "Founders expect business-grade prose — confident, complex enough to signal expertise, but not academic.",
       exampleStructures: [
-        "In 2025, [X] represents the most significant infrastructure shift in fintech since [Y] — and founders who move early will capture disproportionate market share.",
+        "In 2025, [X] represents the most significant infrastructure shift in digital business since [Y] — and founders who move early will capture disproportionate market share.",
         "[Company] secured its Series B because its investors understood that [concept] is not a feature — it is the moat.",
         "The decision is straightforward: build [capability] now, or spend 18 months catching up to competitors who already did.",
       ],
@@ -431,7 +431,7 @@ const FK_DATA: Record<Audience, Record<Tone, FleschKincaid>> = {
       gradeLevel: "Grade 11–12",
       rationale: "Founders trust data-heavy arguments — each claim should be anchored to a specific figure or named source.",
       exampleStructures: [
-        "According to [Source], [X]% of Series A fintechs that implemented [Y] in year one reported [Z]% higher retention by year two.",
+        "According to [Source], [X]% of Series A companies that implemented [Y] in year one reported [Z]% higher retention by year two.",
         "The data is clear: [metric] is the single best leading indicator of [outcome] for founders at the $[X]M ARR mark.",
         "[Statistic] — that figure alone explains why [X] has moved from 'nice to have' to a board-level priority in 2025.",
       ],
@@ -442,8 +442,8 @@ const FK_DATA: Record<Audience, Record<Tone, FleschKincaid>> = {
       gradeLevel: "Grade 10–11",
       rationale: "Marketing teams expect confident, strategy-level language — assertive but accessible enough for cross-functional reading.",
       exampleStructures: [
-        "[X] is not a trend — it is the distribution layer that will define which fintech brands own search in the next three years.",
-        "The most effective fintech content programmes share one trait: they treat [Y] as a strategic asset, not a publishing schedule.",
+        "[X] is not a trend — it is the distribution layer that will define which professional brands own search in the next three years.",
+        "The most effective professional content programmes share one trait: they treat [Y] as a strategic asset, not a publishing schedule.",
         "If your content isn't addressing [X] intent explicitly, you are optimising for traffic that will never convert.",
       ],
     },
@@ -461,7 +461,7 @@ const FK_DATA: Record<Audience, Record<Tone, FleschKincaid>> = {
       rationale: "Conversational marketing content should feel like a newsletter from a knowledgeable colleague — casual but credible.",
       exampleStructures: [
         "You've probably noticed that [X] keeps coming up in your analytics — here's what it actually means for your pipeline.",
-        "Most fintech marketers overthink [Y]; the fix is usually simpler than you'd expect.",
+        "Most professional marketers overthink [Y]; the fix is usually simpler than you'd expect.",
         "If your [metric] is flatlining, chances are [root cause] — and there's a straightforward way to test that theory.",
       ],
     },
@@ -470,8 +470,8 @@ const FK_DATA: Record<Audience, Record<Tone, FleschKincaid>> = {
       rationale: "Data-driven marketing content needs precision — cite the source and year for every number, and interpret the figures explicitly.",
       exampleStructures: [
         "Brands that publish [X] content at a cadence of [Y] per month generate [Z]% more MQLs than those that don't, per [Source, Year].",
-        "[Metric] benchmarks for fintech sit at [X]% (industry average) — anything above [Y]% signals a content strategy that is genuinely working.",
-        "The [Source] report found that [X]% of B2B fintech buyers read at least three pieces of content before requesting a demo.",
+        "[Metric] benchmarks for professional brands sit at [X]% (industry average) — anything above [Y]% signals a content strategy that is genuinely working.",
+        "The [Source] report found that [X]% of B2B professional buyers read at least three pieces of content before requesting a demo.",
       ],
     },
   },
@@ -614,7 +614,7 @@ const STYLE_GUARDRAILS: Record<Tone, StyleGuardrail[]> = {
     { writeLike: "Get to the point by sentence three in every section", avoid: "Long preambles that delay the actual value the reader came for" },
   ],
   "data-driven": [
-    { writeLike: "Lead each major section with a specific, cited statistic or benchmark", avoid: "Vague quantifiers — 'many fintechs', 'a large proportion', 'most companies'" },
+    { writeLike: "Lead each major section with a specific, cited statistic or benchmark", avoid: "Vague quantifiers — 'many companies', 'a large proportion', 'most businesses'" },
     { writeLike: "Name the source, publication, and year for every figure used", avoid: "Orphaned statistics with no attribution, date, or methodology note" },
     { writeLike: "Use tables or comparison structures when presenting multiple data points", avoid: "Data dumps — always interpret what numbers mean for the reader's context" },
     { writeLike: "Prefer specific figures and ranges over rounded estimates", avoid: "Statistics older than 3 years without a note or a fresher replacement" },
@@ -630,15 +630,15 @@ const COMPETING_ANGLES: Record<Audience, ContentAngle[]> = {
     { angle: "Regulatory implications compared across UK, EU, and US markets", why: "Most articles pick one jurisdiction. Multi-market coverage captures searches across geographies and attracts international readers." },
   ],
   marketers: [
-    { angle: "The content formats that actually convert in fintech — not just drive traffic", why: "Most fintech content marketing guides optimise for pageviews. Connecting format choice to pipeline metrics is a rare, high-value angle." },
-    { angle: "How to brief and manage specialist fintech writers effectively", why: "Marketers struggle with technical accuracy and quality control — this gap is almost entirely unaddressed in the content corpus." },
-    { angle: "Compliance-safe content marketing: what your legal team will actually approve", why: "A consistent pain point for fintech marketers that no generic content marketing guide addresses." },
-    { angle: "Attribution for long-cycle B2B fintech deals — what attribution models actually work", why: "Standard marketing attribution advice doesn't translate to 6–18 month sales cycles. There's a clear content gap here." },
+    { angle: "The content formats that actually convert in professional markets — not just drive traffic", why: "Most professional content marketing guides optimise for pageviews. Connecting format choice to pipeline metrics is a rare, high-value angle." },
+    { angle: "How to brief and manage specialist professional writers effectively", why: "Marketers struggle with technical accuracy and quality control — this gap is almost entirely unaddressed in the content corpus." },
+    { angle: "Compliance-safe content marketing: what your legal team will actually approve", why: "A consistent pain point for professional marketers that no generic content marketing guide addresses." },
+    { angle: "Attribution for long-cycle B2B professional deals — what attribution models actually work", why: "Standard marketing attribution advice doesn't translate to 6–18 month sales cycles. There's a clear content gap here." },
   ],
   developers: [
     { angle: "Side-by-side SDK comparison with real code — not just feature checklists", why: "Most developer content lists features; showing actual implementation differences in code is far more useful and rarely done." },
     { angle: "What production monitoring looks like 6 months after go-live", why: "Integration guides end at deployment. The operational reality after launch is almost entirely undocumented." },
-    { angle: "How to handle graceful degradation when the upstream API fails", why: "Resilience patterns for third-party fintech APIs are a common gap — developers need this and it rarely appears in vendor docs." },
+    { angle: "How to handle graceful degradation when the upstream API fails", why: "Resilience patterns for third-party APIs are a common gap — developers need this and it rarely appears in vendor docs." },
     { angle: "The security review checklist your compliance team will actually ask for", why: "The gap between developer implementation and security audit requirements is a consistent, underserved pain point." },
   ],
   consumers: [
@@ -663,7 +663,7 @@ const SME_QUESTION_TEMPLATES: Record<Audience, ((kw: string) => SMEQuestion)[]> 
     }),
     (kw) => ({
       question: `After shipping ${kw}, what would you do fundamentally differently from day one — and why?`,
-      context: "Hindsight interviews are rare in fintech content. Forcing a candid reflection on mistakes distinguishes the piece from any polished case study and builds genuine authority.",
+      context: "Hindsight interviews are rare in professional content. Forcing a candid reflection on mistakes distinguishes the piece from any polished case study and builds genuine authority.",
     }),
     (kw) => ({
       question: `What regulatory or compliance conversations did ${kw} force you to have earlier than you expected?`,
@@ -677,7 +677,7 @@ const SME_QUESTION_TEMPLATES: Record<Audience, ((kw: string) => SMEQuestion)[]> 
     }),
     (kw) => ({
       question: `How do you get legal and compliance sign-off on ${kw} content without stripping out everything useful?`,
-      context: "The compliance bottleneck is universally frustrating for fintech marketers. A real workflow answer from someone who has solved this is genuinely rare editorial content.",
+      context: "The compliance bottleneck is universally frustrating for professional marketers. A real workflow answer from someone who has solved this is genuinely rare editorial content.",
     }),
     (kw) => ({
       question: `What's the biggest misconception your buyers have about ${kw} when they first enter the sales funnel?`,
@@ -705,11 +705,11 @@ const SME_QUESTION_TEMPLATES: Record<Audience, ((kw: string) => SMEQuestion)[]> 
     }),
     (kw) => ({
       question: `In what situations does ${kw} genuinely let consumers down, and what should they watch for before signing up?`,
-      context: "Honest limitation content is almost non-existent in consumer fintech. An SME willing to go on record with this creates enormous credibility and earns links from comparison and review sites.",
+      context: "Honest limitation content is almost non-existent in consumer-facing digital products. An SME willing to go on record with this creates enormous credibility and earns links from comparison and review sites.",
     }),
     (kw) => ({
       question: `How do you explain ${kw} to someone who has never used anything beyond a traditional high-street bank account?`,
-      context: "The mass-market explanation challenge reveals the communication gap that most fintech content fails to bridge. A practitioner's answer often becomes the most-shared section of the article.",
+      context: "The mass-market explanation challenge reveals the communication gap that most professional content fails to bridge. A practitioner's answer often becomes the most-shared section of the article.",
     }),
   ],
   investors: [
@@ -989,7 +989,7 @@ function generateStrategicContext(brief: Brief): {
   objective: string;
 } {
   const kw = brief.keyword.toLowerCase();
-  let category = "fintech products and services";
+  let category = "digital products and services";
   let competitorLandscape =
     "generic financial content publishers, vendor blogs, and comparison aggregators";
   let intentProfile = "high-intent informational and commercial-investigation queries";
@@ -1002,7 +1002,7 @@ function generateStrategicContext(brief: Brief): {
   } else if (/payment|checkout|acquiring|bnpl|buy.now/.test(kw)) {
     category = "payments and checkout technology";
     competitorLandscape =
-      "payment gateway vendors, fintech media outlets, and SaaS comparison sites";
+      "payment gateway vendors, digital media outlets, and SaaS comparison sites";
     intentProfile = "commercial-investigation and vendor-shortlisting queries";
   } else if (/regulat|compliance|kyc|aml|gdpr|psd2|fca|cfpb/.test(kw)) {
     category = "regulatory compliance and risk management";
@@ -1018,7 +1018,7 @@ function generateStrategicContext(brief: Brief): {
   } else if (/open.bank|sdk|integrat|developer/.test(kw)) {
     category = "open banking and API integration";
     competitorLandscape =
-      "open banking platform providers, developer documentation hubs, and fintech publications";
+      "open banking platform providers, developer documentation hubs, and professional publications";
     intentProfile = "technical research, integration planning, and platform-selection queries";
   } else if (/credit|lending|loan|mortgage|underwrite/.test(kw)) {
     category = "credit and lending technology";
@@ -1034,7 +1034,7 @@ function generateStrategicContext(brief: Brief): {
   return {
     opportunity: `The "${brief.keyword}" keyword cluster operates within the ${category} space — a vertical where independent, expertise-led editorial content consistently outperforms vendor-produced material in organic rankings. Keyword difficulty modelling indicates moderate-to-high competition, making structural completeness, semantic entity coverage, and E-E-A-T signals the primary ranking levers. The ${brief.targetWordCount} target aligns with the minimum content depth required for full topical coverage of this query cluster. Pillar-level treatment is warranted given the long-tail density around this keyword.`,
     competitive: `The current SERP for "${brief.keyword}" is dominated by ${competitorLandscape}. The majority of ranking content follows one of two patterns: shallow overview articles (sub-1,000 words) optimised for impressions rather than intent satisfaction, and long-form vendor guides with high commercial bias that fail to serve ${audienceShort}s' specific decision context. This creates a clear gap for authoritative, audience-specific content targeting ${brief.audience.toLowerCase()} — a segment chronically underserved by the existing corpus. The ${toneLabel} register is selected to differentiate from the dominant voice in the current SERP.`,
-    objective: `This brief is engineered to capture ${intentProfile} from ${brief.audience.toLowerCase()}, building topical authority across the broader "${brief.keyword.split(" ")[0]}" cluster while driving qualified awareness of specialist fintech content capabilities. The H2 framework, semantic entity set, and FAQ cluster are structured to satisfy the primary query intent while creating featured snippet eligibility for a minimum of two sub-queries. Target outcome: first-page organic ranking within 90 days, with a secondary goal of editorial inbound links from tier-2 fintech publications.`,
+    objective: `This brief is engineered to capture ${intentProfile} from ${brief.audience.toLowerCase()}, building topical authority across the broader "${brief.keyword.split(" ")[0]}" cluster while driving qualified awareness of specialist professional content capabilities. The H2 framework, semantic entity set, and FAQ cluster are structured to satisfy the primary query intent while creating featured snippet eligibility for a minimum of two sub-queries. Target outcome: first-page organic ranking within 90 days, with a secondary goal of editorial inbound links from tier-2 professional publications.`,
   };
 }
 
@@ -1275,7 +1275,7 @@ async function downloadBriefAsPDF(
     doc.text("fintechpresshub.com", PW / 2, PH - 5.5, { align: "center" });
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6);
-    doc.text("Fintech SEO & Content Marketing", PW / 2, PH - 2, { align: "center" });
+    doc.text("Digital SEO & Content Marketing", PW / 2, PH - 2, { align: "center" });
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STRATEGIC CONTEXT PAGE
@@ -1644,7 +1644,7 @@ function computeContentScore(brief: Brief, form: FormState): ContentScore {
 
   const kwRationale =
     kwSpec >= 85
-      ? "Highly specific keyword with clear fintech context — well-positioned for precise SERP targeting and low-funnel intent capture."
+      ? "Highly specific keyword with clear professional context — well-positioned for precise SERP targeting and low-funnel intent capture."
       : kwSpec >= 70
       ? "Good keyword precision. A geographic or year-based qualifier could sharpen intent signals further."
       : kwSpec >= 50
@@ -1850,7 +1850,7 @@ function ContentScoreCard({ score }: { score: ContentScore }) {
         })()}
 
         <p className="mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-400 leading-relaxed">
-          Scores are derived from keyword length and fintech domain signals, structural parameters (word count, H2s, entities), audience targeting precision, and competitive differentiation coverage in this brief.
+          Scores are derived from keyword length and domain signals, structural parameters (word count, H2s, entities), audience targeting precision, and competitive differentiation coverage in this brief.
         </p>
       </CardContent>
     </Card>
@@ -1860,7 +1860,7 @@ function ContentScoreCard({ score }: { score: ContentScore }) {
 // ── Tone Preview ───────────────────────────────────────────────────────────
 
 const AUDIENCE_LABEL: Record<Audience, string> = {
-  founders: "founders", marketers: "fintech marketers", developers: "developers",
+  founders: "founders", marketers: "professional marketers", developers: "developers",
   consumers: "consumers", investors: "investors",
 };
 
@@ -1933,7 +1933,7 @@ function generateExpertHooks(keyword: string, intentScore: number, audience: Aud
     {
       focus: "ROI Benchmarks",
       question: `What measurable ROI did ${keyword} deliver in the first 12 months of adoption — and which metrics are most meaningful to a CFO or board when making the internal business case?`,
-      why: "Concrete ROI data tied to specific timeframes is rare in commercial fintech content. A practitioner number with business context is the most-cited quote type in this category — and the hardest to fabricate.",
+      why: "Concrete ROI data tied to specific timeframes is rare in professional content. A practitioner number with business context is the most-cited quote type in this category — and the hardest to fabricate.",
     },
     {
       focus: "Common Pitfalls",
@@ -2447,7 +2447,7 @@ export default function ContentBriefGenerator() {
       <PageHero
         eyebrow="Free Tool"
         title="Content Brief Generator"
-        description="Enter a keyword and target audience to get a structured fintech article brief — with H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities."
+        description="Enter a keyword and target audience to get a structured professional article brief — with H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities."
       />
 
       <section className="py-12 md:py-16">
@@ -3333,7 +3333,7 @@ export default function ContentBriefGenerator() {
                 <Card className="border border-slate-100 bg-slate-50 shadow-sm">
                   <CardContent className="p-4">
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      Need a fintech writer to execute this brief?{" "}
+                      Need a professional writer to execute this brief?{" "}
                       <Link href="/services" className="font-semibold underline underline-offset-2 hover:text-slate-900">
                         See our content services
                       </Link>{" "}

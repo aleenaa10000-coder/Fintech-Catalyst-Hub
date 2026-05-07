@@ -132,9 +132,9 @@ export type GeneratedResult = { text: string; tone: ToneLabel };
 
 function generateDescriptions(form: FormState): GeneratedResult[] {
   const { pageTitle, keyword, audience, benefit } = form;
-  const kw     = keyword.trim() || "fintech solutions";
+  const kw     = keyword.trim() || "professional solutions";
   const title  = pageTitle.trim() || "this resource";
-  const aud    = audience.trim() || "fintech teams";
+  const aud    = audience.trim() || "professional teams";
   const rawBen = benefit.trim() || "grow faster";
 
   // Normalise verb: "eliminates" → "eliminate" so "help them eliminate" is correct
@@ -282,7 +282,7 @@ export default function MetaDescriptionGenerator() {
       <PageHero
         eyebrow="Free Tool"
         title="Meta Description Generator"
-        description="Generate 3 SEO-ready meta descriptions for any fintech page. Enter your page title and target keyword to get started — then copy, tweak, and publish."
+        description="Generate 3 SEO-ready meta descriptions for any professional page. Enter your page title and target keyword to get started — then copy, tweak, and publish."
       />
 
       <section className="py-12 md:py-16">
@@ -329,7 +329,7 @@ export default function MetaDescriptionGenerator() {
                     Page Title <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    placeholder="Best Fintech SEO Agency in 2025"
+                    placeholder="Best Professional SEO Agency in 2025"
                     value={form.pageTitle}
                     onChange={setField("pageTitle")}
                     className="h-11"
@@ -344,7 +344,7 @@ export default function MetaDescriptionGenerator() {
                     Target Keyword <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    placeholder="fintech SEO agency"
+                    placeholder="professional SEO services"
                     value={form.keyword}
                     onChange={setField("keyword")}
                     className="h-11"
@@ -359,7 +359,7 @@ export default function MetaDescriptionGenerator() {
                     Target Audience
                   </Label>
                   <Input
-                    placeholder="fintech startups"
+                    placeholder="digital startups"
                     value={form.audience}
                     onChange={setField("audience")}
                     className="h-11"
@@ -474,7 +474,7 @@ export default function MetaDescriptionGenerator() {
                 <Card className="border border-blue-100 bg-blue-50 shadow-sm">
                   <CardContent className="p-4">
                     <p className="text-xs text-blue-800 leading-relaxed">
-                      Need help building a full fintech SEO strategy?{" "}
+                      Need help building a full digital SEO strategy?{" "}
                       <Link
                         href="/contact"
                         className="font-semibold underline underline-offset-2 hover:text-blue-900"

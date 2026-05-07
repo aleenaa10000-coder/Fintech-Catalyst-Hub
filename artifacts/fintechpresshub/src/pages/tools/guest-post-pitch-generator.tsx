@@ -284,13 +284,13 @@ const TONE_OPTIONS: { value: Tone; label: string; description: string }[] = [
 
 const FRIENDLY_OPENINGS = [
   (blog: string) =>
-    `I've been a reader of ${blog} for a while now and genuinely appreciate the quality of fintech content you publish — it consistently hits the right balance of depth and accessibility.`,
+    `I've been a reader of ${blog} for a while now and genuinely appreciate the quality of content you publish — it consistently hits the right balance of depth and accessibility.`,
   (blog: string) =>
-    `I came across ${blog} while researching for a recent project and was genuinely impressed by the calibre of your fintech coverage — it's rare to find analysis that's both rigorous and immediately practical.`,
+    `I came across ${blog} while researching for a recent project and was genuinely impressed by the calibre of your coverage — it's rare to find analysis that's both rigorous and immediately practical.`,
   (blog: string) =>
-    `A colleague recommended ${blog} to me recently, and after spending time with your archive I can see why — your take on fintech consistently cuts through the noise in a way I find genuinely useful.`,
+    `A colleague recommended ${blog} to me recently, and after spending time with your archive I can see why — your editorial voice consistently cuts through the noise in a way I find genuinely useful.`,
   (blog: string) =>
-    `I've followed ${blog} for some time and always appreciate how you cover fintech with real depth without losing accessibility for busy practitioners.`,
+    `I've followed ${blog} for some time and always appreciate how you cover complex topics with real depth without losing accessibility for busy practitioners.`,
 ];
 
 const FORMAL_OPENINGS = [
@@ -299,18 +299,18 @@ const FORMAL_OPENINGS = [
   (blog: string) =>
     `I am reaching out to propose a guest article contribution to ${blog}, whose editorial standards I hold in high regard.`,
   (blog: string) =>
-    `I write to put forward a guest post proposal for ${blog}, a publication I have followed closely for its rigorous fintech coverage.`,
+    `I write to put forward a guest post proposal for ${blog}, a publication I have followed closely for its rigorous editorial coverage.`,
   (blog: string) =>
-    `Having followed ${blog}'s coverage of the fintech landscape, I am writing to propose a guest article that I believe would serve your readership well.`,
+    `Having followed ${blog}'s coverage closely, I am writing to propose a guest article that I believe would serve your readership well.`,
 ];
 
 const DIRECT_PITCHES = [
   (topic: string, blog: string) =>
-    `I'd like to pitch a guest post on "${topic}" for ${blog}. It's a challenge fintech teams are actively navigating — your audience would find it directly useful.`,
+    `I'd like to pitch a guest post on "${topic}" for ${blog}. It's a challenge professional teams are actively navigating — your audience would find it directly useful.`,
   (topic: string, blog: string) =>
     `I'm pitching "${topic}" for ${blog}. It's timely, practical, and directly relevant to what your readers are working through right now.`,
   (topic: string, blog: string) =>
-    `Guest post idea for ${blog}: "${topic}". Fintech teams are grappling with this right now — the piece gives them a clear, actionable framework.`,
+    `Guest post idea for ${blog}: "${topic}". Professional teams are grappling with this right now — the piece gives them a clear, actionable framework.`,
   (topic: string, blog: string) =>
     `Here's my pitch for ${blog}: "${topic}". This is a challenge your readers are actively navigating — I can give them a practical playbook.`,
 ];
@@ -346,10 +346,10 @@ function buildPitch(form: FormState, variation: number = 0): string {
   const company = senderCompany.trim() || "Your Company";
   const role = senderRole.trim() || "content lead";
   const blog = targetBlog.trim() || "your publication";
-  const topic = proposedTopic.trim() || "a topic in fintech";
+  const topic = proposedTopic.trim() || "a topic in digital marketing";
   const subject = `Guest Post Proposal: ${toTitleCase(topic)} | ${toTitleCase(name)}`;
   const expertise =
-    yourExpertise.trim() || "fintech content strategy and SEO growth";
+    yourExpertise.trim() || "professional content strategy and SEO growth";
   const article = recentArticle.trim();
 
   const articleSentence = article
@@ -419,7 +419,7 @@ ${informalGreeting}
 
 ${introLine}
 
-I'd love to contribute a guest post on the topic of "${topic}". I think it would resonate strongly with your audience because it addresses a challenge that most fintech teams are actively navigating right now.
+I'd love to contribute a guest post on the topic of "${topic}". I think it would resonate strongly with your audience because it addresses a challenge that most professional teams are actively navigating right now.
 
 A bit about my background: ${expertise}. I write from hands-on experience, not theory — so the piece would include real examples, actionable takeaways, and original data where possible.
 
@@ -626,7 +626,7 @@ export default function GuestPostPitchGenerator() {
     const entry: PitchEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       timestamp: Date.now(),
-      topic: form.proposedTopic.trim() || "a topic in fintech",
+      topic: form.proposedTopic.trim() || "a topic in digital marketing",
       blog: form.targetBlog.trim() || "your publication",
       tone: form.tone,
       pitch: result,
@@ -650,7 +650,7 @@ export default function GuestPostPitchGenerator() {
     const entry: PitchEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       timestamp: Date.now(),
-      topic: form.proposedTopic.trim() || "a topic in fintech",
+      topic: form.proposedTopic.trim() || "a topic in digital marketing",
       blog: form.targetBlog.trim() || "your publication",
       tone: form.tone,
       pitch: result,
@@ -840,7 +840,7 @@ export default function GuestPostPitchGenerator() {
       <PageHero
         eyebrow="Free Tool"
         title="Guest Post Pitch Generator"
-        description="Create a compelling, personalised pitch email for any fintech publication in seconds. Fill in a few details and get a ready-to-send draft you can refine and copy."
+        description="Create a compelling, personalised pitch email for any professional publication in seconds. Fill in a few details and get a ready-to-send draft you can refine and copy."
       />
 
       <section className="py-12 md:py-16">
@@ -1821,7 +1821,7 @@ export default function GuestPostPitchGenerator() {
                       >
                         See our link building services
                       </Link>{" "}
-                      for fintech brands.
+                      for professional brands.
                     </p>
                   </CardContent>
                 </Card>

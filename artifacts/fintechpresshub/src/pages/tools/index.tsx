@@ -37,7 +37,7 @@ const TOOLS = [
     badge: "SEO",
     title: "Meta Description Generator",
     description:
-      "Generate 3 ready-to-use SEO meta descriptions for any fintech page. Enter your page title and target keyword to get started.",
+      "Generate 3 ready-to-use SEO meta descriptions for any professional page. Enter your page title and target keyword to get started.",
   },
   {
     href: "/tools/guest-post-pitch-generator",
@@ -55,7 +55,7 @@ const TOOLS = [
     badge: "Content",
     title: "Readability Checker",
     description:
-      "Paste your fintech article and get an instant Flesch readability score, grade level, sentence length breakdown, and actionable tips.",
+      "Paste your article and get an instant Flesch readability score, grade level, sentence length breakdown, and actionable tips.",
   },
   {
     href: "/tools/keyword-difficulty-estimator",
@@ -64,7 +64,7 @@ const TOOLS = [
     badge: "SEO",
     title: "Keyword Difficulty Estimator",
     description:
-      "Enter any fintech keyword to get an estimated difficulty score, search intent classification, volume range, and 6 long-tail variations.",
+      "Enter any keyword to get an estimated difficulty score, search intent classification, volume range, and 6 long-tail variations.",
   },
   {
     href: "/tools/backlink-value-estimator",
@@ -82,7 +82,7 @@ const TOOLS = [
     badge: "Content",
     title: "Content Brief Generator",
     description:
-      "Enter a keyword and target audience to get a full fintech article brief — H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities.",
+      "Enter a keyword and target audience to get a full professional article brief — H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities.",
   },
   {
     href: "/tools/headline-analyzer",
@@ -91,7 +91,7 @@ const TOOLS = [
     badge: "Content",
     title: "Headline Analyzer",
     description:
-      "Score any fintech headline out of 100 across clarity, keyword presence, emotional pull, and character count — with 3 instant rewrite suggestions.",
+      "Score any professional headline out of 100 across clarity, keyword presence, emotional pull, and character count — with 3 instant rewrite suggestions.",
   },
   {
     href: "/tools/link-prospector",
@@ -130,7 +130,7 @@ export default function ToolsIndex() {
       <PageHero
         eyebrow="Free Tools"
         title="Fintech Marketing Toolkit"
-        description="Free, client-side tools built for fintech marketers and SEO teams. No sign-up required — your data never leaves your browser."
+        description="Free, client-side tools built for digital marketers and SEO teams. No sign-up required — your data never leaves your browser."
       />
 
       <section className="py-14 md:py-20">
