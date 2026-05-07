@@ -26,6 +26,7 @@ import {
   Clock,
   ChevronDown,
   Trash2,
+  Mail,
 } from "lucide-react";
 
 const MINOR_WORDS = new Set([
@@ -309,6 +310,15 @@ export default function GuestPostPitchGenerator() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const mailtoHref = (() => {
+    const firstLine = editedPitch.split("\n")[0] ?? "";
+    const subject = firstLine.startsWith("Subject: ")
+      ? firstLine.slice("Subject: ".length).trim()
+      : firstLine.trim();
+    const body = editedPitch.split("\n").slice(2).join("\n").trim();
+    return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  })();
 
   const canGenerate =
     form.senderName.trim().length > 0 &&
@@ -637,6 +647,16 @@ export default function GuestPostPitchGenerator() {
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Download .txt
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="h-11 px-4 font-semibold border-slate-200 text-slate-700 hover:bg-slate-50"
+                      >
+                        <a href={mailtoHref}>
+                          <Mail className="w-4 h-4 mr-2" />
+                          Open in email
+                        </a>
                       </Button>
                     </div>
                   </CardContent>
