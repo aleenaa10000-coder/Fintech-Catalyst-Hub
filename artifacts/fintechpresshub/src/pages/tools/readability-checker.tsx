@@ -633,21 +633,34 @@ export default function ReadabilityChecker() {
                 </div>
 
                 {/* Tips */}
-                <Card className="border border-slate-100 shadow-sm">
-                  <CardContent className="p-5 space-y-3">
-                    <h4 className="text-sm font-semibold text-slate-900">
-                      Improvement tips
-                    </h4>
-                    <ul className="space-y-2">
-                      {results.tips.map((tip, i) => (
-                        <li key={i} className="flex gap-2 text-sm text-slate-700">
-                          <CheckCircle2 className="w-4 h-4 mt-0.5 text-teal-500 shrink-0" />
-                          {tip}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+                {results.score > 80 ? (
+                  <Card className="border border-green-100 bg-green-50 shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="flex gap-3 items-start">
+                        <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                        <p className="text-sm font-medium text-green-800">
+                          Great job! Your content is highly readable and ready for a general audience.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : results.tips.length > 0 ? (
+                  <Card className="border border-slate-100 shadow-sm">
+                    <CardContent className="p-5 space-y-3">
+                      <h4 className="text-sm font-semibold text-slate-900">
+                        Improvement tips
+                      </h4>
+                      <ul className="space-y-2">
+                        {results.tips.map((tip, i) => (
+                          <li key={i} className="flex gap-2 text-sm text-slate-700">
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 text-teal-500 shrink-0" />
+                            {tip}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ) : null}
 
                 {/* Visual Analysis */}
                 <Card className="border border-slate-100 shadow-sm">
