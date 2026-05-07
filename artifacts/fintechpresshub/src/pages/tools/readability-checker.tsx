@@ -185,6 +185,14 @@ interface SentenceSegment {
   text: string;
   wordCount: number;
   difficulty: "hard" | "moderate" | "normal";
+  passive: boolean;
+}
+
+const PASSIVE_RE =
+  /\b(is|are|was|were|be|been|being|has\s+been|have\s+been|had\s+been|will\s+be|would\s+be|can\s+be|could\s+be|should\s+be|may\s+be|might\s+be|must\s+be)\s+\w*(ed|en|t)\b/i;
+
+function isPassive(text: string): boolean {
+  return PASSIVE_RE.test(text);
 }
 
 function buildVisualSegments(rawText: string): SentenceSegment[][] {
@@ -202,7 +210,7 @@ function buildVisualSegments(rawText: string): SentenceSegment[][] {
         .filter((w) => w.replace(/[^a-zA-Z]/g, "").length > 0).length;
       const difficulty: "hard" | "moderate" | "normal" =
         wordCount > 25 ? "hard" : wordCount > 15 ? "moderate" : "normal";
-      return { text, wordCount, difficulty };
+      return { text, wordCount, difficulty, passive: isPassive(text) };
     });
   });
 }
@@ -215,8 +223,12 @@ function renderSentenceTokens(sentenceText: string) {
       return (
         <span
           key={i}
-          className="relative z-10 underline decoration-dotted decoration-amber-500 underline-offset-2 cursor-help font-medium text-amber-800"
-          style={{ zIndex: 10 }}
+          className="relative underline decoration-dotted decoration-amber-500 underline-offset-2 cursor-help font-medium text-amber-800"
+          style={{
+            zIndex: 50,
+            position: "relative",
+            filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))",
+          }}
           title={`Simpler alternative: "${synonym}"`}
         >
           {token}
@@ -702,14 +714,18 @@ export default function ReadabilityChecker() {
                         <Eye className="w-4 h-4 text-teal-600" />
                         Visual Analysis
                       </h4>
-                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-1.5">
-                          <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: "rgba(251, 191, 200, 0.7)" }} />
+                          <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-red-100" />
                           Very hard (&gt;25 words)
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: "rgba(253, 224, 71, 0.6)" }} />
+                          <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-yellow-100" />
                           Moderately hard (&gt;15 words)
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-purple-100" />
+                          Passive voice
                         </span>
                       </div>
                     </div>
@@ -718,30 +734,28 @@ export default function ReadabilityChecker() {
                       {results.visualSegments.map((para, pi) => (
                         <p key={pi}>
                           {para.map((seg, si) => {
+                            const baseStyle: React.CSSProperties = {
+                              padding: "0.1em 0.25em",
+                              boxDecorationBreak: "clone",
+                              WebkitBoxDecorationBreak: "clone",
+                              borderRadius: "2px",
+                            };
                             const highlightStyle: React.CSSProperties =
                               seg.difficulty === "hard"
-                                ? {
-                                    backgroundColor: "rgba(251, 191, 200, 0.55)",
-                                    padding: "0.1em 0.25em",
-                                    boxDecorationBreak: "clone",
-                                    WebkitBoxDecorationBreak: "clone",
-                                    borderRadius: "2px",
-                                  }
+                                ? { ...baseStyle, backgroundColor: "#fee2e2" }
                                 : seg.difficulty === "moderate"
-                                  ? {
-                                      backgroundColor: "rgba(253, 224, 71, 0.45)",
-                                      padding: "0.1em 0.25em",
-                                      boxDecorationBreak: "clone",
-                                      WebkitBoxDecorationBreak: "clone",
-                                      borderRadius: "2px",
-                                    }
-                                  : {};
-                            const tooltip =
-                              seg.difficulty === "hard"
-                                ? `Very hard sentence — ${seg.wordCount} words (aim for under 25)`
-                                : seg.difficulty === "moderate"
-                                  ? `Moderately hard sentence — ${seg.wordCount} words (aim for under 15)`
-                                  : undefined;
+                                  ? { ...baseStyle, backgroundColor: "#fef9c3" }
+                                  : seg.passive
+                                    ? { ...baseStyle, backgroundColor: "#f3e8ff" }
+                                    : {};
+                            const tooltipParts: string[] = [];
+                            if (seg.difficulty === "hard")
+                              tooltipParts.push(`Very hard sentence — ${seg.wordCount} words (aim for under 25)`);
+                            else if (seg.difficulty === "moderate")
+                              tooltipParts.push(`Moderately hard sentence — ${seg.wordCount} words (aim for under 15)`);
+                            if (seg.passive)
+                              tooltipParts.push("Contains passive voice — consider rewriting in active voice");
+                            const tooltip = tooltipParts.length > 0 ? tooltipParts.join(" · ") : undefined;
                             return (
                               <span key={si} style={highlightStyle} title={tooltip}>
                                 {renderSentenceTokens(seg.text)}
