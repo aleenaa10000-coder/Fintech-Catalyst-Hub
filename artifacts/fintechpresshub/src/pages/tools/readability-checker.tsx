@@ -85,20 +85,89 @@ function levelFromScore(score: number): {
   };
 }
 
-function getTips(score: number, avgSentenceLen: number): string[] {
+const SYNONYM_MAP: Record<string, string> = {
+  utilize: "use",
+  utilise: "use",
+  demonstrate: "show",
+  implementation: "rollout",
+  facilitate: "help",
+  functionality: "features",
+  approximately: "about",
+  additionally: "also",
+  subsequently: "then",
+  fundamentally: "basically",
+  methodology: "method",
+  cryptocurrency: "crypto",
+  authentication: "login",
+  authorization: "access",
+  interoperability: "compatibility",
+  synchronization: "sync",
+  instantaneously: "instantly",
+  consequently: "so",
+  significantly: "greatly",
+  alternatively: "or",
+  differentiate: "tell apart",
+  documentation: "docs",
+  configuration: "setup",
+  administration: "management",
+  collaboration: "teamwork",
+  capitalization: "funding",
+  tokenization: "encoding",
+  securitization: "packaging",
+  categorization: "grouping",
+  optimization: "improvement",
+  optimisation: "improvement",
+  consideration: "thought",
+  communicate: "share",
+  infrastructure: "system",
+};
+
+function getTips(
+  score: number,
+  avgSentenceLen: number,
+  wordCount: number,
+  rawText: string,
+  words: string[],
+): string[] {
   const tips: string[] = [];
-  if (avgSentenceLen > 25)
+
+  if (avgSentenceLen > 20) {
     tips.push(
-      `Your average sentence is ${avgSentenceLen.toFixed(0)} words. Aim for under 20 words per sentence to improve flow.`,
+      `Your average sentence is ${avgSentenceLen.toFixed(0)} words — aim for under 20. Try splitting long sentences at conjunctions like "and", "but", or "because".`,
     );
-  if (score < 50)
+  }
+
+  if (wordCount > 100 && !rawText.includes("\n")) {
     tips.push(
-      "Replace multi-syllable jargon with simpler alternatives where possible — even for a fintech audience.",
+      "Your text has no paragraph breaks. With over 100 words in one block, readers may lose their place — add a blank line every 3–5 sentences.",
     );
-  if (score < 65)
-    tips.push(
-      "Break long paragraphs into shorter ones and use subheadings to give readers breathing room.",
-    );
+  }
+
+  if (score < 50) {
+    const found: Array<{ word: string; synonym: string }> = [];
+    const seen = new Set<string>();
+    for (const w of words) {
+      const lower = w.toLowerCase();
+      if (SYNONYM_MAP[lower] && !seen.has(lower)) {
+        found.push({ word: lower, synonym: SYNONYM_MAP[lower] });
+        seen.add(lower);
+        if (found.length >= 3) break;
+      }
+    }
+    if (found.length > 0) {
+      const examples = found
+        .map(({ word, synonym }) => `"${word}" → "${synonym}"`)
+        .join(", ");
+      tips.push(
+        `Swap complex words for simpler ones to lift your score: ${examples}.`,
+      );
+    } else {
+      tips.push(
+        "Replace multi-syllable jargon with simpler alternatives — even a fintech audience prefers plain language.",
+      );
+    }
+  }
+
   if (score >= 65 && score < 80)
     tips.push(
       "Good score! Consider adding bullet lists or numbered steps for complex processes.",
@@ -136,7 +205,7 @@ export default function ReadabilityChecker() {
     const avgSyllables = words.length > 0 ? totalSyllables / words.length : 0;
     const grade = gradeFromScore(score);
     const level = levelFromScore(score);
-    const tips = getTips(score, avgSentenceLen);
+    const tips = getTips(score, avgSentenceLen, words.length, checkedText, words);
     return {
       score,
       grade,
