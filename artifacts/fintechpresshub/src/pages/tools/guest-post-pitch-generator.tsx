@@ -576,6 +576,15 @@ export default function GuestPostPitchGenerator() {
     return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   })();
 
+  const gmailHref = (() => {
+    const firstLine = editedPitch.split("\n")[0] ?? "";
+    const subject = firstLine.startsWith("Subject: ")
+      ? firstLine.slice("Subject: ".length).trim()
+      : firstLine.trim();
+    const body = editedPitch.split("\n").slice(2).join("\n").trim();
+    return `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  })();
+
   const canGenerate =
     form.senderName.trim().length > 0 &&
     form.targetBlog.trim().length > 0 &&
@@ -848,6 +857,23 @@ export default function GuestPostPitchGenerator() {
                 );
               })()}
 
+              {canGenerate && (() => {
+                const preview = buildPitch(form, 0);
+                const lines = preview.split("\n").filter(Boolean);
+                const subjectLine = lines[0] ?? "";
+                const openingLines = lines.slice(1, 4).join(" ").replace(/\s+/g, " ").trim();
+                const truncated = openingLines.length > 200 ? openingLines.slice(0, 200) + "…" : openingLines;
+                return (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-3 space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      Live Preview
+                    </span>
+                    <p className="text-xs font-semibold text-slate-700 leading-snug">{subjectLine}</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{truncated}</p>
+                  </div>
+                );
+              })()}
+
               <div className="flex gap-2">
                 <Button
                   onClick={generate}
@@ -1099,9 +1125,11 @@ export default function GuestPostPitchGenerator() {
                         variant="outline"
                         className="h-11 px-4 font-semibold border-slate-200 text-slate-700 hover:bg-slate-50"
                       >
-                        <a href={mailtoHref}>
-                          <Mail className="w-4 h-4 mr-2" />
-                          Open in email
+                        <a href={gmailHref} target="_blank" rel="noopener noreferrer">
+                          <svg className="w-4 h-4 mr-2 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill="currentColor"/>
+                          </svg>
+                          Open in Gmail
                         </a>
                       </Button>
                     </div>
