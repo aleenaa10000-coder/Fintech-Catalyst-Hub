@@ -807,10 +807,33 @@ export default function GuestPostPitchGenerator() {
                       const readLabel = readMin > 0
                         ? `~${readMin}m ${readRemSec > 0 ? `${readRemSec}s` : ""}read`
                         : `~${readSec}s read`;
+                      const overLimit = words > 250;
+                      const nearLimit = !overLimit && words >= 200;
                       return (
-                        <p className="text-xs text-muted-foreground text-right -mt-1">
-                          {words} words · {readLabel}
-                        </p>
+                        <div className="space-y-1.5">
+                          <p className={`text-xs text-right -mt-1 font-medium ${
+                            overLimit ? "text-red-500" : nearLimit ? "text-amber-500" : "text-muted-foreground"
+                          }`}>
+                            {words} words · {readLabel}
+                            {overLimit && ` · ${words - 250} over limit`}
+                          </p>
+                          {overLimit && (
+                            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 flex items-start gap-2">
+                              <span className="text-red-500 text-base leading-none mt-0.5 shrink-0">⚠</span>
+                              <p className="text-xs text-red-700 leading-snug">
+                                <span className="font-semibold">Pitch is too long.</span> Most editors prefer pitch emails under 250 words — longer ones are less likely to be read. Trim the body copy and cut filler sentences before sending.
+                              </p>
+                            </div>
+                          )}
+                          {nearLimit && (
+                            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 flex items-start gap-2">
+                              <span className="text-amber-500 text-base leading-none mt-0.5 shrink-0">⚠</span>
+                              <p className="text-xs text-amber-700 leading-snug">
+                                <span className="font-semibold">Getting long.</span> You're approaching the 250-word recommended limit. Consider tightening the opening paragraph.
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       );
                     })()}
                     <div className="flex gap-2">
