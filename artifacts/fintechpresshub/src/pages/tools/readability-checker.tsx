@@ -18,6 +18,7 @@ import {
   Sparkles,
   Eye,
   Copy,
+  Flame,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -269,6 +270,36 @@ function buildVisualSegments(rawText: string): SentenceSegment[][] {
       return { text, wordCount, difficulty, passive: isPassive(text) };
     });
   });
+}
+
+function renderWordHeatmap(paragraphs: SentenceSegment[][]) {
+  return paragraphs.map((para, pi) => (
+    <p key={pi} className="m-0" style={{ marginBottom: pi < paragraphs.length - 1 ? "0.75rem" : 0 }}>
+      {para.map((seg, si) => {
+        const tokens = seg.text.split(/([a-zA-Z]+)/);
+        return (
+          <span key={si}>
+            {tokens.map((token, ti) => {
+              if (!/^[a-zA-Z]+$/.test(token)) return <span key={ti}>{token}</span>;
+              const syllables = countSyllables(token);
+              const style: React.CSSProperties =
+                syllables >= 3
+                  ? { backgroundColor: "#fed7aa", borderRadius: "2px", padding: "0.05em 0.15em" }
+                  : syllables === 2
+                    ? { backgroundColor: "#fef3c7", borderRadius: "2px", padding: "0.05em 0.15em" }
+                    : {};
+              return (
+                <span key={ti} style={style} title={`${syllables} syllable${syllables !== 1 ? "s" : ""}`}>
+                  {token}
+                </span>
+              );
+            })}
+            {si < para.length - 1 ? " " : ""}
+          </span>
+        );
+      })}
+    </p>
+  ));
 }
 
 function renderSentenceTokens(sentenceText: string) {
@@ -533,6 +564,7 @@ export default function ReadabilityChecker() {
   const [copyBadgeState, setCopyBadgeState] = useState<"idle" | "copied">("idle");
   const [activeRewrite, setActiveRewrite] = useState<{ original: string; rewritten: string } | null>(null);
   const [copyRewriteState, setCopyRewriteState] = useState<"idle" | "copied">("idle");
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   const copyText = async () => {
     await writeToClipboard(text);
@@ -1103,23 +1135,57 @@ export default function ReadabilityChecker() {
                 <Card className="border border-slate-100 shadow-sm">
                   <CardContent className="p-5 space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                        <Eye className="w-4 h-4 text-teal-600" />
-                        Visual Analysis
-                      </h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                          <Eye className="w-4 h-4 text-teal-600" />
+                          Visual Analysis
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => setShowHeatmap((prev) => !prev)}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-colors ${
+                            showHeatmap
+                              ? "bg-orange-100 border-orange-300 text-orange-700"
+                              : "bg-slate-100 border-slate-200 text-slate-500 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600"
+                          }`}
+                          title="Toggle word complexity heatmap"
+                        >
+                          <Flame className="w-3 h-3" />
+                          Heatmap
+                        </button>
+                      </div>
                       <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1.5">
-                          <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-red-100" />
-                          Very hard (&gt;25 words)
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-yellow-100" />
-                          Moderately hard (&gt;15 words)
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-purple-100" />
-                          Passive voice
-                        </span>
+                        {showHeatmap ? (
+                          <>
+                            <span className="flex items-center gap-1.5">
+                              <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: "#fed7aa" }} />
+                              3+ syllables
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: "#fef3c7" }} />
+                              2 syllables
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-slate-100 border border-slate-200" />
+                              1 syllable
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="flex items-center gap-1.5">
+                              <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-red-100" />
+                              Very hard (&gt;25 words)
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-yellow-100" />
+                              Moderately hard (&gt;15 words)
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-purple-100 border-b-2 border-purple-400" />
+                              Passive voice
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -1127,55 +1193,59 @@ export default function ReadabilityChecker() {
                       className="text-sm text-slate-700 bg-slate-50 rounded-lg p-4 border border-slate-100"
                       style={{ lineHeight: "2", fontSize: "0.875rem", fontFamily: "inherit" }}
                     >
-                      {results.visualSegments.map((para, pi) => (
-                        <p key={pi} className="m-0" style={{ marginBottom: pi < results.visualSegments.length - 1 ? "0.75rem" : 0 }}>
-                          {para.map((seg, si) => {
-                            const isHighlighted = seg.difficulty === "hard" || seg.difficulty === "moderate" || seg.passive;
-                            const baseStyle: React.CSSProperties = {
-                              padding: "0.1em 0.25em",
-                              boxDecorationBreak: "clone",
-                              WebkitBoxDecorationBreak: "clone",
-                              borderRadius: "2px",
-                            };
-                            const highlightStyle: React.CSSProperties =
-                              seg.difficulty === "hard"
-                                ? { ...baseStyle, backgroundColor: "#fee2e2" }
-                                : seg.difficulty === "moderate"
-                                  ? { ...baseStyle, backgroundColor: "#fef9c3" }
-                                  : seg.passive
-                                    ? { ...baseStyle, backgroundColor: "#ddd6fe", borderBottom: "2px solid #8b5cf6" }
-                                    : {};
-                            const tooltipParts: string[] = [];
-                            if (seg.difficulty === "hard")
-                              tooltipParts.push(`Very hard sentence — ${seg.wordCount} words (aim for under 25)`);
-                            else if (seg.difficulty === "moderate")
-                              tooltipParts.push(`Moderately hard sentence — ${seg.wordCount} words (aim for under 15)`);
-                            if (seg.passive)
-                              tooltipParts.push("Contains passive voice — consider rewriting in active voice");
-                            if (isHighlighted)
-                              tooltipParts.push("Click to see a suggested rewrite");
-                            const tooltip = tooltipParts.length > 0 ? tooltipParts.join(" · ") : undefined;
-                            return (
-                              <span
-                                key={si}
-                                style={highlightStyle}
-                                title={tooltip}
-                                className={isHighlighted ? "cursor-pointer" : undefined}
-                                onClick={isHighlighted ? () => {
-                                  const rewritten = simplifyText(seg.text);
-                                  setActiveRewrite((prev) =>
-                                    prev?.original === seg.text ? null : { original: seg.text, rewritten },
-                                  );
-                                  setCopyRewriteState("idle");
-                                } : undefined}
-                              >
-                                {renderSentenceTokens(seg.text)}
-                                {si < para.length - 1 ? " " : ""}
-                              </span>
-                            );
-                          })}
-                        </p>
-                      ))}
+                      {showHeatmap ? (
+                        renderWordHeatmap(results.visualSegments)
+                      ) : (
+                        results.visualSegments.map((para, pi) => (
+                          <p key={pi} className="m-0" style={{ marginBottom: pi < results.visualSegments.length - 1 ? "0.75rem" : 0 }}>
+                            {para.map((seg, si) => {
+                              const isHighlighted = seg.difficulty === "hard" || seg.difficulty === "moderate" || seg.passive;
+                              const baseStyle: React.CSSProperties = {
+                                padding: "0.1em 0.25em",
+                                boxDecorationBreak: "clone",
+                                WebkitBoxDecorationBreak: "clone",
+                                borderRadius: "2px",
+                              };
+                              const highlightStyle: React.CSSProperties =
+                                seg.difficulty === "hard"
+                                  ? { ...baseStyle, backgroundColor: "#fee2e2" }
+                                  : seg.difficulty === "moderate"
+                                    ? { ...baseStyle, backgroundColor: "#fef9c3" }
+                                    : seg.passive
+                                      ? { ...baseStyle, backgroundColor: "#f3e8ff", borderBottom: "2px solid #c084fc" }
+                                      : {};
+                              const tooltipParts: string[] = [];
+                              if (seg.difficulty === "hard")
+                                tooltipParts.push(`Very hard sentence — ${seg.wordCount} words (aim for under 25)`);
+                              else if (seg.difficulty === "moderate")
+                                tooltipParts.push(`Moderately hard sentence — ${seg.wordCount} words (aim for under 15)`);
+                              if (seg.passive)
+                                tooltipParts.push("Contains passive voice — consider rewriting in active voice");
+                              if (isHighlighted)
+                                tooltipParts.push("Click to see a suggested rewrite");
+                              const tooltip = tooltipParts.length > 0 ? tooltipParts.join(" · ") : undefined;
+                              return (
+                                <span
+                                  key={si}
+                                  style={highlightStyle}
+                                  title={tooltip}
+                                  className={isHighlighted ? "cursor-pointer" : undefined}
+                                  onClick={isHighlighted ? () => {
+                                    const rewritten = simplifyText(seg.text);
+                                    setActiveRewrite((prev) =>
+                                      prev?.original === seg.text ? null : { original: seg.text, rewritten },
+                                    );
+                                    setCopyRewriteState("idle");
+                                  } : undefined}
+                                >
+                                  {renderSentenceTokens(seg.text)}
+                                  {si < para.length - 1 ? " " : ""}
+                                </span>
+                              );
+                            })}
+                          </p>
+                        ))
+                      )}
                     </div>
 
                     {activeRewrite && (
