@@ -606,22 +606,49 @@ export default function OutreachEmailGenerator() {
   const activeSubject = variants ? variants[selectedIdx] : null;
 
   const copyAsMarkdown = async () => {
-    if (!activeSubject || !body) return;
+    if (!activeSubject || !body || !scores) return;
+    const activeScore = scores[selectedIdx];
+    const variantLabel = selectedIdx === 0 ? "A" : "B";
+    const toneLabel = tone.charAt(0).toUpperCase() + tone.slice(1);
+
     const lines: string[] = [];
-    lines.push(`# Outreach Email`);
+    lines.push(`# Outreach Email Report`);
+    lines.push(``);
+
+    // Campaign metadata
+    lines.push(`## Campaign Details`);
     lines.push(``);
     lines.push(`| Field | Value |`);
     lines.push(`|---|---|`);
-    if (form.yourName)    lines.push(`| **From** | ${form.yourName}${form.yourCompany ? ` — ${form.yourCompany}` : ""} |`);
+    if (form.yourName)     lines.push(`| **From** | ${form.yourName}${form.yourCompany ? ` — ${form.yourCompany}` : ""} |`);
+    if (form.yourWebsite)  lines.push(`| **Website** | ${fmtDomain(form.yourWebsite)} |`);
     if (form.targetDomain) lines.push(`| **To** | ${form.targetDomain} |`);
-    if (form.topic)       lines.push(`| **Topic** | ${form.topic} |`);
-    lines.push(`| **Tone** | ${tone.charAt(0).toUpperCase() + tone.slice(1)} |`);
+    if (form.topic)        lines.push(`| **Topic** | ${form.topic} |`);
+    lines.push(`| **Tone** | ${toneLabel} |`);
     lines.push(``);
-    lines.push(`---`);
+
+    // Subject line + score breakdown
+    lines.push(`## Subject Line (Variant ${variantLabel}) — Score: ${activeScore.total}/100`);
     lines.push(``);
-    lines.push(`**Subject:** ${activeSubject}`);
+    lines.push(`> ${activeSubject}`);
+    lines.push(``);
+    lines.push(`### Score Breakdown`);
+    lines.push(``);
+    lines.push(`| Dimension | Score | Max | Notes |`);
+    lines.push(`|---|---|---|---|`);
+    lines.push(`| Length | ${activeScore.length} | 25 | Optimal: 40–60 characters |`);
+    lines.push(`| Power words | ${activeScore.powerWords} | 25 | High-impact vocabulary |`);
+    lines.push(`| Personalisation | ${activeScore.personal} | 25 | Recipient brand name in subject |`);
+    lines.push(`| Curiosity gap | ${activeScore.curiosity} | 25 | Questions, em-dashes, numbers |`);
+    lines.push(`| **Total** | **${activeScore.total}** | **100** | |`);
+    lines.push(``);
+
+    // Email body
+    lines.push(`## Email Body`);
     lines.push(``);
     lines.push(body);
+    lines.push(``);
+
     const md = lines.join("\n");
     try { await navigator.clipboard.writeText(md); }
     catch {
@@ -629,6 +656,7 @@ export default function OutreachEmailGenerator() {
       el.value = md; document.body.appendChild(el); el.select();
       document.execCommand("copy"); document.body.removeChild(el);
     }
+    trackEvent("Result Copied", { tool: "outreach-email-generator", format: "markdown" });
     setCopiedMarkdown(true);
     setTimeout(() => setCopiedMarkdown(false), 2000);
   };
