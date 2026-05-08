@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Link } from "wouter";
 import { trackEvent } from "@/lib/analytics";
 import { motion, AnimatePresence } from "framer-motion";
@@ -2288,6 +2289,19 @@ export default function ContentBriefGenerator() {
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const reset = () => {
+    if (!brief && !form.keyword.trim()) return;
+    const snapshot = {
+      form: { ...form },
+      brief,
+      briefKey,
+      checkedEntities: { ...checkedEntities },
+      checkedLinks: { ...checkedLinks },
+      checkedH2s: { ...checkedH2s },
+      contentScore,
+      intentAlignment,
+      expertHooks,
+      writerMode,
+    };
     setForm(DEFAULTS);
     setBrief(null);
     setBriefKey(null);
@@ -2301,6 +2315,27 @@ export default function ContentBriefGenerator() {
     setWriterMode(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    toast("Form reset", {
+      description: snapshot.brief
+        ? "Your inputs and generated brief have been cleared."
+        : "Your inputs have been cleared.",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setForm(snapshot.form);
+          setBrief(snapshot.brief);
+          setBriefKey(snapshot.briefKey);
+          setCheckedEntities(snapshot.checkedEntities);
+          setCheckedLinks(snapshot.checkedLinks);
+          setCheckedH2s(snapshot.checkedH2s);
+          setContentScore(snapshot.contentScore);
+          setIntentAlignment(snapshot.intentAlignment);
+          setExpertHooks(snapshot.expertHooks);
+          setWriterMode(snapshot.writerMode);
+        },
+      },
+      duration: 5000,
+    });
   };
 
   const TOTAL_DURATION = 2200;

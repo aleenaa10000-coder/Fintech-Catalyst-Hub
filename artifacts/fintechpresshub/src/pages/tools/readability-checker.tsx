@@ -309,7 +309,20 @@ function renderSentenceTokens(sentenceText: string) {
 }
 
 function ScoreHistoryChart({ scores }: { scores: number[] }) {
-  if (scores.length < 2) return null;
+  if (scores.length === 0) return null;
+
+  if (scores.length === 1) {
+    return (
+      <Card className="border border-slate-100 shadow-sm">
+        <CardContent className="p-5 space-y-3">
+          <h4 className="text-sm font-semibold text-slate-900">Score History</h4>
+          <div className="h-[160px] flex items-center justify-center text-sm text-muted-foreground">
+            Run another check to see your score trend.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const VW = 360, VH = 160;
   const padL = 28, padR = 10, padT = 22, padB = 22;
@@ -358,6 +371,7 @@ function ScoreHistoryChart({ scores }: { scores: number[] }) {
         <svg
           viewBox={`0 0 ${VW} ${VH}`}
           className="w-full"
+          style={{ height: "160px" }}
           aria-label="Score improvement chart"
         >
           {bands.map(({ from, to, fill }) => (
@@ -415,7 +429,7 @@ function ScoreHistoryChart({ scores }: { scores: number[] }) {
                   {Math.round(p.s)}
                 </text>
                 <text x={p.x} y={VH - 4} textAnchor="middle" fontSize="8.5" fill="#94a3b8">
-                  #{i + 1}
+                  Edit {i + 1}
                 </text>
               </g>
             );

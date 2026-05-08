@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -254,10 +255,27 @@ export default function MetaDescriptionGenerator() {
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const reset = () => {
+    if (!generated && results.length === 0) return;
+    const snapshot = { form: { ...form }, results: [...results], edited: [...edited], generated };
     setForm(DEFAULTS);
     setResults([]);
     setEdited([]);
     setGenerated(false);
+    toast("Form reset", {
+      description: snapshot.generated
+        ? "Your inputs and generated results have been cleared."
+        : "Your inputs have been cleared.",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setForm(snapshot.form);
+          setResults(snapshot.results);
+          setEdited(snapshot.edited);
+          setGenerated(snapshot.generated);
+        },
+      },
+      duration: 5000,
+    });
   };
 
   const generate = () => {
