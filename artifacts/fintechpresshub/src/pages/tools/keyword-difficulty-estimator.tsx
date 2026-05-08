@@ -3003,6 +3003,7 @@ export default function KeywordDifficultyEstimator() {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
+      trackEvent("Result Shared", { tool: "keyword-difficulty-estimator", method: "copy_link" });
     }).catch(() => {});
   };
 

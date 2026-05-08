@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -476,11 +477,27 @@ export default function ReadabilityChecker() {
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const reset = () => {
+    if (!text.trim() && !checked) return;
+    const snapshot = { text, checked, checkedText, scoreHistory: [...scoreHistory], activeRewrite };
     setText("");
     setChecked(false);
     setCheckedText("");
     setScoreHistory([]);
     setActiveRewrite(null);
+    toast("Content cleared", {
+      description: snapshot.checked ? "Your text and results have been reset." : "Your text has been cleared.",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setText(snapshot.text);
+          setChecked(snapshot.checked);
+          setCheckedText(snapshot.checkedText);
+          setScoreHistory(snapshot.scoreHistory);
+          setActiveRewrite(snapshot.activeRewrite);
+        },
+      },
+      duration: 5000,
+    });
   };
 
   const [copyImprovedState, setCopyImprovedState] = useState<"idle" | "copied">("idle");
