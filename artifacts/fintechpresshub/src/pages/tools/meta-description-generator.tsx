@@ -255,7 +255,7 @@ export default function MetaDescriptionGenerator() {
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const reset = () => {
-    if (!generated && results.length === 0) return;
+    if (form.pageTitle === "" && form.keyword === "" && form.audience === "" && form.benefit === "" && results.length === 0) return;
     const snapshot = { form: { ...form }, results: [...results], edited: [...edited], generated };
     setForm(DEFAULTS);
     setResults([]);

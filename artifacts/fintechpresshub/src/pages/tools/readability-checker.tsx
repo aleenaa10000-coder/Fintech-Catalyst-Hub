@@ -653,7 +653,7 @@ export default function ReadabilityChecker() {
 
   const handleResetClick = () => {
     if (!text.trim() && !checked) return;
-    if (!resetConfirm) {
+    if (checked && !resetConfirm) {
       setResetConfirm(true);
       if (resetConfirmTimerRef.current) clearTimeout(resetConfirmTimerRef.current);
       resetConfirmTimerRef.current = setTimeout(() => setResetConfirm(false), 3000);
