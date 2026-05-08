@@ -309,38 +309,24 @@ function renderSentenceTokens(sentenceText: string) {
 }
 
 function ScoreHistoryChart({ scores }: { scores: number[] }) {
-  if (scores.length === 0) return null;
-
-  if (scores.length === 1) {
-    return (
-      <Card className="border border-slate-100 shadow-sm">
-        <CardContent className="p-5 space-y-3">
-          <h4 className="text-sm font-semibold text-slate-900">Score History</h4>
-          <div className="h-[160px] flex items-center justify-center text-sm text-muted-foreground">
-            Run another check to see your score trend.
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const VW = 360, VH = 160;
-  const padL = 28, padR = 10, padT = 22, padB = 22;
+  const VW = 400, VH = 220;
+  const padL = 32, padR = 12, padT = 28, padB = 30;
   const chartW = VW - padL - padR;
   const chartH = VH - padT - padB;
 
   const xScale = (i: number) =>
-    padL + (scores.length === 1 ? chartW / 2 : (i / (scores.length - 1)) * chartW);
+    padL + (scores.length <= 1 ? chartW / 2 : (i / (scores.length - 1)) * chartW);
   const yScale = (v: number) =>
     padT + (1 - Math.max(0, Math.min(100, v)) / 100) * chartH;
 
+  const hasMultiple = scores.length >= 2;
   const pts = scores.map((s, i) => ({ x: xScale(i), y: yScale(s), s }));
-  const linePath = pts
-    .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
-    .join(" ");
+  const linePath = hasMultiple
+    ? pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")
+    : "";
 
-  const last = scores[scores.length - 1];
-  const delta = Math.round(last - scores[0]);
+  const last = scores.length > 0 ? scores[scores.length - 1] : 0;
+  const delta = scores.length >= 2 ? Math.round(last - scores[0]) : 0;
   const lineStroke = last >= 65 ? "#16a34a" : last >= 45 ? "#d97706" : "#dc2626";
 
   const bands = [
@@ -355,86 +341,99 @@ function ScoreHistoryChart({ scores }: { scores: number[] }) {
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-semibold text-slate-900">Score History</h4>
           <div className="flex items-center gap-2 text-[11px]">
-            <span className="text-muted-foreground">
-              {scores.length} checks
-            </span>
-            <span
-              className={`font-semibold tabular-nums ${
-                delta > 0 ? "text-green-600" : delta < 0 ? "text-red-500" : "text-slate-400"
-              }`}
-            >
-              {delta > 0 ? "+" : ""}{delta} overall
-            </span>
+            {scores.length > 0 && (
+              <span className="text-muted-foreground">{scores.length} check{scores.length !== 1 ? "s" : ""}</span>
+            )}
+            {hasMultiple && (
+              <span className={`font-semibold tabular-nums ${delta > 0 ? "text-green-600" : delta < 0 ? "text-red-500" : "text-slate-400"}`}>
+                {delta > 0 ? "+" : ""}{delta} overall
+              </span>
+            )}
           </div>
         </div>
 
-        <svg
-          viewBox={`0 0 ${VW} ${VH}`}
-          className="w-full"
-          style={{ height: "160px" }}
-          aria-label="Score improvement chart"
-        >
-          {bands.map(({ from, to, fill }) => (
-            <rect
-              key={from}
-              x={padL}
-              y={yScale(to)}
-              width={chartW}
-              height={yScale(from) - yScale(to)}
-              fill={fill}
-              opacity="0.6"
-            />
-          ))}
+        <div className="min-h-[240px] flex flex-col justify-center">
+          {scores.length === 0 ? (
+            <div className="flex items-center justify-center h-[220px] text-sm text-muted-foreground">
+              Run a readability check to see your score here.
+            </div>
+          ) : scores.length === 1 ? (
+            <div className="flex flex-col items-center justify-center h-[220px] gap-2">
+              <span className="text-2xl font-black" style={{ color: last >= 65 ? "#16a34a" : last >= 45 ? "#d97706" : "#dc2626" }}>
+                {Math.round(last)}
+              </span>
+              <span className="text-sm text-muted-foreground">Edit 1 — run another check to see your trend.</span>
+            </div>
+          ) : (
+            <svg
+              viewBox={`0 0 ${VW} ${VH}`}
+              className="w-full"
+              style={{ height: "220px" }}
+              aria-label="Score improvement chart"
+            >
+              {bands.map(({ from, to, fill }) => (
+                <rect
+                  key={from}
+                  x={padL}
+                  y={yScale(to)}
+                  width={chartW}
+                  height={yScale(from) - yScale(to)}
+                  fill={fill}
+                  opacity="0.6"
+                />
+              ))}
 
-          {[0, 45, 65, 100].map((v) => (
-            <g key={v}>
-              <line
-                x1={padL}
-                y1={yScale(v)}
-                x2={VW - padR}
-                y2={yScale(v)}
-                stroke="#cbd5e1"
-                strokeWidth="0.5"
-                strokeDasharray={v === 0 || v === 100 ? undefined : "3 3"}
+              {[0, 45, 65, 100].map((v) => (
+                <g key={v}>
+                  <line
+                    x1={padL}
+                    y1={yScale(v)}
+                    x2={VW - padR}
+                    y2={yScale(v)}
+                    stroke="#cbd5e1"
+                    strokeWidth="0.5"
+                    strokeDasharray={v === 0 || v === 100 ? undefined : "3 3"}
+                  />
+                  <text
+                    x={padL - 4}
+                    y={yScale(v)}
+                    textAnchor="end"
+                    dominantBaseline="middle"
+                    fontSize="9"
+                    fill="#94a3b8"
+                  >
+                    {v}
+                  </text>
+                </g>
+              ))}
+
+              <path
+                d={linePath}
+                fill="none"
+                stroke={lineStroke}
+                strokeWidth="2"
+                strokeLinejoin="round"
+                strokeLinecap="round"
               />
-              <text
-                x={padL - 4}
-                y={yScale(v)}
-                textAnchor="end"
-                dominantBaseline="middle"
-                fontSize="9"
-                fill="#94a3b8"
-              >
-                {v}
-              </text>
-            </g>
-          ))}
 
-          <path
-            d={linePath}
-            fill="none"
-            stroke={lineStroke}
-            strokeWidth="2"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-
-          {pts.map((p, i) => {
-            const dotColor = p.s >= 65 ? "#16a34a" : p.s >= 45 ? "#d97706" : "#dc2626";
-            const isLast = i === pts.length - 1;
-            return (
-              <g key={i}>
-                <circle cx={p.x} cy={p.y} r={isLast ? 5 : 4} fill={dotColor} stroke="white" strokeWidth="1.5" />
-                <text x={p.x} y={p.y - 9} textAnchor="middle" fontSize="9.5" fontWeight="700" fill={dotColor}>
-                  {Math.round(p.s)}
-                </text>
-                <text x={p.x} y={VH - 4} textAnchor="middle" fontSize="8.5" fill="#94a3b8">
-                  Edit {i + 1}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+              {pts.map((p, i) => {
+                const dotColor = p.s >= 65 ? "#16a34a" : p.s >= 45 ? "#d97706" : "#dc2626";
+                const isLast = i === pts.length - 1;
+                return (
+                  <g key={i}>
+                    <circle cx={p.x} cy={p.y} r={isLast ? 5.5 : 4} fill={dotColor} stroke="white" strokeWidth="1.5" />
+                    <text x={p.x} y={p.y - 11} textAnchor="middle" fontSize="10" fontWeight="700" fill={dotColor}>
+                      {Math.round(p.s)}
+                    </text>
+                    <text x={p.x} y={VH - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">
+                      Edit {i + 1}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          )}
+        </div>
 
         <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">

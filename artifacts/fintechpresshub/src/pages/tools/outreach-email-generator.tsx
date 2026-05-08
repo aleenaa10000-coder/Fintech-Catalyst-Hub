@@ -661,6 +661,39 @@ export default function OutreachEmailGenerator() {
     setTimeout(() => setCopiedMarkdown(false), 2000);
   };
 
+  const downloadAsEml = () => {
+    if (!activeSubject || !body) return;
+    const from = form.yourName
+      ? `${form.yourName}${form.yourWebsite ? ` <hello@${fmtDomain(form.yourWebsite)}>` : ""}`
+      : "Outreach Sender";
+    const to = form.targetDomain ? `editor@${fmtDomain(form.targetDomain)}` : "";
+    const date = new Date().toUTCString();
+
+    const emlContent = [
+      `MIME-Version: 1.0`,
+      `Date: ${date}`,
+      `From: ${from}`,
+      ...(to ? [`To: ${to}`] : []),
+      `Subject: ${activeSubject}`,
+      `Content-Type: text/plain; charset=UTF-8`,
+      `Content-Transfer-Encoding: quoted-printable`,
+      ``,
+      body,
+    ].join("\r\n");
+
+    const blob = new Blob([emlContent], { type: "message/rfc822" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const safeDomain = fmtDomain(form.targetDomain || "outreach").replace(/[^a-z0-9]/gi, "-");
+    a.href = url;
+    a.download = `outreach-${safeDomain}.eml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    trackEvent("Result Exported", { tool: "outreach-email-generator", format: "eml" });
+  };
+
   const copyText = async (type: "subject" | "body" | "all") => {
     if (!activeSubject || !body) return;
     const text =
@@ -1016,6 +1049,15 @@ export default function OutreachEmailGenerator() {
                       {copiedMarkdown
                         ? <><Check className="w-3.5 h-3.5" /> Copied MD!</>
                         : <><ClipboardCheck className="w-3.5 h-3.5" /> Copy Markdown</>}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={downloadAsEml}
+                      className="gap-1.5 text-xs font-semibold transition-all border-slate-200 text-slate-600 hover:border-violet-400 hover:text-violet-700 hover:bg-violet-50"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Download .eml
                     </Button>
                   </div>
                 </div>
