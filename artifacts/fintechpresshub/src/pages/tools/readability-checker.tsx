@@ -18,6 +18,7 @@ import {
   Eye,
   Copy,
 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 function countSyllables(word: string): number {
   word = word.toLowerCase().replace(/[^a-z]/g, "");
@@ -500,6 +501,7 @@ export default function ReadabilityChecker() {
     setScoreHistory((prev) => [...prev, newScore]);
     setCheckedText(text);
     setChecked(true);
+    trackEvent("Tool Used", { tool: "readability-checker" });
     setTimeout(
       () =>
         resultsRef.current?.scrollIntoView({
@@ -550,6 +552,7 @@ export default function ReadabilityChecker() {
     lines.push(``);
     await navigator.clipboard.writeText(lines.join("\n"));
     navigator.vibrate?.(40);
+    trackEvent("Result Copied", { tool: "readability-checker", format: "markdown" });
     setCopyMdState("copied");
     setTimeout(() => setCopyMdState("idle"), 1500);
   };
@@ -1014,7 +1017,7 @@ export default function ReadabilityChecker() {
                                 : seg.difficulty === "moderate"
                                   ? { ...baseStyle, backgroundColor: "#fef9c3" }
                                   : seg.passive
-                                    ? { ...baseStyle, backgroundColor: "#f3e8ff" }
+                                    ? { ...baseStyle, backgroundColor: "#ede9fe", borderBottom: "2px solid #a855f7" }
                                     : {};
                             const tooltipParts: string[] = [];
                             if (seg.difficulty === "hard")

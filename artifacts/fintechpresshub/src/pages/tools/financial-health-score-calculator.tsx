@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
@@ -35,6 +35,7 @@ import {
   Send,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/metaData";
+import { trackEvent } from "@/lib/analytics";
 import { useEmailFinancialHealthScoreReport } from "@workspace/api-client-react";
 
 type Inputs = {
@@ -367,6 +368,13 @@ export default function FinancialHealthScoreCalculator() {
   }, [inputs]);
 
   const showResults = touched && metrics.income > 0;
+  const hasTrackedToolUseRef = useRef(false);
+  useEffect(() => {
+    if (showResults && !hasTrackedToolUseRef.current) {
+      hasTrackedToolUseRef.current = true;
+      trackEvent("Tool Used", { tool: "financial-health-score-calculator" });
+    }
+  }, [showResults]);
   const band = bandFor(metrics.score);
   const tips = useMemo(
     () =>
@@ -839,6 +847,7 @@ function EmailReportCard({
     if (disabled) return;
     setStatusMsg(null);
     setStatusKind(null);
+    trackEvent("Email Report Requested", { tool: "financial-health-score-calculator" });
     mutation.mutate({
       data: {
         email: email.trim(),

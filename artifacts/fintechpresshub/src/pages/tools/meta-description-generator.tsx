@@ -17,6 +17,7 @@ import {
   RotateCcw,
   AlertCircle,
 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 type FormState = {
   pageTitle: string;
@@ -264,12 +265,14 @@ export default function MetaDescriptionGenerator() {
     setResults(generated);
     setEdited(generated.map((r) => r.text));
     setGenerated(true);
+    trackEvent("Tool Used", { tool: "meta-description-generator" });
   };
 
   const copyToClipboard = (idx: number) => {
     navigator.clipboard.writeText(edited[idx] ?? results[idx]?.text ?? "");
     setCopied(idx);
     setTimeout(() => setCopied(null), 2000);
+    trackEvent("Result Copied", { tool: "meta-description-generator" });
   };
 
   const canGenerate =

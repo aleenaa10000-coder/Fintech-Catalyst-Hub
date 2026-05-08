@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
+import { trackEvent } from "@/lib/analytics";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
 import { PageMeta } from "@/components/PageMeta";
@@ -599,6 +600,7 @@ export default function BacklinkValueEstimator() {
   const estimate = () => {
     const computed = estimateValue(form);
     setResult(computed);
+    trackEvent("Tool Used", { tool: "backlink-value-estimator" });
     autoSave(form, computed);
     if (compareMode) {
       const canRunB =

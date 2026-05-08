@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Link } from "wouter";
 import jsPDF from "jspdf";
+import { trackEvent } from "@/lib/analytics";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart,
@@ -2967,6 +2968,7 @@ export default function KeywordDifficultyEstimator() {
     a.download = `fintech-keywords-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    trackEvent("Result Downloaded", { tool: "keyword-difficulty-estimator", format: "csv" });
   };
 
   const analyseKw = (kw: string) => {
@@ -2976,6 +2978,7 @@ export default function KeywordDifficultyEstimator() {
     const r = estimateDifficulty(trimmed);
     setKeyword(trimmed);
     setResult(r);
+    trackEvent("Tool Used", { tool: "keyword-difficulty-estimator", difficulty: r.label });
     setHistory((prev) => {
       const idx = prev.findIndex(
         (h) => h.keyword.toLowerCase() === r.keyword.toLowerCase(),

@@ -39,6 +39,7 @@ import {
   ArrowLeftRight,
   Download,
 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -541,6 +542,7 @@ export default function OutreachEmailGenerator() {
     setSelectedIdx(winnerIdx);
     setBody(emailBody);
     setBodyExpanded(true);
+    trackEvent("Tool Used", { tool: "outreach-email-generator", tone: t });
 
     const entry: EmailEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -626,6 +628,7 @@ export default function OutreachEmailGenerator() {
       document.execCommand("copy"); document.body.removeChild(el);
     }
     setCopied(type);
+    trackEvent("Result Copied", { tool: "outreach-email-generator", format: type });
     if (copiedRef.current) clearTimeout(copiedRef.current);
     copiedRef.current = setTimeout(() => setCopied(null), 2000);
   };

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
+import { trackEvent } from "@/lib/analytics";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
 import { PageMeta } from "@/components/PageMeta";
@@ -2333,6 +2334,7 @@ export default function ContentBriefGenerator() {
       setIsGenerating(false);
       const generated = generateBrief(capturedForm);
       setBrief(generated);
+      trackEvent("Tool Used", { tool: "content-brief-generator", audience: capturedForm.audience, tone: capturedForm.tone });
       setContentScore(computeContentScore(generated, capturedForm));
       const alignment = computeIntentAlignment(capturedForm.keyword, capturedForm);
       setIntentAlignment(alignment);
@@ -2352,6 +2354,7 @@ export default function ContentBriefGenerator() {
     navigator.clipboard.writeText(briefToText(brief));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    trackEvent("Result Copied", { tool: "content-brief-generator", format: "text" });
   };
 
   const copyBriefAsMarkdown = () => {
@@ -2375,6 +2378,7 @@ export default function ContentBriefGenerator() {
     URL.revokeObjectURL(url);
     setCopiedMd(true);
     setTimeout(() => setCopiedMd(false), 2500);
+    trackEvent("Result Downloaded", { tool: "content-brief-generator", format: "md" });
   };
 
   const handleDownloadPDF = () => {
@@ -2383,6 +2387,7 @@ export default function ContentBriefGenerator() {
     navigator.clipboard.writeText(briefToText(brief)).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
+    trackEvent("Result Downloaded", { tool: "content-brief-generator", format: "pdf" });
   };
 
   const copyChecklist = () => {

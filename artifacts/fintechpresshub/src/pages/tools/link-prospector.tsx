@@ -24,6 +24,7 @@ import {
   Download,
   Mail,
 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 type Relevance = "high" | "medium" | "low";
 type Placement = "editorial" | "sidebar" | "footer" | "sponsored";
@@ -270,6 +271,7 @@ export default function LinkProspector() {
     if (parsed.length === 0) { setError("Couldn't parse any valid domains. Check the format."); return; }
     setResults(parsed.map((p) => estimateOne(p.domain, p.da, p.traffic)));
     setRan(true);
+    trackEvent("Tool Used", { tool: "link-prospector", domain_count: parsed.length });
     if (pushUrl) {
       try {
         const encoded = btoa(unescape(encodeURIComponent(text)));
