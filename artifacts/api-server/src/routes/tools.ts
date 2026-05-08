@@ -590,4 +590,106 @@ router.post("/tools/send-pitch", formRateLimiter, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Suggest Topic Cache ───────────────────────────────────────────────────────
+type TopicEntry = { topic: string; fetchedAt: number };
+const TOPIC_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const topicCache = new Map<string, TopicEntry>();
+
+const EXACT_TOPIC_MAP: Record<string, string> = {
+  "nerdwallet": "Personal Finance Tips for Gen Z",
+  "moz": "How to Build Domain Authority for Fintech Brands",
+  "searchengineland": "SEO Strategies for Financial Services Websites",
+  "finextra": "Open Banking Trends Reshaping the Payments Industry",
+  "thefinancialbrand": "Digital Banking UX Trends That Drive Customer Loyalty",
+  "paymentsdive": "The Future of Embedded Payments in B2B SaaS",
+  "bankingdive": "How Digital-First Banks Are Winning Millennials",
+  "pymnts": "How AI Is Transforming Fraud Detection in Real-Time Payments",
+  "crowdfundinsider": "Equity Crowdfunding Regulations: What Founders Need to Know",
+  "techcrunch": "Fintech Startups Disrupting the $10T Global Lending Market",
+  "businessinsider": "10 Fintech Apps That Are Changing How Americans Save Money",
+  "forbes": "The Wealthiest Fintech Companies Reshaping Personal Finance",
+  "investopedia": "A Beginner's Guide to DeFi Investing",
+  "bankrate": "How to Choose the Best High-Yield Savings Account in 2025",
+  "creditkarma": "Credit Score Improvement Strategies That Actually Work",
+  "wealthsimple": "Passive Investing for Beginners: ETFs vs. Index Funds",
+  "robinhood": "Commission-Free Trading: What It Means for Retail Investors",
+  "coinbase": "A Beginner's Guide to Buying Your First Cryptocurrency",
+  "stripe": "Payment Processing Fees Explained: How to Minimize Costs",
+  "plaid": "Open Banking APIs: How Fintechs Are Building Data-Driven Products",
+  "chime": "Why Gen Z Is Ditching Traditional Banks for Neobanks",
+  "sofi": "Student Loan Refinancing: A Step-by-Step Guide",
+  "mint": "Budgeting Apps Compared: What to Look for in 2025",
+  "acorns": "Micro-Investing for Beginners: Growing Wealth $5 at a Time",
+  "betterment": "Robo-Advisors vs. Human Advisors: Which Is Right for You?",
+  "wealthfront": "Automated Investing: How Tax-Loss Harvesting Works",
+  "affirm": "Buy Now Pay Later: Pros, Cons and Hidden Risks",
+  "klarna": "BNPL Regulations: How New Rules Will Change Consumer Credit",
+  "paypal": "Digital Wallets and the Future of Online Checkout",
+  "venmo": "Peer-to-Peer Payments: How Social Finance Is Evolving",
+  "cashapp": "Mobile Banking Without the Bank: The Cash App Story",
+  "zelle": "Bank-Backed P2P Payments: Why Zelle Is Winning in the US",
+  "experian": "How Credit Bureaus Work and How to Fix Errors Fast",
+  "equifax": "Understanding Your Credit Report: A Complete Guide",
+  "transunion": "Credit Monitoring Services: Are They Worth the Cost?",
+};
+
+const KEYWORD_TOPIC_MAP: Array<[RegExp, string]> = [
+  [/crypto|bitcoin|blockchain|defi|web3|coin|token|nft/i, "DeFi Investment Strategies for Risk-Averse Retail Investors"],
+  [/invest|wealth|asset|portfolio|fund|etf|stock|equity|trade|market|roth|ira/i, "Passive Wealth Building Strategies for Working Professionals"],
+  [/bank|lend|loan|credit|debt|mortgage|borrow|refinanc/i, "How to Refinance High-Interest Debt in a Rising Rate Environment"],
+  [/pay|payment|wallet|money|transfer|remit|send|checkout|pos/i, "The Rise of Instant Payments: What Businesses Need to Know"],
+  [/insur|protect|cover|underwrite|risk|claim/i, "Embedded Insurance: The Next Frontier in Fintech Bundling"],
+  [/tax|account|bookkeep|audit|cpa|payroll|expense/i, "Tax-Loss Harvesting Strategies for Self-Employed Fintech Professionals"],
+  [/forex|fx|currency|exchange|international/i, "How Retail Traders Are Leveraging AI-Powered FX Analytics"],
+  [/sav|budget|plan|retire|pension|401k|emergency/i, "The 50/30/20 Budget Rule: A Modern Take for High Earners"],
+  [/startup|vc|venture|angel|seed|raise|founder|pitch/i, "Fintech Fundraising: What Investors Look For in 2025"],
+  [/seo|search|content|media|market|blog|press|news|journal|magazine|publish/i, "SEO Content Strategy for Fintech Brands: A Practical Guide"],
+  [/tech|software|saas|api|platform|data|ai|ml|cloud|developer/i, "How Embedded Finance APIs Are Enabling the Next Wave of B2B SaaS"],
+  [/regtech|comply|legal|law|govern|policy|regulat|aml|kyc/i, "Navigating AML Compliance: A Practical Guide for Fintech Startups"],
+  [/property|mortgage|home|real.?estate|reit|proptech/i, "PropTech Meets Fintech: Digital Mortgages and What They Mean for Buyers"],
+  [/small.?biz|smb|sme|entrepreneur|freelanc|self.?employ|gig/i, "Cash Flow Management Tips for Freelancers and Small Business Owners"],
+  [/score|rating|report|bureau|monitor/i, "Improving Your Credit Score: Strategies That Move the Needle"],
+  [/reward|cashback|loyalty|point|miles|card|perk/i, "Maximising Credit Card Rewards: A Strategy Guide for Frequent Spenders"],
+];
+
+function suggestGuestPostTopic(domain: string): string {
+  const name = domain
+    .toLowerCase()
+    .replace(/\.(com|io|net|org|co\.uk|co|uk|us|ca|au|eu|me|app|dev|info|biz)$/, "")
+    .replace(/^(www|blog|finance|fintech|pay|bank|the|my|get|go|try|use)\./i, "")
+    .replace(/[-_.]/g, " ")
+    .trim();
+
+  for (const [key, topic] of Object.entries(EXACT_TOPIC_MAP)) {
+    if (name.includes(key)) return topic;
+  }
+
+  for (const [pattern, topic] of KEYWORD_TOPIC_MAP) {
+    if (pattern.test(name)) return topic;
+  }
+
+  return "Guest Post Pitching Guide for Fintech Content Marketers in 2025";
+}
+
+router.get("/tools/suggest-topic", (req, res) => {
+  const domain = (req.query.domain as string | undefined)?.trim().toLowerCase();
+  if (!domain) {
+    res.status(400).json({ error: "Missing domain parameter." });
+    return;
+  }
+
+  const cached = topicCache.get(domain);
+  if (cached && Date.now() - cached.fetchedAt < TOPIC_CACHE_TTL_MS) {
+    res.set("X-Topic-Cache", "HIT");
+    res.json({ topic: cached.topic });
+    return;
+  }
+
+  const topic = suggestGuestPostTopic(domain);
+  topicCache.set(domain, { topic, fetchedAt: Date.now() });
+
+  res.set("X-Topic-Cache", "MISS");
+  res.json({ topic });
+});
+
 export default router;

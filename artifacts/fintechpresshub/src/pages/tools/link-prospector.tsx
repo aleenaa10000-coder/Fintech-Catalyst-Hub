@@ -85,6 +85,7 @@ const STATUS_LABELS: Record<OutreachStatus, string> = {
 const LS_STATUS_KEY = "lp-outreach-status";
 const LS_SAVED_LISTS_KEY = "lp-saved-lists";
 const LS_NOTES_KEY = "lp-notes";
+const LS_TOPICS_KEY = "lp-suggested-topics";
 const LS_SAVED_SEARCHES_KEY = "lp-saved-searches";
 const LS_TIMELINE_KEY = "lp-timeline-events";
 const LS_PROSPECTS_KEY = "lp-prospects";
@@ -367,6 +368,12 @@ export default function LinkProspector() {
     try { return JSON.parse(localStorage.getItem(LS_NOTES_KEY) ?? "{}"); }
     catch { return {}; }
   });
+  const [suggestedTopicMap, setSuggestedTopicMap] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem(LS_TOPICS_KEY) ?? "{}"); }
+    catch { return {}; }
+  });
+  const [editingTopicDomain, setEditingTopicDomain] = useState<string | null>(null);
+  const topicFetching = useRef<Set<string>>(new Set());
   const [statusMap, setStatusMap] = useState<Record<string, OutreachStatus>>(() => {
     try {
       const stored = localStorage.getItem(LS_STATUS_KEY);
@@ -548,7 +555,7 @@ export default function LinkProspector() {
   const exportSelectedCSV = () => {
     const selected = filteredSorted.filter((r) => selectedDomains.has(r.domain));
     if (selected.length === 0) return;
-    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject", "Notes"];
+    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject", "Suggested Topic", "Notes"];
     const rows = selected.map((r) => {
       const subject =
         r.da > 60
@@ -564,6 +571,7 @@ export default function LinkProspector() {
         r.acquisition.label,
         STATUS_LABELS[statusMap[r.domain] ?? "not_started"],
         subject,
+        suggestedTopicMap[r.domain] ?? "",
         notesMap[r.domain] ?? "",
       ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
     });
@@ -648,7 +656,7 @@ export default function LinkProspector() {
   };
 
   const exportPitchCSV = () => {
-    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject", "Notes"];
+    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject", "Suggested Topic", "Notes"];
     const rows = filteredSorted.map((r) => {
       const subject =
         r.da > 60
@@ -667,6 +675,7 @@ export default function LinkProspector() {
         r.acquisition.label,
         STATUS_LABELS[statusMap[r.domain] ?? "not_started"],
         subject,
+        suggestedTopicMap[r.domain] ?? "",
         notesMap[r.domain] ?? "",
       ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
     });
@@ -687,6 +696,33 @@ export default function LinkProspector() {
       return updated;
     });
   };
+
+  const updateTopic = (domain: string, value: string) => {
+    setSuggestedTopicMap((prev) => {
+      const updated = { ...prev, [domain]: value };
+      try { localStorage.setItem(LS_TOPICS_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const fetchSuggestedTopic = useCallback((domain: string) => {
+    if (suggestedTopicMap[domain] || topicFetching.current.has(domain)) return;
+    topicFetching.current.add(domain);
+    fetch(`/api/tools/suggest-topic?domain=${encodeURIComponent(domain)}`)
+      .then((r) => r.json())
+      .then((data: { topic?: string; error?: string }) => {
+        if (data.topic) {
+          setSuggestedTopicMap((prev) => {
+            const updated = { ...prev, [domain]: data.topic! };
+            try { localStorage.setItem(LS_TOPICS_KEY, JSON.stringify(updated)); } catch {}
+            return updated;
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => { topicFetching.current.delete(domain); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const generatePitchEmail = (r: ProspectResult): string => {
     const compliment =
@@ -714,6 +750,16 @@ Looking forward to hearing from you,
 [Your Email]
 [Your Company]`;
   };
+
+  // Auto-fetch suggested topics for all results when they change
+  useEffect(() => {
+    results.forEach((r) => {
+      if (!suggestedTopicMap[r.domain]) {
+        fetchSuggestedTopic(r.domain);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results]);
 
   // Keep refs in sync so callbacks always read the latest values
   useEffect(() => {
@@ -845,6 +891,7 @@ Looking forward to hearing from you,
       "Difficulty Stars",
       "Difficulty Label",
       "Outreach Strategy",
+      "Suggested Topic",
       "Notes",
     ];
     const escape = (v: string | number) => {
@@ -864,6 +911,7 @@ Looking forward to hearing from you,
       escape(r.acquisition.stars),
       escape(r.acquisition.label),
       escape(r.acquisition.strategyTip),
+      escape(suggestedTopicMap[r.domain] ?? ""),
       escape(notesMap[r.domain] ?? ""),
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
@@ -1814,6 +1862,12 @@ Looking forward to hearing from you,
                             <span className="flex items-center gap-1">Difficulty <SortIcon col="acquisitionStars" active={sortKey} dir={sortDir} /></span>
                           </th>
                           <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5">Status</th>
+                          <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5 min-w-[160px]">
+                            <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-violet-400" />Suggested Topic</span>
+                          </th>
+                          <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5 min-w-[160px]">
+                            <span className="flex items-center gap-1"><NotebookPen className="w-3 h-3 text-slate-400" />Notes</span>
+                          </th>
                           <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5">Action</th>
                         </tr>
                       </thead>
@@ -1961,6 +2015,48 @@ Looking forward to hearing from you,
                               >
                                 {STATUS_LABELS[statusMap[r.domain] ?? "not_started"]}
                               </button>
+                            </td>
+                            {/* Suggested Topic cell */}
+                            <td className="px-3 py-3 max-w-[220px]">
+                              {editingTopicDomain === r.domain ? (
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  value={suggestedTopicMap[r.domain] ?? ""}
+                                  onChange={(e) => updateTopic(r.domain, e.target.value)}
+                                  onBlur={() => setEditingTopicDomain(null)}
+                                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") setEditingTopicDomain(null); }}
+                                  className="w-full text-[11px] px-2 py-1 rounded-md border border-violet-300 focus:outline-none focus:ring-1 focus:ring-violet-400 text-slate-700 bg-white"
+                                />
+                              ) : suggestedTopicMap[r.domain] ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingTopicDomain(r.domain)}
+                                  className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors text-left leading-tight cursor-text group/topic"
+                                  title="Click to edit topic"
+                                >
+                                  <Sparkles className="w-2.5 h-2.5 shrink-0 text-violet-400" />
+                                  <span className="line-clamp-2">{suggestedTopicMap[r.domain]}</span>
+                                </button>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] text-slate-300 italic">
+                                  <svg className="animate-spin w-2.5 h-2.5 text-violet-300" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                                  </svg>
+                                  Generating…
+                                </span>
+                              )}
+                            </td>
+                            {/* Notes cell */}
+                            <td className="px-3 py-3 max-w-[200px]">
+                              <input
+                                type="text"
+                                value={notesMap[r.domain] ?? ""}
+                                onChange={(e) => updateNote(r.domain, e.target.value)}
+                                placeholder="Add a note…"
+                                className="w-full text-[11px] px-2 py-1.5 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300 text-slate-600 placeholder:text-slate-300 bg-transparent hover:bg-white hover:border-slate-300 transition-colors"
+                              />
                             </td>
                             <td className="px-3 py-3">
                               <div className="flex items-center gap-1">
