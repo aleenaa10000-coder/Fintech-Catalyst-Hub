@@ -530,12 +530,12 @@ export default function ReadabilityChecker() {
 
   const [copyImprovedState, setCopyImprovedState] = useState<"idle" | "copied">("idle");
   const [copyMdState, setCopyMdState] = useState<"idle" | "copied">("idle");
+  const [copyBadgeState, setCopyBadgeState] = useState<"idle" | "copied">("idle");
   const [activeRewrite, setActiveRewrite] = useState<{ original: string; rewritten: string } | null>(null);
   const [copyRewriteState, setCopyRewriteState] = useState<"idle" | "copied">("idle");
 
   const copyText = async () => {
-    await navigator.clipboard.writeText(text);
-    navigator.vibrate?.(40);
+    await writeToClipboard(text);
     setCopyTextState("copied");
     setTimeout(() => setCopyTextState("idle"), 1500);
   };
@@ -598,19 +598,68 @@ export default function ReadabilityChecker() {
     lines.push(``);
     lines.push(checkedText);
     lines.push(``);
-    await navigator.clipboard.writeText(lines.join("\n"));
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+    } catch {
+      const el = document.createElement("textarea");
+      el.value = lines.join("\n");
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
     navigator.vibrate?.(40);
     trackEvent("Result Copied", { tool: "readability-checker", format: "markdown" });
     setCopyMdState("copied");
     setTimeout(() => setCopyMdState("idle"), 1500);
   };
 
+  const writeToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    navigator.vibrate?.(40);
+  };
+
   const copyImproved = async () => {
     const improved = applySimplifications(checkedText);
-    await navigator.clipboard.writeText(improved);
-    navigator.vibrate?.(40);
+    await writeToClipboard(improved);
     setCopyImprovedState("copied");
     setTimeout(() => setCopyImprovedState("idle"), 1500);
+  };
+
+  const copyBadge = async () => {
+    if (!results) return;
+    const score = Math.round(results.score);
+    const label = results.level.label;
+    const badgeColors: Record<string, { bg: string; border: string; color: string }> = {
+      "Very Easy":  { bg: "#f0fdf4", border: "#86efac", color: "#166534" },
+      "Easy":       { bg: "#f0fdf4", border: "#86efac", color: "#166534" },
+      "Fairly Easy":{ bg: "#eff6ff", border: "#93c5fd", color: "#1e40af" },
+      "Standard":   { bg: "#eff6ff", border: "#93c5fd", color: "#1e40af" },
+      "Fairly Hard":{ bg: "#fff7ed", border: "#fdba74", color: "#9a3412" },
+      "Difficult":  { bg: "#fff1f2", border: "#fca5a5", color: "#991b1b" },
+      "Very Difficult":{ bg: "#fff1f2", border: "#fca5a5", color: "#991b1b" },
+    };
+    const c = badgeColors[label] ?? { bg: "#f8fafc", border: "#cbd5e1", color: "#475569" };
+    const html = `<span style="display:inline-flex;align-items:center;gap:6px;font-family:system-ui,sans-serif;font-size:13px;font-weight:600;padding:4px 12px;border-radius:20px;background:${c.bg};border:1px solid ${c.border};color:${c.color};text-decoration:none;">📖 Readability: ${score} / ${label}</span>`;
+    await writeToClipboard(html);
+    trackEvent("Result Copied", { tool: "readability-checker", format: "badge" });
+    setCopyBadgeState("copied");
+    setTimeout(() => setCopyBadgeState("idle"), 1500);
   };
 
   const results = useMemo(() => {
@@ -798,24 +847,44 @@ export default function ReadabilityChecker() {
                       </span>
                     )}
                   </div>
-                  <Button
-                    onClick={copyAsMarkdown}
-                    variant="outline"
-                    size="sm"
-                    className="w-full sm:w-auto h-9 sm:h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
-                  >
-                    {copyMdState === "copied" ? (
-                      <>
-                        <CheckCircle2 className="w-3 h-3 mr-1 text-green-500" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3 mr-1" />
-                        Copy as Markdown
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Button
+                      onClick={copyBadge}
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto h-9 sm:h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-600 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700"
+                    >
+                      {copyBadgeState === "copied" ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 mr-1 text-teal-500" />
+                          Badge copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3 mr-1" />
+                          Copy HTML badge
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={copyAsMarkdown}
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto h-9 sm:h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                    >
+                      {copyMdState === "copied" ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 mr-1 text-green-500" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3 mr-1" />
+                          Copy as Markdown
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Score card */}
@@ -1124,8 +1193,7 @@ export default function ReadabilityChecker() {
                         </p>
                         <Button
                           onClick={async () => {
-                            await navigator.clipboard.writeText(activeRewrite.rewritten);
-                            navigator.vibrate?.(40);
+                            await writeToClipboard(activeRewrite.rewritten);
                             setCopyRewriteState("copied");
                             setTimeout(() => setCopyRewriteState("idle"), 1500);
                           }}
