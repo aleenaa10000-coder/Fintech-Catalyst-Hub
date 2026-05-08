@@ -412,6 +412,46 @@ function renderSentenceTokens(
   });
 }
 
+function SentenceDistributionBar({ segments }: { segments: SentenceSegment[][] }) {
+  const all = segments.flat();
+  const total = all.length;
+  if (total === 0) return null;
+  const short   = all.filter((s) => s.difficulty === "normal").length;
+  const medium  = all.filter((s) => s.difficulty === "moderate").length;
+  const long    = all.filter((s) => s.difficulty === "hard").length;
+  const passive = all.filter((s) => s.passive).length;
+  const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
+  return (
+    <Card className="border border-slate-100 shadow-sm">
+      <CardContent className="p-5 space-y-3">
+        <h4 className="text-sm font-semibold text-slate-900">Sentence Breakdown</h4>
+        <div className="flex h-3 rounded-full overflow-hidden">
+          {short  > 0 && <div className="bg-emerald-400 transition-all duration-500" style={{ width: `${pct(short)}%` }}  title={`Short ≤15 words: ${short}`} />}
+          {medium > 0 && <div className="bg-amber-400  transition-all duration-500" style={{ width: `${pct(medium)}%` }} title={`Medium 16–25 words: ${medium}`} />}
+          {long   > 0 && <div className="bg-rose-400   transition-all duration-500" style={{ width: `${pct(long)}%` }}   title={`Long 25+ words: ${long}`} />}
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+          {([
+            { color: "bg-emerald-400", label: "Short  (≤15 words)", count: short },
+            { color: "bg-amber-400",  label: "Medium (16–25 words)", count: medium },
+            { color: "bg-rose-400",   label: "Long   (25+ words)",   count: long },
+            { color: "bg-purple-300", label: "Passive voice",         count: passive },
+          ] as const).map(({ color, label, count }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${color}`} />
+              <span className="text-slate-500 truncate">{label}</span>
+              <span className="ml-auto font-semibold text-slate-800 tabular-nums whitespace-nowrap">
+                {count}
+                <span className="text-slate-400 font-normal"> ({pct(count)}%)</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function vibeColor(score: number): string {
   if (score > 80) return "#15803d";
   if (score >= 40) return "#1d4ed8";
@@ -746,7 +786,8 @@ export default function ReadabilityChecker() {
     const lines: string[] = [];
     lines.push(`## Readability Report`);
     lines.push(``);
-    lines.push(`**Vibe:** ${vibeFromScore(results.score).label}`);
+    const vibeLabel = vibeFromScore(results.score).label.replace(/^Vibe:\s*/i, "");
+    lines.push(`**Vibe Status:** ${vibeLabel}`);
     lines.push(``);
     lines.push(`**Flesch Score:** ${results.score.toFixed(0)} / 100 — ${results.level.label}`);
     lines.push(`**Grade Level:** ${results.grade}`);
@@ -888,7 +929,7 @@ export default function ReadabilityChecker() {
       <PageHero
         eyebrow="Free Tool"
         title="Readability Checker"
-        description="Paste your content and get an instant Flesch readability score, grade level, and actionable tips to make your writing clearer."
+        description="Professional readability analysis with real-time editing and score tracking."
       />
 
       <section className="py-12 md:py-16">
@@ -1255,6 +1296,9 @@ export default function ReadabilityChecker() {
                   ))}
                 </div>
 
+                {/* Sentence Distribution */}
+                <SentenceDistributionBar segments={results.visualSegments} />
+
                 {/* Score History Chart */}
                 <ScoreHistoryChart scores={scoreHistory} onClear={() => setScoreHistory([])} />
 
@@ -1605,6 +1649,10 @@ export default function ReadabilityChecker() {
                     </p>
                   </CardContent>
                 </Card>
+
+                <p className="text-center text-[11px] text-muted-foreground py-1">
+                  Built with ⚡ by a Vibe Coder | Optimized for FintechPressHub.
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
