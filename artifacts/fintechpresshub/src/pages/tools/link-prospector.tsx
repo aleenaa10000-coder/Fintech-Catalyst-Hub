@@ -35,8 +35,20 @@ import {
   List,
   FileText,
   NotebookPen,
+  BarChart2,
+  Filter,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import {
+  Chart as ChartJS,
+  LinearScale,
+  PointElement,
+  Tooltip as ChartTooltip,
+  Legend,
+} from "chart.js";
+import { Scatter } from "react-chartjs-2";
+
+ChartJS.register(LinearScale, PointElement, ChartTooltip, Legend);
 
 type ScoringMode = "authority" | "traffic";
 
@@ -322,6 +334,8 @@ export default function LinkProspector() {
       return stored ? (JSON.parse(stored) as Record<string, OutreachStatus>) : {};
     } catch { return {}; }
   });
+  const [filterStatus, setFilterStatus] = useState<"" | OutreachStatus>("");
+  const [showViz, setShowViz] = useState(false);
 
   const cycleStatus = (domain: string) => {
     setStatusMap((prev) => {
@@ -402,17 +416,17 @@ export default function LinkProspector() {
   const bulkSetStatus = (status: OutreachStatus) => {
     setStatusMap((prev) => {
       const updated = { ...prev };
-      sorted.forEach((r) => { updated[r.domain] = status; });
+      filteredSorted.forEach((r) => { updated[r.domain] = status; });
       try { localStorage.setItem(LS_STATUS_KEY, JSON.stringify(updated)); } catch {}
       return updated;
     });
-    toast(`All ${sorted.length} prospects marked as "${STATUS_LABELS[status]}"`, { duration: 2500 });
+    toast(`All ${filteredSorted.length} prospects marked as "${STATUS_LABELS[status]}"`, { duration: 2500 });
     setBulkStatusSelect("");
   };
 
   const exportPitchCSV = () => {
     const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject"];
-    const rows = sorted.map((r) => {
+    const rows = filteredSorted.map((r) => {
       const subject =
         r.da > 60
           ? `Content Partnership Opportunity — ${r.domain} (High Authority)`
@@ -564,7 +578,7 @@ Looking forward to hearing from you,
         ? `"${s.replace(/"/g, '""')}"`
         : s;
     };
-    const rows = sorted.map((r) => [
+    const rows = filteredSorted.map((r) => [
       escape(r.domain),
       escape(r.score),
       escape(r.label),
@@ -606,6 +620,11 @@ Looking forward to hearing from you,
       return sortDir === "desc" ? bv - av : av - bv;
     });
   }, [results, sortKey, sortDir]);
+
+  const filteredSorted = useMemo(() => {
+    if (!filterStatus) return sorted;
+    return sorted.filter((r) => (statusMap[r.domain] ?? "not_started") === filterStatus);
+  }, [sorted, filterStatus, statusMap]);
 
   const thCls = (key: SortKey) =>
     `text-left text-[10px] font-semibold uppercase tracking-wider cursor-pointer select-none whitespace-nowrap px-3 py-2.5 transition-colors hover:text-blue-600 ${sortKey === key ? "text-blue-600" : "text-slate-500"}`;
@@ -890,10 +909,21 @@ Looking forward to hearing from you,
                 className="mt-8"
               >
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">
-                      {results.length} prospect{results.length !== 1 ? "s" : ""} scored
-                    </h3>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">
+                        {filteredSorted.length}{filterStatus ? ` / ${results.length}` : ""} prospect{results.length !== 1 ? "s" : ""} scored
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowViz((v) => !v)}
+                        className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-all ${showViz ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" : "border-slate-200 text-slate-500 hover:border-indigo-400 hover:text-indigo-600"}`}
+                        title="Toggle scatter plot visualisation"
+                      >
+                        <BarChart2 className="w-3 h-3" />
+                        Visualize
+                      </button>
+                    </div>
                     <div className="flex items-center rounded-lg border border-slate-200 overflow-hidden">
                       <button
                         type="button"
@@ -912,8 +942,41 @@ Looking forward to hearing from you,
                         <LayoutGrid className="w-3.5 h-3.5" />
                       </button>
                     </div>
+                    {/* Filter by Status */}
+                    <div className="flex items-center gap-1.5">
+                      <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setFilterStatus("")}
+                          className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-all ${filterStatus === "" ? "bg-slate-800 text-white border-slate-800" : "border-slate-200 text-slate-500 hover:border-slate-400 hover:text-slate-700"}`}
+                        >
+                          All
+                        </button>
+                        {STATUS_CYCLE.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setFilterStatus(filterStatus === s ? "" : s)}
+                            className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                              filterStatus === s
+                                ? s === "not_started" ? "bg-slate-700 text-white border-slate-700"
+                                  : s === "emailed" ? "bg-blue-600 text-white border-blue-600"
+                                  : s === "replied" ? "bg-amber-500 text-white border-amber-500"
+                                  : "bg-emerald-600 text-white border-emerald-600"
+                                : `${STATUS_STYLES[s]} hover:opacity-80`
+                            }`}
+                          >
+                            {STATUS_LABELS[s]}{" "}
+                            <span className="opacity-70">
+                              ({sorted.filter((r) => (statusMap[r.domain] ?? "not_started") === s).length})
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
                       onClick={() => { setSortKey("score"); setSortDir("desc"); }}
@@ -984,21 +1047,146 @@ Looking forward to hearing from you,
                         ))}
                       </select>
                     </div>
-                    <Link
-                      href={buildPitchUrl(sorted[0])}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-400 transition-all"
-                      title={`Draft an outreach email for ${sorted[0].domain}`}
-                    >
-                      <Mail className="w-3 h-3" />
-                      Pitch Top Prospect
-                    </Link>
+                    {filteredSorted.length > 0 && (
+                      <Link
+                        href={buildPitchUrl(filteredSorted[0])}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-400 transition-all"
+                        title={`Draft an outreach email for ${filteredSorted[0].domain}`}
+                      >
+                        <Mail className="w-3 h-3" />
+                        Pitch Top Prospect
+                      </Link>
+                    )}
                   </div>
                 </div>
 
-                {view === "kanban" ? (
+                {/* Scatter Plot Visualisation */}
+                <AnimatePresence>
+                  {showViz && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.22 }}
+                      className="overflow-hidden mb-5"
+                    >
+                      <Card className="border border-indigo-100 bg-white shadow-md">
+                        <CardContent className="p-5">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <BarChart2 className="w-3.5 h-3.5 text-indigo-500" />
+                                Opportunity Map
+                              </p>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                Low Difficulty + High Value = Low Hanging Fruit
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Score ≥ 80</span>
+                              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" /> Score 60–79</span>
+                              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block" /> Score &lt; 60</span>
+                            </div>
+                          </div>
+                          <div className="h-64">
+                            <Scatter
+                              data={{
+                                datasets: [
+                                  {
+                                    label: "Score ≥ 80",
+                                    data: filteredSorted
+                                      .filter((r) => r.score >= 80)
+                                      .map((r) => ({
+                                        x: r.acquisition.stars,
+                                        y: Math.round((r.linkValue.min + r.linkValue.max) / 2),
+                                        domain: r.domain,
+                                      })),
+                                    backgroundColor: "rgba(16,185,129,0.75)",
+                                    borderColor: "rgba(16,185,129,1)",
+                                    pointRadius: 8,
+                                    pointHoverRadius: 10,
+                                  },
+                                  {
+                                    label: "Score 60–79",
+                                    data: filteredSorted
+                                      .filter((r) => r.score >= 60 && r.score < 80)
+                                      .map((r) => ({
+                                        x: r.acquisition.stars,
+                                        y: Math.round((r.linkValue.min + r.linkValue.max) / 2),
+                                        domain: r.domain,
+                                      })),
+                                    backgroundColor: "rgba(251,191,36,0.75)",
+                                    borderColor: "rgba(245,158,11,1)",
+                                    pointRadius: 8,
+                                    pointHoverRadius: 10,
+                                  },
+                                  {
+                                    label: "Score < 60",
+                                    data: filteredSorted
+                                      .filter((r) => r.score < 60)
+                                      .map((r) => ({
+                                        x: r.acquisition.stars,
+                                        y: Math.round((r.linkValue.min + r.linkValue.max) / 2),
+                                        domain: r.domain,
+                                      })),
+                                    backgroundColor: "rgba(148,163,184,0.65)",
+                                    borderColor: "rgba(100,116,139,1)",
+                                    pointRadius: 7,
+                                    pointHoverRadius: 9,
+                                  },
+                                ],
+                              }}
+                              options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                  legend: { display: false },
+                                  tooltip: {
+                                    callbacks: {
+                                      label(ctx) {
+                                        const raw = ctx.raw as { x: number; y: number; domain: string };
+                                        return `${raw.domain} — Difficulty: ${raw.x}★  Est. Value: $${raw.y.toLocaleString()}`;
+                                      },
+                                    },
+                                  },
+                                },
+                                scales: {
+                                  x: {
+                                    title: { display: true, text: "Difficulty (1 = Easy → 5 = Very Hard)", font: { size: 10 }, color: "#94a3b8" },
+                                    min: 0.5,
+                                    max: 5.5,
+                                    ticks: { stepSize: 1, font: { size: 10 }, color: "#94a3b8",
+                                      callback(v) { return `${"★".repeat(Number(v))}`; },
+                                    },
+                                    grid: { color: "rgba(148,163,184,0.15)" },
+                                  },
+                                  y: {
+                                    title: { display: true, text: "Est. Value (mid-point, $)", font: { size: 10 }, color: "#94a3b8" },
+                                    ticks: { font: { size: 10 }, color: "#94a3b8",
+                                      callback(v) { const n = Number(v); return n >= 1000 ? `$${(n/1000).toFixed(0)}K` : `$${n}`; },
+                                    },
+                                    grid: { color: "rgba(148,163,184,0.15)" },
+                                  },
+                                },
+                              }}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {filteredSorted.length === 0 && filterStatus ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
+                    <Filter className="w-6 h-6 opacity-40" />
+                    <p className="text-sm font-medium">No prospects with status "{STATUS_LABELS[filterStatus]}"</p>
+                    <button type="button" onClick={() => setFilterStatus("")} className="text-xs text-indigo-600 hover:underline">Clear filter</button>
+                  </div>
+                ) : view === "kanban" ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {STATUS_CYCLE.map((status) => {
-                      const col = sorted.filter((r) => (statusMap[r.domain] ?? "not_started") === status);
+                      const col = filteredSorted.filter((r) => (statusMap[r.domain] ?? "not_started") === status);
                       return (
                         <div key={status} className="flex flex-col gap-2">
                           <div className={`flex items-center justify-between px-3 py-2 rounded-lg border font-semibold text-xs ${STATUS_STYLES[status]}`}>
@@ -1105,7 +1293,7 @@ Looking forward to hearing from you,
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
-                        {sorted.map((r, i) => (
+                        {filteredSorted.map((r, i) => (
                           <motion.tr
                             key={r.domain}
                             initial={{ opacity: 0, x: -8 }}
