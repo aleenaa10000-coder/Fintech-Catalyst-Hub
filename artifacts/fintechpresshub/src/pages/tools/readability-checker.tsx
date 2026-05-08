@@ -2302,6 +2302,149 @@ export default function ReadabilityChecker() {
           </AnimatePresence>
         </div>
       </section>
+
+      {/* ── Sticky mobile bottom action bar ── shown only when results are visible on small screens */}
+      {checked && results && (
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] px-4 py-3 flex gap-3">
+          <Button
+            onClick={copyImproved}
+            size="sm"
+            className="flex-1 h-11 text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white"
+          >
+            {copyImprovedState === "copied" ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 mr-1.5" />
+                Copy Improved Text
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={copyAsMarkdown}
+            variant="outline"
+            size="sm"
+            className="flex-1 h-11 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50"
+          >
+            {copyMdState === "copied" ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-green-500" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 mr-1.5" />
+                Copy as Markdown
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* ── Hidden print-only report ── revealed only by @media print ── */}
+      {checked && results && (
+        <>
+          <style dangerouslySetInnerHTML={{ __html: `
+@media print {
+  body * { visibility: hidden !important; }
+  .readability-print-report,
+  .readability-print-report * { visibility: visible !important; }
+  .readability-print-report {
+    position: fixed !important;
+    inset: 0 !important;
+    padding: 32px 40px !important;
+    background: #fff !important;
+    font-family: system-ui, sans-serif !important;
+    color: #1e293b !important;
+    font-size: 13px !important;
+    line-height: 1.6 !important;
+  }
+  @page { margin: 0; size: A4 portrait; }
+}
+          ` }} />
+          <div className="readability-print-report" aria-hidden="true">
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #0d9488", paddingBottom: "12px", marginBottom: "18px" }}>
+              <div>
+                <div style={{ fontSize: "18px", fontWeight: "700", color: "#0d9488" }}>FintechPressHub</div>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>Readability Analysis Report</div>
+              </div>
+              <div style={{ fontSize: "11px", color: "#94a3b8", textAlign: "right" }}>
+                {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                <br />fintechpresshub.com
+              </div>
+            </div>
+
+            {/* Score + Level */}
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+              <div style={{
+                width: "72px", height: "72px", borderRadius: "50%", flexShrink: 0,
+                border: `4px solid ${results.score >= 65 ? "#16a34a" : results.score >= 45 ? "#d97706" : "#dc2626"}`,
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              }}>
+                <span style={{ fontSize: "22px", fontWeight: "800", color: results.score >= 65 ? "#16a34a" : results.score >= 45 ? "#d97706" : "#dc2626", lineHeight: "1" }}>
+                  {results.score.toFixed(0)}
+                </span>
+                <span style={{ fontSize: "9px", color: "#94a3b8" }}>/100</span>
+              </div>
+              <div>
+                <div style={{ fontSize: "16px", fontWeight: "700", color: results.score >= 65 ? "#16a34a" : results.score >= 45 ? "#d97706" : "#dc2626" }}>
+                  {results.level.label}
+                </div>
+                <div style={{ fontSize: "12px", color: "#475569", marginTop: "2px" }}>
+                  Grade: {results.grade}
+                </div>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                  {vibeFromScore(results.score).label.replace(/^Vibe:\s*/i, "")} · {benchmarkFromScore(results.score).icon} Reads like a {benchmarkFromScore(results.score).label}
+                </div>
+              </div>
+            </div>
+
+            {/* Stats table */}
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", color: "#94a3b8", marginBottom: "8px" }}>Key Statistics</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                <tbody>
+                  {([
+                    ["Word count", results.wordCount.toLocaleString()],
+                    ["Sentences", results.sentenceCount.toLocaleString()],
+                    ["Avg sentence length", `${results.avgSentenceLen.toFixed(1)} words`],
+                    ["Avg syllables per word", results.avgSyllables.toFixed(2)],
+                    ["Reading time", `${Math.max(1, Math.ceil(results.wordCount / 200))} min`],
+                    ["Passive voice", `${results.passiveCount} sentence${results.passiveCount !== 1 ? "s" : ""}`],
+                  ] as [string, string][]).map(([label, value], i) => (
+                    <tr key={label} style={{ backgroundColor: i % 2 === 0 ? "#f8fafc" : "#fff" }}>
+                      <td style={{ padding: "5px 10px", color: "#475569", fontWeight: "500" }}>{label}</td>
+                      <td style={{ padding: "5px 10px", color: "#1e293b", fontWeight: "700", textAlign: "right" }}>{value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Tips */}
+            {results.tips.length > 0 && (
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", color: "#94a3b8", marginBottom: "8px" }}>Top Improvement Tips</div>
+                <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                  {results.tips.slice(0, 4).map((tip, i) => (
+                    <li key={i} style={{ fontSize: "12px", color: "#334155", marginBottom: "5px" }}>{tip}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div style={{ position: "absolute", bottom: "24px", left: "40px", right: "40px", borderTop: "1px solid #e2e8f0", paddingTop: "10px", fontSize: "10px", color: "#94a3b8", display: "flex", justifyContent: "space-between" }}>
+              <span>Generated by FintechPressHub Readability Checker</span>
+              <span>fintechpresshub.com</span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
