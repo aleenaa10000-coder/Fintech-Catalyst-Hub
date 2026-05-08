@@ -461,6 +461,37 @@ export default function LinkProspector() {
     setBulkStatusSelect("");
   };
 
+  const exportSelectedCSV = () => {
+    const selected = filteredSorted.filter((r) => selectedDomains.has(r.domain));
+    if (selected.length === 0) return;
+    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject"];
+    const rows = selected.map((r) => {
+      const subject =
+        r.da > 60
+          ? `Content Partnership Opportunity — ${r.domain} (High Authority)`
+          : r.traffic > 50_000
+          ? `Content Partnership Opportunity — ${r.domain} (Impressive Reach)`
+          : `Content Partnership Opportunity — ${r.domain}`;
+      return [
+        r.domain, r.score, r.label,
+        r.da > 0 ? r.da : "",
+        r.traffic > 0 ? r.traffic : "",
+        r.linkValue.min, r.linkValue.max,
+        r.acquisition.label,
+        STATUS_LABELS[statusMap[r.domain] ?? "not_started"],
+        subject,
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    });
+    const csv = [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `selected-prospects-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const bulkSetSelectedStatus = (status: OutreachStatus) => {
     if (selectedDomains.size === 0) return;
     setStatusMap((prev) => {
@@ -1189,6 +1220,16 @@ Looking forward to hearing from you,
                       >
                         <X className="w-3 h-3" />
                         Mark as Ignored
+                      </button>
+                      <span className="w-px h-4 bg-indigo-200 shrink-0" />
+                      <button
+                        type="button"
+                        onClick={exportSelectedCSV}
+                        className="inline-flex items-center gap-1 font-semibold px-2.5 py-1 rounded-full border border-indigo-300 text-indigo-700 bg-white hover:bg-indigo-50 transition-all whitespace-nowrap"
+                        title={`Download CSV for ${selectedDomains.size} selected prospect${selectedDomains.size !== 1 ? "s" : ""}`}
+                      >
+                        <Download className="w-3 h-3" />
+                        Export Selected
                       </button>
                       <button
                         type="button"
