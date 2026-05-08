@@ -194,6 +194,7 @@ function getSuggestions(topic: string): Publication[] {
 
 const HISTORY_KEY = "fph:pitch-history";
 const MAX_HISTORY = 5;
+const MAX_EXPERTISE_CHARS = 2_000;
 
 type PitchEntry = {
   id: string;
@@ -640,6 +641,10 @@ export default function GuestPostPitchGenerator() {
   }
 
   const generate = () => {
+    if (expertiseTooLong) {
+      toast.error(`Expertise description is too long — trim to ${MAX_EXPERTISE_CHARS.toLocaleString()} characters or fewer.`);
+      return;
+    }
     const nextVariation = 0;
     setVariation(nextVariation);
     const result = buildPitch(form, nextVariation);
@@ -877,10 +882,13 @@ export default function GuestPostPitchGenerator() {
     return `https://mail.google.com/mail/?view=cm&fs=1&tf=1${to ? `&to=${encodeURIComponent(to)}` : ""}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   })();
 
+  const expertiseTooLong = form.yourExpertise.length > MAX_EXPERTISE_CHARS;
+
   const canGenerate =
     form.senderName.trim().length > 0 &&
     form.targetBlog.trim().length > 0 &&
-    form.proposedTopic.trim().length > 0;
+    form.proposedTopic.trim().length > 0 &&
+    !expertiseTooLong;
 
   return (
     <div className="min-h-screen bg-background">
@@ -1101,11 +1109,17 @@ export default function GuestPostPitchGenerator() {
                     value={form.yourExpertise}
                     onChange={setField("yourExpertise")}
                     rows={3}
-                    className="resize-none"
+                    maxLength={MAX_EXPERTISE_CHARS}
+                    className={`resize-none ${expertiseTooLong ? "border-red-400 focus-visible:ring-red-400" : ""}`}
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    This is your credibility hook — be specific.
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] text-muted-foreground">
+                      This is your credibility hook — be specific.
+                    </p>
+                    <p className={`text-[11px] tabular-nums shrink-0 ${expertiseTooLong ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
+                      {form.yourExpertise.length.toLocaleString()} / {MAX_EXPERTISE_CHARS.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-2 sm:col-span-2">

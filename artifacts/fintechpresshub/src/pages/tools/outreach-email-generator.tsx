@@ -99,6 +99,7 @@ type FollowUpEmail = {
 
 const HISTORY_KEY = "fph:outreach-history";
 const MAX_HISTORY = 5;
+const MAX_PITCH_CHARS = 2_000;
 
 const TONES: { id: Tone; label: string; sublabel: string; icon: typeof Mail }[] = [
   { id: "professional",   label: "Professional",   sublabel: "Formal, confident, agency-style",  icon: Briefcase      },
@@ -796,13 +797,20 @@ export default function OutreachEmailGenerator() {
   const setField = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((prev) => ({ ...prev, [k]: v }));
 
+  const pitchTooLong = form.contentPitch.length > MAX_PITCH_CHARS;
+
   const canGenerate =
     form.targetDomain.trim().length > 0 &&
     form.yourName.trim().length > 0 &&
     form.yourCompany.trim().length > 0 &&
-    form.contentPitch.trim().length > 0;
+    form.contentPitch.trim().length > 0 &&
+    !pitchTooLong;
 
   const generate = (t: Tone = tone) => {
+    if (pitchTooLong) {
+      toast.error(`Pitch description is too long — trim to ${MAX_PITCH_CHARS.toLocaleString()} characters or fewer.`);
+      return;
+    }
     const vars = generateSubjectVariants(form, t);
     const s0   = scoreSubjectLine(vars[0], form.targetDomain);
     const s1   = scoreSubjectLine(vars[1], form.targetDomain);
@@ -1174,11 +1182,17 @@ export default function OutreachEmailGenerator() {
                     onChange={(e) => setField("contentPitch", e.target.value)}
                     placeholder="our 2025 Digital SEO State of the Market report with 12 months of first-party ranking data"
                     rows={3}
-                    className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    maxLength={MAX_PITCH_CHARS}
+                    className={`w-full resize-none rounded-lg border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${pitchTooLong ? "border-red-400 focus:ring-red-400" : "border-input focus:ring-blue-500"}`}
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    Be specific — it makes both the pitch and subject lines stronger.
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] text-muted-foreground">
+                      Be specific — it makes both the pitch and subject lines stronger.
+                    </p>
+                    <p className={`text-[10px] tabular-nums shrink-0 ${pitchTooLong ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
+                      {form.contentPitch.length.toLocaleString()} / {MAX_PITCH_CHARS.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Link value */}

@@ -87,6 +87,8 @@ const LS_SAVED_LISTS_KEY = "lp-saved-lists";
 const LS_NOTES_KEY = "lp-notes";
 const LS_SAVED_SEARCHES_KEY = "lp-saved-searches";
 const LS_TIMELINE_KEY = "lp-timeline-events";
+const MAX_TEXTAREA_WARN = 5_000;
+const MAX_TEXTAREA_HARD = 10_000;
 
 type TimelineEvent = {
   id: string;
@@ -436,7 +438,14 @@ export default function LinkProspector() {
     });
   };
 
+  const textareaNearLimit = textarea.length > MAX_TEXTAREA_WARN;
+  const textareaTooLarge = textarea.length > MAX_TEXTAREA_HARD;
+
   const runWithText = useCallback((text: string, pushUrl = true) => {
+    if (text.length > MAX_TEXTAREA_HARD) {
+      toast.error(`Input is too large — trim to ${MAX_TEXTAREA_HARD.toLocaleString()} characters or fewer.`);
+      return;
+    }
     setError("");
     const lines = text.split("\n").filter((l) => l.trim());
     if (lines.length === 0) { setError("Paste at least one domain to get started."); return; }
@@ -1048,8 +1057,20 @@ Looking forward to hearing from you,
                     onChange={(e) => setTextarea(e.target.value)}
                     placeholder={`moz.com,91,250000\nfinextra.com,64,40000\nnerdwallet.com,88,3200000`}
                     rows={10}
-                    className="w-full resize-y rounded-lg border border-input bg-background px-3 py-2.5 text-sm font-mono placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className={`w-full resize-y rounded-lg border bg-background px-3 py-2.5 text-sm font-mono placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${textareaTooLarge ? "border-red-400 focus:ring-red-400" : textareaNearLimit ? "border-amber-400 focus:ring-amber-400" : "border-input focus:ring-blue-500"}`}
                   />
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    {textareaTooLarge ? (
+                      <p className="text-[11px] text-red-500 font-medium">Input too large — trim to {MAX_TEXTAREA_HARD.toLocaleString()} characters or fewer.</p>
+                    ) : textareaNearLimit ? (
+                      <p className="text-[11px] text-amber-600">Approaching {MAX_TEXTAREA_HARD.toLocaleString()} character limit.</p>
+                    ) : (
+                      <span />
+                    )}
+                    <p className={`text-[11px] tabular-nums shrink-0 ${textareaTooLarge ? "text-red-500 font-medium" : textareaNearLimit ? "text-amber-600" : "text-muted-foreground"}`}>
+                      {textarea.length.toLocaleString()} / {MAX_TEXTAREA_HARD.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
 
                 {error && (
@@ -1062,7 +1083,8 @@ Looking forward to hearing from you,
                 <div className="mt-4 flex items-center gap-3">
                   <Button
                     onClick={run}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11"
+                    disabled={textareaTooLarge}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
                     Run Bulk Estimate
