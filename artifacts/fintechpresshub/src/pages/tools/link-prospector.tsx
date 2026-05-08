@@ -397,6 +397,19 @@ export default function LinkProspector() {
     try { localStorage.setItem(LS_SAVED_LISTS_KEY, JSON.stringify(updated)); } catch {}
   };
 
+  const [bulkStatusSelect, setBulkStatusSelect] = useState<"" | OutreachStatus>("");
+
+  const bulkSetStatus = (status: OutreachStatus) => {
+    setStatusMap((prev) => {
+      const updated = { ...prev };
+      sorted.forEach((r) => { updated[r.domain] = status; });
+      try { localStorage.setItem(LS_STATUS_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    toast(`All ${sorted.length} prospects marked as "${STATUS_LABELS[status]}"`, { duration: 2500 });
+    setBulkStatusSelect("");
+  };
+
   const exportPitchCSV = () => {
     const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject"];
     const rows = sorted.map((r) => {
@@ -953,15 +966,24 @@ Looking forward to hearing from you,
                       <Download className="w-3 h-3" />
                       Export CSV
                     </button>
-                    <button
-                      type="button"
-                      onClick={downloadCsv}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-700 transition-all"
-                      title="Download results as CSV"
-                    >
-                      <Download className="w-3 h-3" />
-                      Export CSV
-                    </button>
+                    <span className="w-px h-4 bg-slate-200 mx-1 shrink-0" />
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">Set all:</span>
+                      <select
+                        value={bulkStatusSelect}
+                        onChange={(e) => {
+                          const val = e.target.value as OutreachStatus;
+                          if (val) bulkSetStatus(val);
+                        }}
+                        className="text-[11px] font-semibold pl-2 pr-6 py-1.5 rounded-full border border-slate-200 text-slate-600 bg-white hover:border-slate-400 transition-all cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400"
+                        title="Set outreach status for all visible prospects"
+                      >
+                        <option value="">— status —</option>
+                        {STATUS_CYCLE.map((s) => (
+                          <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                        ))}
+                      </select>
+                    </div>
                     <Link
                       href={buildPitchUrl(sorted[0])}
                       className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-400 transition-all"
