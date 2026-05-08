@@ -70,6 +70,19 @@ function gradeFromScore(score: number): string {
   return "Professional / Academic";
 }
 
+function benchmarkFromScore(score: number): { label: string; detail: string; icon: string } {
+  if (score >= 90) return { icon: "📗", label: "children's picture book", detail: "Ultra-simple sentences — ideal for app onboarding copy and push notifications." };
+  if (score >= 80) return { icon: "📰", label: "tabloid newspaper (e.g. The Sun)", detail: "Conversational and punchy — great for social media posts and email subject lines." };
+  if (score >= 70) return { icon: "📖", label: "Reader's Digest", detail: "Accessible to most adults — the sweet spot for consumer-facing fintech content." };
+  if (score >= 65) return { icon: "🗞️", label: "USA Today", detail: "Clear and direct — well-suited for news-style blog posts and landing pages." };
+  if (score >= 60) return { icon: "📰", label: "New York Times", detail: "Readable but authoritative — a strong target for fintech thought leadership." };
+  if (score >= 50) return { icon: "💼", label: "Time magazine / Forbes", detail: "Moderate complexity — right for educated business and investor audiences." };
+  if (score >= 40) return { icon: "🎓", label: "Harvard Business Review", detail: "Dense, analytical writing — best suited to senior professionals and specialists." };
+  if (score >= 30) return { icon: "🔬", label: "academic journal abstract", detail: "Highly technical — most general readers will struggle to follow along." };
+  if (score >= 10) return { icon: "⚖️", label: "terms & conditions document", detail: "Very dense — typically only manageable by trained professionals." };
+  return { icon: "📋", label: "technical legal contract", detail: "Extremely complex — almost no general reader can parse this comfortably." };
+}
+
 function levelFromScore(score: number): {
   label: string;
   color: string;
@@ -603,6 +616,7 @@ export default function ReadabilityChecker() {
     setCheckedText("");
     setScoreHistory([]);
     setActiveRewrite(null);
+    setActivePassiveGuide(null);
     toast("Content cleared", {
       description: snapshot.checked ? "Your text and results have been reset." : "Your text has been cleared.",
       action: {
@@ -624,6 +638,11 @@ export default function ReadabilityChecker() {
   const [copyBadgeState, setCopyBadgeState] = useState<"idle" | "copied">("idle");
   const [activeRewrite, setActiveRewrite] = useState<{ original: string; rewritten: string } | null>(null);
   const [copyRewriteState, setCopyRewriteState] = useState<"idle" | "copied">("idle");
+  const [activePassiveGuide, setActivePassiveGuide] = useState<{
+    sentence: string;
+    passivePhrase: string;
+    agentHint: string | null;
+  } | null>(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
 
   const copyText = async () => {
@@ -1072,6 +1091,18 @@ export default function ReadabilityChecker() {
                             {vibeFromScore(results.score).label}
                           </span>
                         </div>
+                        {(() => {
+                          const bench = benchmarkFromScore(results.score);
+                          return (
+                            <div className="mt-2 flex items-start gap-1.5 bg-slate-50 rounded-md px-2.5 py-1.5 border border-slate-100">
+                              <span className="text-sm leading-none mt-px shrink-0">{bench.icon}</span>
+                              <span className="text-[11px] text-slate-500 leading-snug">
+                                <span className="font-semibold text-slate-700">Reads like a {bench.label}.</span>{" "}
+                                {bench.detail}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -1349,11 +1380,28 @@ export default function ReadabilityChecker() {
                                   title={tooltip}
                                   className={isHighlighted ? "cursor-pointer" : undefined}
                                   onClick={isHighlighted ? () => {
-                                    const rewritten = simplifyText(seg.text);
-                                    setActiveRewrite((prev) =>
-                                      prev?.original === seg.text ? null : { original: seg.text, rewritten },
-                                    );
-                                    setCopyRewriteState("idle");
+                                    if (seg.passive) {
+                                      const match = seg.text.match(PASSIVE_RE);
+                                      const passivePhrase = match ? match[0] : "";
+                                      const byMatch = seg.text.match(/\bby\s+([^.,!?]+?)(?:[.,!?]|$)/i);
+                                      const agentHint = byMatch ? byMatch[1].trim() : null;
+                                      setActivePassiveGuide((prev) =>
+                                        prev?.sentence === seg.text
+                                          ? null
+                                          : { sentence: seg.text, passivePhrase, agentHint },
+                                      );
+                                    } else {
+                                      setActivePassiveGuide(null);
+                                    }
+                                    if (seg.difficulty !== "normal") {
+                                      const rewritten = simplifyText(seg.text);
+                                      setActiveRewrite((prev) =>
+                                        prev?.original === seg.text ? null : { original: seg.text, rewritten },
+                                      );
+                                      setCopyRewriteState("idle");
+                                    } else {
+                                      setActiveRewrite(null);
+                                    }
                                   } : undefined}
                                 >
                                   {renderSentenceTokens(seg.text, handleWordSwap)}
@@ -1365,6 +1413,64 @@ export default function ReadabilityChecker() {
                         ))
                       )}
                     </div>
+
+                    {activePassiveGuide && (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="text-[10px] font-semibold text-purple-600 uppercase tracking-widest">
+                            Passive Voice — How to Fix
+                          </div>
+                          <button
+                            onClick={() => setActivePassiveGuide(null)}
+                            className="text-purple-300 hover:text-purple-600 text-sm leading-none p-0.5 rounded transition-colors"
+                            aria-label="Dismiss"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed m-0">
+                          Detected:{" "}
+                          <span className="font-semibold text-purple-700 bg-purple-100 px-1 rounded">
+                            "{activePassiveGuide.passivePhrase}"
+                          </span>
+                        </p>
+                        <div className="text-xs text-slate-700 space-y-1">
+                          <p className="font-medium m-0">To rewrite in active voice:</p>
+                          <ol className="list-decimal list-inside space-y-0.5 text-slate-600 pl-1 m-0">
+                            <li>
+                              Ask: <strong>who or what</strong> performed the action
+                              {activePassiveGuide.agentHint ? (
+                                <> — likely <span className="font-semibold text-purple-700">"{activePassiveGuide.agentHint}"</span></>
+                              ) : "?"}
+                            </li>
+                            <li>Move that agent to the <em>start</em> of the sentence.</li>
+                            <li>
+                              Replace{" "}
+                              <span className="font-mono text-[10px] bg-purple-100 px-1 rounded">
+                                {activePassiveGuide.passivePhrase}
+                              </span>{" "}
+                              with a direct active verb.
+                            </li>
+                          </ol>
+                        </div>
+                        {activePassiveGuide.agentHint && (
+                          <div className="bg-white border border-purple-100 rounded p-2 text-[11px] space-y-1">
+                            <div className="text-slate-400 line-through leading-relaxed">
+                              {activePassiveGuide.sentence}
+                            </div>
+                            <div className="text-slate-700 font-medium leading-relaxed">
+                              Try starting with:{" "}
+                              <span className="text-purple-700 font-semibold capitalize">
+                                "{activePassiveGuide.agentHint}"
+                              </span>…
+                            </div>
+                          </div>
+                        )}
+                        <div className="text-[10px] text-slate-400 italic">
+                          Example: "The report was written by the team." → "The team wrote the report."
+                        </div>
+                      </div>
+                    )}
 
                     {activeRewrite && (
                       <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
