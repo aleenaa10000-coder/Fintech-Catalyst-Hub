@@ -412,8 +412,14 @@ function renderSentenceTokens(
   });
 }
 
-function ScoreHistoryChart({ scores }: { scores: number[] }) {
-  const VW = 400, VH = 220;
+function vibeColor(score: number): string {
+  if (score > 80) return "#15803d";
+  if (score >= 40) return "#1d4ed8";
+  return "#7e22ce";
+}
+
+function ScoreHistoryChart({ scores, onClear }: { scores: number[]; onClear?: () => void }) {
+  const VW = 400, VH = 300;
   const padL = 32, padR = 12, padT = 28, padB = 30;
   const chartW = VW - padL - padR;
   const chartH = VH - padT - padB;
@@ -431,7 +437,7 @@ function ScoreHistoryChart({ scores }: { scores: number[] }) {
 
   const last = scores.length > 0 ? scores[scores.length - 1] : 0;
   const delta = scores.length >= 2 ? Math.round(last - scores[0]) : 0;
-  const lineStroke = last >= 65 ? "#16a34a" : last >= 45 ? "#d97706" : "#dc2626";
+  const lineStroke = vibeColor(last);
 
   const bands = [
     { from: 65, to: 100, fill: "#dcfce7" },
@@ -453,17 +459,26 @@ function ScoreHistoryChart({ scores }: { scores: number[] }) {
                 {delta > 0 ? "+" : ""}{delta} overall
               </span>
             )}
+            {onClear && scores.length > 0 && (
+              <button
+                onClick={onClear}
+                className="text-slate-400 hover:text-slate-600 transition-colors text-[10px] underline underline-offset-2 ml-1"
+                aria-label="Clear history"
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="min-h-[240px] flex flex-col justify-center">
+        <div className="h-[300px] flex flex-col justify-center">
           {scores.length === 0 ? (
-            <div className="flex items-center justify-center h-[220px] text-sm text-muted-foreground">
+            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
               Run a readability check to see your score here.
             </div>
           ) : scores.length === 1 ? (
-            <div className="flex flex-col items-center justify-center h-[220px] gap-2">
-              <span className="text-2xl font-black" style={{ color: last >= 65 ? "#16a34a" : last >= 45 ? "#d97706" : "#dc2626" }}>
+            <div className="flex flex-col items-center justify-center h-full gap-2">
+              <span className="text-2xl font-black" style={{ color: vibeColor(last) }}>
                 {Math.round(last)}
               </span>
               <span className="text-sm text-muted-foreground">Edit 1 — run another check to see your trend.</span>
@@ -472,7 +487,7 @@ function ScoreHistoryChart({ scores }: { scores: number[] }) {
             <svg
               viewBox={`0 0 ${VW} ${VH}`}
               className="w-full"
-              style={{ height: "220px" }}
+              style={{ height: "300px" }}
               aria-label="Score improvement chart"
             >
               {bands.map(({ from, to, fill }) => (
@@ -521,7 +536,7 @@ function ScoreHistoryChart({ scores }: { scores: number[] }) {
               />
 
               {pts.map((p, i) => {
-                const dotColor = p.s >= 65 ? "#16a34a" : p.s >= 45 ? "#d97706" : "#dc2626";
+                const dotColor = vibeColor(p.s);
                 const isLast = i === pts.length - 1;
                 return (
                   <g key={i}>
@@ -1241,7 +1256,7 @@ export default function ReadabilityChecker() {
                 </div>
 
                 {/* Score History Chart */}
-                <ScoreHistoryChart scores={scoreHistory} />
+                <ScoreHistoryChart scores={scoreHistory} onClear={() => setScoreHistory([])} />
 
                 {/* Tips */}
                 {results.score >= 80 && results.tips.length === 0 ? (
