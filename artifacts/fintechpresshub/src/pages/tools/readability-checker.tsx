@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   BookOpen,
   RotateCcw,
@@ -797,6 +798,9 @@ const HISTORY_KEY = "readability-checker-history";
 const DRAFT_KEY = "readability-checker-draft";
 const MAX_HISTORY = 10;
 
+const MAX_CHARS_WARN = 50_000;
+const MAX_CHARS_HARD = 100_000;
+
 function loadHistory(): HistoryEntry[] {
   try {
     return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]");
@@ -970,6 +974,12 @@ export default function ReadabilityChecker() {
   };
 
   const checkWithText = (t: string) => {
+    if (t.length > MAX_CHARS_HARD) {
+      toast.error("Text is too large to analyse", {
+        description: `Please trim your content to under ${(MAX_CHARS_HARD / 1000).toFixed(0)}k characters (currently ${(t.length / 1000).toFixed(1)}k).`,
+      });
+      return;
+    }
     const { sentences, words } = tokenize(t);
     const newScore = Math.round(fleschScore(words, sentences));
     setScoreHistory((prev) => [...prev, newScore]);
@@ -1407,7 +1417,10 @@ export default function ReadabilityChecker() {
     };
   }, [checkedText]);
 
-  const canCheck = text.trim().split(/\s+/).length >= 10;
+  const charCount = text.length;
+  const tooLarge = charCount > MAX_CHARS_HARD;
+  const nearLimit = charCount > MAX_CHARS_WARN && !tooLarge;
+  const canCheck = text.trim().split(/\s+/).length >= 10 && !tooLarge;
 
   return (
     <div className="min-h-screen bg-background">
@@ -1503,7 +1516,6 @@ export default function ReadabilityChecker() {
                       const sentenceCount = trimmed
                         ? trimmed.split(/[.!?]+/).filter((s) => s.trim().length > 0).length
                         : 0;
-                      const charCount = text.length;
                       return (
                         <>
                           <span>
@@ -1514,18 +1526,24 @@ export default function ReadabilityChecker() {
                             <span className="font-semibold text-slate-700">{sentenceCount}</span> sentences
                           </span>
                           <span className="text-slate-300">·</span>
-                          <span>
-                            <span className="font-semibold text-slate-700">{charCount}</span> chars
+                          <span className={tooLarge ? "text-red-600 font-semibold" : nearLimit ? "text-amber-600 font-semibold" : ""}>
+                            <span className="font-semibold text-slate-700">{charCount.toLocaleString()}</span> chars
+                            {nearLimit && ` — approaching ${(MAX_CHARS_HARD / 1000).toFixed(0)}k limit`}
+                            {tooLarge && ` — exceeds ${(MAX_CHARS_HARD / 1000).toFixed(0)}k limit`}
                           </span>
                         </>
                       );
                     })()}
                   </div>
-                  {!canCheck && text.trim().length > 0 && (
+                  {tooLarge ? (
+                    <span className="text-[11px] text-red-600 font-semibold shrink-0">
+                      Trim to under {(MAX_CHARS_HARD / 1000).toFixed(0)}k characters to analyse.
+                    </span>
+                  ) : !canCheck && text.trim().length > 0 ? (
                     <span className="text-[11px] text-amber-600 shrink-0">
                       Enter at least 10 words to analyse.
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
@@ -1541,6 +1559,22 @@ export default function ReadabilityChecker() {
           </Card>
           </div>
 
+          <ErrorBoundary
+            fallback={
+              <div className="mt-6 max-w-3xl mx-auto">
+                <Card className="border border-red-100 shadow-sm bg-red-50">
+                  <CardContent className="p-6 flex flex-col items-center gap-3 text-center">
+                    <AlertTriangle className="w-8 h-8 text-red-500" />
+                    <p className="font-semibold text-slate-800">Analysis rendering failed</p>
+                    <p className="text-sm text-muted-foreground max-w-sm">
+                      Something went wrong while displaying your results. Your text is still in the editor — try clicking{" "}
+                      <strong>Check Readability</strong> again.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            }
+          >
           <AnimatePresence>
             {checked && results && (
               <motion.div
@@ -2368,6 +2402,7 @@ export default function ReadabilityChecker() {
               </motion.div>
             )}
           </AnimatePresence>
+          </ErrorBoundary>
         </div>
       </section>
 
