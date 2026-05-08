@@ -55,7 +55,7 @@ type ScoringMode = "authority" | "traffic";
 type Relevance = "high" | "medium" | "low";
 type Placement = "editorial" | "sidebar" | "footer" | "sponsored";
 
-type OutreachStatus = "not_started" | "emailed" | "replied" | "won";
+type OutreachStatus = "not_started" | "emailed" | "replied" | "won" | "shortlisted" | "ignored";
 
 const STATUS_CYCLE: OutreachStatus[] = ["not_started", "emailed", "replied", "won"];
 
@@ -64,6 +64,8 @@ const STATUS_STYLES: Record<OutreachStatus, string> = {
   emailed:     "bg-blue-50 border-blue-300 text-blue-700",
   replied:     "bg-amber-50 border-amber-300 text-amber-700",
   won:         "bg-emerald-50 border-emerald-300 text-emerald-700",
+  shortlisted: "bg-violet-50 border-violet-300 text-violet-700",
+  ignored:     "bg-red-50 border-red-200 text-red-400",
 };
 
 const STATUS_LABELS: Record<OutreachStatus, string> = {
@@ -71,6 +73,8 @@ const STATUS_LABELS: Record<OutreachStatus, string> = {
   emailed:     "Emailed",
   replied:     "Replied",
   won:         "Won ✓",
+  shortlisted: "Shortlisted ★",
+  ignored:     "Ignored",
 };
 
 const LS_STATUS_KEY = "lp-outreach-status";
@@ -337,6 +341,8 @@ export default function LinkProspector() {
   const [filterStatus, setFilterStatus] = useState<"" | OutreachStatus>("");
   const [showViz, setShowViz] = useState(false);
   const [minScore, setMinScore] = useState("");
+  const [selectedDomains, setSelectedDomains] = useState<Set<string>>(new Set());
+  const selectAllRef = useRef<HTMLInputElement>(null);
 
   type SitePreview = { title: string; description: string; loading: boolean; error?: string };
   const [previewMap, setPreviewMap] = useState<Record<string, SitePreview>>({});
@@ -454,6 +460,31 @@ export default function LinkProspector() {
     toast(`All ${filteredSorted.length} prospects marked as "${STATUS_LABELS[status]}"`, { duration: 2500 });
     setBulkStatusSelect("");
   };
+
+  const bulkSetSelectedStatus = (status: OutreachStatus) => {
+    if (selectedDomains.size === 0) return;
+    setStatusMap((prev) => {
+      const updated = { ...prev };
+      selectedDomains.forEach((domain) => { updated[domain] = status; });
+      try { localStorage.setItem(LS_STATUS_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    const n = selectedDomains.size;
+    toast(`${n} prospect${n !== 1 ? "s" : ""} marked as "${STATUS_LABELS[status]}"`, { duration: 2500 });
+    setSelectedDomains(new Set());
+  };
+
+  const toggleSelectDomain = (domain: string) => {
+    setSelectedDomains((prev) => {
+      const next = new Set(prev);
+      if (next.has(domain)) next.delete(domain); else next.add(domain);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    setSelectedDomains(new Set());
+  }, [results]);
 
   const exportPitchCSV = () => {
     const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject"];
@@ -660,6 +691,15 @@ Looking forward to hearing from you,
     if (minScoreNum > 0) rows = rows.filter((r) => r.score >= minScoreNum);
     return rows;
   }, [sorted, filterStatus, statusMap, minScore]);
+
+  const allVisibleSelected = filteredSorted.length > 0 && filteredSorted.every((r) => selectedDomains.has(r.domain));
+  const someVisibleSelected = !allVisibleSelected && filteredSorted.some((r) => selectedDomains.has(r.domain));
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someVisibleSelected;
+    }
+  }, [someVisibleSelected]);
 
   const thCls = (key: SortKey) =>
     `text-left text-[10px] font-semibold uppercase tracking-wider cursor-pointer select-none whitespace-nowrap px-3 py-2.5 transition-colors hover:text-blue-600 ${sortKey === key ? "text-blue-600" : "text-slate-500"}`;
@@ -1110,6 +1150,58 @@ Looking forward to hearing from you,
                   </div>
                 </div>
 
+                {/* Bulk Actions bar — visible when ≥1 row selected */}
+                <AnimatePresence>
+                  {selectedDomains.size > 0 && (
+                    <motion.div
+                      key="bulk-bar"
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.18 }}
+                      className="flex items-center gap-3 flex-wrap px-3 py-2 mb-3 rounded-lg border border-indigo-200 bg-indigo-50 text-[11px]"
+                    >
+                      <span className="font-semibold text-indigo-700">
+                        {selectedDomains.size} prospect{selectedDomains.size !== 1 ? "s" : ""} selected
+                      </span>
+                      <span className="w-px h-4 bg-indigo-200 shrink-0" />
+                      <span className="font-medium text-indigo-500 whitespace-nowrap">Bulk action:</span>
+                      <button
+                        type="button"
+                        onClick={() => bulkSetSelectedStatus("emailed")}
+                        className="inline-flex items-center gap-1 font-semibold px-2.5 py-1 rounded-full border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all whitespace-nowrap"
+                      >
+                        <Mail className="w-3 h-3" />
+                        Mark as Pitch Sent
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => bulkSetSelectedStatus("shortlisted")}
+                        className="inline-flex items-center gap-1 font-semibold px-2.5 py-1 rounded-full border border-violet-300 text-violet-700 bg-violet-50 hover:bg-violet-100 transition-all whitespace-nowrap"
+                      >
+                        <Bookmark className="w-3 h-3" />
+                        Move to Shortlist
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => bulkSetSelectedStatus("ignored")}
+                        className="inline-flex items-center gap-1 font-semibold px-2.5 py-1 rounded-full border border-red-200 text-red-500 bg-red-50 hover:bg-red-100 transition-all whitespace-nowrap"
+                      >
+                        <X className="w-3 h-3" />
+                        Mark as Ignored
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDomains(new Set())}
+                        className="ml-auto text-indigo-400 hover:text-indigo-600 font-semibold px-2 py-1 transition-colors"
+                        title="Clear selection"
+                      >
+                        Clear
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Scatter Plot Visualisation */}
                 <AnimatePresence>
                   {showViz && (
@@ -1322,6 +1414,30 @@ Looking forward to hearing from you,
                     <table className="w-full text-sm">
                       <thead className="border-b border-slate-100 bg-slate-50/70">
                         <tr>
+                          <th className="w-8 px-3 py-2.5">
+                            <input
+                              ref={selectAllRef}
+                              type="checkbox"
+                              checked={allVisibleSelected}
+                              onChange={() => {
+                                if (allVisibleSelected) {
+                                  setSelectedDomains((prev) => {
+                                    const next = new Set(prev);
+                                    filteredSorted.forEach((r) => next.delete(r.domain));
+                                    return next;
+                                  });
+                                } else {
+                                  setSelectedDomains((prev) => {
+                                    const next = new Set(prev);
+                                    filteredSorted.forEach((r) => next.add(r.domain));
+                                    return next;
+                                  });
+                                }
+                              }}
+                              className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-400 cursor-pointer accent-indigo-600"
+                              title="Select all visible prospects"
+                            />
+                          </th>
                           <th className={thCls("score")} onClick={() => handleSort("score")}>
                             <span className="flex items-center gap-1">Score <SortIcon col="score" active={sortKey} dir={sortDir} /></span>
                           </th>
@@ -1349,8 +1465,17 @@ Looking forward to hearing from you,
                             initial={{ opacity: 0, x: -8 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.04 }}
-                            className="hover:bg-slate-50/80 transition-colors group"
+                            className={`hover:bg-slate-50/80 transition-colors group ${selectedDomains.has(r.domain) ? "bg-indigo-50/60" : ""}`}
                           >
+                            <td className="px-3 py-3 w-8">
+                              <input
+                                type="checkbox"
+                                checked={selectedDomains.has(r.domain)}
+                                onChange={() => toggleSelectDomain(r.domain)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-400 cursor-pointer accent-indigo-600"
+                              />
+                            </td>
                             <td className="px-3 py-3">
                               <span
                                 className={`inline-flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-full ${SCORE_BG(r.score)}`}
