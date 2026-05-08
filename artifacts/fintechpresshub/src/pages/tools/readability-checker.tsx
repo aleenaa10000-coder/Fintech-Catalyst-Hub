@@ -26,6 +26,7 @@ import {
   ChevronUp,
   Trash2,
   Download,
+  ArrowLeftRight,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -548,6 +549,39 @@ function BenchmarkScale({ score }: { score: number }) {
   );
 }
 
+function monotonicCubicPath(pts: { x: number; y: number }[]): string {
+  if (pts.length < 2) return "";
+  if (pts.length === 2) {
+    return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)} L${pts[1].x.toFixed(1)},${pts[1].y.toFixed(1)}`;
+  }
+  const n = pts.length;
+  const dx: number[] = [], dy: number[] = [], slope: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = pts[i + 1].x - pts[i].x;
+    dy[i] = pts[i + 1].y - pts[i].y;
+    slope[i] = dy[i] / dx[i];
+  }
+  const m: number[] = new Array(n);
+  m[0] = slope[0];
+  m[n - 1] = slope[n - 2];
+  for (let i = 1; i < n - 1; i++) {
+    m[i] = slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2;
+  }
+  for (let i = 0; i < n - 1; i++) {
+    if (Math.abs(slope[i]) < 1e-6) { m[i] = m[i + 1] = 0; continue; }
+    const alpha = m[i] / slope[i], beta = m[i + 1] / slope[i];
+    const s = alpha * alpha + beta * beta;
+    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t * alpha * slope[i]; m[i + 1] = t * beta * slope[i]; }
+  }
+  let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const cp1x = pts[i].x + dx[i] / 3, cp1y = pts[i].y + (m[i] * dx[i]) / 3;
+    const cp2x = pts[i + 1].x - dx[i] / 3, cp2y = pts[i + 1].y - (m[i + 1] * dx[i]) / 3;
+    d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${pts[i + 1].x.toFixed(1)},${pts[i + 1].y.toFixed(1)}`;
+  }
+  return d;
+}
+
 function ScoreHistoryChart({ scores, onClear }: { scores: number[]; onClear?: () => void }) {
   const VW = 400, VH = 300;
   const padL = 32, padR = 12, padT = 28, padB = 30;
@@ -561,13 +595,15 @@ function ScoreHistoryChart({ scores, onClear }: { scores: number[]; onClear?: ()
 
   const hasMultiple = scores.length >= 2;
   const pts = scores.map((s, i) => ({ x: xScale(i), y: yScale(s), s }));
-  const linePath = hasMultiple
-    ? pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")
-    : "";
 
   const last = scores.length > 0 ? scores[scores.length - 1] : 0;
+  const prev = scores.length >= 2 ? scores[scores.length - 2] : last;
   const delta = scores.length >= 2 ? Math.round(last - scores[0]) : 0;
-  const lineStroke = vibeColor(last);
+  const lineColor = hasMultiple
+    ? last >= prev ? "#10b981" : "#f59e0b"
+    : vibeColor(last);
+
+  const curvePath = hasMultiple ? monotonicCubicPath(pts) : "";
 
   const bands = [
     { from: 65, to: 100, fill: "#dcfce7" },
@@ -620,6 +656,12 @@ function ScoreHistoryChart({ scores, onClear }: { scores: number[]; onClear?: ()
               style={{ height: "300px" }}
               aria-label="Score improvement chart"
             >
+              <defs>
+                <linearGradient id="scoreLineGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={lineColor} stopOpacity="0.22" />
+                  <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+                </linearGradient>
+              </defs>
               {bands.map(({ from, to, fill }) => (
                 <rect
                   key={from}
@@ -657,10 +699,15 @@ function ScoreHistoryChart({ scores, onClear }: { scores: number[]; onClear?: ()
               ))}
 
               <path
-                d={linePath}
+                d={curvePath + ` L${pts[pts.length - 1].x.toFixed(1)},${(padT + chartH).toFixed(1)} L${pts[0].x.toFixed(1)},${(padT + chartH).toFixed(1)} Z`}
+                fill="url(#scoreLineGradient)"
+                stroke="none"
+              />
+              <path
+                d={curvePath}
                 fill="none"
-                stroke={lineStroke}
-                strokeWidth="2"
+                stroke={lineColor}
+                strokeWidth="2.5"
                 strokeLinejoin="round"
                 strokeLinecap="round"
               />
@@ -737,6 +784,8 @@ interface HistoryEntry {
   levelLabel: string;
   wordCount: number;
   timestamp: number;
+  sentenceCount?: number;
+  avgSentenceLen?: number;
 }
 
 const HISTORY_KEY = "readability-checker-history";
@@ -765,6 +814,8 @@ export default function ReadabilityChecker() {
   const [scoreHistory, setScoreHistory] = useState<number[]>([]);
   const [analysisHistory, setAnalysisHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSelection, setCompareSelection] = useState<string[]>([]);
   const [copyTextState, setCopyTextState] = useState<"idle" | "copied">("idle");
   const [resetConfirm, setResetConfirm] = useState(false);
   const resetConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -908,6 +959,8 @@ export default function ReadabilityChecker() {
       levelLabel: level.label,
       wordCount: words.length,
       timestamp: Date.now(),
+      sentenceCount: sentences.length,
+      avgSentenceLen: sentences.length > 0 ? Math.round((words.length / sentences.length) * 10) / 10 : 0,
     };
     setAnalysisHistory((prev) => {
       const updated = [newEntry, ...prev].slice(0, MAX_HISTORY);
