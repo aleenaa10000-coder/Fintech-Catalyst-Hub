@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -303,6 +304,8 @@ export default function LinkProspector() {
   }, []);
 
   const reset = () => {
+    if (!ran && !textarea.trim()) return;
+    const snapshot = { textarea, results: [...results], ran };
     setTextarea("");
     setResults([]);
     setRan(false);
@@ -311,6 +314,20 @@ export default function LinkProspector() {
     const url = new URL(window.location.href);
     url.searchParams.delete("data");
     window.history.replaceState(null, "", url.toString());
+    toast("Form reset", {
+      description: snapshot.ran
+        ? "Your domains and prospect results have been cleared."
+        : "Your domain list has been cleared.",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setTextarea(snapshot.textarea);
+          setResults(snapshot.results);
+          setRan(snapshot.ran);
+        },
+      },
+      duration: 5000,
+    });
   };
 
   const loadExample = () => { setTextarea(EXAMPLE); setRan(false); };

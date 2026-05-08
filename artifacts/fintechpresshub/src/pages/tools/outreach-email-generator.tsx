@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -562,11 +563,28 @@ export default function OutreachEmailGenerator() {
   };
 
   const reset = () => {
+    if (!body && !variants) return;
+    const snapshot = { form: { ...form }, body, variants, scores };
     setForm(DEFAULTS);
     setBody(null);
     setVariants(null);
     setScores(null);
     setCopied(null);
+    toast("Form reset", {
+      description: snapshot.body
+        ? "Your inputs and generated email have been cleared."
+        : "Your inputs have been cleared.",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setForm(snapshot.form);
+          setBody(snapshot.body);
+          setVariants(snapshot.variants);
+          setScores(snapshot.scores);
+        },
+      },
+      duration: 5000,
+    });
   };
 
   const restoreEntry = (entry: EmailEntry) => {

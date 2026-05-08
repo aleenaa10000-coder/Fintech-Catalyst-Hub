@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -568,6 +569,8 @@ export default function GuestPostPitchGenerator() {
     setForm((prev) => ({ ...prev, tone: value }));
 
   const reset = () => {
+    if (!generated && !pitch.trim()) return;
+    const snapshot = { form: { ...form }, pitch, editedPitch, generated, variation, pitchWordDelta };
     setForm(DEFAULTS);
     setPitch("");
     setEditedPitch("");
@@ -579,6 +582,23 @@ export default function GuestPostPitchGenerator() {
     setSendStatus("idle");
     setSendError("");
     setCopiedBody(false);
+    toast("Form reset", {
+      description: snapshot.generated
+        ? "Your inputs and generated pitch have been cleared."
+        : "Your inputs have been cleared.",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setForm(snapshot.form);
+          setPitch(snapshot.pitch);
+          setEditedPitch(snapshot.editedPitch);
+          setGenerated(snapshot.generated);
+          setVariation(snapshot.variation);
+          setPitchWordDelta(snapshot.pitchWordDelta);
+        },
+      },
+      duration: 5000,
+    });
   };
 
   async function sendPitch() {

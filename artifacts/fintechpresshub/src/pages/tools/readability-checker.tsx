@@ -569,12 +569,14 @@ export default function ReadabilityChecker() {
       results.tips.forEach((tip) => lines.push(`- ${tip}`));
       lines.push(``);
     }
-    if (scoreHistory.length >= 2) {
+    if (scoreHistory.length >= 1) {
       lines.push(`### Score History`);
       lines.push(``);
-      scoreHistory.forEach((s, i) => lines.push(`- Check #${i + 1}: ${Math.round(s)}`));
-      const delta = Math.round(scoreHistory[scoreHistory.length - 1] - scoreHistory[0]);
-      lines.push(`- **Overall change: ${delta > 0 ? "+" : ""}${delta}**`);
+      scoreHistory.forEach((s, i) => lines.push(`- Edit ${i + 1}: ${Math.round(s)}`));
+      if (scoreHistory.length >= 2) {
+        const delta = Math.round(scoreHistory[scoreHistory.length - 1] - scoreHistory[0]);
+        lines.push(`- **Overall change: ${delta > 0 ? "+" : ""}${delta}**`);
+      }
       lines.push(``);
     }
     lines.push(`### Original Text`);
