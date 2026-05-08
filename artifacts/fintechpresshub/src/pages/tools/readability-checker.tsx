@@ -794,6 +794,7 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = "readability-checker-history";
+const DRAFT_KEY = "readability-checker-draft";
 const MAX_HISTORY = 10;
 
 function loadHistory(): HistoryEntry[] {
@@ -848,6 +849,7 @@ export default function ReadabilityChecker() {
     setScoreHistory([]);
     setActiveRewrite(null);
     setActivePassiveGuide(null);
+    try { localStorage.removeItem(DRAFT_KEY); } catch {}
     toast("Content cleared", {
       description: snapshot.checked ? "Your text and results have been reset." : "Your text has been cleared.",
       action: {
@@ -863,6 +865,18 @@ export default function ReadabilityChecker() {
       duration: 5000,
     });
   };
+
+  useEffect(() => {
+    try {
+      if (text) {
+        localStorage.setItem(DRAFT_KEY, text);
+      } else {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    } catch {
+      // storage full or unavailable — ignore
+    }
+  }, [text]);
 
   const [copyImprovedState, setCopyImprovedState] = useState<"idle" | "copied">("idle");
   const [copyMdState, setCopyMdState] = useState<"idle" | "copied">("idle");
@@ -882,9 +896,17 @@ export default function ReadabilityChecker() {
     // Load persisted analysis history
     setAnalysisHistory(loadHistory());
 
-    // Auto-populate from shareable URL param
+    // Restore auto-saved draft (if no URL param overrides it)
     const params = new URLSearchParams(window.location.search);
     const encoded = params.get("t");
+    if (!encoded) {
+      try {
+        const saved = localStorage.getItem(DRAFT_KEY);
+        if (saved) setText(saved);
+      } catch {
+        // storage unavailable — ignore
+      }
+    }
     if (!encoded) return;
     try {
       const bytes = Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0));

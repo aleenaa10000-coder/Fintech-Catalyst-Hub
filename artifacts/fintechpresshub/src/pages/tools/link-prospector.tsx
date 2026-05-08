@@ -24,6 +24,8 @@ import {
   Check,
   Download,
   Mail,
+  Copy,
+  CheckCircle2,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -246,6 +248,7 @@ export default function LinkProspector() {
   const [error, setError] = useState("");
   const [ran, setRan] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedDomain, setCopiedDomain] = useState<string | null>(null);
   const [statusMap, setStatusMap] = useState<Record<string, OutreachStatus>>(() => {
     try {
       const stored = localStorage.getItem(LS_STATUS_KEY);
@@ -616,7 +619,35 @@ export default function LinkProspector() {
                               </span>
                             </td>
                             <td className="px-3 py-3">
-                              <span className="font-semibold text-slate-800 text-sm">{r.domain}</span>
+                              <div className="flex items-center gap-1">
+                                <a
+                                  href={`https://${r.domain}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="font-semibold text-slate-800 text-sm hover:text-blue-600 hover:underline underline-offset-2 transition-colors"
+                                >
+                                  {r.domain}
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(r.domain).then(() => {
+                                      setCopiedDomain(r.domain);
+                                      setTimeout(() => setCopiedDomain(null), 1500);
+                                    });
+                                  }}
+                                  className="shrink-0 p-1 rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-all"
+                                  title="Copy domain"
+                                >
+                                  {copiedDomain === r.domain ? (
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                  ) : (
+                                    <Copy className="w-3 h-3" />
+                                  )}
+                                </button>
+                              </div>
                             </td>
                             <td className="px-3 py-3 text-slate-600 font-mono text-xs">
                               {r.da > 0 ? r.da : <span className="text-muted-foreground/50">—</span>}
