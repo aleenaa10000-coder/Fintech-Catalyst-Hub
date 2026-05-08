@@ -87,6 +87,8 @@ const LS_SAVED_LISTS_KEY = "lp-saved-lists";
 const LS_NOTES_KEY = "lp-notes";
 const LS_SAVED_SEARCHES_KEY = "lp-saved-searches";
 const LS_TIMELINE_KEY = "lp-timeline-events";
+const LS_PROSPECTS_KEY = "lp-prospects";
+const LS_SCORING_MODE_KEY = "lp-scoring-mode";
 const MAX_TEXTAREA_WARN = 5_000;
 const MAX_TEXTAREA_HARD = 10_000;
 
@@ -340,9 +342,16 @@ export default function LinkProspector() {
   const [ran, setRan] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedDomain, setCopiedDomain] = useState<string | null>(null);
-  const [scoringMode, setScoringMode] = useState<ScoringMode>("authority");
+  const [scoringMode, setScoringMode] = useState<ScoringMode>(() => {
+    try {
+      const stored = localStorage.getItem(LS_SCORING_MODE_KEY);
+      return stored === "traffic" ? "traffic" : "authority";
+    } catch { return "authority"; }
+  });
   const [showSettings, setShowSettings] = useState(false);
-  const scoringModeRef = useRef<ScoringMode>("authority");
+  const scoringModeRef = useRef<ScoringMode>(scoringMode);
+  const resultsRef = useRef<ProspectResult[]>([]);
+  const textareaRef = useRef<string>("");
   const [savedLists, setSavedLists] = useState<SavedList[]>(() => {
     try { return JSON.parse(localStorage.getItem(LS_SAVED_LISTS_KEY) ?? "[]"); }
     catch { return []; }
@@ -378,6 +387,7 @@ export default function LinkProspector() {
   const [showSaveSearchInput, setShowSaveSearchInput] = useState(false);
   const [pitchText, setPitchText] = useState("");
   const [showTimeline, setShowTimeline] = useState(false);
+  const [clearConfirm, setClearConfirm] = useState(false);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>(() => {
     try { return JSON.parse(localStorage.getItem(LS_TIMELINE_KEY) ?? "[]"); }
     catch { return []; }
@@ -433,6 +443,8 @@ export default function LinkProspector() {
       const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(current) + 1) % STATUS_CYCLE.length];
       const updated = { ...prev, [domain]: next };
       try { localStorage.setItem(LS_STATUS_KEY, JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem(LS_PROSPECTS_KEY, JSON.stringify({ textarea: textareaRef.current, results: resultsRef.current })); } catch {}
+      try { localStorage.setItem(LS_SCORING_MODE_KEY, scoringModeRef.current); } catch {}
       addTimelineEvents([{ domain, from: current, to: next }]);
       return updated;
     });
@@ -452,8 +464,13 @@ export default function LinkProspector() {
     if (lines.length > 50) { setError("Maximum 50 domains per batch."); return; }
     const parsed = lines.map(parseLine).filter(Boolean) as { domain: string; da: number; traffic: number }[];
     if (parsed.length === 0) { setError("Couldn't parse any valid domains. Check the format."); return; }
-    setResults(parsed.map((p) => estimateOne(p.domain, p.da, p.traffic, scoringModeRef.current)));
+    const newResults = parsed.map((p) => estimateOne(p.domain, p.da, p.traffic, scoringModeRef.current));
+    setResults(newResults);
+    resultsRef.current = newResults;
+    textareaRef.current = text;
     setRan(true);
+    try { localStorage.setItem(LS_PROSPECTS_KEY, JSON.stringify({ textarea: text, results: newResults })); } catch {}
+    try { localStorage.setItem(LS_SCORING_MODE_KEY, scoringModeRef.current); } catch {}
     trackEvent("Tool Used", { tool: "link-prospector", domain_count: parsed.length });
     if (pushUrl) {
       try {
@@ -531,7 +548,7 @@ export default function LinkProspector() {
   const exportSelectedCSV = () => {
     const selected = filteredSorted.filter((r) => selectedDomains.has(r.domain));
     if (selected.length === 0) return;
-    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject"];
+    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject", "Notes"];
     const rows = selected.map((r) => {
       const subject =
         r.da > 60
@@ -547,6 +564,7 @@ export default function LinkProspector() {
         r.acquisition.label,
         STATUS_LABELS[statusMap[r.domain] ?? "not_started"],
         subject,
+        notesMap[r.domain] ?? "",
       ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
     });
     const csv = [header.join(","), ...rows].join("\n");
@@ -630,7 +648,7 @@ export default function LinkProspector() {
   };
 
   const exportPitchCSV = () => {
-    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject"];
+    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject", "Notes"];
     const rows = filteredSorted.map((r) => {
       const subject =
         r.da > 60
@@ -649,6 +667,7 @@ export default function LinkProspector() {
         r.acquisition.label,
         STATUS_LABELS[statusMap[r.domain] ?? "not_started"],
         subject,
+        notesMap[r.domain] ?? "",
       ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
     });
     const csv = [header.join(","), ...rows].join("\n");
@@ -696,10 +715,18 @@ Looking forward to hearing from you,
 [Your Company]`;
   };
 
-  // Keep ref in sync with state so the useCallback can read the latest mode
+  // Keep refs in sync so callbacks always read the latest values
   useEffect(() => {
     scoringModeRef.current = scoringMode;
   }, [scoringMode]);
+
+  useEffect(() => {
+    resultsRef.current = results;
+  }, [results]);
+
+  useEffect(() => {
+    textareaRef.current = textarea;
+  }, [textarea]);
 
   // Re-score existing results whenever the scoring mode changes
   useEffect(() => {
@@ -712,7 +739,7 @@ Looking forward to hearing from you,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scoringMode]);
 
-  // On mount, restore state from URL if present
+  // On mount, restore state from URL if present, otherwise from localStorage
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -721,9 +748,26 @@ Looking forward to hearing from you,
         const text = decodeURIComponent(escape(atob(encoded)));
         setTextarea(text);
         runWithText(text, false);
+        return;
       }
     } catch {
       // ignore malformed URL params
+    }
+    // Fallback: restore from localStorage
+    try {
+      const saved = localStorage.getItem(LS_PROSPECTS_KEY);
+      if (saved) {
+        const { textarea: savedText, results: savedResults } = JSON.parse(saved) as { textarea: string; results: ProspectResult[] };
+        if (savedText && Array.isArray(savedResults) && savedResults.length > 0) {
+          setTextarea(savedText);
+          setResults(savedResults);
+          resultsRef.current = savedResults;
+          textareaRef.current = savedText;
+          setRan(true);
+        }
+      }
+    } catch {
+      // ignore malformed localStorage data
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -736,6 +780,7 @@ Looking forward to hearing from you,
     setRan(false);
     setError("");
     setCopied(false);
+    setClearConfirm(false);
     const url = new URL(window.location.href);
     url.searchParams.delete("data");
     window.history.replaceState(null, "", url.toString());
@@ -752,6 +797,30 @@ Looking forward to hearing from you,
         },
       },
       duration: 5000,
+    });
+  };
+
+  const clearAll = () => {
+    try { localStorage.removeItem(LS_PROSPECTS_KEY); } catch {}
+    try { localStorage.removeItem(LS_SCORING_MODE_KEY); } catch {}
+    try { localStorage.removeItem(LS_STATUS_KEY); } catch {}
+    try { localStorage.removeItem(LS_NOTES_KEY); } catch {}
+    try { localStorage.removeItem(LS_TIMELINE_KEY); } catch {}
+    setTextarea("");
+    setResults([]);
+    setRan(false);
+    setError("");
+    setCopied(false);
+    setStatusMap({});
+    setNotesMap({});
+    setScoringMode("authority");
+    setClearConfirm(false);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("data");
+    window.history.replaceState(null, "", url.toString());
+    toast("All data cleared", {
+      description: "Prospects, statuses, notes and saved session have been wiped.",
+      duration: 4000,
     });
   };
 
@@ -776,6 +845,7 @@ Looking forward to hearing from you,
       "Difficulty Stars",
       "Difficulty Label",
       "Outreach Strategy",
+      "Notes",
     ];
     const escape = (v: string | number) => {
       const s = String(v);
@@ -794,6 +864,7 @@ Looking forward to hearing from you,
       escape(r.acquisition.stars),
       escape(r.acquisition.label),
       escape(r.acquisition.strategyTip),
+      escape(notesMap[r.domain] ?? ""),
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -901,14 +972,34 @@ Looking forward to hearing from you,
                       <Settings2 className="w-3.5 h-3.5" />
                       Settings
                     </button>
-                    <button
-                      type="button"
-                      onClick={reset}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-slate-700 transition-colors"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      Reset
-                    </button>
+                    {clearConfirm ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-red-600 font-medium">Clear all saved data?</span>
+                        <button
+                          type="button"
+                          onClick={clearAll}
+                          className="text-xs font-semibold px-2 py-0.5 rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+                        >
+                          Yes, clear all
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setClearConfirm(false)}
+                          className="text-xs text-muted-foreground hover:text-slate-700 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setClearConfirm(true)}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-slate-700 transition-colors"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Reset
+                      </button>
+                    )}
                   </div>
                 </div>
 
