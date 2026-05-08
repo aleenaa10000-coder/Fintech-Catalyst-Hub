@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,6 +20,7 @@ import {
   Copy,
   Flame,
   FileDown,
+  Link2,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -459,6 +460,77 @@ function vibeColor(score: number): string {
   return "#7e22ce";
 }
 
+function BenchmarkScale({ score }: { score: number }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+        Benchmark
+      </div>
+      <div className="relative pt-3">
+        <div
+          className="absolute z-10 top-0 transition-all duration-500 ease-in-out"
+          style={{
+            left: `${Math.min(Math.max(score, 5), 95)}%`,
+            transform: "translateX(-50%)",
+          }}
+        >
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: "5px solid transparent",
+              borderRight: "5px solid transparent",
+              borderTop: `8px solid ${
+                score >= 80 ? "#16a34a"
+                : score >= 60 ? "#0ea5e9"
+                : score >= 40 ? "#f97316"
+                : "#dc2626"
+              }`,
+            }}
+          />
+        </div>
+        <div className="flex h-4 rounded-full overflow-hidden">
+          <div className="bg-rose-400" style={{ width: "40%" }} title="Academic (0–40)" />
+          <div className="bg-amber-400" style={{ width: "20%" }} title="Technical Docs (40–60)" />
+          <div className="bg-sky-400" style={{ width: "20%" }} title="Standard Blogs (60–80)" />
+          <div className="bg-emerald-400" style={{ width: "20%" }} title="Social Media (80–100)" />
+        </div>
+        <div className="relative h-4 mt-0.5">
+          {[0, 40, 60, 80, 100].map((tick) => (
+            <span
+              key={tick}
+              className="absolute text-[7px] sm:text-[9px] text-muted-foreground leading-none"
+              style={{
+                left: `${tick}%`,
+                transform:
+                  tick === 0
+                    ? "none"
+                    : tick === 100
+                      ? "translateX(-100%)"
+                      : "translateX(-50%)",
+              }}
+            >
+              {tick}
+            </span>
+          ))}
+        </div>
+        <div className="flex text-[7px] sm:text-[10px] text-muted-foreground">
+          <div style={{ width: "40%" }} className="text-center px-0.5 truncate">
+            <span className="hidden sm:inline">Academic</span>
+            <span className="sm:hidden">Acad.</span>
+          </div>
+          <div style={{ width: "20%" }} className="text-center px-0.5 truncate">
+            <span className="hidden sm:inline">Tech Docs</span>
+            <span className="sm:hidden">Tech</span>
+          </div>
+          <div style={{ width: "20%" }} className="text-center px-0.5 truncate">Blogs</div>
+          <div style={{ width: "20%" }} className="text-center px-0.5 truncate">Social</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ScoreHistoryChart({ scores, onClear }: { scores: number[]; onClear?: () => void }) {
   const VW = 400, VH = 300;
   const padL = 32, padR = 12, padT = 28, padB = 30;
@@ -701,6 +773,45 @@ export default function ReadabilityChecker() {
     agentHint: string | null;
   } | null>(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [shareLinkState, setShareLinkState] = useState<"idle" | "copied">("idle");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const encoded = params.get("t");
+    if (!encoded) return;
+    try {
+      const bytes = Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0));
+      const decoded = new TextDecoder().decode(bytes);
+      if (decoded.trim().split(/\s+/).length >= 10) {
+        const { sentences, words } = tokenize(decoded);
+        const score = Math.round(fleschScore(words, sentences));
+        setText(decoded);
+        setCheckedText(decoded);
+        setChecked(true);
+        setScoreHistory([score]);
+      }
+    } catch {
+      // ignore malformed URLs
+    }
+  }, []);
+
+  const copyShareLink = async () => {
+    if (!checkedText.trim()) return;
+    try {
+      const bytes = new TextEncoder().encode(checkedText);
+      const encoded = btoa(String.fromCharCode(...Array.from(bytes)));
+      const url = `${window.location.origin}${window.location.pathname}?t=${encoded}`;
+      window.history.replaceState({}, "", `?t=${encoded}`);
+      await writeToClipboard(url);
+      setShareLinkState("copied");
+      setTimeout(() => setShareLinkState("idle"), 2000);
+      trackEvent("Share Link Copied", { tool: "readability-checker" });
+    } catch {
+      toast.error("Could not generate share link", {
+        description: "Your text may be too long for a URL.",
+      });
+    }
+  };
 
   const copyText = async () => {
     await writeToClipboard(text);
@@ -1101,7 +1212,8 @@ export default function ReadabilityChecker() {
       />
 
       <section className="py-12 md:py-16">
-        <div className="container mx-auto px-4 max-w-3xl">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
           <Link
             href="/tools"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary mb-8 transition-colors"
@@ -1219,6 +1331,7 @@ export default function ReadabilityChecker() {
               </Button>
             </CardContent>
           </Card>
+          </div>
 
           <AnimatePresence>
             {checked && results && (
@@ -1227,7 +1340,7 @@ export default function ReadabilityChecker() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 8 }}
-                className="mt-6 space-y-4"
+                className="mt-6 space-y-4 max-w-6xl mx-auto"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -1241,6 +1354,24 @@ export default function ReadabilityChecker() {
                     )}
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Button
+                      onClick={copyShareLink}
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto h-9 sm:h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-600 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700"
+                    >
+                      {shareLinkState === "copied" ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 mr-1 text-teal-500" />
+                          Link copied!
+                        </>
+                      ) : (
+                        <>
+                          <Link2 className="w-3 h-3 mr-1" />
+                          Copy link
+                        </>
+                      )}
+                    </Button>
                     <Button
                       onClick={copyBadge}
                       variant="outline"
@@ -1349,95 +1480,9 @@ export default function ReadabilityChecker() {
                       </div>
                     </div>
 
-                    {/* Benchmark scale */}
-                    <div className="border-t border-slate-100 pt-4">
-                      <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                        Benchmark
-                      </div>
-                      <div className="relative pt-3">
-                        {/* Needle */}
-                        <div
-                          className="absolute z-10 top-0 transition-all duration-500 ease-in-out"
-                          style={{
-                            left: `${Math.min(Math.max(results.score, 5), 95)}%`,
-                            transform: "translateX(-50%)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: 0,
-                              height: 0,
-                              borderLeft: "5px solid transparent",
-                              borderRight: "5px solid transparent",
-                              borderTop: `8px solid ${
-                                results.score >= 80 ? "#16a34a"
-                                : results.score >= 60 ? "#0ea5e9"
-                                : results.score >= 40 ? "#f97316"
-                                : "#dc2626"
-                              }`,
-                            }}
-                          />
-                        </div>
-
-                        {/* Zone bar */}
-                        <div className="flex h-4 rounded-full overflow-hidden">
-                          <div
-                            className="bg-rose-400"
-                            style={{ width: "40%" }}
-                            title="Academic (0–40)"
-                          />
-                          <div
-                            className="bg-amber-400"
-                            style={{ width: "20%" }}
-                            title="Technical Docs (40–60)"
-                          />
-                          <div
-                            className="bg-sky-400"
-                            style={{ width: "20%" }}
-                            title="Standard Blogs (60–80)"
-                          />
-                          <div
-                            className="bg-emerald-400"
-                            style={{ width: "20%" }}
-                            title="Social Media (80–100)"
-                          />
-                        </div>
-
-                        {/* Tick numbers */}
-                        <div className="relative h-4 mt-0.5">
-                          {[0, 40, 60, 80, 100].map((tick) => (
-                            <span
-                              key={tick}
-                              className="absolute text-[7px] sm:text-[9px] text-muted-foreground leading-none"
-                              style={{
-                                left: `${tick}%`,
-                                transform:
-                                  tick === 0
-                                    ? "none"
-                                    : tick === 100
-                                      ? "translateX(-100%)"
-                                      : "translateX(-50%)",
-                              }}
-                            >
-                              {tick}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Zone name labels */}
-                        <div className="flex text-[7px] sm:text-[10px] text-muted-foreground">
-                          <div style={{ width: "40%" }} className="text-center px-0.5 truncate">
-                            <span className="hidden sm:inline">Academic</span>
-                            <span className="sm:hidden">Acad.</span>
-                          </div>
-                          <div style={{ width: "20%" }} className="text-center px-0.5 truncate">
-                            <span className="hidden sm:inline">Tech Docs</span>
-                            <span className="sm:hidden">Tech</span>
-                          </div>
-                          <div style={{ width: "20%" }} className="text-center px-0.5 truncate">Blogs</div>
-                          <div style={{ width: "20%" }} className="text-center px-0.5 truncate">Social</div>
-                        </div>
-                      </div>
+                    {/* Benchmark scale — visible on mobile, moved to sidebar on desktop */}
+                    <div className="border-t border-slate-100 pt-4 md:hidden">
+                      <BenchmarkScale score={results.score} />
                     </div>
                   </CardContent>
                 </Card>
@@ -1486,8 +1531,10 @@ export default function ReadabilityChecker() {
                 {/* Sentence Distribution */}
                 <SentenceDistributionBar segments={results.visualSegments} />
 
-                {/* Score History Chart */}
-                <ScoreHistoryChart scores={scoreHistory} onClear={() => setScoreHistory([])} />
+                {/* Score History Chart — visible on mobile, moved to sidebar on desktop */}
+                <div className="md:hidden">
+                  <ScoreHistoryChart scores={scoreHistory} onClear={() => setScoreHistory([])} />
+                </div>
 
                 {/* Tips */}
                 {results.score >= 80 && results.tips.length === 0 ? (
@@ -1525,6 +1572,9 @@ export default function ReadabilityChecker() {
                     </CardContent>
                   </Card>
                 ) : null}
+
+                {/* Two-column desktop grid: Visual Analysis left, sticky sidebar right */}
+                <div className="md:grid md:grid-cols-[1fr_320px] md:items-start md:gap-6">
 
                 {/* Visual Analysis */}
                 <Card className="border border-slate-100 shadow-sm">
@@ -1813,6 +1863,18 @@ export default function ReadabilityChecker() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Sticky sidebar — desktop only */}
+                <div className="hidden md:flex md:flex-col md:gap-4 md:sticky md:top-6 md:self-start">
+                  <ScoreHistoryChart scores={scoreHistory} onClear={() => setScoreHistory([])} />
+                  <Card className="border border-slate-100 shadow-sm">
+                    <CardContent className="p-5">
+                      <BenchmarkScale score={results.score} />
+                    </CardContent>
+                  </Card>
+                </div>
+
+                </div>{/* end two-column grid */}
 
                 <Card className="border border-teal-100 bg-teal-50 shadow-sm">
                   <CardContent className="p-4">
