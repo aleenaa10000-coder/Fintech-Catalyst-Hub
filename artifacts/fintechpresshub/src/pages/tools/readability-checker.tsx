@@ -19,6 +19,7 @@ import {
   Eye,
   Copy,
   Flame,
+  FileDown,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -691,6 +692,7 @@ export default function ReadabilityChecker() {
   const [copyImprovedState, setCopyImprovedState] = useState<"idle" | "copied">("idle");
   const [copyMdState, setCopyMdState] = useState<"idle" | "copied">("idle");
   const [copyBadgeState, setCopyBadgeState] = useState<"idle" | "copied">("idle");
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [activeRewrite, setActiveRewrite] = useState<{ original: string; rewritten: string } | null>(null);
   const [copyRewriteState, setCopyRewriteState] = useState<"idle" | "copied">("idle");
   const [activePassiveGuide, setActivePassiveGuide] = useState<{
@@ -840,6 +842,172 @@ export default function ReadabilityChecker() {
     trackEvent("Result Copied", { tool: "readability-checker", format: "markdown" });
     setCopyMdState("copied");
     setTimeout(() => setCopyMdState("idle"), 1500);
+  };
+
+  const exportPDF = async () => {
+    if (!results) return;
+    setPdfLoading(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 48;
+      const contentW = pageW - margin * 2;
+      let y = margin;
+      const LINE = 16;
+      const SECTION = 26;
+
+      const addText = (
+        text: string,
+        size: number,
+        style: "normal" | "bold" = "normal",
+        color: [number, number, number] = [30, 30, 30],
+        indent = 0,
+      ) => {
+        doc.setFontSize(size);
+        doc.setFont("helvetica", style);
+        doc.setTextColor(...color);
+        const wrapped = doc.splitTextToSize(text, contentW - indent);
+        doc.text(wrapped, margin + indent, y);
+        y += wrapped.length * (size * 1.35);
+      };
+
+      const addRule = (color: [number, number, number] = [220, 220, 220]) => {
+        doc.setDrawColor(...color);
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, pageW - margin, y);
+        y += 10;
+      };
+
+      // Header bar
+      doc.setFillColor(13, 148, 136);
+      doc.rect(0, 0, pageW, 56, "F");
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text("FintechPressHub", margin, 34);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("Readability Analysis Report", margin, 48);
+      y = 80;
+
+      // Date
+      addText(
+        `Generated: ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`,
+        9, "normal", [130, 130, 130],
+      );
+      y += SECTION / 2;
+
+      // Score + level
+      const scoreRgb: [number, number, number] =
+        results.score >= 65 ? [22, 163, 74] : results.score >= 45 ? [217, 119, 6] : [220, 38, 38];
+      addText(`Flesch Score: ${results.score.toFixed(0)} / 100 — ${results.level.label}`, 16, "bold", scoreRgb);
+      y += 4;
+      const vibeLabel = vibeFromScore(results.score).label.replace(/^Vibe:\s*/i, "");
+      addText(`Grade Level: ${results.grade}  ·  Vibe: ${vibeLabel}`, 11, "normal", [80, 80, 80]);
+      y += 4;
+      const bench = benchmarkFromScore(results.score);
+      addText(`${bench.icon} Reads like a ${bench.label}. ${bench.detail}`, 9, "normal", [100, 100, 100]);
+      y += SECTION;
+      addRule();
+      y += 4;
+
+      // Key stats
+      addText("Key Statistics", 12, "bold");
+      y += 8;
+      const stats: [string, string][] = [
+        ["Word count", results.wordCount.toLocaleString()],
+        ["Sentences", results.sentenceCount.toLocaleString()],
+        ["Avg sentence length", `${results.avgSentenceLen.toFixed(1)} words`],
+        ["Avg syllables per word", results.avgSyllables.toFixed(2)],
+        ["Reading time", `${Math.max(1, Math.ceil(results.wordCount / 200))} min`],
+        ["Passive voice", `${results.passiveCount} sentence${results.passiveCount !== 1 ? "s" : ""}`],
+      ];
+      stats.forEach(([label, value]) => {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(50, 50, 50);
+        doc.text(`${label}:`, margin + 8, y);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80, 80, 80);
+        doc.text(value, pageW - margin, y, { align: "right" });
+        y += LINE * 1.3;
+      });
+      y += SECTION / 2;
+      addRule();
+      y += 4;
+
+      // Sentence breakdown
+      const allSegs = results.visualSegments.flat();
+      const total = allSegs.length;
+      if (total > 0) {
+        addText("Sentence Breakdown", 12, "bold");
+        y += 8;
+        const pct = (n: number) => Math.round((n / total) * 100);
+        const short  = allSegs.filter((s) => s.difficulty === "normal").length;
+        const medium = allSegs.filter((s) => s.difficulty === "moderate").length;
+        const long   = allSegs.filter((s) => s.difficulty === "hard").length;
+        const passive = allSegs.filter((s) => s.passive).length;
+        [
+          [`Short  (≤15 words)`, short],
+          [`Medium (16–25 words)`, medium],
+          [`Long   (25+ words)`, long],
+          [`Passive voice`, passive],
+        ].forEach(([label, count]) => {
+          addText(`${label}: ${count} (${pct(count as number)}%)`, 10, "normal", [80, 80, 80], 8);
+          y += 2;
+        });
+        y += SECTION / 2;
+        addRule();
+        y += 4;
+      }
+
+      // Improvement tips
+      if (results.tips.length > 0) {
+        addText("Improvement Tips", 12, "bold");
+        y += 8;
+        results.tips.forEach((tip) => {
+          addText(`• ${tip}`, 9, "normal", [60, 60, 60], 8);
+          y += 2;
+        });
+        y += SECTION / 2;
+        addRule();
+        y += 4;
+      }
+
+      // Score history
+      if (scoreHistory.length >= 2) {
+        addText("Score History", 12, "bold");
+        y += 8;
+        scoreHistory.forEach((s, i) => {
+          addText(`Edit ${i + 1}: ${Math.round(s)}`, 9, "normal", [80, 80, 80], 8);
+          y += 2;
+        });
+        const delta = Math.round(scoreHistory[scoreHistory.length - 1] - scoreHistory[0]);
+        addText(
+          `Overall change: ${delta > 0 ? "+" : ""}${delta}`,
+          9, "bold", delta >= 0 ? [22, 163, 74] : [220, 38, 38], 8,
+        );
+        y += SECTION / 2;
+        addRule();
+        y += 4;
+      }
+
+      // Footer
+      addText(
+        "Generated by FintechPressHub Readability Checker · fintechpresshub.com",
+        8, "normal", [160, 160, 160],
+      );
+
+      doc.save(`readability-report-${new Date().toISOString().split("T")[0]}.pdf`);
+      trackEvent("Result Exported", { tool: "readability-checker", format: "pdf" });
+      toast.success("PDF exported!", { description: "Your readability report has been downloaded." });
+    } catch (err) {
+      console.error(err);
+      toast.error("PDF export failed", { description: "Please try again." });
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   const writeToClipboard = async (text: string) => {
@@ -1106,6 +1274,25 @@ export default function ReadabilityChecker() {
                         <>
                           <Copy className="w-3 h-3 mr-1" />
                           Copy as Markdown
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={exportPDF}
+                      disabled={pdfLoading}
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto h-9 sm:h-7 px-2.5 text-[11px] font-semibold border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-400"
+                    >
+                      {pdfLoading ? (
+                        <>
+                          <span className="w-3 h-3 mr-1 border-2 border-teal-400 border-t-transparent rounded-full animate-spin inline-block" />
+                          Exporting…
+                        </>
+                      ) : (
+                        <>
+                          <FileDown className="w-3 h-3 mr-1" />
+                          Export PDF
                         </>
                       )}
                     </Button>
