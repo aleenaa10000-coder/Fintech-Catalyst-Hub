@@ -39,6 +39,9 @@ import {
   Filter,
   Send,
   BookmarkPlus,
+  Clock,
+  Trophy,
+  ArrowRight,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -83,6 +86,15 @@ const LS_STATUS_KEY = "lp-outreach-status";
 const LS_SAVED_LISTS_KEY = "lp-saved-lists";
 const LS_NOTES_KEY = "lp-notes";
 const LS_SAVED_SEARCHES_KEY = "lp-saved-searches";
+const LS_TIMELINE_KEY = "lp-timeline-events";
+
+type TimelineEvent = {
+  id: string;
+  domain: string;
+  from: OutreachStatus;
+  to: OutreachStatus;
+  timestamp: number;
+};
 
 type SavedSearch = {
   id: string;
@@ -281,7 +293,7 @@ type SavedList = {
   domainCount: number;
 };
 
-type SortKey = "score" | "linkValueMin" | "acquisitionStars" | "da" | "traffic";
+type SortKey = "score" | "linkValueMin" | "acquisitionStars" | "da" | "traffic" | "priority";
 type SortDir = "asc" | "desc";
 
 function SortIcon({ col, active, dir }: { col: SortKey; active: SortKey; dir: SortDir }) {
@@ -320,7 +332,7 @@ paymentsdive.com,51,18000`;
 export default function LinkProspector() {
   const [textarea, setTextarea] = useState("");
   const [results, setResults] = useState<ProspectResult[]>([]);
-  const [sortKey, setSortKey] = useState<SortKey>("score");
+  const [sortKey, setSortKey] = useState<SortKey>("priority");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [error, setError] = useState("");
   const [ran, setRan] = useState(false);
@@ -363,6 +375,25 @@ export default function LinkProspector() {
   const [saveSearchName, setSaveSearchName] = useState("");
   const [showSaveSearchInput, setShowSaveSearchInput] = useState(false);
   const [pitchText, setPitchText] = useState("");
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>(() => {
+    try { return JSON.parse(localStorage.getItem(LS_TIMELINE_KEY) ?? "[]"); }
+    catch { return []; }
+  });
+
+  const addTimelineEvents = (events: Omit<TimelineEvent, "id" | "timestamp">[]) => {
+    const now = Date.now();
+    const newEvents: TimelineEvent[] = events.map((e, i) => ({
+      ...e,
+      id: `${now}-${i}`,
+      timestamp: now,
+    }));
+    setTimelineEvents((prev) => {
+      const updated = [...newEvents, ...prev].slice(0, 200);
+      try { localStorage.setItem(LS_TIMELINE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
 
   type SitePreview = { title: string; description: string; loading: boolean; error?: string };
   const [previewMap, setPreviewMap] = useState<Record<string, SitePreview>>({});
@@ -400,6 +431,7 @@ export default function LinkProspector() {
       const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(current) + 1) % STATUS_CYCLE.length];
       const updated = { ...prev, [domain]: next };
       try { localStorage.setItem(LS_STATUS_KEY, JSON.stringify(updated)); } catch {}
+      addTimelineEvents([{ domain, from: current, to: next }]);
       return updated;
     });
   };
@@ -473,8 +505,14 @@ export default function LinkProspector() {
   const bulkSetStatus = (status: OutreachStatus) => {
     setStatusMap((prev) => {
       const updated = { ...prev };
-      filteredSorted.forEach((r) => { updated[r.domain] = status; });
+      const events: Omit<TimelineEvent, "id" | "timestamp">[] = [];
+      filteredSorted.forEach((r) => {
+        const current = prev[r.domain] ?? "not_started";
+        if (current !== status) events.push({ domain: r.domain, from: current, to: status });
+        updated[r.domain] = status;
+      });
       try { localStorage.setItem(LS_STATUS_KEY, JSON.stringify(updated)); } catch {}
+      if (events.length > 0) addTimelineEvents(events);
       return updated;
     });
     toast(`All ${filteredSorted.length} prospects marked as "${STATUS_LABELS[status]}"`, { duration: 2500 });
@@ -516,8 +554,14 @@ export default function LinkProspector() {
     if (selectedDomains.size === 0) return;
     setStatusMap((prev) => {
       const updated = { ...prev };
-      selectedDomains.forEach((domain) => { updated[domain] = status; });
+      const events: Omit<TimelineEvent, "id" | "timestamp">[] = [];
+      selectedDomains.forEach((domain) => {
+        const current = prev[domain] ?? "not_started";
+        if (current !== status) events.push({ domain, from: current, to: status });
+        updated[domain] = status;
+      });
       try { localStorage.setItem(LS_STATUS_KEY, JSON.stringify(updated)); } catch {}
+      if (events.length > 0) addTimelineEvents(events);
       return updated;
     });
     const n = selectedDomains.size;
@@ -761,6 +805,9 @@ Looking forward to hearing from you,
     }
   };
 
+  const computePriority = (r: ProspectResult) =>
+    r.acquisition.stars > 0 ? r.linkValue.min / r.acquisition.stars : 0;
+
   const sorted = useMemo(() => {
     return [...results].sort((a, b) => {
       let av: number, bv: number;
@@ -768,6 +815,7 @@ Looking forward to hearing from you,
       else if (sortKey === "linkValueMin") { av = a.linkValue.min; bv = b.linkValue.min; }
       else if (sortKey === "acquisitionStars") { av = a.acquisition.stars; bv = b.acquisition.stars; }
       else if (sortKey === "da") { av = a.da; bv = b.da; }
+      else if (sortKey === "priority") { av = computePriority(a); bv = computePriority(b); }
       else { av = a.traffic; bv = b.traffic; }
       return sortDir === "desc" ? bv - av : av - bv;
     });
@@ -1159,6 +1207,15 @@ Looking forward to hearing from you,
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
+                      onClick={() => { setSortKey("priority"); setSortDir("desc"); }}
+                      className={`inline-flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all ${sortKey === "priority" && sortDir === "desc" ? "bg-amber-500 text-white border-amber-500 shadow-sm" : "border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-700"}`}
+                      title="Sort by Priority Score (Value ÷ Difficulty) — surfaces the highest-return, easiest wins first"
+                    >
+                      <Trophy className="w-3 h-3" />
+                      Easiest Wins
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => { setSortKey("score"); setSortDir("desc"); }}
                       className={`text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all ${sortKey === "score" && sortDir === "desc" ? "bg-emerald-600 text-white border-emerald-600" : "border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700"}`}
                     >
@@ -1166,10 +1223,12 @@ Looking forward to hearing from you,
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setSortKey("acquisitionStars"); setSortDir("asc"); }}
-                      className={`text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all ${sortKey === "acquisitionStars" && sortDir === "asc" ? "bg-blue-600 text-white border-blue-600" : "border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-700"}`}
+                      onClick={() => setShowTimeline((v) => !v)}
+                      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all ${showTimeline ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" : "border-slate-200 text-slate-600 hover:border-indigo-400 hover:text-indigo-700"}`}
+                      title="Toggle Outreach Timeline — audit trail of all status changes"
                     >
-                      Easiest Win
+                      <Clock className="w-3 h-3" />
+                      Timeline{timelineEvents.length > 0 && <span className={`ml-0.5 text-[10px] font-bold rounded-full px-1.5 ${showTimeline ? "bg-white/20 text-white" : "bg-indigo-100 text-indigo-700"}`}>{timelineEvents.length}</span>}
                     </button>
                     <button
                       type="button"
@@ -1622,6 +1681,9 @@ Looking forward to hearing from you,
                               title="Select all visible prospects"
                             />
                           </th>
+                          <th className={thCls("priority")} onClick={() => handleSort("priority")} title="Priority Score = Est. Value ÷ Difficulty — higher means a better ROI for your outreach effort">
+                            <span className="flex items-center gap-1"><Trophy className="w-3 h-3 text-amber-500" />Priority <SortIcon col="priority" active={sortKey} dir={sortDir} /></span>
+                          </th>
                           <th className={thCls("score")} onClick={() => handleSort("score")}>
                             <span className="flex items-center gap-1">Score <SortIcon col="score" active={sortKey} dir={sortDir} /></span>
                           </th>
@@ -1659,6 +1721,21 @@ Looking forward to hearing from you,
                                 onClick={(e) => e.stopPropagation()}
                                 className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-400 cursor-pointer accent-indigo-600"
                               />
+                            </td>
+                            <td className="px-3 py-3">
+                              {(() => {
+                                const p = computePriority(r);
+                                const pCls =
+                                  p >= 400 ? "bg-amber-50 text-amber-700 border-amber-200"
+                                  : p >= 200 ? "bg-orange-50 text-orange-600 border-orange-200"
+                                  : "bg-slate-50 text-slate-500 border-slate-200";
+                                return (
+                                  <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border ${pCls}`} title={`Priority Score: ${p.toFixed(0)} = $${r.linkValue.min} ÷ ${r.acquisition.stars} (${r.acquisition.label})`}>
+                                    <Trophy className="w-2.5 h-2.5" />
+                                    {p.toFixed(0)}
+                                  </span>
+                                );
+                              })()}
                             </td>
                             <td className="px-3 py-3">
                               <span
@@ -1801,6 +1878,100 @@ Looking forward to hearing from you,
                   </div>
                 </Card>
                 )}
+
+                {/* Outreach Timeline panel */}
+                <AnimatePresence>
+                  {showTimeline && (
+                    <motion.div
+                      key="timeline"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.22 }}
+                      className="overflow-hidden mt-4"
+                    >
+                      <Card className="border border-indigo-100 bg-white shadow-md">
+                        <CardContent className="p-5">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                                Outreach Timeline
+                              </p>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                Full audit trail of every status change across all prospects
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {timelineEvents.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTimelineEvents([]);
+                                    try { localStorage.removeItem(LS_TIMELINE_KEY); } catch {}
+                                    toast("Timeline cleared", { duration: 2000 });
+                                  }}
+                                  className="text-[10px] text-slate-400 hover:text-red-500 transition-colors font-medium"
+                                >
+                                  Clear all
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setShowTimeline(false)}
+                                className="text-slate-400 hover:text-slate-600 transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {timelineEvents.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-300">
+                              <Clock className="w-8 h-8 opacity-40" />
+                              <p className="text-xs font-medium text-slate-400">No activity yet</p>
+                              <p className="text-[11px] text-slate-300 text-center max-w-[240px]">
+                                Status changes will appear here as you update prospects. Every click is logged.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-0 max-h-80 overflow-y-auto pr-1">
+                              {timelineEvents.map((evt, idx) => {
+                                const isFirst = idx === 0;
+                                const date = new Date(evt.timestamp);
+                                const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                                const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+                                const fromStyle = STATUS_STYLES[evt.from];
+                                const toStyle = STATUS_STYLES[evt.to];
+                                return (
+                                  <div key={evt.id} className="flex items-start gap-3 group/evt">
+                                    {/* Timeline spine */}
+                                    <div className="flex flex-col items-center shrink-0 pt-1">
+                                      <div className={`w-2 h-2 rounded-full border-2 ${isFirst ? "border-indigo-500 bg-indigo-500" : "border-slate-300 bg-white"}`} />
+                                      {idx < timelineEvents.length - 1 && (
+                                        <div className="w-px flex-1 bg-slate-100 mt-0.5 min-h-[24px]" />
+                                      )}
+                                    </div>
+                                    {/* Content */}
+                                    <div className="flex-1 pb-4 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-xs font-semibold text-slate-800 truncate">{evt.domain}</span>
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${fromStyle}`}>{STATUS_LABELS[evt.from]}</span>
+                                        <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${toStyle}`}>{STATUS_LABELS[evt.to]}</span>
+                                      </div>
+                                      <p className="text-[10px] text-slate-400 mt-0.5">{dateStr} at {timeStr}</p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Monthly plan callout */}
                 <Card className="mt-4 border border-emerald-100 bg-emerald-50 shadow-sm">
