@@ -37,6 +37,8 @@ import {
   NotebookPen,
   BarChart2,
   Filter,
+  Send,
+  BookmarkPlus,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -80,6 +82,16 @@ const STATUS_LABELS: Record<OutreachStatus, string> = {
 const LS_STATUS_KEY = "lp-outreach-status";
 const LS_SAVED_LISTS_KEY = "lp-saved-lists";
 const LS_NOTES_KEY = "lp-notes";
+const LS_SAVED_SEARCHES_KEY = "lp-saved-searches";
+
+type SavedSearch = {
+  id: string;
+  name: string;
+  filterStatus: "" | OutreachStatus;
+  sortKey: SortKey;
+  sortDir: SortDir;
+  minScore: string;
+};
 
 type FormState = {
   domain: string;
@@ -343,6 +355,14 @@ export default function LinkProspector() {
   const [minScore, setMinScore] = useState("");
   const [selectedDomains, setSelectedDomains] = useState<Set<string>>(new Set());
   const selectAllRef = useRef<HTMLInputElement>(null);
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(() => {
+    try { return JSON.parse(localStorage.getItem(LS_SAVED_SEARCHES_KEY) ?? "[]"); }
+    catch { return []; }
+  });
+  const [showSavedSearchDropdown, setShowSavedSearchDropdown] = useState(false);
+  const [saveSearchName, setSaveSearchName] = useState("");
+  const [showSaveSearchInput, setShowSaveSearchInput] = useState(false);
+  const [pitchText, setPitchText] = useState("");
 
   type SitePreview = { title: string; description: string; loading: boolean; error?: string };
   const [previewMap, setPreviewMap] = useState<Record<string, SitePreview>>({});
@@ -516,6 +536,45 @@ export default function LinkProspector() {
   useEffect(() => {
     setSelectedDomains(new Set());
   }, [results]);
+
+  useEffect(() => {
+    if (pitchModal) setPitchText(generatePitchEmail(pitchModal));
+    else setPitchText("");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pitchModal]);
+
+  const saveCurrentSearch = () => {
+    if (!saveSearchName.trim()) return;
+    const search: SavedSearch = {
+      id: Date.now().toString(),
+      name: saveSearchName.trim(),
+      filterStatus,
+      sortKey,
+      sortDir,
+      minScore,
+    };
+    const updated = [...savedSearches, search];
+    setSavedSearches(updated);
+    try { localStorage.setItem(LS_SAVED_SEARCHES_KEY, JSON.stringify(updated)); } catch {}
+    setSaveSearchName("");
+    setShowSaveSearchInput(false);
+    toast(`"${search.name}" saved`, { duration: 2000 });
+  };
+
+  const applySearch = (s: SavedSearch) => {
+    setFilterStatus(s.filterStatus);
+    setSortKey(s.sortKey);
+    setSortDir(s.sortDir);
+    setMinScore(s.minScore);
+    setShowSavedSearchDropdown(false);
+    toast(`Applied "${s.name}"`, { duration: 1500 });
+  };
+
+  const deleteSearch = (id: string) => {
+    const updated = savedSearches.filter((s) => s.id !== id);
+    setSavedSearches(updated);
+    try { localStorage.setItem(LS_SAVED_SEARCHES_KEY, JSON.stringify(updated)); } catch {}
+  };
 
   const exportPitchCSV = () => {
     const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject"];
@@ -1150,6 +1209,90 @@ Looking forward to hearing from you,
                       <Download className="w-3 h-3" />
                       Export CSV
                     </button>
+                    {/* ── Saved Searches ── */}
+                    <div className="relative">
+                      <div className="flex items-center gap-1">
+                        {showSaveSearchInput ? (
+                          <>
+                            <input
+                              type="text"
+                              placeholder="Name this view…"
+                              value={saveSearchName}
+                              onChange={(e) => setSaveSearchName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveCurrentSearch();
+                                if (e.key === "Escape") { setShowSaveSearchInput(false); setSaveSearchName(""); }
+                              }}
+                              autoFocus
+                              className="text-[11px] w-28 px-2 py-1 rounded-full border border-indigo-300 focus:border-indigo-500 focus:outline-none text-slate-700"
+                            />
+                            <button
+                              type="button"
+                              onClick={saveCurrentSearch}
+                              className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 transition-all"
+                            >Save</button>
+                            <button
+                              type="button"
+                              onClick={() => { setShowSaveSearchInput(false); setSaveSearchName(""); }}
+                              className="text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setShowSaveSearchInput(true)}
+                            className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:border-indigo-400 hover:text-indigo-700 transition-all"
+                            title="Save current filters and sort as a named preset"
+                          >
+                            <BookmarkPlus className="w-3 h-3" />
+                            Save View
+                          </button>
+                        )}
+                        {savedSearches.length > 0 && !showSaveSearchInput && (
+                          <button
+                            type="button"
+                            onClick={() => setShowSavedSearchDropdown((v) => !v)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:border-indigo-400 hover:text-indigo-700 transition-all"
+                          >
+                            <Bookmark className="w-3 h-3" />
+                            Saved ({savedSearches.length})
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                      {showSavedSearchDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setShowSavedSearchDropdown(false)} />
+                          <div className="absolute left-0 top-full mt-1.5 z-20 bg-white border border-slate-200 rounded-xl shadow-lg py-1 min-w-[180px]">
+                            {savedSearches.map((s) => (
+                              <div
+                                key={s.id}
+                                className="flex items-center justify-between px-3 py-1.5 hover:bg-slate-50 group/saved"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => applySearch(s)}
+                                  className="text-[11px] font-medium text-slate-700 text-left flex-1 truncate"
+                                  title={`Status: ${s.filterStatus || "all"} · Min: ${s.minScore || "—"} · Sort: ${s.sortKey} ${s.sortDir}`}
+                                >
+                                  {s.name}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteSearch(s.id)}
+                                  className="ml-2 opacity-0 group-hover/saved:opacity-100 text-slate-300 hover:text-red-500 transition-all"
+                                  title="Delete this saved search"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                     <span className="w-px h-4 bg-slate-200 mx-1 shrink-0" />
                     <div className="flex items-center gap-1.5">
                       <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">Set all:</span>
@@ -1717,37 +1860,48 @@ Looking forward to hearing from you,
 
               <div className="px-6 py-4">
                 <textarea
-                  readOnly
-                  value={generatePitchEmail(pitchModal)}
+                  value={pitchText}
+                  onChange={(e) => setPitchText(e.target.value)}
                   rows={14}
-                  className="w-full text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 leading-relaxed"
+                  className="w-full text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-violet-400 leading-relaxed"
+                  spellCheck={false}
                 />
               </div>
 
-              <div className="flex items-center justify-between px-6 pb-5 gap-4">
-                <p className="text-[10px] text-muted-foreground leading-snug max-w-[60%]">
+              <div className="flex items-center justify-between px-6 pb-5 gap-3 flex-wrap">
+                <p className="text-[10px] text-muted-foreground leading-snug">
                   Replace <span className="font-mono bg-slate-100 px-1 rounded">[Your Name]</span> and other placeholders before sending.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(generatePitchEmail(pitchModal)).then(() => {
-                      setCopyTemplateState("copied");
-                      setTimeout(() => setCopyTemplateState("idle"), 2000);
-                    });
-                  }}
-                  className={`shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg transition-all ${
-                    copyTemplateState === "copied"
-                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                      : "bg-violet-600 text-white hover:bg-violet-700"
-                  }`}
-                >
-                  {copyTemplateState === "copied" ? (
-                    <><Check className="w-3.5 h-3.5" />Copied!</>
-                  ) : (
-                    <><Copy className="w-3.5 h-3.5" />Copy Template</>
-                  )}
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(pitchText).then(() => {
+                        setCopyTemplateState("copied");
+                        setTimeout(() => setCopyTemplateState("idle"), 2000);
+                      });
+                    }}
+                    className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-lg border transition-all ${
+                      copyTemplateState === "copied"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "border-slate-200 text-slate-600 hover:border-violet-400 hover:text-violet-700 bg-white"
+                    }`}
+                  >
+                    {copyTemplateState === "copied" ? (
+                      <><Check className="w-3.5 h-3.5" />Copied!</>
+                    ) : (
+                      <><Copy className="w-3.5 h-3.5" />Copy</>
+                    )}
+                  </button>
+                  <a
+                    href={`mailto:info@${pitchModal.domain}?subject=${encodeURIComponent(`Content Partnership Opportunity — ${pitchModal.domain}`)}&body=${encodeURIComponent(pitchText.replace(/^Subject:[^\n]*\n\n?/, "").trim())}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-all"
+                    title={`Open email client with draft to info@${pitchModal.domain}`}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Send via Email
+                  </a>
+                </div>
               </div>
             </motion.div>
           </motion.div>
