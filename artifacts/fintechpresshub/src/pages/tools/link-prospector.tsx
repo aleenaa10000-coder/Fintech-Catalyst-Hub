@@ -65,12 +65,12 @@ type OutreachStatus = "not_started" | "emailed" | "replied" | "won" | "shortlist
 const STATUS_CYCLE: OutreachStatus[] = ["not_started", "emailed", "replied", "won"];
 
 const STATUS_STYLES: Record<OutreachStatus, string> = {
-  not_started: "bg-slate-100 border-slate-200 text-slate-500",
-  emailed:     "bg-blue-50 border-blue-300 text-blue-700",
-  replied:     "bg-amber-50 border-amber-300 text-amber-700",
-  won:         "bg-emerald-50 border-emerald-300 text-emerald-700",
-  shortlisted: "bg-violet-50 border-violet-300 text-violet-700",
-  ignored:     "bg-red-50 border-red-200 text-red-400",
+  not_started: "bg-slate-500/10 text-slate-500 border-slate-400/20",
+  emailed:     "bg-blue-500/10 text-blue-600 border-blue-400/25",
+  replied:     "bg-amber-500/10 text-amber-600 border-amber-400/25",
+  won:         "bg-emerald-500/15 text-emerald-700 border-emerald-400/30",
+  shortlisted: "bg-violet-500/10 text-violet-600 border-violet-400/25",
+  ignored:     "bg-red-500/10 text-red-400 border-red-400/20",
 };
 
 const STATUS_LABELS: Record<OutreachStatus, string> = {
@@ -1574,9 +1574,9 @@ Looking forward to hearing from you,
                       const col = filteredSorted.filter((r) => (statusMap[r.domain] ?? "not_started") === status);
                       return (
                         <div key={status} className="flex flex-col gap-2">
-                          <div className={`flex items-center justify-between px-3 py-2 rounded-lg border font-semibold text-xs ${STATUS_STYLES[status]}`}>
+                          <div className={`flex items-center justify-between px-3 py-2 rounded-full border font-semibold text-xs ${STATUS_STYLES[status]}`}>
                             <span>{STATUS_LABELS[status]}</span>
-                            <span className="bg-white/70 px-1.5 py-0.5 rounded-full font-bold">{col.length}</span>
+                            <span className="bg-white/60 px-1.5 py-0.5 rounded-full font-bold">{col.length}</span>
                           </div>
                           <div className="flex flex-col gap-2 min-h-[72px]">
                             {col.map((r) => (
@@ -1607,7 +1607,7 @@ Looking forward to hearing from you,
                                   <button
                                     type="button"
                                     onClick={() => cycleStatus(r.domain)}
-                                    className={`flex-1 text-[10px] font-bold px-2 py-1 rounded border transition-all truncate ${STATUS_STYLES[statusMap[r.domain] ?? "not_started"]}`}
+                                    className={`flex-1 text-[10px] font-bold px-2 py-1 rounded-full border transition-all truncate ${STATUS_STYLES[statusMap[r.domain] ?? "not_started"]}`}
                                     title="Click to advance outreach status"
                                   >
                                     {STATUS_LABELS[statusMap[r.domain] ?? "not_started"]}
@@ -1904,17 +1904,48 @@ Looking forward to hearing from you,
                             </div>
                             <div className="flex items-center gap-2">
                               {timelineEvents.length > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTimelineEvents([]);
-                                    try { localStorage.removeItem(LS_TIMELINE_KEY); } catch {}
-                                    toast("Timeline cleared", { duration: 2000 });
-                                  }}
-                                  className="text-[10px] text-slate-400 hover:text-red-500 transition-colors font-medium"
-                                >
-                                  Clear all
-                                </button>
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const header = "Domain,From,To,Date,Time\n";
+                                      const rows = timelineEvents.map((evt) => {
+                                        const d = new Date(evt.timestamp);
+                                        return [
+                                          evt.domain,
+                                          STATUS_LABELS[evt.from],
+                                          STATUS_LABELS[evt.to],
+                                          d.toLocaleDateString(),
+                                          d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
+                                        ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+                                      });
+                                      const csv = header + rows.join("\n");
+                                      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+                                      const a = document.createElement("a");
+                                      a.href = url;
+                                      a.download = `outreach-timeline-${new Date().toISOString().slice(0, 10)}.csv`;
+                                      a.click();
+                                      URL.revokeObjectURL(url);
+                                      toast("Timeline exported", { duration: 2000 });
+                                    }}
+                                    className="text-[10px] text-slate-400 hover:text-indigo-600 transition-colors font-medium"
+                                    title="Download timeline as CSV"
+                                  >
+                                    Export CSV
+                                  </button>
+                                  <span className="text-slate-200 text-[10px]">·</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTimelineEvents([]);
+                                      try { localStorage.removeItem(LS_TIMELINE_KEY); } catch {}
+                                      toast("Timeline cleared", { duration: 2000 });
+                                    }}
+                                    className="text-[10px] text-slate-400 hover:text-red-500 transition-colors font-medium"
+                                  >
+                                    Clear all
+                                  </button>
+                                </>
                               )}
                               <button
                                 type="button"
