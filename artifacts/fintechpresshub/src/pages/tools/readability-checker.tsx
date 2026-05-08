@@ -1129,7 +1129,7 @@ export default function ReadabilityChecker() {
                       <div className="relative pt-3">
                         {/* Needle */}
                         <div
-                          className="absolute z-10 top-0"
+                          className="absolute z-10 top-0 transition-all duration-500 ease-in-out"
                           style={{
                             left: `${Math.min(Math.max(results.score, 5), 95)}%`,
                             transform: "translateX(-50%)",
