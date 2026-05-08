@@ -336,6 +336,37 @@ export default function LinkProspector() {
   });
   const [filterStatus, setFilterStatus] = useState<"" | OutreachStatus>("");
   const [showViz, setShowViz] = useState(false);
+  const [minScore, setMinScore] = useState("");
+
+  type SitePreview = { title: string; description: string; loading: boolean; error?: string };
+  const [previewMap, setPreviewMap] = useState<Record<string, SitePreview>>({});
+  const previewFetching = useRef<Set<string>>(new Set());
+
+  const fetchPreview = useCallback((domain: string) => {
+    if (previewMap[domain] || previewFetching.current.has(domain)) return;
+    previewFetching.current.add(domain);
+    setPreviewMap((prev) => ({ ...prev, [domain]: { title: "", description: "", loading: true } }));
+    fetch(`/api/tools/site-preview?domain=${encodeURIComponent(domain)}`)
+      .then((r) => r.json())
+      .then((data: { title?: string; description?: string; error?: string }) => {
+        setPreviewMap((prev) => ({
+          ...prev,
+          [domain]: {
+            title: data.title ?? "",
+            description: data.description ?? "",
+            loading: false,
+            error: data.error,
+          },
+        }));
+      })
+      .catch(() => {
+        setPreviewMap((prev) => ({
+          ...prev,
+          [domain]: { title: "", description: "", loading: false, error: "Could not reach site." },
+        }));
+      })
+      .finally(() => { previewFetching.current.delete(domain); });
+  }, [previewMap]);
 
   const cycleStatus = (domain: string) => {
     setStatusMap((prev) => {
@@ -622,9 +653,13 @@ Looking forward to hearing from you,
   }, [results, sortKey, sortDir]);
 
   const filteredSorted = useMemo(() => {
-    if (!filterStatus) return sorted;
-    return sorted.filter((r) => (statusMap[r.domain] ?? "not_started") === filterStatus);
-  }, [sorted, filterStatus, statusMap]);
+    const minScoreNum = minScore === "" ? 0 : Math.max(0, Math.min(100, Number(minScore) || 0));
+    let rows = filterStatus
+      ? sorted.filter((r) => (statusMap[r.domain] ?? "not_started") === filterStatus)
+      : sorted;
+    if (minScoreNum > 0) rows = rows.filter((r) => r.score >= minScoreNum);
+    return rows;
+  }, [sorted, filterStatus, statusMap, minScore]);
 
   const thCls = (key: SortKey) =>
     `text-left text-[10px] font-semibold uppercase tracking-wider cursor-pointer select-none whitespace-nowrap px-3 py-2.5 transition-colors hover:text-blue-600 ${sortKey === key ? "text-blue-600" : "text-slate-500"}`;
@@ -941,6 +976,21 @@ Looking forward to hearing from you,
                       >
                         <LayoutGrid className="w-3.5 h-3.5" />
                       </button>
+                    </div>
+                    {/* Target Score threshold */}
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                        Min Score
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        placeholder="0"
+                        value={minScore}
+                        onChange={(e) => setMinScore(e.target.value)}
+                        className="w-14 h-6 px-1.5 text-xs rounded border border-slate-200 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-200 text-slate-700 bg-white"
+                      />
                     </div>
                     {/* Filter by Status */}
                     <div className="flex items-center gap-1.5">
@@ -1312,15 +1362,53 @@ Looking forward to hearing from you,
                             </td>
                             <td className="px-3 py-3">
                               <div className="flex items-center gap-1">
-                                <a
-                                  href={`https://${r.domain}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="font-semibold text-slate-800 text-sm hover:text-blue-600 hover:underline underline-offset-2 transition-colors"
+                                {/* Domain with site-preview tooltip */}
+                                <div
+                                  className="relative group/domain"
+                                  onMouseEnter={() => fetchPreview(r.domain)}
                                 >
-                                  {r.domain}
-                                </a>
+                                  <a
+                                    href={`https://${r.domain}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="font-semibold text-slate-800 text-sm hover:text-blue-600 hover:underline underline-offset-2 transition-colors"
+                                  >
+                                    {r.domain}
+                                  </a>
+                                  {/* Tooltip card */}
+                                  <div className="pointer-events-none absolute left-0 bottom-full mb-2 z-50 w-72 opacity-0 group-hover/domain:opacity-100 transition-opacity duration-150">
+                                    <div className="rounded-lg border border-slate-200 bg-white shadow-lg p-3 text-left">
+                                      {!previewMap[r.domain] ? (
+                                        <p className="text-[11px] text-slate-400 italic">Hover to load preview…</p>
+                                      ) : previewMap[r.domain].loading ? (
+                                        <div className="flex items-center gap-2">
+                                          <svg className="animate-spin w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                                          </svg>
+                                          <span className="text-[11px] text-slate-400">Loading preview…</span>
+                                        </div>
+                                      ) : previewMap[r.domain].error ? (
+                                        <p className="text-[11px] text-slate-400 italic">Preview unavailable</p>
+                                      ) : (
+                                        <div className="space-y-1.5">
+                                          <p className="text-[12px] font-semibold text-slate-800 leading-snug line-clamp-2">
+                                            {previewMap[r.domain].title || <span className="italic text-slate-400">No title found</span>}
+                                          </p>
+                                          {previewMap[r.domain].description && (
+                                            <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-3">
+                                              {previewMap[r.domain].description}
+                                            </p>
+                                          )}
+                                          <p className="text-[10px] text-blue-500 font-medium">{r.domain}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {/* Arrow */}
+                                    <div className="absolute left-4 bottom-[-5px] w-2.5 h-2.5 rotate-45 border-r border-b border-slate-200 bg-white" />
+                                  </div>
+                                </div>
                                 <button
                                   type="button"
                                   onClick={(e) => {

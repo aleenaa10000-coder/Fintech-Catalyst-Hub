@@ -8,6 +8,50 @@ import { getSiteUrl } from "../lib/seo";
 import { sendMail } from "../lib/mailer";
 import { formRateLimiter } from "../lib/rateLimiter";
 
+// ── Site Preview Cache ────────────────────────────────────────────────────────
+// In-memory TTL cache so repeated hovers on the same domain don't re-fetch.
+type PreviewEntry = { title: string; description: string; fetchedAt: number };
+const PREVIEW_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
+const PREVIEW_CACHE_MAX = 500;
+const previewCache = new Map<string, PreviewEntry>();
+
+function prunePreviewCache() {
+  if (previewCache.size <= PREVIEW_CACHE_MAX) return;
+  const cutoff = Date.now() - PREVIEW_CACHE_TTL_MS;
+  for (const [k, v] of previewCache) {
+    if (v.fetchedAt < cutoff) previewCache.delete(k);
+    if (previewCache.size <= PREVIEW_CACHE_MAX) break;
+  }
+}
+
+function extractMeta(html: string): { title: string; description: string } {
+  const decode = (s: string) =>
+    s
+      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+      .trim();
+
+  const ogTitle =
+    html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"'<>]+)["']/i)?.[1] ??
+    html.match(/<meta[^>]+content=["']([^"'<>]+)["'][^>]+property=["']og:title["']/i)?.[1] ?? "";
+
+  const rawTitle =
+    html.match(/<title[^>]*>([^<]{1,300})<\/title>/i)?.[1] ?? "";
+
+  const ogDesc =
+    html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"'<>]+)["']/i)?.[1] ??
+    html.match(/<meta[^>]+content=["']([^"'<>]+)["'][^>]+property=["']og:description["']/i)?.[1] ?? "";
+
+  const metaDesc =
+    html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"'<>]+)["']/i)?.[1] ??
+    html.match(/<meta[^>]+content=["']([^"'<>]+)["'][^>]+name=["']description["']/i)?.[1] ?? "";
+
+  return {
+    title: decode(ogTitle || rawTitle),
+    description: decode(ogDesc || metaDesc),
+  };
+}
+
 const router: IRouter = Router();
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -335,6 +379,90 @@ router.post("/tools/financial-health-score/email-report", async (req, res) => {
     message:
       "We saved your request but couldn't send the email right now. Please try again shortly.",
   });
+});
+
+router.get("/tools/site-preview", async (req, res) => {
+  const domain = (req.query.domain as string | undefined)?.trim().toLowerCase();
+  if (!domain) {
+    res.status(400).json({ error: "Missing domain parameter." });
+    return;
+  }
+
+  // Serve from cache if still fresh
+  const cached = previewCache.get(domain);
+  if (cached && Date.now() - cached.fetchedAt < PREVIEW_CACHE_TTL_MS) {
+    res.set("X-Preview-Cache", "HIT");
+    res.json({ title: cached.title, description: cached.description });
+    return;
+  }
+
+  let targetUrl: string;
+  try {
+    targetUrl = new URL(domain.startsWith("http") ? domain : `https://${domain}`).href;
+  } catch {
+    res.status(400).json({ error: "Invalid domain." });
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const resp = await fetch(targetUrl, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; FintechPressHub-Analyzer/1.0)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      },
+    });
+
+    if (!resp.ok) {
+      res.status(502).json({ error: `Site returned HTTP ${resp.status}.` });
+      return;
+    }
+
+    const contentType = resp.headers.get("content-type") ?? "";
+    if (!contentType.includes("html")) {
+      res.status(400).json({ error: "URL doesn't point to an HTML page." });
+      return;
+    }
+
+    const reader = resp.body?.getReader();
+    if (!reader) {
+      res.status(500).json({ error: "Could not read response." });
+      return;
+    }
+
+    let html = "";
+    let bytes = 0;
+    const decoder = new TextDecoder();
+    while (bytes < 60_000) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      html += decoder.decode(value, { stream: true });
+      bytes += value.byteLength;
+    }
+    reader.cancel().catch(() => {});
+
+    const { title, description } = extractMeta(html);
+
+    const entry: PreviewEntry = { title, description, fetchedAt: Date.now() };
+    previewCache.set(domain, entry);
+    prunePreviewCache();
+
+    res.set("X-Preview-Cache", "MISS");
+    res.json({ title, description });
+  } catch (err: unknown) {
+    const isAbort = err instanceof Error && err.name === "AbortError";
+    res.status(502).json({
+      error: isAbort
+        ? "The site took too long to respond."
+        : "Couldn't reach that site.",
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 });
 
 router.get("/tools/fetch-title", async (req, res) => {
