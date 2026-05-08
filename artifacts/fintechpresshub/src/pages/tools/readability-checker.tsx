@@ -1281,6 +1281,12 @@ export default function ReadabilityChecker() {
     navigator.vibrate?.(40);
   };
 
+  const printReport = () => {
+    if (!results) return;
+    trackEvent("Result Exported", { tool: "readability-checker", format: "print" });
+    window.print();
+  };
+
   const copyImproved = async () => {
     const improved = applySimplifications(checkedText);
     await writeToClipboard(improved);
@@ -1550,6 +1556,15 @@ export default function ReadabilityChecker() {
                           Copy as Markdown
                         </>
                       )}
+                    </Button>
+                    <Button
+                      onClick={printReport}
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto h-9 sm:h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                    >
+                      <Printer className="w-3 h-3 mr-1" />
+                      Print / PDF
                     </Button>
                     <Button
                       onClick={exportPDF}
