@@ -486,6 +486,60 @@ ${website}`,
   ];
 }
 
+function generatePersonalisationTips(form: FormState, tone: Tone): string[] {
+  const domain  = fmtDomain(form.targetDomain) || "";
+  const site    = domain ? siteName(domain) : "";
+  const name    = form.yourName.trim();
+  const company = form.yourCompany.trim();
+  const website = fmtDomain(form.yourWebsite) || "";
+  const topic   = form.topic.trim();
+  const pitch   = form.contentPitch.trim();
+
+  const tips: string[] = [];
+
+  if (site) {
+    tips.push(
+      `Open with a specific observation about ${site}'s content — e.g. a recent article title or a topic angle they cover well. Generic openers like "I love your site" get ignored; a named reference proves you actually read it.`
+    );
+  }
+
+  if (topic) {
+    tips.push(
+      `Name-drop a specific gap in their ${topic} coverage. Browse their existing posts and call out exactly what's missing — editors respond far better to "I noticed you haven't covered X yet" than a vague pitch.`
+    );
+  }
+
+  if (!name) {
+    tips.push(
+      `Add your real name to the From field. Emails from a named person (e.g. "Sarah at ${company || "Your Company"}") have measurably higher reply rates than emails from a brand name alone.`
+    );
+  } else if (!website) {
+    tips.push(
+      `Include your website URL in the email body. It gives the editor instant context on who you are and makes it easy to verify your credibility without a separate Google search.`
+    );
+  }
+
+  if (tone === "data-led" && !form.linkValueMin) {
+    tips.push(
+      `Add an estimated SEO value range in the Link Value fields. A concrete number — even a rough estimate — anchors the value of the placement and makes the data-led pitch significantly stronger.`
+    );
+  }
+
+  if (pitch && pitch.split(" ").length < 10) {
+    tips.push(
+      `Expand your content pitch with one specific detail: a stat from the piece, the exact question it answers, or the audience it's written for. The more specific the pitch, the easier it is for an editor to say yes.`
+    );
+  }
+
+  if (tips.length < 3) {
+    tips.push(
+      `Consider adding a P.S. line at the end of the email body. A short, low-pressure P.S. (e.g. "P.S. Happy to send the full piece immediately — no strings attached") can significantly lift reply rates, especially for ${tone === "conversational" ? "warm" : "formal"} outreach.`
+    );
+  }
+
+  return tips.slice(0, 5);
+}
+
 function parseParams(): Partial<FormState> {
   const params = new URLSearchParams(window.location.search);
   const result: Partial<FormState> = {};
@@ -704,6 +758,8 @@ export default function OutreachEmailGenerator() {
   const [followUps, setFollowUps] = useState<FollowUpEmail[] | null>(null);
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const [copiedFollowUp, setCopiedFollowUp] = useState<number | "all" | null>(null);
+  const [personalisationTips, setPersonalisationTips] = useState<string[] | null>(null);
+  const [personalisationOpen, setPersonalisationOpen] = useState(false);
   const [history, setHistory]   = useState<EmailEntry[]>(loadHistory);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyCompareEntry, setHistoryCompareEntry] = useState<EmailEntry | null>(null);
@@ -738,6 +794,8 @@ export default function OutreachEmailGenerator() {
     setFollowUps(generateFollowUpSequence(form, t, vars[winnerIdx]));
     setFollowUpOpen(false);
     setCopiedFollowUp(null);
+    setPersonalisationTips(generatePersonalisationTips(form, t));
+    setPersonalisationOpen(true);
     trackEvent("Tool Used", { tool: "outreach-email-generator", tone: t });
 
     const entry: EmailEntry = {
@@ -767,6 +825,8 @@ export default function OutreachEmailGenerator() {
     setCopied(null);
     setFollowUps(null);
     setFollowUpOpen(false);
+    setPersonalisationTips(null);
+    setPersonalisationOpen(false);
     toast("Form reset", {
       description: snapshot.body
         ? "Your inputs and generated email have been cleared."
@@ -1287,6 +1347,56 @@ export default function OutreachEmailGenerator() {
                   tone={tone}
                   targetDomain={form.targetDomain}
                 />
+
+                {/* Personalisation tips */}
+                {personalisationTips && personalisationTips.length > 0 && (
+                  <Card className="border border-amber-200 shadow-sm">
+                    <CardContent className="p-0">
+                      <button
+                        type="button"
+                        onClick={() => setPersonalisationOpen((o) => !o)}
+                        className="w-full flex items-center justify-between px-5 py-4 hover:bg-amber-50/50 transition-colors rounded-t-xl"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+                          <span className="text-sm font-bold text-slate-900">Personalisation tips</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                            {personalisationTips.length} suggestions
+                          </span>
+                        </div>
+                        {personalisationOpen
+                          ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                          : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                      </button>
+
+                      <AnimatePresence initial={false}>
+                        {personalisationOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="border-t border-amber-100 px-5 py-4 space-y-3">
+                              {personalisationTips.map((tip, idx) => (
+                                <div key={idx} className="flex gap-3">
+                                  <span className="shrink-0 w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black flex items-center justify-center mt-0.5">
+                                    {idx + 1}
+                                  </span>
+                                  <p className="text-[12px] text-slate-700 leading-relaxed">{tip}</p>
+                                </div>
+                              ))}
+                              <p className="text-[10px] text-slate-400 pt-1 pl-8">
+                                These tips are based on your filled-in fields — more details entered means more targeted suggestions.
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Active subject line summary */}
                 <Card className={`border ${colors.ring} ${colors.bg} shadow-sm`}>

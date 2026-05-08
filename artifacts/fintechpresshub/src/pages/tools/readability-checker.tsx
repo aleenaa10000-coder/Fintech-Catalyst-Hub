@@ -487,7 +487,22 @@ export default function ReadabilityChecker() {
   const [checkedText, setCheckedText] = useState("");
   const [scoreHistory, setScoreHistory] = useState<number[]>([]);
   const [copyTextState, setCopyTextState] = useState<"idle" | "copied">("idle");
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const resetConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  const handleResetClick = () => {
+    if (!text.trim() && !checked) return;
+    if (!resetConfirm) {
+      setResetConfirm(true);
+      if (resetConfirmTimerRef.current) clearTimeout(resetConfirmTimerRef.current);
+      resetConfirmTimerRef.current = setTimeout(() => setResetConfirm(false), 3000);
+      return;
+    }
+    if (resetConfirmTimerRef.current) clearTimeout(resetConfirmTimerRef.current);
+    setResetConfirm(false);
+    reset();
+  };
 
   const reset = () => {
     if (!text.trim() && !checked) return;
@@ -668,7 +683,7 @@ export default function ReadabilityChecker() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-6">
                   <Button
                     type="button"
                     variant="ghost"
@@ -693,11 +708,15 @@ export default function ReadabilityChecker() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={reset}
-                    className="text-muted-foreground"
+                    onClick={handleResetClick}
+                    className={`transition-all ${
+                      resetConfirm
+                        ? "text-red-600 hover:text-red-700 hover:bg-red-50 font-semibold"
+                        : "text-muted-foreground"
+                    }`}
                   >
-                    <RotateCcw className="w-4 h-4 mr-1.5" />
-                    Reset
+                    <RotateCcw className={`w-4 h-4 mr-1.5 ${resetConfirm ? "text-red-500" : ""}`} />
+                    {resetConfirm ? "Are you sure?" : "Reset"}
                   </Button>
                 </div>
               </div>
