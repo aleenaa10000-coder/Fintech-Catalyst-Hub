@@ -31,6 +31,8 @@ import {
   Bookmark,
   Trash2,
   FolderOpen,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -198,11 +200,22 @@ function estimateOne(domain: string, daRaw: number, trafficRaw: number, mode: Sc
   return { domain, da, traffic, score, label, linkValue, acquisition, breakdown, recommendations, risks };
 }
 
+function cleanDomain(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .split("/")[0]
+    .split("?")[0]
+    .toLowerCase()
+    .trim();
+}
+
 function parseLine(line: string): { domain: string; da: number; traffic: number } | null {
   const raw = line.trim();
   if (!raw) return null;
   const parts = raw.split(",").map((p) => p.trim());
-  const domain = parts[0];
+  const domain = cleanDomain(parts[0]);
   if (!domain) return null;
   const da = parts[1] ? parseFloat(parts[1]) : 0;
   const traffic = parts[2] ? parseFloat(parts[2]) : 0;
@@ -287,6 +300,7 @@ export default function LinkProspector() {
   const [saveNameInput, setSaveNameInput] = useState("");
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [copiedTopState, setCopiedTopState] = useState<"idle" | "copied" | "none">("idle");
+  const [view, setView] = useState<"table" | "kanban">("table");
   const [statusMap, setStatusMap] = useState<Record<string, OutreachStatus>>(() => {
     try {
       const stored = localStorage.getItem(LS_STATUS_KEY);
@@ -781,9 +795,29 @@ export default function LinkProspector() {
                 className="mt-8"
               >
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">
-                    {results.length} prospect{results.length !== 1 ? "s" : ""} scored
-                  </h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">
+                      {results.length} prospect{results.length !== 1 ? "s" : ""} scored
+                    </h3>
+                    <div className="flex items-center rounded-lg border border-slate-200 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setView("table")}
+                        className={`p-1.5 transition-colors ${view === "table" ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"}`}
+                        title="Table view"
+                      >
+                        <List className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setView("kanban")}
+                        className={`p-1.5 transition-colors ${view === "kanban" ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"}`}
+                        title="Kanban / pipeline view"
+                      >
+                        <LayoutGrid className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -848,6 +882,79 @@ export default function LinkProspector() {
                   </div>
                 </div>
 
+                {view === "kanban" ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {STATUS_CYCLE.map((status) => {
+                      const col = sorted.filter((r) => (statusMap[r.domain] ?? "not_started") === status);
+                      return (
+                        <div key={status} className="flex flex-col gap-2">
+                          <div className={`flex items-center justify-between px-3 py-2 rounded-lg border font-semibold text-xs ${STATUS_STYLES[status]}`}>
+                            <span>{STATUS_LABELS[status]}</span>
+                            <span className="bg-white/70 px-1.5 py-0.5 rounded-full font-bold">{col.length}</span>
+                          </div>
+                          <div className="flex flex-col gap-2 min-h-[72px]">
+                            {col.map((r) => (
+                              <div key={r.domain} className="bg-white border border-slate-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-start justify-between gap-1.5 mb-1.5">
+                                  <a
+                                    href={`https://${r.domain}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-semibold text-slate-800 hover:text-blue-600 hover:underline underline-offset-2 leading-snug break-all"
+                                  >
+                                    {r.domain}
+                                  </a>
+                                  <span className={`shrink-0 text-[11px] font-black px-1.5 py-0.5 rounded-full ${SCORE_BG(r.score)}`}>
+                                    {r.score}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-2">
+                                  {r.da > 0 && <span>DA {r.da}</span>}
+                                  {r.traffic > 0 && <><span className="text-slate-200">·</span><span>{fmtNum(r.traffic)}/mo</span></>}
+                                  <span className="text-slate-200">·</span>
+                                  <span className="text-violet-500 font-semibold">{fmtMoney(r.linkValue.min)}–{fmtMoney(r.linkValue.max)}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => cycleStatus(r.domain)}
+                                    className={`flex-1 text-[10px] font-bold px-2 py-1 rounded border transition-all truncate ${STATUS_STYLES[statusMap[r.domain] ?? "not_started"]}`}
+                                    title="Click to advance outreach status"
+                                  >
+                                    {STATUS_LABELS[statusMap[r.domain] ?? "not_started"]}
+                                  </button>
+                                  <Link href={buildPitchUrl(r)}>
+                                    <button
+                                      type="button"
+                                      className="p-1 rounded text-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
+                                      title={`Draft outreach email for ${r.domain}`}
+                                    >
+                                      <Mail className="w-3 h-3" />
+                                    </button>
+                                  </Link>
+                                  <Link href={buildEstimatorUrl(r)}>
+                                    <button
+                                      type="button"
+                                      className="p-1 rounded text-slate-300 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                                      title="Open full analysis"
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                    </button>
+                                  </Link>
+                                </div>
+                              </div>
+                            ))}
+                            {col.length === 0 && (
+                              <div className="flex-1 flex items-center justify-center rounded-lg border-2 border-dashed border-slate-100 text-[11px] text-slate-300 py-8">
+                                None yet
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
                 <Card className="border border-slate-100 shadow-sm overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -982,6 +1089,7 @@ export default function LinkProspector() {
                     </table>
                   </div>
                 </Card>
+                )}
 
                 {/* Monthly plan callout */}
                 <Card className="mt-4 border border-emerald-100 bg-emerald-50 shadow-sm">
