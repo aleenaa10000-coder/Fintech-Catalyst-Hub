@@ -562,9 +562,10 @@ export default function ReadabilityChecker() {
     const lines: string[] = [];
     lines.push(`## Readability Report`);
     lines.push(``);
+    lines.push(`**Vibe:** ${vibeFromScore(results.score).label}`);
+    lines.push(``);
     lines.push(`**Flesch Score:** ${results.score.toFixed(0)} / 100 — ${results.level.label}`);
     lines.push(`**Grade Level:** ${results.grade}`);
-    lines.push(`**Vibe:** ${vibeFromScore(results.score).label}`);
     lines.push(``);
     lines.push(`### Key Stats`);
     lines.push(``);

@@ -170,7 +170,7 @@ export function Footer() {
 
         <div className="pt-8 border-t border-border text-center md:text-left text-sm text-muted-foreground flex flex-col md:flex-row justify-between items-center">
           <p>© {new Date().getFullYear()} FintechPressHub. All rights reserved.</p>
-          <p className="mt-2 md:mt-0">Built for scale.</p>
+          <p className="mt-2 md:mt-0">Built with ⚡ by a Vibe Coder | Optimized for FintechPressHub</p>
         </div>
       </div>
     </footer>

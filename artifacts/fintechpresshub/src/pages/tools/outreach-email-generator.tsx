@@ -681,11 +681,33 @@ function SubjectABTester({
               </div>
 
               {/* Subject text */}
-              <p className={`text-[11px] font-semibold leading-snug mb-3 ${
+              <p className={`text-[11px] font-semibold leading-snug mb-1.5 ${
                 isSelected ? colors.text : "text-slate-700"
               }`}>
                 {variants[idx]}
               </p>
+
+              {/* Character counter */}
+              {(() => {
+                const len = variants[idx].length;
+                const inRange = len >= 40 && len <= 60;
+                const nearRange = (len >= 30 && len < 40) || (len > 60 && len <= 75);
+                const counterColor = inRange
+                  ? "text-emerald-600 bg-emerald-50 border-emerald-200"
+                  : nearRange
+                    ? "text-amber-600 bg-amber-50 border-amber-200"
+                    : "text-red-500 bg-red-50 border-red-200";
+                return (
+                  <div className="flex items-center gap-1.5 mb-2.5">
+                    <span className={`inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded border ${counterColor}`}>
+                      {len} chars
+                    </span>
+                    <span className="text-[9px] text-slate-400">
+                      {inRange ? "optimal range ✓" : nearRange ? "close to optimal" : len < 30 ? "too short" : "too long"}
+                    </span>
+                  </div>
+                );
+              })()}
 
               {/* Score breakdown */}
               <div className="space-y-1.5 mb-3">
