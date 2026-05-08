@@ -27,6 +27,7 @@ import {
   Trash2,
   Download,
   ArrowLeftRight,
+  Printer,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
