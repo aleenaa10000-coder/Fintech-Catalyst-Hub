@@ -28,6 +28,9 @@ import {
   CheckCircle2,
   Settings2,
   X,
+  Bookmark,
+  Trash2,
+  FolderOpen,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -55,6 +58,7 @@ const STATUS_LABELS: Record<OutreachStatus, string> = {
 };
 
 const LS_STATUS_KEY = "lp-outreach-status";
+const LS_SAVED_LISTS_KEY = "lp-saved-lists";
 
 type FormState = {
   domain: string;
@@ -219,6 +223,14 @@ const SCORE_BG = (score: number) =>
   : score >= 35 ? "bg-orange-50 text-orange-700"
   : "bg-red-50 text-red-700";
 
+type SavedList = {
+  id: string;
+  name: string;
+  text: string;
+  savedAt: number;
+  domainCount: number;
+};
+
 type SortKey = "score" | "linkValueMin" | "acquisitionStars" | "da" | "traffic";
 type SortDir = "asc" | "desc";
 
@@ -267,6 +279,14 @@ export default function LinkProspector() {
   const [scoringMode, setScoringMode] = useState<ScoringMode>("authority");
   const [showSettings, setShowSettings] = useState(false);
   const scoringModeRef = useRef<ScoringMode>("authority");
+  const [savedLists, setSavedLists] = useState<SavedList[]>(() => {
+    try { return JSON.parse(localStorage.getItem(LS_SAVED_LISTS_KEY) ?? "[]"); }
+    catch { return []; }
+  });
+  const [showSavedPanel, setShowSavedPanel] = useState(false);
+  const [saveNameInput, setSaveNameInput] = useState("");
+  const [showSaveInput, setShowSaveInput] = useState(false);
+  const [copiedTopState, setCopiedTopState] = useState<"idle" | "copied" | "none">("idle");
   const [statusMap, setStatusMap] = useState<Record<string, OutreachStatus>>(() => {
     try {
       const stored = localStorage.getItem(LS_STATUS_KEY);
@@ -307,6 +327,46 @@ export default function LinkProspector() {
   }, []);
 
   const run = () => runWithText(textarea);
+
+  const copyTopProspects = () => {
+    const top = results.filter((r) => r.score >= 80).map((r) => r.domain);
+    if (top.length === 0) {
+      setCopiedTopState("none");
+      setTimeout(() => setCopiedTopState("idle"), 2000);
+      return;
+    }
+    navigator.clipboard.writeText(top.join("\n")).then(() => {
+      setCopiedTopState("copied");
+      setTimeout(() => setCopiedTopState("idle"), 2000);
+    });
+  };
+
+  const saveCurrentList = () => {
+    if (!textarea.trim()) return;
+    const name = saveNameInput.trim() || `Batch ${new Date().toLocaleDateString()}`;
+    const domainCount = textarea.split("\n").filter((l) => l.trim()).length;
+    const entry: SavedList = { id: Date.now().toString(), name, text: textarea, savedAt: Date.now(), domainCount };
+    const updated = [entry, ...savedLists].slice(0, 10);
+    setSavedLists(updated);
+    try { localStorage.setItem(LS_SAVED_LISTS_KEY, JSON.stringify(updated)); } catch {}
+    setSaveNameInput("");
+    setShowSaveInput(false);
+    toast("List saved", { description: `"${name}" saved with ${domainCount} domain${domainCount !== 1 ? "s" : ""}.` });
+  };
+
+  const loadSavedList = (list: SavedList) => {
+    setTextarea(list.text);
+    setRan(false);
+    setResults([]);
+    setShowSavedPanel(false);
+    toast("List loaded", { description: `"${list.name}" — ${list.domainCount} domain${list.domainCount !== 1 ? "s" : ""} ready to run.` });
+  };
+
+  const deleteSavedList = (id: string) => {
+    const updated = savedLists.filter((l) => l.id !== id);
+    setSavedLists(updated);
+    try { localStorage.setItem(LS_SAVED_LISTS_KEY, JSON.stringify(updated)); } catch {}
+  };
 
   // Keep ref in sync with state so the useCallback can read the latest mode
   useEffect(() => {
@@ -475,7 +535,16 @@ export default function LinkProspector() {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setShowSettings((s) => !s)}
+                      onClick={() => { setShowSavedPanel((s) => !s); setShowSettings(false); }}
+                      className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${showSavedPanel ? "text-violet-600 hover:text-violet-700" : "text-muted-foreground hover:text-slate-700"}`}
+                      title="Saved prospect lists"
+                    >
+                      <Bookmark className="w-3.5 h-3.5" />
+                      Saved{savedLists.length > 0 && <span className="ml-0.5 text-[10px] font-bold bg-violet-100 text-violet-700 rounded-full px-1.5">{savedLists.length}</span>}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowSettings((s) => !s); setShowSavedPanel(false); }}
                       className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${showSettings ? "text-blue-600 hover:text-blue-700" : "text-muted-foreground hover:text-slate-700"}`}
                       title="Scoring settings"
                     >
@@ -492,6 +561,95 @@ export default function LinkProspector() {
                     </button>
                   </div>
                 </div>
+
+                <AnimatePresence>
+                  {showSavedPanel && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.18 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mb-4 p-3.5 rounded-lg bg-violet-50 border border-violet-100">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-xs font-semibold text-violet-900 flex items-center gap-1.5">
+                            <FolderOpen className="w-3.5 h-3.5" />
+                            Saved Prospect Lists
+                          </p>
+                          <button type="button" onClick={() => setShowSavedPanel(false)} className="text-violet-400 hover:text-violet-600 transition-colors">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        {savedLists.length === 0 ? (
+                          <p className="text-[11px] text-violet-600 italic">No saved lists yet. Save a batch below.</p>
+                        ) : (
+                          <div className="space-y-1.5 mb-3 max-h-40 overflow-y-auto">
+                            {savedLists.map((list) => (
+                              <div key={list.id} className="flex items-center justify-between gap-2 bg-white border border-violet-100 rounded-md px-3 py-1.5">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-slate-800 truncate">{list.name}</p>
+                                  <p className="text-[10px] text-slate-400">{list.domainCount} domain{list.domainCount !== 1 ? "s" : ""} · {new Date(list.savedAt).toLocaleDateString()}</p>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => loadSavedList(list)}
+                                    className="text-[10px] font-bold px-2 py-1 rounded bg-violet-600 text-white hover:bg-violet-700 transition-colors"
+                                  >
+                                    Load
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteSavedList(list.id)}
+                                    className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {showSaveInput ? (
+                          <div className="flex items-center gap-2 mt-2">
+                            <input
+                              type="text"
+                              value={saveNameInput}
+                              onChange={(e) => setSaveNameInput(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") saveCurrentList(); if (e.key === "Escape") setShowSaveInput(false); }}
+                              placeholder="e.g. Fintech blogs Q3"
+                              autoFocus
+                              className="flex-1 text-xs px-2.5 py-1.5 rounded-md border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                            />
+                            <button
+                              type="button"
+                              onClick={saveCurrentList}
+                              disabled={!textarea.trim()}
+                              className="text-[11px] font-bold px-3 py-1.5 rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 transition-colors"
+                            >
+                              Save
+                            </button>
+                            <button type="button" onClick={() => setShowSaveInput(false)} className="text-violet-400 hover:text-violet-600">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setShowSaveInput(true)}
+                            disabled={!textarea.trim()}
+                            className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-700 hover:text-violet-900 disabled:opacity-40 transition-colors"
+                          >
+                            <Bookmark className="w-3 h-3" />
+                            Save current list
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <AnimatePresence>
                   {showSettings && (
@@ -649,6 +807,26 @@ export default function LinkProspector() {
                     >
                       {copied ? <Check className="w-3 h-3" /> : <Link2 className="w-3 h-3" />}
                       {copied ? "Copied!" : "Share"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={copyTopProspects}
+                      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all ${
+                        copiedTopState === "copied"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                          : copiedTopState === "none"
+                          ? "bg-amber-50 text-amber-700 border-amber-300"
+                          : "border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700"
+                      }`}
+                      title="Copy all domains scoring 80+ to clipboard"
+                    >
+                      {copiedTopState === "copied" ? (
+                        <><Check className="w-3 h-3" />Copied!</>
+                      ) : copiedTopState === "none" ? (
+                        <><AlertTriangle className="w-3 h-3" />None ≥ 80</>
+                      ) : (
+                        <><Copy className="w-3 h-3" />Copy Top Prospects</>
+                      )}
                     </button>
                     <button
                       type="button"
