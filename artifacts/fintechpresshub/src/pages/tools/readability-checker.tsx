@@ -2053,6 +2053,21 @@ export default function ReadabilityChecker() {
                           )}
                         </button>
                         <div className="flex items-center gap-3">
+                          {analysisHistory.length >= 2 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCompareMode((p) => !p);
+                                setCompareSelection([]);
+                                if (!showHistory) setShowHistory(true);
+                              }}
+                              className={`flex items-center gap-1 text-[11px] transition-colors ${compareMode ? "text-teal-600 font-semibold" : "text-slate-400 hover:text-teal-600"}`}
+                              title="Compare two analyses side-by-side"
+                            >
+                              <ArrowLeftRight className="w-3 h-3" />
+                              Compare
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={downloadHistoryCSV}
@@ -2068,6 +2083,8 @@ export default function ReadabilityChecker() {
                               setAnalysisHistory([]);
                               saveHistory([]);
                               setShowHistory(false);
+                              setCompareMode(false);
+                              setCompareSelection([]);
                             }}
                             className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-red-500 transition-colors"
                             title="Clear all history"
@@ -2078,10 +2095,23 @@ export default function ReadabilityChecker() {
                         </div>
                       </div>
 
+                      {compareMode && (
+                        <p className="mt-2 text-[11px] text-slate-500">
+                          {compareSelection.length === 0
+                            ? "Select two analyses below to compare them."
+                            : compareSelection.length === 1
+                            ? "Now select one more to compare."
+                            : ""}
+                        </p>
+                      )}
+
                       {showHistory && (
                         <div className="mt-4 space-y-2">
                           {analysisHistory.map((entry) => {
                             const level = levelFromScore(entry.score);
+                            const isSelected = compareSelection.includes(entry.id);
+                            const selIdx = compareSelection.indexOf(entry.id);
+                            const canSelect = compareMode && (compareSelection.length < 2 || isSelected);
                             const ago = (() => {
                               const s = Math.round((Date.now() - entry.timestamp) / 1000);
                               if (s < 60) return `${s}s ago`;
@@ -2096,11 +2126,35 @@ export default function ReadabilityChecker() {
                                 key={entry.id}
                                 type="button"
                                 onClick={() => {
-                                  setText(entry.text);
-                                  checkWithText(entry.text);
+                                  if (compareMode) {
+                                    if (isSelected) {
+                                      setCompareSelection((p) => p.filter((id) => id !== entry.id));
+                                    } else if (compareSelection.length < 2) {
+                                      setCompareSelection((p) => [...p, entry.id]);
+                                    }
+                                  } else {
+                                    setText(entry.text);
+                                    checkWithText(entry.text);
+                                  }
                                 }}
-                                className="w-full text-left flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50 hover:bg-teal-50 hover:border-teal-200 transition-colors group"
+                                disabled={compareMode && !canSelect}
+                                className={`w-full text-left flex items-center gap-3 p-3 rounded-lg border transition-colors group ${
+                                  compareMode && !canSelect
+                                    ? "opacity-40 cursor-not-allowed border-slate-100 bg-slate-50"
+                                    : isSelected
+                                    ? "border-teal-400 bg-teal-50 ring-1 ring-teal-300"
+                                    : "border-slate-100 bg-slate-50 hover:bg-teal-50 hover:border-teal-200"
+                                }`}
                               >
+                                {compareMode && (
+                                  <div className={`w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center text-[10px] font-bold ${
+                                    isSelected
+                                      ? "border-teal-500 bg-teal-500 text-white"
+                                      : "border-slate-300 bg-white"
+                                  }`}>
+                                    {isSelected ? selIdx + 1 : ""}
+                                  </div>
+                                )}
                                 <div className={`text-xl font-black w-10 text-center shrink-0 ${level.color}`}>
                                   {entry.score}
                                 </div>
@@ -2116,13 +2170,85 @@ export default function ReadabilityChecker() {
                                 <div className="text-right shrink-0 space-y-0.5">
                                   <div className="text-[10px] text-muted-foreground">{ago}</div>
                                   <div className="text-[10px] text-muted-foreground">{entry.wordCount} words</div>
-                                  <div className="text-[10px] text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
-                                    Load →
-                                  </div>
+                                  {!compareMode && (
+                                    <div className="text-[10px] text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
+                                      Load →
+                                    </div>
+                                  )}
                                 </div>
                               </button>
                             );
                           })}
+
+                          {/* Comparison panel */}
+                          {compareMode && compareSelection.length === 2 && (() => {
+                            const [aId, bId] = compareSelection;
+                            const a = analysisHistory.find((e) => e.id === aId)!;
+                            const b = analysisHistory.find((e) => e.id === bId)!;
+                            if (!a || !b) return null;
+                            const rows: { label: string; aVal: number | string; bVal: number | string; higherBetter: boolean }[] = [
+                              { label: "Score", aVal: a.score, bVal: b.score, higherBetter: true },
+                              { label: "Words", aVal: a.wordCount, bVal: b.wordCount, higherBetter: false },
+                              { label: "Sentences", aVal: a.sentenceCount ?? "—", bVal: b.sentenceCount ?? "—", higherBetter: false },
+                              { label: "Avg sent. length", aVal: a.avgSentenceLen != null ? `${a.avgSentenceLen} words` : "—", bVal: b.avgSentenceLen != null ? `${b.avgSentenceLen} words` : "—", higherBetter: false },
+                            ];
+                            return (
+                              <div className="mt-3 rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 to-slate-50 p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-[11px] font-semibold text-teal-700 uppercase tracking-widest">Comparison</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setCompareSelection([]); }}
+                                    className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors underline underline-offset-2"
+                                  >
+                                    Reset selection
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-[auto_1fr_1fr] gap-x-3 gap-y-2 text-[11px]">
+                                  <div className="text-slate-400 font-semibold" />
+                                  <div className="text-center font-bold text-teal-700">① {levelFromScore(a.score).label}</div>
+                                  <div className="text-center font-bold text-teal-700">② {levelFromScore(b.score).label}</div>
+                                  {rows.map(({ label, aVal, bVal, higherBetter }) => {
+                                    const aNum = typeof aVal === "number" ? aVal : null;
+                                    const bNum = typeof bVal === "number" ? bVal : null;
+                                    const diff = aNum != null && bNum != null ? bNum - aNum : null;
+                                    const diffLabel = diff == null ? "" : diff === 0 ? "=" : `${diff > 0 ? "+" : ""}${typeof bVal === "number" ? diff : diff.toFixed(1)}`;
+                                    const diffColor = diff == null || diff === 0 ? "text-slate-400" : (higherBetter ? diff > 0 : diff < 0) ? "text-emerald-600" : "text-amber-600";
+                                    return (
+                                      <React.Fragment key={label}>
+                                        <div className="text-slate-500 text-right self-center pr-1">{label}</div>
+                                        <div className="text-center font-semibold text-slate-700 bg-white rounded-md py-1 border border-slate-100">{String(aVal)}</div>
+                                        <div className={`text-center font-semibold text-slate-700 bg-white rounded-md py-1 border border-slate-100 relative`}>
+                                          {String(bVal)}
+                                          {diffLabel && (
+                                            <span className={`absolute -top-2 -right-1 text-[9px] font-bold ${diffColor} bg-white border border-slate-100 rounded-full px-1 leading-4`}>
+                                              {diffLabel}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </React.Fragment>
+                                    );
+                                  })}
+                                </div>
+                                <div className="flex gap-2 pt-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => { setText(a.text); checkWithText(a.text); }}
+                                    className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg border border-teal-200 hover:bg-teal-100 text-teal-700 transition-colors"
+                                  >
+                                    Load ①
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setText(b.text); checkWithText(b.text); }}
+                                    className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg border border-teal-200 hover:bg-teal-100 text-teal-700 transition-colors"
+                                  >
+                                    Load ②
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </CardContent>
