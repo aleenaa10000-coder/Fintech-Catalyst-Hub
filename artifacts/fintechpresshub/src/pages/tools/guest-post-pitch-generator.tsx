@@ -49,6 +49,7 @@ import {
   ArrowLeftRight,
   ClipboardCheck,
 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 const MINOR_WORDS = new Set([
   "a","an","the","and","but","or","nor","for","so","yet",
@@ -605,6 +606,7 @@ export default function GuestPostPitchGenerator() {
       const data = await res.json();
       if (res.ok && data.ok) {
         setSendStatus("sent");
+        trackEvent("Pitch Sent", { tool: "guest-post-pitch-generator" });
       } else {
         setSendStatus("error");
         setSendError(data.error ?? "Something went wrong. Please try again.");
@@ -625,6 +627,7 @@ export default function GuestPostPitchGenerator() {
     setEditedPitch(result);
     setGenerated(true);
     setPitchWordDelta(null);
+    trackEvent("Tool Used", { tool: "guest-post-pitch-generator", tone: form.tone });
     const entry: PitchEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       timestamp: Date.now(),
@@ -649,6 +652,7 @@ export default function GuestPostPitchGenerator() {
     setPitchWordDelta(newWords - prevWords);
     setPitch(result);
     setEditedPitch(result);
+    trackEvent("Pitch Regenerated", { tool: "guest-post-pitch-generator", tone: form.tone });
     const entry: PitchEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       timestamp: Date.now(),
@@ -668,6 +672,7 @@ export default function GuestPostPitchGenerator() {
     navigator.clipboard.writeText(editedPitch);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    trackEvent("Result Copied", { tool: "guest-post-pitch-generator", format: "text" });
   };
 
   const copyAsMarkdown = () => {
@@ -698,6 +703,7 @@ export default function GuestPostPitchGenerator() {
     a.download = "guest-post-pitch.txt";
     a.click();
     URL.revokeObjectURL(url);
+    trackEvent("Result Downloaded", { tool: "guest-post-pitch-generator", format: "txt" });
   };
 
   const downloadPdf = async () => {
@@ -824,6 +830,7 @@ export default function GuestPostPitchGenerator() {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "");
       doc.save(`pitch-${slug}.pdf`);
+      trackEvent("Result Downloaded", { tool: "guest-post-pitch-generator", format: "pdf" });
     } catch (err) {
       console.error("PDF export failed", err);
     } finally {
@@ -1779,7 +1786,7 @@ export default function GuestPostPitchGenerator() {
                     <div className="border-t border-slate-100 pt-4 mt-2">
                       <button
                         type="button"
-                        onClick={() => { setSendOpen((o) => !o); setSendStatus("idle"); setSendError(""); }}
+                        onClick={() => { setSendOpen((o) => { if (!o) trackEvent("Email Report Requested", { tool: "guest-post-pitch-generator" }); return !o; }); setSendStatus("idle"); setSendError(""); }}
                         className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-orange-600 transition-colors w-full"
                       >
                         <Send className="w-3.5 h-3.5 shrink-0" />

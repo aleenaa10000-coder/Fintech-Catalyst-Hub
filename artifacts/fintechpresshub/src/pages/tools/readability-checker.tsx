@@ -811,7 +811,7 @@ export default function ReadabilityChecker() {
                         <div
                           className="absolute z-10 top-0"
                           style={{
-                            left: `${Math.min(Math.max(results.score, 0), 100)}%`,
+                            left: `${Math.min(Math.max(results.score, 0), 97)}%`,
                             transform: "translateX(-50%)",
                           }}
                         >
@@ -821,7 +821,7 @@ export default function ReadabilityChecker() {
                               height: 0,
                               borderLeft: "5px solid transparent",
                               borderRight: "5px solid transparent",
-                              borderTop: "8px solid #1e293b",
+                              borderTop: `8px solid ${results.score >= 80 ? "#16a34a" : results.score < 40 ? "#dc2626" : "#1e293b"}`,
                             }}
                           />
                         </div>
