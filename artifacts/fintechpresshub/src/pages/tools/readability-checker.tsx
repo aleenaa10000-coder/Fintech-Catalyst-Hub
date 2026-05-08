@@ -302,7 +302,74 @@ function renderWordHeatmap(paragraphs: SentenceSegment[][]) {
   ));
 }
 
-function renderSentenceTokens(sentenceText: string) {
+interface SynonymTooltipProps {
+  word: string;
+  synonym: string;
+  onSwap?: (original: string, replacement: string) => void;
+}
+
+function SynonymTooltip({ word, synonym, onSwap }: SynonymTooltipProps) {
+  const [open, setOpen] = useState(false);
+
+  const handleSwap = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const replacement = /^[A-Z]/.test(word)
+      ? synonym.charAt(0).toUpperCase() + synonym.slice(1)
+      : synonym.toLowerCase();
+    onSwap?.(word, replacement);
+    setOpen(false);
+  };
+
+  return (
+    <span
+      className="relative inline-block"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <span
+        className="underline decoration-dotted decoration-amber-500 underline-offset-2 cursor-help font-medium text-amber-800"
+        style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))" }}
+      >
+        {word}
+      </span>
+      {open && (
+        <span
+          className="absolute bottom-full left-1/2 z-50 flex flex-col items-center pointer-events-auto"
+          style={{ transform: "translateX(-50%)", marginBottom: "6px" }}
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+        >
+          <span className="flex items-center gap-1.5 bg-slate-900 text-white rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap text-[11px]">
+            <span className="text-slate-400 text-[10px]">simpler:</span>
+            <span className="font-semibold text-amber-300">"{synonym}"</span>
+            {onSwap && (
+              <button
+                type="button"
+                onClick={handleSwap}
+                className="ml-0.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+              >
+                Swap ↵
+              </button>
+            )}
+          </span>
+          <span
+            className="block w-0 h-0"
+            style={{
+              borderLeft: "5px solid transparent",
+              borderRight: "5px solid transparent",
+              borderTop: "5px solid #0f172a",
+            }}
+          />
+        </span>
+      )}
+    </span>
+  );
+}
+
+function renderSentenceTokens(
+  sentenceText: string,
+  onSwap?: (original: string, replacement: string) => void,
+) {
   const tokens = sentenceText.split(/([a-zA-Z]+)/);
   return tokens.map((token, i) => {
     const lower = token.toLowerCase();
@@ -311,14 +378,7 @@ function renderSentenceTokens(sentenceText: string) {
     const synonym = SYNONYM_MAP[lower];
     if (synonym) {
       return (
-        <span
-          key={i}
-          className="relative underline decoration-dotted decoration-amber-500 underline-offset-2 cursor-help font-medium text-amber-800"
-          style={{ zIndex: 50, position: "relative", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))" }}
-          title={`Simpler alternative: "${synonym}"`}
-        >
-          {token}
-        </span>
+        <SynonymTooltip key={i} word={token} synonym={synonym} onSwap={onSwap} />
       );
     }
 
@@ -572,11 +632,11 @@ export default function ReadabilityChecker() {
     setTimeout(() => setCopyTextState("idle"), 1500);
   };
 
-  const check = () => {
-    const { sentences, words } = tokenize(text);
+  const checkWithText = (t: string) => {
+    const { sentences, words } = tokenize(t);
     const newScore = Math.round(fleschScore(words, sentences));
     setScoreHistory((prev) => [...prev, newScore]);
-    setCheckedText(text);
+    setCheckedText(t);
     setChecked(true);
     trackEvent("Tool Used", { tool: "readability-checker" });
     setTimeout(
@@ -588,6 +648,64 @@ export default function ReadabilityChecker() {
       150,
     );
   };
+
+  const check = () => checkWithText(text);
+
+  const handleWordSwap = (original: string, replacement: string) => {
+    const lower = original.toLowerCase();
+    const newText = text.replace(new RegExp(`\\b${lower}\\b`, "gi"), (match) =>
+      /^[A-Z]/.test(match)
+        ? replacement.charAt(0).toUpperCase() + replacement.slice(1)
+        : replacement.toLowerCase(),
+    );
+    setText(newText);
+    checkWithText(newText);
+    toast(`Swapped "${original.toLowerCase()}" → "${replacement.toLowerCase()}"`, {
+      description: "Analysis re-run with the updated text.",
+      duration: 3000,
+    });
+  };
+
+  const copyHeatmapReport = async () => {
+    if (!results) return;
+    const allWords = checkedText
+      .split(/\s+/)
+      .map((w) => w.replace(/[^a-zA-Z']/g, ""))
+      .filter((w) => w.length > 0);
+    const withSyllables = allWords.map((w) => ({ word: w, syllables: countSyllables(w) }));
+    const complex = withSyllables.filter((w) => w.syllables >= 3).sort((a, b) => b.syllables - a.syllables);
+    const medium = withSyllables.filter((w) => w.syllables === 2);
+    const simple = withSyllables.filter((w) => w.syllables === 1);
+    const dedup = (arr: { word: string; syllables: number }[]) => {
+      const seen = new Set<string>();
+      return arr.filter(({ word }) => {
+        const k = word.toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    };
+    const lines: string[] = [
+      "Word Complexity Heatmap Report",
+      "================================",
+      "",
+      `3+ syllables — ${complex.length} word(s):`,
+      ...dedup(complex).map(({ word, syllables }) => `  ${word}  (${syllables})`),
+      "",
+      `2 syllables — ${medium.length} word(s):`,
+      ...dedup(medium).map(({ word }) => `  ${word}`),
+      "",
+      `1 syllable — ${simple.length} word(s):`,
+      ...dedup(simple).map(({ word }) => `  ${word}`),
+    ];
+    await writeToClipboard(lines.join("\n"));
+    toast("Heatmap report copied", {
+      description: "Plain-text syllable breakdown copied to clipboard.",
+      duration: 3000,
+    });
+  };
+
+  const [copyHeatmapState, setCopyHeatmapState] = useState<"idle" | "copied">("idle");
 
   const copyAsMarkdown = async () => {
     if (!results) return;
@@ -1238,7 +1356,7 @@ export default function ReadabilityChecker() {
                                     setCopyRewriteState("idle");
                                   } : undefined}
                                 >
-                                  {renderSentenceTokens(seg.text)}
+                                  {renderSentenceTokens(seg.text, handleWordSwap)}
                                   {si < para.length - 1 ? " " : ""}
                                 </span>
                               );
@@ -1289,7 +1407,7 @@ export default function ReadabilityChecker() {
                     <div className="flex flex-col gap-1">
                       <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                         <span className="inline-block w-2 h-0.5 border-b-2 border-dotted border-amber-500" />
-                        Dotted amber — complex word with a simpler alternative (hover to see it).
+                        Dotted amber — complex word with a simpler alternative (hover to preview &amp; swap it instantly).
                       </p>
                       <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                         <span className="inline-block w-2 h-0.5 border-b-2 border-dashed border-rose-400" />
@@ -1297,24 +1415,50 @@ export default function ReadabilityChecker() {
                       </p>
                     </div>
 
-                    <Button
-                      onClick={copyImproved}
-                      variant="outline"
-                      size="sm"
-                      className="w-full h-9 text-xs font-semibold border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300"
-                    >
-                      {copyImprovedState === "copied" ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-teal-500" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5 mr-1.5" />
-                          Copy improved text
-                        </>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={copyImproved}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-9 text-xs font-semibold border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300"
+                      >
+                        {copyImprovedState === "copied" ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-teal-500" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 mr-1.5" />
+                            Copy improved text
+                          </>
+                        )}
+                      </Button>
+                      {showHeatmap && (
+                        <Button
+                          onClick={async () => {
+                            await copyHeatmapReport();
+                            setCopyHeatmapState("copied");
+                            setTimeout(() => setCopyHeatmapState("idle"), 1500);
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-9 text-xs font-semibold border-orange-200 text-orange-700 hover:bg-orange-50 hover:border-orange-300"
+                        >
+                          {copyHeatmapState === "copied" ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-orange-500" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Flame className="w-3.5 h-3.5 mr-1.5" />
+                              Copy heatmap report
+                            </>
+                          )}
+                        </Button>
                       )}
-                    </Button>
+                    </div>
                   </CardContent>
                 </Card>
 
