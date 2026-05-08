@@ -239,6 +239,12 @@ const SCORE_BG = (score: number) =>
   : score >= 35 ? "bg-orange-50 text-orange-700"
   : "bg-red-50 text-red-700";
 
+const SCORE_GLOW = (score: number): React.CSSProperties =>
+  score >= 80 ? { boxShadow: "0 0 10px 2px rgba(16,185,129,0.30)" }
+  : score >= 65 ? { boxShadow: "0 0 10px 2px rgba(59,130,246,0.30)" }
+  : score >= 50 ? { boxShadow: "0 0 8px 2px rgba(245,158,11,0.25)" }
+  : {};
+
 type SavedList = {
   id: string;
   name: string;
@@ -389,6 +395,38 @@ export default function LinkProspector() {
     const updated = savedLists.filter((l) => l.id !== id);
     setSavedLists(updated);
     try { localStorage.setItem(LS_SAVED_LISTS_KEY, JSON.stringify(updated)); } catch {}
+  };
+
+  const exportPitchCSV = () => {
+    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject"];
+    const rows = sorted.map((r) => {
+      const subject =
+        r.da > 60
+          ? `Content Partnership Opportunity — ${r.domain} (High Authority)`
+          : r.traffic > 50_000
+          ? `Content Partnership Opportunity — ${r.domain} (Impressive Reach)`
+          : `Content Partnership Opportunity — ${r.domain}`;
+      return [
+        r.domain,
+        r.score,
+        r.label,
+        r.da > 0 ? r.da : "",
+        r.traffic > 0 ? r.traffic : "",
+        r.linkValue.min,
+        r.linkValue.max,
+        r.acquisition.label,
+        STATUS_LABELS[statusMap[r.domain] ?? "not_started"],
+        subject,
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    });
+    const csv = [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `link-prospects-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const updateNote = (domain: string, value: string) => {
@@ -581,7 +619,7 @@ Looking forward to hearing from you,
 
           <div className="grid md:grid-cols-[1fr_320px] gap-6 items-start">
             {/* Input */}
-            <Card className="border border-slate-100 shadow-sm">
+            <Card className="border border-white/60 bg-white/80 backdrop-blur-md shadow-lg">
               <CardContent className="p-6 md:p-8">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -908,6 +946,15 @@ Looking forward to hearing from you,
                     </button>
                     <button
                       type="button"
+                      onClick={exportPitchCSV}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:border-violet-400 hover:text-violet-700 transition-all"
+                      title="Download prospects as CSV with pitch subject lines"
+                    >
+                      <Download className="w-3 h-3" />
+                      Export CSV
+                    </button>
+                    <button
+                      type="button"
                       onClick={downloadCsv}
                       className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-700 transition-all"
                       title="Download results as CSV"
@@ -948,7 +995,10 @@ Looking forward to hearing from you,
                                   >
                                     {r.domain}
                                   </a>
-                                  <span className={`shrink-0 text-[11px] font-black px-1.5 py-0.5 rounded-full ${SCORE_BG(r.score)}`}>
+                                  <span
+                                    className={`shrink-0 text-[11px] font-black px-1.5 py-0.5 rounded-full ${SCORE_BG(r.score)}`}
+                                    style={SCORE_GLOW(r.score)}
+                                  >
                                     {r.score}
                                   </span>
                                 </div>
@@ -1007,7 +1057,7 @@ Looking forward to hearing from you,
                     })}
                   </div>
                 ) : (
-                <Card className="border border-slate-100 shadow-sm overflow-hidden">
+                <Card className="border border-white/60 bg-white/80 backdrop-blur-md shadow-lg overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead className="border-b border-slate-100 bg-slate-50/70">
@@ -1042,7 +1092,10 @@ Looking forward to hearing from you,
                             className="hover:bg-slate-50/80 transition-colors group"
                           >
                             <td className="px-3 py-3">
-                              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-full ${SCORE_BG(r.score)}`}>
+                              <span
+                                className={`inline-flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-full ${SCORE_BG(r.score)}`}
+                                style={SCORE_GLOW(r.score)}
+                              >
                                 <span className={`text-base font-black ${SCORE_COLOR(r.score)}`}>{r.score}</span>
                                 <span className="text-[10px] font-medium opacity-70">{r.label}</span>
                               </span>
