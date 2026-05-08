@@ -25,6 +25,7 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
+  Download,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -844,6 +845,27 @@ export default function ReadabilityChecker() {
       // ignore malformed URLs
     }
   }, []);
+
+  const downloadHistoryCSV = () => {
+    if (analysisHistory.length === 0) return;
+    const headers = ["Date", "Score", "Level", "Word Count", "Text Preview"];
+    const rows = analysisHistory.map((e) => [
+      new Date(e.timestamp).toLocaleString(),
+      e.score,
+      e.levelLabel,
+      e.wordCount,
+      `"${e.text.slice(0, 120).replace(/"/g, '""').replace(/\n/g, " ")}"`,
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `readability-history-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    trackEvent("History Exported", { tool: "readability-checker", format: "csv", count: analysisHistory.length });
+  };
 
   const copyShareLink = async () => {
     if (!checkedText.trim()) return;
@@ -1666,40 +1688,53 @@ export default function ReadabilityChecker() {
                           Heatmap
                         </button>
                       </div>
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                        {showHeatmap ? (
-                          <>
-                            <span className="flex items-center gap-1.5">
-                              <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: "#fed7aa" }} />
-                              3+ syllables
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                              <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: "#fef3c7" }} />
-                              2 syllables
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                              <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-slate-100 border border-slate-200" />
-                              1 syllable
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="flex items-center gap-1.5">
-                              <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-red-100" />
-                              Very hard (&gt;25 words)
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                              <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-yellow-100" />
-                              Moderately hard (&gt;15 words)
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                              <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-purple-100 border-b-2 border-purple-400" />
-                              Passive voice
-                            </span>
-                          </>
-                        )}
-                      </div>
+                      {showHeatmap && (
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+                          <span className="flex items-center gap-1.5">
+                            <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: "#fed7aa" }} />
+                            3+ syllables
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: "#fef3c7" }} />
+                            2 syllables
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="inline-block w-3 h-3 rounded-sm shrink-0 bg-slate-100 border border-slate-200" />
+                            1 syllable
+                          </span>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Highlight Key — shown above the text in sentence-difficulty mode */}
+                    {!showHeatmap && (
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-2 bg-slate-50 border border-slate-100 rounded-md">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest shrink-0">
+                          Highlight Key
+                        </span>
+                        <span className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                          <span
+                            className="inline-block w-3.5 h-3.5 rounded-sm shrink-0 border border-red-200"
+                            style={{ backgroundColor: "#fee2e2" }}
+                          />
+                          Very Hard
+                        </span>
+                        <span className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                          <span
+                            className="inline-block w-3.5 h-3.5 rounded-sm shrink-0 border border-yellow-200"
+                            style={{ backgroundColor: "#fef9c3" }}
+                          />
+                          Moderately Hard
+                        </span>
+                        <span className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                          <span
+                            className="inline-block w-3.5 h-3.5 rounded-sm shrink-0 border-b-2 border-purple-400"
+                            style={{ backgroundColor: "#f3e8ff" }}
+                          />
+                          Passive Voice
+                        </span>
+                      </div>
+                    )}
 
                     <div
                       className="text-sm text-slate-700 bg-slate-50 rounded-lg p-4 border border-slate-100"
@@ -1964,19 +1999,30 @@ export default function ReadabilityChecker() {
                             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                           )}
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAnalysisHistory([]);
-                            saveHistory([]);
-                            setShowHistory(false);
-                          }}
-                          className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-red-500 transition-colors"
-                          title="Clear all history"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          Clear all
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={downloadHistoryCSV}
+                            className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-teal-600 transition-colors"
+                            title="Download history as CSV"
+                          >
+                            <Download className="w-3 h-3" />
+                            CSV
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAnalysisHistory([]);
+                              saveHistory([]);
+                              setShowHistory(false);
+                            }}
+                            className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-red-500 transition-colors"
+                            title="Clear all history"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Clear
+                          </button>
+                        </div>
                       </div>
 
                       {showHistory && (
