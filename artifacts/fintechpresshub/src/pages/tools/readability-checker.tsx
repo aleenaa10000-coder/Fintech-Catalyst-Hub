@@ -21,6 +21,10 @@ import {
   Flame,
   FileDown,
   Link2,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Trash2,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -325,14 +329,20 @@ interface SynonymTooltipProps {
 
 function SynonymTooltip({ word, synonym, onSwap }: SynonymTooltipProps) {
   const [open, setOpen] = useState(false);
+  const [swapped, setSwapped] = useState(false);
 
   const handleSwap = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     const replacement = /^[A-Z]/.test(word)
       ? synonym.charAt(0).toUpperCase() + synonym.slice(1)
       : synonym.toLowerCase();
     onSwap?.(word, replacement);
-    setOpen(false);
+    setSwapped(true);
+    setTimeout(() => {
+      setSwapped(false);
+      setOpen(false);
+    }, 800);
   };
 
   return (
@@ -342,7 +352,7 @@ function SynonymTooltip({ word, synonym, onSwap }: SynonymTooltipProps) {
       onMouseLeave={() => setOpen(false)}
     >
       <span
-        className="underline decoration-dotted decoration-amber-500 underline-offset-2 cursor-help font-medium text-amber-800"
+        className="underline decoration-dotted decoration-amber-500 underline-offset-2 cursor-pointer font-medium text-amber-800"
         style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))" }}
       >
         {word}
@@ -356,15 +366,21 @@ function SynonymTooltip({ word, synonym, onSwap }: SynonymTooltipProps) {
         >
           <span className="flex items-center gap-1.5 bg-slate-900 text-white rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap text-[11px]">
             <span className="text-slate-400 text-[10px]">simpler:</span>
-            <span className="font-semibold text-amber-300">"{synonym}"</span>
-            {onSwap && (
+            {onSwap ? (
               <button
                 type="button"
                 onClick={handleSwap}
-                className="ml-0.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                className={`font-bold px-2 py-0.5 rounded-md text-[11px] transition-all duration-150 cursor-pointer ${
+                  swapped
+                    ? "bg-emerald-500 text-white scale-95"
+                    : "bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-900"
+                }`}
+                title={`Click to replace "${word}" with "${synonym}" and re-run analysis`}
               >
-                Swap ↵
+                {swapped ? "✓ swapped!" : `"${synonym}"`}
               </button>
+            ) : (
+              <span className="font-semibold text-amber-300">"{synonym}"</span>
             )}
           </span>
           <span
@@ -713,11 +729,41 @@ function applySimplifications(rawText: string): string {
   return result;
 }
 
+interface HistoryEntry {
+  id: string;
+  text: string;
+  score: number;
+  levelLabel: string;
+  wordCount: number;
+  timestamp: number;
+}
+
+const HISTORY_KEY = "readability-checker-history";
+const MAX_HISTORY = 10;
+
+function loadHistory(): HistoryEntry[] {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(entries: HistoryEntry[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY)));
+  } catch {
+    // storage full or unavailable — silently ignore
+  }
+}
+
 export default function ReadabilityChecker() {
   const [text, setText] = useState("");
   const [checked, setChecked] = useState(false);
   const [checkedText, setCheckedText] = useState("");
   const [scoreHistory, setScoreHistory] = useState<number[]>([]);
+  const [analysisHistory, setAnalysisHistory] = useState<HistoryEntry[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const [copyTextState, setCopyTextState] = useState<"idle" | "copied">("idle");
   const [resetConfirm, setResetConfirm] = useState(false);
   const resetConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -776,6 +822,10 @@ export default function ReadabilityChecker() {
   const [shareLinkState, setShareLinkState] = useState<"idle" | "copied">("idle");
 
   useEffect(() => {
+    // Load persisted analysis history
+    setAnalysisHistory(loadHistory());
+
+    // Auto-populate from shareable URL param
     const params = new URLSearchParams(window.location.search);
     const encoded = params.get("t");
     if (!encoded) return;
@@ -826,6 +876,23 @@ export default function ReadabilityChecker() {
     setCheckedText(t);
     setChecked(true);
     trackEvent("Tool Used", { tool: "readability-checker" });
+
+    // Persist to analysis history
+    const level = levelFromScore(newScore);
+    const newEntry: HistoryEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      text: t,
+      score: newScore,
+      levelLabel: level.label,
+      wordCount: words.length,
+      timestamp: Date.now(),
+    };
+    setAnalysisHistory((prev) => {
+      const updated = [newEntry, ...prev].slice(0, MAX_HISTORY);
+      saveHistory(updated);
+      return updated;
+    });
+
     setTimeout(
       () =>
         resultsRef.current?.scrollIntoView({
@@ -1875,6 +1942,93 @@ export default function ReadabilityChecker() {
                 </div>
 
                 </div>{/* end two-column grid */}
+
+                {/* Analysis History */}
+                {analysisHistory.length > 0 && (
+                  <Card className="border border-slate-100 shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setShowHistory((p) => !p)}
+                          className="flex items-center gap-2 text-sm font-semibold text-slate-900 hover:text-teal-700 transition-colors"
+                        >
+                          <Clock className="w-4 h-4 text-teal-500 shrink-0" />
+                          Past Analyses
+                          <span className="ml-1 text-[11px] font-normal text-muted-foreground">
+                            ({analysisHistory.length})
+                          </span>
+                          {showHistory ? (
+                            <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                          ) : (
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAnalysisHistory([]);
+                            saveHistory([]);
+                            setShowHistory(false);
+                          }}
+                          className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-red-500 transition-colors"
+                          title="Clear all history"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Clear all
+                        </button>
+                      </div>
+
+                      {showHistory && (
+                        <div className="mt-4 space-y-2">
+                          {analysisHistory.map((entry) => {
+                            const level = levelFromScore(entry.score);
+                            const ago = (() => {
+                              const s = Math.round((Date.now() - entry.timestamp) / 1000);
+                              if (s < 60) return `${s}s ago`;
+                              const m = Math.round(s / 60);
+                              if (m < 60) return `${m}m ago`;
+                              const h = Math.round(m / 60);
+                              if (h < 24) return `${h}h ago`;
+                              return `${Math.round(h / 24)}d ago`;
+                            })();
+                            return (
+                              <button
+                                key={entry.id}
+                                type="button"
+                                onClick={() => {
+                                  setText(entry.text);
+                                  checkWithText(entry.text);
+                                }}
+                                className="w-full text-left flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50 hover:bg-teal-50 hover:border-teal-200 transition-colors group"
+                              >
+                                <div className={`text-xl font-black w-10 text-center shrink-0 ${level.color}`}>
+                                  {entry.score}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className={`text-[11px] font-semibold ${level.color}`}>
+                                    {entry.levelLabel}
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                                    {entry.text.slice(0, 80).trim()}
+                                    {entry.text.length > 80 ? "…" : ""}
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0 space-y-0.5">
+                                  <div className="text-[10px] text-muted-foreground">{ago}</div>
+                                  <div className="text-[10px] text-muted-foreground">{entry.wordCount} words</div>
+                                  <div className="text-[10px] text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
+                                    Load →
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
                 <Card className="border border-teal-100 bg-teal-50 shadow-sm">
                   <CardContent className="p-4">
