@@ -2353,6 +2353,7 @@ export default function ReadabilityChecker() {
   .readability-print-report,
   .readability-print-report * { visibility: visible !important; }
   .readability-print-report {
+    display: block !important;
     position: fixed !important;
     inset: 0 !important;
     padding: 32px 40px !important;
@@ -2365,7 +2366,7 @@ export default function ReadabilityChecker() {
   @page { margin: 0; size: A4 portrait; }
 }
           ` }} />
-          <div className="readability-print-report" aria-hidden="true">
+          <div className="readability-print-report" aria-hidden="true" style={{ display: "none" }}>
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #0d9488", paddingBottom: "12px", marginBottom: "18px" }}>
               <div>
