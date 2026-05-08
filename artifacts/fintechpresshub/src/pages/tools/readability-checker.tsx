@@ -1320,6 +1320,39 @@ export default function ReadabilityChecker() {
     setTimeout(() => setCopyImprovedState("idle"), 1500);
   };
 
+  const exportCsv = () => {
+    if (!results) return;
+    const vibe = vibeFromScore(results.score);
+    const esc = (v: string | number) => {
+      const s = String(v);
+      return s.includes(",") || s.includes('"') || s.includes("\n")
+        ? `"${s.replace(/"/g, '""')}"`
+        : s;
+    };
+    const rows: [string, string][] = [
+      ["Metric", "Value"],
+      ["Flesch Score", Math.round(results.score).toString()],
+      ["Grade Level", results.grade],
+      ["Readability Level", results.level.label],
+      ["Vibe", vibe.label.replace(/\s*[^\w\s].*/u, "").trim()],
+      ["Word Count", results.wordCount.toString()],
+      ["Sentence Count", results.sentenceCount.toString()],
+      ["Avg Sentence Length (words)", results.avgSentenceLen.toFixed(1)],
+      ["Avg Syllables per Word", results.avgSyllables.toFixed(2)],
+      ["Reading Time (min)", Math.max(1, Math.ceil(results.wordCount / 200)).toString()],
+      ["Passive Voice Sentences", results.passiveCount.toString()],
+      ...results.tips.map((tip, i): [string, string] => [`Tip ${i + 1}`, tip]),
+    ];
+    const csv = rows.map((r) => r.map(esc).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `readability-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const copyBadge = async () => {
     if (!results) return;
     const score = Math.round(results.score);
@@ -1582,6 +1615,15 @@ export default function ReadabilityChecker() {
                           Copy as Markdown
                         </>
                       )}
+                    </Button>
+                    <Button
+                      onClick={exportCsv}
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto h-9 sm:h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      Export CSV
                     </Button>
                     <Button
                       onClick={printReport}

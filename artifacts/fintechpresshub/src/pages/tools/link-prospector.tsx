@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,8 +26,12 @@ import {
   Mail,
   Copy,
   CheckCircle2,
+  Settings2,
+  X,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+
+type ScoringMode = "authority" | "traffic";
 
 type Relevance = "high" | "medium" | "low";
 type Placement = "editorial" | "sidebar" | "footer" | "sponsored";
@@ -124,16 +128,15 @@ function computeAcquisition(score: number, da: number): AcquisitionInfo {
   return { stars: 1, label: "Easy", strategyTip: "Straightforward outreach — a brief, friendly email highlighting your content is usually enough." };
 }
 
-function estimateOne(domain: string, daRaw: number, trafficRaw: number): ProspectResult {
+function estimateOne(domain: string, daRaw: number, trafficRaw: number, mode: ScoringMode = "authority"): ProspectResult {
   const da = Math.min(100, Math.max(0, daRaw));
   const traffic = Math.max(0, trafficRaw);
 
-  let score = 0;
   let daContrib = 0;
   let trafficContrib = 0;
-  let relevanceContrib = 15;
-  let linkTypeContrib = 10;
-  let placementContrib = 5;
+  const relevanceContrib = 15;
+  const linkTypeContrib = 10;
+  const placementContrib = 5;
 
   if (da >= 80) daContrib = 40;
   else if (da >= 60) daContrib = 32;
@@ -148,8 +151,20 @@ function estimateOne(domain: string, daRaw: number, trafficRaw: number): Prospec
   else if (traffic >= 1_000) trafficContrib = 7;
   else trafficContrib = 2;
 
-  score = daContrib + trafficContrib + relevanceContrib + linkTypeContrib + placementContrib;
-  score = Math.max(1, Math.min(100, score));
+  // Normalize each component to a 0–1 scale, then apply mode weights
+  const daNorm = daContrib / 40;
+  const trafficNorm = trafficContrib / 25;
+  const otherNorm = (relevanceContrib + linkTypeContrib + placementContrib) / 30;
+
+  let score: number;
+  if (mode === "authority") {
+    // DA: 70%, Traffic: 20%, Other: 10%
+    score = 0.70 * daNorm * 100 + 0.20 * trafficNorm * 100 + 0.10 * otherNorm * 100;
+  } else {
+    // Traffic: 70%, DA: 20%, Other: 10%
+    score = 0.20 * daNorm * 100 + 0.70 * trafficNorm * 100 + 0.10 * otherNorm * 100;
+  }
+  score = Math.max(1, Math.min(100, Math.round(score)));
 
   const label =
     score >= 80 ? "Exceptional"
@@ -249,6 +264,9 @@ export default function LinkProspector() {
   const [ran, setRan] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedDomain, setCopiedDomain] = useState<string | null>(null);
+  const [scoringMode, setScoringMode] = useState<ScoringMode>("authority");
+  const [showSettings, setShowSettings] = useState(false);
+  const scoringModeRef = useRef<ScoringMode>("authority");
   const [statusMap, setStatusMap] = useState<Record<string, OutreachStatus>>(() => {
     try {
       const stored = localStorage.getItem(LS_STATUS_KEY);
@@ -273,7 +291,7 @@ export default function LinkProspector() {
     if (lines.length > 50) { setError("Maximum 50 domains per batch."); return; }
     const parsed = lines.map(parseLine).filter(Boolean) as { domain: string; da: number; traffic: number }[];
     if (parsed.length === 0) { setError("Couldn't parse any valid domains. Check the format."); return; }
-    setResults(parsed.map((p) => estimateOne(p.domain, p.da, p.traffic)));
+    setResults(parsed.map((p) => estimateOne(p.domain, p.da, p.traffic, scoringModeRef.current)));
     setRan(true);
     trackEvent("Tool Used", { tool: "link-prospector", domain_count: parsed.length });
     if (pushUrl) {
@@ -289,6 +307,22 @@ export default function LinkProspector() {
   }, []);
 
   const run = () => runWithText(textarea);
+
+  // Keep ref in sync with state so the useCallback can read the latest mode
+  useEffect(() => {
+    scoringModeRef.current = scoringMode;
+  }, [scoringMode]);
+
+  // Re-score existing results whenever the scoring mode changes
+  useEffect(() => {
+    if (!ran || !textarea.trim()) return;
+    const lines = textarea.split("\n").filter((l) => l.trim());
+    const parsed = lines.map(parseLine).filter(Boolean) as { domain: string; da: number; traffic: number }[];
+    if (parsed.length > 0) {
+      setResults(parsed.map((p) => estimateOne(p.domain, p.da, p.traffic, scoringMode)));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scoringMode]);
 
   // On mount, restore state from URL if present
   useEffect(() => {
@@ -438,15 +472,73 @@ export default function LinkProspector() {
                       One per line. Format: <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">domain,DA,monthlyTraffic</code>
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={reset}
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-slate-700 transition-colors"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Reset
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowSettings((s) => !s)}
+                      className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${showSettings ? "text-blue-600 hover:text-blue-700" : "text-muted-foreground hover:text-slate-700"}`}
+                      title="Scoring settings"
+                    >
+                      <Settings2 className="w-3.5 h-3.5" />
+                      Settings
+                    </button>
+                    <button
+                      type="button"
+                      onClick={reset}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-slate-700 transition-colors"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Reset
+                    </button>
+                  </div>
                 </div>
+
+                <AnimatePresence>
+                  {showSettings && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.18 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mb-4 p-3.5 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-between gap-4 flex-wrap">
+                        <div>
+                          <p className="text-xs font-semibold text-blue-900 mb-2">Prioritize:</p>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setScoringMode("authority")}
+                              className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${scoringMode === "authority" ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white border-blue-200 text-blue-700 hover:border-blue-400"}`}
+                            >
+                              High Authority (DA)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setScoringMode("traffic")}
+                              className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${scoringMode === "traffic" ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" : "bg-white border-emerald-200 text-emerald-700 hover:border-emerald-400"}`}
+                            >
+                              High Traffic
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-blue-700 leading-relaxed max-w-xs">
+                          {scoringMode === "authority"
+                            ? "DA carries 70% of the score. Best for building domain trust and long-term SEO authority."
+                            : "Traffic carries 70% of the score. Best for referral potential and audience reach."}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowSettings(false)}
+                          className="ml-auto self-start text-blue-400 hover:text-blue-600 transition-colors"
+                          title="Close"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <div className="space-y-3">
                   <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
