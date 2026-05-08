@@ -33,6 +33,8 @@ import {
   FolderOpen,
   LayoutGrid,
   List,
+  FileText,
+  NotebookPen,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -61,6 +63,7 @@ const STATUS_LABELS: Record<OutreachStatus, string> = {
 
 const LS_STATUS_KEY = "lp-outreach-status";
 const LS_SAVED_LISTS_KEY = "lp-saved-lists";
+const LS_NOTES_KEY = "lp-notes";
 
 type FormState = {
   domain: string;
@@ -301,6 +304,12 @@ export default function LinkProspector() {
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [copiedTopState, setCopiedTopState] = useState<"idle" | "copied" | "none">("idle");
   const [view, setView] = useState<"table" | "kanban">("table");
+  const [pitchModal, setPitchModal] = useState<ProspectResult | null>(null);
+  const [copyTemplateState, setCopyTemplateState] = useState<"idle" | "copied">("idle");
+  const [notesMap, setNotesMap] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem(LS_NOTES_KEY) ?? "{}"); }
+    catch { return {}; }
+  });
   const [statusMap, setStatusMap] = useState<Record<string, OutreachStatus>>(() => {
     try {
       const stored = localStorage.getItem(LS_STATUS_KEY);
@@ -380,6 +389,41 @@ export default function LinkProspector() {
     const updated = savedLists.filter((l) => l.id !== id);
     setSavedLists(updated);
     try { localStorage.setItem(LS_SAVED_LISTS_KEY, JSON.stringify(updated)); } catch {}
+  };
+
+  const updateNote = (domain: string, value: string) => {
+    setNotesMap((prev) => {
+      const updated = { ...prev, [domain]: value };
+      try { localStorage.setItem(LS_NOTES_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const generatePitchEmail = (r: ProspectResult): string => {
+    const compliment =
+      r.da > 60
+        ? `your site's high domain authority and the editorial reputation you've built`
+        : r.traffic > 50_000
+        ? `the impressive reach you've cultivated — ${fmtNum(r.traffic)} monthly readers is genuinely impressive`
+        : `the quality of content you consistently produce`;
+    return `Subject: Content Partnership Opportunity — ${r.domain}
+
+Hi ${r.domain} Team,
+
+I came across ${r.domain} recently and wanted to reach out — I've been particularly impressed by ${compliment}.
+
+My name is [Your Name], and I work with [Your Company], where we create fintech-focused content that I believe would resonate strongly with your audience.
+
+I'd love to explore a content collaboration — whether that's a guest contribution, a data-driven study, or a co-authored piece that genuinely adds value for your readers.
+
+Would you be open to a quick email exchange to see if there's a natural fit?
+
+Looking forward to hearing from you,
+
+[Your Name]
+[Your Title]
+[Your Email]
+[Your Company]`;
   };
 
   // Keep ref in sync with state so the useCallback can read the latest mode
@@ -923,15 +967,14 @@ export default function LinkProspector() {
                                   >
                                     {STATUS_LABELS[statusMap[r.domain] ?? "not_started"]}
                                   </button>
-                                  <Link href={buildPitchUrl(r)}>
-                                    <button
-                                      type="button"
-                                      className="p-1 rounded text-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
-                                      title={`Draft outreach email for ${r.domain}`}
-                                    >
-                                      <Mail className="w-3 h-3" />
-                                    </button>
-                                  </Link>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setPitchModal(r); setCopyTemplateState("idle"); }}
+                                    className="p-1 rounded text-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
+                                    title="Open pitch template"
+                                  >
+                                    <FileText className="w-3 h-3" />
+                                  </button>
                                   <Link href={buildEstimatorUrl(r)}>
                                     <button
                                       type="button"
@@ -941,6 +984,15 @@ export default function LinkProspector() {
                                       <ExternalLink className="w-3 h-3" />
                                     </button>
                                   </Link>
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-slate-100">
+                                  <textarea
+                                    value={notesMap[r.domain] ?? ""}
+                                    onChange={(e) => updateNote(r.domain, e.target.value)}
+                                    placeholder="Add notes…"
+                                    rows={2}
+                                    className="w-full text-[10px] text-slate-600 placeholder:text-slate-300 bg-slate-50 border border-slate-100 rounded-md px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-violet-300 focus:border-violet-200 transition-all"
+                                  />
                                 </div>
                               </div>
                             ))}
@@ -977,7 +1029,7 @@ export default function LinkProspector() {
                             <span className="flex items-center gap-1">Difficulty <SortIcon col="acquisitionStars" active={sortKey} dir={sortDir} /></span>
                           </th>
                           <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5">Status</th>
-                          <th className="px-3 py-2.5" />
+                          <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
@@ -1061,21 +1113,20 @@ export default function LinkProspector() {
                               </button>
                             </td>
                             <td className="px-3 py-3">
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Link href={buildPitchUrl(r)}>
-                                  <button
-                                    type="button"
-                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md text-violet-600 hover:text-violet-700 hover:bg-violet-50 border border-transparent hover:border-violet-200 transition-all whitespace-nowrap"
-                                    title={`Draft outreach email for ${r.domain}`}
-                                  >
-                                    <Mail className="w-3 h-3" />
-                                    Pitch
-                                  </button>
-                                </Link>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => { setPitchModal(r); setCopyTemplateState("idle"); }}
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-md text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 hover:border-violet-300 transition-all whitespace-nowrap"
+                                  title={`Open pitch template for ${r.domain}`}
+                                >
+                                  <FileText className="w-3 h-3" />
+                                  Draft Pitch
+                                </button>
                                 <Link href={buildEstimatorUrl(r)}>
                                   <button
                                     type="button"
-                                    className="p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                                    className="p-1.5 rounded-md text-slate-300 hover:text-blue-600 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-all"
                                     title="Open full analysis"
                                   >
                                     <ExternalLink className="w-3.5 h-3.5" />
@@ -1109,6 +1160,82 @@ export default function LinkProspector() {
           </AnimatePresence>
         </div>
       </section>
+
+      {/* ── Draft Pitch Modal ── */}
+      <AnimatePresence>
+        {pitchModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) setPitchModal(null); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.15 }}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-lg"
+            >
+              <div className="flex items-start justify-between px-6 pt-5 pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <NotebookPen className="w-4 h-4 text-violet-600" />
+                    Pitch Template
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {pitchModal.domain} · Score {pitchModal.score} · DA {pitchModal.da > 0 ? pitchModal.da : "—"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPitchModal(null)}
+                  className="mt-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="px-6 py-4">
+                <textarea
+                  readOnly
+                  value={generatePitchEmail(pitchModal)}
+                  rows={14}
+                  className="w-full text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 leading-relaxed"
+                />
+              </div>
+
+              <div className="flex items-center justify-between px-6 pb-5 gap-4">
+                <p className="text-[10px] text-muted-foreground leading-snug max-w-[60%]">
+                  Replace <span className="font-mono bg-slate-100 px-1 rounded">[Your Name]</span> and other placeholders before sending.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatePitchEmail(pitchModal)).then(() => {
+                      setCopyTemplateState("copied");
+                      setTimeout(() => setCopyTemplateState("idle"), 2000);
+                    });
+                  }}
+                  className={`shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg transition-all ${
+                    copyTemplateState === "copied"
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      : "bg-violet-600 text-white hover:bg-violet-700"
+                  }`}
+                >
+                  {copyTemplateState === "copied" ? (
+                    <><Check className="w-3.5 h-3.5" />Copied!</>
+                  ) : (
+                    <><Copy className="w-3.5 h-3.5" />Copy Template</>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
