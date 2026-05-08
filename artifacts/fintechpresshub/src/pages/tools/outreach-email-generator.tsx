@@ -39,6 +39,7 @@ import {
   Trash2,
   ArrowLeftRight,
   Download,
+  CalendarDays,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -85,6 +86,13 @@ type EmailEntry = {
   subject: string;
   body: string;
   form: FormState;
+};
+
+type FollowUpEmail = {
+  day: number;
+  label: string;
+  subject: string;
+  body: string;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -295,6 +303,187 @@ Best,
 ${name}
 ${company}
 ${website}`;
+}
+
+function generateFollowUpSequence(form: FormState, tone: Tone, originalSubject: string): FollowUpEmail[] {
+  const domain  = fmtDomain(form.targetDomain) || "yourtargetsite.com";
+  const name    = form.yourName.trim() || "Your Name";
+  const company = form.yourCompany.trim() || "Your Company";
+  const website = fmtDomain(form.yourWebsite) || "yourwebsite.com";
+  const topic   = form.topic.trim() || "digital marketing";
+  const site    = siteName(domain);
+
+  if (tone === "professional") {
+    return [
+      {
+        day: 3,
+        label: "Day 3 — Polite bump",
+        subject: `Re: ${originalSubject}`,
+        body: `Hi ${site} team,
+
+I wanted to follow up on my email from a couple of days ago regarding a content partnership opportunity.
+
+I know editorial inboxes are busy, so I'll keep this brief: we believe the resource we mentioned would add real depth to your ${topic} coverage and is a genuinely strong fit for your readers.
+
+If it's easier, I'm happy to send a direct link to the piece so you can review it at your own pace — no commitment required.
+
+Best regards,
+${name}
+${company}`,
+      },
+      {
+        day: 7,
+        label: "Day 7 — Add value",
+        subject: `One more thought on ${topic} for ${site}`,
+        body: `Hi ${site} team,
+
+I wanted to share one more thought before I wrap up my outreach.
+
+Since my last email, I noticed a gap in the current ${topic} content landscape that our resource addresses directly — specifically around [key angle from your piece]. Given ${domain}'s position in this space, it feels like a natural extension of what you're already publishing.
+
+I'd be happy to tailor a section of the content to better align with your audience's needs, or explore a guest contribution format if that works better for your editorial calendar.
+
+Would it be worth a quick 10-minute call to explore?
+
+Best,
+${name}
+${company}
+${website}`,
+      },
+      {
+        day: 14,
+        label: "Day 14 — Final nudge",
+        subject: `Last one from me — ${company} + ${site}`,
+        body: `Hi ${site} team,
+
+I'll keep this short — I promise this is my last email on this.
+
+If the timing isn't right or the fit isn't there, I completely understand. If things change or you're revisiting your content calendar in the future, I'd love to reconnect.
+
+On the off chance this landed in the wrong inbox — I've been reaching out about a ${topic} resource we think your readers would genuinely value. Happy to forward the details if useful.
+
+Either way, best of luck with everything at ${domain}. It's a great resource.
+
+Warmly,
+${name}
+${company}`,
+      },
+    ];
+  }
+
+  if (tone === "conversational") {
+    return [
+      {
+        day: 3,
+        label: "Day 3 — Friendly check-in",
+        subject: `Re: ${originalSubject}`,
+        body: `Hey ${site} team,
+
+Just floating this back to the top of your inbox in case it got buried!
+
+No pressure at all — just wanted to make sure you had a chance to see my note about the ${topic} content we've published. I think it could be a really natural fit for your audience.
+
+Happy to share more details or the piece itself whenever suits you.
+
+Cheers,
+${name}`,
+      },
+      {
+        day: 7,
+        label: "Day 7 — Offer something new",
+        subject: `Thought of something else for ${site}'s ${topic} readers`,
+        body: `Hey ${site} team,
+
+I had another thought since my last note.
+
+Beyond the piece I mentioned, we've also been working on [related content or data point] that might be interesting for your ${topic} coverage specifically. I'd be happy to share that too — no strings attached.
+
+I genuinely think there's something here worth exploring together. Even a quick 10-minute chat could be worthwhile!
+
+Cheers,
+${name}
+${company} · ${website}`,
+      },
+      {
+        day: 14,
+        label: "Day 14 — Sign off warmly",
+        subject: `Signing off — but keeping the door open 👋`,
+        body: `Hey ${site} team,
+
+Last one from me, I promise!
+
+If the timing's not right, no worries at all. I'll leave it here and hope our paths cross again down the line.
+
+If something shifts and you want to chat about ${topic} content collaboration, you know where to find me.
+
+Keep up the great work — ${domain} is genuinely one of my favourite resources in this space.
+
+All the best,
+${name}
+${company}`,
+      },
+    ];
+  }
+
+  // data-led
+  return [
+    {
+      day: 3,
+      label: "Day 3 — Re-surface with data",
+      subject: `Re: ${originalSubject}`,
+      body: `Hi ${site} team,
+
+Following up on my previous email regarding a ${topic} content opportunity.
+
+To add a bit more context: the resource I mentioned has been performing well in search — ranking for [relevant keyword cluster] and attracting the exact audience segment your readers likely overlap with.
+
+I can share the full performance data if it's helpful. It would give you a clearer picture of the referral quality a link placement could generate.
+
+Worth a quick conversation?
+
+Best,
+${name}
+${company}`,
+    },
+    {
+      day: 7,
+      label: "Day 7 — Sharpen the value case",
+      subject: `${site}: the ${topic} content gap worth closing`,
+      body: `Hi ${site} team,
+
+One more thought on our ${topic} resource.
+
+After reviewing your current coverage more carefully, I noticed that [specific angle] isn't addressed anywhere in your existing ${topic} content — it's a gap that search data confirms your audience is actively looking for.
+
+Our resource fills that exact gap. A mention or link would strengthen your coverage and provide your readers with a clear next step.
+
+I'd love to walk you through the numbers if you have 10 minutes.
+
+Best,
+${name}
+${company}
+${website}`,
+    },
+    {
+      day: 14,
+      label: "Day 14 — Final value close",
+      subject: `Closing the loop — ${company} + ${site}`,
+      body: `Hi ${site} team,
+
+This will be my last email — I want to respect your time.
+
+I'll leave you with one final thought: the ${topic} content gap we identified on ${domain} is one that your competitors are increasingly covering. A single resource link now could meaningfully reinforce your authority in this space before the window closes.
+
+If the opportunity becomes relevant in the future, I'd genuinely welcome the conversation. My details are below.
+
+Thank you for your time.
+
+Best,
+${name}
+${company}
+${website}`,
+    },
+  ];
 }
 
 function parseParams(): Partial<FormState> {
@@ -512,6 +701,9 @@ export default function OutreachEmailGenerator() {
   const [copied, setCopied]     = useState<"subject" | "body" | "all" | null>(null);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
   const [bodyExpanded, setBodyExpanded] = useState(true);
+  const [followUps, setFollowUps] = useState<FollowUpEmail[] | null>(null);
+  const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [copiedFollowUp, setCopiedFollowUp] = useState<number | "all" | null>(null);
   const [history, setHistory]   = useState<EmailEntry[]>(loadHistory);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyCompareEntry, setHistoryCompareEntry] = useState<EmailEntry | null>(null);
@@ -543,6 +735,9 @@ export default function OutreachEmailGenerator() {
     setSelectedIdx(winnerIdx);
     setBody(emailBody);
     setBodyExpanded(true);
+    setFollowUps(generateFollowUpSequence(form, t, vars[winnerIdx]));
+    setFollowUpOpen(false);
+    setCopiedFollowUp(null);
     trackEvent("Tool Used", { tool: "outreach-email-generator", tone: t });
 
     const entry: EmailEntry = {
@@ -570,6 +765,8 @@ export default function OutreachEmailGenerator() {
     setVariants(null);
     setScores(null);
     setCopied(null);
+    setFollowUps(null);
+    setFollowUpOpen(false);
     toast("Form reset", {
       description: snapshot.body
         ? "Your inputs and generated email have been cleared."
@@ -692,6 +889,25 @@ export default function OutreachEmailGenerator() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     trackEvent("Result Exported", { tool: "outreach-email-generator", format: "eml" });
+  };
+
+  const copyFollowUp = async (idx: number | "all") => {
+    if (!followUps) return;
+    const text =
+      idx === "all"
+        ? followUps
+            .map((f) => `--- ${f.label} ---\nSubject: ${f.subject}\n\n${f.body}`)
+            .join("\n\n")
+        : `Subject: ${followUps[idx].subject}\n\n${followUps[idx].body}`;
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+      const el = document.createElement("textarea");
+      el.value = text; document.body.appendChild(el); el.select();
+      document.execCommand("copy"); document.body.removeChild(el);
+    }
+    setCopiedFollowUp(idx);
+    trackEvent("Result Copied", { tool: "outreach-email-generator", format: "follow-up" });
+    setTimeout(() => setCopiedFollowUp(null), 2000);
   };
 
   const copyText = async (type: "subject" | "body" | "all") => {
@@ -1149,6 +1365,90 @@ export default function OutreachEmailGenerator() {
                     </AnimatePresence>
                   </CardContent>
                 </Card>
+
+                {/* Follow-up sequence */}
+                {followUps && (
+                  <Card className="border border-violet-200 shadow-sm">
+                    <CardContent className="p-0">
+                      <button
+                        type="button"
+                        onClick={() => setFollowUpOpen((o) => !o)}
+                        className="w-full flex items-center justify-between px-5 py-4 hover:bg-violet-50/50 transition-colors rounded-t-xl"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="w-4 h-4 text-violet-500 shrink-0" />
+                          <span className="text-sm font-bold text-slate-900">Follow-up sequence</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                            Day 3 · Day 7 · Day 14
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); copyFollowUp("all"); }}
+                            className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
+                              copiedFollowUp === "all"
+                                ? "border-violet-400 bg-violet-50 text-violet-700"
+                                : "border-slate-200 text-slate-500 hover:border-violet-300 hover:text-violet-600"
+                            }`}
+                          >
+                            {copiedFollowUp === "all"
+                              ? <><Check className="w-3 h-3" /> Copied all</>
+                              : <><Copy className="w-3 h-3" /> Copy all</>}
+                          </button>
+                          {followUpOpen
+                            ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                            : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                        </div>
+                      </button>
+
+                      <AnimatePresence initial={false}>
+                        {followUpOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="border-t border-violet-100 divide-y divide-violet-100">
+                              {followUps.map((fu, idx) => (
+                                <div key={fu.day} className="px-5 py-4 space-y-2">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] font-black text-violet-600 uppercase tracking-wider">
+                                        {fu.label}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyFollowUp(idx)}
+                                      className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${
+                                        copiedFollowUp === idx
+                                          ? "border-violet-400 bg-violet-50 text-violet-700"
+                                          : "border-slate-200 text-slate-400 hover:border-violet-300 hover:text-violet-600"
+                                      }`}
+                                    >
+                                      {copiedFollowUp === idx
+                                        ? <><Check className="w-3 h-3" /> Copied</>
+                                        : <><Copy className="w-3 h-3" /> Copy</>}
+                                    </button>
+                                  </div>
+                                  <p className="text-[11px] font-semibold text-slate-700 leading-snug">
+                                    <span className="text-slate-400 font-normal">Subject: </span>{fu.subject}
+                                  </p>
+                                  <pre className="text-[11px] text-slate-600 whitespace-pre-wrap font-sans leading-relaxed bg-violet-50/60 rounded-lg px-3 py-2.5">
+                                    {fu.body}
+                                  </pre>
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Tone switch quick-links */}
                 <Card className="border border-slate-100 shadow-sm bg-slate-50">

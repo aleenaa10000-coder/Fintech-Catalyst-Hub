@@ -1054,7 +1054,7 @@ export default function ReadabilityChecker() {
                                 : seg.difficulty === "moderate"
                                   ? { ...baseStyle, backgroundColor: "#fef9c3" }
                                   : seg.passive
-                                    ? { ...baseStyle, backgroundColor: "#ede9fe", borderBottom: "2px solid #a855f7" }
+                                    ? { ...baseStyle, backgroundColor: "#ddd6fe", borderBottom: "2px solid #8b5cf6" }
                                     : {};
                             const tooltipParts: string[] = [];
                             if (seg.difficulty === "hard")
