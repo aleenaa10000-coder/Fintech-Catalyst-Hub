@@ -1448,6 +1448,11 @@ const emptyForm = {
   seoDescription: "",
   seoOgImage: "",
   noIndex: false,
+  faqItems: "",
+  blufSummary: "",
+  lastMaterialUpdateAt: "",
+  aboutEntities: "",
+  mentionEntities: "",
 };
 
 /**
@@ -1605,6 +1610,15 @@ function PostEditor({
     seoDescription: post.seoDescription ?? "",
     seoOgImage: post.seoOgImage ?? "",
     noIndex: post.noIndex ?? false,
+    faqItems: post.faqItems
+      ? JSON.stringify(post.faqItems, null, 2)
+      : "",
+    blufSummary: post.blufSummary ?? "",
+    lastMaterialUpdateAt: post.lastMaterialUpdateAt
+      ? toDateTimeLocalValue(post.lastMaterialUpdateAt)
+      : "",
+    aboutEntities: (post.aboutEntities ?? []).join(", "),
+    mentionEntities: (post.mentionEntities ?? []).join(", "),
   });
   const updateMut = useUpdateBlogPost();
 
@@ -1644,6 +1658,43 @@ function PostEditor({
           seoTitle: draft.seoTitle.trim() || null,
           seoDescription: draft.seoDescription.trim() || null,
           seoOgImage: draft.seoOgImage.trim() || null,
+          ...(draft.faqItems.trim()
+            ? (() => {
+                try {
+                  return { faqItems: JSON.parse(draft.faqItems) };
+                } catch {
+                  return {};
+                }
+              })()
+            : { faqItems: null }),
+          blufSummary: draft.blufSummary.trim() || null,
+          ...(draft.lastMaterialUpdateAt
+            ? {
+                lastMaterialUpdateAt: new Date(
+                  draft.lastMaterialUpdateAt,
+                ).toISOString(),
+              }
+            : { lastMaterialUpdateAt: null }),
+          aboutEntities: draft.aboutEntities
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+            .length > 0
+            ? draft.aboutEntities
+                .split(",")
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+            : null,
+          mentionEntities: draft.mentionEntities
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+            .length > 0
+            ? draft.mentionEntities
+                .split(",")
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+            : null,
         },
       });
       const description = describeSeoNotification(updated.seoNotification);
@@ -1978,6 +2029,102 @@ function PostEditor({
             author={draft.author || post.author}
             authorRole={draft.authorRole || post.authorRole}
           />
+        </div>
+      </details>
+
+      <details className="border rounded-md p-3">
+        <summary className="cursor-pointer text-sm font-medium select-none">
+          Structured content (optional)
+        </summary>
+        <div className="space-y-4 mt-3">
+          <div>
+            <Label htmlFor={`blufSummary-${post.id}`}>Bottom-line summary</Label>
+            <Textarea
+              id={`blufSummary-${post.id}`}
+              rows={2}
+              maxLength={400}
+              placeholder="One crisp sentence that gives the reader the key takeaway before they read."
+              value={draft.blufSummary}
+              onChange={(e) =>
+                setDraft({ ...draft, blufSummary: e.target.value })
+              }
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Displayed as a "Bottom line" callout above the article and
+              used in SpeakableSpecification JSON-LD (G3).
+            </p>
+          </div>
+          <div>
+            <Label htmlFor={`lastMaterialUpdateAt-${post.id}`}>
+              Last material update
+            </Label>
+            <Input
+              id={`lastMaterialUpdateAt-${post.id}`}
+              type="datetime-local"
+              value={draft.lastMaterialUpdateAt}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  lastMaterialUpdateAt: e.target.value,
+                })
+              }
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Overrides <code>dateModified</code> in BlogPosting JSON-LD.
+              Set only when this edit materially changes the article (W6).
+            </p>
+          </div>
+          <div>
+            <Label htmlFor={`aboutEntities-${post.id}`}>
+              About (topics / entities)
+            </Label>
+            <Input
+              id={`aboutEntities-${post.id}`}
+              placeholder="e.g. Open Banking, PSD3, Embedded Finance"
+              value={draft.aboutEntities}
+              onChange={(e) =>
+                setDraft({ ...draft, aboutEntities: e.target.value })
+              }
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Comma-separated primary topics. Populates BlogPosting{" "}
+              <code>about</code> in JSON-LD (G5).
+            </p>
+          </div>
+          <div>
+            <Label htmlFor={`mentionEntities-${post.id}`}>
+              Mentions (entities)
+            </Label>
+            <Input
+              id={`mentionEntities-${post.id}`}
+              placeholder="e.g. Stripe, Visa, Mastercard, FCA"
+              value={draft.mentionEntities}
+              onChange={(e) =>
+                setDraft({ ...draft, mentionEntities: e.target.value })
+              }
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Comma-separated entities mentioned. Populates BlogPosting{" "}
+              <code>mentions</code> in JSON-LD (G5).
+            </p>
+          </div>
+          <div>
+            <Label htmlFor={`faqItems-${post.id}`}>FAQ items (JSON)</Label>
+            <Textarea
+              id={`faqItems-${post.id}`}
+              rows={5}
+              className="font-mono text-xs"
+              placeholder={`[\n  { "question": "What is X?", "answer": "X is…" }\n]`}
+              value={draft.faqItems}
+              onChange={(e) =>
+                setDraft({ ...draft, faqItems: e.target.value })
+              }
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Valid JSON array of <code>{"{ question, answer }"}</code> objects.
+              Emits FAQPage JSON-LD and a rich-result FAQ accordion in Google (A1).
+            </p>
+          </div>
         </div>
       </details>
 
@@ -3542,6 +3689,43 @@ export default function AdminBlog() {
           seoTitle: form.seoTitle.trim() || null,
           seoDescription: form.seoDescription.trim() || null,
           seoOgImage: form.seoOgImage.trim() || null,
+          ...(form.faqItems.trim()
+            ? (() => {
+                try {
+                  return { faqItems: JSON.parse(form.faqItems) };
+                } catch {
+                  return {};
+                }
+              })()
+            : { faqItems: null }),
+          blufSummary: form.blufSummary.trim() || null,
+          ...(form.lastMaterialUpdateAt
+            ? {
+                lastMaterialUpdateAt: new Date(
+                  form.lastMaterialUpdateAt,
+                ).toISOString(),
+              }
+            : {}),
+          aboutEntities:
+            form.aboutEntities
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean).length > 0
+              ? form.aboutEntities
+                  .split(",")
+                  .map((s: string) => s.trim())
+                  .filter(Boolean)
+              : null,
+          mentionEntities:
+            form.mentionEntities
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean).length > 0
+              ? form.mentionEntities
+                  .split(",")
+                  .map((s: string) => s.trim())
+                  .filter(Boolean)
+              : null,
         },
       });
       const isScheduled = publishedAtIso
@@ -4111,6 +4295,104 @@ export default function AdminBlog() {
                     <p className="text-xs text-muted-foreground mt-1">
                       1200×630 PNG/JPG works best for LinkedIn, X, Slack &
                       Facebook.
+                    </p>
+                  </div>
+                </div>
+              </details>
+
+              <details className="border rounded-md p-3">
+                <summary className="cursor-pointer text-sm font-medium select-none">
+                  Structured content (optional)
+                </summary>
+                <div className="space-y-4 mt-3">
+                  <div>
+                    <Label htmlFor="blufSummary">Bottom-line summary</Label>
+                    <Textarea
+                      id="blufSummary"
+                      rows={2}
+                      maxLength={400}
+                      placeholder="One crisp sentence that gives the reader the key takeaway before they read."
+                      value={form.blufSummary}
+                      onChange={(e) =>
+                        setForm({ ...form, blufSummary: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Displayed as a "Bottom line" callout and used in
+                      SpeakableSpecification JSON-LD (G3).
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="lastMaterialUpdateAt">
+                      Last material update
+                    </Label>
+                    <Input
+                      id="lastMaterialUpdateAt"
+                      type="datetime-local"
+                      value={form.lastMaterialUpdateAt}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          lastMaterialUpdateAt: e.target.value,
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Overrides <code>dateModified</code> in BlogPosting
+                      JSON-LD (W6).
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="aboutEntities">
+                      About (topics / entities)
+                    </Label>
+                    <Input
+                      id="aboutEntities"
+                      placeholder="e.g. Open Banking, PSD3, Embedded Finance"
+                      value={form.aboutEntities}
+                      onChange={(e) =>
+                        setForm({ ...form, aboutEntities: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Comma-separated. Populates BlogPosting{" "}
+                      <code>about</code> (G5).
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="mentionEntities">Mentions (entities)</Label>
+                    <Input
+                      id="mentionEntities"
+                      placeholder="e.g. Stripe, Visa, Mastercard, FCA"
+                      value={form.mentionEntities}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          mentionEntities: e.target.value,
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Comma-separated. Populates BlogPosting{" "}
+                      <code>mentions</code> (G5).
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="faqItems">FAQ items (JSON)</Label>
+                    <Textarea
+                      id="faqItems"
+                      rows={5}
+                      className="font-mono text-xs"
+                      placeholder={`[\n  { "question": "What is X?", "answer": "X is…" }\n]`}
+                      value={form.faqItems}
+                      onChange={(e) =>
+                        setForm({ ...form, faqItems: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Valid JSON array of{" "}
+                      <code>{"{ question, answer }"}</code> objects. Emits
+                      FAQPage JSON-LD and Google rich result (A1).
                     </p>
                   </div>
                 </div>

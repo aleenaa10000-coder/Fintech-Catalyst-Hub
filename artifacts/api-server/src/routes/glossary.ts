@@ -55,10 +55,11 @@ router.get("/glossary", async (_req, res, next) => {
 
 router.get("/glossary/:slug", async (req, res, next) => {
   try {
+    const slug = String(req.params["slug"] ?? "");
     const [row] = await db
       .select()
       .from(glossaryTermsTable)
-      .where(eq(glossaryTermsTable.slug, req.params["slug"] ?? ""))
+      .where(eq(glossaryTermsTable.slug, slug))
       .limit(1);
     if (!row) {
       res.status(404).json({ error: "Not found" });
@@ -98,11 +99,12 @@ router.patch(
   requireAdmin,
   async (req, res, next) => {
     try {
+      const paramSlug = String(req.params["slug"] ?? "");
       const body = UpdateGlossaryTermBody.parse(req.body);
       const [row] = await db
         .update(glossaryTermsTable)
         .set(body)
-        .where(eq(glossaryTermsTable.slug, req.params["slug"] ?? ""))
+        .where(eq(glossaryTermsTable.slug, paramSlug))
         .returning();
       if (!row) {
         res.status(404).json({ error: "Not found" });
@@ -124,9 +126,10 @@ router.delete(
   requireAdmin,
   async (req, res, next) => {
     try {
+      const delSlug = String(req.params["slug"] ?? "");
       const [row] = await db
         .delete(glossaryTermsTable)
-        .where(eq(glossaryTermsTable.slug, req.params["slug"] ?? ""))
+        .where(eq(glossaryTermsTable.slug, delSlug))
         .returning();
       if (!row) {
         res.status(404).json({ error: "Not found" });

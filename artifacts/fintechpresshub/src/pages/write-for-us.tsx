@@ -723,6 +723,34 @@ export default function WriteForUs() {
           ],
         }}
         faq={wfuFaqs}
+        howTo={{
+          name: "How to Write a Guest Post for FintechPressHub",
+          description:
+            "Submit a high-quality fintech guest post and earn a dofollow backlink from our DA-rated publication.",
+          totalTime: "PT3H",
+          steps: [
+            {
+              name: "Read the contributor guidelines",
+              text: "Review our editorial standards, topical scope, and link policy before pitching.",
+            },
+            {
+              name: "Submit your pitch",
+              text: "Fill in the pitch form with your proposed headline, a 2-3 sentence summary, and a short author bio.",
+            },
+            {
+              name: "Receive editorial feedback",
+              text: "Our editors review every pitch within 5 business days and send acceptance or revision notes.",
+            },
+            {
+              name: "Write and submit your draft",
+              text: "Deliver a 1,000–3,000 word draft via Google Doc, following our formatting and citation guidelines.",
+            },
+            {
+              name: "Editorial review and publication",
+              text: "We copy-edit, add internal links, and publish your post with a dofollow author bio link.",
+            },
+          ],
+        }}
       />
       <PageHero
         eyebrow="Write For Us"

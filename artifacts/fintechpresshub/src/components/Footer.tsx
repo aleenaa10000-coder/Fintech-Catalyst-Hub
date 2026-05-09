@@ -103,6 +103,11 @@ export function Footer() {
                 </PrefetchLink>
               </li>
               <li>
+                <PrefetchLink href="/glossary" className="text-muted-foreground hover:text-primary transition-colors">
+                  Fintech Glossary
+                </PrefetchLink>
+              </li>
+              <li>
                 <PrefetchLink
                   href="/tools/financial-health-score-calculator"
                   className="text-muted-foreground hover:text-primary transition-colors"
