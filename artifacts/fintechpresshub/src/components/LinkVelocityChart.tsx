@@ -1,5 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   ChartContainer,
   ChartTooltip,
@@ -14,7 +16,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { TrendingUp, ExternalLink } from "lucide-react";
+import {
+  TrendingUp,
+  Upload,
+  X,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 
 interface LinkVelocityWeek {
   weekLabel: string;
@@ -28,12 +37,32 @@ interface LinkVelocityData {
   avgPerWeek: number;
 }
 
+interface ImportResult {
+  imported: number;
+  skipped: number;
+  totalInFile: number;
+  truncated: boolean;
+  maxRows: number;
+}
+
 async function fetchLinkVelocity(): Promise<LinkVelocityData> {
   const res = await fetch("/api/admin/seo-performance/link-velocity", {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
   return res.json() as Promise<LinkVelocityData>;
+}
+
+async function importCsv(csvText: string): Promise<ImportResult> {
+  const res = await fetch("/api/admin/referring-domains/import", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "text/csv" },
+    body: csvText,
+  });
+  const json = (await res.json()) as ImportResult & { error?: string };
+  if (!res.ok) throw new Error((json as { error?: string }).error ?? "Import failed");
+  return json;
 }
 
 const chartConfig = {
@@ -43,15 +72,67 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+type ImportState =
+  | { status: "idle" }
+  | { status: "picking" }
+  | { status: "loading" }
+  | { status: "success"; result: ImportResult }
+  | { status: "error"; message: string };
+
 export function LinkVelocityChart() {
+  const queryClient = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [importState, setImportState] = useState<ImportState>({ status: "idle" });
+
   const { data, isLoading, isError } = useQuery<LinkVelocityData>({
     queryKey: ["admin-link-velocity"],
     queryFn: fetchLinkVelocity,
     staleTime: 5 * 60 * 1000,
   });
 
+  function openPicker() {
+    setImportState({ status: "picking" });
+    fileRef.current?.click();
+  }
+
+  function dismissImport() {
+    setImportState({ status: "idle" });
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setImportState({ status: "idle" });
+      return;
+    }
+    setImportState({ status: "loading" });
+    try {
+      const text = await file.text();
+      const result = await importCsv(text);
+      setImportState({ status: "success", result });
+      // Refresh the chart to reflect newly imported domains
+      await queryClient.invalidateQueries({ queryKey: ["admin-link-velocity"] });
+    } catch (err) {
+      setImportState({
+        status: "error",
+        message: err instanceof Error ? err.message : "Import failed",
+      });
+    }
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
   return (
     <Card>
+      {/* Hidden file input — triggered programmatically */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".csv,.txt,text/csv,text/plain"
+        className="hidden"
+        onChange={handleFile}
+      />
+
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -63,23 +144,77 @@ export function LinkVelocityChart() {
               New referring domains per week — last 90 days
             </p>
           </div>
-          {data && (
-            <div className="flex items-center gap-4 shrink-0 text-right">
-              <div>
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-xl font-bold tabular-nums leading-tight">
-                  {data.totalDomains.toLocaleString()}
-                </p>
+
+          <div className="flex items-start gap-4 shrink-0">
+            {data && (
+              <div className="flex items-center gap-4 text-right">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-xl font-bold tabular-nums leading-tight">
+                    {data.totalDomains.toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Avg/week</p>
+                  <p className="text-xl font-bold tabular-nums leading-tight">
+                    {data.avgPerWeek.toFixed(1)}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Avg/week</p>
-                <p className="text-xl font-bold tabular-nums leading-tight">
-                  {data.avgPerWeek.toFixed(1)}
-                </p>
-              </div>
-            </div>
-          )}
+            )}
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={openPicker}
+              disabled={importState.status === "loading"}
+              className="gap-1.5 shrink-0"
+            >
+              {importState.status === "loading" ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              Import CSV
+            </Button>
+          </div>
         </div>
+
+        {/* Import feedback banner */}
+        {importState.status === "success" && (
+          <div className="mt-3 flex items-start gap-2 rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-emerald-800">
+            <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="font-medium">
+                {importState.result.imported.toLocaleString()} domain
+                {importState.result.imported !== 1 ? "s" : ""} imported
+              </span>
+              {importState.result.skipped > 0 && (
+                <span className="text-emerald-700">
+                  {" "}· {importState.result.skipped} already existed (skipped)
+                </span>
+              )}
+              {importState.result.truncated && (
+                <span className="text-emerald-700">
+                  {" "}· file truncated to {importState.result.maxRows.toLocaleString()} rows
+                </span>
+              )}
+            </div>
+            <button onClick={dismissImport} className="shrink-0 text-emerald-600 hover:text-emerald-800">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {importState.status === "error" && (
+          <div className="mt-3 flex items-start gap-2 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span className="flex-1 min-w-0">{importState.message}</span>
+            <button onClick={dismissImport} className="shrink-0 text-red-600 hover:text-red-800">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="pt-2">
@@ -96,13 +231,15 @@ export function LinkVelocityChart() {
         )}
 
         {data && data.weeks.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-48 gap-2 text-center">
-            <p className="text-sm text-muted-foreground">
-              No referring domain data yet for the last 90 days.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Import your referring domains from Google Search Console or Ahrefs to populate this chart.
-            </p>
+          <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
+            <TrendingUp className="w-8 h-8 text-muted-foreground/40" />
+            <div>
+              <p className="text-sm font-medium">No referring domain data yet</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+                Click <strong>Import CSV</strong> to upload an Ahrefs, SEMrush, or Majestic
+                referring-domains export, or a plain list of domains.
+              </p>
+            </div>
           </div>
         )}
 
@@ -163,11 +300,33 @@ export function LinkVelocityChart() {
               </BarChart>
             </ChartContainer>
 
-            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-              <ExternalLink className="w-3 h-3 shrink-0" />
-              Data sourced from GSC exports and manual domain entries. Dashed line shows 13-week average.
-            </p>
+            <div className="mt-3 rounded-md bg-muted/50 border px-3 py-2 text-xs text-muted-foreground space-y-0.5">
+              <p className="font-medium text-foreground/80">Accepted CSV formats</p>
+              <p>
+                <strong>Ahrefs</strong> — "Referring Domain, Domain Rating, …, First seen, …"
+              </p>
+              <p>
+                <strong>SEMrush / Majestic</strong> — any CSV with a "Domain" or "Referring Domain" column
+              </p>
+              <p>
+                <strong>Plain list</strong> — one domain per line (no header needed)
+              </p>
+              <p className="pt-0.5">
+                Duplicate domains are silently skipped. Max {(5000).toLocaleString()} rows per import.
+                Dashed line = 13-week average.
+              </p>
+            </div>
           </>
+        )}
+
+        {/* Show format hint in empty state too */}
+        {data && data.weeks.length === 0 && (
+          <div className="mt-2 rounded-md bg-muted/50 border px-3 py-2 text-xs text-muted-foreground space-y-0.5">
+            <p className="font-medium text-foreground/80">Accepted CSV formats</p>
+            <p><strong>Ahrefs</strong> — "Referring Domain, …, First seen, …"</p>
+            <p><strong>SEMrush / Majestic</strong> — any CSV with a "Domain" column</p>
+            <p><strong>Plain list</strong> — one domain per line</p>
+          </div>
         )}
       </CardContent>
     </Card>

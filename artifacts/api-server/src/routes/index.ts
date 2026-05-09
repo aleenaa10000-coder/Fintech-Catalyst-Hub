@@ -32,6 +32,7 @@ import seoPerformanceRouter from "./seoPerformance";
 import glossaryRouter from "./glossary";
 import disavowRouter from "./disavow";
 import locationsRouter from "./locations";
+import referringDomainsRouter from "./referringDomains";
 
 const router: IRouter = Router();
 
@@ -68,5 +69,6 @@ router.use(seoPerformanceRouter);
 router.use(glossaryRouter);
 router.use(disavowRouter);
 router.use(locationsRouter);
+router.use(referringDomainsRouter);
 
 export default router;
