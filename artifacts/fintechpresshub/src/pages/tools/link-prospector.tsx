@@ -1910,6 +1910,9 @@ Looking forward to hearing from you,
                           <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5 min-w-[140px]">
                             <span className="flex items-center gap-1"><CalendarIcon className="w-3 h-3 text-slate-400" />Last Contacted</span>
                           </th>
+                          <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5 min-w-[100px]">
+                            <span className="flex items-center gap-1">Days Since</span>
+                          </th>
                           <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5 min-w-[160px]">
                             <span className="flex items-center gap-1"><NotebookPen className="w-3 h-3 text-slate-400" />Notes</span>
                           </th>
