@@ -14,19 +14,33 @@ import { schedulePublishNotifyHourly } from "./jobs/scheduledPostPublishNotify";
 // monitor (PM2) surfaces the misconfiguration instead of running a broken app.
 // Optional-but-important vars emit a warning but do not abort startup.
 
-const REQUIRED_ENV: string[] = ["DATABASE_URL", "SITE_URL"];
+// DATABASE_URL is required in every environment — the server cannot function without it.
+const REQUIRED_ENV: string[] = ["DATABASE_URL"];
+
+// SITE_URL is required in production: sitemaps, RSS, canonical tags, and CORS
+// all need the canonical public URL. In development the default value is used
+// as a fallback so the dev server can start without a .env entry.
+const REQUIRED_PROD_ENV: string[] = ["SITE_URL"];
 
 const WARN_ENV: { key: string; hint: string }[] = [
-  { key: "SESSION_SECRET",   hint: "sessions will not survive server restarts" },
-  { key: "ADMIN_EMAILS",     hint: "no admin access will be granted" },
-  { key: "ADMIN_PASSWORD",   hint: "password-based admin login is disabled" },
+  { key: "SITE_URL",       hint: "sitemaps, RSS, canonical tags, and CORS will use a fallback URL" },
+  { key: "SESSION_SECRET", hint: "sessions will not survive server restarts" },
+  { key: "ADMIN_EMAILS",   hint: "no admin access will be granted" },
+  { key: "ADMIN_PASSWORD", hint: "password-based admin login is disabled" },
 ];
 
 function validateEnv(): void {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // Always required
   const missing = REQUIRED_ENV.filter((k) => !process.env[k]?.trim());
+  // Required in production only
+  if (isProduction) {
+    missing.push(...REQUIRED_PROD_ENV.filter((k) => !process.env[k]?.trim()));
+  }
+
   if (missing.length > 0) {
     for (const k of missing) {
-      // Use process.stderr directly — logger may not yet be initialised.
       process.stderr.write(`[startup] FATAL: required env var "${k}" is not set.\n`);
     }
     process.stderr.write(
@@ -35,7 +49,9 @@ function validateEnv(): void {
     process.exit(1);
   }
 
+  // Warn about important-but-optional vars (dev only for SITE_URL; always for auth vars)
   for (const { key, hint } of WARN_ENV) {
+    if (isProduction && REQUIRED_PROD_ENV.includes(key)) continue; // already required-checked
     if (!process.env[key]?.trim()) {
       logger.warn(
         { envVar: key },
