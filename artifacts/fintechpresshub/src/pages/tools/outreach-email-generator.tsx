@@ -41,6 +41,8 @@ import {
   Download,
   CalendarDays,
   Send,
+  FileDown,
+  CheckCheck,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -89,6 +91,13 @@ type EmailEntry = {
   form: FormState;
 };
 
+type ABSendRecord = {
+  variant: "A" | "B";
+  subject: string;
+  targetDomain: string;
+  timestamp: number;
+};
+
 type FollowUpEmail = {
   day: number;
   label: string;
@@ -102,6 +111,21 @@ type ParagraphAnnotation = { label: string; tip: string };
 
 const HISTORY_KEY = "fph:outreach-history";
 const MAX_HISTORY = 5;
+const AB_SEND_KEY = "fph:ab-send-history";
+const MAX_AB_HISTORY = 200;
+
+function loadABHistory(): ABSendRecord[] {
+  try {
+    return JSON.parse(localStorage.getItem(AB_SEND_KEY) ?? "[]") as ABSendRecord[];
+  } catch {
+    return [];
+  }
+}
+
+function saveABHistory(records: ABSendRecord[]) {
+  localStorage.setItem(AB_SEND_KEY, JSON.stringify(records));
+}
+
 const MAX_PITCH_CHARS = 2_000;
 
 const TONES: { id: Tone; label: string; sublabel: string; icon: typeof Mail }[] = [
@@ -696,6 +720,8 @@ function SubjectABTester({
   onSelect,
   tone,
   targetDomain,
+  onMarkSent,
+  abHistory,
 }: {
   variants: [string, string];
   scores: [SubjectScore, SubjectScore];
@@ -703,12 +729,30 @@ function SubjectABTester({
   onSelect: (idx: 0 | 1) => void;
   tone: Tone;
   targetDomain: string;
+  onMarkSent: (idx: 0 | 1) => void;
+  abHistory: ABSendRecord[];
 }) {
   const colors = TONE_COLORS[tone];
   const [copiedIdx, setCopiedIdx] = useState<0 | 1 | null>(null);
+  const [markedIdx, setMarkedIdx] = useState<0 | 1 | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const markedRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const winnerIdx = scores[0].total >= scores[1].total ? 0 : 1;
+
+  const totalSent = abHistory.length;
+  const aSent = abHistory.filter((r) => r.variant === "A").length;
+  const bSent = abHistory.filter((r) => r.variant === "B").length;
+  const aWinRate = totalSent > 0 ? Math.round((aSent / totalSent) * 100) : null;
+  const bWinRate = totalSent > 0 ? Math.round((bSent / totalSent) * 100) : null;
+
+  const handleMarkSent = (idx: 0 | 1, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMarkSent(idx);
+    setMarkedIdx(idx);
+    if (markedRef.current) clearTimeout(markedRef.current);
+    markedRef.current = setTimeout(() => setMarkedIdx(null), 2500);
+  };
 
   const copy = async (idx: 0 | 1) => {
     try { await navigator.clipboard.writeText(variants[idx]); }
@@ -860,6 +904,20 @@ function SubjectABTester({
                     ? <><Check className="w-3 h-3 text-emerald-500" /> Copied!</>
                     : <><Copy className="w-3 h-3" /> Copy subject</>}
                 </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleMarkSent(idx, e)}
+                  title="Log this variant as the one you actually sent"
+                  className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg border transition-all ${
+                    markedIdx === idx
+                      ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+                      : "border-slate-200 bg-white text-slate-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50"
+                  }`}
+                >
+                  {markedIdx === idx
+                    ? <><CheckCheck className="w-3 h-3" /> Logged!</>
+                    : <><Send className="w-3 h-3" /> Mark sent</>}
+                </button>
               </div>
             </motion.div>
           );
@@ -877,6 +935,50 @@ function SubjectABTester({
           ))}
         </div>
       </div>
+
+      {/* A/B win-rate history */}
+      {totalSent > 0 && (
+        <div className="px-4 pb-4">
+          <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2.5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                <Trophy className="w-3 h-3 text-emerald-600" />
+                Send history · {totalSent} tracked
+              </p>
+              <p className="text-[9px] text-emerald-600">Win rate across all sessions</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(["A", "B"] as const).map((v, vi) => {
+                const sent = vi === 0 ? aSent : bSent;
+                const rate = vi === 0 ? aWinRate : bWinRate;
+                const isLeader = (vi === 0 ? aSent : bSent) >= (vi === 0 ? bSent : aSent);
+                return (
+                  <div key={v} className={`rounded-md px-2.5 py-2 border ${isLeader && aSent !== bSent ? "border-emerald-300 bg-white" : "border-emerald-100 bg-emerald-50/60"}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${isLeader && aSent !== bSent ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
+                        Variant {v}
+                      </span>
+                      {isLeader && aSent !== bSent && (
+                        <span className="text-[8px] font-bold text-emerald-700">
+                          <Trophy className="w-2.5 h-2.5 inline mr-0.5" />Leader
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-base font-black text-slate-800 leading-none">{rate}%</p>
+                    <p className="text-[9px] text-slate-500 mt-0.5">{sent} sent</p>
+                    <div className="mt-1.5 h-1 rounded-full bg-emerald-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${rate ?? 0}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
@@ -1007,6 +1109,7 @@ export default function OutreachEmailGenerator() {
   const [history, setHistory]   = useState<EmailEntry[]>(loadHistory);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyCompareEntry, setHistoryCompareEntry] = useState<EmailEntry | null>(null);
+  const [abHistory, setAbHistory] = useState<ABSendRecord[]>(loadABHistory);
   const copiedRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -1090,6 +1193,48 @@ export default function OutreachEmailGenerator() {
       },
       duration: 5000,
     });
+  };
+
+  const markAsSent = (idx: 0 | 1) => {
+    if (!variants) return;
+    const record: ABSendRecord = {
+      variant: idx === 0 ? "A" : "B",
+      subject: variants[idx],
+      targetDomain: form.targetDomain.trim(),
+      timestamp: Date.now(),
+    };
+    setAbHistory((prev) => {
+      const next = [record, ...prev].slice(0, MAX_AB_HISTORY);
+      saveABHistory(next);
+      return next;
+    });
+    trackEvent("AB Variant Sent", { tool: "outreach-email-generator", variant: record.variant });
+  };
+
+  const exportToCSV = () => {
+    if (!activeSubject || !body) return;
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const rows = [
+      ["Target Domain", "Topic", "Chosen Subject Line", "Email Body"],
+      [
+        fmtDomain(form.targetDomain),
+        form.topic.trim() || "digital marketing",
+        activeSubject,
+        body,
+      ],
+    ];
+    const csv = rows.map((row) => row.map(escape).join(",")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const safeDomain = fmtDomain(form.targetDomain || "outreach").replace(/[^a-z0-9]/gi, "-");
+    a.href = url;
+    a.download = `outreach-${safeDomain}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    trackEvent("Result Exported", { tool: "outreach-email-generator", format: "csv" });
   };
 
   const restoreEntry = (entry: EmailEntry) => {
@@ -1606,6 +1751,16 @@ export default function OutreachEmailGenerator() {
                     >
                       <Send className="w-3.5 h-3.5" /> Open in mail client
                     </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={exportToCSV}
+                      className="gap-1.5 text-xs font-semibold transition-all border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-700 hover:bg-orange-50"
+                      title="Download CSV for bulk upload to Lemlist, Snov.io, etc."
+                    >
+                      <FileDown className="w-3.5 h-3.5" /> Export to CSV
+                    </Button>
                   </div>
                 </div>
 
@@ -1617,6 +1772,8 @@ export default function OutreachEmailGenerator() {
                   onSelect={setSelectedIdx}
                   tone={tone}
                   targetDomain={form.targetDomain}
+                  onMarkSent={markAsSent}
+                  abHistory={abHistory}
                 />
 
                 {/* Active subject line summary */}
