@@ -1,7 +1,7 @@
 import { PageMeta } from "@/components/PageMeta";
 import { useListPricingPlans } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Plus } from "lucide-react";
+import { CheckCircle2, Plus, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -123,6 +123,40 @@ export default function Pricing() {
                 </Card>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Compare nudge */}
+      <section className="py-12">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div>
+              <p className="font-semibold text-slate-900">Still evaluating your options?</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                See how a retainer compares to building in-house, hiring freelancers, or running paid search instead.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3 shrink-0">
+              <Link href="/compare/agency-vs-in-house">
+                <Button variant="outline" size="sm" className="border-[#0052FF] text-[#0052FF] hover:bg-[#0052FF] hover:text-white whitespace-nowrap">
+                  Agency vs in-house
+                  <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </Link>
+              <Link href="/compare/content-led-vs-paid">
+                <Button variant="outline" size="sm" className="border-[#0052FF] text-[#0052FF] hover:bg-[#0052FF] hover:text-white whitespace-nowrap">
+                  SEO vs paid search
+                  <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </Link>
+              <Link href="/compare/vs-freelancers">
+                <Button variant="outline" size="sm" className="border-[#0052FF] text-[#0052FF] hover:bg-[#0052FF] hover:text-white whitespace-nowrap">
+                  Agency vs freelancers
+                  <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>

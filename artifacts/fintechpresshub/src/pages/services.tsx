@@ -1,7 +1,7 @@
 import { PageMeta } from "@/components/PageMeta";
 import { useListServices } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BarChart3 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -147,6 +147,40 @@ export default function Services() {
               </motion.div>
               );
             })}
+          </div>
+
+          <div className="mt-20 rounded-2xl border border-slate-200 bg-[#0052FF]/5 px-8 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-start gap-4">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#0052FF]/10 text-[#0052FF]">
+                <BarChart3 className="w-5 h-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-slate-900">Wondering how we compare?</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  See honest, criterion-by-criterion comparisons between FintechPressHub and generalist agencies, freelancers, DIY tools, and more.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3 shrink-0">
+              <Link href="/compare/agency-vs-in-house">
+                <Button variant="outline" size="sm" className="border-[#0052FF] text-[#0052FF] hover:bg-[#0052FF] hover:text-white">
+                  Agency vs in-house
+                  <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </Link>
+              <Link href="/compare/specialist-vs-generalist">
+                <Button variant="outline" size="sm" className="border-[#0052FF] text-[#0052FF] hover:bg-[#0052FF] hover:text-white">
+                  Specialist vs generalist
+                  <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </Link>
+              <Link href="/compare">
+                <Button size="sm" className="bg-[#0052FF] hover:bg-[#0040cc]">
+                  All comparisons
+                  <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
