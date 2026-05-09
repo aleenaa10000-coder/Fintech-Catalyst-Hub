@@ -4,6 +4,7 @@ import {
   authorsTable,
   blogPostsTable,
   pricingPlansTable,
+  referringDomainsTable,
   servicesTable,
   siteStatsTable,
   testimonialsTable,
@@ -15,6 +16,7 @@ import testimonialsSeed from "./seed-data/testimonials.json";
 import statsSeed from "./seed-data/stats.json";
 import blogPostsSeed from "./seed-data/blog_posts.json";
 import authorsSeed from "./seed-data/authors.json";
+import referringDomainsSeed from "./seed-data/referring_domains.json";
 
 type AnyDb = NodePgDatabase<Record<string, unknown>>;
 
@@ -91,6 +93,12 @@ type BlogPostRow = {
   published_at: string;
 };
 
+type ReferringDomainSeedRow = {
+  domain: string;
+  first_seen_at: string;
+  source: string;
+};
+
 export type SeedReport = {
   pricingPlans: number;
   services: number;
@@ -98,6 +106,7 @@ export type SeedReport = {
   siteStats: number;
   blogPosts: number;
   authors: number;
+  referringDomains: number;
 };
 
 export async function runSeed(db: AnyDb): Promise<SeedReport> {
@@ -108,6 +117,7 @@ export async function runSeed(db: AnyDb): Promise<SeedReport> {
     siteStats: 0,
     blogPosts: 0,
     authors: 0,
+    referringDomains: 0,
   };
 
   if (await isEmpty(db, "pricing_plans")) {
@@ -198,6 +208,16 @@ export async function runSeed(db: AnyDb): Promise<SeedReport> {
     }));
     await db.insert(authorsTable).values(rows);
     report.authors = rows.length;
+  }
+
+  if (await isEmpty(db, "referring_domains")) {
+    const rows = (referringDomainsSeed as ReferringDomainSeedRow[]).map((r) => ({
+      domain: r.domain,
+      firstSeenAt: new Date(r.first_seen_at),
+      source: r.source,
+    }));
+    await db.insert(referringDomainsTable).values(rows);
+    report.referringDomains = rows.length;
   }
 
   return report;

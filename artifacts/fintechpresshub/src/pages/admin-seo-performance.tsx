@@ -6,6 +6,7 @@ import { PageMeta } from "@/components/PageMeta";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LinkVelocityChart } from "@/components/LinkVelocityChart";
 import {
   ArrowLeft,
   Eye,
@@ -407,6 +408,9 @@ export default function AdminSeoPerformance() {
                 sub="from link health check"
               />
             </div>
+
+            {/* Link Velocity chart */}
+            <LinkVelocityChart />
 
             {/* Ping status breakdown */}
             {Object.keys(data.statusBreakdown).length > 0 && (
