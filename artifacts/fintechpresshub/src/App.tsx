@@ -111,6 +111,7 @@ const FintechPublications = lazy(() => import("@/pages/resources/fintech-publica
 const AdminGlossary = lazy(() => import("@/pages/admin-glossary"));
 const AdminDisavow = lazy(() => import("@/pages/admin-disavow"));
 const AdminPress = lazy(() => import("@/pages/admin-press"));
+const AdminTestimonials = lazy(() => import("@/pages/admin-testimonials"));
 const Press = lazy(() => import("@/pages/press"));
 
 function RouteFallback() {
@@ -360,6 +361,7 @@ function Router() {
             <AdminRoute path="/admin/glossary" component={AdminGlossary} />
             <AdminRoute path="/admin/disavow" component={AdminDisavow} />
             <AdminRoute path="/admin/press" component={AdminPress} />
+            <AdminRoute path="/admin/testimonials" component={AdminTestimonials} />
             <Route path="/404" component={NotFound} />
             <Route component={NotFound} />
           </Switch>

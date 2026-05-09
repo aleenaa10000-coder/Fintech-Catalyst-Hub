@@ -799,6 +799,7 @@ export default function AdminDashboard() {
                   { label: "Analytics", icon: BarChart2, href: "/admin/analytics", badge: 0 },
                   { label: "SEO", icon: Search, href: "/admin/seo-performance", badge: 0 },
                   { label: "Press", icon: Newspaper, href: "/admin/press", badge: 0 },
+                  { label: "Testimonials", icon: Star, href: "/admin/testimonials", badge: 0 },
                 ].map(({ label, icon: Icon, href, badge }) => (
                   <Link
                     key={href}

@@ -85,8 +85,24 @@ function escapeXml(value: string): string {
  * Tag describing where a sitemap URL came from. Used by the link-checker
  * so the admin dashboard can group results ("3 broken blog posts, 1 broken
  * author RSS feed") without re-parsing the URL.
+ *
+ * "press-asset" — brand asset download files listed on /press (favicon,
+ * icons, apple-touch-icon). Checked by the link-checker but intentionally
+ * excluded from the sitemap XML because they are binary files, not pages.
  */
-export type SitemapEntrySource = "static" | "blog" | "author" | "rss";
+export type SitemapEntrySource = "static" | "blog" | "author" | "rss" | "press-asset";
+
+/**
+ * Paths of brand asset files served from the site root that the daily
+ * link-checker should verify. Kept here so the link-checker and the
+ * /press page stay in sync — both reference this single source of truth.
+ */
+export const PRESS_BRAND_ASSET_PATHS = [
+  "/favicon.svg",
+  "/icon-512.png",
+  "/icon-192.png",
+  "/apple-touch-icon.png",
+] as const;
 
 export interface SitemapImage {
   loc: string;
@@ -196,11 +212,24 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
       priority: "0.7",
       source: "static" as const,
     })),
+    // Press page brand asset downloads — checked by the daily link-checker
+    // but excluded from the sitemap XML (they're binary files, not pages).
+    ...PRESS_BRAND_ASSET_PATHS.map((path) => ({
+      loc: `${siteUrl}${path}`,
+      lastmod: today,
+      changefreq: "yearly",
+      priority: "0.1",
+      source: "press-asset" as const,
+    })),
   ];
 }
 
 async function buildSitemapXml(): Promise<string> {
-  const entries = await buildSitemapEntries();
+  const allEntries = await buildSitemapEntries();
+  // Press-asset entries are checked by the link-checker but must not
+  // appear in the XML sitemap — search engines should index pages, not
+  // raw binary files.
+  const entries = allEntries.filter((e) => e.source !== "press-asset");
 
   const body = entries
     .map((u) => {
