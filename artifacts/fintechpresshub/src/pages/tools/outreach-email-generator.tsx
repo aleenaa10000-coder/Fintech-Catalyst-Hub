@@ -1740,6 +1740,8 @@ export default function OutreachEmailGenerator() {
                   const hasMin = form.linkValueMin.trim() !== "" && !isNaN(minNum) && minNum > 0;
                   const hasMax = form.linkValueMax.trim() !== "" && !isNaN(maxNum) && maxNum > 0;
                   const showPreview = hasMin || hasMax;
+                  const anyValue = form.linkValueMin.trim() !== "" || form.linkValueMax.trim() !== "";
+                  const doClear = () => setForm((prev) => ({ ...prev, linkValueMin: "", linkValueMax: "" }));
                   const doSwap = () => setForm((prev) => ({
                     ...prev,
                     linkValueMin: prev.linkValueMax,
@@ -1792,7 +1794,7 @@ export default function OutreachEmailGenerator() {
                     {showPreview && !rangeError && (
                       <div className="flex items-center gap-2 rounded-md border border-violet-100 bg-violet-50 px-3 py-1.5">
                         <BarChart2 className="w-3 h-3 text-violet-400 shrink-0" />
-                        <p className="text-[11px] text-violet-700 font-medium">
+                        <p className="flex-1 text-[11px] text-violet-700 font-medium">
                           In email:{" "}
                           <span className="font-bold">
                             {hasMin ? fmtLinkValue(form.linkValueMin) : "…"}
@@ -1803,22 +1805,42 @@ export default function OutreachEmailGenerator() {
                             <span className="font-normal text-violet-500 ml-1">— Data-Led variant only</span>
                           )}
                         </p>
+                        <button
+                          type="button"
+                          onClick={doClear}
+                          title="Clear both fields"
+                          className="text-[10px] text-violet-400 hover:text-violet-700 underline shrink-0"
+                        >
+                          Clear
+                        </button>
                       </div>
                     )}
                     {rangeError ? (
-                      <p className="text-[10px] text-red-500 font-medium">
-                        Min must be less than Max —{" "}
-                        <button type="button" onClick={doSwap} className="underline hover:text-red-700">
-                          swap them
+                      <p className="text-[10px] text-red-500 font-medium flex items-center gap-2">
+                        <span>
+                          Min must be less than Max —{" "}
+                          <button type="button" onClick={doSwap} className="underline hover:text-red-700">
+                            swap them
+                          </button>
+                          {" "}or lower the Min.
+                        </span>
+                        <button type="button" onClick={doClear} className="ml-auto shrink-0 underline hover:text-red-700">
+                          Clear
                         </button>
-                        {" "}or lower the Min.
                       </p>
                     ) : (
-                      <p className="text-[10px] text-muted-foreground">
-                        Used in the Data-Led variant only.{" "}
-                        <Link href="/tools/backlink-value-estimator" className="underline hover:text-blue-600">
-                          Estimate it first →
-                        </Link>
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-2">
+                        <span>
+                          Used in the Data-Led variant only.{" "}
+                          <Link href="/tools/backlink-value-estimator" className="underline hover:text-blue-600">
+                            Estimate it first →
+                          </Link>
+                        </span>
+                        {anyValue && (
+                          <button type="button" onClick={doClear} className="ml-auto shrink-0 underline hover:text-slate-700">
+                            Clear
+                          </button>
+                        )}
                       </p>
                     )}
                   </div>
