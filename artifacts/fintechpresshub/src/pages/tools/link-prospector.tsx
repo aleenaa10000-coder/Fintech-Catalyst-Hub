@@ -57,6 +57,7 @@ import {
   Trophy,
   ArrowRight,
   CalendarIcon,
+  Bell,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -399,6 +400,9 @@ export default function LinkProspector() {
   });
   const [filterStatus, setFilterStatus] = useState<"" | OutreachStatus>("");
   const [filterStaleness, setFilterStaleness] = useState<"" | "overdue" | "due_soon" | "recent">("");
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [dismissedFollowUp, setDismissedFollowUp] = useState(false);
+  const FOLLOW_UP_DAYS = 7;
   const [showViz, setShowViz] = useState(false);
   const [minScore, setMinScore] = useState("");
   const [selectedDomains, setSelectedDomains] = useState<Set<string>>(new Set());
@@ -718,6 +722,24 @@ export default function LinkProspector() {
     URL.revokeObjectURL(url);
   };
 
+  const exportCrmCSV = () => {
+    const header = ["Email", "Company", "Icebreaker", "Website"];
+    const rows = filteredSorted.map((r) => [
+      "",
+      r.domain,
+      suggestedTopicMap[r.domain] ?? "",
+      `https://${r.domain}`,
+    ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","));
+    const csv = [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `crm-import-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const updateNote = (domain: string, value: string) => {
     setNotesMap((prev) => {
       const updated = { ...prev, [domain]: value };
@@ -1013,6 +1035,20 @@ Looking forward to hearing from you,
     }
     return rows;
   }, [sorted, filterStatus, statusMap, minScore, filterStaleness, contactedDateMap]);
+
+  const followUpProspects = useMemo(() => {
+    if (!ran) return [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return results.filter((r) => {
+      if ((statusMap[r.domain] ?? "not_started") !== "emailed") return false;
+      const dateStr = contactedDateMap[r.domain];
+      if (!dateStr) return true;
+      const contacted = new Date(dateStr + "T00:00:00");
+      const days = Math.round((today.getTime() - contacted.getTime()) / 86_400_000);
+      return days >= FOLLOW_UP_DAYS;
+    });
+  }, [results, statusMap, contactedDateMap, ran]);
 
   const allVisibleSelected = filteredSorted.length > 0 && filteredSorted.every((r) => selectedDomains.has(r.domain));
   const someVisibleSelected = !allVisibleSelected && filteredSorted.some((r) => selectedDomains.has(r.domain));
@@ -1499,15 +1535,50 @@ Looking forward to hearing from you,
                         <><Copy className="w-3 h-3" />Copy Top Prospects</>
                       )}
                     </button>
-                    <button
-                      type="button"
-                      onClick={exportPitchCSV}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:border-violet-400 hover:text-violet-700 transition-all"
-                      title="Download prospects as CSV with pitch subject lines"
-                    >
-                      <Download className="w-3 h-3" />
-                      Export CSV
-                    </button>
+                    {/* ── Export CSV dropdown ── */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowExportDropdown((v) => !v)}
+                        className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all ${showExportDropdown ? "border-violet-400 text-violet-700 bg-violet-50" : "border-slate-200 text-slate-600 hover:border-violet-400 hover:text-violet-700"}`}
+                        title="Export prospects as CSV"
+                      >
+                        <Download className="w-3 h-3" />
+                        Export CSV
+                        <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${showExportDropdown ? "rotate-180" : ""}`} />
+                      </button>
+                      {showExportDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setShowExportDropdown(false)} />
+                          <div className="absolute right-0 top-full mt-1.5 z-20 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 min-w-[240px]">
+                            <button
+                              type="button"
+                              onClick={() => { exportPitchCSV(); setShowExportDropdown(false); }}
+                              className="w-full text-left px-3.5 py-2 hover:bg-slate-50 transition-colors"
+                            >
+                              <p className="text-[11px] font-semibold text-slate-800 flex items-center gap-1.5">
+                                <Download className="w-3 h-3 text-slate-500" />
+                                Standard CSV
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5 ml-4">Full prospect data — scores, notes, status</p>
+                            </button>
+                            <div className="mx-3 my-1 border-t border-slate-100" />
+                            <button
+                              type="button"
+                              onClick={() => { exportCrmCSV(); setShowExportDropdown(false); }}
+                              className="w-full text-left px-3.5 py-2 hover:bg-violet-50 transition-colors"
+                            >
+                              <p className="text-[11px] font-semibold text-slate-800 flex items-center gap-1.5">
+                                <Send className="w-3 h-3 text-violet-500" />
+                                CRM Import
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">Lemlist / Hunter</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5 ml-4">Email, Company, Icebreaker, Website</p>
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                     {/* ── Saved Searches ── */}
                     <div className="relative">
                       <div className="flex items-center gap-1">
@@ -1622,6 +1693,46 @@ Looking forward to hearing from you,
                     )}
                   </div>
                 </div>
+
+                {/* ── Follow-up Alert Banner ── */}
+                <AnimatePresence>
+                  {followUpProspects.length > 0 && !dismissedFollowUp && (
+                    <motion.div
+                      key="followup-alert"
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.18 }}
+                      className="flex items-center gap-3 flex-wrap px-3.5 py-2.5 mb-3 rounded-lg border border-amber-300 bg-amber-50 text-[11px]"
+                    >
+                      <span className="flex items-center gap-1.5 font-semibold text-amber-800">
+                        <Bell className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        {followUpProspects.length} emailed prospect{followUpProspects.length !== 1 ? "s have" : " has"} not replied in {FOLLOW_UP_DAYS}+ days
+                      </span>
+                      <span className="w-px h-4 bg-amber-300 shrink-0" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterStatus("emailed");
+                          setFilterStaleness("overdue");
+                          setDismissedFollowUp(true);
+                        }}
+                        className="inline-flex items-center gap-1 font-semibold px-2.5 py-1 rounded-full border border-amber-400 text-amber-800 bg-amber-100 hover:bg-amber-200 transition-all whitespace-nowrap"
+                      >
+                        <Filter className="w-3 h-3" />
+                        Show these
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDismissedFollowUp(true)}
+                        className="ml-auto text-amber-500 hover:text-amber-700 transition-colors"
+                        title="Dismiss"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Bulk Actions bar — visible when ≥1 row selected */}
                 <AnimatePresence>
