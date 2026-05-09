@@ -1,0 +1,246 @@
+name: Deploy to Hostinger
+
+# Runs on every push to main after the CI checks pass.
+# Can also be triggered manually from the Actions tab (e.g. to force a
+# re-deploy without a code change, or to roll back to a previous sha).
+#
+# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+#   HOSTINGER_SSH_HOST  — server hostname or IP (e.g. srv123.hostinger.com)
+#   HOSTINGER_SSH_USER  — SSH username (e.g. u123456789)
+#   HOSTINGER_SSH_KEY   — contents of your private key (~/.ssh/id_rsa)
+#   HOSTINGER_SSH_PORT  — SSH port (Hostinger shared hosting uses 65002; VPS uses 22)
+#   HOSTINGER_APP_DIR   — absolute path to the project root on the server
+#                         e.g. /home/u123456789/domains/fintechpresshub.com/public_html
+#   HOSTINGER_APP_NAME  — PM2 app name used to restart the process
+#                         (the name shown in `pm2 list` on the server)
+#
+# Required GitHub Variables (Settings → Secrets and variables → Variables):
+#   SITE_URL  — canonical public URL, e.g. https://www.fintechpresshub.com
+#               (passed to Vite so prerender and sitemap URLs are correct)
+#
+# One-time server setup (run once via SSH before the first deploy):
+#   pnpm --filter @workspace/db run push       # create all DB tables
+#   pnpm --filter @workspace/scripts run seed  # seed demo content
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skip_db_push:
+        description: "Skip database schema push (use when schema is unchanged)"
+        type: boolean
+        default: false
+
+# Never run two deploys in parallel — a concurrent deploy could overwrite
+# in-progress file extraction and leave the server in a broken state.
+concurrency:
+  group: deploy-hostinger
+  cancel-in-progress: false
+
+jobs:
+  # ── 1. CI gate ──────────────────────────────────────────────────────────────
+  # Re-run the same type+unit-test checks from ci.yml so that a manual
+  # workflow_dispatch also gets validated before it hits production.
+  # On a normal push this job runs in parallel with the main ci.yml jobs.
+  ci-gate:
+    name: Typecheck & unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        shell: bash
+        run: echo "dir=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm --filter @workspace/fintechpresshub exec vitest run
+
+  # ── 2. Build ─────────────────────────────────────────────────────────────────
+  # Compile the API server (esbuild) and the frontend (Vite + prerender) in CI
+  # so the server receives pre-built artifacts and doesn't need a compile step
+  # at deploy time. This keeps the production restart window as short as possible.
+  build:
+    name: Build API server & frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [ci-gate]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        shell: bash
+        run: echo "dir=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build API server
+        run: pnpm --filter @workspace/api-server run build
+        env:
+          NODE_ENV: production
+
+      - name: Build frontend
+        # SITE_URL is required for prerender.mjs and sitemap/canonical URLs.
+        # Store it as a GitHub Variable (not a Secret) so it's visible in logs.
+        run: pnpm --filter @workspace/fintechpresshub run build
+        env:
+          NODE_ENV: production
+          SITE_URL: ${{ vars.SITE_URL || 'https://www.fintechpresshub.com' }}
+
+      - name: Package build artifacts
+        # Bundle both dist trees into a single tarball that will be SCP'd to
+        # the server. node_modules is excluded — pnpm install on the server
+        # resolves the small set of externalized packages (nodemailer, sharp, pg).
+        run: |
+          tar -czf deploy.tar.gz \
+            artifacts/api-server/dist/ \
+            artifacts/fintechpresshub/dist/
+          echo "Tarball size: $(du -sh deploy.tar.gz | cut -f1)"
+
+      - name: Upload artifact for deploy job
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-tarball
+          path: deploy.tar.gz
+          retention-days: 3
+
+  # ── 3. Deploy ────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Hostinger via SSH
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build]
+    environment: production
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-tarball
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          install -m 600 /dev/null ~/.ssh/id_rsa
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_rsa
+          # Scan the host's fingerprint so StrictHostKeyChecking passes.
+          # Hostinger shared hosting uses a non-standard SSH port (typically 65002).
+          ssh-keyscan \
+            -p "${{ secrets.HOSTINGER_SSH_PORT }}" \
+            -H "${{ secrets.HOSTINGER_SSH_HOST }}" \
+            >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Upload tarball to server
+        run: |
+          scp \
+            -P "${{ secrets.HOSTINGER_SSH_PORT }}" \
+            deploy.tar.gz \
+            "${{ secrets.HOSTINGER_SSH_USER }}@${{ secrets.HOSTINGER_SSH_HOST }}:${{ secrets.HOSTINGER_APP_DIR }}/deploy.tar.gz"
+
+      - name: Extract, install, migrate, and restart
+        # All commands run in a single SSH session to avoid repeated TCP handshakes.
+        # Step order matters:
+        #   1. extract — atomically replace dist trees
+        #   2. pnpm install --prod — resolves externalized packages (nodemailer, sharp, pg, etc.)
+        #      that esbuild excluded from the bundle. --prod skips devDependencies.
+        #   3. db push — applies any schema changes before the new server code starts
+        #      reading the updated tables. Skip with the workflow_dispatch input
+        #      when you know schema is unchanged.
+        #   4. pm2 restart — loads the new dist/index.mjs with zero-downtime reload.
+        run: |
+          ssh \
+            -p "${{ secrets.HOSTINGER_SSH_PORT }}" \
+            -o BatchMode=yes \
+            "${{ secrets.HOSTINGER_SSH_USER }}@${{ secrets.HOSTINGER_SSH_HOST }}" \
+            "
+              set -euo pipefail
+              cd '${{ secrets.HOSTINGER_APP_DIR }}'
+
+              echo '--- Extracting build artifacts ---'
+              tar -xzf deploy.tar.gz
+              rm deploy.tar.gz
+
+              echo '--- Installing production dependencies ---'
+              pnpm install --frozen-lockfile --prod
+
+              echo '--- Applying database migrations ---'
+              if [ '${{ inputs.skip_db_push || 'false' }}' != 'true' ]; then
+                pnpm --filter @workspace/db run push
+              else
+                echo 'Skipping db push (skip_db_push=true)'
+              fi
+
+              echo '--- Restarting application ---'
+              pm2 restart '${{ secrets.HOSTINGER_APP_NAME }}'
+
+              echo '--- Deploy complete ---'
+              pm2 show '${{ secrets.HOSTINGER_APP_NAME }}' | grep -E 'status|restarts|uptime'
+            "
+
+      - name: Health check
+        # Wait a few seconds for PM2 to finish restarting, then probe the
+        # health endpoint. A non-200 response fails the workflow so the team
+        # is alerted before users notice a broken deploy.
+        run: |
+          SITE="${{ vars.SITE_URL || 'https://www.fintechpresshub.com' }}"
+          echo "Waiting 10s for the process to come back up..."
+          sleep 10
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 15 \
+            "${SITE}/api/healthz")
+          echo "Health check → HTTP ${STATUS}"
+          if [ "$STATUS" != "200" ]; then
+            echo "Health check failed (${STATUS}). Inspect PM2 logs on the server."
+            exit 1
+          fi
+          echo "Deploy succeeded — site is healthy."
