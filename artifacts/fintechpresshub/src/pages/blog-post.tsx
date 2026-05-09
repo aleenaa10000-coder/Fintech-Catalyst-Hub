@@ -803,6 +803,25 @@ export default function BlogPost() {
         </div>
       </header>
 
+      {/* BLUF (Bottom Line Up Front) panel — G3/speakable summary.
+          Rendered only when the post has a blufSummary field set.
+          The .speakable-summary class is picked up by SpeakableSpecification. */}
+      {post.blufSummary ? (
+        <div className="container mx-auto px-4 max-w-4xl mt-8 mb-0">
+          <aside
+            aria-label="Key insight"
+            className="speakable-summary relative overflow-hidden rounded-xl border-l-4 border-[#0052FF] bg-blue-50/60 px-6 py-5 shadow-sm"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0052FF] mb-1.5">
+              Bottom line
+            </p>
+            <p className="text-base text-slate-800 leading-relaxed font-medium">
+              {post.blufSummary}
+            </p>
+          </aside>
+        </div>
+      ) : null}
+
       {/* Key Takeaways panel — always rendered for visual consistency
           across every blog post. When the article has H2 headings we use
           them as deep links; otherwise we fall back to bullets derived
