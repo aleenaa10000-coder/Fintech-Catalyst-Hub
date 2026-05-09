@@ -1911,33 +1911,45 @@ export default function OutreachEmailGenerator() {
                               <span className="line-clamp-2 leading-snug">{r.body.slice(0, 120)}…</span>
                             </td>
                             <td className="px-3 py-3">
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  const text = `Subject: ${r.chosenSubject}\n\n${r.body}`;
-                                  try { await navigator.clipboard.writeText(text); }
-                                  catch {
-                                    const el = document.createElement("textarea");
-                                    el.value = text; document.body.appendChild(el); el.select();
-                                    document.execCommand("copy"); document.body.removeChild(el);
-                                  }
-                                  setCopiedBulkRow(r.domain);
-                                  trackEvent("Result Copied", { tool: "outreach-email-generator", format: "bulk-row" });
-                                  setTimeout(() => setCopiedBulkRow(null), 2000);
-                                }}
-                                className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded border whitespace-nowrap transition-all ${
-                                  isCopied
-                                    ? "border-green-300 bg-green-50 text-green-700"
-                                    : "border-slate-200 bg-white text-slate-500 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
-                                }`}
-                                title="Copy subject + body to clipboard"
-                              >
-                                {isCopied ? (
-                                  <><Check className="w-3 h-3" />Copied</>
-                                ) : (
-                                  <><Copy className="w-3 h-3" />Copy email</>
-                                )}
-                              </button>
+                              <div className="flex flex-col gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const text = `Subject: ${r.chosenSubject}\n\n${r.body}`;
+                                    try { await navigator.clipboard.writeText(text); }
+                                    catch {
+                                      const el = document.createElement("textarea");
+                                      el.value = text; document.body.appendChild(el); el.select();
+                                      document.execCommand("copy"); document.body.removeChild(el);
+                                    }
+                                    setCopiedBulkRow(r.domain);
+                                    trackEvent("Result Copied", { tool: "outreach-email-generator", format: "bulk-row" });
+                                    setTimeout(() => setCopiedBulkRow(null), 2000);
+                                  }}
+                                  className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded border whitespace-nowrap transition-all ${
+                                    isCopied
+                                      ? "border-green-300 bg-green-50 text-green-700"
+                                      : "border-slate-200 bg-white text-slate-500 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                                  }`}
+                                  title="Copy subject + body to clipboard"
+                                >
+                                  {isCopied ? (
+                                    <><Check className="w-3 h-3" />Copied</>
+                                  ) : (
+                                    <><Copy className="w-3 h-3" />Copy email</>
+                                  )}
+                                </button>
+                                <a
+                                  href={`https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(r.chosenSubject)}&body=${encodeURIComponent(r.body)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={() => trackEvent("Result Exported", { tool: "outreach-email-generator", format: "bulk-gmail" })}
+                                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded border whitespace-nowrap border-slate-200 bg-white text-slate-500 hover:border-red-300 hover:bg-red-50 hover:text-red-600 transition-all"
+                                  title="Open pre-filled draft in Gmail"
+                                >
+                                  <Mail className="w-3 h-3" />Gmail
+                                </a>
+                              </div>
                             </td>
                           </tr>
                         );
