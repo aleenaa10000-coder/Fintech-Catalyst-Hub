@@ -2140,6 +2140,32 @@ Looking forward to hearing from you,
                                 </PopoverContent>
                               </Popover>
                             </td>
+                            {/* Days Since Last Contact cell */}
+                            <td className="px-3 py-3">
+                              {(() => {
+                                const dateStr = contactedDateMap[r.domain];
+                                if (!dateStr) return <span className="text-[11px] text-slate-300 italic">—</span>;
+                                const contacted = new Date(dateStr + "T00:00:00");
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const days = Math.round((today.getTime() - contacted.getTime()) / 86_400_000);
+                                const cls =
+                                  days < 14
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    : days <= 30
+                                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                                    : "bg-red-50 text-red-700 border-red-200";
+                                const label = days === 0 ? "Today" : days === 1 ? "1 day" : `${days}d`;
+                                return (
+                                  <span
+                                    className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full border ${cls}`}
+                                    title={`Last contacted ${days} day${days !== 1 ? "s" : ""} ago`}
+                                  >
+                                    {label}
+                                  </span>
+                                );
+                              })()}
+                            </td>
                             {/* Notes cell */}
                             <td className="px-3 py-3 max-w-[200px]">
                               <input
