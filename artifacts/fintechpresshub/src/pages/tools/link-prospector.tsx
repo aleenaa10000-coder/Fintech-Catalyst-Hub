@@ -8,6 +8,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetClose,
+} from "@/components/ui/sheet";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   ArrowLeft,
   Sparkles,
   RotateCcw,
@@ -42,6 +56,7 @@ import {
   Clock,
   Trophy,
   ArrowRight,
+  CalendarIcon,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -90,6 +105,7 @@ const LS_SAVED_SEARCHES_KEY = "lp-saved-searches";
 const LS_TIMELINE_KEY = "lp-timeline-events";
 const LS_PROSPECTS_KEY = "lp-prospects";
 const LS_SCORING_MODE_KEY = "lp-scoring-mode";
+const LS_CONTACTED_KEY = "lp-last-contacted";
 const MAX_TEXTAREA_WARN = 5_000;
 const MAX_TEXTAREA_HARD = 10_000;
 
@@ -395,6 +411,11 @@ export default function LinkProspector() {
   const [pitchText, setPitchText] = useState("");
   const [showTimeline, setShowTimeline] = useState(false);
   const [clearConfirm, setClearConfirm] = useState(false);
+  const [contactedDateMap, setContactedDateMap] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem(LS_CONTACTED_KEY) ?? "{}"); }
+    catch { return {}; }
+  });
+  const [openDatePickerDomain, setOpenDatePickerDomain] = useState<string | null>(null);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>(() => {
     try { return JSON.parse(localStorage.getItem(LS_TIMELINE_KEY) ?? "[]"); }
     catch { return []; }
@@ -555,7 +576,7 @@ export default function LinkProspector() {
   const exportSelectedCSV = () => {
     const selected = filteredSorted.filter((r) => selectedDomains.has(r.domain));
     if (selected.length === 0) return;
-    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject", "Suggested Topic", "Notes"];
+    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Last Contacted", "Pitch Subject", "Suggested Topic", "Notes"];
     const rows = selected.map((r) => {
       const subject =
         r.da > 60
@@ -570,6 +591,7 @@ export default function LinkProspector() {
         r.linkValue.min, r.linkValue.max,
         r.acquisition.label,
         STATUS_LABELS[statusMap[r.domain] ?? "not_started"],
+        contactedDateMap[r.domain] ?? "",
         subject,
         suggestedTopicMap[r.domain] ?? "",
         notesMap[r.domain] ?? "",
@@ -656,7 +678,7 @@ export default function LinkProspector() {
   };
 
   const exportPitchCSV = () => {
-    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Pitch Subject", "Suggested Topic", "Notes"];
+    const header = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Est Value Min", "Est Value Max", "Difficulty", "Status", "Last Contacted", "Pitch Subject", "Suggested Topic", "Notes"];
     const rows = filteredSorted.map((r) => {
       const subject =
         r.da > 60
@@ -674,6 +696,7 @@ export default function LinkProspector() {
         r.linkValue.max,
         r.acquisition.label,
         STATUS_LABELS[statusMap[r.domain] ?? "not_started"],
+        contactedDateMap[r.domain] ?? "",
         subject,
         suggestedTopicMap[r.domain] ?? "",
         notesMap[r.domain] ?? "",
@@ -695,6 +718,20 @@ export default function LinkProspector() {
       try { localStorage.setItem(LS_NOTES_KEY, JSON.stringify(updated)); } catch {}
       return updated;
     });
+  };
+
+  const updateContactedDate = (domain: string, date: Date | undefined) => {
+    setContactedDateMap((prev) => {
+      const updated = { ...prev };
+      if (date) {
+        updated[domain] = date.toISOString().slice(0, 10);
+      } else {
+        delete updated[domain];
+      }
+      try { localStorage.setItem(LS_CONTACTED_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    setOpenDatePickerDomain(null);
   };
 
   const updateTopic = (domain: string, value: string) => {
@@ -1865,6 +1902,9 @@ Looking forward to hearing from you,
                           <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5 min-w-[160px]">
                             <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-violet-400" />Suggested Topic</span>
                           </th>
+                          <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5 min-w-[140px]">
+                            <span className="flex items-center gap-1"><CalendarIcon className="w-3 h-3 text-slate-400" />Last Contacted</span>
+                          </th>
                           <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2.5 min-w-[160px]">
                             <span className="flex items-center gap-1"><NotebookPen className="w-3 h-3 text-slate-400" />Notes</span>
                           </th>
@@ -2047,6 +2087,50 @@ Looking forward to hearing from you,
                                   Generating…
                                 </span>
                               )}
+                            </td>
+                            {/* Last Contacted cell */}
+                            <td className="px-3 py-3">
+                              <Popover
+                                open={openDatePickerDomain === r.domain}
+                                onOpenChange={(open) => setOpenDatePickerDomain(open ? r.domain : null)}
+                              >
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1.5 rounded-md border whitespace-nowrap transition-colors ${
+                                      contactedDateMap[r.domain]
+                                        ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                        : "border-slate-200 bg-transparent text-slate-400 hover:bg-white hover:text-slate-600 hover:border-slate-300"
+                                    }`}
+                                    title="Set last contacted date"
+                                  >
+                                    <CalendarIcon className="w-3 h-3 shrink-0" />
+                                    {contactedDateMap[r.domain]
+                                      ? new Date(contactedDateMap[r.domain] + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "2-digit" })
+                                      : <span className="italic">Set date</span>
+                                    }
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={contactedDateMap[r.domain] ? new Date(contactedDateMap[r.domain] + "T00:00:00") : undefined}
+                                    onSelect={(date) => updateContactedDate(r.domain, date)}
+                                    initialFocus
+                                  />
+                                  {contactedDateMap[r.domain] && (
+                                    <div className="px-3 pb-3">
+                                      <button
+                                        type="button"
+                                        onClick={() => updateContactedDate(r.domain, undefined)}
+                                        className="text-[11px] text-slate-400 hover:text-red-500 transition-colors"
+                                      >
+                                        Clear date
+                                      </button>
+                                    </div>
+                                  )}
+                                </PopoverContent>
+                              </Popover>
                             </td>
                             {/* Notes cell */}
                             <td className="px-3 py-3 max-w-[200px]">
@@ -2232,92 +2316,118 @@ Looking forward to hearing from you,
         </div>
       </section>
 
-      {/* ── Draft Pitch Modal ── */}
-      <AnimatePresence>
-        {pitchModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-            onClick={(e) => { if (e.target === e.currentTarget) setPitchModal(null); }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.15 }}
-              className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-lg"
-            >
-              <div className="flex items-start justify-between px-6 pt-5 pb-3 border-b border-slate-100">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <NotebookPen className="w-4 h-4 text-violet-600" />
-                    Pitch Template
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {pitchModal.domain} · Score {pitchModal.score} · DA {pitchModal.da > 0 ? pitchModal.da : "—"}
-                  </p>
+      {/* ── Draft Pitch Side Panel (Sheet) ── */}
+      <Sheet open={pitchModal !== null} onOpenChange={(open) => { if (!open) setPitchModal(null); }}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-lg flex flex-col p-0 gap-0 overflow-hidden"
+        >
+          {pitchModal && (
+            <>
+              {/* Header */}
+              <SheetHeader className="px-5 pt-5 pb-4 border-b border-slate-100 shrink-0">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <SheetTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <NotebookPen className="w-4 h-4 text-violet-600 shrink-0" />
+                      Draft Pitch
+                    </SheetTitle>
+                    <SheetDescription className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                      {pitchModal.domain}
+                    </SheetDescription>
+                  </div>
+                  <SheetClose className="shrink-0 mt-0.5 rounded-sm opacity-70 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                    <X className="w-4 h-4" />
+                    <span className="sr-only">Close</span>
+                  </SheetClose>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setPitchModal(null)}
-                  className="mt-0.5 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+              </SheetHeader>
+
+              {/* Site stats strip */}
+              <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 shrink-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Site Stats</p>
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="rounded-lg bg-white border border-slate-100 px-3 py-2 text-center">
+                    <p className={`text-base font-black leading-none ${SCORE_COLOR(pitchModal.score)}`}>{pitchModal.score}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Score</p>
+                  </div>
+                  <div className="rounded-lg bg-white border border-slate-100 px-3 py-2 text-center">
+                    <p className="text-base font-black leading-none text-slate-800">{pitchModal.da > 0 ? pitchModal.da : "—"}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">DA</p>
+                  </div>
+                  <div className="rounded-lg bg-white border border-slate-100 px-3 py-2 text-center">
+                    <p className="text-base font-black leading-none text-slate-800">{pitchModal.traffic > 0 ? fmtNum(pitchModal.traffic) : "—"}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Traffic</p>
+                  </div>
+                  <div className="rounded-lg bg-white border border-violet-100 px-3 py-2 text-center">
+                    <p className="text-sm font-black leading-none text-violet-700">{fmtMoney(pitchModal.linkValue.min)}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Est. Value</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: 5 }).map((_, si) => (
+                      <Star
+                        key={si}
+                        className={`w-3 h-3 ${si < pitchModal.acquisition.stars ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"}`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-medium">{pitchModal.acquisition.label} to acquire</span>
+                  <span className="mx-1 text-slate-200">·</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${SCORE_BG(pitchModal.score)}`}>{pitchModal.label}</span>
+                </div>
               </div>
 
-              <div className="px-6 py-4">
+              {/* Editable email template */}
+              <div className="flex-1 overflow-y-auto px-5 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Email Template</p>
                 <textarea
                   value={pitchText}
                   onChange={(e) => setPitchText(e.target.value)}
-                  rows={14}
-                  className="w-full text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-violet-400 leading-relaxed"
+                  className="w-full h-full min-h-[280px] text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 leading-relaxed"
                   spellCheck={false}
                 />
-              </div>
-
-              <div className="flex items-center justify-between px-6 pb-5 gap-3 flex-wrap">
-                <p className="text-[10px] text-muted-foreground leading-snug">
+                <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
                   Replace <span className="font-mono bg-slate-100 px-1 rounded">[Your Name]</span> and other placeholders before sending.
                 </p>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(pitchText).then(() => {
-                        setCopyTemplateState("copied");
-                        setTimeout(() => setCopyTemplateState("idle"), 2000);
-                      });
-                    }}
-                    className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-lg border transition-all ${
-                      copyTemplateState === "copied"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "border-slate-200 text-slate-600 hover:border-violet-400 hover:text-violet-700 bg-white"
-                    }`}
-                  >
-                    {copyTemplateState === "copied" ? (
-                      <><Check className="w-3.5 h-3.5" />Copied!</>
-                    ) : (
-                      <><Copy className="w-3.5 h-3.5" />Copy</>
-                    )}
-                  </button>
-                  <a
-                    href={`mailto:info@${pitchModal.domain}?subject=${encodeURIComponent(`Content Partnership Opportunity — ${pitchModal.domain}`)}&body=${encodeURIComponent(pitchText.replace(/^Subject:[^\n]*\n\n?/, "").trim())}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-all"
-                    title={`Open email client with draft to info@${pitchModal.domain}`}
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    Send via Email
-                  </a>
-                </div>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+              {/* Footer actions */}
+              <div className="px-5 py-4 border-t border-slate-100 shrink-0 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(pitchText).then(() => {
+                      setCopyTemplateState("copied");
+                      setTimeout(() => setCopyTemplateState("idle"), 2000);
+                    });
+                  }}
+                  className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-lg border transition-all ${
+                    copyTemplateState === "copied"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "border-slate-200 text-slate-600 hover:border-violet-400 hover:text-violet-700 bg-white"
+                  }`}
+                >
+                  {copyTemplateState === "copied" ? (
+                    <><Check className="w-3.5 h-3.5" />Copied!</>
+                  ) : (
+                    <><Copy className="w-3.5 h-3.5" />Copy</>
+                  )}
+                </button>
+                <a
+                  href={`mailto:info@${pitchModal.domain}?subject=${encodeURIComponent(`Content Partnership Opportunity — ${pitchModal.domain}`)}&body=${encodeURIComponent(pitchText.replace(/^Subject:[^\n]*\n\n?/, "").trim())}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-all"
+                  title={`Open email client with draft to info@${pitchModal.domain}`}
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Send via Email
+                </a>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
