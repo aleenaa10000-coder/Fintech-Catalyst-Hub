@@ -8,18 +8,12 @@ import { scheduleNoIndexExpiryHourly } from "./jobs/noindexExpiryHourly";
 import { scheduleWeeklyDigest } from "./jobs/weeklyDigest";
 import { schedulePublishNotifyHourly } from "./jobs/scheduledPostPublishNotify";
 
-const rawPort = process.env["PORT"];
-
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
+const rawPort = process.env["PORT"] ?? "3000";
 
 const port = Number(rawPort);
 
 if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
+  throw new Error(`Invalid PORT value: "${rawPort}". Set PORT to a valid integer (e.g. PORT=3000).`);
 }
 
 async function bootstrap() {

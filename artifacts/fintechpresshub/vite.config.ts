@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { execSync } from "node:child_process";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import botOgPlugin from "./scripts/bot-og-plugin.mjs";
 
 /**
@@ -33,6 +32,9 @@ const TERMS_LAST_UPDATED_ISO = gitFileMtimeIso("src/pages/terms.tsx");
 const replitDevPlugins =
   process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined
     ? [
+        await import("@replit/vite-plugin-runtime-error-modal").then((m) =>
+          m.default(),
+        ),
         await import("@replit/vite-plugin-cartographer").then((m) =>
           m.cartographer({
             root: path.resolve(import.meta.dirname, ".."),
@@ -62,7 +64,6 @@ export default defineConfig(({ command }) => {
   plugins: [
     react(),
     tailwindcss(),
-    runtimeErrorOverlay(),
     botOgPlugin({
       root: path.resolve(import.meta.dirname),
       siteUrl:

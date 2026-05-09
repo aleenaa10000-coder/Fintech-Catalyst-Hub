@@ -1,3 +1,6 @@
+import path from "path";
+import { fileURLToPath } from "url";
+import { existsSync } from "fs";
 import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -64,5 +67,29 @@ app.use(indexNowKeyRouter);
 app.use(uploadsRouter);
 
 app.use("/api", router);
+
+// ── Production static-file serving ─────────────────────────────────────────
+// When NODE_ENV=production and the frontend has been pre-built, serve the
+// Vite output as static files and fall back to index.html for every
+// non-API route so the React SPA still handles client-side navigation.
+//
+// This lets a single `node dist/index.mjs` process serve both the API and
+// the compiled frontend — which is required on Node.js hosts like Hostinger
+// that only expose one process per site.
+//
+// On Replit the frontend runs as its own Vite dev-server (port 5000) and
+// this block is skipped entirely because NODE_ENV is "development" there.
+const _frontendDist = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../fintechpresshub/dist/public",
+);
+if (process.env.NODE_ENV === "production" && existsSync(_frontendDist)) {
+  logger.info({ frontendDist: _frontendDist }, "Serving pre-built frontend as static files");
+  app.use(express.static(_frontendDist, { index: false }));
+  // SPA fallback — must be last so API routes take priority
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(_frontendDist, "index.html"));
+  });
+}
 
 export default app;

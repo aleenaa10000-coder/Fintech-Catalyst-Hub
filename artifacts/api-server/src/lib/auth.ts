@@ -39,10 +39,18 @@ export interface SessionData {
 let oidcConfig: client.Configuration | null = null;
 
 export async function getOidcConfig(): Promise<client.Configuration> {
+  const replId = process.env.REPL_ID;
+  if (!replId) {
+    throw new Error(
+      "REPL_ID environment variable is not set. " +
+      "Replit OIDC authentication requires a Replit environment. " +
+      "Set REPL_ID to your application ID, or omit login/logout flows on non-Replit hosts.",
+    );
+  }
   if (!oidcConfig) {
     oidcConfig = await client.discovery(
       new URL(ISSUER_URL),
-      process.env.REPL_ID!,
+      replId,
     );
   }
   return oidcConfig;
