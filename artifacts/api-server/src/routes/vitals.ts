@@ -15,6 +15,8 @@ function requireAdmin(req: Request, res: Response, next: () => void) {
 }
 
 const VitalsBody = z.object({
+  // FID (First Input Delay) kept for backwards compat with older browser reports;
+  // web-vitals v5+ sends INP instead.
   name: z.enum(["LCP", "CLS", "INP", "FID", "TTFB"]),
   value: z.number().finite(),
   rating: z.enum(["good", "needs-improvement", "poor"]),

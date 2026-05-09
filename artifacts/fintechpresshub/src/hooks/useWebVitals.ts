@@ -44,12 +44,12 @@ export function useWebVitals() {
     }
 
     // Dynamically import web-vitals so it never blocks the main bundle.
-    import("web-vitals").then(({ onLCP, onCLS, onINP, onFID, onTTFB }) => {
+    // web-vitals v5 dropped onFID (First Input Delay) — INP is its replacement.
+    import("web-vitals").then(({ onLCP, onCLS, onINP, onTTFB }) => {
       if (cancelled) return;
       onLCP(report, { reportAllChanges: false });
       onCLS(report, { reportAllChanges: false });
       onINP(report, { reportAllChanges: false });
-      onFID(report, { reportAllChanges: false });
       onTTFB(report);
     }).catch(() => undefined);
 
