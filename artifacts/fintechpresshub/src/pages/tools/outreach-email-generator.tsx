@@ -1128,6 +1128,7 @@ export default function OutreachEmailGenerator() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyCompareEntry, setHistoryCompareEntry] = useState<EmailEntry | null>(null);
   const [abHistory, setAbHistory] = useState<ABSendRecord[]>(loadABHistory);
+  const [linkValuePrefilled, setLinkValuePrefilled] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkDomains, setBulkDomains] = useState("");
   const [bulkResults, setBulkResults] = useState<BulkResult[]>([]);
@@ -1137,7 +1138,10 @@ export default function OutreachEmailGenerator() {
 
   useEffect(() => {
     const p = parseParams();
-    if (Object.keys(p).length > 0) setForm((prev) => ({ ...prev, ...p }));
+    if (Object.keys(p).length > 0) {
+      setForm((prev) => ({ ...prev, ...p }));
+      if (p.linkValueMin && p.linkValueMax) setLinkValuePrefilled(true);
+    }
     return () => { if (copiedRef.current) clearTimeout(copiedRef.current); };
   }, []);
 
@@ -1707,12 +1711,12 @@ export default function OutreachEmailGenerator() {
                 </div>
 
                 {/* Link value */}
-                {(form.linkValueMin && form.linkValueMax) ? (
+                {linkValuePrefilled ? (
                   <div className="rounded-lg border border-violet-100 bg-violet-50 px-4 py-3 flex items-center gap-3">
                     <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
                       <BarChart2 className="w-3.5 h-3.5 text-violet-600" />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-[11px] font-bold text-violet-800">
                         Estimated link value pre-filled from your assessment
                       </p>
@@ -1720,6 +1724,13 @@ export default function OutreachEmailGenerator() {
                         {fmtLinkValue(form.linkValueMin)}–{fmtLinkValue(form.linkValueMax)} — used in the Data-Led subject variant
                       </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setLinkValuePrefilled(false)}
+                      className="text-[10px] text-violet-500 hover:text-violet-700 underline shrink-0"
+                    >
+                      Edit
+                    </button>
                   </div>
                 ) : (
                   <div className="grid sm:grid-cols-2 gap-4">
