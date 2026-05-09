@@ -92,6 +92,82 @@ Open `/api/healthz` in a new tab (e.g. `https://<your-repl>.replit.dev/api/healt
 
 ---
 
+---
+
+## Deploying to Hostinger (Node.js Business plan)
+
+This project can run as a single Node.js process on Hostinger. The API server serves both the JSON API and the pre-built React frontend from the same port.
+
+### 1. Push the repository to GitHub
+
+If you haven't already, push your Replit project to a GitHub repository. Hostinger can deploy directly from a GitHub branch.
+
+### 2. Set up a PostgreSQL database
+
+Create an external PostgreSQL database (e.g. Supabase free tier, Neon, or Railway) and copy the connection string. Hostinger's Business plan does not include built-in Postgres, so an external provider is required.
+
+### 3. Configure environment variables in Hostinger
+
+In your Hostinger Node.js app panel → **Environment variables**, add:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | Your Postgres connection string |
+| `NODE_ENV` | `production` |
+| `SITE_URL` | `https://www.yourdomain.com` (no trailing slash) |
+| `RESEND_API_KEY` | Your Resend API key (for contact/pitch emails) |
+| `REPORT_FROM_EMAIL` | `FintechPressHub <hello@yourdomain.com>` |
+| `PITCH_RECIPIENT_EMAIL` | Recipient for guest-post pitch submissions |
+| `CONTACT_NOTIFY_TO` | Recipient for contact-form submissions |
+| `INDEXNOW_KEY` | Your IndexNow key (optional, for Bing/Yandex pings) |
+
+Leave `REPL_ID` unset — auth is Replit-specific and the site functions fully without it. The `/api/login` route returns a friendly 503 instead of crashing.
+
+`PORT` is set automatically by Hostinger — do not add it manually.
+
+### 4. Set the build command
+
+In Hostinger's Node.js app settings, set:
+
+| Setting | Value |
+| --- | --- |
+| **Build command** | `pnpm install && pnpm run build:production` |
+| **Start command** | `pnpm start` |
+| **Node version** | 20 or higher |
+
+`build:production` compiles the React frontend to `artifacts/fintechpresshub/dist/public` and then bundles the Express API server to `artifacts/api-server/dist/index.mjs`.
+
+`pnpm start` runs the API server, which — when `NODE_ENV=production` — automatically detects the built frontend and serves it as static files with a SPA fallback for all non-API routes.
+
+### 5. Push the schema and seed data
+
+After the first deploy, run a one-time migration from the Hostinger terminal (or via SSH):
+
+```bash
+pnpm --filter @workspace/db run push
+pnpm --filter @workspace/scripts run seed
+```
+
+This creates all database tables and seeds demo content (blog posts, authors, services, pricing, testimonials).
+
+### 6. Verify
+
+Visit `https://www.yourdomain.com/api/healthz` — you should see:
+
+```json
+{ "status": "ok", "db": { "ok": true }, "email": { "ok": true }, "seedData": { "ok": true } }
+```
+
+If `db.ok` is `false`, double-check the `DATABASE_URL` value. If `email.ok` is `false`, add `RESEND_API_KEY` or the `SMTP_*` variables.
+
+### Notes
+
+- **Admin blog** (`/admin/blog`) requires Replit authentication and is not available on Hostinger. Manage blog posts directly in the database, or publish from a Replit workspace and let the same `DATABASE_URL` share data between environments.
+- **Object storage** (cover image uploads) uses Replit's built-in object store and is unavailable on Hostinger unless you swap the storage backend for AWS S3 or similar.
+- The Vite dev server is not started in production. All frontend traffic is served as static files by Express from `artifacts/fintechpresshub/dist/public`.
+
+---
+
 ## Optional: make the post-merge script executable
 
 The repository ships with `scripts/post-merge.sh`, which Replit runs automatically after task-agent merges to keep dependencies and the database in sync. If you ever see permission errors when this script runs, mark it executable once and commit:
