@@ -1737,42 +1737,65 @@ export default function OutreachEmailGenerator() {
                   const maxNum = parseFloat(form.linkValueMax);
                   const bothFilled = form.linkValueMin.trim() !== "" && form.linkValueMax.trim() !== "";
                   const rangeError = bothFilled && !isNaN(minNum) && !isNaN(maxNum) && minNum >= maxNum;
+                  const doSwap = () => setForm((prev) => ({
+                    ...prev,
+                    linkValueMin: prev.linkValueMax,
+                    linkValueMax: prev.linkValueMin,
+                  }));
                   return (
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-slate-700">
-                        Est. link value min ($)
-                        <span className="text-muted-foreground font-normal ml-1">(optional)</span>
-                      </Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={form.linkValueMin}
-                        onChange={(e) => setField("linkValueMin", e.target.value)}
-                        placeholder="1200"
-                        className={rangeError ? "border-red-400 focus-visible:ring-red-300" : ""}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-slate-700">
-                        Est. link value max ($)
-                        <span className="text-muted-foreground font-normal ml-1">(optional)</span>
-                      </Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={form.linkValueMax}
-                        onChange={(e) => setField("linkValueMax", e.target.value)}
-                        placeholder="2500"
-                        className={rangeError ? "border-red-400 focus-visible:ring-red-300" : ""}
-                      />
+                  <div className="space-y-2">
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1 space-y-1.5 min-w-0">
+                        <Label className="text-xs font-semibold text-slate-700">
+                          Est. link value min ($)
+                          <span className="text-muted-foreground font-normal ml-1">(optional)</span>
+                        </Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={form.linkValueMin}
+                          onChange={(e) => setField("linkValueMin", e.target.value)}
+                          placeholder="1200"
+                          className={rangeError ? "border-red-400 focus-visible:ring-red-300" : ""}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={doSwap}
+                        title="Swap min and max"
+                        className={`mb-0.5 h-9 w-9 shrink-0 flex items-center justify-center rounded-md border transition-colors ${
+                          rangeError
+                            ? "border-red-300 bg-red-50 text-red-500 hover:bg-red-100"
+                            : "border-slate-200 bg-white text-slate-400 hover:border-slate-400 hover:text-slate-600"
+                        }`}
+                      >
+                        <ArrowLeftRight className="w-3.5 h-3.5" />
+                      </button>
+                      <div className="flex-1 space-y-1.5 min-w-0">
+                        <Label className="text-xs font-semibold text-slate-700">
+                          Est. link value max ($)
+                          <span className="text-muted-foreground font-normal ml-1">(optional)</span>
+                        </Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={form.linkValueMax}
+                          onChange={(e) => setField("linkValueMax", e.target.value)}
+                          placeholder="2500"
+                          className={rangeError ? "border-red-400 focus-visible:ring-red-300" : ""}
+                        />
+                      </div>
                     </div>
                     {rangeError ? (
-                      <p className="text-[10px] text-red-500 font-medium sm:col-span-2 -mt-2">
-                        Min must be less than Max — swap the values or lower the Min.
+                      <p className="text-[10px] text-red-500 font-medium">
+                        Min must be less than Max —{" "}
+                        <button type="button" onClick={doSwap} className="underline hover:text-red-700">
+                          swap them
+                        </button>
+                        {" "}or lower the Min.
                       </p>
                     ) : (
-                      <p className="text-[10px] text-muted-foreground sm:col-span-2 -mt-2">
+                      <p className="text-[10px] text-muted-foreground">
                         Used in the Data-Led variant only.{" "}
                         <Link href="/tools/backlink-value-estimator" className="underline hover:text-blue-600">
                           Estimate it first →
