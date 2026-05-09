@@ -21,7 +21,7 @@ import {
   Twitter,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/metaData";
-import { usePublicPosts } from "@/data/usePublicPosts";
+import { usePublicPosts, type PublicPost } from "@/data/usePublicPosts";
 import { authorSlugFromName } from "@/data/authors";
 import { useAuthorBySlug, useAuthors } from "@/data/useAuthors";
 import {
@@ -332,7 +332,7 @@ export default function AuthorPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {authorPosts.map((post: any, i: number) => (
+              {authorPosts.map((post: PublicPost, i: number) => (
                 <motion.div
                   key={post.id}
                   initial={{ opacity: 0, y: 20 }}

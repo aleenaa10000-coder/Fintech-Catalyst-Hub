@@ -1125,6 +1125,7 @@ export default function OutreachEmailGenerator() {
   const [bulkDomains, setBulkDomains] = useState("");
   const [bulkResults, setBulkResults] = useState<BulkResult[]>([]);
   const [copiedBulkRow, setCopiedBulkRow] = useState<string | null>(null);
+  const [copiedSubjectRow, setCopiedSubjectRow] = useState<string | null>(null);
   const copiedRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -1871,6 +1872,30 @@ export default function OutreachEmailGenerator() {
                             <td className="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">{fmtDomain(r.domain)}</td>
                             <td className="px-4 py-3 text-slate-700 max-w-[240px]">
                               <span className="line-clamp-2 leading-snug">{r.chosenSubject}</span>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try { await navigator.clipboard.writeText(r.chosenSubject); }
+                                  catch {
+                                    const el = document.createElement("textarea");
+                                    el.value = r.chosenSubject; document.body.appendChild(el); el.select();
+                                    document.execCommand("copy"); document.body.removeChild(el);
+                                  }
+                                  setCopiedSubjectRow(r.domain);
+                                  trackEvent("Result Copied", { tool: "outreach-email-generator", format: "bulk-subject" });
+                                  setTimeout(() => setCopiedSubjectRow(null), 2000);
+                                }}
+                                className={`mt-1 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border transition-all ${
+                                  copiedSubjectRow === r.domain
+                                    ? "border-green-300 bg-green-50 text-green-700"
+                                    : "border-slate-200 bg-white text-slate-400 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600"
+                                }`}
+                                title="Copy subject line only"
+                              >
+                                {copiedSubjectRow === r.domain
+                                  ? <><Check className="w-2.5 h-2.5" />Copied</>
+                                  : <><Copy className="w-2.5 h-2.5" />Copy subject</>}
+                              </button>
                             </td>
                             <td className="px-3 py-3 text-center">
                               <span className={`inline-flex items-center justify-center w-9 h-6 rounded font-bold text-[11px] ${r.scoreA >= 70 ? "bg-green-100 text-green-700" : r.scoreA >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>

@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BarChart2, Home, ArrowRight, Clock, Calendar } from "lucide-react";
-import { usePublicPosts } from "@/data/usePublicPosts";
+import { usePublicPosts, type PublicPost } from "@/data/usePublicPosts";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", {
@@ -75,7 +75,7 @@ export default function NotFound() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {popular.map((p: any) => (
+            {popular.map((p: PublicPost) => (
               <Link
                 key={p.id}
                 href={`/blog/${p.slug}`}

@@ -1293,7 +1293,6 @@ export default function ReadabilityChecker() {
       trackEvent("Result Exported", { tool: "readability-checker", format: "pdf" });
       toast.success("PDF exported!", { description: "Your readability report has been downloaded." });
     } catch (err) {
-      console.error(err);
       toast.error("PDF export failed", { description: "Please try again." });
     } finally {
       setPdfLoading(false);
