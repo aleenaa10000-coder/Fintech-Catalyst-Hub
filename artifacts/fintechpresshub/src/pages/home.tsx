@@ -120,7 +120,10 @@ export default function Home() {
       },
     },
   );
-  const recentPosts = recentPostsQuery.data;
+  const featuredPostIds = new Set((featuredPosts ?? []).map((p) => p.id));
+  const recentPosts = recentPostsQuery.data?.filter(
+    (p) => !featuredPostIds.has(p.id),
+  );
   const recentPostsUpdatedAt = recentPostsQuery.dataUpdatedAt;
   // Tick every 30 s so the "Updated N seconds ago" label stays
   // accurate without us coupling it to the React Query refetch
@@ -414,132 +417,118 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Recently published — live, chronological feed (3 newest posts
-          straight from the API). Visually distinct from the curated
-          "Latest Insights" grid above so the homepage shows both
-          editorial picks AND a fresh "what just landed" signal. */}
-      <section
-        className="py-16 border-t bg-slate-50"
-        data-testid="section-home-recently-published"
-      >
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.5 }}
-            className="flex justify-between items-end mb-8"
-          >
-            <div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
-                <Clock className="w-6 h-6 text-primary" />
-                Recently published
-              </h2>
-              <p className="text-muted-foreground flex items-center gap-2 flex-wrap">
-                <span>The three newest posts on the blog.</span>
-                {recentPostsUpdatedAt > 0 && (
-                  <span
-                    className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
-                    title={new Date(recentPostsUpdatedAt).toLocaleString()}
-                    aria-live="polite"
-                    data-testid="recently-published-updated-pill"
-                  >
+      {/* Recently published — only rendered when there are posts not
+          already shown in "Latest Insights" above, preventing the same
+          article from appearing twice on the same page. */}
+      {recentPostsQuery.data !== undefined && recentPosts != null && recentPosts.length > 0 ? (
+        <section
+          className="py-16 border-t bg-slate-50"
+          data-testid="section-home-recently-published"
+        >
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.5 }}
+              className="flex justify-between items-end mb-8"
+            >
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
+                  <Clock className="w-6 h-6 text-primary" />
+                  Recently published
+                </h2>
+                <p className="text-muted-foreground flex items-center gap-2 flex-wrap">
+                  <span>The three newest posts on the blog.</span>
+                  {recentPostsUpdatedAt > 0 && (
                     <span
-                      className={
-                        recentPostsQuery.isFetching
-                          ? "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
-                          : "w-1.5 h-1.5 rounded-full bg-emerald-500"
-                      }
-                      aria-hidden="true"
-                    />
-                    {recentPostsQuery.isFetching
-                      ? "Refreshing…"
-                      : now - recentPostsUpdatedAt < 60_000
-                        ? "Updated just now"
-                        : `Updated ${formatRelativeTime(new Date(recentPostsUpdatedAt).toISOString())}`}
-                  </span>
-                )}
-              </p>
-            </div>
-            <Link href="/blog" className="hidden md:flex">
-              <Button variant="ghost" size="sm">
-                Browse all posts
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </Link>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {Array.isArray(recentPosts) && recentPosts.length > 0
-              ? recentPosts.map((post, i) => (
-                  <motion.div
-                    key={post.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.4, delay: i * 0.05 }}
-                  >
-                    <Link
-                      href={`/blog/${post.slug}`}
-                      className="group flex gap-4 p-4 rounded-xl bg-white border border-slate-200 hover:border-primary/40 hover:shadow-md transition-all h-full"
-                      data-testid={`recently-published-card-${i}`}
+                      className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      title={new Date(recentPostsUpdatedAt).toLocaleString()}
+                      aria-live="polite"
+                      data-testid="recently-published-updated-pill"
                     >
-                      <div
-                        className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-slate-100"
+                      <span
+                        className={
+                          recentPostsQuery.isFetching
+                            ? "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
+                            : "w-1.5 h-1.5 rounded-full bg-emerald-500"
+                        }
                         aria-hidden="true"
-                      >
-                        <img
-                          src={post.coverImage}
-                          alt=""
-                          loading="lazy"
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0 flex flex-col">
-                        <span className="text-[11px] font-medium uppercase tracking-wide text-sky-700 mb-1">
-                          {post.category}
-                        </span>
-                        <h3 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                          {post.title}
-                        </h3>
-                        <div className="mt-auto pt-2 text-xs text-muted-foreground flex items-center gap-1.5">
-                          <Clock className="w-3 h-3" />
-                          <time dateTime={post.publishedAt}>
-                            {formatRelativeTime(post.publishedAt)}
-                          </time>
-                          <span aria-hidden="true">·</span>
-                          <span>{post.readingMinutes} min read</span>
-                        </div>
-                      </div>
-                    </Link>
-                  </motion.div>
-                ))
-              : Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex gap-4 p-4 rounded-xl bg-white border border-slate-200"
-                  >
-                    <Skeleton className="shrink-0 w-20 h-20 rounded-lg" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-3 w-16" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/2 mt-2" />
-                    </div>
-                  </div>
-                ))}
-          </div>
+                      />
+                      {recentPostsQuery.isFetching
+                        ? "Refreshing…"
+                        : now - recentPostsUpdatedAt < 60_000
+                          ? "Updated just now"
+                          : `Updated ${formatRelativeTime(new Date(recentPostsUpdatedAt).toISOString())}`}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <Link href="/blog" className="hidden md:flex">
+                <Button variant="ghost" size="sm">
+                  Browse all posts
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </motion.div>
 
-          <div className="mt-6 md:hidden">
-            <Link href="/blog">
-              <Button variant="outline" className="w-full">
-                Browse all posts
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </Link>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {recentPosts.map((post, i) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.05 }}
+                >
+                  <Link
+                    href={`/blog/${post.slug}`}
+                    className="group flex gap-4 p-4 rounded-xl bg-white border border-slate-200 hover:border-primary/40 hover:shadow-md transition-all h-full"
+                    data-testid={`recently-published-card-${i}`}
+                  >
+                    <div
+                      className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-slate-100"
+                      aria-hidden="true"
+                    >
+                      <img
+                        src={post.coverImage}
+                        alt=""
+                        loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <span className="text-[11px] font-medium uppercase tracking-wide text-sky-700 mb-1">
+                        {post.category}
+                      </span>
+                      <h3 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                        {post.title}
+                      </h3>
+                      <div className="mt-auto pt-2 text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Clock className="w-3 h-3" />
+                        <time dateTime={post.publishedAt}>
+                          {formatRelativeTime(post.publishedAt)}
+                        </time>
+                        <span aria-hidden="true">·</span>
+                        <span>{post.readingMinutes} min read</span>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="mt-6 md:hidden">
+              <Link href="/blog">
+                <Button variant="outline" className="w-full">
+                  Browse all posts
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {/* FAQ */}
       <section className="py-20 border-t bg-muted/20" data-testid="section-home-faq">
