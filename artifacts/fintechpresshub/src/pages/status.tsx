@@ -177,6 +177,7 @@ export default function StatusPage() {
     <>
       <PageMeta
         page="status"
+        noindex={true}
         webPage={{ datePublished: "2026-04-30", dateModified: "2026-04-30" }}
       />
       <PageHero

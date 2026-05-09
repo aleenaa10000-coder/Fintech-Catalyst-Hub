@@ -4,6 +4,14 @@ import { desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
 
+/** Resolve a cover-image value to a fully-qualified URL. */
+function resolveImageUrl(siteUrl: string, raw: string | null): string | null {
+  if (!raw) return null;
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  // Relative paths like /objects/... or /images/...
+  return `${siteUrl}${raw.startsWith("/") ? raw : `/${raw}`}`;
+}
+
 const router: IRouter = Router();
 
 const STATIC_ROUTES: Array<{
@@ -58,12 +66,18 @@ function escapeXml(value: string): string {
  */
 export type SitemapEntrySource = "static" | "blog" | "author" | "rss";
 
+export interface SitemapImage {
+  loc: string;
+  title?: string;
+}
+
 export interface SitemapEntry {
   loc: string;
   lastmod: string;
   changefreq: string;
   priority: string;
   source: SitemapEntrySource;
+  images?: SitemapImage[];
 }
 
 /**
@@ -84,9 +98,11 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
     await db
       .select({
         slug: blogPostsTable.slug,
+        title: blogPostsTable.title,
         publishedAt: blogPostsTable.publishedAt,
         noIndex: blogPostsTable.noIndex,
         featured: blogPostsTable.featured,
+        coverImage: blogPostsTable.coverImage,
       })
       .from(blogPostsTable)
       .where(lte(blogPostsTable.publishedAt, sql`now()`))
@@ -122,14 +138,16 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
       priority: r.priority,
       source: "static" as const,
     })),
-    ...posts.map((p: { slug: string; publishedAt: Date; featured: boolean | null }) => {
+    ...posts.map((p: { slug: string; title: string; publishedAt: Date; featured: boolean | null; coverImage: string }) => {
       const { priority, changefreq } = blogPriority(p);
+      const imageUrl = resolveImageUrl(siteUrl, p.coverImage);
       return {
         loc: `${siteUrl}/blog/${p.slug}`,
         lastmod: p.publishedAt.toISOString().slice(0, 10),
         changefreq,
         priority,
         source: "blog" as const,
+        ...(imageUrl ? { images: [{ loc: imageUrl, title: p.title }] } : {}),
       };
     }),
     ...AUTHOR_SLUGS.map((slug) => ({
@@ -155,20 +173,35 @@ async function buildSitemapXml(): Promise<string> {
   const entries = await buildSitemapEntries();
 
   const body = entries
-    .map(
-      (u) =>
+    .map((u) => {
+      const imageBlocks = (u.images ?? [])
+        .map(
+          (img) =>
+            `    <image:image>\n` +
+            `      <image:loc>${escapeXml(img.loc)}</image:loc>\n` +
+            (img.title
+              ? `      <image:title>${escapeXml(img.title)}</image:title>\n`
+              : "") +
+            `    </image:image>`,
+        )
+        .join("\n");
+
+      return (
         `  <url>\n` +
         `    <loc>${escapeXml(u.loc)}</loc>\n` +
         `    <lastmod>${u.lastmod}</lastmod>\n` +
         `    <changefreq>${u.changefreq}</changefreq>\n` +
         `    <priority>${u.priority}</priority>\n` +
-        `  </url>`,
-    )
+        (imageBlocks ? imageBlocks + "\n" : "") +
+        `  </url>`
+      );
+    })
     .join("\n");
 
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
-    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n` +
+    `        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n` +
     body +
     `\n</urlset>\n`
   );

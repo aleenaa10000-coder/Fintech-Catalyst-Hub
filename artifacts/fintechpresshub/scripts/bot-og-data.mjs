@@ -10,13 +10,13 @@ export const PAGE_META = {
     path: "/",
     title: "FintechPressHub | Fintech SEO & Content Marketing Agency",
     description:
-      "Expert content marketing and off-page SEO for fintech companies.",
+      "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
   },
   about: {
     path: "/about",
     title: "About FintechPressHub | Fintech SEO Agency",
     description:
-      "Bridging the gap between deep fintech expertise and search visibility.",
+      "FintechPressHub is a specialist fintech SEO agency built by operators who have worked inside payments, lending, and banking — not generalists learning on your account. Meet the team.",
   },
   services: {
     path: "/services",
@@ -45,7 +45,8 @@ export const PAGE_META = {
   writeForUs: {
     path: "/write-for-us",
     title: "Write For Us | FintechPressHub",
-    description: "Submit a guest post pitch to FintechPressHub.",
+    description:
+      "Pitch a guest article to FintechPressHub. We publish expert-level fintech, payments, and lending content for a 50,000+ monthly reader audience. Dofollow link included.",
   },
   contact: {
     path: "/contact",

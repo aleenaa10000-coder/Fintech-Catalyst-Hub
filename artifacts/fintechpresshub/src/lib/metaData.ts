@@ -40,6 +40,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
 export const ORGANIZATION_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "Organization",
+  "@id": `${SITE_URL}#organization`,
   name: SITE_NAME,
   url: SITE_URL,
   logo: `${SITE_URL}/favicon.svg`,
@@ -48,6 +49,8 @@ export const ORGANIZATION_SCHEMA = {
   sameAs: [
     "https://twitter.com/fintechpresshub",
     "https://www.linkedin.com/company/fintechpresshub",
+    "https://www.crunchbase.com/organization/fintechpresshub",
+    "https://www.wikidata.org/wiki/Q130531885",
   ],
 } as const;
 
@@ -55,12 +58,12 @@ export const PAGE_META = {
   home: {
     title: "FintechPressHub | Fintech SEO & Content Marketing Agency",
     description:
-      "Expert content marketing and off-page SEO for fintech companies.",
+      "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
   },
   about: {
     title: "About FintechPressHub | Fintech SEO Agency",
     description:
-      "Bridging the gap between deep fintech expertise and search visibility.",
+      "FintechPressHub is a specialist fintech SEO agency built by operators who have worked inside payments, lending, and banking — not generalists learning on your account. Meet the team.",
   },
   services: {
     title: "Growth Engines for Fintech Brands",
@@ -79,7 +82,8 @@ export const PAGE_META = {
   },
   writeForUs: {
     title: "Write For Us | FintechPressHub",
-    description: "Submit a guest post pitch to FintechPressHub.",
+    description:
+      "Pitch a guest article to FintechPressHub. We publish expert-level fintech, payments, and lending content for a 50,000+ monthly reader audience. Dofollow link included.",
   },
   contact: {
     title: "Contact Us | FintechPressHub",

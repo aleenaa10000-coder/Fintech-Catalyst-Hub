@@ -349,6 +349,9 @@ export function PageMeta(props: PageMetaProps) {
         author: props.article.author
           ? {
               "@type": "Person",
+              "@id": props.article.authorUrl
+                ? `${props.article.authorUrl}#person`
+                : undefined,
               name: props.article.author,
               ...(props.article.authorUrl
                 ? { url: props.article.authorUrl }
@@ -412,7 +415,11 @@ export function PageMeta(props: PageMetaProps) {
       {props.noindex ? (
         <meta name="robots" content="noindex,nofollow" />
       ) : null}
+      <meta property="og:locale" content="en_US" />
       <link rel="canonical" href={canonical} />
+      {props.article?.authorUrl ? (
+        <link rel="author" href={props.article.authorUrl} />
+      ) : null}
       <link
         rel="alternate"
         type="application/rss+xml"
