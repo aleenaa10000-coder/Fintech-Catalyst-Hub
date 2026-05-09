@@ -318,7 +318,7 @@ function generateFollowUpSequence(form: FormState, tone: Tone, originalSubject: 
     return [
       {
         day: 3,
-        label: "Day 3 — Polite bump",
+        label: "Day 3: The Gentle Nudge",
         subject: `Re: ${originalSubject}`,
         body: `Hi ${site} team,
 
@@ -334,7 +334,7 @@ ${company}`,
       },
       {
         day: 7,
-        label: "Day 7 — Add value",
+        label: "Day 7: The Value Add",
         subject: `One more thought on ${topic} for ${site}`,
         body: `Hi ${site} team,
 
@@ -353,7 +353,7 @@ ${website}`,
       },
       {
         day: 14,
-        label: "Day 14 — Final nudge",
+        label: "Day 14: The Break-up Email",
         subject: `Last one from me — ${company} + ${site}`,
         body: `Hi ${site} team,
 
@@ -376,7 +376,7 @@ ${company}`,
     return [
       {
         day: 3,
-        label: "Day 3 — Friendly check-in",
+        label: "Day 3: The Gentle Nudge",
         subject: `Re: ${originalSubject}`,
         body: `Hey ${site} team,
 
@@ -391,7 +391,7 @@ ${name}`,
       },
       {
         day: 7,
-        label: "Day 7 — Offer something new",
+        label: "Day 7: The Value Add",
         subject: `Thought of something else for ${site}'s ${topic} readers`,
         body: `Hey ${site} team,
 
@@ -407,7 +407,7 @@ ${company} · ${website}`,
       },
       {
         day: 14,
-        label: "Day 14 — Sign off warmly",
+        label: "Day 14: The Break-up Email",
         subject: `Signing off — but keeping the door open 👋`,
         body: `Hey ${site} team,
 
@@ -430,7 +430,7 @@ ${company}`,
   return [
     {
       day: 3,
-      label: "Day 3 — Re-surface with data",
+      label: "Day 3: The Gentle Nudge",
       subject: `Re: ${originalSubject}`,
       body: `Hi ${site} team,
 
@@ -448,7 +448,7 @@ ${company}`,
     },
     {
       day: 7,
-      label: "Day 7 — Sharpen the value case",
+      label: "Day 7: The Value Add",
       subject: `${site}: the ${topic} content gap worth closing`,
       body: `Hi ${site} team,
 
@@ -467,7 +467,7 @@ ${website}`,
     },
     {
       day: 14,
-      label: "Day 14 — Final value close",
+      label: "Day 14: The Break-up Email",
       subject: `Closing the loop — ${company} + ${site}`,
       body: `Hi ${site} team,
 
@@ -766,6 +766,40 @@ function SubjectABTester({
   );
 }
 
+// ─── Sub-component: body with placeholder highlights ─────────────────────────
+
+function BodyWithPlaceholders({
+  text,
+  small = false,
+}: {
+  text: string;
+  small?: boolean;
+}) {
+  const parts = text.split(/(\[[^\]]+\])/g);
+  return (
+    <div
+      className={`whitespace-pre-wrap font-sans leading-relaxed ${
+        small
+          ? "text-[11px] text-slate-600 bg-violet-50/60 rounded-lg px-3 py-2.5"
+          : "mt-4 text-sm text-slate-700"
+      }`}
+    >
+      {parts.map((part, i) =>
+        /^\[/.test(part) && /\]$/.test(part) ? (
+          <span
+            key={i}
+            className="bg-sky-100 text-sky-800 font-bold px-0.5 rounded"
+          >
+            {part}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </div>
+  );
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export default function OutreachEmailGenerator() {
@@ -780,6 +814,7 @@ export default function OutreachEmailGenerator() {
   const [bodyExpanded, setBodyExpanded] = useState(true);
   const [followUps, setFollowUps] = useState<FollowUpEmail[] | null>(null);
   const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [activeFollowUpTab, setActiveFollowUpTab] = useState<0 | 1 | 2>(0);
   const [copiedFollowUp, setCopiedFollowUp] = useState<number | "all" | null>(null);
   const [personalisationTips, setPersonalisationTips] = useState<string[] | null>(null);
   const [personalisationOpen, setPersonalisationOpen] = useState(false);
@@ -823,6 +858,7 @@ export default function OutreachEmailGenerator() {
     setBodyExpanded(true);
     setFollowUps(generateFollowUpSequence(form, t, vars[winnerIdx]));
     setFollowUpOpen(false);
+    setActiveFollowUpTab(0);
     setCopiedFollowUp(null);
     setPersonalisationTips(generatePersonalisationTips(form, t));
     setPersonalisationOpen(true);
@@ -1502,9 +1538,7 @@ export default function OutreachEmailGenerator() {
                           className="overflow-hidden"
                         >
                           <div className="px-5 pb-5 border-t border-slate-100">
-                            <pre className="mt-4 text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
-                              {body}
-                            </pre>
+                            <BodyWithPlaceholders text={body!} />
                           </div>
                         </motion.div>
                       )}
@@ -1557,37 +1591,50 @@ export default function OutreachEmailGenerator() {
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden"
                           >
-                            <div className="border-t border-violet-100 divide-y divide-violet-100">
-                              {followUps.map((fu, idx) => (
-                                <div key={fu.day} className="px-5 py-4 space-y-2">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[10px] font-black text-violet-600 uppercase tracking-wider">
-                                        {fu.label}
-                                      </span>
+                            <div className="border-t border-violet-100">
+                              {/* Tab navigation */}
+                              <div className="flex border-b border-violet-100">
+                                {followUps.map((fu, idx) => (
+                                  <button
+                                    key={fu.day}
+                                    type="button"
+                                    onClick={() => setActiveFollowUpTab(idx as 0 | 1 | 2)}
+                                    className={`flex-1 px-2 py-3 text-[10px] font-bold transition-all border-b-2 leading-tight ${
+                                      activeFollowUpTab === idx
+                                        ? "border-violet-500 text-violet-700 bg-violet-50/60"
+                                        : "border-transparent text-slate-500 hover:text-violet-600 hover:bg-violet-50/30"
+                                    }`}
+                                  >
+                                    {fu.label}
+                                  </button>
+                                ))}
+                              </div>
+                              {/* Active tab content */}
+                              {followUps.map((fu, idx) =>
+                                activeFollowUpTab === idx ? (
+                                  <div key={fu.day} className="px-5 py-4 space-y-3">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <p className="text-[11px] font-semibold text-slate-700 leading-snug min-w-0">
+                                        <span className="text-slate-400 font-normal">Subject: </span>{fu.subject}
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={() => copyFollowUp(idx)}
+                                        className={`shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${
+                                          copiedFollowUp === idx
+                                            ? "border-violet-400 bg-violet-50 text-violet-700"
+                                            : "border-slate-200 text-slate-400 hover:border-violet-300 hover:text-violet-600"
+                                        }`}
+                                      >
+                                        {copiedFollowUp === idx
+                                          ? <><Check className="w-3 h-3" /> Copied</>
+                                          : <><Copy className="w-3 h-3" /> Copy</>}
+                                      </button>
                                     </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => copyFollowUp(idx)}
-                                      className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${
-                                        copiedFollowUp === idx
-                                          ? "border-violet-400 bg-violet-50 text-violet-700"
-                                          : "border-slate-200 text-slate-400 hover:border-violet-300 hover:text-violet-600"
-                                      }`}
-                                    >
-                                      {copiedFollowUp === idx
-                                        ? <><Check className="w-3 h-3" /> Copied</>
-                                        : <><Copy className="w-3 h-3" /> Copy</>}
-                                    </button>
+                                    <BodyWithPlaceholders text={fu.body} small />
                                   </div>
-                                  <p className="text-[11px] font-semibold text-slate-700 leading-snug">
-                                    <span className="text-slate-400 font-normal">Subject: </span>{fu.subject}
-                                  </p>
-                                  <pre className="text-[11px] text-slate-600 whitespace-pre-wrap font-sans leading-relaxed bg-violet-50/60 rounded-lg px-3 py-2.5">
-                                    {fu.body}
-                                  </pre>
-                                </div>
-                              ))}
+                                ) : null,
+                              )}
                             </div>
                           </motion.div>
                         )}
