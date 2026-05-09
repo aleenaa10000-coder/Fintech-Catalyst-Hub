@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LinkVelocityChart } from "@/components/LinkVelocityChart";
+import { CwvDashboard } from "@/components/CwvDashboard";
 import {
   ArrowLeft,
   Eye,
@@ -408,6 +409,9 @@ export default function AdminSeoPerformance() {
                 sub="from link health check"
               />
             </div>
+
+            {/* Core Web Vitals dashboard — real-user measurements from useWebVitals hook */}
+            <CwvDashboard />
 
             {/* Link Velocity chart */}
             <LinkVelocityChart />

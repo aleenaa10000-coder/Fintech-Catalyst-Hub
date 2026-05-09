@@ -131,6 +131,30 @@ export type SoftwareAppSchema = {
   ratingCount?: number;
 };
 
+/**
+ * VideoObject structured data (D3).
+ * Pass this prop to any page that contains or embeds a video to unlock
+ * Google's Video rich result and Video carousel placement.
+ */
+export type VideoObjectSchema = {
+  /** Video title — appears in Google's video rich result. */
+  name: string;
+  /** Short description of the video content. */
+  description: string;
+  /** URL of the video thumbnail image (min 1280×720 px recommended). */
+  thumbnailUrl: string;
+  /** ISO 8601 date of first upload, e.g. "2026-05-09". */
+  uploadDate: string;
+  /** ISO 8601 duration, e.g. "PT4M30S" for 4 min 30 sec. Optional. */
+  duration?: string;
+  /** Direct URL to the video file (MP4, etc.). Optional. */
+  contentUrl?: string;
+  /** Embed URL (e.g. https://www.youtube.com/embed/VIDEO_ID). Optional. */
+  embedUrl?: string;
+  /** Total view count. Optional. */
+  interactionCount?: number;
+};
+
 export type RssFeedLink = {
   href: string;
   title: string;
@@ -167,6 +191,11 @@ type Common = {
   howTo?: HowToSchema;
   /** SoftwareApplication structured data (A5). */
   softwareApp?: SoftwareAppSchema;
+  /**
+   * VideoObject structured data (D3).
+   * Enables Google's Video rich result for pages that contain a video.
+   */
+  video?: VideoObjectSchema;
   /**
    * hreflang alternate links for international SEO (I1/I2).
    * Each entry emits a `<link rel="alternate" hreflang="…">` tag.
@@ -471,6 +500,34 @@ export function PageMeta(props: PageMetaProps) {
         }
       : null;
 
+  const videoObjectJsonLd = props.video
+    ? {
+        "@context": "https://schema.org",
+        "@type": "VideoObject",
+        name: props.video.name,
+        description: props.video.description,
+        thumbnailUrl: props.video.thumbnailUrl,
+        uploadDate: props.video.uploadDate,
+        ...(props.video.duration ? { duration: props.video.duration } : {}),
+        ...(props.video.contentUrl ? { contentUrl: props.video.contentUrl } : {}),
+        ...(props.video.embedUrl ? { embedUrl: props.video.embedUrl } : {}),
+        ...(props.video.interactionCount !== undefined
+          ? {
+              interactionStatistic: {
+                "@type": "InteractionCounter",
+                interactionType: { "@type": "WatchAction" },
+                userInteractionCount: props.video.interactionCount,
+              },
+            }
+          : {}),
+        publisher: {
+          "@type": "Organization",
+          "@id": `${SITE_URL}#organization`,
+          name: SITE_NAME,
+        },
+      }
+    : null;
+
   const articleJsonLd = props.article
     ? {
         "@context": "https://schema.org",
@@ -690,6 +747,11 @@ export function PageMeta(props: PageMetaProps) {
       {speakableJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(speakableJsonLd)}
+        </script>
+      ) : null}
+      {videoObjectJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(videoObjectJsonLd)}
         </script>
       ) : null}
     </Helmet>

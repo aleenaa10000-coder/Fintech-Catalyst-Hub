@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { prefetchAdminBundle, prefetchPublicBundle } from "@/lib/route-prefetch";
 import { trackPageview } from "@/lib/analytics";
+import { useWebVitals } from "@/hooks/useWebVitals";
 import { TopProgressBar } from "@/components/TopProgressBar";
 import { BackToTop } from "@/components/BackToTop";
 import {
@@ -250,6 +251,7 @@ function AdminRoute({ path, component }: { path: string; component: ComponentTyp
 }
 
 function Router() {
+  useWebVitals();
   return (
     <div className="flex flex-col min-h-screen">
       <ScrollToTop />
