@@ -165,6 +165,16 @@ export interface BlogPost {
   /** Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means "no scheduled flip; manual control only".
    */
   noindexUntil?: string | null;
+  /** Structured FAQ items for FAQPage JSON-LD. */
+  faqItems?: Array<{ question: string; answer: string }> | null;
+  /** Bottom-Line-Up-Front summary shown above the fold and emitted in speakable JSON-LD. */
+  blufSummary?: string | null;
+  /** Timestamp of the last material content update. Used as `dateModified` in BlogPosting JSON-LD. */
+  lastMaterialUpdateAt?: string | null;
+  /** Primary topics this article is about (BlogPosting `about`). */
+  aboutEntities?: string[] | null;
+  /** Entities mentioned in the article (BlogPosting `mentions`). */
+  mentionEntities?: string[] | null;
 }
 
 export interface BlogCategory {
@@ -217,6 +227,11 @@ export interface UpdateBlogPostInput {
   /** When true, the public post detail page will emit `<meta name="robots" content="noindex,nofollow">`, hiding the post from search engines while keeping it accessible by URL.
    */
   noIndex?: boolean;
+  faqItems?: Array<{ question: string; answer: string }> | null;
+  blufSummary?: string | null;
+  lastMaterialUpdateAt?: string | null;
+  aboutEntities?: string[] | null;
+  mentionEntities?: string[] | null;
 }
 
 export type SeoNotificationIndexNowStatus = typeof SeoNotificationIndexNowStatus[keyof typeof SeoNotificationIndexNowStatus];
@@ -314,6 +329,11 @@ export interface PublishBlogPostInput {
   /** When true, the public post detail page will emit `<meta name="robots" content="noindex,nofollow">`, hiding the post from search engines while keeping it accessible by URL. Defaults to false.
    */
   noIndex?: boolean;
+  faqItems?: Array<{ question: string; answer: string }> | null;
+  blufSummary?: string | null;
+  lastMaterialUpdateAt?: string | null;
+  aboutEntities?: string[] | null;
+  mentionEntities?: string[] | null;
 }
 
 /**

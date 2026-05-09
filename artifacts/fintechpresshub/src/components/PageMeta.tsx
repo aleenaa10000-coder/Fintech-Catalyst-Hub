@@ -107,6 +107,30 @@ export type WebPageSchema = {
   datePublished?: string;
 };
 
+export type HowToStep = {
+  name: string;
+  text?: string;
+  imageUrl?: string;
+};
+
+export type HowToSchema = {
+  name: string;
+  description?: string;
+  steps: HowToStep[];
+  totalTime?: string;
+};
+
+export type SoftwareAppSchema = {
+  name: string;
+  operatingSystem?: string;
+  applicationCategory?: string;
+  url?: string;
+  description?: string;
+  offers?: { price: string; priceCurrency?: string };
+  ratingValue?: number;
+  ratingCount?: number;
+};
+
 export type RssFeedLink = {
   href: string;
   title: string;
@@ -134,6 +158,22 @@ type Common = {
    * and by admin-only pages (e.g. /admin/login).
    */
   noindex?: boolean;
+  /** HowTo structured data. Emits HowTo JSON-LD. */
+  howTo?: HowToSchema;
+  /** SoftwareApplication structured data (A5). */
+  softwareApp?: SoftwareAppSchema;
+  /**
+   * hreflang alternate links for international SEO (I1/I2).
+   * Each entry emits a `<link rel="alternate" hreflang="…">` tag.
+   * Include an `x-default` entry for the default locale fallback.
+   */
+  hreflang?: Array<{ lang: string; href: string }>;
+  /**
+   * CSS selectors for SpeakableSpecification JSON-LD (G3).
+   * Defaults to ["h1", ".speakable-summary"] when `article` is set and this
+   * prop is omitted — pass an empty array to suppress the schema entirely.
+   */
+  speakableSelectors?: string[];
 };
 
 type PageMetaProps =
@@ -330,6 +370,86 @@ export function PageMeta(props: PageMetaProps) {
       }
     : null;
 
+  const howToJsonLd = props.howTo
+    ? {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        name: props.howTo.name,
+        ...(props.howTo.description
+          ? { description: props.howTo.description }
+          : {}),
+        ...(props.howTo.totalTime
+          ? { totalTime: props.howTo.totalTime }
+          : {}),
+        step: props.howTo.steps.map((s, i) => ({
+          "@type": "HowToStep",
+          position: i + 1,
+          name: s.name,
+          ...(s.text ? { text: s.text } : {}),
+          ...(s.imageUrl
+            ? { image: { "@type": "ImageObject", url: s.imageUrl } }
+            : {}),
+        })),
+      }
+    : null;
+
+  const softwareAppJsonLd = props.softwareApp
+    ? {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        name: props.softwareApp.name,
+        ...(props.softwareApp.operatingSystem
+          ? { operatingSystem: props.softwareApp.operatingSystem }
+          : {}),
+        applicationCategory:
+          props.softwareApp.applicationCategory ?? "WebApplication",
+        url: props.softwareApp.url ?? canonical,
+        ...(props.softwareApp.description
+          ? { description: props.softwareApp.description }
+          : {}),
+        ...(props.softwareApp.offers
+          ? {
+              offers: {
+                "@type": "Offer",
+                price: props.softwareApp.offers.price,
+                priceCurrency:
+                  props.softwareApp.offers.priceCurrency ?? "USD",
+              },
+            }
+          : {}),
+        ...(props.softwareApp.ratingValue !== undefined
+          ? {
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: props.softwareApp.ratingValue,
+                ratingCount: props.softwareApp.ratingCount ?? 1,
+              },
+            }
+          : {}),
+      }
+    : null;
+
+  const speakableSelectors =
+    props.speakableSelectors !== undefined
+      ? props.speakableSelectors
+      : props.article
+        ? ["h1", ".speakable-summary"]
+        : null;
+
+  const speakableJsonLd =
+    speakableSelectors && speakableSelectors.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "@id": canonical,
+          speakable: {
+            "@type": "SpeakableSpecification",
+            cssSelector: speakableSelectors,
+          },
+          url: canonical,
+        }
+      : null;
+
   const articleJsonLd = props.article
     ? {
         "@context": "https://schema.org",
@@ -416,7 +536,21 @@ export function PageMeta(props: PageMetaProps) {
         <meta name="robots" content="noindex,nofollow" />
       ) : null}
       <meta property="og:locale" content="en_US" />
+      {props.hreflang?.some((h) => h.lang === "en-GB") ? (
+        <meta property="og:locale:alternate" content="en_GB" />
+      ) : null}
+      {props.hreflang?.some((h) => h.lang === "en-SG") ? (
+        <meta property="og:locale:alternate" content="en_SG" />
+      ) : null}
       <link rel="canonical" href={canonical} />
+      {props.hreflang?.map((h) => (
+        <link
+          key={`hreflang-${h.lang}`}
+          rel="alternate"
+          hrefLang={h.lang}
+          href={h.href}
+        />
+      ))}
       {props.article?.authorUrl ? (
         <link rel="author" href={props.article.authorUrl} />
       ) : null}
@@ -520,6 +654,21 @@ export function PageMeta(props: PageMetaProps) {
       {faqJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(faqJsonLd)}
+        </script>
+      ) : null}
+      {howToJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(howToJsonLd)}
+        </script>
+      ) : null}
+      {softwareAppJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(softwareAppJsonLd)}
+        </script>
+      ) : null}
+      {speakableJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(speakableJsonLd)}
         </script>
       ) : null}
     </Helmet>

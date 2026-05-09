@@ -24,6 +24,25 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+const EDITORIAL_STATUS_VALUES = [
+  "submitted",
+  "reviewing",
+  "approved",
+  "revisions",
+  "published",
+  "rejected",
+] as const;
+
+const EditorialBody = z
+  .object({
+    editorialStatus: z.enum(EDITORIAL_STATUS_VALUES).optional(),
+    adminNotes: z.string().nullable().optional(),
+  })
+  .refine(
+    (d) => d.editorialStatus !== undefined || d.adminNotes !== undefined,
+    { message: "At least one of editorialStatus or adminNotes is required" },
+  );
+
 const STATUS_VALUES = ["unread", "handled"] as const;
 type SubmissionStatus = (typeof STATUS_VALUES)[number];
 const StatusFilter = z.enum(["all", ...STATUS_VALUES]);
@@ -34,6 +53,46 @@ function parseStatusFilter(raw: unknown): "all" | SubmissionStatus {
 }
 
 const StatusBody = z.object({ status: z.enum(STATUS_VALUES) });
+
+router.patch(
+  "/admin/pitch-submissions/:id/editorial",
+  requireAdmin,
+  async (req, res, next) => {
+    const id = Number(req.params["id"]);
+    if (!Number.isFinite(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const parsed = EditorialBody.safeParse(req.body);
+    if (!parsed.success) {
+      res
+        .status(400)
+        .json({ error: "Invalid input", issues: parsed.error.issues });
+      return;
+    }
+    try {
+      const set: Record<string, unknown> = {};
+      if (parsed.data.editorialStatus !== undefined) {
+        set["editorialStatus"] = parsed.data.editorialStatus;
+      }
+      if ("adminNotes" in parsed.data) {
+        set["adminNotes"] = parsed.data.adminNotes;
+      }
+      const [row] = await db
+        .update(guestPostSubmissionsTable)
+        .set(set)
+        .where(eq(guestPostSubmissionsTable.id, id))
+        .returning();
+      if (!row) {
+        res.status(404).json({ error: "Submission not found" });
+        return;
+      }
+      res.json({ ok: true, submission: row });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 router.get("/admin/pitch-submissions", requireAdmin, async (req, res, next) => {
   try {

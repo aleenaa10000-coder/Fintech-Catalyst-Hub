@@ -16,3 +16,6 @@ export * from "./contentReports";
 export * from "./authorPhotoOverrides";
 export * from "./authorPhotoRequests";
 export * from "./authors";
+export * from "./glossaryTerms";
+export * from "./locationPages";
+export * from "./disavowDomains";

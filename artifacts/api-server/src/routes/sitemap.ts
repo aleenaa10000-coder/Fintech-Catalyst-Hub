@@ -36,6 +36,7 @@ const STATIC_ROUTES: Array<{
   { path: "/tools/backlink-value-estimator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
   { path: "/tools/content-brief-generator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
   { path: "/tools/headline-analyzer", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
+  { path: "/glossary", changefreq: "weekly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/contact", changefreq: "yearly", priority: "0.5", lastmod: "2026-04-25" },
   { path: "/privacy-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/refund-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },

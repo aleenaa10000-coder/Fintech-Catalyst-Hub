@@ -16,5 +16,14 @@ export const guestPostSubmissionsTable = pgTable("guest_post_submissions", {
   status: text("status").notNull().default("unread"),
   handledAt: timestamp("handled_at", { withTimezone: true }),
   handledBy: text("handled_by"),
+  // Editorial workflow status. Tracks the submission through the
+  // editorial pipeline: submitted → reviewing → approved → revisions →
+  // published | rejected. Distinct from the inbox `status` field which
+  // only tracks whether the submission has been looked at.
+  editorialStatus: text("editorial_status").notNull().default("submitted"),
+  // Free-text internal notes from the editor (not visible to the
+  // contributor). Used to record feedback, revision requests, or
+  // reasons for rejection.
+  adminNotes: text("admin_notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

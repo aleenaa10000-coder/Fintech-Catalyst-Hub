@@ -54,6 +54,25 @@ export const blogPostsTable = pgTable("blog_posts", {
   // (e.g. while fixing thin content) without remembering to re-expose
   // it later. `null` means "no scheduled flip; manual control only".
   noindexUntil: timestamp("noindex_until", { withTimezone: true }),
+  // Structured FAQ items for FAQPage schema. Each item is a {question, answer}
+  // pair. Rendered as FAQPage JSON-LD on the blog post detail page and
+  // optionally displayed as an accordion in the post body.
+  faqItems: jsonb("faq_items").$type<Array<{ question: string; answer: string }>>(),
+  // Bottom-Line-Up-Front summary sentence(s). Displayed as a highlighted
+  // callout above the fold and emitted in speakable JSON-LD so voice
+  // assistants can read the key takeaway before the full article.
+  blufSummary: text("bluf_summary"),
+  // Timestamp of the last *material* content update — distinct from
+  // `updatedAt` (which bumps on every save). Set manually by the admin
+  // when a structural revision is made. Used as the `dateModified`
+  // value in BlogPosting JSON-LD to give accurate freshness signals.
+  lastMaterialUpdateAt: timestamp("last_material_update_at", { withTimezone: true }),
+  // Entities the article is *about* (primary topics). Used in the
+  // `about` property of BlogPosting JSON-LD.
+  aboutEntities: jsonb("about_entities").$type<string[]>(),
+  // Entities *mentioned* in the article (secondary references). Used
+  // in the `mentions` property of BlogPosting JSON-LD.
+  mentionEntities: jsonb("mention_entities").$type<string[]>(),
 });
 
 export type BlogPostRow = typeof blogPostsTable.$inferSelect;

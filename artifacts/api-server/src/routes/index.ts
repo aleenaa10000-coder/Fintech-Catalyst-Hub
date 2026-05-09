@@ -29,6 +29,8 @@ import authorPhotoRequestsRouter from "./authorPhotoRequests";
 import authorsRouter from "./authors";
 import sitemapPingRouter from "./sitemapPing";
 import seoPerformanceRouter from "./seoPerformance";
+import glossaryRouter from "./glossary";
+import disavowRouter from "./disavow";
 
 const router: IRouter = Router();
 
@@ -62,5 +64,7 @@ router.use(authorPhotoRequestsRouter);
 router.use(authorsRouter);
 router.use(sitemapPingRouter);
 router.use(seoPerformanceRouter);
+router.use(glossaryRouter);
+router.use(disavowRouter);
 
 export default router;

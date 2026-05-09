@@ -101,6 +101,8 @@ const AdminAuthors = lazy(() => import("@/pages/admin-authors"));
 const AdminPricing = lazy(() => import("@/pages/admin-pricing"));
 const AdminAnalytics = lazy(() => import("@/pages/admin-analytics"));
 const AdminSeoPerformance = lazy(() => import("@/pages/admin-seo-performance"));
+const GlossaryPage = lazy(() => import("@/pages/glossary"));
+const BlogCategoryPage = lazy(() => import("@/pages/blog-category"));
 
 function RouteFallback() {
   const [location] = useLocation();
@@ -261,6 +263,8 @@ function Router() {
             <SafeRoute path="/blog/:slug" component={BlogPost} />
             <SafeRoute path="/authors" component={AuthorsIndex} />
             <SafeRoute path="/authors/:slug" component={AuthorPage} />
+            <SafeRoute path="/glossary" component={GlossaryPage} />
+            <SafeRoute path="/blog/category/:slug" component={BlogCategoryPage} />
             <SafeRoute path="/write-for-us" component={WriteForUs} />
             <SafeRoute path="/contact" component={Contact} />
             <SafeRoute path="/privacy-policy" component={PrivacyPolicy} />

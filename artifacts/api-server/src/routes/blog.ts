@@ -95,6 +95,14 @@ const PublishBlogPostBody = z.object({
   seoDescription: seoDescriptionField,
   seoOgImage: seoOgImageField,
   noIndex: z.boolean().optional(),
+  faqItems: z
+    .array(z.object({ question: z.string(), answer: z.string() }))
+    .nullable()
+    .optional(),
+  blufSummary: z.string().nullable().optional(),
+  lastMaterialUpdateAt: z.string().datetime().nullable().optional(),
+  aboutEntities: z.array(z.string()).nullable().optional(),
+  mentionEntities: z.array(z.string()).nullable().optional(),
 });
 
 const BulkNoIndexBody = z.object({
@@ -142,6 +150,14 @@ const UpdateBlogPostBody = z
     seoDescription: seoDescriptionField,
     seoOgImage: seoOgImageField,
     noIndex: z.boolean().optional(),
+    faqItems: z
+      .array(z.object({ question: z.string(), answer: z.string() }))
+      .nullable()
+      .optional(),
+    blufSummary: z.string().nullable().optional(),
+    lastMaterialUpdateAt: z.string().datetime().nullable().optional(),
+    aboutEntities: z.array(z.string()).nullable().optional(),
+    mentionEntities: z.array(z.string()).nullable().optional(),
   })
   .refine((obj) => Object.keys(obj).length > 0, {
     message: "At least one field is required",
@@ -189,6 +205,13 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
     seoOgImage: row.seoOgImage ?? null,
     noIndex: row.noIndex,
     noindexUntil: row.noindexUntil ? row.noindexUntil.toISOString() : null,
+    faqItems: row.faqItems ?? null,
+    blufSummary: row.blufSummary ?? null,
+    lastMaterialUpdateAt: row.lastMaterialUpdateAt
+      ? row.lastMaterialUpdateAt.toISOString()
+      : null,
+    aboutEntities: row.aboutEntities ?? null,
+    mentionEntities: row.mentionEntities ?? null,
   };
 }
 
@@ -400,6 +423,19 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
           ? { seoOgImage: body.seoOgImage }
           : {}),
         ...(body.noIndex !== undefined ? { noIndex: body.noIndex } : {}),
+        ...(body.faqItems !== undefined ? { faqItems: body.faqItems } : {}),
+        ...(body.blufSummary !== undefined
+          ? { blufSummary: body.blufSummary }
+          : {}),
+        ...(body.lastMaterialUpdateAt
+          ? { lastMaterialUpdateAt: new Date(body.lastMaterialUpdateAt) }
+          : {}),
+        ...(body.aboutEntities !== undefined
+          ? { aboutEntities: body.aboutEntities }
+          : {}),
+        ...(body.mentionEntities !== undefined
+          ? { mentionEntities: body.mentionEntities }
+          : {}),
       })
       .returning();
 
@@ -441,6 +477,28 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
     }
 
     const updatedRow = await recordSeoPing(row.slug, seoNotification);
+
+    // PR amplification: fire-and-forget webhook on immediate publishes.
+    // Never blocks the admin response; failures are logged only.
+    const prWebhookUrl = process.env["PR_WEBHOOK_URL"];
+    const isImmediatePublish =
+      !body.publishedAt ||
+      new Date(body.publishedAt).getTime() <= Date.now();
+    if (prWebhookUrl && isImmediatePublish) {
+      fetch(prWebhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: row.title,
+          url: `${siteUrl}/blog/${row.slug}`,
+          author: row.author,
+          excerpt: row.excerpt,
+        }),
+      }).catch((err) =>
+        logger.warn({ err }, "PR amplification webhook delivery failed"),
+      );
+    }
+
     res.status(201).json(serializeWithSeo(updatedRow ?? row, seoNotification));
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -474,10 +532,15 @@ router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     // undefined fields stay omitted so partial updates don't accidentally
     // wipe other columns. publishedAt is the only field that needs to be
     // converted from its wire format (ISO string) to a Date for drizzle.
-    const { publishedAt, ...rest } = body;
+    const { publishedAt, lastMaterialUpdateAt, ...rest } = body;
     const updateValues: Partial<typeof blogPostsTable.$inferInsert> = { ...rest };
     if (publishedAt !== undefined) {
       updateValues.publishedAt = new Date(publishedAt);
+    }
+    if (lastMaterialUpdateAt !== undefined) {
+      updateValues.lastMaterialUpdateAt = lastMaterialUpdateAt
+        ? new Date(lastMaterialUpdateAt)
+        : null;
     }
     const [row] = await db
       .update(blogPostsTable)

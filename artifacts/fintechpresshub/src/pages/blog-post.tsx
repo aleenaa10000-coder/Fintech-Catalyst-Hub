@@ -73,7 +73,8 @@ function slugify(input: string): string {
 function processContent(html: string): { html: string; headings: Heading[] } {
   const headings: Heading[] = [];
   const used = new Set<string>();
-  const processed = html.replace(
+  // 1. Inject anchor IDs on h2/h3 headings for the sticky TOC.
+  let processed = html.replace(
     /<(h2|h3)([^>]*)>([\s\S]*?)<\/\1>/gi,
     (_match, tag: string, attrs: string, inner: string) => {
       const text = inner.replace(/<[^>]*>/g, "").trim();
@@ -84,6 +85,27 @@ function processContent(html: string): { html: string; headings: Heading[] } {
       used.add(id);
       headings.push({ id, text, level: tag.toLowerCase() === "h2" ? 2 : 3 });
       return `<${tag}${attrs} id="${id}">${inner}</${tag}>`;
+    },
+  );
+  // 2. Add rel="noopener noreferrer" to all outbound <a href="http…"> links
+  // (F2: external link security + SEO hygiene).
+  processed = processed.replace(
+    /<a\s([^>]*href=["'](https?:\/\/)[^"'>][^"'>]*["'][^>]*)>/gi,
+    (_match, attrs: string) => {
+      if (/rel=["'][^"']*["']/.test(attrs)) {
+        return `<a ${attrs.replace(
+          /rel=["']([^"']*)["']/,
+          (_r, existing: string) => {
+            const parts = existing
+              .split(/\s+/)
+              .filter(
+                (p) => p !== "noopener" && p !== "noreferrer",
+              );
+            return `rel="${[...parts, "noopener", "noreferrer"].join(" ")}"`;
+          },
+        )}>`;
+      }
+      return `<a ${attrs} rel="noopener noreferrer">`;
     },
   );
   return { html: processed, headings };
@@ -430,9 +452,16 @@ export default function BlogPost() {
           // Facebook) treat any change as a "fresh content" signal and may
           // re-fetch unnecessarily. Gate on the same one-day threshold the
           // visible "Updated" indicator uses to keep the two in sync.
-          dateModified: isMeaningfullyUpdated(post.date, post.dateModified)
-            ? post.dateModified
-            : undefined,
+          dateModified: (() => {
+            // W6: prefer lastMaterialUpdateAt when set — it's the admin's
+            // explicit "this revision was material" signal and produces more
+            // accurate freshness signals in BlogPosting JSON-LD than
+            // auto-bumped updatedAt.
+            if (post.lastMaterialUpdateAt) return post.lastMaterialUpdateAt;
+            return isMeaningfullyUpdated(post.date, post.dateModified)
+              ? post.dateModified
+              : undefined;
+          })(),
           author: post.author,
           authorUrl: `${SITE_URL}/authors/${authorSlugFromName(post.author)}`,
           authorJobTitle: post.authorRole,
@@ -441,7 +470,26 @@ export default function BlogPost() {
           wordCount: wordCount > 0 ? wordCount : undefined,
           timeRequired: timeRequiredIso,
           inLanguage: "en",
+          // G5: aboutEntities/mentionEntities → BlogPosting about/mentions
+          about:
+            post.aboutEntities && post.aboutEntities.length > 0
+              ? post.aboutEntities
+              : undefined,
+          mentions:
+            post.mentionEntities && post.mentionEntities.length > 0
+              ? post.mentionEntities
+              : undefined,
         }}
+        faq={
+          post.faqItems && post.faqItems.length > 0
+            ? post.faqItems
+            : undefined
+        }
+        speakableSelectors={
+          post.blufSummary
+            ? ["h1", ".speakable-summary"]
+            : ["h1"]
+        }
       />
       {/* Floating vertical share bar (xl+) */}
       <aside

@@ -56,6 +56,19 @@ export type PublicPost = {
    * the admin dashboard.
    */
   noIndex?: boolean;
+  /** Structured FAQ items for FAQPage JSON-LD. Only populated for API posts. */
+  faqItems?: Array<{ question: string; answer: string }> | null;
+  /** Bottom-Line-Up-Front summary. Shown above the fold as a callout. */
+  blufSummary?: string | null;
+  /**
+   * Timestamp of the last material content update. When set, overrides
+   * `dateModified` in BlogPosting JSON-LD for more accurate freshness signals.
+   */
+  lastMaterialUpdateAt?: string | null;
+  /** Primary topics this article is about — populates BlogPosting `about`. */
+  aboutEntities?: string[] | null;
+  /** Entities mentioned in the article — populates BlogPosting `mentions`. */
+  mentionEntities?: string[] | null;
 };
 
 type StaticPost = PublicPost;
@@ -91,6 +104,11 @@ function fromApi(post: ApiBlogPost): PublicPost {
     seoDescription: post.seoDescription ?? null,
     seoOgImage: post.seoOgImage ?? null,
     noIndex: post.noIndex,
+    faqItems: post.faqItems ?? null,
+    blufSummary: post.blufSummary ?? null,
+    lastMaterialUpdateAt: post.lastMaterialUpdateAt ?? null,
+    aboutEntities: post.aboutEntities ?? null,
+    mentionEntities: post.mentionEntities ?? null,
   };
 }
 

@@ -1439,6 +1439,46 @@ components:
             `noIndex=true`, an hourly background job re-flips `noIndex`
             back to `false` and clears this field once the moment passes.
             `null` means "no scheduled flip; manual control only".
+        faqItems:
+          type: array
+          nullable: true
+          description: >
+            Structured FAQ items rendered as FAQPage JSON-LD. Each item
+            has a `question` and `answer` string.
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+              answer:
+                type: string
+            required: [question, answer]
+        blufSummary:
+          type: string
+          nullable: true
+          description: >
+            Bottom-Line-Up-Front summary shown above the fold and
+            emitted in speakable JSON-LD.
+        lastMaterialUpdateAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            Timestamp of the last material content update. Used as
+            `dateModified` in BlogPosting JSON-LD. Set manually by
+            the admin when structural revisions are made.
+        aboutEntities:
+          type: array
+          nullable: true
+          description: Primary topics this article is about (BlogPosting `about`).
+          items:
+            type: string
+        mentionEntities:
+          type: array
+          nullable: true
+          description: Entities mentioned in the article (BlogPosting `mentions`).
+          items:
+            type: string
       required: [id, slug, title, excerpt, content, author, authorRole, category, tags, coverImage, readingMinutes, featured, publishedAt, updatedAt, viewCount, noIndex]
 
     BlogCategory:
@@ -1532,6 +1572,34 @@ components:
             When true, the public post detail page will emit
             `<meta name="robots" content="noindex,nofollow">`, hiding the
             post from search engines while keeping it accessible by URL.
+        faqItems:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+              answer:
+                type: string
+            required: [question, answer]
+        blufSummary:
+          type: string
+          nullable: true
+        lastMaterialUpdateAt:
+          type: string
+          format: date-time
+          nullable: true
+        aboutEntities:
+          type: array
+          nullable: true
+          items:
+            type: string
+        mentionEntities:
+          type: array
+          nullable: true
+          items:
+            type: string
 
     SeoNotification:
       type: object
@@ -1663,6 +1731,34 @@ components:
             `<meta name="robots" content="noindex,nofollow">`, hiding the
             post from search engines while keeping it accessible by URL.
             Defaults to false.
+        faqItems:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+              answer:
+                type: string
+            required: [question, answer]
+        blufSummary:
+          type: string
+          nullable: true
+        lastMaterialUpdateAt:
+          type: string
+          format: date-time
+          nullable: true
+        aboutEntities:
+          type: array
+          nullable: true
+          items:
+            type: string
+        mentionEntities:
+          type: array
+          nullable: true
+          items:
+            type: string
       required:
         - slug
         - title
