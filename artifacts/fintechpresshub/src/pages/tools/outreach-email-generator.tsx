@@ -43,6 +43,7 @@ import {
   Send,
   FileDown,
   CheckCheck,
+  List,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -96,6 +97,16 @@ type ABSendRecord = {
   subject: string;
   targetDomain: string;
   timestamp: number;
+};
+
+type BulkResult = {
+  domain: string;
+  subjectA: string;
+  subjectB: string;
+  chosenSubject: string;
+  body: string;
+  scoreA: number;
+  scoreB: number;
 };
 
 type FollowUpEmail = {
@@ -1110,6 +1121,9 @@ export default function OutreachEmailGenerator() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyCompareEntry, setHistoryCompareEntry] = useState<EmailEntry | null>(null);
   const [abHistory, setAbHistory] = useState<ABSendRecord[]>(loadABHistory);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkDomains, setBulkDomains] = useState("");
+  const [bulkResults, setBulkResults] = useState<BulkResult[]>([]);
   const copiedRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -1125,6 +1139,19 @@ export default function OutreachEmailGenerator() {
 
   const canGenerate =
     form.targetDomain.trim().length > 0 &&
+    form.yourName.trim().length > 0 &&
+    form.yourCompany.trim().length > 0 &&
+    form.contentPitch.trim().length > 0 &&
+    !pitchTooLong;
+
+  const bulkDomainList = bulkDomains
+    .split("\n")
+    .map((d) => d.trim())
+    .filter(Boolean)
+    .slice(0, 50);
+
+  const canGenerateBulk =
+    bulkDomainList.length > 0 &&
     form.yourName.trim().length > 0 &&
     form.yourCompany.trim().length > 0 &&
     form.contentPitch.trim().length > 0 &&
@@ -1235,6 +1262,58 @@ export default function OutreachEmailGenerator() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     trackEvent("Result Exported", { tool: "outreach-email-generator", format: "csv" });
+  };
+
+  const generateBulk = () => {
+    if (!canGenerateBulk) return;
+    const results: BulkResult[] = bulkDomainList.map((domain) => {
+      const bulkForm = { ...form, targetDomain: domain };
+      const vars = generateSubjectVariants(bulkForm, tone);
+      const s0   = scoreSubjectLine(vars[0], domain);
+      const s1   = scoreSubjectLine(vars[1], domain);
+      const winnerIdx: 0 | 1 = s1.total > s0.total ? 1 : 0;
+      const emailBody = generateEmailBody(bulkForm, tone, vars[winnerIdx]);
+      return {
+        domain,
+        subjectA: vars[0],
+        subjectB: vars[1],
+        chosenSubject: vars[winnerIdx],
+        body: emailBody,
+        scoreA: s0.total,
+        scoreB: s1.total,
+      };
+    });
+    setBulkResults(results);
+    trackEvent("Tool Used", { tool: "outreach-email-generator", mode: "bulk", count: results.length });
+  };
+
+  const exportBulkCSV = () => {
+    if (!bulkResults.length) return;
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const rows = [
+      ["Target Domain", "Topic", "Subject Line A", "Score A", "Subject Line B", "Score B", "Chosen Subject", "Email Body"],
+      ...bulkResults.map((r) => [
+        fmtDomain(r.domain),
+        form.topic.trim() || "digital marketing",
+        r.subjectA,
+        String(r.scoreA),
+        r.subjectB,
+        String(r.scoreB),
+        r.chosenSubject,
+        r.body,
+      ]),
+    ];
+    const csv = rows.map((row) => row.map(escape).join(",")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `outreach-bulk-${bulkResults.length}-domains.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    trackEvent("Result Exported", { tool: "outreach-email-generator", format: "bulk-csv", count: bulkResults.length });
   };
 
   const restoreEntry = (entry: EmailEntry) => {
@@ -1417,23 +1496,42 @@ export default function OutreachEmailGenerator() {
             <Card className="border border-slate-100 shadow-sm">
               <CardContent className="p-6 md:p-8 space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
-                      <Mail className="w-4.5 h-4.5 text-blue-600" />
+                      {bulkMode
+                        ? <List className="w-4 h-4 text-blue-600" />
+                        : <Mail className="w-4 h-4 text-blue-600" />}
                     </div>
                     <div>
                       <h2 className="text-base font-bold text-slate-900">Your campaign details</h2>
                       <p className="text-xs text-muted-foreground">Fill in what you know — the rest is generated.</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center border border-slate-200 rounded-lg p-0.5 bg-slate-50">
+                      <button
+                        type="button"
+                        onClick={() => setBulkMode(false)}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-all ${!bulkMode ? "bg-white text-slate-800 shadow-sm" : "text-muted-foreground hover:text-slate-700"}`}
+                      >
+                        Single
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBulkMode(true)}
+                        className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md transition-all ${bulkMode ? "bg-white text-slate-800 shadow-sm" : "text-muted-foreground hover:text-slate-700"}`}
+                      >
+                        <List className="w-3 h-3" />
+                        Bulk
+                      </button>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setHistoryOpen(true)}
                       className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-slate-700 transition-colors"
                     >
-                      <Clock className="w-3.5 h-3.5" />
+                      <Clock className="w-4 h-4" />
                       History
                       {history.length > 0 && (
                         <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-600">
@@ -1447,7 +1545,7 @@ export default function OutreachEmailGenerator() {
                       onClick={reset}
                       className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-slate-700 transition-colors"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" />
+                      <RotateCcw className="w-4 h-4" />
                       Reset
                     </button>
                   </div>
@@ -1487,29 +1585,62 @@ export default function OutreachEmailGenerator() {
                   </div>
                 </div>
 
-                {/* Target site */}
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700">
-                      Target domain <span className="text-red-400">*</span>
-                    </Label>
-                    <Input
-                      value={form.targetDomain}
-                      onChange={(e) => setField("targetDomain", e.target.value)}
-                      placeholder="moz.com"
-                    />
-                    <p className="text-[10px] text-muted-foreground">The site you want a link from</p>
+                {/* Target site / Bulk domains */}
+                {bulkMode ? (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-700">
+                        Target domains <span className="text-red-400">*</span>
+                      </Label>
+                      <textarea
+                        value={bulkDomains}
+                        onChange={(e) => setBulkDomains(e.target.value)}
+                        placeholder={"moz.com\nahrefs.com\nsemrush.com\nhubspot.com"}
+                        rows={5}
+                        className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-mono"
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        One domain per line · max 50 ·{" "}
+                        {bulkDomainList.length > 0
+                          ? <span className="font-semibold text-blue-600">{bulkDomainList.length} domain{bulkDomainList.length !== 1 ? "s" : ""} detected</span>
+                          : "paste your list above"
+                        }
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-700">Topic / niche</Label>
+                      <Input
+                        value={form.topic}
+                        onChange={(e) => setField("topic", e.target.value)}
+                        placeholder="digital SEO, content marketing…"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Applied to all domains in the list</p>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700">Topic / niche</Label>
-                    <Input
-                      value={form.topic}
-                      onChange={(e) => setField("topic", e.target.value)}
-                      placeholder="digital SEO, content marketing…"
-                    />
-                    <p className="text-[10px] text-muted-foreground">Helps personalise both variants</p>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-700">
+                        Target domain <span className="text-red-400">*</span>
+                      </Label>
+                      <Input
+                        value={form.targetDomain}
+                        onChange={(e) => setField("targetDomain", e.target.value)}
+                        placeholder="moz.com"
+                      />
+                      <p className="text-[10px] text-muted-foreground">The site you want a link from</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-700">Topic / niche</Label>
+                      <Input
+                        value={form.topic}
+                        onChange={(e) => setField("topic", e.target.value)}
+                        placeholder="digital SEO, content marketing…"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Helps personalise both variants</p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Your details */}
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -1619,12 +1750,15 @@ export default function OutreachEmailGenerator() {
                 )}
 
                 <Button
-                  onClick={() => generate()}
-                  disabled={!canGenerate}
+                  onClick={() => bulkMode ? generateBulk() : generate()}
+                  disabled={bulkMode ? !canGenerateBulk : !canGenerate}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-11"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Generate email + compare subject lines
+                  {bulkMode
+                    ? `Generate ${bulkDomainList.length > 0 ? bulkDomainList.length : ""} email${bulkDomainList.length !== 1 ? "s" : ""} + download CSV`.trim()
+                    : "Generate email + compare subject lines"
+                  }
                 </Button>
               </CardContent>
             </Card>
@@ -1687,6 +1821,74 @@ export default function OutreachEmailGenerator() {
               </Card>
             </div>
           </div>
+
+          {/* ── Bulk Results ── */}
+          {bulkMode && bulkResults.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-8 space-y-4"
+            >
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">
+                    Bulk results — {bulkResults.length} email{bulkResults.length !== 1 ? "s" : ""}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Each row is a personalised email. Download to import into Lemlist, Snov.io, etc.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={exportBulkCSV}
+                  className="gap-1.5 text-xs font-semibold border-orange-200 text-orange-700 bg-orange-50 hover:border-orange-400 hover:bg-orange-100"
+                >
+                  <FileDown className="w-3.5 h-3.5" />
+                  Download {bulkResults.length} email{bulkResults.length !== 1 ? "s" : ""} as CSV
+                </Button>
+              </div>
+              <Card className="border border-slate-100 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50">
+                        <th className="text-left px-4 py-2.5 font-semibold text-slate-600 whitespace-nowrap">Domain</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-slate-600">Chosen subject</th>
+                        <th className="text-center px-3 py-2.5 font-semibold text-slate-600 whitespace-nowrap">A</th>
+                        <th className="text-center px-3 py-2.5 font-semibold text-slate-600 whitespace-nowrap">B</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-slate-600">Email preview</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {bulkResults.map((r) => (
+                        <tr key={r.domain} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">{fmtDomain(r.domain)}</td>
+                          <td className="px-4 py-3 text-slate-700 max-w-[240px]">
+                            <span className="line-clamp-2 leading-snug">{r.chosenSubject}</span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`inline-flex items-center justify-center w-9 h-6 rounded font-bold text-[11px] ${r.scoreA >= 70 ? "bg-green-100 text-green-700" : r.scoreA >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                              {r.scoreA}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`inline-flex items-center justify-center w-9 h-6 rounded font-bold text-[11px] ${r.scoreB >= 70 ? "bg-green-100 text-green-700" : r.scoreB >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                              {r.scoreB}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-500 max-w-[300px]">
+                            <span className="line-clamp-2 leading-snug">{r.body.slice(0, 120)}…</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </motion.div>
+          )}
 
           {/* ── Results ── */}
           <AnimatePresence>
