@@ -122,11 +122,10 @@ function authorInitials(name: string): string {
 }
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  new Intl.DateTimeFormat(
+    typeof navigator !== "undefined" ? navigator.language : "en-GB",
+    { month: "long", day: "numeric", year: "numeric" },
+  ).format(new Date(iso));
 
 // "Materially newer" means edited at least one full day after publish. Any
 // gap smaller than that is almost certainly the post being edited within its

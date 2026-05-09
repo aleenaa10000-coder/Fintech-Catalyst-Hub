@@ -2490,7 +2490,27 @@ export default function ContentBriefGenerator() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="contentBriefGenerator" />
+      <PageMeta
+        page="contentBriefGenerator"
+        softwareApp={{
+          name: "Content Brief Generator for Fintech",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          url: "https://www.fintechpresshub.com/tools/content-brief-generator",
+          description: "Generate a structured fintech article brief in seconds — with H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities.",
+          offers: { price: "0", priceCurrency: "USD" },
+        }}
+        howTo={{
+          name: "How to Generate a Fintech Content Brief",
+          description: "Use the free Content Brief Generator to create structured article briefs for your fintech writers.",
+          steps: [
+            { name: "Enter your topic and keyword", text: "Type your target keyword and article topic into the input fields." },
+            { name: "Generate the brief", text: "Click Generate Brief to receive H2 structure, meta copy, tone guidelines, and FAQ suggestions." },
+            { name: "Copy and share", text: "Copy the brief and share it with your fintech writer or content team." },
+          ],
+          totalTime: "PT2M",
+        }}
+      />
 
       <PageHero
         eyebrow="Free Tool"

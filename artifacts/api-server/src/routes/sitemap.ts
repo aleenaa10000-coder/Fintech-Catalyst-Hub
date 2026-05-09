@@ -43,6 +43,16 @@ const STATIC_ROUTES: Array<{
   { path: "/cookie-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/terms", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/community-guidelines", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
+  { path: "/compare", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
+];
+
+const STATIC_CATEGORY_SLUGS = [
+  "payments",
+  "embedded-finance",
+  "open-banking",
+  "neobanking",
+  "lending",
+  "regtech",
 ];
 
 // Author profile slugs come straight from the canonical frontend data file
@@ -166,6 +176,14 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
       changefreq: "daily",
       priority: "0.4",
       source: "rss" as const,
+    })),
+    // Blog category hub pages — one entry per known category slug.
+    ...STATIC_CATEGORY_SLUGS.map((slug) => ({
+      loc: `${siteUrl}/blog/category/${slug}`,
+      lastmod: today,
+      changefreq: "weekly",
+      priority: "0.7",
+      source: "static" as const,
     })),
   ];
 }

@@ -1345,7 +1345,27 @@ export default function BacklinkValueEstimator() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="backlinkValueEstimator" />
+      <PageMeta
+        page="backlinkValueEstimator"
+        softwareApp={{
+          name: "Backlink Value Estimator",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          url: "https://www.fintechpresshub.com/tools/backlink-value-estimator",
+          description: "Enter a referring domain's DA, traffic, and relevance to get an SEO value score out of 100, with a full breakdown and risk flags.",
+          offers: { price: "0", priceCurrency: "USD" },
+        }}
+        howTo={{
+          name: "How to Estimate the Value of a Fintech Backlink",
+          description: "Use the free Backlink Value Estimator to score and prioritise link building opportunities.",
+          steps: [
+            { name: "Enter domain metrics", text: "Input the referring domain's Domain Authority, estimated monthly traffic, and relevance to your fintech niche." },
+            { name: "Score the backlink", text: "Click Estimate Value to receive a 0–100 SEO value score with a full metric breakdown." },
+            { name: "Check risk flags", text: "Review any risk flags raised (spammy domain, low traffic, poor relevance) before pursuing the link." },
+          ],
+          totalTime: "PT3M",
+        }}
+      />
 
       <PageHero
         eyebrow="Free Tool"

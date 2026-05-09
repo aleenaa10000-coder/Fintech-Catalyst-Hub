@@ -895,7 +895,27 @@ export default function GuestPostPitchGenerator() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="guestPostPitchGenerator" />
+      <PageMeta
+        page="guestPostPitchGenerator"
+        softwareApp={{
+          name: "Guest Post Pitch Generator for Fintech",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          url: "https://www.fintechpresshub.com/tools/guest-post-pitch-generator",
+          description: "Create a personalised guest post pitch email in seconds. Fill in your details and get a ready-to-copy pitch for any fintech publication.",
+          offers: { price: "0", priceCurrency: "USD" },
+        }}
+        howTo={{
+          name: "How to Generate a Guest Post Pitch for Fintech Publications",
+          description: "Use the free Guest Post Pitch Generator to craft personalised outreach emails for fintech link building.",
+          steps: [
+            { name: "Fill in your details", text: "Enter your name, target publication, article topic idea, and brief author bio." },
+            { name: "Generate the pitch", text: "Click Generate Pitch to create a personalised, ready-to-send guest post pitch email." },
+            { name: "Copy and send", text: "Copy the pitch email and send it directly to the editor's contact address." },
+          ],
+          totalTime: "PT3M",
+        }}
+      />
 
       <PageHero
         eyebrow="Free Tool"

@@ -1486,7 +1486,27 @@ export default function OutreachEmailGenerator() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="outreachEmailGenerator" />
+      <PageMeta
+        page="outreachEmailGenerator"
+        softwareApp={{
+          name: "Outreach Email Generator for Fintech",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          url: "https://www.fintechpresshub.com/tools/outreach-email-generator",
+          description: "Generate a personalised link-building outreach email in seconds. Choose your tone, fill in the details, and compare subject line variants scored on open-rate factors.",
+          offers: { price: "0", priceCurrency: "USD" },
+        }}
+        howTo={{
+          name: "How to Generate a Fintech Link Building Outreach Email",
+          description: "Use the free Outreach Email Generator to write personalised link-building emails for fintech publications.",
+          steps: [
+            { name: "Enter target and topic details", text: "Fill in the target publication, contact name, your article URL, and the link placement you are requesting." },
+            { name: "Choose tone and generate", text: "Select your preferred tone (professional, friendly, or direct) and click Generate Email." },
+            { name: "Compare subject lines", text: "Review the subject line variants scored on open-rate factors and pick the strongest before sending." },
+          ],
+          totalTime: "PT3M",
+        }}
+      />
 
       <PageHero
         eyebrow="Free Tool"

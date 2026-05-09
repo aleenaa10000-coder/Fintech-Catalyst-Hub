@@ -1117,7 +1117,27 @@ Looking forward to hearing from you,
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="linkProspector" />
+      <PageMeta
+        page="linkProspector"
+        softwareApp={{
+          name: "Link Prospector for Fintech",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          url: "https://www.fintechpresshub.com/tools/link-prospector",
+          description: "Paste a list of domains to bulk-score your backlink prospects — then rank them by highest value or easiest win for your outreach plan.",
+          offers: { price: "0", priceCurrency: "USD" },
+        }}
+        howTo={{
+          name: "How to Prospect and Score Fintech Backlink Opportunities",
+          description: "Use the free Link Prospector to bulk-score and prioritise your fintech link building pipeline.",
+          steps: [
+            { name: "Paste your domain list", text: "Enter a list of referring domains you are considering for outreach, one per line." },
+            { name: "Score all prospects", text: "Click Score Prospects to receive a value and effort score for each domain." },
+            { name: "Sort and prioritise", text: "Sort by highest value or easiest win to build your prioritised outreach list." },
+          ],
+          totalTime: "PT5M",
+        }}
+      />
 
       <PageHero
         eyebrow="Free Tool"

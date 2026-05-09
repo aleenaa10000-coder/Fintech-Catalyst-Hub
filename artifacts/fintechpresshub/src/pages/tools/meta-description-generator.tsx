@@ -298,7 +298,27 @@ export default function MetaDescriptionGenerator() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="metaDescriptionGenerator" />
+      <PageMeta
+        page="metaDescriptionGenerator"
+        softwareApp={{
+          name: "Meta Description Generator for Fintech",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          url: "https://www.fintechpresshub.com/tools/meta-description-generator",
+          description: "Generate 3 ready-to-use SEO meta descriptions for any fintech page. Enter your title and keyword — no sign-up needed.",
+          offers: { price: "0", priceCurrency: "USD" },
+        }}
+        howTo={{
+          name: "How to Generate Fintech Meta Descriptions",
+          description: "Use the free Meta Description Generator to create SEO-optimised descriptions for fintech pages.",
+          steps: [
+            { name: "Enter page title and keyword", text: "Type your fintech page title and primary target keyword into the fields." },
+            { name: "Generate descriptions", text: "Click Generate to receive three ready-to-use meta descriptions under 160 characters each." },
+            { name: "Copy your preferred variant", text: "Click Copy on the description that best matches your page intent and paste it into your CMS." },
+          ],
+          totalTime: "PT2M",
+        }}
+      />
 
       <PageHero
         eyebrow="Free Tool"

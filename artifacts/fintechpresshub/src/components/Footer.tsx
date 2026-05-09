@@ -91,6 +91,11 @@ export function Footer() {
                   Contact
                 </PrefetchLink>
               </li>
+              <li>
+                <PrefetchLink href="/compare" className="text-muted-foreground hover:text-primary transition-colors">
+                  Compare
+                </PrefetchLink>
+              </li>
             </ul>
           </div>
 

@@ -1366,7 +1366,27 @@ export default function HeadlineAnalyzer() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="headlineAnalyzer" />
+      <PageMeta
+        page="headlineAnalyzer"
+        softwareApp={{
+          name: "Headline Analyzer for Fintech Content",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          url: "https://www.fintechpresshub.com/tools/headline-analyzer",
+          description: "Score any fintech article headline out of 100 across clarity, keyword presence, emotional pull, and character count — with instant rewrite suggestions.",
+          offers: { price: "0", priceCurrency: "USD" },
+        }}
+        howTo={{
+          name: "How to Analyse and Improve a Fintech Headline",
+          description: "Use the free Headline Analyzer to score and strengthen fintech article titles before publishing.",
+          steps: [
+            { name: "Enter your headline", text: "Type or paste your fintech article headline into the input field." },
+            { name: "Analyse the score", text: "Click Analyse Headline to receive a 0–100 score across clarity, keyword presence, emotional pull, and length." },
+            { name: "Apply rewrites", text: "Choose from the suggested rewrite variants to improve your score before publishing." },
+          ],
+          totalTime: "PT2M",
+        }}
+      />
 
       <PageHero
         eyebrow="Free Tool"

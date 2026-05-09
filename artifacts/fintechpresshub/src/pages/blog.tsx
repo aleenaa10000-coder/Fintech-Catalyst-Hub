@@ -35,11 +35,10 @@ import { prefetchBlogPost } from "@/lib/route-prefetch";
 import { TrendingPosts } from "@/components/TrendingPosts";
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  new Intl.DateTimeFormat(
+    typeof navigator !== "undefined" ? navigator.language : "en-GB",
+    { month: "short", day: "numeric", year: "numeric" },
+  ).format(new Date(iso));
 
 /**
  * Window in days that defines a "newly published" post. Anything whose
