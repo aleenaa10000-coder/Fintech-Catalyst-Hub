@@ -96,6 +96,8 @@ type FollowUpEmail = {
   body: string;
 };
 
+type ParagraphAnnotation = { label: string; tip: string };
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const HISTORY_KEY = "fph:outreach-history";
@@ -550,6 +552,101 @@ function generatePersonalisationTips(form: FormState, tone: Tone): string[] {
   return tips.slice(0, 5);
 }
 
+function getEmailParagraphAnnotations(
+  form: FormState,
+  tone: Tone,
+): (ParagraphAnnotation | null)[] {
+  const domain  = fmtDomain(form.targetDomain) || "yourtargetsite.com";
+  const site    = siteName(domain);
+  const hasValue = !!(form.linkValueMin && form.linkValueMax);
+
+  if (tone === "professional") {
+    return [
+      null,
+      {
+        label: "Name-drop personalisation",
+        tip: `Opens with how you found ${site} — proves you researched the site rather than blasting a generic template. Editors spot copy-paste openers immediately.`,
+      },
+      {
+        label: "Specific content pitch",
+        tip: "Names the exact piece being pitched. Editors respond far better to precise descriptions ('our 2025 ranking data report') than vague 'great content' claims.",
+      },
+      {
+        label: "Audience-first framing",
+        tip: "Positions the value in terms of their readers' benefit — editors care about their audience, not your link campaign. Leading with reader value is the single biggest open-rate lever.",
+      },
+      {
+        label: "Credibility signal",
+        tip: "'No commitment required' lowers the editor's perceived cost of saying yes. Offering the piece for review first removes the need for blind trust.",
+      },
+      {
+        label: "Low-friction CTA",
+        tip: "Keeps the ask to '15 minutes or email' — small enough to say yes to immediately. Avoid requesting demos, forms, or lengthy briefs at this stage.",
+      },
+      null,
+    ];
+  }
+
+  if (tone === "conversational") {
+    return [
+      null,
+      {
+        label: "Genuine compliment opener",
+        tip: `Acknowledges ${site}'s specific work before pitching. In conversational outreach, relationship warmth comes before the ask — generic 'I love your site' openers get ignored.`,
+      },
+      {
+        label: "Brief credibility intro",
+        tip: "Introduces you without overselling — short and matter-of-fact, matching the warm tone set in the opener. Burying credentials keeps the focus on them.",
+      },
+      {
+        label: "Audience-first framing",
+        tip: "Positions the content as a natural next step for their readers, not as a favour to you. 'Reference or next-step resource' language feels editorially motivated, not transactional.",
+      },
+      {
+        label: "Low-pressure ask",
+        tip: "Invites exploration rather than demanding commitment. 'No pressure at all' removes the awkwardness of a cold pitch and measurably increases reply rates.",
+      },
+      {
+        label: "Rejection buffer",
+        tip: "Acknowledging a potential 'no' gracefully prevents awkwardness and leaves the door fully open for future collaboration — a key technique in relationship-first outreach.",
+      },
+      null,
+    ];
+  }
+
+  // data-led
+  return [
+    null,
+    {
+      label: "Role-first credibility",
+      tip: "Leads with your title and domain relevance — data-led pitches need to establish authority before the pitch lands, or the numbers won't carry weight.",
+    },
+    {
+      label: "Research signal",
+      tip: `References ${site}'s actual search rankings as the reason for outreach. Showing you looked at their SEO profile separates you from untargeted bulk outreach.`,
+    },
+    {
+      label: "Content gap targeting",
+      tip: "Identifies a specific coverage gap their content doesn't address yet. Naming the gap is the strongest hook in data-led pitches — it creates a problem they hadn't articulated.",
+    },
+    {
+      label: hasValue ? "Value quantification" : "Selectivity signal",
+      tip: hasValue
+        ? `Anchors the conversation with a concrete estimated value ($${form.linkValueMin}–$${form.linkValueMax}) — gives the editor a business case they can relay upward without doing the maths themselves.`
+        : "Framing your outreach as selective (one of a small shortlist) signals quality and scarcity — even without a number, it implies the placement has been strategically chosen.",
+    },
+    {
+      label: "Credibility signal",
+      tip: "Offering the resource immediately for review signals confidence in the content quality. 'Flexible on format' shows you're solution-oriented, not just pushing a fixed ask.",
+    },
+    {
+      label: "Low-friction CTA",
+      tip: "Specifying 'this week' creates gentle urgency without pressure. The email-only alternative keeps it accessible for editors who prefer async communication.",
+    },
+    null,
+  ];
+}
+
 function parseParams(): Partial<FormState> {
   const params = new URLSearchParams(window.location.search);
   const result: Partial<FormState> = {};
@@ -760,8 +857,8 @@ function SubjectABTester({
                   className="flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-slate-400 transition-all"
                 >
                   {copiedIdx === idx
-                    ? <><Check className="w-3 h-3 text-emerald-500" /> Copied</>
-                    : <><Copy className="w-3 h-3" /> Copy</>}
+                    ? <><Check className="w-3 h-3 text-emerald-500" /> Copied!</>
+                    : <><Copy className="w-3 h-3" /> Copy subject</>}
                 </button>
               </div>
             </motion.div>
@@ -818,6 +915,79 @@ function BodyWithPlaceholders({
   );
 }
 
+// ─── Sub-component: annotated email body with paragraph tooltips ───────────────
+
+function ParagraphContent({ text }: { text: string }) {
+  const parts = text.split(/(\[[^\]]+\])/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        /^\[/.test(part) && /\]$/.test(part) ? (
+          <span key={i} className="bg-sky-100 text-sky-800 font-bold px-0.5 rounded">
+            {part}
+          </span>
+        ) : (
+          <span key={i} className="whitespace-pre-wrap">{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+function AnnotatedEmailBody({
+  text,
+  annotations,
+}: {
+  text: string;
+  annotations: (ParagraphAnnotation | null)[];
+}) {
+  const paragraphs = text.split(/\n\n/);
+
+  return (
+    <div className="mt-4 text-sm text-slate-700 space-y-3.5">
+      {paragraphs.map((para, i) => {
+        const annotation = annotations[i] ?? null;
+
+        if (!annotation) {
+          return (
+            <p key={i} className="whitespace-pre-wrap leading-relaxed">
+              <ParagraphContent text={para} />
+            </p>
+          );
+        }
+
+        return (
+          <div
+            key={i}
+            className="group/para relative rounded-md -mx-3 px-3 py-1.5 hover:bg-amber-50/70 transition-colors duration-150 cursor-default"
+          >
+            {/* Hover annotation tooltip */}
+            <div className="pointer-events-none absolute right-2 top-0 -translate-y-[calc(100%+6px)] z-50 opacity-0 group-hover/para:opacity-100 transition-opacity duration-150">
+              <div className="bg-slate-900 rounded-lg shadow-xl px-3 py-2 max-w-[240px] w-max">
+                <p className="text-[10px] font-bold text-amber-400 mb-0.5 leading-none">
+                  {annotation.label}
+                </p>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  {annotation.tip}
+                </p>
+              </div>
+              <div className="absolute right-4 bottom-[-4px] w-2.5 h-2.5 bg-slate-900 rotate-45" />
+            </div>
+            {/* Paragraph text with subtle left accent on hover */}
+            <p className="whitespace-pre-wrap leading-relaxed border-l-2 border-transparent group-hover/para:border-amber-400 pl-2 -ml-2 transition-colors duration-150">
+              <ParagraphContent text={para} />
+            </p>
+            {/* Inline label badge visible on hover */}
+            <span className="absolute right-3 top-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 opacity-0 group-hover/para:opacity-100 transition-opacity duration-150 pointer-events-none select-none hidden sm:inline">
+              {annotation.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export default function OutreachEmailGenerator() {
@@ -834,8 +1004,6 @@ export default function OutreachEmailGenerator() {
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const [activeFollowUpTab, setActiveFollowUpTab] = useState<0 | 1 | 2>(0);
   const [copiedFollowUp, setCopiedFollowUp] = useState<number | "all" | null>(null);
-  const [personalisationTips, setPersonalisationTips] = useState<string[] | null>(null);
-  const [personalisationOpen, setPersonalisationOpen] = useState(false);
   const [history, setHistory]   = useState<EmailEntry[]>(loadHistory);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyCompareEntry, setHistoryCompareEntry] = useState<EmailEntry | null>(null);
@@ -878,8 +1046,6 @@ export default function OutreachEmailGenerator() {
     setFollowUpOpen(false);
     setActiveFollowUpTab(0);
     setCopiedFollowUp(null);
-    setPersonalisationTips(generatePersonalisationTips(form, t));
-    setPersonalisationOpen(true);
     trackEvent("Tool Used", { tool: "outreach-email-generator", tone: t });
 
     const entry: EmailEntry = {
@@ -909,8 +1075,6 @@ export default function OutreachEmailGenerator() {
     setCopied(null);
     setFollowUps(null);
     setFollowUpOpen(false);
-    setPersonalisationTips(null);
-    setPersonalisationOpen(false);
     toast("Form reset", {
       description: snapshot.body
         ? "Your inputs and generated email have been cleared."
@@ -1455,56 +1619,6 @@ export default function OutreachEmailGenerator() {
                   targetDomain={form.targetDomain}
                 />
 
-                {/* Personalisation tips */}
-                {personalisationTips && personalisationTips.length > 0 && (
-                  <Card className="border border-amber-200 shadow-sm">
-                    <CardContent className="p-0">
-                      <button
-                        type="button"
-                        onClick={() => setPersonalisationOpen((o) => !o)}
-                        className="w-full flex items-center justify-between px-5 py-4 hover:bg-amber-50/50 transition-colors rounded-t-xl"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-                          <span className="text-sm font-bold text-slate-900">Personalisation tips</span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                            {personalisationTips.length} suggestions
-                          </span>
-                        </div>
-                        {personalisationOpen
-                          ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                          : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                      </button>
-
-                      <AnimatePresence initial={false}>
-                        {personalisationOpen && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="border-t border-amber-100 px-5 py-4 space-y-3">
-                              {personalisationTips.map((tip, idx) => (
-                                <div key={idx} className="flex gap-3">
-                                  <span className="shrink-0 w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black flex items-center justify-center mt-0.5">
-                                    {idx + 1}
-                                  </span>
-                                  <p className="text-[12px] text-slate-700 leading-relaxed">{tip}</p>
-                                </div>
-                              ))}
-                              <p className="text-[10px] text-slate-400 pt-1 pl-8">
-                                These tips are based on your filled-in fields — more details entered means more targeted suggestions.
-                              </p>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </CardContent>
-                  </Card>
-                )}
-
                 {/* Active subject line summary */}
                 <Card className={`border ${colors.ring} ${colors.bg} shadow-sm`}>
                   <CardContent className="p-4">
@@ -1542,8 +1656,13 @@ export default function OutreachEmailGenerator() {
                       onClick={() => setBodyExpanded((e) => !e)}
                       className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors"
                     >
-                      <span className="text-sm font-bold text-slate-900">Email body</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-bold text-slate-900 shrink-0">Email body</span>
+                        <span className="text-[9px] text-amber-700 bg-amber-50 border border-amber-200 font-semibold px-1.5 py-0.5 rounded hidden sm:inline-block shrink-0">
+                          Hover a paragraph for writing tips
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); copyText("body"); }}
@@ -1573,7 +1692,10 @@ export default function OutreachEmailGenerator() {
                           className="overflow-hidden"
                         >
                           <div className="px-5 pb-5 border-t border-slate-100">
-                            <BodyWithPlaceholders text={body!} />
+                            <AnnotatedEmailBody
+                              text={body!}
+                              annotations={getEmailParagraphAnnotations(form, tone)}
+                            />
                           </div>
                         </motion.div>
                       )}
