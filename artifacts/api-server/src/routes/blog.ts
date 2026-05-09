@@ -75,6 +75,35 @@ const seoOgImageField = z
     { message: "seoOgImage must be a valid absolute URL" },
   );
 
+/** Strip HTML tags and count whitespace-separated tokens. */
+function htmlWordCount(html: string): number {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter((w) => w.length > 0).length;
+}
+
+const CONTENT_MIN_WORDS = 800;
+const CONTENT_MAX_WORDS = 1500;
+
+const contentField = z
+  .string()
+  .min(1)
+  .refine(
+    (v) => htmlWordCount(v) >= CONTENT_MIN_WORDS,
+    (v) => ({
+      message: `Content must be at least ${CONTENT_MIN_WORDS} words (currently ${htmlWordCount(v)})`,
+    }),
+  )
+  .refine(
+    (v) => htmlWordCount(v) <= CONTENT_MAX_WORDS,
+    (v) => ({
+      message: `Content must be at most ${CONTENT_MAX_WORDS} words (currently ${htmlWordCount(v)})`,
+    }),
+  );
+
 const PublishBlogPostBody = z.object({
   slug: z
     .string()
@@ -82,7 +111,7 @@ const PublishBlogPostBody = z.object({
     .regex(/^[a-z0-9][a-z0-9-]*$/, "slug must be lowercase, hyphenated"),
   title: z.string().min(1),
   excerpt: z.string().min(1),
-  content: z.string().min(1),
+  content: contentField,
   author: z.string().min(1),
   authorRole: z.string().min(1),
   category: z.string().min(1),
@@ -134,7 +163,7 @@ const UpdateBlogPostBody = z
   .object({
     title: z.string().min(1).optional(),
     excerpt: z.string().min(1).optional(),
-    content: z.string().min(1).optional(),
+    content: contentField.optional(),
     author: z.string().min(1).optional(),
     authorRole: z.string().min(1).optional(),
     category: z.string().min(1).optional(),

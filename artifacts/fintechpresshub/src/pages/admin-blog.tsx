@@ -3991,7 +3991,62 @@ export default function AdminBlog() {
                     setForm({ ...form, content: e.target.value })
                   }
                   required
+                  className={(() => {
+                    const wc = form.content
+                      .replace(/<[^>]*>/g, " ")
+                      .replace(/\s+/g, " ")
+                      .trim()
+                      .split(" ")
+                      .filter((w) => w.length > 0).length;
+                    return wc > 0 && (wc < 800 || wc > 1500)
+                      ? "border-destructive focus-visible:ring-destructive"
+                      : "";
+                  })()}
                 />
+                {(() => {
+                  const wc = form.content
+                    .replace(/<[^>]*>/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim()
+                    .split(" ")
+                    .filter((w) => w.length > 0).length;
+                  const tooShort = wc > 0 && wc < 800;
+                  const tooLong = wc > 1500;
+                  const ok = wc >= 800 && wc <= 1500;
+                  return (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span
+                        className={[
+                          "text-xs font-medium tabular-nums",
+                          ok
+                            ? "text-green-700"
+                            : tooShort
+                              ? "text-amber-600"
+                              : tooLong
+                                ? "text-destructive"
+                                : "text-muted-foreground",
+                        ].join(" ")}
+                      >
+                        {wc} words
+                      </span>
+                      {tooShort && (
+                        <span className="text-xs text-amber-600">
+                          — needs {800 - wc} more to reach the 800-word minimum
+                        </span>
+                      )}
+                      {tooLong && (
+                        <span className="text-xs text-destructive">
+                          — {wc - 1500} words over the 1500-word maximum
+                        </span>
+                      )}
+                      {ok && (
+                        <span className="text-xs text-green-700">
+                          — within 800–1500 word limit ✓
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <div>
                 <Label htmlFor="authorSelect">Team member</Label>
