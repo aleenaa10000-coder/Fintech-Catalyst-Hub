@@ -415,6 +415,7 @@ export default function LinkProspector() {
   const [saveSearchName, setSaveSearchName] = useState("");
   const [showSaveSearchInput, setShowSaveSearchInput] = useState(false);
   const [pitchText, setPitchText] = useState("");
+  const [selectedPitchSubjectIdx, setSelectedPitchSubjectIdx] = useState<0 | 1>(0);
   const [showTimeline, setShowTimeline] = useState(false);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [contactedDateMap, setContactedDateMap] = useState<Record<string, string>>(() => {
@@ -651,6 +652,7 @@ export default function LinkProspector() {
   useEffect(() => {
     if (pitchModal) setPitchText(generatePitchEmail(pitchModal));
     else setPitchText("");
+    setSelectedPitchSubjectIdx(0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pitchModal]);
 
@@ -788,6 +790,49 @@ export default function LinkProspector() {
       .finally(() => { topicFetching.current.delete(domain); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const generatePitchSubjectVariants = (r: ProspectResult): [string, string] => {
+    const raw = r.domain.split(".")[0];
+    const site = raw.charAt(0).toUpperCase() + raw.slice(1);
+    const variantA =
+      r.da > 60
+        ? `Content partnership for ${r.domain} — fintech resource your readers will value`
+        : `Content Partnership Opportunity — ${r.domain}`;
+    const variantB =
+      r.traffic > 50_000
+        ? `Quick question about ${site}'s fintech coverage`
+        : `${site}: a new fintech resource worth sharing?`;
+    return [variantA, variantB];
+  };
+
+  const scorePitchSubject = (subject: string, domain: string): number => {
+    const lower = subject.toLowerCase();
+    const domainBase = domain.split(".")[0].toLowerCase();
+    const len = subject.length;
+    const lengthScore =
+      len >= 40 && len <= 60 ? 25 :
+      len >= 30 && len < 40  ? 18 :
+      len > 60  && len <= 75 ? 15 :
+      len > 75  && len <= 90 ? 8  :
+      len < 30  && len >= 20 ? 10 : 4;
+    const powerWords = ["partnership", "resource", "opportunity", "content", "fintech", "value", "quick", "new", "exclusive"];
+    const powerScore = Math.min(25, powerWords.filter((w) => lower.includes(w)).length * 8);
+    const personalScore = lower.includes(domainBase) ? 25 : 0;
+    let curiosity = 0;
+    if (/\?/.test(subject)) curiosity += 10;
+    if (/[—:]/.test(subject)) curiosity += 8;
+    if (/\d/.test(subject)) curiosity += 7;
+    const curiosityScore = Math.min(25, curiosity);
+    return lengthScore + powerScore + personalScore + curiosityScore;
+  };
+
+  const subjectScoreToOpenRate = (score: number): string => {
+    if (score >= 85) return "~32% avg open rate";
+    if (score >= 70) return "~26% avg open rate";
+    if (score >= 55) return "~20% avg open rate";
+    if (score >= 40) return "~14% avg open rate";
+    return "~9% avg open rate";
+  };
 
   const generatePitchEmail = (r: ProspectResult): string => {
     const compliment =
@@ -2581,13 +2626,92 @@ Looking forward to hearing from you,
                 </div>
               </div>
 
+              {/* Subject line variant cards */}
+              {(() => {
+                const variants = generatePitchSubjectVariants(pitchModal);
+                const scores = variants.map((v) => scorePitchSubject(v, pitchModal.domain));
+                const recommendedIdx = scores[0] >= scores[1] ? 0 : 1;
+                const CIRC_R = 30;
+                const CIRC_C = 2 * Math.PI * CIRC_R;
+                const gaugeColor = (s: number) =>
+                  s >= 75 ? "#10b981" : s >= 55 ? "#3b82f6" : s >= 40 ? "#f59e0b" : "#ef4444";
+                return (
+                  <div className="px-5 pt-4 pb-2 border-b border-slate-100 shrink-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2.5">
+                      Generated Subject Lines
+                    </p>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {variants.map((v, idx) => {
+                        const score = scores[idx];
+                        const isRec = idx === recommendedIdx;
+                        const isSelected = selectedPitchSubjectIdx === idx;
+                        const offset = CIRC_C * (1 - score / 100);
+                        const color = gaugeColor(score);
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setSelectedPitchSubjectIdx(idx as 0 | 1)}
+                            className={`relative flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-3 text-left transition-all ${
+                              isSelected
+                                ? "border-violet-400 bg-violet-50 shadow-sm"
+                                : "border-slate-200 bg-white hover:border-violet-200 hover:bg-slate-50"
+                            }`}
+                          >
+                            {isRec && (
+                              <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500 text-white whitespace-nowrap tracking-wide">
+                                Recommended
+                              </span>
+                            )}
+                            {/* Circular gauge */}
+                            <div className="relative flex items-center justify-center mt-1">
+                              <svg width="64" height="64" viewBox="0 0 70 70" className="-rotate-90">
+                                <circle cx="35" cy="35" r={CIRC_R} fill="none" stroke="#f1f5f9" strokeWidth="6" />
+                                <circle
+                                  cx="35" cy="35" r={CIRC_R}
+                                  fill="none"
+                                  stroke={color}
+                                  strokeWidth="6"
+                                  strokeLinecap="round"
+                                  strokeDasharray={CIRC_C}
+                                  strokeDashoffset={offset}
+                                  style={{ transition: "stroke-dashoffset 0.45s ease" }}
+                                />
+                              </svg>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-sm font-black leading-none" style={{ color }}>{score}</span>
+                                <span className="text-[8px] font-semibold text-slate-400 leading-none mt-0.5">/100</span>
+                              </div>
+                            </div>
+                            {/* Open rate estimate */}
+                            <p className="text-[10px] font-semibold text-slate-500 leading-none">
+                              {subjectScoreToOpenRate(score)}
+                            </p>
+                            {/* Subject text */}
+                            <p className="text-[11px] font-semibold text-slate-700 leading-snug text-center line-clamp-3">
+                              {v}
+                            </p>
+                            {/* Variant label */}
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
+                              isSelected ? "bg-violet-200 text-violet-700" : "bg-slate-100 text-slate-500"
+                            }`}>
+                              Variant {idx === 0 ? "A" : "B"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Editable email template */}
               <div className="flex-1 overflow-y-auto px-5 py-4">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Email Template</p>
                 <textarea
                   value={pitchText}
                   onChange={(e) => setPitchText(e.target.value)}
-                  className="w-full h-full min-h-[280px] text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 leading-relaxed"
+                  className="w-full h-full min-h-[220px] text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 leading-relaxed"
                   spellCheck={false}
                 />
                 <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
@@ -2618,7 +2742,7 @@ Looking forward to hearing from you,
                   )}
                 </button>
                 <a
-                  href={`mailto:info@${pitchModal.domain}?subject=${encodeURIComponent(`Content Partnership Opportunity — ${pitchModal.domain}`)}&body=${encodeURIComponent(pitchText.replace(/^Subject:[^\n]*\n\n?/, "").trim())}`}
+                  href={`mailto:info@${pitchModal.domain}?subject=${encodeURIComponent(generatePitchSubjectVariants(pitchModal)[selectedPitchSubjectIdx])}&body=${encodeURIComponent(pitchText.replace(/^Subject:[^\n]*\n\n?/, "").trim())}`}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-all"
                   title={`Open email client with draft to info@${pitchModal.domain}`}
                 >

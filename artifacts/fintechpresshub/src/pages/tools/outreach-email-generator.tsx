@@ -128,6 +128,14 @@ const SCORE_DIMS: { key: keyof SubjectScore; label: string; tip: string }[] = [
   { key: "curiosity",  label: "Curiosity gap",  tip: "Creates intrigue or tension" },
 ];
 
+function getReplyRateBenchmark(total: number): string {
+  if (total >= 90) return "Scores 90–100 average a ~35% open rate in cold outreach campaigns";
+  if (total >= 75) return "Scores 75–89 average a ~28% open rate in cold outreach campaigns";
+  if (total >= 60) return "Scores 60–74 average a ~22% open rate in cold outreach campaigns";
+  if (total >= 45) return "Scores 45–59 average a ~16% open rate in cold outreach campaigns";
+  return "Scores below 45 average a ~11% open rate in cold outreach campaigns";
+}
+
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
 function fmtDomain(raw: string): string {
@@ -675,10 +683,19 @@ function SubjectABTester({
                   </span>
                 )}
                 <div className="ml-auto flex items-center gap-1">
-                  <span className={`text-xs font-black ${isSelected ? colors.text : "text-slate-700"}`}>
-                    {score.total}
-                    <span className="text-[9px] font-normal text-slate-400">/100</span>
-                  </span>
+                  <div className="relative group/benchmark">
+                    <span className={`text-xs font-black ${isSelected ? colors.text : "text-slate-700"} cursor-help underline decoration-dashed decoration-slate-300 underline-offset-2`}>
+                      {score.total}
+                      <span className="text-[9px] font-normal text-slate-400">/100</span>
+                    </span>
+                    <div className="pointer-events-none absolute right-0 bottom-full mb-2 z-50 w-60 opacity-0 group-hover/benchmark:opacity-100 transition-opacity duration-150">
+                      <div className="rounded-lg bg-slate-900 border border-slate-700 shadow-xl px-3 py-2.5">
+                        <p className="text-[10px] font-bold text-amber-400 mb-0.5">Reply-rate benchmark</p>
+                        <p className="text-[11px] text-slate-200 leading-relaxed">{getReplyRateBenchmark(score.total)}</p>
+                      </div>
+                      <div className="absolute right-3 bottom-[-5px] w-2.5 h-2.5 rotate-45 border-r border-b border-slate-700 bg-slate-900" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
