@@ -152,6 +152,30 @@ export default defineConfig(({ command }) => {
         target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
         changeOrigin: true,
       },
+      "/sitemap_index.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/sitemap-pages.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/sitemap-blog.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/sitemap-authors.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/news-sitemap.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/robots.txt": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
       // Per-author RSS feeds (e.g. /authors/marcus-webb/rss.xml) are served
       // dynamically by the API. The regex limits the proxy to URLs that end
       // in `/rss.xml`, so the SPA still handles plain `/authors/<slug>` and

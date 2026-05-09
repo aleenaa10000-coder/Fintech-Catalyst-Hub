@@ -37,11 +37,15 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <meta name="theme-color" content="#0074D9" />
+    <meta name="theme-color" content="#0052FF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0f1e" media="(prefers-color-scheme: dark)" />
     <meta name="apple-mobile-web-app-title" content="FintechPress" />
     <meta name="application-name" content="FintechPressHub" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <!-- Google Search Console verification — replace content value when verifying ownership -->
+    <!-- <meta name="google-site-verification" content="REPLACE_WITH_YOUR_GSC_VERIFICATION_TOKEN" /> -->
 
     <!-- Performance: preconnect to external origins used above-the-fold -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,45 +55,63 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
 
-    <!-- Site-wide JSON-LD baked into the HTML shell so non-JS crawlers (social, AI) see the entity on every URL. -->
-    <!-- Note: <script type="application/ld+json"> is NOT executable JS and is NOT subject to CSP script-src. -->
+    <!-- Site-wide JSON-LD @graph — both Organization and WebSite in one block so
+         Google can resolve entity references without multiple passes. NOT executable
+         JS — not subject to CSP script-src. -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Organization",
-      "@id": "https://www.fintechpresshub.com#organization",
-      "name": "FintechPressHub",
-      "url": "https://www.fintechpresshub.com",
-      "logo": "https://www.fintechpresshub.com/favicon.svg",
-      "description": "Specialized content marketing and SEO agency for fintech companies.",
-      "sameAs": [
-        "https://twitter.com/fintechpresshub",
-        "https://www.linkedin.com/company/fintechpresshub",
-        "https://www.crunchbase.com/organization/fintechpresshub",
-        "https://www.wikidata.org/wiki/Q130531885"
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://www.fintechpresshub.com#organization",
+          "name": "FintechPressHub",
+          "url": "https://www.fintechpresshub.com",
+          "logo": {
+            "@type": "ImageObject",
+            "@id": "https://www.fintechpresshub.com#logo",
+            "url": "https://www.fintechpresshub.com/icon-512.png",
+            "contentUrl": "https://www.fintechpresshub.com/icon-512.png",
+            "width": 512,
+            "height": 512,
+            "caption": "FintechPressHub"
+          },
+          "description": "Specialized content marketing and SEO agency for fintech companies.",
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "url": "https://www.fintechpresshub.com/contact",
+            "availableLanguage": "English"
+          },
+          "sameAs": [
+            "https://twitter.com/fintechpresshub",
+            "https://www.linkedin.com/company/fintechpresshub",
+            "https://www.crunchbase.com/organization/fintechpresshub",
+            "https://www.wikidata.org/wiki/Q130531885"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.fintechpresshub.com#website",
+          "name": "FintechPressHub",
+          "url": "https://www.fintechpresshub.com",
+          "publisher": { "@id": "https://www.fintechpresshub.com#organization" },
+          "inLanguage": "en",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://www.fintechpresshub.com/blog?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        }
       ]
     }
     </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "@id": "https://www.fintechpresshub.com#website",
-      "name": "FintechPressHub",
-      "url": "https://www.fintechpresshub.com",
-      "publisher": { "@id": "https://www.fintechpresshub.com#organization" },
-      "inLanguage": "en",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://www.fintechpresshub.com/blog?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
-    }
-    </script>
 
-    <!-- Replit badge deduplication (external file — CSP script-src 'self' compliant).
-         Removes duplicate badge instances injected by the Replit dev proxy during
-         HMR reloads. No-ops silently in production where the proxy is absent. -->
+    <!-- Replit badge CSS deduplication — suppresses duplicate badge instances
+         injected by the Replit dev proxy during HMR reloads. No-ops in production. -->
     <style>
       #replit-badge + #replit-badge,
       [data-replit-badge] ~ [data-replit-badge],

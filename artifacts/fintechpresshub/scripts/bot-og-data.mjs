@@ -97,6 +97,60 @@ export const PAGE_META = {
     description:
       "Free Financial Health Score Calculator. Get your 0–100 score instantly with a debt-to-income ratio check, savings rate, emergency fund coverage, and personalized tips.",
   },
+  linkProspector: {
+    path: "/tools/link-prospector",
+    title: "Link Prospector | Free Fintech Link Building Tool",
+    description:
+      "Paste a list of domains to bulk-score your backlink prospects — then rank them by highest value or easiest win for your outreach plan.",
+  },
+  outreachEmailGenerator: {
+    path: "/tools/outreach-email-generator",
+    title: "Outreach Email Generator | Free Fintech Link Building Tool",
+    description:
+      "Generate a personalised link-building outreach email in seconds. Choose your tone, fill in the details, and compare subject line variants scored on open-rate factors.",
+  },
+  compare: {
+    path: "/compare",
+    title: "Agency Comparisons | FintechPressHub",
+    description:
+      "Compare fintech SEO agency vs in-house team, freelancers, paid search, and other options — data-driven breakdowns to help you choose the right growth channel.",
+  },
+  compareAgencyVsInHouse: {
+    path: "/compare/agency-vs-in-house",
+    title: "Fintech SEO Agency vs In-House Team | FintechPressHub",
+    description:
+      "A data-driven comparison of hiring a specialist fintech SEO agency versus building an in-house team — costs, speed, expertise, and long-term ROI.",
+  },
+  compareVsFreelancers: {
+    path: "/compare/vs-freelancers",
+    title: "Fintech SEO Agency vs Freelancers | FintechPressHub",
+    description:
+      "Specialist fintech SEO agency versus hiring freelance writers and link builders — an honest breakdown of quality, cost, and consistency.",
+  },
+  compareVsSeoTools: {
+    path: "/compare/vs-seo-tools",
+    title: "Fintech SEO Agency vs DIY SEO Tools | FintechPressHub",
+    description:
+      "Compare using a managed fintech SEO agency against running your own SEO stack with Ahrefs, Semrush, and similar tools.",
+  },
+  compareVsPrAgencies: {
+    path: "/compare/vs-pr-agencies",
+    title: "Fintech SEO Agency vs PR Agencies | FintechPressHub",
+    description:
+      "SEO-focused fintech agency versus a traditional PR firm — understanding the difference in strategy, metrics, and organic growth outcomes.",
+  },
+  compareContentLedVsPaid: {
+    path: "/compare/content-led-vs-paid",
+    title: "Content-Led SEO vs Paid Search for Fintech | FintechPressHub",
+    description:
+      "Content-led organic SEO versus paid search (Google Ads, LinkedIn) for fintech growth — a detailed breakdown of cost, scalability, and compounding returns.",
+  },
+  compareSpecialistVsGeneralist: {
+    path: "/compare/specialist-vs-generalist",
+    title: "Specialist vs Generalist SEO Agency for Fintech | FintechPressHub",
+    description:
+      "Why fintech companies consistently outperform with a specialist SEO agency versus a generalist digital marketing firm.",
+  },
 };
 
 export const HOME_FAQS = [

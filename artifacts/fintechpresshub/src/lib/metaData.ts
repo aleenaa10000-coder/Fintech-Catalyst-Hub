@@ -43,9 +43,23 @@ export const ORGANIZATION_SCHEMA = {
   "@id": `${SITE_URL}#organization`,
   name: SITE_NAME,
   url: SITE_URL,
-  logo: `${SITE_URL}/favicon.svg`,
+  logo: {
+    "@type": "ImageObject",
+    "@id": `${SITE_URL}#logo`,
+    url: `${SITE_URL}/icon-512.png`,
+    contentUrl: `${SITE_URL}/icon-512.png`,
+    width: 512,
+    height: 512,
+    caption: SITE_NAME,
+  },
   description:
     "Specialized content marketing and SEO agency for fintech companies.",
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "customer support",
+    url: `${SITE_URL}/contact`,
+    availableLanguage: "English",
+  },
   sameAs: [
     "https://twitter.com/fintechpresshub",
     "https://www.linkedin.com/company/fintechpresshub",

@@ -1,4 +1,5 @@
 import { PageMeta } from "@/components/PageMeta";
+import { SITE_URL } from "@/lib/metaData";
 import { useSubscribeToNewsletter } from "@workspace/api-client-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -464,7 +465,23 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="blog" />
+      <PageMeta
+        page="blog"
+        itemList={
+          allPosts.length > 0
+            ? {
+                name: "Fintech SEO Blog",
+                description:
+                  "Strategy, SEO, and content marketing playbooks for fintech operators.",
+                items: allPosts.slice(0, 20).map((p) => ({
+                  name: p.title,
+                  url: `${SITE_URL}/blog/${p.slug}`,
+                  description: p.excerpt,
+                })),
+              }
+            : undefined
+        }
+      />
       <PageHero
         eyebrow="The Fintech Growth Hub"
         title={<>Insights From the Front Lines of Fintech SEO</>}

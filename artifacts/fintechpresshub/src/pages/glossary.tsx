@@ -1,5 +1,6 @@
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
+import { SITE_URL } from "@/lib/metaData";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useState, useMemo } from "react";
@@ -98,6 +99,20 @@ export default function GlossaryPage() {
         description="A definitive glossary of fintech, payments, and embedded-finance terms. Plain-English definitions for payments infrastructure, open banking, regtech, and more."
         faq={faqItems.length > 0 ? faqItems : undefined}
         webPage={{ dateModified: new Date().toISOString().slice(0, 10) }}
+        definedTermSet={
+          terms.length > 0
+            ? {
+                name: "Fintech Glossary",
+                description:
+                  "Plain-English definitions for fintech, payments, embedded finance, open banking, and regtech.",
+                terms: terms.slice(0, 50).map((t) => ({
+                  name: t.term,
+                  description: t.shortDef,
+                  url: `${SITE_URL}/glossary#${t.slug}`,
+                })),
+              }
+            : undefined
+        }
       />
       <PageHero
         eyebrow="Fintech Glossary"

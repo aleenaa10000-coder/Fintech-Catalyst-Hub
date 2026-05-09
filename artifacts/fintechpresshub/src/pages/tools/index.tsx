@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { SITE_URL } from "@/lib/metaData";
 import { motion } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
 import { PageMeta } from "@/components/PageMeta";
@@ -125,7 +126,19 @@ const cardVariants = {
 export default function ToolsIndex() {
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="tools" />
+      <PageMeta
+        page="tools"
+        itemList={{
+          name: "Free Fintech Marketing Tools",
+          description:
+            "Free, browser-based tools for fintech marketers and SEO teams. No sign-up required.",
+          items: TOOLS.map((t) => ({
+            name: t.title,
+            url: `${SITE_URL}${t.href}`,
+            description: t.description,
+          })),
+        }}
+      />
 
       <PageHero
         eyebrow="Free Tools"

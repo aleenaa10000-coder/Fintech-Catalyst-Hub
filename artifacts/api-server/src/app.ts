@@ -16,6 +16,7 @@ import uploadsRouter from "./routes/uploads";
 import indexNowKeyRouter from "./routes/indexNowKey";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
+import { getSiteUrl } from "./lib/seo";
 
 const app: Express = express();
 
@@ -59,6 +60,17 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   ) {
     const proto = (req.headers["x-forwarded-proto"] as string) || "https";
     return res.redirect(301, `${proto}://www.${host}${req.url}`);
+  }
+  next();
+});
+
+// ── X-Robots-Tag for admin routes ───────────────────────────────────────────
+// Prevents admin dashboard pages from appearing in search results even if a
+// crawler somehow follows a link to them. Belt-and-suspenders alongside the
+// client-side <meta name="robots" content="noindex"> in PageMeta.
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path.startsWith("/admin") || req.path.startsWith("/api/admin")) {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
   }
   next();
 });
@@ -163,6 +175,76 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(authMiddleware);
+
+// ── robots.txt (dynamic — uses getSiteUrl() so sitemap URLs match env) ───────
+app.get("/robots.txt", (_req: Request, res: Response) => {
+  const siteUrl = getSiteUrl();
+  const txt = [
+    "# ── Beneficial AI search agents ─────────────────────────────────────────────",
+    "# These bots cite content inside AI-generated answers (Perplexity, ChatGPT",
+    "# search, Claude.ai search, You.com). Allowing them drives citation traffic.",
+    "",
+    "User-agent: OAI-SearchBot",
+    "Allow: /",
+    "",
+    "User-agent: PerplexityBot",
+    "Allow: /",
+    "",
+    "User-agent: ClaudeBot",
+    "Allow: /",
+    "",
+    "User-agent: YouBot",
+    "Allow: /",
+    "",
+    "User-agent: GoogleOther",
+    "Allow: /",
+    "",
+    "# ── AI training scrapers ─────────────────────────────────────────────────────",
+    "# These bots feed training datasets only — no search citation benefit.",
+    "",
+    "User-agent: GPTBot",
+    "Disallow: /",
+    "",
+    "User-agent: CCBot",
+    "Disallow: /",
+    "",
+    "User-agent: anthropic-ai",
+    "Disallow: /",
+    "",
+    "User-agent: cohere-ai",
+    "Disallow: /",
+    "",
+    "User-agent: Bytespider",
+    "Disallow: /",
+    "",
+    "# ── Standard search crawlers ─────────────────────────────────────────────────",
+    "",
+    "User-agent: *",
+    "Allow: /",
+    "",
+    "# Internal API — never index",
+    "Disallow: /api/",
+    "",
+    "# Admin dashboard — never index",
+    "Disallow: /admin",
+    "Disallow: /admin/",
+    "",
+    "# Error page — no SEO value",
+    "Disallow: /404",
+    "",
+    "# System status — internal utility page",
+    "Disallow: /status",
+    "",
+    `Sitemap: ${siteUrl}/sitemap_index.xml`,
+    `Sitemap: ${siteUrl}/sitemap.xml`,
+    `Sitemap: ${siteUrl}/news-sitemap.xml`,
+    "",
+  ].join("\n");
+  res
+    .type("text/plain")
+    .setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400")
+    .send(txt);
+});
 
 // Public dynamic routes mounted at root (not under /api prefix) so their
 // URLs resolve directly without /api/ — e.g. /sitemap.xml, /rss.xml.

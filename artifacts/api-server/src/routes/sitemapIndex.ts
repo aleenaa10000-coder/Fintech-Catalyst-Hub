@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { db, blogPostsTable } from "@workspace/db";
-import { desc, lte, sql, and } from "drizzle-orm";
+import { desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
+import { STATIC_ROUTES } from "./sitemap";
 
 const router: IRouter = Router();
 
@@ -14,25 +15,6 @@ function escapeXml(value: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
 }
-
-const STATIC_ROUTES = [
-  "/", "/about", "/services", "/pricing", "/blog", "/authors",
-  "/write-for-us", "/editorial-guidelines", "/contact",
-  "/tools/financial-health-score-calculator",
-  "/tools/meta-description-generator",
-  "/tools/guest-post-pitch-generator",
-  "/tools/readability-checker",
-  "/tools/keyword-difficulty-estimator",
-  "/tools/backlink-value-estimator",
-  "/tools/content-brief-generator",
-  "/tools/headline-analyzer",
-  "/glossary", "/compare",
-  "/compare/agency-vs-in-house", "/compare/vs-freelancers",
-  "/compare/vs-seo-tools", "/compare/vs-pr-agencies",
-  "/compare/content-led-vs-paid", "/compare/specialist-vs-generalist",
-  "/privacy-policy", "/refund-policy", "/cookie-policy",
-  "/terms", "/community-guidelines",
-];
 
 const STATIC_CATEGORY_SLUGS = [
   "payments", "embedded-finance", "open-banking",
@@ -98,11 +80,11 @@ async function buildPagesSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
   const today = new Date().toISOString().slice(0, 10);
 
-  const staticEntries = STATIC_ROUTES.map((p) => ({
-    loc: `${siteUrl}${p}`,
-    lastmod: today,
-    changefreq: p === "/" ? "weekly" : "monthly",
-    priority: p === "/" ? "1.0" : "0.7",
+  const staticEntries = STATIC_ROUTES.map((r) => ({
+    loc: `${siteUrl}${r.path}`,
+    lastmod: r.lastmod ?? today,
+    changefreq: r.changefreq,
+    priority: r.priority,
   }));
 
   const categoryEntries = STATIC_CATEGORY_SLUGS.map((slug) => ({

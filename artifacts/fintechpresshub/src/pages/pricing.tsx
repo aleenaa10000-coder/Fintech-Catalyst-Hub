@@ -1,4 +1,5 @@
 import { PageMeta } from "@/components/PageMeta";
+import { SITE_URL } from "@/lib/metaData";
 import { useListPricingPlans } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Plus, ArrowRight } from "lucide-react";
@@ -49,6 +50,15 @@ export default function Pricing() {
       <PageMeta
         page="pricing"
         faq={faqs.map((f) => ({ question: f.q, answer: f.a }))}
+        pricingOffers={
+          plans?.map((plan: NonNullable<typeof plans>[number]) => ({
+            name: plan.name,
+            description: plan.description,
+            price: plan.priceMonthly,
+            priceCurrency: "USD",
+            url: `${SITE_URL}/pricing`,
+          })) ?? undefined
+        }
       />
       <PageHero
         eyebrow="Pricing"

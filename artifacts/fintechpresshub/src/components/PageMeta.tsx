@@ -57,6 +57,8 @@ export type ArticleSchema = {
   timeRequired?: string;
   /** BCP-47 language tag — defaults to "en" when omitted. */
   inLanguage?: string;
+  /** Twitter/X handle of the article author, e.g. "@marcuswebbseo". Emits twitter:creator. */
+  twitterCreator?: string;
 };
 
 export type FaqItem = { question: string; answer: string };
@@ -160,6 +162,26 @@ export type RssFeedLink = {
   title: string;
 };
 
+export type DefinedTermSetSchema = {
+  name: string;
+  description?: string;
+  terms: Array<{ name: string; description: string; url?: string }>;
+};
+
+export type ItemListSchema = {
+  name: string;
+  description?: string;
+  items: Array<{ name: string; url: string; description?: string; image?: string }>;
+};
+
+export type PricingOfferSchema = {
+  name: string;
+  description?: string;
+  price: string | number;
+  priceCurrency?: string;
+  url?: string;
+};
+
 type Common = {
   title?: string;
   description?: string;
@@ -208,6 +230,12 @@ type Common = {
    * prop is omitted — pass an empty array to suppress the schema entirely.
    */
   speakableSelectors?: string[];
+  /** DefinedTermSet JSON-LD for glossary-style pages (H1). */
+  definedTermSet?: DefinedTermSetSchema;
+  /** ItemList JSON-LD for hub pages (blog index, tools hub) (H2). */
+  itemList?: ItemListSchema;
+  /** Product/Offer JSON-LD for pricing pages (Q6). */
+  pricingOffers?: PricingOfferSchema[];
 };
 
 type PageMetaProps =
@@ -332,9 +360,16 @@ export function PageMeta(props: PageMetaProps) {
         url: props.service.url ?? canonical,
         provider: {
           "@type": "Organization",
+          "@id": `${SITE_URL}#organization`,
           name: SITE_NAME,
           url: SITE_URL,
-          logo: `${SITE_URL}/favicon.svg`,
+          logo: {
+            "@type": "ImageObject",
+            "@id": `${SITE_URL}#logo`,
+            url: `${SITE_URL}/icon-512.png`,
+            width: 512,
+            height: 512,
+          },
         },
         ...(props.service.deliverables && props.service.deliverables.length > 0
           ? {
@@ -366,7 +401,13 @@ export function PageMeta(props: PageMetaProps) {
           "@id": `${SITE_URL}#organization`,
           name: SITE_NAME,
           url: SITE_URL,
-          logo: `${SITE_URL}/favicon.svg`,
+          logo: {
+            "@type": "ImageObject",
+            "@id": `${SITE_URL}#logo`,
+            url: `${SITE_URL}/icon-512.png`,
+            width: 512,
+            height: 512,
+          },
           description: props.aboutPage.description,
           ...(props.aboutPage.slogan ? { slogan: props.aboutPage.slogan } : {}),
           ...(props.aboutPage.knowsAbout && props.aboutPage.knowsAbout.length > 0
@@ -528,6 +569,88 @@ export function PageMeta(props: PageMetaProps) {
       }
     : null;
 
+  const ogImage = props.article?.image ?? `${SITE_URL}/opengraph.jpg`;
+
+  const definedTermSetJsonLd =
+    props.definedTermSet && props.definedTermSet.terms.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "DefinedTermSet",
+          "@id": `${canonical}#definedtermset`,
+          name: props.definedTermSet.name,
+          ...(props.definedTermSet.description
+            ? { description: props.definedTermSet.description }
+            : {}),
+          publisher: {
+            "@type": "Organization",
+            "@id": `${SITE_URL}#organization`,
+            name: SITE_NAME,
+          },
+          hasDefinedTerm: props.definedTermSet.terms.map((t) => ({
+            "@type": "DefinedTerm",
+            name: t.name,
+            description: t.description,
+            url:
+              t.url ??
+              `${canonical}#${encodeURIComponent(
+                t.name.toLowerCase().replace(/\s+/g, "-"),
+              )}`,
+            inDefinedTermSet: { "@id": `${canonical}#definedtermset` },
+          })),
+        }
+      : null;
+
+  const itemListJsonLd =
+    props.itemList && props.itemList.items.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: props.itemList.name,
+          ...(props.itemList.description
+            ? { description: props.itemList.description }
+            : {}),
+          numberOfItems: props.itemList.items.length,
+          itemListElement: props.itemList.items.map((item, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            name: item.name,
+            url: item.url,
+            ...(item.description ? { description: item.description } : {}),
+            ...(item.image ? { image: item.image } : {}),
+          })),
+        }
+      : null;
+
+  const pricingOffersJsonLd =
+    props.pricingOffers && props.pricingOffers.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: "Fintech SEO Services",
+          description:
+            "Specialist fintech SEO and content marketing retainers for ambitious fintech companies.",
+          brand: {
+            "@type": "Brand",
+            "@id": `${SITE_URL}#organization`,
+            name: SITE_NAME,
+          },
+          offers: props.pricingOffers.map((o) => ({
+            "@type": "Offer",
+            name: o.name,
+            ...(o.description ? { description: o.description } : {}),
+            price: String(o.price),
+            priceCurrency: o.priceCurrency ?? "USD",
+            url: o.url ?? canonical,
+            availability: "https://schema.org/InStock",
+            seller: {
+              "@type": "Organization",
+              "@id": `${SITE_URL}#organization`,
+              name: SITE_NAME,
+            },
+          })),
+        }
+      : null;
+
   const articleJsonLd = props.article
     ? {
         "@context": "https://schema.org",
@@ -565,7 +688,10 @@ export function PageMeta(props: PageMetaProps) {
           name: SITE_NAME,
           logo: {
             "@type": "ImageObject",
-            url: `${SITE_URL}/favicon.svg`,
+            "@id": `${SITE_URL}#logo`,
+            url: `${SITE_URL}/icon-512.png`,
+            width: 512,
+            height: 512,
           },
         },
         mainEntityOfPage: {
@@ -657,11 +783,23 @@ export function PageMeta(props: PageMetaProps) {
         content={articleJsonLd ? "article" : "website"}
       />
       <meta property="og:site_name" content={SITE_NAME} />
+      <meta property="og:image" content={ogImage} />
+      <meta property="og:image:secure_url" content={ogImage} />
       <meta
-        property="og:image"
-        content={props.article?.image ?? `${SITE_URL}/opengraph.jpg`}
+        property="og:image:type"
+        content={ogImage.includes(".png") ? "image/png" : "image/jpeg"}
       />
-      <meta property="og:image:alt" content="FintechPressHub - Fintech SEO Agency" />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta
+        property="og:image:alt"
+        content={
+          props.article?.title ?? title ?? "FintechPressHub - Fintech SEO Agency"
+        }
+      />
+      {props.article?.author ? (
+        <meta name="author" content={props.article.author} />
+      ) : null}
       {/* Article-specific OG tags help LinkedIn/Facebook show "Published by" + author byline. */}
       {props.article?.datePublished ? (
         <meta
@@ -691,11 +829,16 @@ export function PageMeta(props: PageMetaProps) {
       {description ? (
         <meta name="twitter:description" content={description} />
       ) : null}
+      <meta name="twitter:image" content={ogImage} />
       <meta
-        name="twitter:image"
-        content={props.article?.image ?? `${SITE_URL}/opengraph.jpg`}
+        name="twitter:image:alt"
+        content={
+          props.article?.title ?? title ?? "FintechPressHub - Fintech SEO Agency"
+        }
       />
-      <meta name="twitter:image:alt" content="FintechPressHub - Fintech SEO Agency" />
+      {props.article?.twitterCreator ? (
+        <meta name="twitter:creator" content={props.article.twitterCreator} />
+      ) : null}
       <script type="application/ld+json">
         {JSON.stringify(ORGANIZATION_SCHEMA)}
       </script>
@@ -752,6 +895,21 @@ export function PageMeta(props: PageMetaProps) {
       {videoObjectJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(videoObjectJsonLd)}
+        </script>
+      ) : null}
+      {definedTermSetJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(definedTermSetJsonLd)}
+        </script>
+      ) : null}
+      {itemListJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(itemListJsonLd)}
+        </script>
+      ) : null}
+      {pricingOffersJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(pricingOffersJsonLd)}
         </script>
       ) : null}
     </Helmet>
