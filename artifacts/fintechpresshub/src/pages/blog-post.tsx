@@ -36,6 +36,25 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { useIncrementBlogPostView } from "@workspace/api-client-react";
 import { BlogPostToc } from "@/components/BlogPostToc";
 import { BlogPostNewsletterCta } from "@/components/BlogPostNewsletterCta";
+import { COMPARISONS } from "@/data/comparisons";
+
+function getRelatedComparisons(category: string, tags: string[] = []) {
+  const text = [category, ...tags].join(" ").toLowerCase();
+  let slugs: string[];
+  if (/paid|ppc|google ads|adwords/.test(text))
+    slugs = ["content-led-vs-paid", "agency-vs-in-house", "vs-seo-tools"];
+  else if (/pr|press|media|publication/.test(text))
+    slugs = ["vs-pr-agencies", "specialist-vs-generalist", "agency-vs-in-house"];
+  else if (/freelan|writer|content marketing/.test(text))
+    slugs = ["vs-freelancers", "agency-vs-in-house", "specialist-vs-generalist"];
+  else if (/tool|software|platform|saas|ahrefs|semrush/.test(text))
+    slugs = ["vs-seo-tools", "content-led-vs-paid", "agency-vs-in-house"];
+  else if (/in.house|hire|team|recruit/.test(text))
+    slugs = ["agency-vs-in-house", "vs-freelancers", "specialist-vs-generalist"];
+  else
+    slugs = ["agency-vs-in-house", "content-led-vs-paid", "specialist-vs-generalist"];
+  return COMPARISONS.filter((c) => slugs.includes(c.slug)).slice(0, 3);
+}
 
 const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
@@ -1111,6 +1130,48 @@ export default function BlogPost() {
 
         {/* End-of-article newsletter CTA */}
         <BlogPostNewsletterCta postSlug={post.slug} />
+
+        {/* Related comparisons */}
+        {(() => {
+          const relatedComparisons = getRelatedComparisons(post.category, post.tags ?? []);
+          if (relatedComparisons.length === 0) return null;
+          return (
+            <section className="mt-16 pt-12 border-t border-slate-200">
+              <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.2em] font-semibold text-[#0052FF] mb-2">
+                    Evaluating your options?
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-extrabold text-slate-900">
+                    Related comparisons
+                  </h2>
+                </div>
+                <Link href="/compare">
+                  <Button variant="outline" size="sm">
+                    All comparisons <ArrowRight className="w-4 h-4 ml-1.5" />
+                  </Button>
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {relatedComparisons.map((c) => (
+                  <Link key={c.slug} href={`/compare/${c.slug}`}>
+                    <div className="group rounded-xl border border-slate-200 bg-white p-5 hover:border-[#0052FF] hover:shadow-sm transition-all duration-200 h-full flex flex-col gap-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#0052FF]">
+                        {c.eyebrow}
+                      </span>
+                      <p className="text-sm font-semibold text-slate-900 group-hover:text-[#0052FF] transition-colors leading-snug flex-1">
+                        {c.heroTitle}
+                      </p>
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-[#0052FF] mt-1">
+                        View comparison <ArrowRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
 
         {/* Related Posts */}
         {relatedPosts.length > 0 && (
