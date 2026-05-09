@@ -105,6 +105,7 @@ const GlossaryPage = lazy(() => import("@/pages/glossary"));
 const BlogCategoryPage = lazy(() => import("@/pages/blog-category"));
 const LocationPage = lazy(() => import("@/pages/location"));
 const Compare = lazy(() => import("@/pages/compare"));
+const CompareSlug = lazy(() => import("@/pages/compare-slug"));
 const FintechPublications = lazy(() => import("@/pages/resources/fintech-publications"));
 const AdminGlossary = lazy(() => import("@/pages/admin-glossary"));
 const AdminDisavow = lazy(() => import("@/pages/admin-disavow"));
@@ -271,6 +272,7 @@ function Router() {
             <SafeRoute path="/glossary" component={GlossaryPage} />
             <SafeRoute path="/blog/category/:slug" component={BlogCategoryPage} />
             <SafeRoute path="/locations/:slug" component={LocationPage} />
+            <SafeRoute path="/compare/:slug" component={CompareSlug} />
             <SafeRoute path="/compare" component={Compare} />
             <SafeRoute path="/resources/fintech-publications" component={FintechPublications} />
             <SafeRoute path="/write-for-us" component={WriteForUs} />

@@ -44,6 +44,12 @@ const STATIC_ROUTES: Array<{
   { path: "/terms", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/community-guidelines", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/compare", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
+  { path: "/compare/agency-vs-in-house", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
+  { path: "/compare/vs-freelancers", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
+  { path: "/compare/vs-seo-tools", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
+  { path: "/compare/vs-pr-agencies", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
+  { path: "/compare/content-led-vs-paid", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
+  { path: "/compare/specialist-vs-generalist", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
 ];
 
 const STATIC_CATEGORY_SLUGS = [
