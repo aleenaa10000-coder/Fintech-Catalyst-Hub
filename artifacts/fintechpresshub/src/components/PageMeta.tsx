@@ -153,6 +153,11 @@ type Common = {
    */
   rssFeeds?: RssFeedLink[];
   /**
+   * When true, emits QAPage JSON-LD instead of FAQPage for the `faq` entries.
+   * Use on Q&A-style contact/support pages (A4). FAQPage is the default.
+   */
+  qaPage?: boolean;
+  /**
    * When true, emits `<meta name="robots" content="noindex,nofollow">` to
    * exclude the page from search engines. Used by per-post noIndex toggles
    * and by admin-only pages (e.g. /admin/login).
@@ -210,21 +215,37 @@ export function PageMeta(props: PageMetaProps) {
 
   const faqJsonLd =
     props.faq && props.faq.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          "@id": `${canonical}#faq`,
-          url: canonical,
-          mainEntity: props.faq.map((item) => ({
-            "@type": "Question",
-            name: item.question,
-            acceptedAnswer: {
-              "@type": "Answer",
-              // Strip any residual HTML tags so Google always receives plain text.
-              text: item.answer.replace(/<[^>]*>/g, "").trim(),
-            },
-          })),
-        }
+      ? props.qaPage
+        ? {
+            "@context": "https://schema.org",
+            "@type": "QAPage",
+            "@id": `${canonical}#qa`,
+            url: canonical,
+            mainEntity: props.faq.map((item) => ({
+              "@type": "Question",
+              name: item.question,
+              answerCount: 1,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: item.answer.replace(/<[^>]*>/g, "").trim(),
+              },
+            })),
+          }
+        : {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "@id": `${canonical}#faq`,
+            url: canonical,
+            mainEntity: props.faq.map((item) => ({
+              "@type": "Question",
+              name: item.question,
+              acceptedAnswer: {
+                "@type": "Answer",
+                // Strip any residual HTML tags so Google always receives plain text.
+                text: item.answer.replace(/<[^>]*>/g, "").trim(),
+              },
+            })),
+          }
       : null;
 
   const personJsonLd = props.person

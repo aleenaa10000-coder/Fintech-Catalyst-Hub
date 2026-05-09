@@ -103,6 +103,11 @@ const AdminAnalytics = lazy(() => import("@/pages/admin-analytics"));
 const AdminSeoPerformance = lazy(() => import("@/pages/admin-seo-performance"));
 const GlossaryPage = lazy(() => import("@/pages/glossary"));
 const BlogCategoryPage = lazy(() => import("@/pages/blog-category"));
+const LocationPage = lazy(() => import("@/pages/location"));
+const Compare = lazy(() => import("@/pages/compare"));
+const FintechPublications = lazy(() => import("@/pages/resources/fintech-publications"));
+const AdminGlossary = lazy(() => import("@/pages/admin-glossary"));
+const AdminDisavow = lazy(() => import("@/pages/admin-disavow"));
 
 function RouteFallback() {
   const [location] = useLocation();
@@ -265,6 +270,9 @@ function Router() {
             <SafeRoute path="/authors/:slug" component={AuthorPage} />
             <SafeRoute path="/glossary" component={GlossaryPage} />
             <SafeRoute path="/blog/category/:slug" component={BlogCategoryPage} />
+            <SafeRoute path="/locations/:slug" component={LocationPage} />
+            <SafeRoute path="/compare" component={Compare} />
+            <SafeRoute path="/resources/fintech-publications" component={FintechPublications} />
             <SafeRoute path="/write-for-us" component={WriteForUs} />
             <SafeRoute path="/contact" component={Contact} />
             <SafeRoute path="/privacy-policy" component={PrivacyPolicy} />
@@ -342,6 +350,8 @@ function Router() {
             <AdminRoute path="/admin/notifications" component={AdminNotifications} />
             <AdminRoute path="/admin/analytics" component={AdminAnalytics} />
             <AdminRoute path="/admin/seo-performance" component={AdminSeoPerformance} />
+            <AdminRoute path="/admin/glossary" component={AdminGlossary} />
+            <AdminRoute path="/admin/disavow" component={AdminDisavow} />
             <Route path="/404" component={NotFound} />
             <Route component={NotFound} />
           </Switch>

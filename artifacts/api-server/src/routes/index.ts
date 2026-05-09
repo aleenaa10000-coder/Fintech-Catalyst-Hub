@@ -31,6 +31,7 @@ import sitemapPingRouter from "./sitemapPing";
 import seoPerformanceRouter from "./seoPerformance";
 import glossaryRouter from "./glossary";
 import disavowRouter from "./disavow";
+import locationsRouter from "./locations";
 
 const router: IRouter = Router();
 
@@ -66,5 +67,6 @@ router.use(sitemapPingRouter);
 router.use(seoPerformanceRouter);
 router.use(glossaryRouter);
 router.use(disavowRouter);
+router.use(locationsRouter);
 
 export default router;

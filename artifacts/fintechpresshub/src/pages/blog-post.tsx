@@ -490,6 +490,16 @@ export default function BlogPost() {
             ? ["h1", ".speakable-summary"]
             : ["h1"]
         }
+        rssFeeds={
+          post.author
+            ? [
+                {
+                  href: `/authors/${authorSlugFromName(post.author)}/rss.xml`,
+                  title: `${post.author} on FintechPressHub`,
+                },
+              ]
+            : undefined
+        }
       />
       {/* Floating vertical share bar (xl+) */}
       <aside

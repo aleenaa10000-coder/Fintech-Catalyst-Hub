@@ -709,7 +709,44 @@ export default function EditorialGuidelines() {
                 ]}
               />
 
-              <h2 id="contributor-links">10. Contributor Link Policy</h2>
+              <h2 id="corrections-policy">10. Corrections Policy</h2>
+              <p>
+                We are committed to factual accuracy. When a material error is identified in a published
+                article — whether by our editorial team, the contributor, or a reader — we correct it
+                promptly, transparently, and without altering the article's publication date.
+              </p>
+              <ul>
+                <li>
+                  <strong>Factual corrections:</strong> If a statistic, regulatory reference, or product
+                  claim is wrong, we correct it in-line and add a timestamped "Correction" note at the top
+                  of the article identifying what changed and when.
+                </li>
+                <li>
+                  <strong>Material updates:</strong> If a piece of regulation or market data has changed
+                  significantly since publication, we update the article, set the "Last material update"
+                  date in our publishing system, and reflect that date in the article's{" "}
+                  <code>dateModified</code> structured data.
+                </li>
+                <li>
+                  <strong>Non-material edits:</strong> Typo fixes, formatting improvements, and image
+                  swaps are made silently without a correction notice — they do not change the published
+                  date or trigger a correction note.
+                </li>
+                <li>
+                  <strong>How to report an error:</strong> Email{" "}
+                  <a href="mailto:corrections@fintechpresshub.com">corrections@fintechpresshub.com</a>{" "}
+                  with the article URL, the specific claim you believe is incorrect, and the primary
+                  source you believe it should reference. We acknowledge all correction requests within
+                  two business days.
+                </li>
+                <li>
+                  <strong>Contributor responsibility:</strong> Contributors whose articles contain
+                  multiple factual errors may have their future submissions subject to additional
+                  fact-checking rounds. Deliberate misinformation results in permanent ban.
+                </li>
+              </ul>
+
+              <h2 id="contributor-links">11. Contributor Link Policy</h2>
               <p>
                 High-quality guest submissions that meet our editorial standards receive up to 2
                 permanent dofollow backlinks from FintechPressHub. Because we publish on a

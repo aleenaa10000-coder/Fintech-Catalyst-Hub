@@ -103,12 +103,7 @@ export default function LocationPage() {
       />
 
       <PageHero
-        eyebrow={
-          <span className="flex items-center justify-center gap-1.5">
-            <MapPin className="w-4 h-4" />
-            {locationLabel}
-          </span>
-        }
+        eyebrow={locationLabel}
         title={location.headline}
         description={`Specialist fintech SEO and content marketing tailored for companies operating in ${location.city}.`}
       />

@@ -112,7 +112,7 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="contact" faq={contactFaqs} />
+      <PageMeta page="contact" faq={contactFaqs} qaPage />
       <PageHero
         eyebrow="Contact Us"
         title={<>Let's Scale Your Organic Growth</>}

@@ -5,6 +5,7 @@ import { PageMeta } from "@/components/PageMeta";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Lock,
   LogOut,
@@ -20,6 +21,7 @@ import {
   CheckCircle2,
   XCircle,
   RotateCcw,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -43,6 +45,35 @@ function timeAgo(iso: string): string {
 type SubmissionStatus = "unread" | "handled";
 type SubmissionStatusFilter = SubmissionStatus | "all";
 
+type EditorialStatus =
+  | "submitted"
+  | "reviewing"
+  | "approved"
+  | "revisions"
+  | "published"
+  | "rejected";
+
+const EDITORIAL_STATUS_OPTIONS: { value: EditorialStatus; label: string }[] = [
+  { value: "submitted", label: "Submitted" },
+  { value: "reviewing", label: "Under review" },
+  { value: "approved", label: "Approved" },
+  { value: "revisions", label: "Revisions requested" },
+  { value: "published", label: "Published" },
+  { value: "rejected", label: "Rejected" },
+];
+
+const EDITORIAL_STATUS_STYLES: Record<
+  EditorialStatus,
+  { badge: string }
+> = {
+  submitted: { badge: "bg-slate-100 text-slate-600 hover:bg-slate-100" },
+  reviewing: { badge: "bg-blue-100 text-blue-700 hover:bg-blue-100" },
+  approved: { badge: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" },
+  revisions: { badge: "bg-amber-100 text-amber-800 hover:bg-amber-100" },
+  published: { badge: "bg-purple-100 text-purple-700 hover:bg-purple-100" },
+  rejected: { badge: "bg-red-100 text-red-600 hover:bg-red-100" },
+};
+
 interface PitchSubmission {
   id: number;
   name: string;
@@ -55,6 +86,8 @@ interface PitchSubmission {
   status: SubmissionStatus;
   handledAt: string | null;
   handledBy: string | null;
+  editorialStatus: EditorialStatus;
+  adminNotes: string | null;
   createdAt: string;
 }
 
@@ -131,15 +164,34 @@ function StatusActions({
   );
 }
 
+function EditorialStatusBadge({ status }: { status: EditorialStatus }) {
+  const style = EDITORIAL_STATUS_STYLES[status] ?? EDITORIAL_STATUS_STYLES.submitted;
+  const label =
+    EDITORIAL_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
+  return (
+    <Badge className={`text-[10px] shrink-0 ${style.badge}`}>{label}</Badge>
+  );
+}
+
 function PitchRow({
   sub,
   onSetStatus,
+  onSetEditorial,
 }: {
   sub: PitchSubmission;
   onSetStatus: (id: number, status: SubmissionStatus) => Promise<void>;
+  onSetEditorial: (
+    id: number,
+    data: { editorialStatus?: EditorialStatus; adminNotes?: string | null },
+  ) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [editorialBusy, setEditorialBusy] = useState(false);
+  const [editorialStatus, setEditorialStatus] = useState<EditorialStatus>(
+    sub.editorialStatus,
+  );
+  const [adminNotes, setAdminNotes] = useState(sub.adminNotes ?? "");
 
   async function handle(next: SubmissionStatus) {
     setBusy(true);
@@ -147,6 +199,19 @@ function PitchRow({
       await onSetStatus(sub.id, next);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function saveEditorial() {
+    setEditorialBusy(true);
+    try {
+      await onSetEditorial(sub.id, {
+        editorialStatus,
+        adminNotes: adminNotes.trim() || null,
+      });
+      toast.success("Editorial workflow updated");
+    } finally {
+      setEditorialBusy(false);
     }
   }
 
@@ -163,6 +228,7 @@ function PitchRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <StatusBadge status={sub.status} />
+            <EditorialStatusBadge status={sub.editorialStatus} />
             <span
               className={`font-semibold text-sm truncate ${
                 sub.status === "handled" ? "text-muted-foreground" : ""
@@ -189,7 +255,7 @@ function PitchRow({
       </button>
 
       {open && (
-        <div className="px-6 pb-5 space-y-3 text-sm bg-muted/20">
+        <div className="px-6 pb-5 space-y-4 text-sm bg-muted/20">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-xs text-muted-foreground pt-2">
             <div>
               <span className="font-semibold text-foreground">Name:</span> {sub.name}
@@ -248,6 +314,55 @@ function PitchRow({
               {sub.pitch}
             </p>
           </div>
+
+          {/* W1: Editorial workflow panel */}
+          <div className="rounded-lg border border-dashed border-slate-300 bg-background p-4 space-y-3">
+            <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
+              Editorial workflow
+            </div>
+            <div className="flex flex-wrap gap-2 items-center">
+              {EDITORIAL_STATUS_OPTIONS.map((opt) => {
+                const style = EDITORIAL_STATUS_STYLES[opt.value];
+                const isActive = editorialStatus === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setEditorialStatus(opt.value)}
+                    className={[
+                      "text-[11px] px-2.5 py-1 rounded-full border transition-all",
+                      isActive
+                        ? `${style.badge} border-current font-semibold`
+                        : "border-slate-200 text-muted-foreground hover:bg-muted",
+                    ].join(" ")}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">
+                Internal notes (not visible to contributor)
+              </div>
+              <Textarea
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                placeholder="Add feedback, revision requests, or rejection reasons…"
+                className="text-xs min-h-[72px] resize-y"
+              />
+            </div>
+            <Button
+              size="sm"
+              className="text-xs bg-[#0052FF] hover:bg-[#0040cc]"
+              disabled={editorialBusy}
+              onClick={saveEditorial}
+            >
+              <Save className="w-3.5 h-3.5 mr-1.5" />
+              {editorialBusy ? "Saving…" : "Save editorial status"}
+            </Button>
+          </div>
+
           <div className="flex gap-2 pt-1 flex-wrap">
             <StatusActions status={sub.status} busy={busy} onMark={handle} />
             <a href={`mailto:${sub.email}?subject=Re: Your pitch – ${sub.topic}`}>
@@ -671,6 +786,32 @@ export default function AdminModeration() {
     }
   }
 
+  async function setPitchEditorial(
+    id: number,
+    data: { editorialStatus?: EditorialStatus; adminNotes?: string | null },
+  ) {
+    const res = await fetch(`/api/admin/pitch-submissions/${id}/editorial`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    setPitches((prev) =>
+      prev
+        ? prev.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  editorialStatus: data.editorialStatus ?? p.editorialStatus,
+                  adminNotes:
+                    "adminNotes" in data ? (data.adminNotes ?? null) : p.adminNotes,
+                }
+              : p,
+          )
+        : prev,
+    );
+  }
+
   async function resolveReport(id: number, status: "resolved" | "dismissed") {
     try {
       const res = await fetch(`/api/admin/reports/${id}`, {
@@ -965,6 +1106,7 @@ export default function AdminModeration() {
                       onSetStatus={(id, status) =>
                         setSubmissionStatus("pitch", id, status)
                       }
+                      onSetEditorial={setPitchEditorial}
                     />
                   ))
                 : tab === "contacts"
