@@ -2120,29 +2120,36 @@ export default function GuestPostPitchGenerator() {
 
               {history.length > 0 && (
                 <div className="px-6 py-4 border-t border-slate-100 space-y-2">
-                  <button
+                  <Button
                     type="button"
-                    className="w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-800 border border-slate-200 rounded-md py-2 transition-colors hover:bg-slate-50"
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2 text-xs font-semibold border-orange-200 text-orange-700 bg-orange-50 hover:border-orange-400 hover:bg-orange-100"
                     onClick={() => {
-                      const header = "id,timestamp,date,topic,blog,tone,pitch";
                       const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
-                      const rows = history.map((e) => {
-                        const date = new Date(e.timestamp).toISOString().split("T")[0];
-                        return [e.id, e.timestamp, date, escape(e.topic), escape(e.blog), escape(e.tone), escape(e.pitch)].join(",");
-                      });
-                      const csv = [header, ...rows].join("\n");
-                      const blob = new Blob([csv], { type: "text/csv" });
+                      const rows = [
+                        ["Date", "Topic", "Target Blog", "Tone", "Pitch"].map(escape).join(","),
+                        ...history.map((e) => {
+                          const date = new Date(e.timestamp).toISOString().split("T")[0];
+                          return [date, e.topic, e.blog, e.tone, e.pitch].map(escape).join(",");
+                        }),
+                      ];
+                      const csv = rows.join("\r\n");
+                      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement("a");
                       a.href = url;
                       a.download = `pitch-history-${new Date().toISOString().split("T")[0]}.csv`;
+                      document.body.appendChild(a);
                       a.click();
+                      document.body.removeChild(a);
                       URL.revokeObjectURL(url);
+                      trackEvent("Result Exported", { tool: "guest-post-pitch-generator", format: "history-csv", count: history.length });
                     }}
                   >
                     <Download className="w-3.5 h-3.5" />
-                    Export as CSV
-                  </button>
+                    Export {history.length} pitch{history.length !== 1 ? "es" : ""} as CSV
+                  </Button>
                   <button
                     type="button"
                     className="w-full text-center text-[11px] text-muted-foreground hover:text-red-500 py-1 transition-colors"
