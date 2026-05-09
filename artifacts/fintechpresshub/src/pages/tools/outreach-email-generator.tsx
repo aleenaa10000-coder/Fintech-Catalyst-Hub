@@ -1732,7 +1732,12 @@ export default function OutreachEmailGenerator() {
                       Edit
                     </button>
                   </div>
-                ) : (
+                ) : (() => {
+                  const minNum = parseFloat(form.linkValueMin);
+                  const maxNum = parseFloat(form.linkValueMax);
+                  const bothFilled = form.linkValueMin.trim() !== "" && form.linkValueMax.trim() !== "";
+                  const rangeError = bothFilled && !isNaN(minNum) && !isNaN(maxNum) && minNum >= maxNum;
+                  return (
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-semibold text-slate-700">
@@ -1745,6 +1750,7 @@ export default function OutreachEmailGenerator() {
                         value={form.linkValueMin}
                         onChange={(e) => setField("linkValueMin", e.target.value)}
                         placeholder="1200"
+                        className={rangeError ? "border-red-400 focus-visible:ring-red-300" : ""}
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1758,16 +1764,24 @@ export default function OutreachEmailGenerator() {
                         value={form.linkValueMax}
                         onChange={(e) => setField("linkValueMax", e.target.value)}
                         placeholder="2500"
+                        className={rangeError ? "border-red-400 focus-visible:ring-red-300" : ""}
                       />
                     </div>
-                    <p className="text-[10px] text-muted-foreground sm:col-span-2 -mt-2">
-                      Used in the Data-Led variant only.{" "}
-                      <Link href="/tools/backlink-value-estimator" className="underline hover:text-blue-600">
-                        Estimate it first →
-                      </Link>
-                    </p>
+                    {rangeError ? (
+                      <p className="text-[10px] text-red-500 font-medium sm:col-span-2 -mt-2">
+                        Min must be less than Max — swap the values or lower the Min.
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground sm:col-span-2 -mt-2">
+                        Used in the Data-Led variant only.{" "}
+                        <Link href="/tools/backlink-value-estimator" className="underline hover:text-blue-600">
+                          Estimate it first →
+                        </Link>
+                      </p>
+                    )}
                   </div>
-                )}
+                  );
+                })()}
 
                 <Button
                   onClick={() => bulkMode ? generateBulk() : generate()}
