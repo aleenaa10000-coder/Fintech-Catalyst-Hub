@@ -59,6 +59,12 @@ export type ArticleSchema = {
   inLanguage?: string;
   /** Twitter/X handle of the article author, e.g. "@marcuswebbseo". Emits twitter:creator. */
   twitterCreator?: string;
+  /**
+   * External sources cited by this article. Each entry becomes a `citation`
+   * node on BlogPosting JSON-LD — boosts E-E-A-T by surfacing sourcing
+   * behaviour to Google's quality raters. Pass page titles or full URLs.
+   */
+  citation?: string[];
 };
 
 export type FaqItem = { question: string; answer: string };
@@ -236,6 +242,16 @@ type Common = {
   itemList?: ItemListSchema;
   /** Product/Offer JSON-LD for pricing pages (Q6). */
   pricingOffers?: PricingOfferSchema[];
+  /**
+   * CollectionPage + CreateAction JSON-LD for contributor / guest-post pages
+   * (O3). Signals to Google that the page accepts external author submissions
+   * and is a link-earning asset.
+   */
+  writeAction?: {
+    name: string;
+    description?: string;
+    targetUrl?: string;
+  };
 };
 
 type PageMetaProps =
@@ -621,6 +637,34 @@ export function PageMeta(props: PageMetaProps) {
         }
       : null;
 
+  const writeActionJsonLd = props.writeAction
+    ? {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "@id": canonical,
+        url: canonical,
+        name: title || undefined,
+        description: description || undefined,
+        publisher: {
+          "@type": "Organization",
+          "@id": `${SITE_URL}#organization`,
+          name: SITE_NAME,
+        },
+        potentialAction: {
+          "@type": "CreateAction",
+          name: props.writeAction.name,
+          ...(props.writeAction.description
+            ? { description: props.writeAction.description }
+            : {}),
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate: props.writeAction.targetUrl ?? canonical,
+            actionPlatform: "https://schema.org/DesktopWebPlatform",
+          },
+        },
+      }
+    : null;
+
   const pricingOffersJsonLd =
     props.pricingOffers && props.pricingOffers.length > 0
       ? {
@@ -726,6 +770,14 @@ export function PageMeta(props: PageMetaProps) {
               mentions: props.article.mentions.map((name) => ({
                 "@type": "Thing",
                 name,
+              })),
+            }
+          : {}),
+        ...(props.article.citation && props.article.citation.length > 0
+          ? {
+              citation: props.article.citation.map((src) => ({
+                "@type": src.startsWith("http") ? "WebPage" : "CreativeWork",
+                ...(src.startsWith("http") ? { url: src } : { name: src }),
               })),
             }
           : {}),
@@ -910,6 +962,11 @@ export function PageMeta(props: PageMetaProps) {
       {pricingOffersJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(pricingOffersJsonLd)}
+        </script>
+      ) : null}
+      {writeActionJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(writeActionJsonLd)}
         </script>
       ) : null}
     </Helmet>

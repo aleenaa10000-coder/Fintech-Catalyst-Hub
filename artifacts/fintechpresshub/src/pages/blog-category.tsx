@@ -1,5 +1,6 @@
 import { PageMeta } from "@/components/PageMeta";
 import { useParams, Link } from "wouter";
+import { SITE_URL } from "@/lib/metaData";
 import { usePublicPosts } from "@/data/usePublicPosts";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";

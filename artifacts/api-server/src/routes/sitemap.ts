@@ -39,6 +39,7 @@ export const STATIC_ROUTES: Array<{
   { path: "/tools/link-prospector", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/tools/outreach-email-generator", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/glossary", changefreq: "weekly", priority: "0.7", lastmod: "2026-05-09" },
+  { path: "/press", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
   { path: "/contact", changefreq: "yearly", priority: "0.5", lastmod: "2026-04-25" },
   { path: "/privacy-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/refund-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },

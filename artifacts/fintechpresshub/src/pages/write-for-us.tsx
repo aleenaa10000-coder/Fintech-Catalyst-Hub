@@ -722,6 +722,12 @@ export default function WriteForUs() {
             "Contextual Backlink",
           ],
         }}
+        writeAction={{
+          name: "Submit a fintech guest post pitch",
+          description:
+            "Pitch a guest article to FintechPressHub editors and earn a permanent dofollow backlink on a high-authority fintech publication.",
+          targetUrl: `${SITE_URL}/write-for-us#pitch-form`,
+        }}
         faq={wfuFaqs}
         howTo={{
           name: "How to Write a Guest Post for FintechPressHub",

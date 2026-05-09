@@ -110,6 +110,7 @@ const CompareSlug = lazy(() => import("@/pages/compare-slug"));
 const FintechPublications = lazy(() => import("@/pages/resources/fintech-publications"));
 const AdminGlossary = lazy(() => import("@/pages/admin-glossary"));
 const AdminDisavow = lazy(() => import("@/pages/admin-disavow"));
+const Press = lazy(() => import("@/pages/press"));
 
 function RouteFallback() {
   const [location] = useLocation();

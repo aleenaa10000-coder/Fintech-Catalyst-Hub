@@ -18,6 +18,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   blog: "Blog",
   authors: "Authors",
   tools: "Tools",
+  press: "Press",
   "financial-health-score-calculator": "Financial Health Score Calculator",
   "meta-description-generator": "Meta Description Generator",
   "guest-post-pitch-generator": "Guest Post Pitch Generator",
@@ -54,10 +55,14 @@ export const ORGANIZATION_SCHEMA = {
   },
   description:
     "Specialized content marketing and SEO agency for fintech companies.",
+  foundingDate: "2021",
+  areaServed: "Worldwide",
+  email: "hello@fintechpresshub.com",
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer support",
     url: `${SITE_URL}/contact`,
+    email: "hello@fintechpresshub.com",
     availableLanguage: "English",
   },
   sameAs: [
@@ -209,6 +214,11 @@ export const PAGE_META = {
   adminModeration: {
     title: "Admin · Moderation Inbox | FintechPressHub",
     description: "Review guest post pitch submissions and contact enquiries.",
+  },
+  press: {
+    title: "Press & Media Kit | FintechPressHub",
+    description:
+      "Press resources for FintechPressHub — brand assets, company boilerplate, key stats, recent coverage, and press contact details for journalists and editors.",
   },
   notFound: {
     title: "Page Not Found | FintechPressHub",
