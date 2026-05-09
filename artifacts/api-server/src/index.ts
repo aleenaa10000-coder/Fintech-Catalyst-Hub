@@ -8,8 +8,48 @@ import { scheduleNoIndexExpiryHourly } from "./jobs/noindexExpiryHourly";
 import { scheduleWeeklyDigest } from "./jobs/weeklyDigest";
 import { schedulePublishNotifyHourly } from "./jobs/scheduledPostPublishNotify";
 
-const rawPort = process.env["PORT"] ?? "3000";
+// ── Startup environment validation (F1) ──────────────────────────────────────
+// These vars are required for the server to function correctly. The process
+// exits with code 1 immediately if any are missing so Hostinger's process
+// monitor (PM2) surfaces the misconfiguration instead of running a broken app.
+// Optional-but-important vars emit a warning but do not abort startup.
 
+const REQUIRED_ENV: string[] = ["DATABASE_URL", "SITE_URL"];
+
+const WARN_ENV: { key: string; hint: string }[] = [
+  { key: "SESSION_SECRET",   hint: "sessions will not survive server restarts" },
+  { key: "ADMIN_EMAILS",     hint: "no admin access will be granted" },
+  { key: "ADMIN_PASSWORD",   hint: "password-based admin login is disabled" },
+];
+
+function validateEnv(): void {
+  const missing = REQUIRED_ENV.filter((k) => !process.env[k]?.trim());
+  if (missing.length > 0) {
+    for (const k of missing) {
+      // Use process.stderr directly — logger may not yet be initialised.
+      process.stderr.write(`[startup] FATAL: required env var "${k}" is not set.\n`);
+    }
+    process.stderr.write(
+      "[startup] Set missing variables in .env (dev) or hPanel → Environment Variables (Hostinger).\n",
+    );
+    process.exit(1);
+  }
+
+  for (const { key, hint } of WARN_ENV) {
+    if (!process.env[key]?.trim()) {
+      logger.warn(
+        { envVar: key },
+        `[startup] Optional env var "${key}" is not set — ${hint}. See .env.example.`,
+      );
+    }
+  }
+}
+
+// Run env validation synchronously before anything else so the error message
+// is clear and unambiguous if the server is misconfigured.
+validateEnv();
+
+const rawPort = process.env["PORT"] ?? "3000";
 const port = Number(rawPort);
 
 if (Number.isNaN(port) || port <= 0) {

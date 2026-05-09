@@ -42,13 +42,17 @@
     <meta name="application-name" content="FintechPressHub" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <!-- Performance: preconnect to external origins used above-the-fold -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Non-render-blocking font load: media="print" swaps to "all" once loaded -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
 
     <!-- Site-wide JSON-LD baked into the HTML shell so non-JS crawlers (social, AI) see the entity on every URL. -->
+    <!-- Note: <script type="application/ld+json"> is NOT executable JS and is NOT subject to CSP script-src. -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -83,12 +87,9 @@
     }
     </script>
 
-    <!-- Replit badge deduplication
-         Replit's dev proxy injects the "Made with Replit" badge script on
-         every HMR reload, which can stamp multiple badge elements into the
-         DOM. The CSS below hides any sibling duplicates immediately; the
-         MutationObserver script removes them from the DOM as soon as they
-         appear, keeping exactly one badge pinned to the bottom-right. -->
+    <!-- Replit badge deduplication (external file — CSP script-src 'self' compliant).
+         Removes duplicate badge instances injected by the Replit dev proxy during
+         HMR reloads. No-ops silently in production where the proxy is absent. -->
     <style>
       #replit-badge + #replit-badge,
       [data-replit-badge] ~ [data-replit-badge],
@@ -99,27 +100,7 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      (function () {
-        var SELECTORS = [
-          '#replit-badge',
-          '[data-replit-badge]',
-          'replit-badge',
-          '.replit-badge',
-        ];
-        function dedup() {
-          SELECTORS.forEach(function (sel) {
-            var els = document.querySelectorAll(sel);
-            if (els.length > 1) {
-              Array.prototype.slice.call(els, 0, els.length - 1)
-                .forEach(function (el) { el.remove(); });
-            }
-          });
-        }
-        var mo = new MutationObserver(dedup);
-        mo.observe(document.body, { childList: true, subtree: false });
-        dedup();
-      })();
-    </script>
+    <!-- External script — satisfies CSP script-src 'self' in production -->
+    <script src="/replit-dedup.js" defer></script>
   </body>
 </html>

@@ -33,6 +33,7 @@ import glossaryRouter from "./glossary";
 import disavowRouter from "./disavow";
 import locationsRouter from "./locations";
 import referringDomainsRouter from "./referringDomains";
+import vitalsRouter from "./vitals";
 
 const router: IRouter = Router();
 
@@ -70,5 +71,6 @@ router.use(glossaryRouter);
 router.use(disavowRouter);
 router.use(locationsRouter);
 router.use(referringDomainsRouter);
+router.use(vitalsRouter);
 
 export default router;
