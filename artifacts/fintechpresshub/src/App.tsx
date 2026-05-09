@@ -143,7 +143,7 @@ function ScrollToTop() {
     }
   }, []);
   useLayoutEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "instant" });
   }, [location]);
   useEffect(() => {
     trackPageview(location);

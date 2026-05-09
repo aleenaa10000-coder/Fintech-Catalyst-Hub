@@ -26,8 +26,27 @@ const ROUTE_LOADERS: Record<string, () => Promise<unknown>> = {
   "/cookie-policy": () => import("@/pages/cookie-policy"),
   "/terms": () => import("@/pages/terms"),
   "/status": () => import("@/pages/status"),
+  "/tools": () => import("@/pages/tools/index"),
   "/tools/financial-health-score-calculator": () =>
     import("@/pages/tools/financial-health-score-calculator"),
+  "/tools/meta-description-generator": () =>
+    import("@/pages/tools/meta-description-generator"),
+  "/tools/guest-post-pitch-generator": () =>
+    import("@/pages/tools/guest-post-pitch-generator"),
+  "/tools/readability-checker": () =>
+    import("@/pages/tools/readability-checker"),
+  "/tools/keyword-difficulty-estimator": () =>
+    import("@/pages/tools/keyword-difficulty-estimator"),
+  "/tools/backlink-value-estimator": () =>
+    import("@/pages/tools/backlink-value-estimator"),
+  "/tools/content-brief-generator": () =>
+    import("@/pages/tools/content-brief-generator"),
+  "/tools/headline-analyzer": () =>
+    import("@/pages/tools/headline-analyzer"),
+  "/tools/link-prospector": () =>
+    import("@/pages/tools/link-prospector"),
+  "/tools/outreach-email-generator": () =>
+    import("@/pages/tools/outreach-email-generator"),
 };
 
 const prefetched = new Set<string>();
@@ -101,8 +120,8 @@ export function prefetchAuthor(): void {
  * Public route bundle. After first paint, silently warm every public
  * page chunk during browser idle time so that any in-app navigation
  * resolves instantly from cache instead of showing the Suspense
- * fallback. Each loader fires sequentially during idle slices so we
- * never compete with actual user-initiated work for network or CPU.
+ * fallback. Loaders fire in small parallel batches so the full bundle
+ * warms quickly without competing with user interactions.
  */
 const PUBLIC_LOADERS: ReadonlyArray<() => Promise<unknown>> = [
   () => import("@/pages/about"),
@@ -121,7 +140,17 @@ const PUBLIC_LOADERS: ReadonlyArray<() => Promise<unknown>> = [
   () => import("@/pages/terms"),
   () => import("@/pages/editorial-guidelines"),
   () => import("@/pages/community-guidelines"),
+  () => import("@/pages/tools/index"),
   () => import("@/pages/tools/financial-health-score-calculator"),
+  () => import("@/pages/tools/meta-description-generator"),
+  () => import("@/pages/tools/guest-post-pitch-generator"),
+  () => import("@/pages/tools/readability-checker"),
+  () => import("@/pages/tools/keyword-difficulty-estimator"),
+  () => import("@/pages/tools/backlink-value-estimator"),
+  () => import("@/pages/tools/content-brief-generator"),
+  () => import("@/pages/tools/headline-analyzer"),
+  () => import("@/pages/tools/link-prospector"),
+  () => import("@/pages/tools/outreach-email-generator"),
 ];
 
 let publicBundlePrefetched = false;
@@ -169,32 +198,35 @@ function scheduleIdle(fn: () => void): void {
   if (typeof w.requestIdleCallback === "function") {
     w.requestIdleCallback(() => fn(), { timeout: 3000 });
   } else {
-    // Safari fallback. 1500ms is long enough that we're past the
-    // initial render burst on virtually every device.
-    setTimeout(fn, 1500);
+    setTimeout(fn, 800);
   }
+}
+
+/**
+ * Run loaders in parallel batches of `batchSize`. Each batch fires
+ * during a single idle slice so we don't starve user interactions.
+ */
+function runBatched(
+  loaders: ReadonlyArray<() => Promise<unknown>>,
+  batchSize = 3,
+): void {
+  let i = 0;
+  const next = () => {
+    const batch = loaders.slice(i, i + batchSize);
+    if (batch.length === 0) return;
+    i += batchSize;
+    Promise.all(batch.map((l) => l().catch(() => undefined))).finally(() => {
+      if (i < loaders.length) scheduleIdle(next);
+    });
+  };
+  scheduleIdle(next);
 }
 
 export function prefetchAdminBundle(): void {
   if (typeof window === "undefined") return;
   if (adminBundlePrefetched) return;
   adminBundlePrefetched = true;
-
-  // Stagger imports one per idle slice so we never block a real
-  // user interaction. Failures are swallowed — if a chunk genuinely
-  // can't load, the user will hit the normal Suspense fallback when
-  // they navigate to that route, which is the same UX as before.
-  let i = 0;
-  const next = () => {
-    const loader = ADMIN_LOADERS[i++];
-    if (!loader) return;
-    loader()
-      .catch(() => undefined)
-      .finally(() => {
-        if (i < ADMIN_LOADERS.length) scheduleIdle(next);
-      });
-  };
-  scheduleIdle(next);
+  runBatched(ADMIN_LOADERS, 3);
 }
 
 /**
@@ -207,16 +239,5 @@ export function prefetchPublicBundle(): void {
   if (typeof window === "undefined") return;
   if (publicBundlePrefetched) return;
   publicBundlePrefetched = true;
-
-  let i = 0;
-  const next = () => {
-    const loader = PUBLIC_LOADERS[i++];
-    if (!loader) return;
-    loader()
-      .catch(() => undefined)
-      .finally(() => {
-        if (i < PUBLIC_LOADERS.length) scheduleIdle(next);
-      });
-  };
-  scheduleIdle(next);
+  runBatched(PUBLIC_LOADERS, 3);
 }
