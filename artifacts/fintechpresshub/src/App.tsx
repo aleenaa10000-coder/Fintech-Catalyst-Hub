@@ -278,6 +278,7 @@ function Router() {
             <SafeRoute path="/compare/:slug" component={CompareSlug} />
             <SafeRoute path="/compare" component={Compare} />
             <SafeRoute path="/resources/fintech-publications" component={FintechPublications} />
+            <SafeRoute path="/press" component={Press} />
             <SafeRoute path="/write-for-us" component={WriteForUs} />
             <SafeRoute path="/contact" component={Contact} />
             <SafeRoute path="/privacy-policy" component={PrivacyPolicy} />

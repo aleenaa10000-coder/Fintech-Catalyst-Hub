@@ -110,6 +110,12 @@ export default function BlogCategoryPage() {
       <PageMeta
         title={`${displayTitle} Articles | FintechPressHub`}
         description={displayDescription}
+        rssFeeds={[
+          {
+            href: `${SITE_URL}/blog/category/${categorySlug}/rss.xml`,
+            title: `${displayTitle} — FintechPressHub`,
+          },
+        ]}
         article={
           meta
             ? {
