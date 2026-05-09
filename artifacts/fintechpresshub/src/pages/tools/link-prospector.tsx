@@ -614,7 +614,9 @@ export default function LinkProspector() {
     const a = document.createElement("a");
     a.href = url;
     a.download = `selected-prospects-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -720,7 +722,9 @@ export default function LinkProspector() {
     const a = document.createElement("a");
     a.href = url;
     a.download = `link-prospects-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -738,7 +742,9 @@ export default function LinkProspector() {
     const a = document.createElement("a");
     a.href = url;
     a.download = `crm-import-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -1030,7 +1036,9 @@ Looking forward to hearing from you,
     const a = document.createElement("a");
     a.href = url;
     a.download = `link-prospects-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -2464,7 +2472,9 @@ Looking forward to hearing from you,
                                       const a = document.createElement("a");
                                       a.href = url;
                                       a.download = `outreach-timeline-${new Date().toISOString().slice(0, 10)}.csv`;
+                                      document.body.appendChild(a);
                                       a.click();
+                                      document.body.removeChild(a);
                                       URL.revokeObjectURL(url);
                                       toast("Timeline exported", { duration: 2000 });
                                     }}

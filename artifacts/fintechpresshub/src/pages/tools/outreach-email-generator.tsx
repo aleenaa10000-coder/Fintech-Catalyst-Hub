@@ -179,6 +179,13 @@ function fmtDomain(raw: string): string {
   return raw.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 
+function fmtLinkValue(raw: string): string {
+  const n = parseFloat(raw);
+  if (!raw.trim() || isNaN(n) || n <= 0) return raw;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+  return `$${Math.round(n)}`;
+}
+
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -259,7 +266,7 @@ function generateSubjectVariants(form: FormState, tone: Tone): [string, string] 
   const topic   = form.topic.trim() || "digital marketing";
   const site    = siteName(domain);
   const hasValue = form.linkValueMin && form.linkValueMax;
-  const valueRange = hasValue ? `$${form.linkValueMin}–$${form.linkValueMax}` : null;
+  const valueRange = hasValue ? `${fmtLinkValue(form.linkValueMin)}–${fmtLinkValue(form.linkValueMax)}` : null;
 
   if (tone === "professional") {
     return [
@@ -291,7 +298,7 @@ function generateEmailBody(form: FormState, tone: Tone, subject: string): string
   const topic   = form.topic.trim() || "digital marketing";
   const site    = siteName(domain);
   const hasValue = form.linkValueMin && form.linkValueMax;
-  const valueRange = hasValue ? `$${form.linkValueMin}–$${form.linkValueMax}` : "a high-authority link placement";
+  const valueRange = hasValue ? `${fmtLinkValue(form.linkValueMin)}–${fmtLinkValue(form.linkValueMax)}` : "a high-authority link placement";
 
   if (tone === "professional") {
     return `Hi ${site} team,
@@ -667,7 +674,7 @@ function getEmailParagraphAnnotations(
     {
       label: hasValue ? "Value quantification" : "Selectivity signal",
       tip: hasValue
-        ? `Anchors the conversation with a concrete estimated value ($${form.linkValueMin}–$${form.linkValueMax}) — gives the editor a business case they can relay upward without doing the maths themselves.`
+        ? `Anchors the conversation with a concrete estimated value (${fmtLinkValue(form.linkValueMin)}–${fmtLinkValue(form.linkValueMax)}) — gives the editor a business case they can relay upward without doing the maths themselves.`
         : "Framing your outreach as selective (one of a small shortlist) signals quality and scarcity — even without a number, it implies the placement has been strategically chosen.",
     },
     {
@@ -1700,7 +1707,7 @@ export default function OutreachEmailGenerator() {
                 </div>
 
                 {/* Link value */}
-                {(form.linkValueMin || form.linkValueMax) ? (
+                {(form.linkValueMin && form.linkValueMax) ? (
                   <div className="rounded-lg border border-violet-100 bg-violet-50 px-4 py-3 flex items-center gap-3">
                     <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
                       <BarChart2 className="w-3.5 h-3.5 text-violet-600" />
@@ -1710,7 +1717,7 @@ export default function OutreachEmailGenerator() {
                         Estimated link value pre-filled from your assessment
                       </p>
                       <p className="text-[10px] text-violet-600">
-                        ${form.linkValueMin}–${form.linkValueMax} — used in the Data-Led subject variant
+                        {fmtLinkValue(form.linkValueMin)}–{fmtLinkValue(form.linkValueMax)} — used in the Data-Led subject variant
                       </p>
                     </div>
                   </div>

@@ -726,7 +726,9 @@ export default function GuestPostPitchGenerator() {
     const a = document.createElement("a");
     a.href = url;
     a.download = "guest-post-pitch.txt";
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
     trackEvent("Result Downloaded", { tool: "guest-post-pitch-generator", format: "txt" });
   };
