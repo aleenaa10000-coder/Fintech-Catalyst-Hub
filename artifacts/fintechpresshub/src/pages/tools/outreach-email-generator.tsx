@@ -1737,6 +1737,9 @@ export default function OutreachEmailGenerator() {
                   const maxNum = parseFloat(form.linkValueMax);
                   const bothFilled = form.linkValueMin.trim() !== "" && form.linkValueMax.trim() !== "";
                   const rangeError = bothFilled && !isNaN(minNum) && !isNaN(maxNum) && minNum >= maxNum;
+                  const hasMin = form.linkValueMin.trim() !== "" && !isNaN(minNum) && minNum > 0;
+                  const hasMax = form.linkValueMax.trim() !== "" && !isNaN(maxNum) && maxNum > 0;
+                  const showPreview = hasMin || hasMax;
                   const doSwap = () => setForm((prev) => ({
                     ...prev,
                     linkValueMin: prev.linkValueMax,
@@ -1786,6 +1789,22 @@ export default function OutreachEmailGenerator() {
                         />
                       </div>
                     </div>
+                    {showPreview && !rangeError && (
+                      <div className="flex items-center gap-2 rounded-md border border-violet-100 bg-violet-50 px-3 py-1.5">
+                        <BarChart2 className="w-3 h-3 text-violet-400 shrink-0" />
+                        <p className="text-[11px] text-violet-700 font-medium">
+                          In email:{" "}
+                          <span className="font-bold">
+                            {hasMin ? fmtLinkValue(form.linkValueMin) : "…"}
+                            {" – "}
+                            {hasMax ? fmtLinkValue(form.linkValueMax) : "…"}
+                          </span>
+                          {bothFilled && (
+                            <span className="font-normal text-violet-500 ml-1">— Data-Led variant only</span>
+                          )}
+                        </p>
+                      </div>
+                    )}
                     {rangeError ? (
                       <p className="text-[10px] text-red-500 font-medium">
                         Min must be less than Max —{" "}
