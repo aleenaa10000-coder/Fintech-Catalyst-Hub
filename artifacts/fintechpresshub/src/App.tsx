@@ -110,6 +110,7 @@ const CompareSlug = lazy(() => import("@/pages/compare-slug"));
 const FintechPublications = lazy(() => import("@/pages/resources/fintech-publications"));
 const AdminGlossary = lazy(() => import("@/pages/admin-glossary"));
 const AdminDisavow = lazy(() => import("@/pages/admin-disavow"));
+const AdminPress = lazy(() => import("@/pages/admin-press"));
 const Press = lazy(() => import("@/pages/press"));
 
 function RouteFallback() {
@@ -358,6 +359,7 @@ function Router() {
             <AdminRoute path="/admin/seo-performance" component={AdminSeoPerformance} />
             <AdminRoute path="/admin/glossary" component={AdminGlossary} />
             <AdminRoute path="/admin/disavow" component={AdminDisavow} />
+            <AdminRoute path="/admin/press" component={AdminPress} />
             <Route path="/404" component={NotFound} />
             <Route component={NotFound} />
           </Switch>

@@ -35,6 +35,7 @@ import locationsRouter from "./locations";
 import referringDomainsRouter from "./referringDomains";
 import vitalsRouter from "./vitals";
 import categoryRssRouter from "./categoryRss";
+import pressMentionsRouter from "./pressMentions";
 
 const router: IRouter = Router();
 
@@ -74,5 +75,6 @@ router.use(locationsRouter);
 router.use(referringDomainsRouter);
 router.use(vitalsRouter);
 router.use(categoryRssRouter);
+router.use(pressMentionsRouter);
 
 export default router;

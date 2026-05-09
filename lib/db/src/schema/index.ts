@@ -21,3 +21,4 @@ export * from "./locationPages";
 export * from "./disavowDomains";
 export * from "./referringDomains";
 export * from "./webVitals";
+export * from "./pressMentions";

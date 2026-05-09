@@ -22,6 +22,28 @@ import {
 import { SITE_URL } from "@/lib/metaData";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+
+type PressMention = {
+  id: number;
+  title: string;
+  publication: string;
+  url: string;
+  year: string;
+  sortOrder: number;
+};
+
+function usePressMentions() {
+  return useQuery<PressMention[]>({
+    queryKey: ["press-mentions"],
+    queryFn: async () => {
+      const res = await fetch("/api/press-mentions");
+      if (!res.ok) throw new Error("Failed to load press mentions");
+      return res.json() as Promise<PressMention[]>;
+    },
+    staleTime: 60_000,
+  });
+}
 
 const stats = [
   { label: "Monthly Readers", value: "50,000+", icon: Users },
@@ -32,8 +54,6 @@ const stats = [
 
 const boilerplate = `FintechPressHub is a specialist SEO and content marketing agency for fintech companies. Founded in 2021, the agency helps ambitious fintech brands — in payments, embedded finance, open banking, neobanking, lending, and regtech — scale organic growth through expert-led content, high-authority link building, and technical SEO. FintechPressHub publishes original editorial content for 50,000+ monthly readers across eight fintech verticals and accepts guest contributions from established operators and founders. The agency is headquartered online and serves clients worldwide.`;
 
-const recentCoverage: Array<{ title: string; publication: string; url: string; year: string }> = [
-];
 
 const brandColors = [
   { name: "Primary Blue", hex: "#0052FF", usage: "Primary CTA, links, highlights" },
@@ -50,6 +70,7 @@ const logoAssets = [
 
 export default function PressPage() {
   const [copied, setCopied] = useState(false);
+  const { data: mentions = [] } = usePressMentions();
 
   function copyBoilerplate() {
     navigator.clipboard
@@ -166,13 +187,13 @@ export default function PressPage() {
           </div>
 
           {/* Recent Coverage */}
-          {recentCoverage.length > 0 && (
+          {mentions.length > 0 && (
             <div>
               <h2 className="text-2xl font-bold tracking-tight mb-6">Recent coverage</h2>
               <div className="space-y-3">
-                {recentCoverage.map((item) => (
+                {mentions.map((item) => (
                   <a
-                    key={item.url}
+                    key={item.id}
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
