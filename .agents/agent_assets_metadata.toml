@@ -143,3 +143,9 @@ id = "Nhx2Q1R-ZW6jYFxw59L7X"
 uri = "file://attached_assets/logo/fintechpresshub-favicon.svg"
 type = "image"
 title = "FintechPressHub favicon (vector SVG)"
+
+[[outputs]]
+id = "I0_4jxWjP6M9A-3nT6D9S"
+uri = "file://docs/seo-upgrade-roadmap.md"
+type = "text"
+title = "FintechPressHub SEO Upgrade Roadmap"
