@@ -398,6 +398,7 @@ export default function LinkProspector() {
     } catch { return {}; }
   });
   const [filterStatus, setFilterStatus] = useState<"" | OutreachStatus>("");
+  const [filterStaleness, setFilterStaleness] = useState<"" | "overdue" | "due_soon" | "recent">("");
   const [showViz, setShowViz] = useState(false);
   const [minScore, setMinScore] = useState("");
   const [selectedDomains, setSelectedDomains] = useState<Set<string>>(new Set());
@@ -997,8 +998,21 @@ Looking forward to hearing from you,
       ? sorted.filter((r) => (statusMap[r.domain] ?? "not_started") === filterStatus)
       : sorted;
     if (minScoreNum > 0) rows = rows.filter((r) => r.score >= minScoreNum);
+    if (filterStaleness) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      rows = rows.filter((r) => {
+        const dateStr = contactedDateMap[r.domain];
+        if (!dateStr) return filterStaleness === "overdue";
+        const contacted = new Date(dateStr + "T00:00:00");
+        const days = Math.round((today.getTime() - contacted.getTime()) / 86_400_000);
+        if (filterStaleness === "overdue") return days > 30;
+        if (filterStaleness === "due_soon") return days >= 14 && days <= 30;
+        return days < 14;
+      });
+    }
     return rows;
-  }, [sorted, filterStatus, statusMap, minScore]);
+  }, [sorted, filterStatus, statusMap, minScore, filterStaleness, contactedDateMap]);
 
   const allVisibleSelected = filteredSorted.length > 0 && filteredSorted.every((r) => selectedDomains.has(r.domain));
   const someVisibleSelected = !allVisibleSelected && filteredSorted.some((r) => selectedDomains.has(r.domain));
@@ -1402,6 +1416,29 @@ Looking forward to hearing from you,
                             <span className="opacity-70">
                               ({sorted.filter((r) => (statusMap[r.domain] ?? "not_started") === s).length})
                             </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Filter by Staleness */}
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                      <div className="flex items-center gap-1">
+                        {(
+                          [
+                            { key: "overdue",  label: "Overdue",  title: "No contact or last contacted > 30 days ago",  activeCls: "bg-red-600 text-white border-red-600",    inactiveCls: "border-red-200 text-red-600 hover:border-red-400" },
+                            { key: "due_soon", label: "Due Soon", title: "Last contacted 14–30 days ago",                activeCls: "bg-amber-500 text-white border-amber-500", inactiveCls: "border-amber-200 text-amber-600 hover:border-amber-400" },
+                            { key: "recent",   label: "Recent",   title: "Last contacted within the last 14 days",       activeCls: "bg-emerald-600 text-white border-emerald-600", inactiveCls: "border-emerald-200 text-emerald-700 hover:border-emerald-400" },
+                          ] as const
+                        ).map(({ key, label, title, activeCls, inactiveCls }) => (
+                          <button
+                            key={key}
+                            type="button"
+                            title={title}
+                            onClick={() => setFilterStaleness(filterStaleness === key ? "" : key)}
+                            className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-all ${filterStaleness === key ? activeCls : inactiveCls}`}
+                          >
+                            {label}
                           </button>
                         ))}
                       </div>
@@ -2042,8 +2079,8 @@ Looking forward to hearing from you,
                               </span>
                             </td>
                             <td className="px-3 py-3">
-                              <div className="flex items-center gap-1.5">
-                                <span className="flex">
+                              <div className="relative group/difficulty flex items-center gap-1.5">
+                                <span className="flex cursor-default">
                                   {Array.from({ length: 5 }).map((_, si) => (
                                     <Star
                                       key={si}
@@ -2052,6 +2089,26 @@ Looking forward to hearing from you,
                                   ))}
                                 </span>
                                 <span className="text-[11px] text-slate-500">{r.acquisition.label}</span>
+                                {/* Dark tooltip */}
+                                <div className="pointer-events-none absolute left-0 bottom-full mb-2 z-50 w-64 opacity-0 group-hover/difficulty:opacity-100 transition-opacity duration-150">
+                                  <div className="rounded-lg bg-slate-900 border border-slate-700 shadow-xl px-3 py-2.5 text-left">
+                                    <p className="text-[11px] font-semibold text-white leading-snug mb-1">
+                                      {r.acquisition.stars >= 5
+                                        ? "High Authority"
+                                        : r.acquisition.stars <= 2
+                                        ? "High Opportunity"
+                                        : "Moderate Difficulty"}
+                                    </p>
+                                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                                      {r.acquisition.stars >= 5
+                                        ? "These sites have strict editorial standards."
+                                        : r.acquisition.stars <= 2
+                                        ? "Higher likelihood of outreach success based on current metrics."
+                                        : r.acquisition.strategyTip}
+                                    </p>
+                                  </div>
+                                  <div className="absolute left-4 bottom-[-5px] w-2.5 h-2.5 rotate-45 border-r border-b border-slate-700 bg-slate-900" />
+                                </div>
                               </div>
                             </td>
                             <td className="px-3 py-3">
