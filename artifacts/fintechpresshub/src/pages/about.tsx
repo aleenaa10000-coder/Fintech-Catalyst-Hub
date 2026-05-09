@@ -119,7 +119,7 @@ export default function About() {
               >
                 <img
                   src={aboutOffice}
-                  alt="Modern Professional Office"
+                  alt="FintechPressHub team office in New York — specialist fintech SEO and content marketing agency"
                   className="rounded-2xl w-full h-auto aspect-[4/3] object-cover border border-blue-500/20 shadow-2xl shadow-blue-500/10 ring-1 ring-blue-500/10"
                 />
               </motion.div>

@@ -11,6 +11,7 @@ import {
   serviceShortLabelBySlug as shortLabelBySlug,
 } from "@/lib/serviceIcons";
 import { prefetchServiceDetail } from "@/lib/route-prefetch";
+import { SITE_URL } from "@/lib/metaData";
 import { useEffect, useRef } from "react";
 
 export default function Services() {
@@ -46,7 +47,25 @@ export default function Services() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="services" />
+      <PageMeta
+        page="services"
+        itemList={
+          services && services.length > 0
+            ? {
+                name: "Fintech SEO & Content Marketing Services",
+                description:
+                  "Specialist fintech SEO, link building, and content marketing services built to compound organic growth for payments, lending, and banking brands.",
+                items: services.map(
+                  (s: { name: string; slug: string; description: string }) => ({
+                    name: s.name,
+                    url: `${SITE_URL}/services/${s.slug}`,
+                    description: s.description,
+                  }),
+                ),
+              }
+            : undefined
+        }
+      />
       <PageHero
         eyebrow="Services"
         title={<>Growth Engines for Fintech</>}

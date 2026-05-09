@@ -19,6 +19,9 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   authors: "Authors",
   tools: "Tools",
   press: "Press",
+  glossary: "Glossary",
+  compare: "Comparisons",
+  resources: "Resources",
   "financial-health-score-calculator": "Financial Health Score Calculator",
   "meta-description-generator": "Meta Description Generator",
   "guest-post-pitch-generator": "Guest Post Pitch Generator",
@@ -27,6 +30,8 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   "backlink-value-estimator": "Backlink Value Estimator",
   "content-brief-generator": "Content Brief Generator",
   "headline-analyzer": "Headline Analyzer",
+  "link-prospector": "Link Prospector",
+  "outreach-email-generator": "Outreach Email Generator",
   "write-for-us": "Write For Us",
   contact: "Contact",
   "privacy-policy": "Privacy Policy",
@@ -85,12 +90,12 @@ export const PAGE_META = {
       "FintechPressHub is a specialist fintech SEO agency built by operators who have worked inside payments, lending, and banking — not generalists learning on your account. Meet the team.",
   },
   services: {
-    title: "Growth Engines for Fintech Brands",
+    title: "Growth Engines for Fintech Brands | FintechPressHub",
     description:
       "Comprehensive fintech SEO, link building, and content marketing services built to compound organic growth.",
   },
   pricing: {
-    title: "Transparent Fintech SEO Pricing",
+    title: "Transparent Fintech SEO Pricing | FintechPressHub",
     description:
       "Clear, retainer-based pricing for fintech SEO and content marketing — predictable costs with senior operators on every account.",
   },
