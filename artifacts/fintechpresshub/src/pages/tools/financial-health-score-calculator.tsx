@@ -1014,7 +1014,7 @@ function EmailReportCard({
                   We don't sell your data. By submitting, you agree to receive a
                   one-time report email and, if checked, the newsletter. See our{" "}
                   <Link
-                    href="/privacy"
+                    href="/privacy-policy"
                     className="underline underline-offset-2 hover:text-slate-900"
                   >
                     privacy policy

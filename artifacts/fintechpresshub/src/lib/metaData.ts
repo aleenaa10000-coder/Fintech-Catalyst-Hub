@@ -22,6 +22,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   glossary: "Glossary",
   compare: "Comparisons",
   resources: "Resources",
+  category: "Category",
   "financial-health-score-calculator": "Financial Health Score Calculator",
   "meta-description-generator": "Meta Description Generator",
   "guest-post-pitch-generator": "Guest Post Pitch Generator",
