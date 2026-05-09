@@ -357,6 +357,7 @@ export default function LinkProspector() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [error, setError] = useState("");
   const [ran, setRan] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedDomain, setCopiedDomain] = useState<string | null>(null);
   const [scoringMode, setScoringMode] = useState<ScoringMode>(() => {
@@ -512,7 +513,11 @@ export default function LinkProspector() {
     }
   }, []);
 
-  const run = () => runWithText(textarea);
+  const run = () => {
+    setIsRunning(true);
+    runWithText(textarea);
+    setTimeout(() => setIsRunning(false), 900);
+  };
 
   const copyTopProspects = () => {
     const top = results.filter((r) => r.score >= 80).map((r) => r.domain);
@@ -1260,10 +1265,10 @@ Looking forward to hearing from you,
                   <Button
                     onClick={run}
                     disabled={textareaTooLarge}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11 disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isRunning ? "animate-pulse" : ""}`}
                   >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Run Bulk Estimate
+                    <Sparkles className={`w-4 h-4 mr-2 ${isRunning ? "animate-spin" : ""}`} />
+                    {isRunning ? "Processing…" : "Run Bulk Estimate"}
                   </Button>
                   <Button
                     type="button"
@@ -1880,7 +1885,7 @@ Looking forward to hearing from you,
                             />
                           </th>
                           <th className={thCls("priority")} onClick={() => handleSort("priority")} title="Priority Score = Est. Value ÷ Difficulty — higher means a better ROI for your outreach effort">
-                            <span className="flex items-center gap-1"><Trophy className="w-3 h-3 text-amber-500" />Priority <SortIcon col="priority" active={sortKey} dir={sortDir} /></span>
+                            <span className="flex items-center gap-1"><Trophy className="w-3 h-3 text-amber-500" /><Sparkles className="w-3 h-3 text-violet-400" />Priority <SortIcon col="priority" active={sortKey} dir={sortDir} /></span>
                           </th>
                           <th className={thCls("score")} onClick={() => handleSort("score")}>
                             <span className="flex items-center gap-1">Score <SortIcon col="score" active={sortKey} dir={sortDir} /></span>
