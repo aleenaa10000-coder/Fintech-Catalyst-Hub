@@ -86,11 +86,30 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
         slug: blogPostsTable.slug,
         publishedAt: blogPostsTable.publishedAt,
         noIndex: blogPostsTable.noIndex,
+        featured: blogPostsTable.featured,
       })
       .from(blogPostsTable)
       .where(lte(blogPostsTable.publishedAt, sql`now()`))
       .orderBy(desc(blogPostsTable.publishedAt))
   ).filter((p: { noIndex: boolean | null }) => !p.noIndex);
+
+  // Priority tiers for blog posts:
+  //   0.9  — editorially featured (pinned on homepage "Latest Insights")
+  //   0.7  — published within the last 90 days (fresh content signal)
+  //   0.6  — older, non-featured posts
+  //
+  // changefreq mirrors priority: featured/recent posts are re-crawled
+  // weekly so updates surface quickly; older posts monthly.
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+  function blogPriority(p: { featured: boolean | null; publishedAt: Date }): {
+    priority: string;
+    changefreq: string;
+  } {
+    if (p.featured) return { priority: "0.9", changefreq: "weekly" };
+    if (p.publishedAt >= ninetyDaysAgo) return { priority: "0.7", changefreq: "weekly" };
+    return { priority: "0.6", changefreq: "monthly" };
+  }
 
   return [
     ...STATIC_ROUTES.map((r) => ({
@@ -103,13 +122,16 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
       priority: r.priority,
       source: "static" as const,
     })),
-    ...posts.map((p: { slug: string; publishedAt: Date }) => ({
-      loc: `${siteUrl}/blog/${p.slug}`,
-      lastmod: p.publishedAt.toISOString().slice(0, 10),
-      changefreq: "monthly",
-      priority: "0.7",
-      source: "blog" as const,
-    })),
+    ...posts.map((p: { slug: string; publishedAt: Date; featured: boolean | null }) => {
+      const { priority, changefreq } = blogPriority(p);
+      return {
+        loc: `${siteUrl}/blog/${p.slug}`,
+        lastmod: p.publishedAt.toISOString().slice(0, 10),
+        changefreq,
+        priority,
+        source: "blog" as const,
+      };
+    }),
     ...AUTHOR_SLUGS.map((slug) => ({
       loc: `${siteUrl}/authors/${slug}`,
       lastmod: today,
