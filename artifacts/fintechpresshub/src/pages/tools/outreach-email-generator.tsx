@@ -40,6 +40,7 @@ import {
   ArrowLeftRight,
   Download,
   CalendarDays,
+  Send,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -984,6 +985,14 @@ export default function OutreachEmailGenerator() {
     setTimeout(() => setCopiedMarkdown(false), 2000);
   };
 
+  const openInMailClient = () => {
+    if (!activeSubject || !body) return;
+    const to = form.targetDomain ? `editor@${fmtDomain(form.targetDomain)}` : "";
+    const mailto = `mailto:${to}?subject=${encodeURIComponent(activeSubject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+    trackEvent("Result Exported", { tool: "outreach-email-generator", format: "mailto" });
+  };
+
   const downloadAsEml = () => {
     if (!activeSubject || !body) return;
     const from = form.yourName
@@ -1406,6 +1415,15 @@ export default function OutreachEmailGenerator() {
                       className="gap-1.5 text-xs font-semibold transition-all border-slate-200 text-slate-600 hover:border-violet-400 hover:text-violet-700 hover:bg-violet-50"
                     >
                       <Download className="w-3.5 h-3.5" /> Download .eml
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={openInMailClient}
+                      className="gap-1.5 text-xs font-semibold transition-all border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50"
+                    >
+                      <Send className="w-3.5 h-3.5" /> Open in mail client
                     </Button>
                   </div>
                 </div>
