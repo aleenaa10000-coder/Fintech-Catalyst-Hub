@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, blogPostsTable, glossaryTermsTable, locationPagesTable } from "@workspace/db";
+import { db, blogPostsTable, glossaryTermsTable, locationPagesTable, authorsTable } from "@workspace/db";
 import { asc, desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 
@@ -25,7 +25,7 @@ const router: IRouter = Router();
 router.get("/llms.txt", async (_req, res) => {
   const siteUrl = getSiteUrl();
 
-  const [recentPosts, glossaryTerms, locationPages] = await Promise.all([
+  const [recentPosts, glossaryTerms, locationPages, authorTeam] = await Promise.all([
     db
       .select({
         title:    blogPostsTable.title,
@@ -61,6 +61,19 @@ router.get("/llms.txt", async (_req, res) => {
       .from(locationPagesTable)
       .orderBy(asc(locationPagesTable.country), asc(locationPagesTable.city))
       .catch(() => [] as Array<{ slug: string; city: string; country: string; headline: string }>),
+
+    db
+      .select({
+        name:            authorsTable.name,
+        role:            authorsTable.role,
+        slug:            authorsTable.slug,
+        shortBio:        authorsTable.shortBio,
+        yearsExperience: authorsTable.yearsExperience,
+      })
+      .from(authorsTable)
+      .orderBy(asc(authorsTable.name))
+      .limit(10)
+      .catch(() => [] as Array<{ name: string; role: string; slug: string; shortBio: string; yearsExperience: number }>),
   ]);
 
   const indexable = recentPosts.filter((p) => p.slug && p.title);
@@ -125,11 +138,13 @@ Fintech sub-verticals covered: Technical SEO Audit, Fintech SEO Strategy, Compet
 
 ## Editorial team (selected authors)
 
-- **Marcus Webb** (Head of SEO Strategy, 12 years fintech SEO, ex-Head of SEO at two UK challenger banks, BrightonSEO speaker) — [${siteUrl}/authors/marcus-webb](${siteUrl}/authors/marcus-webb)
-- **Naledi Khumalo** (Director of Content Strategy, 10 years fintech content, MBA London Business School, built 3 content programs to 1M+ monthly organic sessions) — [${siteUrl}/authors/naledi-khumalo](${siteUrl}/authors/naledi-khumalo)
-- **James Okafor** (Head of Digital PR, 9 years, placements on Bloomberg/FT/TechCrunch, 600+ editor relationships) — [${siteUrl}/authors/james-okafor](${siteUrl}/authors/james-okafor)
-- **Sarah Chen** (Senior Fintech Content Analyst, CFA charterholder, ex-equity research analyst covering Visa/Mastercard/Adyen) — [${siteUrl}/authors/sarah-chen](${siteUrl}/authors/sarah-chen)
-- **Aisha Mensah** (Compliance & Regtech Editor, JD Osgoode Hall, ex-financial-services regulatory lawyer) — [${siteUrl}/authors/aisha-mensah](${siteUrl}/authors/aisha-mensah)
+${authorTeam.length > 0
+  ? authorTeam.map((a) => {
+      const yoe = a.yearsExperience > 0 ? `, ${a.yearsExperience} years experience` : "";
+      const bio = a.shortBio ? ` — ${a.shortBio.slice(0, 120).replace(/\n/g, " ")}` : "";
+      return `- **${a.name}** (${a.role}${yoe})${bio} — [${siteUrl}/authors/${a.slug}](${siteUrl}/authors/${a.slug})`;
+    }).join("\n")
+  : "- No authors published yet."}
 
 ## Frequently asked questions
 

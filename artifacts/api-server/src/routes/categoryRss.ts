@@ -28,6 +28,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   "neobanking": "Neobanking",
   "lending": "Lending",
   "regtech": "RegTech",
+  "wealthtech": "Wealthtech",
+  "fintech-seo": "Fintech SEO",
 };
 
 function slugToCategory(slug: string): string {

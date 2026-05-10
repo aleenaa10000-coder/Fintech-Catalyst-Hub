@@ -692,6 +692,7 @@ async function handleSsrMeta(
             "@id":           canonical,
             name:            `FintechPressHub — ${loc.city} Fintech SEO`,
             description:     loc.headline,
+            serviceType:     "Fintech SEO & Content Marketing",
             url:             canonical,
             address: {
               "@type":          "PostalAddress",
@@ -746,6 +747,7 @@ async function handleSsrMeta(
             name:         term.term,
             description:  term.shortDef,
             url:          canonical,
+            inLanguage:   "en",
             inDefinedTermSet: {
               "@type": "DefinedTermSet",
               name:    "Fintech Glossary",
@@ -1039,6 +1041,7 @@ async function handleSsrMeta(
             url:                  canonical,
             applicationCategory:  "WebApplication",
             operatingSystem:      "Web",
+            isAccessibleForFree:  true,
             offers: {
               "@type":        "Offer",
               price:          "0",
