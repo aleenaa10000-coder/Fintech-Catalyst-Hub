@@ -14,6 +14,7 @@ import {
   getSiteUrl,
   notifySearchEnginesOfPublish,
 } from "../lib/seo";
+import { invalidateSitemapCache } from "./sitemapIndex";
 
 const router: IRouter = Router();
 
@@ -43,6 +44,8 @@ const LocationPageBody = z.object({
     .regex(/^[A-Z]{2}$/, "countryCode must be an ISO 3166-1 alpha-2 code"),
   headline: z.string().min(1).max(200),
   body: z.string().min(1),
+  seoTitle: z.string().max(100).nullable().optional(),
+  seoDescription: z.string().max(300).nullable().optional(),
 });
 
 const UpdateLocationPageBody = LocationPageBody.partial().refine(
@@ -102,6 +105,9 @@ router.post("/admin/locations", requireAdmin, async (req, res, next) => {
       logger.warn({ err, slug: row.slug }, "IndexNow ping for new location page failed (non-fatal)"),
     );
 
+    // Flush sitemap cache so the new page appears in sitemap-locations.xml immediately.
+    invalidateSitemapCache();
+
     res.status(201).json(row);
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -150,6 +156,9 @@ router.patch(
       ]).catch((err) =>
         logger.warn({ err, slug: row.slug }, "IndexNow ping for updated location page failed (non-fatal)"),
       );
+
+      // Flush sitemap cache so the updated lastmod appears immediately.
+      invalidateSitemapCache();
 
       res.json(row);
     } catch (err) {

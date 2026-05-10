@@ -73,6 +73,10 @@ export const blogPostsTable = pgTable("blog_posts", {
   // Entities *mentioned* in the article (secondary references). Used
   // in the `mentions` property of BlogPosting JSON-LD.
   mentionEntities: jsonb("mention_entities").$type<string[]>(),
+  // Word count computed from the raw HTML content at create/update time.
+  // Stored so the SSR middleware can emit `wordCount` on BlogPosting JSON-LD
+  // without re-parsing the full content on every Googlebot request.
+  wordCount: integer("word_count"),
 });
 
 export type BlogPostRow = typeof blogPostsTable.$inferSelect;

@@ -15,6 +15,10 @@ export const glossaryTermsTable = pgTable("glossary_terms", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
+  // Optional SEO title override — when set, used instead of the auto-derived
+  // "<term> — Fintech Glossary | FintechPressHub" pattern. Lets the admin
+  // hand-tune high-value terms for improved SERP click-through.
+  seoTitle: text("seo_title"),
 });
 
 export type GlossaryTermRow = typeof glossaryTermsTable.$inferSelect;

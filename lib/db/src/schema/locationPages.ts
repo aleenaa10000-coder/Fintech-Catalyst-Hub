@@ -16,6 +16,11 @@ export const locationPagesTable = pgTable("location_pages", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
+  // Optional per-page SEO overrides — when set, these win over the auto-derived
+  // title (from headline) and description. Lets the admin hand-tune how each
+  // location page appears in Google SERPs without editing the headline.
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
 });
 
 export type LocationPageRow = typeof locationPagesTable.$inferSelect;

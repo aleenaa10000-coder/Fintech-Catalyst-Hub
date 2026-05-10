@@ -15,6 +15,7 @@ import {
   notifySearchEnginesOfPublishWithTimeout,
   type SeoNotificationResult,
 } from "../lib/seo";
+import { invalidateSitemapCache } from "./sitemapIndex";
 
 // Bound on how long the publish/update response will wait for the
 // IndexNow ping before returning a "still in progress" placeholder.
@@ -441,6 +442,7 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
         readingMinutes: body.readingMinutes,
         featured: body.featured,
         publishedAt: body.publishedAt ? new Date(body.publishedAt) : new Date(),
+        wordCount: htmlWordCount(body.content),
         // SEO overrides — undefined leaves the column at the DB default
         // (null), null/empty-string explicitly clears it. The zod
         // transformer above already normalized "" → null.
@@ -507,6 +509,10 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
 
     const updatedRow = await recordSeoPing(row.slug, seoNotification);
 
+    // Flush the in-memory sitemap cache so Googlebot gets the updated
+    // sitemap-blog.xml on its next crawl without waiting for the TTL.
+    invalidateSitemapCache();
+
     // PR amplification: fire-and-forget webhook on immediate publishes.
     // Never blocks the admin response; failures are logged only.
     const prWebhookUrl = process.env["PR_WEBHOOK_URL"];
@@ -566,6 +572,11 @@ router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     if (publishedAt !== undefined) {
       updateValues.publishedAt = new Date(publishedAt);
     }
+    // Recompute word count whenever content is updated so the stored value
+    // and the BlogPosting JSON-LD wordCount field stay accurate.
+    if (body.content !== undefined) {
+      updateValues.wordCount = htmlWordCount(body.content);
+    }
     if (lastMaterialUpdateAt !== undefined) {
       updateValues.lastMaterialUpdateAt = lastMaterialUpdateAt
         ? new Date(lastMaterialUpdateAt)
@@ -612,6 +623,11 @@ router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     }
 
     const updatedRow = await recordSeoPing(row.slug, seoNotification);
+
+    // Flush the sitemap cache so Googlebot picks up the updated lastmod
+    // on the next crawl rather than waiting for the 5-minute TTL.
+    invalidateSitemapCache();
+
     res.json(serializeWithSeo(updatedRow ?? row, seoNotification));
   } catch (err) {
     if (err instanceof z.ZodError) {

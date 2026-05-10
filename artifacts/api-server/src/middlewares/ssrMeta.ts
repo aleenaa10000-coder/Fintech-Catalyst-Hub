@@ -50,6 +50,7 @@ import {
   servicesTable,
   authorsTable,
   pricingPlansTable,
+  pressMentionsTable,
 } from "@workspace/db";
 import { eq, lte, sql, desc, asc } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
@@ -813,6 +814,7 @@ async function handleSsrMeta(
           blufSummary:          blogPostsTable.blufSummary,
           aboutEntities:        blogPostsTable.aboutEntities,
           mentionEntities:      blogPostsTable.mentionEntities,
+          wordCount:            blogPostsTable.wordCount,
         })
         .from(blogPostsTable)
         .where(eq(blogPostsTable.slug, slug))
@@ -890,6 +892,7 @@ async function handleSsrMeta(
             ? { mentions: mentionEntities.map((e) => ({ "@type": "Thing", name: e })) }
             : {}),
           ...(post.blufSummary ? { abstract: post.blufSummary.slice(0, 500) } : {}),
+          ...(post.wordCount ? { wordCount: post.wordCount } : {}),
           potentialAction: { "@type": "ReadAction", target: canonical },
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
@@ -947,11 +950,13 @@ async function handleSsrMeta(
       const slug = locationMatch[1]!;
       const [loc] = await db
         .select({
-          city:        locationPagesTable.city,
-          region:      locationPagesTable.region,
-          country:     locationPagesTable.country,
-          countryCode: locationPagesTable.countryCode,
-          headline:    locationPagesTable.headline,
+          city:           locationPagesTable.city,
+          region:         locationPagesTable.region,
+          country:        locationPagesTable.country,
+          countryCode:    locationPagesTable.countryCode,
+          headline:       locationPagesTable.headline,
+          seoTitle:       locationPagesTable.seoTitle,
+          seoDescription: locationPagesTable.seoDescription,
         })
         .from(locationPagesTable)
         .where(eq(locationPagesTable.slug, slug))
@@ -963,9 +968,12 @@ async function handleSsrMeta(
       const locationLabel = loc.region
         ? `${loc.city}, ${loc.region}, ${loc.country}`
         : `${loc.city}, ${loc.country}`;
-      const description   = `FintechPressHub delivers specialist fintech SEO, content marketing, and link-building services to companies operating in ${locationLabel}. Book a free strategy call.`.slice(0, 160);
-      const title         = `${loc.headline} | FintechPressHub`;
-      const ogImage       = `${siteUrl}/api/og?title=${encodeURIComponent(loc.headline)}&category=Location`;
+      const description   = (
+        loc.seoDescription ??
+        `FintechPressHub delivers specialist fintech SEO, content marketing, and link-building services to companies operating in ${locationLabel}. Book a free strategy call.`
+      ).slice(0, 160);
+      const title         = (loc.seoTitle ?? loc.headline) + " | FintechPressHub";
+      const ogImage       = `${siteUrl}/api/og?title=${encodeURIComponent(loc.seoTitle ?? loc.headline)}&category=Location`;
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["locations", slug], loc.city);
 
@@ -1037,11 +1045,13 @@ async function handleSsrMeta(
       const slug = glossaryMatch[1]!;
       const [term] = await db
         .select({
-          term:        glossaryTermsTable.term,
-          shortDef:    glossaryTermsTable.shortDef,
-          category:    glossaryTermsTable.category,
-          publishedAt: glossaryTermsTable.publishedAt,
-          updatedAt:   glossaryTermsTable.updatedAt,
+          term:         glossaryTermsTable.term,
+          shortDef:     glossaryTermsTable.shortDef,
+          category:     glossaryTermsTable.category,
+          publishedAt:  glossaryTermsTable.publishedAt,
+          updatedAt:    glossaryTermsTable.updatedAt,
+          seoTitle:     glossaryTermsTable.seoTitle,
+          relatedTerms: glossaryTermsTable.relatedTerms,
         })
         .from(glossaryTermsTable)
         .where(eq(glossaryTermsTable.slug, slug))
@@ -1051,8 +1061,17 @@ async function handleSsrMeta(
 
       const canonical   = `${siteUrl}/glossary/${slug}`;
       const description = term.shortDef.slice(0, 160);
-      const title       = `${term.term} — Fintech Glossary | FintechPressHub`;
+      const title       = term.seoTitle
+        ? `${term.seoTitle} | FintechPressHub`
+        : `${term.term} — Fintech Glossary | FintechPressHub`;
       const ogImage     = `${siteUrl}/api/og?title=${encodeURIComponent(term.term)}&category=Glossary`;
+
+      // Resolve related term slugs to seeAlso URLs. The relatedTerms array
+      // stores slugs (e.g. "open-banking") that map to /glossary/:slug pages.
+      const relatedSlugs = Array.isArray(term.relatedTerms)
+        ? (term.relatedTerms as string[]).filter(Boolean)
+        : [];
+      const seeAlso = relatedSlugs.map((s) => `${siteUrl}/glossary/${s}`);
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["glossary", slug], term.term);
 
@@ -1081,6 +1100,7 @@ async function handleSsrMeta(
               url:     `${siteUrl}/glossary`,
             },
             ...(term.category ? { subjectOf: { "@type": "Thing", name: term.category } } : {}),
+            ...(seeAlso.length > 0 ? { seeAlso } : {}),
           }, null, 2),
           JSON.stringify({
             "@context": "https://schema.org",
@@ -1887,6 +1907,44 @@ async function handleSsrMeta(
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
             about:       { "@id": `${siteUrl}#organization` },
           }, null, 2));
+
+          // Inject real press mentions from DB as an ItemList of NewsArticle
+          // references. Gives Google structured evidence that FintechPressHub
+          // has been covered by named publications — strengthening E-E-A-T.
+          const mentions = await db
+            .select({
+              title:       pressMentionsTable.title,
+              publication: pressMentionsTable.publication,
+              url:         pressMentionsTable.url,
+              year:        pressMentionsTable.year,
+            })
+            .from(pressMentionsTable)
+            .orderBy(asc(pressMentionsTable.sortOrder))
+            .catch(() => [] as Array<{ title: string; publication: string; url: string; year: string }>);
+
+          if (mentions.length > 0) {
+            extraLds.push(JSON.stringify({
+              "@context": "https://schema.org",
+              "@type":    "ItemList",
+              name:       "FintechPressHub Press Mentions",
+              url:        canonical,
+              itemListElement: mentions.map((m, i) => ({
+                "@type":    "ListItem",
+                position:   i + 1,
+                item: {
+                  "@type":       "NewsArticle",
+                  headline:      m.title,
+                  url:           m.url,
+                  datePublished: m.year,
+                  publisher: {
+                    "@type": "Organization",
+                    name:    m.publication,
+                  },
+                  about: { "@id": `${siteUrl}#organization` },
+                },
+              })),
+            }, null, 2));
+          }
 
         } else {
           // ── All other static pages — generic WebPage schema ───────────────

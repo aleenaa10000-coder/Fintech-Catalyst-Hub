@@ -14,6 +14,7 @@ import {
   getSiteUrl,
   notifySearchEnginesOfPublish,
 } from "../lib/seo";
+import { invalidateSitemapCache } from "./sitemapIndex";
 
 const router: IRouter = Router();
 
@@ -39,6 +40,7 @@ const GlossaryTermBody = z.object({
   body: z.string().min(1),
   category: z.string().optional(),
   relatedTerms: z.array(z.string()).default([]),
+  seoTitle: z.string().max(100).nullable().optional(),
 });
 
 const UpdateGlossaryTermBody = GlossaryTermBody.partial().refine(
@@ -95,6 +97,9 @@ router.post("/admin/glossary", requireAdmin, async (req, res, next) => {
       logger.warn({ err, slug: row.slug }, "IndexNow ping for new glossary term failed (non-fatal)"),
     );
 
+    // Flush sitemap cache so the new term appears in sitemap-glossary.xml immediately.
+    invalidateSitemapCache();
+
     res.status(201).json(row);
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -139,6 +144,9 @@ router.patch(
       ]).catch((err) =>
         logger.warn({ err, slug: row.slug }, "IndexNow ping for updated glossary term failed (non-fatal)"),
       );
+
+      // Flush sitemap cache so the updated lastmod appears immediately.
+      invalidateSitemapCache();
 
       res.json(row);
     } catch (err) {

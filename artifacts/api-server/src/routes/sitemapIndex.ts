@@ -40,6 +40,15 @@ function setCachedSitemap(key: string, xml: string): void {
   _sitemapCache.set(key, { xml, cachedAt: Date.now() });
 }
 
+/**
+ * Imperatively evict all cached sitemap XML strings.
+ * Call this after any content publish or update so Googlebot gets a
+ * fresh sitemap on its next crawl without waiting for the 5-minute TTL.
+ */
+export function invalidateSitemapCache(): void {
+  _sitemapCache.clear();
+}
+
 /** Convert a URL slug to a human-readable title for OG image generation. */
 function humanizeSlug(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -360,12 +369,17 @@ async function buildLocationsSitemapXml(): Promise<string> {
     .map((loc) => {
       const url = `${siteUrl}/locations/${loc.slug}`;
       const lastmod = (loc.updatedAt ?? loc.publishedAt).toISOString().slice(0, 10);
+      const imageUrl = `${siteUrl}/api/og?title=${encodeURIComponent(loc.city)}&category=${encodeURIComponent("Location")}`;
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(url)}</loc>\n` +
         `    <lastmod>${lastmod}</lastmod>\n` +
         `    <changefreq>monthly</changefreq>\n` +
         `    <priority>0.7</priority>\n` +
+        `    <image:image>\n` +
+        `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
+        `      <image:title>${escapeXml(loc.city)}</image:title>\n` +
+        `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(url)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(url)}"/>\n` +
         `  </url>`
@@ -373,7 +387,7 @@ async function buildLocationsSitemapXml(): Promise<string> {
     })
     .join("\n");
 
-  return xmlUrlset(body);
+  return xmlUrlset(body, true);
 }
 
 // ── /sitemap-glossary.xml ────────────────────────────────────────────────────
