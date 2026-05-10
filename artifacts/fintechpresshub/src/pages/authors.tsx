@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { usePublicPosts } from "@/data/usePublicPosts";
 import { authorSlugFromName, authors } from "@/data/authors";
+import { SITE_URL } from "@/lib/metaData";
 import { useAuthors } from "@/data/useAuthors";
 import {
   resolveAuthorPhoto,
@@ -81,7 +82,7 @@ export default function AuthorsIndex() {
           name: "FintechPressHub Editorial Team",
           items: authors.map((a) => ({
             name: a.name,
-            url: `/authors/${a.slug}`,
+            url: `${SITE_URL}/authors/${a.slug}`,
           })),
         }}
       />

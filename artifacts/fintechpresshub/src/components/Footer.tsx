@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Twitter, Linkedin, Github } from "lucide-react";
+import { Twitter, Linkedin } from "lucide-react";
 import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
 import { CookiePreferencesButton } from "@/components/CookiePreferencesButton";
 import { prefetchRoute } from "@/lib/route-prefetch";
@@ -48,17 +48,25 @@ export function Footer() {
               We are a specialized content marketing agency bridging the gap between deep fintech expertise and search visibility. We help financial technology companies scale their organic growth.
             </p>
             <div className="flex items-center gap-4 text-muted-foreground">
-              <a href="#" className="hover:text-primary transition-colors">
+              <a
+                href="https://twitter.com/fintechpresshub"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary transition-colors"
+                aria-label="FintechPressHub on Twitter"
+              >
                 <Twitter className="w-5 h-5" />
                 <span className="sr-only">Twitter</span>
               </a>
-              <a href="#" className="hover:text-primary transition-colors">
+              <a
+                href="https://www.linkedin.com/company/fintechpresshub"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary transition-colors"
+                aria-label="FintechPressHub on LinkedIn"
+              >
                 <Linkedin className="w-5 h-5" />
                 <span className="sr-only">LinkedIn</span>
-              </a>
-              <a href="#" className="hover:text-primary transition-colors">
-                <Github className="w-5 h-5" />
-                <span className="sr-only">GitHub</span>
               </a>
             </div>
           </div>

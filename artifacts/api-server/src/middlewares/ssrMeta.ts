@@ -1508,6 +1508,7 @@ async function handleSsrMeta(
             name:        staticMeta.title,
             description: staticMeta.description,
             dateModified: pageLastmod ?? "2026-05-09",
+            inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
           }, null, 2));
@@ -1540,6 +1541,7 @@ async function handleSsrMeta(
             name:        staticMeta.title,
             description: staticMeta.description,
             dateModified: pageLastmod ?? "2026-05-09",
+            inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
           }, null, 2));
