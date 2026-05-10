@@ -20,7 +20,7 @@ export const PAGE_META = {
   },
   services: {
     path: "/services",
-    title: "Fintech SEO Services & Content Marketing | FintechPressHub",
+    title: "Growth Engines for Fintech Brands | FintechPressHub",
     description:
       "Comprehensive fintech SEO, link building, and content marketing services built to compound organic growth.",
   },
@@ -32,15 +32,15 @@ export const PAGE_META = {
   },
   blog: {
     path: "/blog",
-    title: "Insights & Analysis | FintechPressHub",
+    title: "Fintech SEO & Content Marketing Insights | FintechPressHub",
     description:
-      "Strategy, SEO, and content marketing playbooks for fintech operators.",
+      "Strategy, SEO, and content marketing playbooks for fintech operators. Covering payments, embedded finance, open banking, neobanking, lending, regtech, and wealthtech.",
   },
   authors: {
     path: "/authors",
-    title: "Meet the Team | FintechPressHub",
+    title: "Our Authors | Fintech SEO Specialists | FintechPressHub",
     description:
-      "The senior strategists, writers, and digital PR leads behind FintechPressHub's fintech SEO programs.",
+      "Meet the fintech SEO specialists, analysts, and content strategists who write for FintechPressHub — all with hands-on experience inside regulated financial services.",
   },
   writeForUs: {
     path: "/write-for-us",
@@ -111,21 +111,21 @@ export const PAGE_META = {
   },
   compare: {
     path: "/compare",
-    title: "Agency Comparisons | FintechPressHub",
+    title: "Fintech SEO Agency Comparisons | FintechPressHub",
     description:
-      "Compare fintech SEO agency vs in-house team, freelancers, paid search, and other options — data-driven breakdowns to help you choose the right growth channel.",
+      "Detailed head-to-head comparisons of fintech SEO approaches — agency vs in-house, specialist vs generalist, content-led vs paid. Make an informed decision.",
   },
   compareAgencyVsInHouse: {
     path: "/compare/agency-vs-in-house",
-    title: "Fintech SEO Agency vs In-House Team | FintechPressHub",
+    title: "Fintech SEO Agency vs Generic Agency vs In-House | FintechPressHub",
     description:
-      "A data-driven comparison of hiring a specialist fintech SEO agency versus building an in-house team — costs, speed, expertise, and long-term ROI.",
+      "Compare a fintech SEO specialist, a generic digital agency, and an in-house team across 10 criteria that matter most for regulated financial companies.",
   },
   compareVsFreelancers: {
     path: "/compare/vs-freelancers",
-    title: "Fintech SEO Agency vs Freelancers | FintechPressHub",
+    title: "Fintech SEO Agency vs Freelance Writers vs Consultants | FintechPressHub",
     description:
-      "Specialist fintech SEO agency versus hiring freelance writers and link builders — an honest breakdown of quality, cost, and consistency.",
+      "Compare FintechPressHub with freelance fintech writers and independent SEO consultants. See which model delivers better ROI, consistency, and compliance coverage.",
   },
   compareVsSeoTools: {
     path: "/compare/vs-seo-tools",
@@ -192,6 +192,30 @@ export const PAGE_META = {
     title: "Headline Analyzer | Free SEO Tool | FintechPressHub",
     description:
       "Analyse your article headline for SEO power, emotional impact, readability, and click-worthiness.",
+  },
+  press: {
+    path: "/press",
+    title: "Press & Media Kit | FintechPressHub",
+    description:
+      "Press resources for FintechPressHub — brand assets, company boilerplate, key stats, recent coverage, and press contact details for journalists and editors.",
+  },
+  glossary: {
+    path: "/glossary",
+    title: "Fintech Glossary | Definitions for 100+ Terms | FintechPressHub",
+    description:
+      "Clear, jargon-free definitions for fintech terms — payments, lending, open banking, regtech, wealthtech, and more. Built for founders, marketers, and journalists.",
+  },
+  toolsIndex: {
+    path: "/tools",
+    title: "Free Fintech Marketing Tools | FintechPressHub",
+    description:
+      "Free, browser-based tools for fintech marketers and SEO teams — calculators, generators, and checkers. No sign-up required.",
+  },
+  fintechPublications: {
+    path: "/resources/fintech-publications",
+    title: "Top Fintech Publications & Media Outlets | FintechPressHub",
+    description:
+      "The definitive list of high-authority fintech publications, newsletters, and media outlets for link building and guest post outreach.",
   },
 };
 

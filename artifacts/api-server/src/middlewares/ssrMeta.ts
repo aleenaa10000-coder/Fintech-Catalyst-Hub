@@ -220,7 +220,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   services: "Services",
   pricing: "Pricing",
   blog: "Blog",
-  authors: "Our Authors",
+  authors: "Authors",
   tools: "Free Tools",
   press: "Press",
   glossary: "Glossary",

@@ -17,7 +17,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   pricing: "Pricing",
   blog: "Blog",
   authors: "Authors",
-  tools: "Tools",
+  tools: "Free Tools",
   press: "Press",
   glossary: "Glossary",
   compare: "Comparisons",
@@ -41,6 +41,8 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   terms: "Terms",
   "editorial-guidelines": "Editorial Guidelines",
   "community-guidelines": "Community Guidelines",
+  locations: "Locations",
+  "fintech-publications": "Fintech Publications",
   admin: "Admin",
 };
 
