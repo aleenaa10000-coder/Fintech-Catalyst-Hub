@@ -146,6 +146,13 @@ function buildRss(opts: {
     `    <language>en-us</language>\n` +
     `    <lastBuildDate>${lastBuildDate}</lastBuildDate>\n` +
     `    <atom:link href="${escapeXml(selfUrl)}" rel="self" type="application/rss+xml" />\n` +
+    `    <image>\n` +
+    `      <url>${escapeXml(opts.siteUrl)}/icon-512.png</url>\n` +
+    `      <title>${escapeXml(SITE_NAME)}</title>\n` +
+    `      <link>${escapeXml(opts.siteUrl)}</link>\n` +
+    `      <width>144</width>\n` +
+    `      <height>144</height>\n` +
+    `    </image>\n` +
     (itemsXml ? `${itemsXml}\n` : "") +
     `  </channel>\n` +
     `</rss>\n`

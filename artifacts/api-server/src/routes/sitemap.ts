@@ -128,12 +128,14 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
   const posts = (
     await db
       .select({
-        slug: blogPostsTable.slug,
-        title: blogPostsTable.title,
-        publishedAt: blogPostsTable.publishedAt,
-        noIndex: blogPostsTable.noIndex,
-        featured: blogPostsTable.featured,
-        coverImage: blogPostsTable.coverImage,
+        slug:                blogPostsTable.slug,
+        title:               blogPostsTable.title,
+        publishedAt:         blogPostsTable.publishedAt,
+        updatedAt:           blogPostsTable.updatedAt,
+        lastMaterialUpdateAt: blogPostsTable.lastMaterialUpdateAt,
+        noIndex:             blogPostsTable.noIndex,
+        featured:            blogPostsTable.featured,
+        coverImage:          blogPostsTable.coverImage,
       })
       .from(blogPostsTable)
       .where(lte(blogPostsTable.publishedAt, sql`now()`))
@@ -169,12 +171,17 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
       priority: r.priority,
       source: "static" as const,
     })),
-    ...posts.map((p: { slug: string; title: string; publishedAt: Date; featured: boolean | null; coverImage: string }) => {
+    ...posts.map((p: { slug: string; title: string; publishedAt: Date; updatedAt: Date | null; lastMaterialUpdateAt: Date | null; featured: boolean | null; coverImage: string }) => {
       const { priority, changefreq } = blogPriority(p);
       const imageUrl = resolveImageUrl(siteUrl, p.coverImage);
+      // Use the most recent meaningful date — editorial updates (lastMaterialUpdateAt)
+      // beat DB row updates (updatedAt) beat publish date. Mirrors sitemapIndex.ts.
+      const lastmod = (p.lastMaterialUpdateAt ?? p.updatedAt ?? p.publishedAt)
+        .toISOString()
+        .slice(0, 10);
       return {
         loc: `${siteUrl}/blog/${p.slug}`,
-        lastmod: p.publishedAt.toISOString().slice(0, 10),
+        lastmod,
         changefreq,
         priority,
         source: "blog" as const,

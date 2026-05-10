@@ -598,12 +598,15 @@ export function PageMeta(props: PageMetaProps) {
       ? {
           "@context": "https://schema.org",
           "@type": "WebPage",
-          "@id": canonical,
+          // No @id here — the canonical @id for this WebPage entity is already
+          // declared by webPageJsonLd (or by the SSR middleware). Emitting a
+          // second @id: canonical block for the same entity causes duplicate-node
+          // warnings in Google's Rich Results Test and schema.org validators.
+          url: canonical,
           speakable: {
             "@type": "SpeakableSpecification",
             cssSelector: speakableSelectors,
           },
-          url: canonical,
         }
       : null;
 
