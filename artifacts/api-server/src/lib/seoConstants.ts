@@ -107,3 +107,61 @@ export const COMPARE_PAGE_LASTMOD: Readonly<Record<string, string>> = {
  * whenever service content is revised.
  */
 export const SERVICE_PAGE_LASTMOD_DATE = "2026-05-09";
+
+/**
+ * URL path segment → human-readable label.
+ * Single source of truth for BreadcrumbList JSON-LD on the API server
+ * (ssrMeta.ts). The frontend (metaData.ts) keeps a parallel copy because
+ * cross-package imports from api-server into fintechpresshub are not
+ * permitted in this monorepo — update both files when adding new segments.
+ * Tool slug entries enable correct intermediate breadcrumb labels on
+ * /tools/:slug pages without a second lookup.
+ */
+export const BREADCRUMB_LABELS: Readonly<Record<string, string>> = {
+  about:                               "About",
+  services:                            "Services",
+  pricing:                             "Pricing",
+  blog:                                "Blog",
+  authors:                             "Authors",
+  tools:                               "Free Tools",
+  press:                               "Press",
+  glossary:                            "Glossary",
+  compare:                             "Comparisons",
+  resources:                           "Resources",
+  category:                            "Category",
+  contact:                             "Contact",
+  "privacy-policy":                    "Privacy Policy",
+  "refund-policy":                     "Refund Policy",
+  "cookie-policy":                     "Cookie Policy",
+  terms:                               "Terms",
+  "editorial-guidelines":              "Editorial Guidelines",
+  "community-guidelines":              "Community Guidelines",
+  "write-for-us":                      "Write For Us",
+  "fintech-publications":              "Fintech Publications",
+  locations:                           "Locations",
+  "financial-health-score-calculator": "Financial Health Score Calculator",
+  "meta-description-generator":        "Meta Description Generator",
+  "guest-post-pitch-generator":        "Guest Post Pitch Generator",
+  "readability-checker":               "Readability Checker",
+  "keyword-difficulty-estimator":      "Keyword Difficulty Estimator",
+  "backlink-value-estimator":          "Backlink Value Estimator",
+  "content-brief-generator":           "Content Brief Generator",
+  "headline-analyzer":                 "Headline Analyzer",
+  "link-prospector":                   "Link Prospector",
+  "outreach-email-generator":          "Outreach Email Generator",
+};
+
+/**
+ * Escape special XML/HTML characters.
+ * Shared utility consumed by sitemap generators (sitemap.ts, sitemapIndex.ts)
+ * and the OG image SVG builder (og.ts). Previously duplicated in each file;
+ * now defined once here and imported wherever needed.
+ */
+export function escapeXml(value: string): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}

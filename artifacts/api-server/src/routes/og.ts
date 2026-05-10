@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import sharp from "sharp";
+import { escapeXml } from "../lib/seoConstants";
 
 const router: IRouter = Router();
 
@@ -15,15 +16,6 @@ const CACHE_MAX = 200;
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 type CacheEntry = { buf: Buffer; createdAt: number };
 const cache = new Map<string, CacheEntry>();
-
-function escapeXml(input: string): string {
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
 
 function wrapText(text: string, maxChars: number, maxLines: number): string[] {
   const words = text.trim().split(/\s+/);

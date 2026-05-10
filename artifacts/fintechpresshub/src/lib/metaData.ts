@@ -11,6 +11,14 @@ export const SITE_URL =
       ?.VITE_SITE_URL) ||
   "https://www.fintechpresshub.com";
 
+/**
+ * Client-side mirror of BREADCRUMB_LABELS in
+ * artifacts/api-server/src/lib/seoConstants.ts.
+ * Cross-package imports from api-server are not permitted in this package,
+ * so this copy is maintained in parallel. When adding new URL path segments,
+ * update BOTH files to keep SSR breadcrumbs (Googlebot) and client-side
+ * breadcrumbs (browser) consistent.
+ */
 export const BREADCRUMB_LABELS: Record<string, string> = {
   about: "About",
   services: "Services",

@@ -4,7 +4,7 @@ import { asc, desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
 import { STATIC_ROUTES } from "./sitemap";
-import { STATIC_CATEGORY_SLUGS, TOOL_SLUGS, COMPARE_SLUGS, SERVICE_SLUGS, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, SERVICE_PAGE_LASTMOD_DATE } from "../lib/seoConstants";
+import { STATIC_CATEGORY_SLUGS, TOOL_SLUGS, COMPARE_SLUGS, SERVICE_SLUGS, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, SERVICE_PAGE_LASTMOD_DATE, escapeXml } from "../lib/seoConstants";
 
 const router: IRouter = Router();
 
@@ -69,15 +69,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   "wealthtech":      "Wealthtech",
   "fintech-seo":     "Fintech SEO",
 };
-
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
 
 /**
  * Sitemap Index — /sitemap_index.xml
@@ -262,6 +253,7 @@ async function buildBlogSitemapXml(): Promise<string> {
         noIndex:             blogPostsTable.noIndex,
         featured:            blogPostsTable.featured,
         coverImage:          blogPostsTable.coverImage,
+        blufSummary:         blogPostsTable.blufSummary,
       })
       .from(blogPostsTable)
       .where(lte(blogPostsTable.publishedAt, sql`now()`))
@@ -289,6 +281,9 @@ async function buildBlogSitemapXml(): Promise<string> {
           ? `    <image:image>\n` +
             `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
             `      <image:title>${escapeXml(p.title)}</image:title>\n` +
+            (p.blufSummary
+              ? `      <image:caption>${escapeXml(p.blufSummary.slice(0, 200))}</image:caption>\n`
+              : "") +
             `    </image:image>\n`
           : "") +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(loc)}"/>\n` +
@@ -313,13 +308,13 @@ async function buildAuthorsSitemapXml(): Promise<string> {
   // Fall back to the static KNOWN_AUTHOR_SLUGS list (no photos) if the
   // DB query fails, so the sitemap is never empty due to a DB outage.
   const dbAuthors = await db
-    .select({ slug: authorsTable.slug, photo: authorsTable.photo, name: authorsTable.name, updatedAt: authorsTable.updatedAt })
+    .select({ slug: authorsTable.slug, photo: authorsTable.photo, name: authorsTable.name, role: authorsTable.role, updatedAt: authorsTable.updatedAt })
     .from(authorsTable)
     .orderBy(asc(authorsTable.slug))
-    .catch(() => [] as Array<{ slug: string; photo: string | null; name: string; updatedAt: Date | null }>);
+    .catch(() => [] as Array<{ slug: string; photo: string | null; name: string; role: string | null; updatedAt: Date | null }>);
 
-  const photoMap = new Map<string, { photo: string | null; name: string; updatedAt: Date | null }>(
-    dbAuthors.map((a) => [a.slug, { photo: a.photo ?? null, name: a.name, updatedAt: a.updatedAt ?? null }]),
+  const photoMap = new Map<string, { photo: string | null; name: string; role: string | null; updatedAt: Date | null }>(
+    dbAuthors.map((a) => [a.slug, { photo: a.photo ?? null, name: a.name, role: a.role ?? null, updatedAt: a.updatedAt ?? null }]),
   );
   const slugs = dbAuthors.length > 0
     ? dbAuthors.map((a) => a.slug)
@@ -336,6 +331,9 @@ async function buildAuthorsSitemapXml(): Promise<string> {
       const authorData = photoMap.get(slug);
       const rawPhoto = authorData?.photo ?? null;
       const displayName = authorData?.name ?? humanizeSlug(slug);
+      const authorTitle = authorData?.role
+        ? `${displayName} — ${authorData.role} | FintechPressHub`
+        : `${displayName} | FintechPressHub`;
       const resolvedPhoto = rawPhoto
         ? (rawPhoto.startsWith("http") ? rawPhoto : `${siteUrl}${rawPhoto}`)
         : null;
@@ -351,7 +349,7 @@ async function buildAuthorsSitemapXml(): Promise<string> {
         (resolvedPhoto
           ? `    <image:image>\n` +
             `      <image:loc>${escapeXml(resolvedPhoto)}</image:loc>\n` +
-            `      <image:title>${escapeXml(displayName)}</image:title>\n` +
+            `      <image:title>${escapeXml(authorTitle)}</image:title>\n` +
             `    </image:image>\n`
           : "") +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(loc)}"/>\n` +

@@ -3,7 +3,7 @@ import { db, blogPostsTable } from "@workspace/db";
 import { desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
-import { STATIC_CATEGORY_SLUGS } from "../lib/seoConstants";
+import { STATIC_CATEGORY_SLUGS, escapeXml } from "../lib/seoConstants";
 
 /** Resolve a cover-image value to a fully-qualified URL. */
 function resolveImageUrl(siteUrl: string, raw: string | null): string | null {
@@ -57,15 +57,6 @@ export const STATIC_ROUTES: Array<{
 // route — adding a new author there now flows into both the sitemap and the
 // per-author feed without a second list to maintain.
 const AUTHOR_SLUGS: string[] = KNOWN_AUTHOR_SLUGS;
-
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
 
 /**
  * Tag describing where a sitemap URL came from. Used by the link-checker

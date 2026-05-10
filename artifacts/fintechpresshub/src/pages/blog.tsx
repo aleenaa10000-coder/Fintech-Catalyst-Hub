@@ -115,6 +115,12 @@ export default function Blog() {
     return raw ? raw : undefined;
   }, [search]);
 
+  // ?q= supports Google Sitelinks Searchbox (SearchAction in WebSite JSON-LD).
+  // Reading from URL ensures search results are shareable and survive refresh.
+  const initialSearchQuery = useMemo(() => {
+    return new URLSearchParams(search).get("q")?.trim() ?? "";
+  }, [search]);
+
   const [activeCategory, setActiveCategory] = useState<string | undefined>(
     undefined,
   );
@@ -122,7 +128,7 @@ export default function Blog() {
   const [activeAuthor, setActiveAuthor] = useState<string | undefined>(
     initialAuthor,
   );
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [showAllTags, setShowAllTags] = useState(false);
   const [onlyRecent, setOnlyRecent] = useState(false);
   const [sortBy, setSortBy] = useState<
@@ -156,6 +162,14 @@ export default function Blog() {
       setActiveAuthor(initialAuthor);
     }
   }, [initialAuthor]);
+
+  const lastSyncedSearch = useRef<string>(initialSearchQuery);
+  useEffect(() => {
+    if (initialSearchQuery !== lastSyncedSearch.current) {
+      lastSyncedSearch.current = initialSearchQuery;
+      setSearchQuery(initialSearchQuery);
+    }
+  }, [initialSearchQuery]);
 
   // Mirror active filters back to the URL so the filtered view is
   // shareable and survives a refresh. Use replaceState so we don't pollute
@@ -191,6 +205,24 @@ export default function Blog() {
     window.history.replaceState(window.history.state, "", next);
     lastSyncedAuthor.current = activeAuthor;
   }, [activeAuthor]);
+
+  // Mirror searchQuery → ?q= so the SearchAction declared in WebSite JSON-LD
+  // resolves to a valid, shareable filtered URL.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const current = params.get("q") ?? "";
+    if (current === searchQuery) return;
+    if (searchQuery) {
+      params.set("q", searchQuery);
+    } else {
+      params.delete("q");
+    }
+    const qs = params.toString();
+    const next = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`;
+    window.history.replaceState(window.history.state, "", next);
+    lastSyncedSearch.current = searchQuery;
+  }, [searchQuery]);
 
   // Distinct tags across the merged feed, with usage counts. Sorted by count
   // desc then alphabetically so the most-used tags surface first.

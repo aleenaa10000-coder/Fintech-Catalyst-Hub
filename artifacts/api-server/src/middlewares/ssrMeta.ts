@@ -54,6 +54,7 @@ import {
 } from "@workspace/db";
 import { eq, lte, sql, desc, asc } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
+import { BREADCRUMB_LABELS } from "../lib/seoConstants";
 
 const _frontendDist = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -284,30 +285,6 @@ function buildBreadcrumbLd(crumbs: Array<{ name: string; url: string }>): string
   );
 }
 
-/** Segment label map — mirrors BREADCRUMB_LABELS in the frontend. */
-const SEGMENT_LABELS: Record<string, string> = {
-  about: "About",
-  services: "Services",
-  pricing: "Pricing",
-  blog: "Blog",
-  authors: "Authors",
-  tools: "Free Tools",
-  press: "Press",
-  glossary: "Glossary",
-  compare: "Comparisons",
-  resources: "Resources",
-  category: "Category",
-  contact: "Contact",
-  "privacy-policy": "Privacy Policy",
-  "refund-policy": "Refund Policy",
-  "cookie-policy": "Cookie Policy",
-  terms: "Terms",
-  "editorial-guidelines": "Editorial Guidelines",
-  "community-guidelines": "Community Guidelines",
-  "write-for-us": "Write For Us",
-  "fintech-publications": "Fintech Publications",
-  locations: "Locations",
-};
 
 /**
  * Build breadcrumb items for a given path.
@@ -328,7 +305,7 @@ function buildCrumbsForPath(
     const isLeaf = i === segments.length - 1;
     const label = isLeaf
       ? leafLabel
-      : SEGMENT_LABELS[seg] ?? seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      : BREADCRUMB_LABELS[seg] ?? seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     crumbs.push({ name: label, url: `${siteUrl}${acc}` });
   });
   return crumbs;
@@ -1356,6 +1333,7 @@ async function handleSsrMeta(
               url:          canonical,
               image:        ogImage,
               worksFor:     { "@id": `${siteUrl}#organization` },
+              employer:     { "@id": `${siteUrl}#organization` },
               sameAs: [social.linkedin, social.twitter, social.website].filter(Boolean),
               ...(Array.isArray(author.expertise) && author.expertise.length > 0
                 ? { knowsAbout: author.expertise }
@@ -2152,7 +2130,7 @@ async function handleSsrMeta(
 }
 
 export function ssrMetaMiddleware(req: Request, res: Response, next: NextFunction): void {
-  if (process.env.NODE_ENV !== "production") return next();
+  if (process.env.NODE_ENV !== "production" && !process.env.SSR_META_DEV) return next();
   if (req.method !== "GET" && req.method !== "HEAD") return next();
 
   const reqPath = req.path;
