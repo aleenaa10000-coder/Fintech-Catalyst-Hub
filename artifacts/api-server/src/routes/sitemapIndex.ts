@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, blogPostsTable, locationPagesTable, glossaryTermsTable, servicesTable } from "@workspace/db";
+import { db, blogPostsTable, locationPagesTable, glossaryTermsTable, servicesTable, authorsTable } from "@workspace/db";
 import { asc, desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
@@ -7,6 +7,43 @@ import { STATIC_ROUTES } from "./sitemap";
 import { STATIC_CATEGORY_SLUGS, TOOL_SLUGS, COMPARE_SLUGS, SERVICE_SLUGS } from "../lib/seoConstants";
 
 const router: IRouter = Router();
+
+// ── In-memory sitemap cache ───────────────────────────────────────────────────
+//
+// Sitemaps are queried on every Googlebot crawl request. Under heavy crawl
+// pressure (which Google applies to fast sites) this causes multiple DB round-
+// trips per minute for queries that return identical XML between publishes.
+//
+// The cache below stores each sitemap's XML string with a 5-minute TTL. This
+// matches the HTTP Cache-Control s-maxage=3600 header (CDN will cache longer),
+// but protects the DB when no CDN sits in front (e.g. Hostinger direct hits,
+// Bing/Yandex bots that ignore cache headers).
+//
+// Invalidation: process restart (new deploy) always clears the cache because
+// the Map is module-level, not persistent. Per-publish IndexNow pings happen
+// via seo.ts and are unaffected by this cache.
+const SITEMAP_TTL_MS = 5 * 60 * 1000;
+type SitemapCacheEntry = { xml: string; cachedAt: number };
+const _sitemapCache = new Map<string, SitemapCacheEntry>();
+
+function getCachedSitemap(key: string): string | null {
+  const entry = _sitemapCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt > SITEMAP_TTL_MS) {
+    _sitemapCache.delete(key);
+    return null;
+  }
+  return entry.xml;
+}
+
+function setCachedSitemap(key: string, xml: string): void {
+  _sitemapCache.set(key, { xml, cachedAt: Date.now() });
+}
+
+/** Convert a URL slug to a human-readable title for OG image generation. */
+function humanizeSlug(slug: string): string {
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 function escapeXml(value: string): string {
   return value
@@ -213,28 +250,58 @@ async function buildAuthorsSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
   const today = new Date().toISOString().slice(0, 10);
 
+  // Fetch author slugs + photos from the DB. Photos are included as
+  // <image:image> entries so Google Images can discover and index author
+  // headshots, which strengthens E-E-A-T signals for the site.
+  // Fall back to the static KNOWN_AUTHOR_SLUGS list (no photos) if the
+  // DB query fails, so the sitemap is never empty due to a DB outage.
+  const dbAuthors = await db
+    .select({ slug: authorsTable.slug, photo: authorsTable.photo, name: authorsTable.name })
+    .from(authorsTable)
+    .orderBy(asc(authorsTable.slug))
+    .catch(() => [] as Array<{ slug: string; photo: string | null; name: string }>);
+
+  const photoMap = new Map<string, { photo: string | null; name: string }>(
+    dbAuthors.map((a) => [a.slug, { photo: a.photo ?? null, name: a.name }]),
+  );
+  const slugs = dbAuthors.length > 0
+    ? dbAuthors.map((a) => a.slug)
+    : KNOWN_AUTHOR_SLUGS;
+
+  const hasAnyPhoto = slugs.some((s) => photoMap.get(s)?.photo);
+
   // RSS feed entries (.rss.xml) are XML documents, not HTML pages.
   // They must never appear in an HTML page sitemap — Google would attempt
   // to index them as web pages, creating soft-404s and wasted crawl budget.
-  const body = KNOWN_AUTHOR_SLUGS
-    .map(
-      (slug) => {
-        const loc = `${siteUrl}/authors/${slug}`;
-        return (
-          `  <url>\n` +
-          `    <loc>${escapeXml(loc)}</loc>\n` +
-          `    <lastmod>${today}</lastmod>\n` +
-          `    <changefreq>monthly</changefreq>\n` +
-          `    <priority>0.6</priority>\n` +
-          `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(loc)}"/>\n` +
-          `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(loc)}"/>\n` +
-          `  </url>`
-        );
-      },
-    )
+  const body = slugs
+    .map((slug) => {
+      const loc = `${siteUrl}/authors/${slug}`;
+      const authorData = photoMap.get(slug);
+      const rawPhoto = authorData?.photo ?? null;
+      const displayName = authorData?.name ?? humanizeSlug(slug);
+      const resolvedPhoto = rawPhoto
+        ? (rawPhoto.startsWith("http") ? rawPhoto : `${siteUrl}${rawPhoto}`)
+        : null;
+      return (
+        `  <url>\n` +
+        `    <loc>${escapeXml(loc)}</loc>\n` +
+        `    <lastmod>${today}</lastmod>\n` +
+        `    <changefreq>monthly</changefreq>\n` +
+        `    <priority>0.6</priority>\n` +
+        (resolvedPhoto
+          ? `    <image:image>\n` +
+            `      <image:loc>${escapeXml(resolvedPhoto)}</image:loc>\n` +
+            `      <image:title>${escapeXml(displayName)}</image:title>\n` +
+            `    </image:image>\n`
+          : "") +
+        `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(loc)}"/>\n` +
+        `  </url>`
+      );
+    })
     .join("\n");
 
-  return xmlUrlset(body);
+  return xmlUrlset(body, hasAnyPhoto);
 }
 
 // ── /sitemap-locations.xml ───────────────────────────────────────────────────
@@ -321,29 +388,46 @@ async function buildToolsSitemapXml(): Promise<string> {
   const today = new Date().toISOString().slice(0, 10);
 
   const entries = [
-    { loc: `${siteUrl}/tools`, changefreq: "monthly", priority: "0.8" },
-    ...TOOL_SLUGS.map((slug) => ({
-      loc: `${siteUrl}/tools/${slug}`,
+    {
+      loc:        `${siteUrl}/tools`,
       changefreq: "monthly",
-      priority: "0.7",
+      priority:   "0.8",
+      ogTitle:    "Free Fintech Marketing Tools",
+      category:   "Tools",
+    },
+    ...TOOL_SLUGS.map((slug) => ({
+      loc:        `${siteUrl}/tools/${slug}`,
+      changefreq: "monthly",
+      priority:   "0.7",
+      ogTitle:    humanizeSlug(slug),
+      category:   "Free Tool",
     })),
   ];
 
+  // Include OG images as <image:image> entries so Google's image crawler
+  // indexes the branded card for each tool, improving visual search presence
+  // and increasing the chance of image-rich results for tool-related queries.
   const body = entries
-    .map(
-      (u) =>
+    .map((u) => {
+      const imageUrl = `${siteUrl}/api/og?title=${encodeURIComponent(u.ogTitle)}&category=${encodeURIComponent(u.category)}`;
+      return (
         `  <url>\n` +
         `    <loc>${escapeXml(u.loc)}</loc>\n` +
         `    <lastmod>${today}</lastmod>\n` +
         `    <changefreq>${u.changefreq}</changefreq>\n` +
         `    <priority>${u.priority}</priority>\n` +
+        `    <image:image>\n` +
+        `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
+        `      <image:title>${escapeXml(u.ogTitle)}</image:title>\n` +
+        `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n` +
-        `  </url>`,
-    )
+        `  </url>`
+      );
+    })
     .join("\n");
 
-  return xmlUrlset(body);
+  return xmlUrlset(body, true);
 }
 
 // ── /sitemap-compare.xml ─────────────────────────────────────────────────────
@@ -353,29 +437,45 @@ async function buildCompareSitemapXml(): Promise<string> {
   const today = new Date().toISOString().slice(0, 10);
 
   const entries = [
-    { loc: `${siteUrl}/compare`, changefreq: "monthly", priority: "0.6" },
-    ...COMPARE_SLUGS.map((slug) => ({
-      loc: `${siteUrl}/compare/${slug}`,
+    {
+      loc:        `${siteUrl}/compare`,
       changefreq: "monthly",
-      priority: "0.6",
+      priority:   "0.6",
+      ogTitle:    "Fintech SEO Agency Comparisons",
+      category:   "Compare",
+    },
+    ...COMPARE_SLUGS.map((slug) => ({
+      loc:        `${siteUrl}/compare/${slug}`,
+      changefreq: "monthly",
+      priority:   "0.6",
+      ogTitle:    humanizeSlug(slug),
+      category:   "Compare",
     })),
   ];
 
+  // Include OG images so Google Images indexes the branded card for each
+  // comparison page — improves visual search presence and social sharing.
   const body = entries
-    .map(
-      (u) =>
+    .map((u) => {
+      const imageUrl = `${siteUrl}/api/og?title=${encodeURIComponent(u.ogTitle)}&category=${encodeURIComponent(u.category)}`;
+      return (
         `  <url>\n` +
         `    <loc>${escapeXml(u.loc)}</loc>\n` +
         `    <lastmod>${today}</lastmod>\n` +
         `    <changefreq>${u.changefreq}</changefreq>\n` +
         `    <priority>${u.priority}</priority>\n` +
+        `    <image:image>\n` +
+        `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
+        `      <image:title>${escapeXml(u.ogTitle)}</image:title>\n` +
+        `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n` +
-        `  </url>`,
-    )
+        `  </url>`
+      );
+    })
     .join("\n");
 
-  return xmlUrlset(body);
+  return xmlUrlset(body, true);
 }
 
 // ── /sitemap-services.xml ────────────────────────────────────────────────────
@@ -436,58 +536,34 @@ function xmlUrlset(body: string, withImage = false): string {
 
 const CACHE = "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400";
 
-router.get("/sitemap_index.xml", async (_req, res) => {
+/** Wrap a sitemap builder with the in-memory TTL cache. */
+async function serveSitemap(
+  key: string,
+  builder: () => Promise<string>,
+  res: import("express").Response,
+): Promise<void> {
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", CACHE);
-  res.send(await buildSitemapIndexXml());
-});
+  const cached = getCachedSitemap(key);
+  if (cached) {
+    res.setHeader("X-Sitemap-Cache", "HIT");
+    res.send(cached);
+    return;
+  }
+  const xml = await builder();
+  setCachedSitemap(key, xml);
+  res.setHeader("X-Sitemap-Cache", "MISS");
+  res.send(xml);
+}
 
-router.get("/sitemap-pages.xml", async (_req, res) => {
-  res.setHeader("Content-Type", "application/xml; charset=utf-8");
-  res.setHeader("Cache-Control", CACHE);
-  res.send(await buildPagesSitemapXml());
-});
-
-router.get("/sitemap-blog.xml", async (_req, res) => {
-  res.setHeader("Content-Type", "application/xml; charset=utf-8");
-  res.setHeader("Cache-Control", CACHE);
-  res.send(await buildBlogSitemapXml());
-});
-
-router.get("/sitemap-authors.xml", async (_req, res) => {
-  res.setHeader("Content-Type", "application/xml; charset=utf-8");
-  res.setHeader("Cache-Control", CACHE);
-  res.send(await buildAuthorsSitemapXml());
-});
-
-router.get("/sitemap-locations.xml", async (_req, res) => {
-  res.setHeader("Content-Type", "application/xml; charset=utf-8");
-  res.setHeader("Cache-Control", CACHE);
-  res.send(await buildLocationsSitemapXml());
-});
-
-router.get("/sitemap-glossary.xml", async (_req, res) => {
-  res.setHeader("Content-Type", "application/xml; charset=utf-8");
-  res.setHeader("Cache-Control", CACHE);
-  res.send(await buildGlossarySitemapXml());
-});
-
-router.get("/sitemap-tools.xml", async (_req, res) => {
-  res.setHeader("Content-Type", "application/xml; charset=utf-8");
-  res.setHeader("Cache-Control", CACHE);
-  res.send(await buildToolsSitemapXml());
-});
-
-router.get("/sitemap-compare.xml", async (_req, res) => {
-  res.setHeader("Content-Type", "application/xml; charset=utf-8");
-  res.setHeader("Cache-Control", CACHE);
-  res.send(await buildCompareSitemapXml());
-});
-
-router.get("/sitemap-services.xml", async (_req, res) => {
-  res.setHeader("Content-Type", "application/xml; charset=utf-8");
-  res.setHeader("Cache-Control", CACHE);
-  res.send(await buildServicesSitemapXml());
-});
+router.get("/sitemap_index.xml",  (_req, res) => serveSitemap("sitemap_index",  buildSitemapIndexXml,   res));
+router.get("/sitemap-pages.xml",  (_req, res) => serveSitemap("sitemap_pages",  buildPagesSitemapXml,   res));
+router.get("/sitemap-blog.xml",   (_req, res) => serveSitemap("sitemap_blog",   buildBlogSitemapXml,    res));
+router.get("/sitemap-authors.xml",(_req, res) => serveSitemap("sitemap_authors",buildAuthorsSitemapXml, res));
+router.get("/sitemap-locations.xml",(_req, res) => serveSitemap("sitemap_locations", buildLocationsSitemapXml, res));
+router.get("/sitemap-glossary.xml", (_req, res) => serveSitemap("sitemap_glossary",  buildGlossarySitemapXml,  res));
+router.get("/sitemap-tools.xml",    (_req, res) => serveSitemap("sitemap_tools",     buildToolsSitemapXml,     res));
+router.get("/sitemap-compare.xml",  (_req, res) => serveSitemap("sitemap_compare",   buildCompareSitemapXml,   res));
+router.get("/sitemap-services.xml", (_req, res) => serveSitemap("sitemap_services",  buildServicesSitemapXml,  res));
 
 export default router;

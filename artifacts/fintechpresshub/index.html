@@ -44,6 +44,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
+    <!-- Allow Google full snippet + large image previews + video previews in SERPs.
+         Without this directive Googlebot truncates snippets at 160 chars and shows
+         small thumbnails, reducing click-through rate on rich results. -->
+    <meta name="robots" content="max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+
     <!-- Google Search Console verification — replace content value when verifying ownership -->
     <!-- <meta name="google-site-verification" content="REPLACE_WITH_YOUR_GSC_VERIFICATION_TOKEN" /> -->
 

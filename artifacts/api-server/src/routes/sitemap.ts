@@ -235,8 +235,19 @@ async function buildSitemapXml(): Promise<string> {
   //   rss         — XML feeds, not HTML pages.
   //   category    — blog category hub pages already in /sitemap-pages.xml;
   //                 duplicating them here wastes crawl budget.
+  // Legacy sitemap.xml is kept as a backward-compatible fallback but should
+  // only contain static pages. Blog posts and author pages are already listed
+  // in the authoritative child sitemaps (sitemap-blog.xml, sitemap-authors.xml)
+  // which are part of sitemap_index.xml. Including them here too causes every
+  // URL to appear in multiple sitemaps, wasting crawl budget and making Google
+  // Search Console coverage reports harder to read.
   const entries = allEntries.filter(
-    (e) => e.source !== "press-asset" && e.source !== "rss" && e.source !== "category",
+    (e) =>
+      e.source !== "press-asset" &&
+      e.source !== "rss" &&
+      e.source !== "category" &&
+      e.source !== "blog" &&
+      e.source !== "author",
   );
 
   const body = entries

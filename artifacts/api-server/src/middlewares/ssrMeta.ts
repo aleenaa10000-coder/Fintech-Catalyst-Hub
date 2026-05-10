@@ -121,6 +121,12 @@ interface MetaPatches {
   /** twitter:creator tag (blog posts — author's Twitter @handle). */
   twitterCreator?: string;
   /**
+   * Extra raw <link> HTML tags injected into <head> before JSON-LD blocks.
+   * Used for RSS autodiscovery on author pages and any other per-page link
+   * annotations that aren't article:* meta tags.
+   */
+  headLinks?: string[];
+  /**
    * Array of JSON-LD strings — each injected as its own
    * <script type="application/ld+json"> block before </head>.
    * Use an array instead of a single string so multiple schema types
@@ -173,9 +179,26 @@ function patchHtml(base: string, p: MetaPatches): string {
   html = html.replace(/(<meta name="twitter:image:alt" content=")[^"]*(")/,    `$1${esc(p.ogImageAlt)}$2`);
 
   // Collect all injections (structured data + article meta) and insert
-  // them as a block just before </head>. Order: JSON-LD first, then article
-  // meta tags (which are not script blocks).
+  // them as a block just before </head>. Order:
+  //   1. Self-referential hreflang <link> tags (Google requires these in HTML
+  //      <head> as well as in sitemaps for full spec compliance).
+  //   2. Extra per-page <link> tags (RSS autodiscovery, etc.).
+  //   3. JSON-LD structured data blocks.
+  //   4. Article OG meta tags (article:section, article:tag, etc.).
   const injections: string[] = [];
+
+  // Hreflang: for this English-only site we declare both "en" and "x-default"
+  // pointing to the same canonical URL. These are injected server-side so
+  // crawlers that don't execute JavaScript still see them.
+  injections.push(`  <link rel="alternate" hreflang="en" href="${esc(p.canonical)}" />`);
+  injections.push(`  <link rel="alternate" hreflang="x-default" href="${esc(p.canonical)}" />`);
+
+  // Extra per-page <link> tags (e.g., author RSS autodiscovery).
+  if (p.headLinks && p.headLinks.length > 0) {
+    for (const link of p.headLinks) {
+      injections.push(link);
+    }
+  }
 
   if (p.extraLds && p.extraLds.length > 0) {
     for (const ld of p.extraLds) {
@@ -1195,6 +1218,11 @@ async function handleSsrMeta(
         ogImage,
         ogImageAlt:    `${author.name}, ${author.role} at FintechPressHub`,
         ogType:        "profile",
+        // RSS autodiscovery link — injected server-side so feed readers and
+        // AI crawlers that skip JavaScript can find the per-author feed.
+        headLinks: [
+          `  <link rel="alternate" type="application/rss+xml" title="${esc(`${author.name} — FintechPressHub`)}" href="${esc(`${siteUrl}/authors/${slug}/rss.xml`)}" />`,
+        ],
         extraLds: [
           JSON.stringify({
             "@context": "https://schema.org",
