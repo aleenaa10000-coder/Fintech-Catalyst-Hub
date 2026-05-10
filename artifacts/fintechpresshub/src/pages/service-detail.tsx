@@ -20,6 +20,7 @@ import {
   serviceShortLabelBySlug,
   serviceFinancialTypeBySlug,
   serviceCategoryBySlug,
+  serviceKnowsAboutBySlug,
 } from "@/lib/serviceIcons";
 import { getServiceFaqs } from "@/lib/serviceFaqs";
 
@@ -57,6 +58,7 @@ export default function ServiceDetail() {
   const shortLabel = serviceShortLabelBySlug[service.slug] ?? service.name;
   const financialType = serviceFinancialTypeBySlug[service.slug] ?? shortLabel;
   const financialCategory = serviceCategoryBySlug[service.slug] ?? "Fintech Marketing";
+  const knowsAbout = serviceKnowsAboutBySlug[service.slug] ?? [];
   const otherServices = (services ?? []).filter((s: ServiceShape) => s.slug !== service.slug);
 
   const seoTitle = `${service.name} | FintechPressHub`;
@@ -79,6 +81,7 @@ export default function ServiceDetail() {
           areaServed: "Worldwide",
           url: canonical,
           deliverables: service.deliverables,
+          knowsAbout,
         }}
         faq={faqs.length > 0 ? faqs : undefined}
       />

@@ -51,6 +51,68 @@ export const serviceCategoryBySlug: Record<string, string> = {
   "fintech-seo-audit": "Financial SEO Consulting",
 };
 
+/**
+ * `knowsAbout` topic arrays for each service's FinancialService JSON-LD.
+ * Each topic becomes a `Thing` node so Knowledge Graph and LLM engines
+ * can map the service to specific fintech sub-verticals.
+ */
+export const serviceKnowsAboutBySlug: Record<string, string[]> = {
+  "fintech-content-writing": [
+    "Fintech Content Marketing",
+    "Payments Content",
+    "Embedded Finance",
+    "B2B Lending Content",
+    "Open Banking",
+    "Neobanking",
+    "RegTech Content",
+    "Wealthtech Content",
+    "BNPL Content",
+    "Financial Services Copywriting",
+  ],
+  "off-page-seo": [
+    "Fintech Link Building",
+    "Financial Services Off-Page SEO",
+    "Domain Authority Building",
+    "Digital PR for Fintech",
+    "Finance Publication Outreach",
+    "Backlink Strategy",
+    "Payments SEO",
+    "Open Banking SEO",
+  ],
+  "guest-posting": [
+    "Fintech Guest Posting",
+    "Finance Publication Placements",
+    "Editorial Link Building",
+    "Executive Thought Leadership",
+    "Financial Media Relations",
+    "BNPL Coverage",
+    "Embedded Finance Media",
+    "Payments Industry Press",
+  ],
+  "topical-authority": [
+    "Topical Authority Building",
+    "Fintech SEO Strategy",
+    "Content Cluster Development",
+    "Keyword Research for Fintech",
+    "Payments SEO",
+    "Lending SEO",
+    "Open Banking SEO",
+    "Neobanking SEO",
+    "Embedded Finance SEO",
+    "Wealthtech SEO",
+  ],
+  "fintech-seo-audit": [
+    "Technical SEO Audit",
+    "Fintech SEO Strategy",
+    "Competitor Content Analysis",
+    "Content Gap Analysis",
+    "Core Web Vitals",
+    "Financial Services Compliance SEO",
+    "SEO Performance Benchmarking",
+    "Keyword Opportunity Mapping",
+  ],
+};
+
 export function getServiceIcon(slug: string): LucideIcon {
   return serviceIconBySlug[slug] ?? Sparkles;
 }

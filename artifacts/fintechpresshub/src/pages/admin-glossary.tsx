@@ -276,8 +276,8 @@ export default function AdminGlossary() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) =>
-      apiFetch(`/admin/glossary/${id}`, { method: "DELETE" }),
+    mutationFn: (slug: string) =>
+      apiFetch(`/admin/glossary/${slug}`, { method: "DELETE" }),
     onSuccess: () => {
       toast.success("Term deleted");
       qc.invalidateQueries({ queryKey: ["admin-glossary"] });
@@ -448,7 +448,7 @@ export default function AdminGlossary() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteTarget && deleteMut.mutate(deleteTarget.id)}
+              onClick={() => deleteTarget && deleteMut.mutate(deleteTarget.slug)}
               disabled={deleteMut.isPending}
             >
               Delete

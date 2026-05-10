@@ -105,6 +105,13 @@ export type ServiceSchema = {
    * Google's Knowledge Graph classify the service more precisely.
    */
   schemaType?: "Service" | "FinancialService";
+  /**
+   * Fintech sub-verticals and topic areas this service covers.
+   * Emitted as `knowsAbout` on the FinancialService JSON-LD so that AI
+   * citation engines and Google's Knowledge Graph can slot each offering
+   * into the correct domain (e.g. "Open Banking", "Embedded Finance").
+   */
+  knowsAbout?: string[];
 };
 
 export type EmployeePerson = {
@@ -409,6 +416,14 @@ export function PageMeta(props: PageMetaProps) {
         category: props.service.category,
         areaServed: props.service.areaServed ?? "Worldwide",
         url: props.service.url ?? canonical,
+        ...(props.service.knowsAbout && props.service.knowsAbout.length > 0
+          ? {
+              knowsAbout: props.service.knowsAbout.map((topic) => ({
+                "@type": "Thing",
+                name: topic,
+              })),
+            }
+          : {}),
         provider: {
           "@type": "Organization",
           "@id": `${SITE_URL}#organization`,
