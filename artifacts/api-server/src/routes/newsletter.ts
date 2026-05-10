@@ -18,41 +18,45 @@ router.post("/newsletter/subscribe", formRateLimiter, async (req, res) => {
   const source = parsed.data.source ?? null;
   const keyword = parsed.data.keyword?.trim() || null;
 
-  const existing = await db
-    .select()
-    .from(newsletterSubscribersTable)
-    .where(eq(newsletterSubscribersTable.email, email))
-    .limit(1);
+  try {
+    const existing = await db
+      .select()
+      .from(newsletterSubscribersTable)
+      .where(eq(newsletterSubscribersTable.email, email))
+      .limit(1);
 
-  if (existing.length > 0) {
-    const row = existing[0]!;
+    if (existing.length > 0) {
+      const row = existing[0]!;
+      res.json({
+        id: row.id,
+        email: row.email,
+        source: row.source,
+        alreadySubscribed: true,
+        createdAt: row.createdAt.toISOString(),
+      });
+      return;
+    }
+
+    const [row] = await db
+      .insert(newsletterSubscribersTable)
+      .values({ email, source, keyword })
+      .returning();
+
+    if (!row) {
+      res.status(500).json({ error: "Failed to subscribe" });
+      return;
+    }
+
     res.json({
       id: row.id,
       email: row.email,
       source: row.source,
-      alreadySubscribed: true,
+      alreadySubscribed: false,
       createdAt: row.createdAt.toISOString(),
     });
-    return;
-  }
-
-  const [row] = await db
-    .insert(newsletterSubscribersTable)
-    .values({ email, source, keyword })
-    .returning();
-
-  if (!row) {
+  } catch (err) {
     res.status(500).json({ error: "Failed to subscribe" });
-    return;
   }
-
-  res.json({
-    id: row.id,
-    email: row.email,
-    source: row.source,
-    alreadySubscribed: false,
-    createdAt: row.createdAt.toISOString(),
-  });
 });
 
 export default router;

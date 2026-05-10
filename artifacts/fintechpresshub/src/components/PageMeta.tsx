@@ -201,6 +201,22 @@ export type PricingOfferSchema = {
   url?: string;
 };
 
+export type LocalBusinessSchema = {
+  /** Business name, e.g. "FintechPressHub — London Fintech SEO" */
+  name: string;
+  description?: string;
+  /** City / locality */
+  addressLocality: string;
+  /** Region / state (optional) */
+  addressRegion?: string;
+  /** ISO 3166-1 alpha-2 country code, e.g. "GB" */
+  addressCountry: string;
+  /** Country name for areaServed */
+  areaServedName?: string;
+  /** Additional sameAs URLs (LinkedIn, Crunchbase, etc.) */
+  sameAs?: string[];
+};
+
 type Common = {
   title?: string;
   description?: string;
@@ -255,6 +271,12 @@ type Common = {
   itemList?: ItemListSchema;
   /** Product/Offer JSON-LD for pricing pages (Q6). */
   pricingOffers?: PricingOfferSchema[];
+  /**
+   * LocalBusiness JSON-LD for geo-targeted location pages.
+   * Signals the agency's local presence to Google Maps and Knowledge Graph
+   * for queries like "fintech SEO agency London".
+   */
+  localBusiness?: LocalBusinessSchema;
   /**
    * CollectionPage + CreateAction JSON-LD for contributor / guest-post pages
    * (O3). Signals to Google that the page accepts external author submissions
@@ -708,6 +730,38 @@ export function PageMeta(props: PageMetaProps) {
         }
       : null;
 
+  const localBusinessJsonLd = props.localBusiness
+    ? {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "@id": `${canonical}#localbusiness`,
+        name: props.localBusiness.name,
+        ...(props.localBusiness.description
+          ? { description: props.localBusiness.description }
+          : {}),
+        url: canonical,
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: props.localBusiness.addressLocality,
+          ...(props.localBusiness.addressRegion
+            ? { addressRegion: props.localBusiness.addressRegion }
+            : {}),
+          addressCountry: props.localBusiness.addressCountry,
+        },
+        ...(props.localBusiness.areaServedName
+          ? {
+              areaServed: {
+                "@type": "Place",
+                name: props.localBusiness.areaServedName,
+              },
+            }
+          : {}),
+        ...(props.localBusiness.sameAs && props.localBusiness.sameAs.length > 0
+          ? { sameAs: props.localBusiness.sameAs }
+          : {}),
+      }
+    : null;
+
   const articleJsonLd = props.article
     ? {
         "@context": "https://schema.org",
@@ -984,6 +1038,11 @@ export function PageMeta(props: PageMetaProps) {
       {writeActionJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(writeActionJsonLd)}
+        </script>
+      ) : null}
+      {localBusinessJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(localBusinessJsonLd)}
         </script>
       ) : null}
     </Helmet>

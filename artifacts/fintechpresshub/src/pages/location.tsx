@@ -66,40 +66,24 @@ export default function LocationPage() {
     ? `${location.city}, ${location.region}, ${location.country}`
     : `${location.city}, ${location.country}`;
 
-  const localBusinessJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "@id": `${canonical}#localbusiness`,
-    name: `FintechPressHub — ${location.city} Fintech SEO`,
-    description: location.headline,
-    url: canonical,
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: location.city,
-      ...(location.region ? { addressRegion: location.region } : {}),
-      addressCountry: location.countryCode,
-    },
-    sameAs: [
-      "https://www.crunchbase.com/organization/fintechpresshub",
-      "https://www.linkedin.com/company/fintechpresshub",
-    ],
-    areaServed: {
-      "@type": "Place",
-      name: location.country,
-    },
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <PageMeta
         title={`${location.headline} | FintechPressHub`}
         description={`FintechPressHub delivers specialist fintech SEO, content marketing, and link-building services to companies operating in ${locationLabel}. Book a free strategy call.`}
         canonical={canonical}
-      />
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+        localBusiness={{
+          name: `FintechPressHub — ${location.city} Fintech SEO`,
+          description: location.headline,
+          addressLocality: location.city,
+          addressRegion: location.region ?? undefined,
+          addressCountry: location.countryCode,
+          areaServedName: location.country,
+          sameAs: [
+            "https://www.crunchbase.com/organization/fintechpresshub",
+            "https://www.linkedin.com/company/fintechpresshub",
+          ],
+        }}
       />
 
       <PageHero
