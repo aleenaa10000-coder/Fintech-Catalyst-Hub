@@ -4,7 +4,7 @@ import { asc, desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
 import { STATIC_ROUTES } from "./sitemap";
-import { STATIC_CATEGORY_SLUGS, TOOL_SLUGS, COMPARE_SLUGS } from "../lib/seoConstants";
+import { STATIC_CATEGORY_SLUGS, TOOL_SLUGS, COMPARE_SLUGS, SERVICE_SLUGS } from "../lib/seoConstants";
 
 const router: IRouter = Router();
 
@@ -57,14 +57,22 @@ async function getLatestGlossaryDate(): Promise<string> {
   return (latest?.updatedAt ?? new Date()).toISOString().slice(0, 10);
 }
 
+function getLatestServiceDate(): string {
+  // servicesTable has no updatedAt column — services are managed via admin
+  // seeding and change infrequently. Return today's date so the sitemap index
+  // entry always reflects the last time the index itself was regenerated.
+  return new Date().toISOString().slice(0, 10);
+}
+
 async function buildSitemapIndexXml(): Promise<string> {
   const siteUrl = getSiteUrl();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [latestBlogDate, latestLocationDate, latestGlossaryDate] = await Promise.all([
+  const [latestBlogDate, latestLocationDate, latestGlossaryDate, latestServiceDate] = await Promise.all([
     getLatestBlogDate(),
     getLatestLocationDate(),
     getLatestGlossaryDate(),
+    getLatestServiceDate(),
   ]);
 
   const sitemaps = [
@@ -73,6 +81,7 @@ async function buildSitemapIndexXml(): Promise<string> {
     { loc: `${siteUrl}/sitemap-authors.xml`,   lastmod: today },
     { loc: `${siteUrl}/sitemap-locations.xml`, lastmod: latestLocationDate },
     { loc: `${siteUrl}/sitemap-glossary.xml`,  lastmod: latestGlossaryDate },
+    { loc: `${siteUrl}/sitemap-services.xml`,  lastmod: latestServiceDate },
     { loc: `${siteUrl}/sitemap-tools.xml`,     lastmod: today },
     { loc: `${siteUrl}/sitemap-compare.xml`,   lastmod: today },
     { loc: `${siteUrl}/news-sitemap.xml`,      lastmod: today },
@@ -218,24 +227,24 @@ async function buildAuthorsSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
   const today = new Date().toISOString().slice(0, 10);
 
-  const entries = KNOWN_AUTHOR_SLUGS.flatMap((slug) => [
-    { loc: `${siteUrl}/authors/${slug}`, changefreq: "monthly", priority: "0.6", isPage: true },
-    { loc: `${siteUrl}/authors/${slug}/rss.xml`, changefreq: "daily", priority: "0.4", isPage: false },
-  ]);
-
-  const body = entries
+  // RSS feed entries (.rss.xml) are XML documents, not HTML pages.
+  // They must never appear in an HTML page sitemap — Google would attempt
+  // to index them as web pages, creating soft-404s and wasted crawl budget.
+  const body = KNOWN_AUTHOR_SLUGS
     .map(
-      (u) =>
-        `  <url>\n` +
-        `    <loc>${escapeXml(u.loc)}</loc>\n` +
-        `    <lastmod>${today}</lastmod>\n` +
-        `    <changefreq>${u.changefreq}</changefreq>\n` +
-        `    <priority>${u.priority}</priority>\n` +
-        (u.isPage
-          ? `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
-            `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n`
-          : "") +
-        `  </url>`,
+      (slug) => {
+        const loc = `${siteUrl}/authors/${slug}`;
+        return (
+          `  <url>\n` +
+          `    <loc>${escapeXml(loc)}</loc>\n` +
+          `    <lastmod>${today}</lastmod>\n` +
+          `    <changefreq>monthly</changefreq>\n` +
+          `    <priority>0.6</priority>\n` +
+          `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(loc)}"/>\n` +
+          `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(loc)}"/>\n` +
+          `  </url>`
+        );
+      },
     )
     .join("\n");
 
@@ -383,6 +392,47 @@ async function buildCompareSitemapXml(): Promise<string> {
   return xmlUrlset(body);
 }
 
+// ── /sitemap-services.xml ────────────────────────────────────────────────────
+
+async function buildServicesSitemapXml(): Promise<string> {
+  const siteUrl = getSiteUrl();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const services = await db
+    .select({ slug: servicesTable.slug })
+    .from(servicesTable)
+    .orderBy(asc(servicesTable.slug))
+    .catch(() => [] as Array<{ slug: string }>);
+
+  // Fall back to known slugs from seoConstants when the DB has no service rows.
+  const slugs = services.length > 0
+    ? services.map((s) => s.slug)
+    : SERVICE_SLUGS;
+
+  const entries = slugs.map((slug) => ({
+    loc:     `${siteUrl}/services/${slug}`,
+    lastmod: today,
+  }));
+
+  if (entries.length === 0) return xmlUrlset("");
+
+  const body = entries
+    .map(
+      (u) =>
+        `  <url>\n` +
+        `    <loc>${escapeXml(u.loc)}</loc>\n` +
+        `    <lastmod>${u.lastmod}</lastmod>\n` +
+        `    <changefreq>monthly</changefreq>\n` +
+        `    <priority>0.8</priority>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n` +
+        `  </url>`,
+    )
+    .join("\n");
+
+  return xmlUrlset(body);
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function xmlUrlset(body: string, withImage = false): string {
@@ -446,6 +496,12 @@ router.get("/sitemap-compare.xml", async (_req, res) => {
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", CACHE);
   res.send(await buildCompareSitemapXml());
+});
+
+router.get("/sitemap-services.xml", async (_req, res) => {
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("Cache-Control", CACHE);
+  res.send(await buildServicesSitemapXml());
 });
 
 export default router;

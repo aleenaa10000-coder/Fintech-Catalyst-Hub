@@ -550,6 +550,139 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
   },
 };
 
+// ── Module-level SEO maps (computed once at startup, never rebuilt per-request) ──
+
+/**
+ * Exact last-modification dates for static pages — used in WebPage JSON-LD schemas.
+ * Previously defined inside handleSsrMeta, causing the object to be reconstructed
+ * on every request. Now at module level for zero allocation cost per request.
+ */
+const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
+  "/":                                "2026-05-10",
+  "/pricing":                         "2026-05-09",
+  "/write-for-us":                    "2026-04-25",
+  "/editorial-guidelines":            "2026-04-28",
+  "/community-guidelines":            "2026-04-28",
+  "/tools":                           "2026-05-09",
+  "/glossary":                        "2026-05-09",
+  "/resources/fintech-publications":  "2026-05-09",
+  "/press":                           "2026-05-09",
+  "/contact":                         "2026-04-25",
+  "/privacy-policy":                  "2026-04-28",
+  "/refund-policy":                   "2026-04-28",
+  "/cookie-policy":                   "2026-04-28",
+  "/terms":                           "2026-04-28",
+  "/compare":                         "2026-05-09",
+  "/compare/agency-vs-in-house":      "2026-05-09",
+  "/compare/vs-freelancers":          "2026-05-09",
+  "/compare/vs-seo-tools":            "2026-05-09",
+  "/compare/vs-pr-agencies":          "2026-05-09",
+  "/compare/content-led-vs-paid":     "2026-05-09",
+  "/compare/specialist-vs-generalist": "2026-05-09",
+};
+
+/**
+ * Per-page OG image parameters for static pages.
+ * Every static page previously received the same generic opengraph.jpg, meaning
+ * all 19 static routes looked identical in social shares and carried no image
+ * diversity signal for crawlers. Each page now gets a unique, branded OG card
+ * via /api/og with a page-specific title and category pill.
+ */
+const STATIC_OG_META: Readonly<Record<string, { category: string; ogTitle: string }>> = {
+  "/":                                { category: "Agency",      ogTitle: "Fintech SEO & Content Marketing Agency" },
+  "/about":                           { category: "About",       ogTitle: "About FintechPressHub" },
+  "/services":                        { category: "Services",    ogTitle: "Fintech SEO & Content Marketing Services" },
+  "/pricing":                         { category: "Pricing",     ogTitle: "Transparent Fintech SEO Pricing" },
+  "/blog":                            { category: "Blog",        ogTitle: "Fintech SEO & Content Marketing Insights" },
+  "/authors":                         { category: "Authors",     ogTitle: "Our Expert Fintech Authors" },
+  "/write-for-us":                    { category: "Guest Posts", ogTitle: "Write For FintechPressHub" },
+  "/editorial-guidelines":            { category: "Editorial",   ogTitle: "Editorial Guidelines" },
+  "/community-guidelines":            { category: "Guidelines",  ogTitle: "Community Guidelines" },
+  "/tools":                           { category: "Tools",       ogTitle: "Free Fintech Marketing Tools" },
+  "/glossary":                        { category: "Glossary",    ogTitle: "Fintech Glossary" },
+  "/compare":                         { category: "Compare",     ogTitle: "Fintech SEO Agency Comparisons" },
+  "/press":                           { category: "Media",       ogTitle: "Press & Media Kit" },
+  "/contact":                         { category: "Contact",     ogTitle: "Contact FintechPressHub" },
+  "/privacy-policy":                  { category: "Legal",       ogTitle: "Privacy Policy" },
+  "/refund-policy":                   { category: "Legal",       ogTitle: "Refund Policy" },
+  "/cookie-policy":                   { category: "Legal",       ogTitle: "Cookie Policy" },
+  "/terms":                           { category: "Legal",       ogTitle: "Terms & Conditions" },
+  "/resources/fintech-publications":  { category: "Resources",   ogTitle: "Top Fintech Publications" },
+};
+
+/**
+ * Step-by-step HowTo instructions for the six tool pages that follow a clear
+ * linear workflow (paste → run → review → apply). Emitting HowTo schema
+ * alongside SoftwareApplication enables a second rich-result type in Google
+ * SERPs (step-by-step display) for queries like "how to check readability".
+ */
+const TOOLS_HOWTO: Readonly<Record<string, {
+  name: string;
+  description: string;
+  steps: Array<{ name: string; text: string }>;
+}>> = {
+  "readability-checker": {
+    name: "How to Check Your Article's Readability",
+    description: "Use the FintechPressHub Readability Checker to score your fintech content for clarity and reading grade level.",
+    steps: [
+      { name: "Paste your content",  text: "Copy your article text and paste it into the readability checker input box." },
+      { name: "Run the analysis",    text: "Click 'Analyse' to instantly calculate your Flesch Reading Ease score and reading grade level." },
+      { name: "Review your score",   text: "Check your 0–100 readability score, average sentence length, and syllable count breakdown." },
+      { name: "Apply improvements",  text: "Follow the actionable tips to shorten complex sentences, simplify vocabulary, and improve your content's clarity for fintech audiences." },
+    ],
+  },
+  "financial-health-score-calculator": {
+    name: "How to Calculate Your Financial Health Score",
+    description: "Use the FintechPressHub Financial Health Score Calculator to benchmark your personal finances with a 0–100 score.",
+    steps: [
+      { name: "Enter your income and debt", text: "Input your gross monthly income and total monthly debt payments to calculate your debt-to-income ratio." },
+      { name: "Add your savings data",      text: "Enter your monthly savings amount and total savings balance so the calculator can assess your savings rate and emergency fund coverage." },
+      { name: "Submit your figures",        text: "Click 'Calculate Score' to generate your personalised 0–100 Financial Health Score across four key dimensions." },
+      { name: "Review your results",        text: "Read your score breakdown and tailored recommendations to improve your financial health over the next 90 days." },
+    ],
+  },
+  "meta-description-generator": {
+    name: "How to Generate SEO Meta Descriptions",
+    description: "Use the FintechPressHub Meta Description Generator to create three ready-to-use meta descriptions for any page.",
+    steps: [
+      { name: "Enter your page title",   text: "Type the title of the page you want to optimise into the page title field." },
+      { name: "Add your target keyword", text: "Enter the primary keyword you want to rank for — the generator will weave it naturally into each description." },
+      { name: "Generate descriptions",   text: "Click 'Generate' to receive three distinct, 150–160 character meta descriptions optimised for click-through rate." },
+      { name: "Copy and apply",          text: "Select the description that best matches your page's intent and paste it into your CMS or HTML." },
+    ],
+  },
+  "guest-post-pitch-generator": {
+    name: "How to Generate a Guest Post Pitch",
+    description: "Use the FintechPressHub Guest Post Pitch Generator to write a personalised pitch email for any fintech publication.",
+    steps: [
+      { name: "Enter your details",      text: "Fill in your name, company, and area of fintech expertise to personalise the pitch." },
+      { name: "Add publication details", text: "Enter the target publication name, the editor's name, and your proposed article title." },
+      { name: "Generate your pitch",     text: "Click 'Generate Pitch' to produce a professional, personalised outreach email ready to send." },
+      { name: "Review and send",         text: "Read through the generated pitch, adjust any details, and send it directly to the editor." },
+    ],
+  },
+  "content-brief-generator": {
+    name: "How to Generate a Content Brief",
+    description: "Use the FintechPressHub Content Brief Generator to create a comprehensive brief for any fintech article.",
+    steps: [
+      { name: "Enter your target keyword", text: "Input the primary keyword or topic your article should target to rank in search results." },
+      { name: "Specify your audience",     text: "Describe your target reader — e.g. 'fintech founders', 'compliance officers', 'payments product managers'." },
+      { name: "Generate the brief",        text: "Click 'Generate Brief' to receive a structured content brief with suggested headings, questions to answer, and key points to cover." },
+      { name: "Share with your writer",    text: "Download or copy the brief and share it with your content writer to ensure on-target, well-structured output." },
+    ],
+  },
+  "headline-analyzer": {
+    name: "How to Analyse Your Article Headline",
+    description: "Use the FintechPressHub Headline Analyzer to score your title for SEO power, emotional impact, and click-worthiness.",
+    steps: [
+      { name: "Enter your headline",    text: "Type or paste your article headline into the analyzer input field." },
+      { name: "Run the analysis",       text: "Click 'Analyse Headline' to score your title across four dimensions: SEO power, emotional impact, readability, and clarity." },
+      { name: "Review your scores",     text: "Check your overall headline score and see where your title is strong or needs improvement." },
+      { name: "Apply the suggestions",  text: "Use the improvement tips to add power words, adjust length, or improve specificity for higher click-through rates." },
+    ],
+  },
+};
+
 // ---------- route regexes (dynamic parameterised routes only) ----------
 // Static pages are matched via exact path lookup in STATIC_META above.
 
@@ -617,7 +750,7 @@ async function handleSsrMeta(
             : `${siteUrl}${post.coverImage}`
           : `${siteUrl}/api/og?title=${encodeURIComponent(post.title)}&category=${encodeURIComponent(post.category)}&author=${encodeURIComponent(post.author)}&authorRole=${encodeURIComponent(post.authorRole ?? "")}`;
       const description = (post.seoDescription ?? post.excerpt ?? `Read "${post.title}" on FintechPressHub.`).slice(0, 160);
-      const dateModified = (post.lastMaterialUpdateAt ?? post.updatedAt).toISOString();
+      const dateModified = (post.lastMaterialUpdateAt ?? post.updatedAt ?? post.publishedAt).toISOString();
       const authorSlug   = post.author ? toAuthorSlug(post.author) : null;
       const authorUrl    = authorSlug ? `${siteUrl}/authors/${authorSlug}` : null;
       const tags         = Array.isArray(post.tags) ? (post.tags as string[]) : [];
@@ -648,6 +781,7 @@ async function handleSsrMeta(
           headline:   post.title,
           description,
           url:        canonical,
+          mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
           image:      ogImage,
           inLanguage: "en",
           publisher:  { "@id": `${siteUrl}#organization` },
@@ -762,7 +896,7 @@ async function handleSsrMeta(
         extraLds: [
           JSON.stringify({
             "@context":      "https://schema.org",
-            "@type":         "LocalBusiness",
+            "@type":         ["LocalBusiness", "ProfessionalService"],
             "@id":           canonical,
             name:            `FintechPressHub — ${loc.city} Fintech SEO`,
             description:     loc.headline,
@@ -926,7 +1060,7 @@ async function handleSsrMeta(
         ? author.photo.startsWith("http")
           ? author.photo
           : `${siteUrl}${author.photo}`
-        : `${siteUrl}/opengraph.jpg`;
+        : `${siteUrl}/api/og?title=${encodeURIComponent(author.name)}&category=${encodeURIComponent(author.role ?? "Author")}`;
       const social = (author.social ?? {}) as { linkedin?: string; twitter?: string; website?: string };
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["authors", slug], author.name);
@@ -1001,15 +1135,16 @@ async function handleSsrMeta(
 
       const extraLds: string[] = [
         JSON.stringify({
-          "@context":  "https://schema.org",
-          "@type":     "CollectionPage",
-          "@id":       canonical,
-          name:        catMeta.title,
-          description: catMeta.description,
-          url:         canonical,
-          inLanguage:  "en",
-          isPartOf:    { "@id": `${siteUrl}/blog` },
-          publisher:   { "@id": `${siteUrl}#organization` },
+          "@context":   "https://schema.org",
+          "@type":      "CollectionPage",
+          "@id":        canonical,
+          name:         catMeta.title,
+          description:  catMeta.description,
+          url:          canonical,
+          inLanguage:   "en",
+          isPartOf:     { "@id": `${siteUrl}/blog` },
+          publisher:    { "@id": `${siteUrl}#organization` },
+          dateModified: new Date().toISOString().slice(0, 10),
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
       ];
@@ -1102,6 +1237,44 @@ async function handleSsrMeta(
       const leafLabel  = toolMeta.title.split("|")[0]!.trim();
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["tools", slug], leafLabel);
 
+      const toolExtraLds: string[] = [
+        JSON.stringify({
+          "@context":           "https://schema.org",
+          "@type":              "SoftwareApplication",
+          "@id":                canonical,
+          name:                 leafLabel,
+          description:          toolMeta.description,
+          url:                  canonical,
+          applicationCategory:  "WebApplication",
+          operatingSystem:      "Web",
+          isAccessibleForFree:  true,
+          offers: {
+            "@type":        "Offer",
+            price:          "0",
+            priceCurrency:  "USD",
+          },
+          provider: { "@id": `${siteUrl}#organization` },
+        }, null, 2),
+      ];
+      const howTo = TOOLS_HOWTO[slug];
+      if (howTo) {
+        toolExtraLds.push(JSON.stringify({
+          "@context":  "https://schema.org",
+          "@type":     "HowTo",
+          "@id":       `${canonical}#howto`,
+          name:        howTo.name,
+          description: howTo.description,
+          tool: { "@type": "HowToTool", name: leafLabel },
+          step: howTo.steps.map((s, i) => ({
+            "@type":   "HowToStep",
+            position:  i + 1,
+            name:      s.name,
+            text:      s.text,
+          })),
+        }, null, 2));
+      }
+      toolExtraLds.push(buildBreadcrumbLd(breadcrumbs));
+
       patches = {
         title:         toolMeta.title,
         description:   toolMeta.description,
@@ -1110,26 +1283,7 @@ async function handleSsrMeta(
         ogDescription: toolMeta.description,
         ogImage:       `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Tools`,
         ogImageAlt:    leafLabel,
-        extraLds: [
-          JSON.stringify({
-            "@context":           "https://schema.org",
-            "@type":              "SoftwareApplication",
-            "@id":                canonical,
-            name:                 leafLabel,
-            description:          toolMeta.description,
-            url:                  canonical,
-            applicationCategory:  "WebApplication",
-            operatingSystem:      "Web",
-            isAccessibleForFree:  true,
-            offers: {
-              "@type":        "Offer",
-              price:          "0",
-              priceCurrency:  "USD",
-            },
-            provider: { "@id": `${siteUrl}#organization` },
-          }, null, 2),
-          buildBreadcrumbLd(breadcrumbs),
-        ],
+        extraLds:      toolExtraLds,
       };
     }
 
@@ -1140,34 +1294,14 @@ async function handleSsrMeta(
       const staticMeta = STATIC_META[reqPath];
       if (staticMeta) {
         const canonical   = `${siteUrl}${reqPath === "/" ? "/" : reqPath}`;
-        const ogImage     = `${siteUrl}/opengraph.jpg`;
+        const ogMeta      = STATIC_OG_META[reqPath];
+        const ogImage     = ogMeta
+          ? `${siteUrl}/api/og?title=${encodeURIComponent(ogMeta.ogTitle)}&category=${encodeURIComponent(ogMeta.category)}`
+          : `${siteUrl}/opengraph.jpg`;
         const segments    = reqPath === "/" ? [] : reqPath.split("/").filter(Boolean);
         const leafLabel   = staticMeta.title.split("|")[0]!.trim();
         const breadcrumbs = buildCrumbsForPath(siteUrl, segments, leafLabel);
 
-        const STATIC_PAGE_LASTMOD: Record<string, string> = {
-          "/":                                "2026-05-10",
-          "/pricing":                         "2026-05-09",
-          "/write-for-us":                    "2026-04-25",
-          "/editorial-guidelines":            "2026-04-28",
-          "/community-guidelines":            "2026-04-28",
-          "/tools":                           "2026-05-09",
-          "/glossary":                        "2026-05-09",
-          "/resources/fintech-publications":  "2026-05-09",
-          "/press":                           "2026-05-09",
-          "/contact":                         "2026-04-25",
-          "/privacy-policy":                  "2026-04-28",
-          "/refund-policy":                   "2026-04-28",
-          "/cookie-policy":                   "2026-04-28",
-          "/terms":                           "2026-04-28",
-          "/compare":                         "2026-05-09",
-          "/compare/agency-vs-in-house":      "2026-05-09",
-          "/compare/vs-freelancers":          "2026-05-09",
-          "/compare/vs-seo-tools":            "2026-05-09",
-          "/compare/vs-pr-agencies":          "2026-05-09",
-          "/compare/content-led-vs-paid":     "2026-05-09",
-          "/compare/specialist-vs-generalist": "2026-05-09",
-        };
         const pageLastmod = STATIC_PAGE_LASTMOD[reqPath];
 
         // Build page-type-specific JSON-LD schemas for key hub pages.
