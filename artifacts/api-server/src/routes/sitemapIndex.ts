@@ -125,28 +125,14 @@ async function buildPagesSitemapXml(): Promise<string> {
     priority: "0.7",
   }));
 
-  const authorEntries = KNOWN_AUTHOR_SLUGS.map((slug) => ({
-    loc: `${siteUrl}/authors/${slug}`,
-    lastmod: today,
-    changefreq: "monthly",
-    priority: "0.6",
-  }));
+  // Author and service detail pages are intentionally omitted here — they are
+  // already covered by their dedicated child sitemaps (sitemap-authors.xml and
+  // sitemap-services.xml), which carry richer hreflang attributes and accurate
+  // per-page lastmod values. Including them here too would duplicate every URL
+  // across two child sitemaps and waste crawl budget — the same rationale as
+  // tool/compare sub-pages being omitted from STATIC_ROUTES in sitemap.ts.
 
-  // Service detail pages from DB — dynamic so newly created services appear
-  // automatically without a code deploy.
-  const serviceRows = await db
-    .select({ slug: servicesTable.slug, name: servicesTable.name })
-    .from(servicesTable)
-    .orderBy(asc(servicesTable.id));
-
-  const serviceEntries = serviceRows.map((s) => ({
-    loc: `${siteUrl}/services/${s.slug}`,
-    lastmod: today,
-    changefreq: "monthly",
-    priority: "0.8",
-  }));
-
-  const all = [...staticEntries, ...categoryEntries, ...authorEntries, ...serviceEntries];
+  const all = [...staticEntries, ...categoryEntries];
 
   const body = all
     .map(

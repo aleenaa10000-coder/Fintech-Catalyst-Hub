@@ -7,7 +7,7 @@
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#FFFFFF",
-  "theme_color": "#0074D9",
+  "theme_color": "#0052FF",
   "categories": ["business", "finance", "marketing"],
   "icons": [
     {
