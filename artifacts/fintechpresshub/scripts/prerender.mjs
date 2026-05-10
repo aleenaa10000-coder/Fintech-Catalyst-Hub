@@ -7,6 +7,9 @@
 //   dist/public/blog/<slug>/index.html
 //   dist/public/services/<slug>/index.html
 //   dist/public/authors/<slug>/index.html
+//   dist/public/glossary/<slug>/index.html
+//   dist/public/locations/<slug>/index.html
+//   dist/public/blog/category/<slug>/index.html
 //   dist/public/about/index.html
 //   dist/public/pricing/index.html
 //   ...
@@ -18,10 +21,10 @@
 // JS still runs on top for real users (React's createRoot replaces the
 // `<div data-bot-og="body">…</div>` cleanly with no hydration mismatch).
 //
-// New blog posts published via the admin dashboard *after* a deploy will
-// fall through to the existing SPA fallback (same as today). Re-deploying
-// the web artifact picks them up, since this script also queries the API
-// at build time when one is reachable.
+// New blog posts, glossary terms, or locations published via the admin
+// dashboard *after* a deploy will fall through to the existing SPA fallback
+// (same as today). Re-deploying the web artifact picks them up, since this
+// script also queries the API at build time when one is reachable.
 
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -31,6 +34,8 @@ import {
   shellInject,
   getAllPosts,
   getAllServices,
+  getAllGlossaryTerms,
+  getAllLocations,
 } from "./bot-og-plugin.mjs";
 import { PAGE_META, AUTHORS } from "./bot-og-data.mjs";
 
@@ -42,6 +47,19 @@ const indexPath = path.resolve(distDir, "index.html");
 const SITE_URL =
   process.env.SITE_URL ?? "https://www.fintechpresshub.com";
 const API_BASE = process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080";
+
+// All blog category slugs — kept in sync with seoConstants.ts and
+// the BLOG_CATEGORY_META in bot-og-plugin.mjs.
+const BLOG_CATEGORY_SLUGS = [
+  "payments",
+  "embedded-finance",
+  "open-banking",
+  "neobanking",
+  "lending",
+  "regtech",
+  "wealthtech",
+  "fintech-seo",
+];
 
 async function ensureBuildExists() {
   try {
@@ -80,6 +98,7 @@ async function prerender() {
   const routes = new Set();
 
   // Static pages (home, about, services, pricing, blog, authors, contact, etc.)
+  // Also includes all compare pages and all tool pages that are in PAGE_META.
   for (const meta of Object.values(PAGE_META)) {
     if (meta.path) routes.add(meta.path);
   }
@@ -102,12 +121,38 @@ async function prerender() {
     if (p.slug) routes.add(`/blog/${p.slug}`);
   }
 
+  // Glossary term pages — pulled from API when available.
+  const glossaryTerms = await getAllGlossaryTerms(API_BASE);
+  for (const t of glossaryTerms) {
+    if (t.slug) routes.add(`/glossary/${t.slug}`);
+  }
+
+  // Location pages — pulled from API when available.
+  const locations = await getAllLocations(API_BASE);
+  for (const l of locations) {
+    if (l.slug) routes.add(`/locations/${l.slug}`);
+  }
+
+  // Blog category hub pages.
+  for (const slug of BLOG_CATEGORY_SLUGS) {
+    routes.add(`/blog/category/${slug}`);
+  }
+
   const summary = {
     total: routes.size,
     written: 0,
     skipped: 0,
     failed: 0,
-    byType: { static: 0, services: 0, authors: 0, blog: 0, home: 0 },
+    byType: {
+      static: 0,
+      services: 0,
+      authors: 0,
+      blog: 0,
+      glossary: 0,
+      locations: 0,
+      categories: 0,
+      home: 0,
+    },
   };
 
   // Process routes in parallel — disk I/O dominates and `buildMeta` is pure.
@@ -124,9 +169,12 @@ async function prerender() {
         summary.written += 1;
 
         if (pathname === "/") summary.byType.home += 1;
+        else if (pathname.startsWith("/blog/category/")) summary.byType.categories += 1;
         else if (pathname.startsWith("/blog/")) summary.byType.blog += 1;
         else if (pathname.startsWith("/services/")) summary.byType.services += 1;
         else if (pathname.startsWith("/authors/")) summary.byType.authors += 1;
+        else if (pathname.startsWith("/glossary/")) summary.byType.glossary += 1;
+        else if (pathname.startsWith("/locations/")) summary.byType.locations += 1;
         else summary.byType.static += 1;
       } catch (err) {
         summary.failed += 1;

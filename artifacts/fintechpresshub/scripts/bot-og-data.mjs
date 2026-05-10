@@ -151,6 +151,48 @@ export const PAGE_META = {
     description:
       "Why fintech companies consistently outperform with a specialist SEO agency versus a generalist digital marketing firm.",
   },
+  metaDescriptionGenerator: {
+    path: "/tools/meta-description-generator",
+    title: "Meta Description Generator | Free SEO Tool | FintechPressHub",
+    description:
+      "Generate 3 ready-to-use SEO meta descriptions for any professional page. Enter your page title and target keyword to get started.",
+  },
+  guestPostPitchGenerator: {
+    path: "/tools/guest-post-pitch-generator",
+    title: "Guest Post Pitch Generator | Free Link Building Tool | FintechPressHub",
+    description:
+      "Create a compelling, personalised guest post pitch email in seconds. Fill in a few details about your company and target publication.",
+  },
+  readabilityChecker: {
+    path: "/tools/readability-checker",
+    title: "Readability Checker | Free Content Tool | FintechPressHub",
+    description:
+      "Paste your article and get an instant Flesch readability score, grade level, sentence length breakdown, and actionable tips.",
+  },
+  keywordDifficultyEstimator: {
+    path: "/tools/keyword-difficulty-estimator",
+    title: "Keyword Difficulty Estimator | Free SEO Tool | FintechPressHub",
+    description:
+      "Estimate keyword difficulty and find quick-win opportunities for your fintech content strategy.",
+  },
+  backlinkValueEstimator: {
+    path: "/tools/backlink-value-estimator",
+    title: "Backlink Value Estimator | Free Link Building Tool | FintechPressHub",
+    description:
+      "Estimate the SEO value of a backlink opportunity before you invest time in outreach.",
+  },
+  contentBriefGenerator: {
+    path: "/tools/content-brief-generator",
+    title: "Content Brief Generator | Free SEO Tool | FintechPressHub",
+    description:
+      "Generate a comprehensive content brief for any fintech topic in seconds.",
+  },
+  headlineAnalyzer: {
+    path: "/tools/headline-analyzer",
+    title: "Headline Analyzer | Free SEO Tool | FintechPressHub",
+    description:
+      "Analyse your article headline for SEO power, emotional impact, readability, and click-worthiness.",
+  },
 };
 
 export const HOME_FAQS = [

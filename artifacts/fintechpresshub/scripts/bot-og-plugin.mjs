@@ -417,8 +417,47 @@ const dataCache = {
   servicesAt: 0,
   posts: null,
   postsAt: 0,
+  glossaryTerms: null,
+  glossaryTermsAt: 0,
+  locations: null,
+  locationsAt: 0,
 };
 const TTL_MS = 30_000;
+
+const BLOG_CATEGORY_META = {
+  payments: {
+    title: "Payments Articles",
+    description: "Expert analysis and guides on payment infrastructure, card issuing, cross-border rails, and payment orchestration for fintech teams.",
+  },
+  "embedded-finance": {
+    title: "Embedded Finance Articles",
+    description: "Deep dives into BaaS architecture, embedded lending, and vertical SaaS payments powering the next wave of fintech products.",
+  },
+  "open-banking": {
+    title: "Open Banking Articles",
+    description: "Coverage of PSD3, account-to-account payments, variable recurring payments, and open data compliance for regulated fintechs.",
+  },
+  neobanking: {
+    title: "Neobanking Articles",
+    description: "Strategies and analysis for digital banks on activation, retention, fee economics, and regulatory positioning.",
+  },
+  lending: {
+    title: "Lending Articles",
+    description: "Insights on BNPL, SME lending, cash-flow underwriting, embedded credit, and consumer affordability for lending fintechs.",
+  },
+  regtech: {
+    title: "Regtech & Compliance Articles",
+    description: "Expert guides on transaction monitoring, reg reporting, sanctions screening, and KYC/AML tooling.",
+  },
+  wealthtech: {
+    title: "Wealthtech Articles",
+    description: "Analysis of robo-advisors, portfolio construction, advisor SaaS marketing, and self-directed investing platforms.",
+  },
+  "fintech-seo": {
+    title: "Fintech SEO Articles",
+    description: "Actionable SEO guides, content strategy, and link-building playbooks specifically for fintech and financial services companies.",
+  },
+};
 
 async function loadServices() {
   const now = Date.now();
@@ -519,6 +558,48 @@ export async function buildMeta(pathname, siteUrl, apiBase) {
   return _buildMeta(pathname, siteUrl, apiBase);
 }
 
+async function loadGlossaryTerms(apiBase) {
+  const now = Date.now();
+  if (dataCache.glossaryTerms && now - dataCache.glossaryTermsAt < TTL_MS) {
+    return dataCache.glossaryTerms;
+  }
+  try {
+    const res = await fetch(`${apiBase}/api/glossary`, {
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const json = await res.json();
+    const items = Array.isArray(json) ? json : [];
+    dataCache.glossaryTerms = items;
+    dataCache.glossaryTermsAt = now;
+    return items;
+  } catch (err) {
+    console.warn(`[bot-og-plugin] glossary unavailable (${err?.message ?? err}); returning []`);
+    return [];
+  }
+}
+
+async function loadLocations(apiBase) {
+  const now = Date.now();
+  if (dataCache.locations && now - dataCache.locationsAt < TTL_MS) {
+    return dataCache.locations;
+  }
+  try {
+    const res = await fetch(`${apiBase}/api/locations`, {
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const json = await res.json();
+    const items = Array.isArray(json) ? json : [];
+    dataCache.locations = items;
+    dataCache.locationsAt = now;
+    return items;
+  } catch (err) {
+    console.warn(`[bot-og-plugin] locations unavailable (${err?.message ?? err}); returning []`);
+    return [];
+  }
+}
+
 // Exported so prerender.mjs can enumerate every blog post slug at build time.
 export async function getAllPosts(apiBase) {
   return loadPosts(apiBase);
@@ -527,6 +608,16 @@ export async function getAllPosts(apiBase) {
 // Exported so prerender.mjs can enumerate every service slug at build time.
 export async function getAllServices() {
   return loadServices();
+}
+
+// Exported so prerender.mjs can enumerate every glossary term slug at build time.
+export async function getAllGlossaryTerms(apiBase) {
+  return loadGlossaryTerms(apiBase);
+}
+
+// Exported so prerender.mjs can enumerate every location slug at build time.
+export async function getAllLocations(apiBase) {
+  return loadLocations(apiBase);
 }
 
 async function _buildMeta(pathname, siteUrl, apiBase) {
@@ -828,6 +919,132 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         `<meta property="article:section" content="${escapeHtml(post.category ?? "Insights")}" />`,
         `<meta property="article:author" content="${escapeHtml(post.author ?? "")}" />`,
       ],
+      bodyContent,
+    };
+  }
+
+  // /glossary/:slug
+  const glossaryMatch = /^\/glossary\/([a-z0-9][a-z0-9-]*)\/?$/i.exec(pathname);
+  if (glossaryMatch) {
+    const slug = glossaryMatch[1];
+    const terms = await loadGlossaryTerms(apiBase);
+    const term = terms.find((t) => t.slug === slug);
+    if (!term) return null;
+    const canonical = `${siteUrl}/glossary/${term.slug}`;
+    const description = (term.shortDef ?? "").slice(0, 160);
+    const bodyContent = buildBodyHtml({ heading: term.term, lede: description });
+    return {
+      title: `${term.term} — Fintech Glossary | FintechPressHub`,
+      description,
+      canonical,
+      ogType: "website",
+      ogImage: `${siteUrl}/api/og?title=${encodeURIComponent(term.term)}&type=glossary`,
+      ogImageAlt: `${term.term} definition — FintechPressHub Fintech Glossary`,
+      schemas: [
+        organizationSchema(siteUrl),
+        websiteSchema(siteUrl),
+        breadcrumbSchema(pathname, term.term, siteUrl),
+        {
+          "@context": "https://schema.org",
+          "@type": "DefinedTerm",
+          "@id": canonical,
+          name: term.term,
+          description: term.shortDef,
+          url: canonical,
+          inDefinedTermSet: {
+            "@type": "DefinedTermSet",
+            name: "Fintech Glossary",
+            url: `${siteUrl}/glossary`,
+          },
+          ...(term.category ? { subjectOf: { "@type": "Thing", name: term.category } } : {}),
+        },
+      ],
+      bodyContent,
+    };
+  }
+
+  // /locations/:slug
+  const locationMatch = /^\/locations\/([a-z0-9][a-z0-9-]*)\/?$/i.exec(pathname);
+  if (locationMatch) {
+    const slug = locationMatch[1];
+    const locations = await loadLocations(apiBase);
+    const loc = locations.find((l) => l.slug === slug);
+    if (!loc) return null;
+    const canonical = `${siteUrl}/locations/${loc.slug}`;
+    const locationLabel = loc.region
+      ? `${loc.city}, ${loc.region}, ${loc.country}`
+      : `${loc.city}, ${loc.country}`;
+    const description = `FintechPressHub delivers specialist fintech SEO, content marketing, and link-building services to companies operating in ${locationLabel}. Book a free strategy call.`.slice(0, 160);
+    const bodyContent = buildBodyHtml({ heading: loc.headline, lede: description });
+    return {
+      title: `${loc.headline} | FintechPressHub`,
+      description,
+      canonical,
+      ogType: "website",
+      ogImage: `${siteUrl}/api/og?title=${encodeURIComponent(loc.headline)}&type=service`,
+      ogImageAlt: `FintechPressHub — ${loc.city} Fintech SEO`,
+      schemas: [
+        organizationSchema(siteUrl),
+        websiteSchema(siteUrl),
+        breadcrumbSchema(pathname, `${loc.city} Fintech SEO`, siteUrl),
+        {
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "@id": canonical,
+          name: `FintechPressHub — ${loc.city} Fintech SEO`,
+          description: loc.headline,
+          url: canonical,
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: loc.city,
+            ...(loc.region ? { addressRegion: loc.region } : {}),
+            addressCountry: loc.countryCode,
+          },
+          areaServed: { "@type": "Place", name: loc.country },
+          publisher: { "@id": `${siteUrl}#organization` },
+        },
+      ],
+      bodyContent,
+    };
+  }
+
+  // /blog/category/:slug
+  const categoryMatch = /^\/blog\/category\/([a-z0-9][a-z0-9-]*)\/?$/i.exec(pathname);
+  if (categoryMatch) {
+    const slug = categoryMatch[1];
+    const catMeta = BLOG_CATEGORY_META[slug];
+    if (!catMeta) return null;
+    const canonical = `${siteUrl}/blog/category/${slug}`;
+    const posts = await loadPosts(apiBase);
+    const catPosts = posts.filter((p) => {
+      const cat = (p.category ?? "").toLowerCase().replace(/\s+/g, "-");
+      return cat === slug;
+    });
+    const bodyContent = buildBodyHtml({
+      heading: catMeta.title,
+      lede: catMeta.description,
+      sections: catPosts.length > 0
+        ? [{ heading: "Latest Articles", list: catPosts.slice(0, 10).map((p) => ({ name: p.title, url: `${siteUrl}/blog/${p.slug}` })) }]
+        : [],
+    });
+    return {
+      title: `${catMeta.title} | FintechPressHub`,
+      description: catMeta.description,
+      canonical,
+      ogType: "website",
+      ogImage: `${siteUrl}/opengraph.jpg`,
+      ogImageAlt: `${catMeta.title} — FintechPressHub`,
+      schemas: [
+        organizationSchema(siteUrl),
+        websiteSchema(siteUrl),
+        breadcrumbSchema(pathname, catMeta.title, siteUrl),
+        catPosts.length > 0
+          ? itemListSchema({
+              name: catMeta.title,
+              items: catPosts.slice(0, 20).map((p) => ({ name: p.title, url: `${siteUrl}/blog/${p.slug}` })),
+            })
+          : null,
+      ].filter(Boolean),
       bodyContent,
     };
   }

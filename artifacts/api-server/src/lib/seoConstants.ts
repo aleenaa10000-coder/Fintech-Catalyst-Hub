@@ -12,6 +12,8 @@ export const STATIC_CATEGORY_SLUGS = [
   "neobanking",
   "lending",
   "regtech",
+  "wealthtech",
+  "fintech-seo",
 ] as const;
 
 export type CategorySlug = (typeof STATIC_CATEGORY_SLUGS)[number];

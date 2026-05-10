@@ -75,6 +75,11 @@ export default function GlossaryTermPage() {
         webPage={{
           dateModified: term.updatedAt.slice(0, 10),
         }}
+        definedTermSet={{
+          name: "Fintech Glossary",
+          description: "Definitions of key fintech, payments, lending, and banking terms.",
+          terms: [{ name: term.term, description: term.shortDef, url: canonical }],
+        }}
       />
 
       <PageHero

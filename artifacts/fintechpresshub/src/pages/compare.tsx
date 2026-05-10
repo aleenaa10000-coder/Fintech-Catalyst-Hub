@@ -40,6 +40,15 @@ export default function Compare() {
         description="Compare FintechPressHub with agencies, freelancers, SEO tools, PR firms, and paid search. Honest, criterion-by-criterion comparisons to help fintech buyers choose the right SEO approach."
         canonical={canonical}
         faq={faqItems}
+        itemList={{
+          name: "Fintech SEO Comparisons",
+          description: "Honest, criterion-by-criterion comparisons to help fintech buyers choose the right growth channel.",
+          items: COMPARISONS.map((c) => ({
+            name: c.title.split("|")[0].trim(),
+            url: `${SITE_URL}/compare/${c.slug}`,
+            description: c.description,
+          })),
+        }}
       />
 
       <PageHero
