@@ -18,6 +18,8 @@ import NotFound from "@/pages/not-found";
 import {
   getServiceIcon,
   serviceShortLabelBySlug,
+  serviceFinancialTypeBySlug,
+  serviceCategoryBySlug,
 } from "@/lib/serviceIcons";
 import { getServiceFaqs } from "@/lib/serviceFaqs";
 
@@ -53,6 +55,8 @@ export default function ServiceDetail() {
 
   const Icon = getServiceIcon(service.slug);
   const shortLabel = serviceShortLabelBySlug[service.slug] ?? service.name;
+  const financialType = serviceFinancialTypeBySlug[service.slug] ?? shortLabel;
+  const financialCategory = serviceCategoryBySlug[service.slug] ?? "Fintech Marketing";
   const otherServices = (services ?? []).filter((s: ServiceShape) => s.slug !== service.slug);
 
   const seoTitle = `${service.name} | FintechPressHub`;
@@ -69,9 +73,9 @@ export default function ServiceDetail() {
         service={{
           name: service.name,
           description: service.description,
-          serviceType: shortLabel,
+          serviceType: financialType,
           schemaType: "FinancialService",
-          category: "Fintech Marketing",
+          category: financialCategory,
           areaServed: "Worldwide",
           url: canonical,
           deliverables: service.deliverables,
