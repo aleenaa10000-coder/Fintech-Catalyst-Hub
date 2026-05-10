@@ -1,6 +1,5 @@
 import { useParams, Link } from "wouter";
 import { Check, X, ArrowRight, Minus } from "lucide-react";
-import { Helmet } from "react-helmet-async";
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
 import { Button } from "@/components/ui/button";
@@ -23,23 +22,6 @@ export default function CompareSlug() {
 
   const canonical = `${SITE_URL}/compare/${comparison.slug}`;
 
-  const productSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "@id": `${canonical}#webpage`,
-    name: comparison.title,
-    description: comparison.description,
-    url: canonical,
-    breadcrumb: {
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
-        { "@type": "ListItem", position: 2, name: "Compare", item: `${SITE_URL}/compare` },
-        { "@type": "ListItem", position: 3, name: comparison.colA, item: canonical },
-      ],
-    },
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <PageMeta
@@ -47,10 +29,8 @@ export default function CompareSlug() {
         description={comparison.description}
         canonical={canonical}
         faq={comparison.faqItems}
+        webPage={{ dateModified: "2026-05-10" }}
       />
-      <Helmet>
-        <script type="application/ld+json">{JSON.stringify(productSchema)}</script>
-      </Helmet>
 
       <PageHero
         eyebrow={comparison.eyebrow}

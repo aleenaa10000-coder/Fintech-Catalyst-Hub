@@ -6,18 +6,22 @@ import { CreateServiceBody } from "@workspace/api-zod";
 const router: IRouter = Router();
 
 router.get("/services", async (_req, res) => {
-  const rows = await db.select().from(servicesTable).orderBy(asc(servicesTable.id));
-  res.json(
-    rows.map((r: { id: number; slug: string; name: string; tagline: string | null; description: string | null; deliverables: string[] | null; icon: string | null }) => ({
-      id: r.id,
-      slug: r.slug,
-      name: r.name,
-      tagline: r.tagline,
-      description: r.description,
-      deliverables: r.deliverables ?? [],
-      icon: r.icon,
-    })),
-  );
+  try {
+    const rows = await db.select().from(servicesTable).orderBy(asc(servicesTable.id));
+    res.json(
+      rows.map((r: { id: number; slug: string; name: string; tagline: string | null; description: string | null; deliverables: string[] | null; icon: string | null }) => ({
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
+        tagline: r.tagline,
+        description: r.description,
+        deliverables: r.deliverables ?? [],
+        icon: r.icon,
+      })),
+    );
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch services" });
+  }
 });
 
 router.post("/services", async (req, res) => {
@@ -71,8 +75,12 @@ router.delete("/services/:slug", async (req, res) => {
     res.status(400).json({ error: "Missing slug" });
     return;
   }
-  await db.delete(servicesTable).where(eq(servicesTable.slug, slug));
-  res.status(204).end();
+  try {
+    await db.delete(servicesTable).where(eq(servicesTable.slug, slug));
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete service" });
+  }
 });
 
 export default router;
