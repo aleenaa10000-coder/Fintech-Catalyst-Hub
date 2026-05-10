@@ -2,10 +2,11 @@ import { Router, type IRouter } from "express";
 import { db, newsletterSubscribersTable } from "@workspace/db";
 import { SubscribeToNewsletterBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
+import { formRateLimiter } from "../lib/rateLimiter";
 
 const router: IRouter = Router();
 
-router.post("/newsletter/subscribe", async (req, res) => {
+router.post("/newsletter/subscribe", formRateLimiter, async (req, res) => {
   const parsed = SubscribeToNewsletterBody.safeParse(req.body);
   if (!parsed.success) {
     res

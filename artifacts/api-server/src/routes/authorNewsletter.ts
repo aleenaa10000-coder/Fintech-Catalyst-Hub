@@ -7,10 +7,11 @@ import {
 import { SubscribeToAuthorBody } from "@workspace/api-zod";
 import { and, eq } from "drizzle-orm";
 import { getAuthorBySlug } from "../../../fintechpresshub/src/data/authors";
+import { formRateLimiter } from "../lib/rateLimiter";
 
 const router: IRouter = Router();
 
-router.post("/authors/:slug/subscribe", async (req, res) => {
+router.post("/authors/:slug/subscribe", formRateLimiter, async (req, res) => {
   try {
     const slug = String(req.params.slug ?? "").toLowerCase();
     const author = getAuthorBySlug(slug);
