@@ -137,7 +137,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      <PageMeta page="home" faq={homeFaqs} />
+      <PageMeta
+        page="home"
+        faq={homeFaqs}
+        speakableSelectors={["h1", ".speakable-summary", ".hero-description"]}
+      />
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-gradient-to-br from-[#0b1e4d] via-[#102a6b] to-[#0a1633]">
         <div className="absolute inset-0 z-0">

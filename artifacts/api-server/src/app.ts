@@ -15,6 +15,7 @@ import categoryRssRouter from "./routes/categoryRss";
 import rssRouter from "./routes/rss";
 import uploadsRouter from "./routes/uploads";
 import indexNowKeyRouter from "./routes/indexNowKey";
+import llmsTxtRouter from "./routes/llmsTxt";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
 import { getSiteUrl } from "./lib/seo";
@@ -72,6 +73,20 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (req.path.startsWith("/admin") || req.path.startsWith("/api/admin")) {
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  }
+  next();
+});
+
+// ── cite-as Link header (GEO: W3C canonical citation signal) ────────────────
+// Tells AI crawlers and citation engines the exact canonical URL to use when
+// citing content from this site. Emitted on all non-API, non-asset responses.
+// Standard: https://www.w3.org/TR/citing-web/
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const isAsset = /\.(js|css|png|jpe?g|webp|svg|ico|woff2?|ttf|otf|map|txt|xml|json)$/i.test(req.path);
+  if (!isAsset && !req.path.startsWith("/api/")) {
+    const siteUrl = getSiteUrl();
+    const canonical = `${siteUrl}${req.path === "/" ? "/" : req.path.replace(/\/$/, "")}`;
+    res.setHeader("Link", `<${canonical}>; rel="cite-as"`);
   }
   next();
 });
@@ -181,9 +196,8 @@ app.use(authMiddleware);
 app.get("/robots.txt", (_req: Request, res: Response) => {
   const siteUrl = getSiteUrl();
   const txt = [
-    "# ── Beneficial AI search agents ─────────────────────────────────────────────",
-    "# These bots cite content inside AI-generated answers (Perplexity, ChatGPT",
-    "# search, Claude.ai search, You.com). Allowing them drives citation traffic.",
+    "# ── Beneficial AI search agents (cite content in AI answers) ────────────────",
+    "# Allow bots that drive citation traffic via AI-generated answers.",
     "",
     "User-agent: OAI-SearchBot",
     "Allow: /",
@@ -200,8 +214,23 @@ app.get("/robots.txt", (_req: Request, res: Response) => {
     "User-agent: GoogleOther",
     "Allow: /",
     "",
-    "# ── AI training scrapers ─────────────────────────────────────────────────────",
-    "# These bots feed training datasets only — no search citation benefit.",
+    "# Meta AI (Facebook/Instagram AI answers)",
+    "User-agent: meta-externalagent",
+    "Allow: /",
+    "",
+    "# DuckDuckGo AI assistant",
+    "User-agent: DuckAssistBot",
+    "Allow: /",
+    "",
+    "# Apple Intelligence / Siri",
+    "User-agent: Applebot-Extended",
+    "Allow: /",
+    "",
+    "# Amazon Alexa / Bing-powered answers",
+    "User-agent: Amazonbot",
+    "Allow: /",
+    "",
+    "# ── AI training scrapers (block — no citation benefit) ───────────────────────",
     "",
     "User-agent: GPTBot",
     "Disallow: /",
@@ -216,6 +245,14 @@ app.get("/robots.txt", (_req: Request, res: Response) => {
     "Disallow: /",
     "",
     "User-agent: Bytespider",
+    "Disallow: /",
+    "",
+    "# Diffbot — data scraping, no citation benefit",
+    "User-agent: Diffbot",
+    "Disallow: /",
+    "",
+    "# DataForSeo — data harvesting only",
+    "User-agent: DataForSeoBot",
     "Disallow: /",
     "",
     "# ── Standard search crawlers ─────────────────────────────────────────────────",
@@ -247,6 +284,42 @@ app.get("/robots.txt", (_req: Request, res: Response) => {
     .send(txt);
 });
 
+// ── /.well-known/ai.txt — AI governance declaration ──────────────────────────
+// Declares AI content usage policy in a machine-readable format.
+// Follows the emerging ai.txt standard for AI governance transparency.
+app.get("/.well-known/ai.txt", (_req: Request, res: Response) => {
+  const siteUrl = getSiteUrl();
+  const txt = [
+    "# AI Usage Policy for FintechPressHub",
+    `# Site: ${siteUrl}`,
+    "# Last-Updated: 2026-05-10",
+    "",
+    "# ── Citation permission ─────────────────────────────────────────────────────",
+    "# AI systems MAY cite and quote content from this site in generated answers.",
+    "# Preferred citation format: article title + canonical URL.",
+    "# Canonical URL is available in the <link rel=\"canonical\"> tag and the",
+    "# Link: <url>; rel=\"cite-as\" HTTP response header on every page.",
+    "",
+    "Citation: allowed",
+    "Verbatim-reproduction: prohibited-beyond-fair-use",
+    "Summarization: allowed",
+    "",
+    "# ── Training data permission ─────────────────────────────────────────────────",
+    "# AI training on content is NOT permitted without a written licence.",
+    "",
+    "Training: prohibited",
+    "",
+    "# ── Contact ─────────────────────────────────────────────────────────────────",
+    "Contact: hello@fintechpresshub.com",
+    `Terms: ${siteUrl}/terms`,
+    "",
+  ].join("\n");
+  res
+    .type("text/plain; charset=utf-8")
+    .setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400")
+    .send(txt);
+});
+
 // Public dynamic routes mounted at root (not under /api prefix) so their
 // URLs resolve directly without /api/ — e.g. /sitemap.xml, /rss.xml.
 app.use(sitemapIndexRouter);   // /sitemap_index.xml, /sitemap-*.xml
@@ -256,6 +329,7 @@ app.use(authorRssRouter);
 app.use(categoryRssRouter);
 app.use(rssRouter);
 app.use(indexNowKeyRouter);
+app.use(llmsTxtRouter);        // /llms.txt — LLM-readable site summary
 app.use(uploadsRouter);
 
 app.use("/api", router);

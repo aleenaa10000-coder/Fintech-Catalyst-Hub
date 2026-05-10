@@ -39,6 +39,13 @@ function buildBreadcrumbs(
 export type ArticleSchema = {
   title: string;
   description?: string;
+  /**
+   * Short plain-text summary of the article (typically the post excerpt).
+   * Emitted as `abstract` on BlogPosting JSON-LD — the field AI citation
+   * engines (Perplexity, ChatGPT Search, Claude) read when generating
+   * summaries. 160-320 chars is optimal.
+   */
+  abstract?: string;
   image?: string;
   datePublished?: string;
   dateModified?: string;
@@ -92,6 +99,12 @@ export type ServiceSchema = {
   areaServed?: string;
   url?: string;
   deliverables?: string[];
+  /**
+   * Override the JSON-LD `@type`. Defaults to "Service".
+   * Use "FinancialService" for fintech/financial services so LLMs and
+   * Google's Knowledge Graph classify the service more precisely.
+   */
+  schemaType?: "Service" | "FinancialService";
 };
 
 export type EmployeePerson = {
@@ -367,7 +380,7 @@ export function PageMeta(props: PageMetaProps) {
   const serviceJsonLd = props.service
     ? {
         "@context": "https://schema.org",
-        "@type": "Service",
+        "@type": props.service.schemaType ?? "Service",
         name: props.service.name,
         description: props.service.description,
         serviceType: props.service.serviceType ?? props.service.name,
@@ -748,6 +761,10 @@ export function PageMeta(props: PageMetaProps) {
           name: `${SITE_NAME} Blog`,
           url: `${SITE_URL}/blog`,
         },
+        creativeWorkStatus: "Published",
+        ...(props.article.abstract
+          ? { abstract: props.article.abstract.slice(0, 500) }
+          : {}),
         articleSection: props.article.section,
         keywords: props.article.tags?.join(", "),
         inLanguage: props.article.inLanguage ?? "en",

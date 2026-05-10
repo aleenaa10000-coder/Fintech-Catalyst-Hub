@@ -82,6 +82,7 @@ export default function About() {
     <div className="min-h-screen bg-background">
       <PageMeta
         page="about"
+        speakableSelectors={["h1", ".speakable-summary"]}
         aboutPage={{
           description: aboutDescription,
           slogan: aboutSlogan,

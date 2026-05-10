@@ -49,6 +49,7 @@ export default function Services() {
     <div className="min-h-screen bg-background">
       <PageMeta
         page="services"
+        speakableSelectors={["h1", ".speakable-summary"]}
         itemList={
           services && services.length > 0
             ? {

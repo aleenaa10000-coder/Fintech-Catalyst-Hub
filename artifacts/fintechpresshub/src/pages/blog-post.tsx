@@ -480,6 +480,7 @@ export default function BlogPost() {
               ? post.dateModified
               : undefined;
           })(),
+          abstract: post.excerpt?.trim() || undefined,
           author: post.author,
           authorUrl: `${SITE_URL}/authors/${authorSlugFromName(post.author)}`,
           authorJobTitle: post.authorRole,

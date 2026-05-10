@@ -1,6 +1,5 @@
-# ── Beneficial AI search agents ─────────────────────────────────────────────
-# These bots cite content inside AI-generated answers (Perplexity, ChatGPT
-# search, Claude.ai search, You.com). Allowing them drives citation traffic.
+# ── Beneficial AI search agents (cite content in AI answers) ─────────────────
+# Allow bots that drive citation traffic via AI-generated answers.
 
 User-agent: OAI-SearchBot
 Allow: /
@@ -17,8 +16,23 @@ Allow: /
 User-agent: GoogleOther
 Allow: /
 
-# ── AI training scrapers ─────────────────────────────────────────────────────
-# These bots feed training datasets only — no search citation benefit.
+# Meta AI (Facebook/Instagram AI answers)
+User-agent: meta-externalagent
+Allow: /
+
+# DuckDuckGo AI assistant
+User-agent: DuckAssistBot
+Allow: /
+
+# Apple Intelligence / Siri
+User-agent: Applebot-Extended
+Allow: /
+
+# Amazon Alexa / Bing-powered answers
+User-agent: Amazonbot
+Allow: /
+
+# ── AI training scrapers (block — no citation benefit) ────────────────────────
 
 User-agent: GPTBot
 Disallow: /
@@ -35,7 +49,15 @@ Disallow: /
 User-agent: Bytespider
 Disallow: /
 
-# ── Standard search crawlers ─────────────────────────────────────────────────
+# Diffbot — data scraping, no citation benefit
+User-agent: Diffbot
+Disallow: /
+
+# DataForSeo — data harvesting only
+User-agent: DataForSeoBot
+Disallow: /
+
+# ── Standard search crawlers ──────────────────────────────────────────────────
 
 User-agent: *
 Allow: /
