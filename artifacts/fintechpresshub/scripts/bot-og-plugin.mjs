@@ -805,6 +805,45 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
           url: `${canonical}#faq`,
         })),
       });
+    } else if (pathname.startsWith("/tools/") && pathname !== "/tools") {
+      const leafLabel = m.title.split("|")[0].trim();
+      extraSchema = {
+        "@context":           "https://schema.org",
+        "@type":              "SoftwareApplication",
+        "@id":                canonical,
+        name:                 leafLabel,
+        description:          m.description,
+        url:                  canonical,
+        applicationCategory:  "WebApplication",
+        operatingSystem:      "Web",
+        isAccessibleForFree:  true,
+        offers: {
+          "@type":       "Offer",
+          price:         "0",
+          priceCurrency: "USD",
+        },
+        provider: { "@id": `${siteUrl}#organization` },
+      };
+    } else if (pathname.startsWith("/compare/") && pathname !== "/compare") {
+      const leafLabel = m.title.split("|")[0].trim();
+      extraSchema = {
+        "@context":  "https://schema.org",
+        "@type":     "FAQPage",
+        "@id":       canonical,
+        name:        m.title,
+        url:         canonical,
+        publisher:   { "@id": `${siteUrl}#organization` },
+        mainEntity: [
+          {
+            "@type": "Question",
+            name:    leafLabel,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text:    m.description,
+            },
+          },
+        ],
+      };
     }
 
     const bodyContent = buildBodyHtml({
@@ -1038,6 +1077,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
           name: term.term,
           description: term.shortDef,
           url: canonical,
+          inLanguage: "en",
           inDefinedTermSet: {
             "@type": "DefinedTermSet",
             name: "Fintech Glossary",
@@ -1080,6 +1120,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
           "@id": canonical,
           name: `FintechPressHub — ${loc.city} Fintech SEO`,
           description: loc.headline,
+          serviceType: "Fintech SEO & Content Marketing",
           url: canonical,
           address: {
             "@type": "PostalAddress",
@@ -1125,6 +1166,17 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         organizationSchema(siteUrl),
         websiteSchema(siteUrl),
         breadcrumbSchema(pathname, catMeta.title, siteUrl),
+        {
+          "@context":  "https://schema.org",
+          "@type":     "CollectionPage",
+          "@id":       canonical,
+          name:        catMeta.title,
+          description: catMeta.description,
+          url:         canonical,
+          inLanguage:  "en",
+          isPartOf:    { "@id": `${siteUrl}/blog` },
+          publisher:   { "@id": `${siteUrl}#organization` },
+        },
         catPosts.length > 0
           ? itemListSchema({
               name: catMeta.title,
