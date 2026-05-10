@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import healthRouter from "./health";
 import authRouter from "./auth";
 import adminAuthRouter from "./adminAuth";
@@ -76,5 +76,11 @@ router.use(referringDomainsRouter);
 router.use(vitalsRouter);
 router.use(categoryRssRouter);
 router.use(pressMentionsRouter);
+
+// JSON 404 fallback for unmatched /api/* routes — must come last so it
+// doesn't shadow any route registered above.
+router.use((_req: Request, res: Response) => {
+  res.status(404).json({ error: "Not found" });
+});
 
 export default router;

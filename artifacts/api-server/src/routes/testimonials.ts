@@ -31,61 +31,81 @@ const updateSchema = createSchema.partial();
 const router: IRouter = Router();
 
 router.get("/testimonials", async (_req, res) => {
-  const rows = await db
-    .select()
-    .from(testimonialsTable)
-    .orderBy(asc(testimonialsTable.sortOrder), asc(testimonialsTable.createdAt));
-  res.json(rows);
+  try {
+    const rows = await db
+      .select()
+      .from(testimonialsTable)
+      .orderBy(asc(testimonialsTable.sortOrder), asc(testimonialsTable.createdAt));
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch testimonials" });
+    throw err;
+  }
 });
 
 router.post("/admin/testimonials", requireAdmin, async (req, res) => {
-  const parsed = createSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
-    return;
+  try {
+    const parsed = createSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    const [row] = await db.insert(testimonialsTable).values(parsed.data).returning();
+    res.status(201).json(row);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create testimonial" });
+    throw err;
   }
-  const [row] = await db.insert(testimonialsTable).values(parsed.data).returning();
-  res.status(201).json(row);
 });
 
 router.patch("/admin/testimonials/:id", requireAdmin, async (req, res) => {
-  const id = Number(req.params["id"]);
-  if (!Number.isInteger(id) || id <= 0) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const parsed = updateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    const [row] = await db
+      .update(testimonialsTable)
+      .set(parsed.data)
+      .where(eq(testimonialsTable.id, id))
+      .returning();
+    if (!row) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    res.json(row);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update testimonial" });
+    throw err;
   }
-  const parsed = updateSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
-    return;
-  }
-  const [row] = await db
-    .update(testimonialsTable)
-    .set(parsed.data)
-    .where(eq(testimonialsTable.id, id))
-    .returning();
-  if (!row) {
-    res.status(404).json({ error: "Not found" });
-    return;
-  }
-  res.json(row);
 });
 
 router.delete("/admin/testimonials/:id", requireAdmin, async (req, res) => {
-  const id = Number(req.params["id"]);
-  if (!Number.isInteger(id) || id <= 0) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const [row] = await db
+      .delete(testimonialsTable)
+      .where(eq(testimonialsTable.id, id))
+      .returning();
+    if (!row) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete testimonial" });
+    throw err;
   }
-  const [row] = await db
-    .delete(testimonialsTable)
-    .where(eq(testimonialsTable.id, id))
-    .returning();
-  if (!row) {
-    res.status(404).json({ error: "Not found" });
-    return;
-  }
-  res.status(204).end();
 });
 
 export default router;

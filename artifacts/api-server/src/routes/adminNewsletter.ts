@@ -99,38 +99,48 @@ async function loadDetail() {
 }
 
 router.get("/admin/newsletter/subscribers", requireAdmin, async (_req, res) => {
-  const detail = await loadDetail();
-  res.json(detail);
+  try {
+    const detail = await loadDetail();
+    res.json(detail);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load subscribers" });
+    throw err;
+  }
 });
 
 router.patch(
   "/admin/newsletter/brief-leads/:id/status",
   requireAdmin,
   async (req: Request, res: Response) => {
-    const id = parseInt(String(req.params.id ?? ""), 10);
-    if (isNaN(id)) {
-      res.status(400).json({ error: "Invalid id" });
-      return;
-    }
-    const parsed = UpdateBriefStatusBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: "Invalid status", issues: parsed.error.issues });
-      return;
-    }
-    const [updated] = await db
-      .update(newsletterSubscribersTable)
-      .set({
-        briefStatus: parsed.data.status,
-        briefStatusUpdatedAt: new Date(),
-      })
-      .where(eq(newsletterSubscribersTable.id, id))
-      .returning({ id: newsletterSubscribersTable.id, briefStatus: newsletterSubscribersTable.briefStatus });
+    try {
+      const id = parseInt(String(req.params.id ?? ""), 10);
+      if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+      }
+      const parsed = UpdateBriefStatusBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: "Invalid status", issues: parsed.error.issues });
+        return;
+      }
+      const [updated] = await db
+        .update(newsletterSubscribersTable)
+        .set({
+          briefStatus: parsed.data.status,
+          briefStatusUpdatedAt: new Date(),
+        })
+        .where(eq(newsletterSubscribersTable.id, id))
+        .returning({ id: newsletterSubscribersTable.id, briefStatus: newsletterSubscribersTable.briefStatus });
 
-    if (!updated) {
-      res.status(404).json({ error: "Lead not found" });
-      return;
+      if (!updated) {
+        res.status(404).json({ error: "Lead not found" });
+        return;
+      }
+      res.json({ id: updated.id, briefStatus: updated.briefStatus });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to update lead status" });
+      throw err;
     }
-    res.json({ id: updated.id, briefStatus: updated.briefStatus });
   },
 );
 
@@ -139,26 +149,31 @@ router.get(
   "/admin/newsletter/subscribers.csv",
   requireAdmin,
   async (_req, res) => {
-    const detail = await loadDetail();
+    try {
+      const detail = await loadDetail();
 
-    const header = ["email", "subscribed_at", "source", "keyword"].join(",");
-    const lines = detail.subscribers.map((s: { email: string | null; createdAt: string; source: string | null; keyword: string | null }) =>
-      [
-        escapeCsv(s.email),
-        escapeCsv(s.createdAt),
-        escapeCsv(s.source ?? ""),
-        escapeCsv(s.keyword ?? ""),
-      ].join(","),
-    );
-    const body = [header, ...lines].join("\n") + "\n";
+      const header = ["email", "subscribed_at", "source", "keyword"].join(",");
+      const lines = detail.subscribers.map((s: { email: string | null; createdAt: string; source: string | null; keyword: string | null }) =>
+        [
+          escapeCsv(s.email),
+          escapeCsv(s.createdAt),
+          escapeCsv(s.source ?? ""),
+          escapeCsv(s.keyword ?? ""),
+        ].join(","),
+      );
+      const body = [header, ...lines].join("\n") + "\n";
 
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="newsletter-subscribers-${new Date().toISOString().slice(0, 10)}.csv"`,
-    );
-    res.setHeader("Cache-Control", "no-store");
-    res.send(body);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="newsletter-subscribers-${new Date().toISOString().slice(0, 10)}.csv"`,
+      );
+      res.setHeader("Cache-Control", "no-store");
+      res.send(body);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to export subscribers" });
+      throw err;
+    }
   },
 );
 

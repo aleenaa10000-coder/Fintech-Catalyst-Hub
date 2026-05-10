@@ -370,7 +370,9 @@ if (process.env.NODE_ENV === "production" && existsSync(_frontendDist)) {
 
   // SPA fallback — check for a pre-rendered route file first (written by
   // scripts/prerender.mjs at build time), then fall back to index.html.
-  app.get("*", (req: Request, res: Response) => {
+  // Handles both GET and HEAD — search engines and uptime monitors send
+  // HEAD requests to check liveness; without this they get a 404.
+  const spaFallback = (req: Request, res: Response) => {
     const pathname = req.path.replace(/\/+$/, "") || "/";
 
     if (pathname !== "/") {
@@ -383,7 +385,40 @@ if (process.env.NODE_ENV === "production" && existsSync(_frontendDist)) {
 
     res.setHeader("Cache-Control", "no-cache");
     res.sendFile(path.join(_frontendDist, "index.html"));
-  });
+  };
+
+  app.get("*", spaFallback);
+  app.head("*", spaFallback);
 }
+
+// ── Global JSON error handler ──────────────────────────────────────────────
+// Express 5 automatically catches errors thrown by async route handlers and
+// forwards them here. Without this 4-argument middleware, Express falls back
+// to its built-in handler which sends HTML error pages — breaking API clients
+// that expect JSON. This must be registered AFTER all routes.
+app.use(
+  (
+    err: unknown,
+    _req: Request,
+    res: Response,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _next: NextFunction,
+  ) => {
+    const status =
+      err instanceof Error && "status" in err && typeof (err as { status?: unknown }).status === "number"
+        ? (err as { status: number }).status
+        : 500;
+    const message =
+      process.env.NODE_ENV === "production"
+        ? "Internal server error"
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    logger.error({ err }, "Unhandled route error");
+    if (!res.headersSent) {
+      res.status(status).json({ error: message });
+    }
+  },
+);
 
 export default app;

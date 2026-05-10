@@ -48,54 +48,59 @@ router.get(
   "/admin/authors/subscribers/summary",
   requireAdmin,
   async (_req, res) => {
-    const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    try {
+      const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const totals = await db
-      .select({
-        authorSlug: authorSubscriptionsTable.authorSlug,
-        count: sql<number>`count(*)::int`,
-        latestSubscribedAt: sql<
-          Date | null
-        >`max(${authorSubscriptionsTable.createdAt})`,
-      })
-      .from(authorSubscriptionsTable)
-      .groupBy(authorSubscriptionsTable.authorSlug);
+      const totals = await db
+        .select({
+          authorSlug: authorSubscriptionsTable.authorSlug,
+          count: sql<number>`count(*)::int`,
+          latestSubscribedAt: sql<
+            Date | null
+          >`max(${authorSubscriptionsTable.createdAt})`,
+        })
+        .from(authorSubscriptionsTable)
+        .groupBy(authorSubscriptionsTable.authorSlug);
 
-    const recents = await db
-      .select({
-        authorSlug: authorSubscriptionsTable.authorSlug,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(authorSubscriptionsTable)
-      .where(gte(authorSubscriptionsTable.createdAt, since30d))
-      .groupBy(authorSubscriptionsTable.authorSlug);
+      const recents = await db
+        .select({
+          authorSlug: authorSubscriptionsTable.authorSlug,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(authorSubscriptionsTable)
+        .where(gte(authorSubscriptionsTable.createdAt, since30d))
+        .groupBy(authorSubscriptionsTable.authorSlug);
 
-    type TotalRow = { authorSlug: string; count: number; latestSubscribedAt: Date | null };
-    const totalsBySlug = new Map<string, TotalRow>(
-      (totals as TotalRow[]).map((r) => [r.authorSlug, r]),
-    );
-    const recentsBySlug = new Map<string, number>(
-      (recents as { authorSlug: string; count: number }[]).map((r) => [r.authorSlug, r.count]),
-    );
+      type TotalRow = { authorSlug: string; count: number; latestSubscribedAt: Date | null };
+      const totalsBySlug = new Map<string, TotalRow>(
+        (totals as TotalRow[]).map((r) => [r.authorSlug, r]),
+      );
+      const recentsBySlug = new Map<string, number>(
+        (recents as { authorSlug: string; count: number }[]).map((r) => [r.authorSlug, r.count]),
+      );
 
-    const summary = authors
-      .map((a) => {
-        const t = totalsBySlug.get(a.slug);
-        return {
-          authorSlug: a.slug,
-          authorName: a.name,
-          authorRole: a.role,
-          authorPhoto: a.photo,
-          subscriberCount: t?.count ?? 0,
-          last30DayCount: recentsBySlug.get(a.slug) ?? 0,
-          latestSubscribedAt: t?.latestSubscribedAt
-            ? new Date(t.latestSubscribedAt).toISOString()
-            : null,
-        };
-      })
-      .sort((a, b) => b.subscriberCount - a.subscriberCount);
+      const summary = authors
+        .map((a) => {
+          const t = totalsBySlug.get(a.slug);
+          return {
+            authorSlug: a.slug,
+            authorName: a.name,
+            authorRole: a.role,
+            authorPhoto: a.photo,
+            subscriberCount: t?.count ?? 0,
+            last30DayCount: recentsBySlug.get(a.slug) ?? 0,
+            latestSubscribedAt: t?.latestSubscribedAt
+              ? new Date(t.latestSubscribedAt).toISOString()
+              : null,
+          };
+        })
+        .sort((a, b) => b.subscriberCount - a.subscriberCount);
 
-    res.json(summary);
+      res.json(summary);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load subscriber summary" });
+      throw err;
+    }
   },
 );
 
@@ -166,13 +171,18 @@ router.get(
   "/admin/authors/:slug/subscribers",
   requireAdmin,
   async (req, res) => {
-    const slug = String(req.params.slug ?? "").toLowerCase();
-    const detail = await loadAuthorDetail(slug);
-    if (!detail) {
-      res.status(404).json({ error: "Unknown author" });
-      return;
+    try {
+      const slug = String(req.params.slug ?? "").toLowerCase();
+      const detail = await loadAuthorDetail(slug);
+      if (!detail) {
+        res.status(404).json({ error: "Unknown author" });
+        return;
+      }
+      res.json(detail);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load author subscribers" });
+      throw err;
     }
-    res.json(detail);
   },
 );
 
@@ -181,28 +191,33 @@ router.get(
   "/admin/authors/:slug/subscribers.csv",
   requireAdmin,
   async (req, res) => {
-    const slug = String(req.params.slug ?? "").toLowerCase();
-    const detail = await loadAuthorDetail(slug);
-    if (!detail) {
-      res.status(404).type("text/plain").send("Unknown author");
-      return;
+    try {
+      const slug = String(req.params.slug ?? "").toLowerCase();
+      const detail = await loadAuthorDetail(slug);
+      if (!detail) {
+        res.status(404).type("text/plain").send("Unknown author");
+        return;
+      }
+
+      const header = ["email", "subscribed_at", "source"].join(",");
+      const lines = detail.subscribers.map((s: { email: string | null; createdAt: string; source: string | null }) =>
+        [escapeCsv(s.email), escapeCsv(s.createdAt), escapeCsv(s.source ?? "")].join(
+          ",",
+        ),
+      );
+      const body = [header, ...lines].join("\n") + "\n";
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${slug}-subscribers-${new Date().toISOString().slice(0, 10)}.csv"`,
+      );
+      res.setHeader("Cache-Control", "no-store");
+      res.send(body);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to export author subscribers" });
+      throw err;
     }
-
-    const header = ["email", "subscribed_at", "source"].join(",");
-    const lines = detail.subscribers.map((s: { email: string | null; createdAt: string; source: string | null }) =>
-      [escapeCsv(s.email), escapeCsv(s.createdAt), escapeCsv(s.source ?? "")].join(
-        ",",
-      ),
-    );
-    const body = [header, ...lines].join("\n") + "\n";
-
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${slug}-subscribers-${new Date().toISOString().slice(0, 10)}.csv"`,
-    );
-    res.setHeader("Cache-Control", "no-store");
-    res.send(body);
   },
 );
 
