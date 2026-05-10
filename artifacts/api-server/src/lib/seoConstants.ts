@@ -32,3 +32,37 @@ export const SERVICE_SLUGS = [
 ] as const;
 
 export type ServiceSlug = (typeof SERVICE_SLUGS)[number];
+
+/**
+ * Free tool page slugs. Listed here so sitemap-tools.xml stays in sync with
+ * the tools router without a separate list. Update when new tools are added.
+ */
+export const TOOL_SLUGS = [
+  "financial-health-score-calculator",
+  "meta-description-generator",
+  "guest-post-pitch-generator",
+  "readability-checker",
+  "keyword-difficulty-estimator",
+  "backlink-value-estimator",
+  "content-brief-generator",
+  "headline-analyzer",
+  "link-prospector",
+  "outreach-email-generator",
+] as const;
+
+export type ToolSlug = (typeof TOOL_SLUGS)[number];
+
+/**
+ * Comparison page slugs. Single source of truth for sitemap-compare.xml.
+ * Update when new comparison pages are added to the comparisons data file.
+ */
+export const COMPARE_SLUGS = [
+  "agency-vs-in-house",
+  "vs-freelancers",
+  "vs-seo-tools",
+  "vs-pr-agencies",
+  "content-led-vs-paid",
+  "specialist-vs-generalist",
+] as const;
+
+export type CompareSlug = (typeof COMPARE_SLUGS)[number];

@@ -27,7 +27,13 @@ const BREADCRUMB_LABELS = {
   "cookie-policy": "Cookie Policy",
   terms: "Terms",
   "editorial-guidelines": "Editorial Guidelines",
-  tools: "Tools",
+  "community-guidelines": "Community Guidelines",
+  tools: "Free Tools",
+  glossary: "Glossary",
+  compare: "Comparisons",
+  locations: "Locations",
+  resources: "Resources",
+  press: "Press",
 };
 
 function escapeHtml(value) {

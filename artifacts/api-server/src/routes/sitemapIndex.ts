@@ -4,7 +4,7 @@ import { asc, desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
 import { STATIC_ROUTES } from "./sitemap";
-import { STATIC_CATEGORY_SLUGS } from "../lib/seoConstants";
+import { STATIC_CATEGORY_SLUGS, TOOL_SLUGS, COMPARE_SLUGS } from "../lib/seoConstants";
 
 const router: IRouter = Router();
 
@@ -73,6 +73,8 @@ async function buildSitemapIndexXml(): Promise<string> {
     { loc: `${siteUrl}/sitemap-authors.xml`,   lastmod: today },
     { loc: `${siteUrl}/sitemap-locations.xml`, lastmod: latestLocationDate },
     { loc: `${siteUrl}/sitemap-glossary.xml`,  lastmod: latestGlossaryDate },
+    { loc: `${siteUrl}/sitemap-tools.xml`,     lastmod: today },
+    { loc: `${siteUrl}/sitemap-compare.xml`,   lastmod: today },
     { loc: `${siteUrl}/news-sitemap.xml`,      lastmod: today },
   ];
 
@@ -315,6 +317,70 @@ async function buildGlossarySitemapXml(): Promise<string> {
   return xmlUrlset(body);
 }
 
+// ── /sitemap-tools.xml ───────────────────────────────────────────────────────
+
+async function buildToolsSitemapXml(): Promise<string> {
+  const siteUrl = getSiteUrl();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const entries = [
+    { loc: `${siteUrl}/tools`, changefreq: "monthly", priority: "0.8" },
+    ...TOOL_SLUGS.map((slug) => ({
+      loc: `${siteUrl}/tools/${slug}`,
+      changefreq: "monthly",
+      priority: "0.7",
+    })),
+  ];
+
+  const body = entries
+    .map(
+      (u) =>
+        `  <url>\n` +
+        `    <loc>${escapeXml(u.loc)}</loc>\n` +
+        `    <lastmod>${today}</lastmod>\n` +
+        `    <changefreq>${u.changefreq}</changefreq>\n` +
+        `    <priority>${u.priority}</priority>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n` +
+        `  </url>`,
+    )
+    .join("\n");
+
+  return xmlUrlset(body);
+}
+
+// ── /sitemap-compare.xml ─────────────────────────────────────────────────────
+
+async function buildCompareSitemapXml(): Promise<string> {
+  const siteUrl = getSiteUrl();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const entries = [
+    { loc: `${siteUrl}/compare`, changefreq: "monthly", priority: "0.6" },
+    ...COMPARE_SLUGS.map((slug) => ({
+      loc: `${siteUrl}/compare/${slug}`,
+      changefreq: "monthly",
+      priority: "0.6",
+    })),
+  ];
+
+  const body = entries
+    .map(
+      (u) =>
+        `  <url>\n` +
+        `    <loc>${escapeXml(u.loc)}</loc>\n` +
+        `    <lastmod>${today}</lastmod>\n` +
+        `    <changefreq>${u.changefreq}</changefreq>\n` +
+        `    <priority>${u.priority}</priority>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n` +
+        `  </url>`,
+    )
+    .join("\n");
+
+  return xmlUrlset(body);
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function xmlUrlset(body: string, withImage = false): string {
@@ -366,6 +432,18 @@ router.get("/sitemap-glossary.xml", async (_req, res) => {
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", CACHE);
   res.send(await buildGlossarySitemapXml());
+});
+
+router.get("/sitemap-tools.xml", async (_req, res) => {
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("Cache-Control", CACHE);
+  res.send(await buildToolsSitemapXml());
+});
+
+router.get("/sitemap-compare.xml", async (_req, res) => {
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("Cache-Control", CACHE);
+  res.send(await buildCompareSitemapXml());
 });
 
 export default router;
