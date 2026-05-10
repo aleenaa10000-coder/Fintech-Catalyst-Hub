@@ -9,6 +9,11 @@ import { z } from "zod";
 import { db, locationPagesTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
+import { logger } from "../lib/logger";
+import {
+  getSiteUrl,
+  notifySearchEnginesOfPublish,
+} from "../lib/seo";
 
 const router: IRouter = Router();
 
@@ -82,6 +87,21 @@ router.post("/admin/locations", requireAdmin, async (req, res, next) => {
       .insert(locationPagesTable)
       .values(body)
       .returning();
+    if (!row) {
+      res.status(500).json({ error: "Failed to insert location page" });
+      return;
+    }
+
+    // Fire-and-forget IndexNow + Google sitemap ping so Bing/Yandex/etc
+    // learn about the new location page immediately.
+    const siteUrl = getSiteUrl();
+    void notifySearchEnginesOfPublish([
+      `${siteUrl}/locations/${row.slug}`,
+      `${siteUrl}/sitemap.xml`,
+    ]).catch((err) =>
+      logger.warn({ err, slug: row.slug }, "IndexNow ping for new location page failed (non-fatal)"),
+    );
+
     res.status(201).json(row);
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -121,6 +141,16 @@ router.patch(
         res.status(404).json({ error: "Not found" });
         return;
       }
+
+      // Fire-and-forget IndexNow ping so search engines recrawl the updated page.
+      const siteUrl = getSiteUrl();
+      void notifySearchEnginesOfPublish([
+        `${siteUrl}/locations/${row.slug}`,
+        `${siteUrl}/sitemap.xml`,
+      ]).catch((err) =>
+        logger.warn({ err, slug: row.slug }, "IndexNow ping for updated location page failed (non-fatal)"),
+      );
+
       res.json(row);
     } catch (err) {
       if (err instanceof z.ZodError) {
