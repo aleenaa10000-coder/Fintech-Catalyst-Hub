@@ -6,6 +6,10 @@ import {
   markNotified,
   type SerializedResult,
 } from "../lib/sitemapHealth";
+import {
+  runHreflangConsistencyCheck,
+  type HreflangMismatch,
+} from "../lib/hreflangCheck";
 import { postPersistentAlertToSlack } from "../lib/slackNotifier";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
@@ -366,6 +370,106 @@ export async function runDailyLinkCheck(): Promise<void> {
       "Link-check complete — no persistent failures past alert window",
     );
   }
+
+  // ── 3. Hreflang consistency check ──────────────────────────────────────
+  // Fetch the HTML of a representative sample of pages and verify that
+  // each one renders the expected <link rel="alternate" hreflang> tags in
+  // its <head>. Runs after the sitemap check so its fetches don't compete
+  // with the concurrent HEAD probes above.
+  let hreflangMismatches: HreflangMismatch[] = [];
+  try {
+    hreflangMismatches = await runHreflangConsistencyCheck(getSiteUrl());
+  } catch (err) {
+    JOB_LOG.error({ err }, "Hreflang consistency check threw — skipping alert");
+  }
+
+  if (hreflangMismatches.length > 0) {
+    const nowMs = Date.now();
+    const shouldAlert =
+      lastHreflangAlertMs === null ||
+      nowMs - lastHreflangAlertMs >= HREFLANG_RENOTIFY_MS;
+
+    if (shouldAlert && recipients.length > 0) {
+      const { subject, text } = buildHreflangAlertEmail(hreflangMismatches);
+      let allSentHreflang = true;
+      for (const to of recipients) {
+        const ok = await sendMail({ to, subject, text }).catch((err) => {
+          JOB_LOG.error({ err, to }, "Failed to send hreflang drift alert");
+          return false;
+        });
+        if (!ok) allSentHreflang = false;
+      }
+      if (allSentHreflang) {
+        lastHreflangAlertMs = nowMs;
+      }
+      JOB_LOG.warn(
+        {
+          mismatches: hreflangMismatches.length,
+          recipients: recipients.length,
+          allSent: allSentHreflang,
+        },
+        "Hreflang drift detected — alert sent",
+      );
+    } else if (shouldAlert) {
+      JOB_LOG.warn(
+        { mismatches: hreflangMismatches.length },
+        "Hreflang drift detected but ADMIN_EMAILS is unset — no email sent",
+      );
+    } else {
+      JOB_LOG.info(
+        {
+          mismatches: hreflangMismatches.length,
+          nextAlertIn: `${Math.round((HREFLANG_RENOTIFY_MS - (nowMs - (lastHreflangAlertMs ?? 0))) / ONE_HOUR_MS)}h`,
+        },
+        "Hreflang drift detected — within re-notify window, skipping repeat alert",
+      );
+    }
+  } else {
+    JOB_LOG.info(
+      { checked: hreflangMismatches.length === 0 ? "sample" : hreflangMismatches.length },
+      "Hreflang check passed — all sampled pages have correct hreflang tags",
+    );
+  }
+}
+
+// ── In-memory throttle for hreflang alerts ──────────────────────────────────
+// Hreflang drift is a code-level issue — there is no point paging admins
+// every single day about the same structural problem. We re-alert at most
+// once per week (matching the persistent-URL renotify cadence) using an
+// in-memory timestamp. On server restart the counter resets, meaning an
+// existing drift will produce one extra alert on the first run after a
+// deploy — acceptable given it removes the need for a DB column.
+let lastHreflangAlertMs: number | null = null;
+const HREFLANG_RENOTIFY_MS = 7 * 24 * ONE_HOUR_MS;
+
+function buildHreflangAlertEmail(mismatches: HreflangMismatch[]): {
+  subject: string;
+  text: string;
+} {
+  const siteUrl = getSiteUrl();
+  const n = mismatches.length;
+  const subject = `[FintechPressHub] Hreflang drift — ${n} page${n === 1 ? "" : "s"} with missing or mismatched hreflang tags`;
+
+  const lines: string[] = [
+    `The daily hreflang consistency check found ${n} page${n === 1 ? "" : "s"} where the rendered HTML <head> does not match the expected hreflang annotations.`,
+    ``,
+    `This usually means PageMeta is not mounting on those routes, the SITE_URL env var has changed, or a template regression was introduced.`,
+    ``,
+  ];
+
+  mismatches.forEach((m, i) => {
+    lines.push(`${i + 1}. ${m.url}`);
+    lines.push(`   Issue: ${m.kind}`);
+    lines.push(`   Detail: ${m.detail}`);
+  });
+
+  lines.push(``);
+  lines.push(`These URLs are also accessible in the sitemap. Review the PageMeta component and hreflang output on the affected routes.`);
+  lines.push(`Sitemap: ${siteUrl}/sitemap.xml`);
+  lines.push(``);
+  lines.push(`— FintechPressHub link-checker`);
+
+  return { subject, text: lines.join("\n") };
 }
 
 let scheduled = false;
