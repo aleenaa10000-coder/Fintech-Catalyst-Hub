@@ -313,13 +313,13 @@ async function buildAuthorsSitemapXml(): Promise<string> {
   // Fall back to the static KNOWN_AUTHOR_SLUGS list (no photos) if the
   // DB query fails, so the sitemap is never empty due to a DB outage.
   const dbAuthors = await db
-    .select({ slug: authorsTable.slug, photo: authorsTable.photo, name: authorsTable.name })
+    .select({ slug: authorsTable.slug, photo: authorsTable.photo, name: authorsTable.name, updatedAt: authorsTable.updatedAt })
     .from(authorsTable)
     .orderBy(asc(authorsTable.slug))
-    .catch(() => [] as Array<{ slug: string; photo: string | null; name: string }>);
+    .catch(() => [] as Array<{ slug: string; photo: string | null; name: string; updatedAt: Date | null }>);
 
-  const photoMap = new Map<string, { photo: string | null; name: string }>(
-    dbAuthors.map((a) => [a.slug, { photo: a.photo ?? null, name: a.name }]),
+  const photoMap = new Map<string, { photo: string | null; name: string; updatedAt: Date | null }>(
+    dbAuthors.map((a) => [a.slug, { photo: a.photo ?? null, name: a.name, updatedAt: a.updatedAt ?? null }]),
   );
   const slugs = dbAuthors.length > 0
     ? dbAuthors.map((a) => a.slug)
@@ -339,10 +339,13 @@ async function buildAuthorsSitemapXml(): Promise<string> {
       const resolvedPhoto = rawPhoto
         ? (rawPhoto.startsWith("http") ? rawPhoto : `${siteUrl}${rawPhoto}`)
         : null;
+      // Use the actual DB updatedAt so Google only recrawls when an author
+      // profile genuinely changes — not every day like `today` would signal.
+      const lastmod = authorData?.updatedAt?.toISOString().slice(0, 10) ?? today;
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(loc)}</loc>\n` +
-        `    <lastmod>${today}</lastmod>\n` +
+        `    <lastmod>${lastmod}</lastmod>\n` +
         `    <changefreq>monthly</changefreq>\n` +
         `    <priority>0.6</priority>\n` +
         (resolvedPhoto

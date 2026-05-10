@@ -1378,7 +1378,7 @@ async function handleSsrMeta(
           isPartOf:     { "@id": `${siteUrl}/blog` },
           publisher:    { "@id": `${siteUrl}#organization` },
           datePublished: "2021-06-01",
-          dateModified: new Date().toISOString().slice(0, 10),
+          dateModified: (filteredCatPosts[0]?.publishedAt ?? new Date()).toISOString().slice(0, 10),
           ...(catMeta.about.length > 0
             ? { about: catMeta.about.map((e) => ({ "@type": "Thing", name: e })) }
             : {}),
