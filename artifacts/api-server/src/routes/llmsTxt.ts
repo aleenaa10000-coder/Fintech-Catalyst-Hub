@@ -36,7 +36,7 @@ router.get("/llms.txt", async (_req, res) => {
     .where(lte(blogPostsTable.publishedAt, sql`now()`))
     .orderBy(desc(blogPostsTable.publishedAt))
     .limit(20)
-    .catch(() => []);
+    .catch(() => [] as Array<{ title: string | null; slug: string | null; excerpt: string | null; category: string | null }>);
 
   const indexable = recentPosts.filter((p) => p.slug && p.title);
 
