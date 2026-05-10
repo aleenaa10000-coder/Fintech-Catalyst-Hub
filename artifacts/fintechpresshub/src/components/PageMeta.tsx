@@ -103,8 +103,11 @@ export type ServiceSchema = {
    * Override the JSON-LD `@type`. Defaults to "Service".
    * Use "FinancialService" for fintech/financial services so LLMs and
    * Google's Knowledge Graph classify the service more precisely.
+   * Use "ProfessionalService" for consultancy/agency offerings.
+   * Use "FinancialService+ProfessionalService" to emit the dual-type array
+   * `["FinancialService","ProfessionalService"]` — matching the SSR schema.
    */
-  schemaType?: "Service" | "FinancialService";
+  schemaType?: "Service" | "FinancialService" | "ProfessionalService" | "FinancialService+ProfessionalService";
   /**
    * Fintech sub-verticals and topic areas this service covers.
    * Emitted as `knowsAbout` on the FinancialService JSON-LD so that AI
@@ -409,7 +412,9 @@ export function PageMeta(props: PageMetaProps) {
   const serviceJsonLd = props.service
     ? {
         "@context": "https://schema.org",
-        "@type": props.service.schemaType ?? "Service",
+        "@type": props.service.schemaType === "FinancialService+ProfessionalService"
+          ? ["FinancialService", "ProfessionalService"]
+          : (props.service.schemaType ?? "Service"),
         name: props.service.name,
         description: props.service.description,
         serviceType: props.service.serviceType ?? props.service.name,

@@ -130,9 +130,9 @@ export const PAGE_META = {
       "Clear, retainer-based pricing for fintech SEO and content marketing — predictable costs with senior operators on every account.",
   },
   blog: {
-    title: "Insights & Analysis | FintechPressHub",
+    title: "Fintech SEO & Content Marketing Insights | FintechPressHub",
     description:
-      "Strategy, SEO, and content marketing playbooks for fintech operators.",
+      "Strategy, SEO, and content marketing playbooks for fintech operators — payments, embedded finance, open banking, neobanking, lending, and regtech.",
   },
   writeForUs: {
     title: "Write For Us | FintechPressHub",
@@ -142,7 +142,7 @@ export const PAGE_META = {
   contact: {
     title: "Contact Us | FintechPressHub",
     description:
-      "Get in touch for a free SEO audit and strategy consultation.",
+      "Book a free fintech SEO audit and strategy consultation with FintechPressHub. Reach our team for content marketing, link building, and organic growth enquiries.",
   },
   privacyPolicy: {
     title: "Privacy Policy | FintechPressHub",

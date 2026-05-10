@@ -108,6 +108,10 @@ interface MetaPatches {
   ogImageAlt: string;
   /** Explicit image MIME type override. Inferred from URL when omitted. */
   ogImageType?: string;
+  /** Explicit og:image:width override (pixels). Default 1200 from index.html. */
+  ogImageWidth?: number;
+  /** Explicit og:image:height override (pixels). Default 630 from index.html. */
+  ogImageHeight?: number;
   ogType?: string;
   /** OG article:section meta tag value (blog posts). */
   articleSection?: string;
@@ -170,6 +174,23 @@ function patchHtml(base: string, p: MetaPatches): string {
     html = html.replace(
       /(<meta property="og:image:type" content=")[^"]*(")/,
       `$1${esc(imageType)}$2`,
+    );
+  }
+
+  // Patch og:image:width / og:image:height when explicit dimensions are
+  // provided. The index.html defaults (1200 × 630) are correct for /api/og
+  // output; pass these fields only when you know the actual image size differs
+  // (e.g. a custom cover image with known dimensions).
+  if (p.ogImageWidth !== undefined) {
+    html = html.replace(
+      /(<meta property="og:image:width" content=")[^"]*(")/,
+      `$1${p.ogImageWidth}$2`,
+    );
+  }
+  if (p.ogImageHeight !== undefined) {
+    html = html.replace(
+      /(<meta property="og:image:height" content=")[^"]*(")/,
+      `$1${p.ogImageHeight}$2`,
     );
   }
 
@@ -883,16 +904,21 @@ async function handleSsrMeta(
       const mentionEntities = Array.isArray(post.mentionEntities) ? (post.mentionEntities as string[]) : [];
       const faqItems        = Array.isArray(post.faqItems)        ? (post.faqItems as Array<{ question: string; answer: string }>) : [];
 
-      // Look up author Twitter handle for twitter:creator tag (E-E-A-T signal).
+      // Look up author Twitter handle for twitter:creator tag and social
+      // sameAs links for the BlogPosting author entity (E-E-A-T signals).
       let authorTwitter: string | null = null;
+      let authorSameAs: string[] = [];
       if (authorSlug) {
         const [authorRow] = await db
           .select({ social: authorsTable.social })
           .from(authorsTable)
           .where(eq(authorsTable.slug, authorSlug))
           .limit(1);
-        const social = (authorRow?.social ?? {}) as { twitter?: string };
+        const social = (authorRow?.social ?? {}) as { twitter?: string; linkedin?: string; website?: string };
         authorTwitter = social.twitter ?? null;
+        // Collect all social profile URLs as sameAs for the Person entity.
+        // These strengthen E-E-A-T by linking the author to verified profiles.
+        authorSameAs = [social.twitter, social.linkedin, social.website].filter(Boolean) as string[];
       }
 
       const extraLds: string[] = [
@@ -910,6 +936,8 @@ async function handleSsrMeta(
             : { "@type": "ImageObject", url: ogImage },
           inLanguage: "en",
           publisher:  { "@id": `${siteUrl}#organization` },
+          copyrightYear: post.publishedAt.getFullYear(),
+          copyrightHolder: { "@id": `${siteUrl}#organization` },
           datePublished: post.publishedAt.toISOString(),
           dateModified,
           ...(post.author
@@ -919,6 +947,9 @@ async function handleSsrMeta(
                   name:       post.author,
                   ...(post.authorRole ? { jobTitle: post.authorRole } : {}),
                   ...(authorUrl ? { url: authorUrl, "@id": `${authorUrl}#person` } : {}),
+                  // Social profile URLs establish author identity for Google's
+                  // E-E-A-T assessment — matches the Person entity on /authors/:slug.
+                  ...(authorSameAs.length > 0 ? { sameAs: authorSameAs } : {}),
                 },
               }
             : {}),
@@ -2026,6 +2057,45 @@ async function handleSsrMeta(
                   },
                   about: { "@id": `${siteUrl}#organization` },
                 },
+              })),
+            }, null, 2));
+          }
+
+        } else if (reqPath === "/") {
+          // ── Homepage — WebPage + services ItemList for crawler discoverability
+          // The index.html already carries the WebSite + Organization @graph;
+          // here we add a page-level WebPage entity and a quick-glance ItemList
+          // of service offerings so crawlers (and LLMs) can classify the site
+          // without executing JavaScript.
+          const homeServices = await db
+            .select({ name: servicesTable.name, slug: servicesTable.slug, tagline: servicesTable.tagline })
+            .from(servicesTable)
+            .orderBy(asc(servicesTable.name))
+            .limit(10)
+            .catch(() => [] as Array<{ name: string; slug: string; tagline: string }>);
+          extraLds.push(JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "WebPage",
+            "@id":        canonical,
+            url:          canonical,
+            name:         staticMeta.title,
+            description:  staticMeta.description,
+            isPartOf:     { "@id": `${siteUrl}#website` },
+            publisher:    { "@id": `${siteUrl}#organization` },
+            ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+          }, null, 2));
+          if (homeServices.length > 0) {
+            extraLds.push(JSON.stringify({
+              "@context": "https://schema.org",
+              "@type":    "ItemList",
+              name:       "Fintech SEO & Content Marketing Services",
+              url:        canonical,
+              itemListElement: homeServices.map((s, i) => ({
+                "@type":    "ListItem",
+                position:   i + 1,
+                name:       s.tagline ? `${s.name} — ${s.tagline}` : s.name,
+                url:        `${siteUrl}/services/${s.slug}`,
               })),
             }, null, 2));
           }
