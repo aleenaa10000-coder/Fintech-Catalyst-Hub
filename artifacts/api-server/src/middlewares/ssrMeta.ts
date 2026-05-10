@@ -700,6 +700,46 @@ const TOOLS_HOWTO: Readonly<Record<string, {
       { name: "Apply the suggestions",  text: "Use the improvement tips to add power words, adjust length, or improve specificity for higher click-through rates." },
     ],
   },
+  "keyword-difficulty-estimator": {
+    name: "How to Estimate Fintech Keyword Difficulty",
+    description: "Use the FintechPressHub Keyword Difficulty Estimator to score any fintech keyword and discover quick-win opportunities.",
+    steps: [
+      { name: "Enter your keyword",      text: "Type the fintech keyword or phrase you want to evaluate into the keyword input field." },
+      { name: "Run the estimate",        text: "Click 'Estimate Difficulty' to receive a 0–100 difficulty score, search intent classification, estimated monthly volume range, and six long-tail keyword variations." },
+      { name: "Review the difficulty score", text: "Check your keyword's difficulty rating against the traffic potential. A score below 40 signals a quick-win opportunity for new fintech publishers." },
+      { name: "Target long-tail variations", text: "Use the six suggested long-tail variations in your content plan — lower-difficulty variations often drive more qualified, bottom-of-funnel traffic." },
+    ],
+  },
+  "backlink-value-estimator": {
+    name: "How to Estimate the SEO Value of a Backlink",
+    description: "Use the FintechPressHub Backlink Value Estimator to score any referring domain before you invest time in outreach.",
+    steps: [
+      { name: "Enter the referring domain details", text: "Input the domain's Domain Authority (DA), estimated monthly organic traffic, and topical relevance score on a 1–10 scale." },
+      { name: "Run the valuation",                  text: "Click 'Estimate Value' to receive a weighted backlink value score out of 100, combining authority, traffic, and relevance." },
+      { name: "Review the score breakdown",         text: "Examine the three contributing factors — authority weight, traffic weight, and relevance multiplier — to understand what drives the overall value." },
+      { name: "Prioritise your outreach list",      text: "Sort your prospect list by value score and focus outreach effort on the highest-scoring domains first for maximum ranking impact." },
+    ],
+  },
+  "link-prospector": {
+    name: "How to Prospect Fintech Link Building Opportunities",
+    description: "Use the FintechPressHub Link Prospector to bulk-score backlink prospects and build a prioritised outreach list.",
+    steps: [
+      { name: "Paste your domain list",     text: "Enter a list of referring domains you want to evaluate — one domain per line — into the prospect input field." },
+      { name: "Score all prospects",        text: "Click 'Score Prospects' to receive an SEO value score for each domain based on authority, traffic, and fintech relevance signals." },
+      { name: "Filter by value or effort",  text: "Sort the scored list by 'Highest Value' to find premium link targets, or by 'Easiest Win' to find low-hanging opportunities for quick gains." },
+      { name: "Export and begin outreach",  text: "Copy the prioritised prospect list into your outreach tracker and start pitching the top-ranked domains first to maximise your link-building ROI." },
+    ],
+  },
+  "outreach-email-generator": {
+    name: "How to Generate a Link Building Outreach Email",
+    description: "Use the FintechPressHub Outreach Email Generator to write personalised link-building emails in seconds.",
+    steps: [
+      { name: "Enter your campaign details",  text: "Fill in your name, company, target domain, the page you want linked to, and your value proposition for the link placement." },
+      { name: "Choose your tone",             text: "Select a tone — professional, friendly, or direct — to match the publication's editorial culture and your relationship with the editor." },
+      { name: "Generate the email",           text: "Click 'Generate Email' to receive a personalised outreach email with three alternative subject lines scored on estimated open-rate factors." },
+      { name: "Review, personalise, and send", text: "Read the generated email, add any publication-specific details or recent content references, then send it directly from your email client." },
+    ],
+  },
 };
 
 // ---------- route regexes (dynamic parameterised routes only) ----------
@@ -1090,6 +1130,7 @@ async function handleSsrMeta(
             name:         svc.name,
             description:  svc.tagline ?? svc.description ?? svc.name,
             url:          canonical,
+            inLanguage:   "en",
             areaServed:   "Worldwide",
             provider:     { "@id": `${siteUrl}#organization` },
             ...(Array.isArray(svc.deliverables) && svc.deliverables.length > 0
@@ -1159,6 +1200,7 @@ async function handleSsrMeta(
             "@type":    "ProfilePage",
             "@id":      canonical,
             url:        canonical,
+            inLanguage: "en",
             mainEntity: {
               "@type":      "Person",
               "@id":        `${canonical}#person`,
