@@ -1,5 +1,4 @@
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { PageMeta } from "@/components/PageMeta";
@@ -427,12 +426,42 @@ export default function FinancialHealthScoreCalculator() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="financialHealthCalculator" faq={FAQS} />
-      <Helmet>
-        <script type="application/ld+json">
-          {JSON.stringify(softwareApplicationSchema)}
-        </script>
-      </Helmet>
+      <PageMeta
+        page="financialHealthCalculator"
+        faq={FAQS}
+        softwareApp={{
+          name: softwareApplicationSchema.name,
+          description: softwareApplicationSchema.description,
+          applicationCategory: softwareApplicationSchema.applicationCategory,
+          operatingSystem: softwareApplicationSchema.operatingSystem,
+          url: softwareApplicationSchema.url,
+          offers: { price: "0", priceCurrency: "USD" },
+        }}
+        howTo={{
+          name: "How to use the Financial Health Score Calculator",
+          description:
+            "Calculate your personal financial health score in under a minute using the free browser-based tool.",
+          totalTime: "PT2M",
+          steps: [
+            {
+              name: "Enter your monthly income",
+              text: "Input your take-home pay after tax, including all income sources.",
+            },
+            {
+              name: "Fill in your monthly expenses and debt payments",
+              text: "Add your total living costs and minimum monthly debt payments (credit cards, loans, BNPL).",
+            },
+            {
+              name: "Complete savings and emergency fund fields",
+              text: "Enter how much you save each month and your total liquid emergency fund balance.",
+            },
+            {
+              name: "Review your score and breakdown",
+              text: "The calculator outputs a 0–100 financial health score with debt-to-income ratio, savings rate, emergency fund coverage, and personalised improvement tips.",
+            },
+          ],
+        }}
+      />
 
       <PageHero
         eyebrow="Free Tool"

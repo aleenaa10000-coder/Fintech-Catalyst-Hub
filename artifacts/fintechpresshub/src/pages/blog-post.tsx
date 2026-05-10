@@ -498,6 +498,13 @@ export default function BlogPost() {
             post.mentionEntities && post.mentionEntities.length > 0
               ? post.mentionEntities
               : undefined,
+          twitterCreator: (() => {
+            const authorRecord = getAuthorByName(post.author ?? "");
+            const handle = authorRecord?.social?.twitter;
+            if (!handle) return undefined;
+            const at = handle.replace(/^https?:\/\/(www\.)?(twitter|x)\.com\//i, "@");
+            return at.startsWith("@") ? at : `@${at}`;
+          })(),
         }}
         faq={
           post.faqItems && post.faqItems.length > 0

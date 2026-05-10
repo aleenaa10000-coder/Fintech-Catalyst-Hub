@@ -70,6 +70,7 @@ export default function ServiceDetail() {
           name: service.name,
           description: service.description,
           serviceType: shortLabel,
+          schemaType: "FinancialService",
           category: "Fintech Marketing",
           areaServed: "Worldwide",
           url: canonical,

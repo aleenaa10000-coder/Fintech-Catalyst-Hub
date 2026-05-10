@@ -141,6 +141,7 @@ export default function Home() {
         page="home"
         faq={homeFaqs}
         speakableSelectors={["h1", ".speakable-summary", ".hero-description"]}
+        webPage={{ dateModified: "2026-05-10" }}
       />
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-gradient-to-br from-[#0b1e4d] via-[#102a6b] to-[#0a1633]">

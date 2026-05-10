@@ -126,6 +126,19 @@ export default function BlogCategoryPage() {
               }
             : undefined
         }
+        itemList={
+          categoryPosts.length > 0
+            ? {
+                name: `${displayTitle} Articles`,
+                description: displayDescription,
+                items: categoryPosts.slice(0, 20).map((p) => ({
+                  name: p.title,
+                  url: `${SITE_URL}/blog/${p.slug}`,
+                  description: p.excerpt?.slice(0, 160),
+                })),
+              }
+            : undefined
+        }
       />
       <PageHero
         eyebrow="Category"

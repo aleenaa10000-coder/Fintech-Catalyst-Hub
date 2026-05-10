@@ -31,6 +31,11 @@ const egFaqs = [
     answer:
       "High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks.",
   },
+  {
+    question: "How do you handle corrections or factual errors in published articles?",
+    answer:
+      "We correct material errors promptly and transparently. Factual corrections are made in-line with a timestamped 'Correction' notice added to the top of the article identifying what changed and when. Minor edits (typos, formatting) are made silently. To report an error, email corrections@fintechpresshub.com with the article URL, the incorrect claim, and your primary source. We acknowledge all requests within two business days.",
+  },
 ];
 
 type ComparisonItem = { label: string; detail?: string };
