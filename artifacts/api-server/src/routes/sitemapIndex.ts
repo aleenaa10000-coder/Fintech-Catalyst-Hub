@@ -302,7 +302,9 @@ async function buildGlossarySitemapXml(): Promise<string> {
         `    <loc>${escapeXml(url)}</loc>\n` +
         `    <lastmod>${t.updatedAt.toISOString().slice(0, 10)}</lastmod>\n` +
         `    <changefreq>monthly</changefreq>\n` +
-        `    <priority>0.6</priority>\n` +
+        // Glossary definition pages target high-intent vocabulary queries;
+        // raising to 0.7 signals stronger crawl-budget priority to Google.
+        `    <priority>0.7</priority>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(url)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(url)}"/>\n` +
         `  </url>`
