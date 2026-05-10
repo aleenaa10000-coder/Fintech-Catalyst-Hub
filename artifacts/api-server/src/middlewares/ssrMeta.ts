@@ -1357,7 +1357,7 @@ async function handleSsrMeta(
 
       // Fetch posts in this category for ItemList schema.
       const catPosts = await db
-        .select({ slug: blogPostsTable.slug, title: blogPostsTable.title, category: blogPostsTable.category, noIndex: blogPostsTable.noIndex })
+        .select({ slug: blogPostsTable.slug, title: blogPostsTable.title, category: blogPostsTable.category, noIndex: blogPostsTable.noIndex, publishedAt: blogPostsTable.publishedAt })
         .from(blogPostsTable)
         .where(lte(blogPostsTable.publishedAt, sql`now()`))
         .orderBy(desc(blogPostsTable.publishedAt))

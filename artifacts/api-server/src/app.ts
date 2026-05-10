@@ -305,6 +305,13 @@ app.get("/robots.txt", (_req: Request, res: Response) => {
     .send(txt);
 });
 
+// /ai.txt — redirect to canonical well-known path. Many AI crawlers and
+// convention-following tools check /ai.txt directly; 301-redirect ensures
+// they discover the full governance declaration without hitting a 404.
+app.get("/ai.txt", (_req: Request, res: Response) =>
+  res.redirect(301, "/.well-known/ai.txt"),
+);
+
 // ── /.well-known/ai.txt — AI governance declaration ──────────────────────────
 // Declares AI content usage policy in a machine-readable format.
 // Follows the emerging ai.txt standard for AI governance transparency.

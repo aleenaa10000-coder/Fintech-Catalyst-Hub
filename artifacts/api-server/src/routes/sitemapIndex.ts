@@ -127,21 +127,31 @@ function getLatestServiceDate(): string {
   return SERVICE_PAGE_LASTMOD_DATE;
 }
 
+async function getLatestAuthorDate(): Promise<string> {
+  const [latest] = await db
+    .select({ updatedAt: authorsTable.updatedAt })
+    .from(authorsTable)
+    .orderBy(desc(authorsTable.updatedAt))
+    .limit(1);
+  return (latest?.updatedAt ?? new Date()).toISOString().slice(0, 10);
+}
+
 async function buildSitemapIndexXml(): Promise<string> {
   const siteUrl = getSiteUrl();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [latestBlogDate, latestLocationDate, latestGlossaryDate, latestServiceDate] = await Promise.all([
+  const [latestBlogDate, latestLocationDate, latestGlossaryDate, latestServiceDate, latestAuthorDate] = await Promise.all([
     getLatestBlogDate(),
     getLatestLocationDate(),
     getLatestGlossaryDate(),
     getLatestServiceDate(),
+    getLatestAuthorDate(),
   ]);
 
   const sitemaps = [
-    { loc: `${siteUrl}/sitemap-pages.xml`,     lastmod: today },
+    { loc: `${siteUrl}/sitemap-pages.xml`,     lastmod: latestBlogDate },
     { loc: `${siteUrl}/sitemap-blog.xml`,      lastmod: latestBlogDate },
-    { loc: `${siteUrl}/sitemap-authors.xml`,   lastmod: today },
+    { loc: `${siteUrl}/sitemap-authors.xml`,   lastmod: latestAuthorDate },
     { loc: `${siteUrl}/sitemap-locations.xml`, lastmod: latestLocationDate },
     { loc: `${siteUrl}/sitemap-glossary.xml`,  lastmod: latestGlossaryDate },
     { loc: `${siteUrl}/sitemap-services.xml`,  lastmod: latestServiceDate },
@@ -173,6 +183,10 @@ async function buildSitemapIndexXml(): Promise<string> {
 async function buildPagesSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
   const today = new Date().toISOString().slice(0, 10);
+  // Category hub pages are "updated" each time a new post is published in
+  // that category. Using latestBlogDate tells Google to recrawl them when
+  // there is genuinely new content — not on every request like `today` did.
+  const latestBlogDate = await getLatestBlogDate();
 
   const staticEntries = STATIC_ROUTES.map((r) => ({
     loc:        `${siteUrl}${r.path}`,
@@ -190,7 +204,7 @@ async function buildPagesSitemapXml(): Promise<string> {
     const label = CATEGORY_LABELS[slug] ?? humanizeSlug(slug);
     return {
       loc:        `${siteUrl}/blog/category/${slug}`,
-      lastmod:    today,
+      lastmod:    latestBlogDate,
       changefreq: "weekly",
       priority:   "0.7",
       imageUrl:   `${siteUrl}/api/og?title=${encodeURIComponent(label)}&category=${encodeURIComponent("Blog")}`,
