@@ -1361,6 +1361,7 @@ async function handleSsrMeta(
           inLanguage:   "en",
           isPartOf:     { "@id": `${siteUrl}/blog` },
           publisher:    { "@id": `${siteUrl}#organization` },
+          datePublished: "2021-06-01",
           dateModified: new Date().toISOString().slice(0, 10),
           ...(catMeta.about.length > 0
             ? { about: catMeta.about.map((e) => ({ "@type": "Thing", name: e })) }
@@ -1444,6 +1445,7 @@ async function handleSsrMeta(
             name:       cmpMeta.title,
             url:        canonical,
             publisher:  { "@id": `${siteUrl}#organization` },
+            datePublished: STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
             ...(STATIC_PAGE_LASTMOD[`/compare/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/compare/${slug}`] } : {}),
             mainEntity: faqMainEntity,
           }, null, 2),
@@ -1476,7 +1478,7 @@ async function handleSsrMeta(
           isAccessibleForFree:  true,
           offers: {
             "@type":        "Offer",
-            price:          "0",
+            price:          0,
             priceCurrency:  "USD",
           },
           provider: { "@id": `${siteUrl}#organization` },
@@ -1549,6 +1551,7 @@ async function handleSsrMeta(
             url:          canonical,
             name:         staticMeta.title,
             description:  staticMeta.description,
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2021-01-01",
             dateModified: pageLastmod ?? "2026-05-09",
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
@@ -1580,6 +1583,7 @@ async function handleSsrMeta(
             url:         canonical,
             name:        staticMeta.title,
             description: staticMeta.description,
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2021-06-01",
             dateModified: (visibleHubPosts[0]?.publishedAt ?? new Date()).toISOString().slice(0, 10),
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
@@ -1613,6 +1617,7 @@ async function handleSsrMeta(
             url:         canonical,
             name:        staticMeta.title,
             description: staticMeta.description,
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2021-06-01",
             dateModified: pageLastmod ?? "2026-05-09",
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
@@ -1646,6 +1651,7 @@ async function handleSsrMeta(
             url:         canonical,
             name:        staticMeta.title,
             description: staticMeta.description,
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2021-06-01",
             dateModified: pageLastmod ?? "2026-05-09",
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
@@ -1688,6 +1694,7 @@ async function handleSsrMeta(
             description:  staticMeta.description,
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
+            ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
           if (pricingList.length > 0) {
@@ -1736,6 +1743,7 @@ async function handleSsrMeta(
             description:  staticMeta.description,
             inLanguage:   "en",
             publisher:    { "@id": `${siteUrl}#organization` },
+            ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
           if (hubTerms.length > 0) {
@@ -1765,6 +1773,7 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
           extraLds.push(JSON.stringify({
@@ -1793,6 +1802,7 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
           extraLds.push(JSON.stringify({
@@ -1821,6 +1831,7 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
             mainEntity: {
               "@type":  "Organization",
@@ -1850,6 +1861,7 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
             potentialAction: {
               "@type":  "WriteAction",
@@ -1875,6 +1887,7 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
           const FINTECH_PUBS = [
@@ -1922,6 +1935,7 @@ async function handleSsrMeta(
             url:          canonical,
             name:         staticMeta.title,
             description:  staticMeta.description,
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2025-01-01",
             dateModified: pageLastmod ?? "2026-05-10",
             inLanguage:   "en",
             isPartOf:     { "@id": `${siteUrl}#website` },
@@ -1957,6 +1971,7 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
             about:       { "@id": `${siteUrl}#organization` },
           }, null, 2));
