@@ -149,3 +149,9 @@ id = "I0_4jxWjP6M9A-3nT6D9S"
 uri = "file://docs/seo-upgrade-roadmap.md"
 type = "text"
 title = "FintechPressHub SEO Upgrade Roadmap"
+
+[[outputs]]
+id = "dVaX6Ww9bv3XThVnXEsEL"
+uri = "file://pseo-audit-report.md"
+type = "text"
+title = "FintechPressHub — pSEO Audit Report"
