@@ -1164,7 +1164,8 @@ export const subscribeToNewsletterBodySourceMax = 80;
 
 export const SubscribeToNewsletterBody = zod.object({
   "email": zod.string().email(),
-  "source": zod.string().max(subscribeToNewsletterBodySourceMax).optional()
+  "source": zod.string().max(subscribeToNewsletterBodySourceMax).optional(),
+  "keyword": zod.string().optional()
 })
 
 export const SubscribeToNewsletterResponse = zod.object({

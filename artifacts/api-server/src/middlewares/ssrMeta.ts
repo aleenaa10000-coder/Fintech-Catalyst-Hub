@@ -30,7 +30,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync, readFileSync } from "fs";
 import type { Request, Response, NextFunction } from "express";
-import { db, blogPostsTable, locationPagesTable, glossaryTermsTable } from "@workspace/db";
+import { db, blogPostsTable, locationPagesTable, glossaryTermsTable, servicesTable } from "@workspace/db";
 import { eq, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 
@@ -114,6 +114,7 @@ function patchHtml(base: string, p: MetaPatches): string {
 const BLOG_RE     = /^\/blog\/([^/]+)$/;
 const LOCATION_RE = /^\/locations\/([^/]+)$/;
 const GLOSSARY_RE = /^\/glossary\/([^/]+)$/;
+const SERVICE_RE  = /^\/services\/([^/]+)$/;
 
 async function handleSsrMeta(
   req: Request,
@@ -271,6 +272,46 @@ async function handleSsrMeta(
       };
     }
 
+    const serviceMatch = SERVICE_RE.exec(reqPath);
+    if (serviceMatch) {
+      const slug = serviceMatch[1]!;
+      const [svc] = await db
+        .select({
+          name:        servicesTable.name,
+          tagline:     servicesTable.tagline,
+          description: servicesTable.description,
+        })
+        .from(servicesTable)
+        .where(eq(servicesTable.slug, slug))
+        .limit(1);
+
+      if (!svc) return next();
+
+      const canonical    = `${siteUrl}/services/${slug}`;
+      const description  = (svc.tagline ?? svc.description ?? `${svc.name} — FintechPressHub`).slice(0, 160);
+      const title        = `${svc.name} | FintechPressHub`;
+      const ogImage      = `${siteUrl}/api/og?title=${encodeURIComponent(svc.name)}&type=service`;
+
+      patches = {
+        title,
+        description,
+        canonical,
+        ogTitle:       svc.name,
+        ogDescription: description,
+        ogImage,
+        ogImageAlt:    `${svc.name} — FintechPressHub`,
+        extraLd: JSON.stringify({
+          "@context":   "https://schema.org",
+          "@type":      "Service",
+          "@id":        canonical,
+          name:         svc.name,
+          description:  svc.tagline ?? svc.description ?? svc.name,
+          url:          canonical,
+          provider:     { "@id": `${siteUrl}#organization` },
+        }, null, 2),
+      };
+    }
+
     if (!patches) return next();
 
     const html = patchHtml(baseHtml, patches);
@@ -294,7 +335,8 @@ export function ssrMetaMiddleware(req: Request, res: Response, next: NextFunctio
   if (
     !BLOG_RE.test(reqPath) &&
     !LOCATION_RE.test(reqPath) &&
-    !GLOSSARY_RE.test(reqPath)
+    !GLOSSARY_RE.test(reqPath) &&
+    !SERVICE_RE.test(reqPath)
   ) {
     return next();
   }

@@ -22,11 +22,11 @@ args = "Start application"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "test"
+args = "typecheck"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "typecheck"
+args = "test"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -41,23 +41,23 @@ args = "pnpm --filter @workspace/api-server run build && (PORT=8080 node --enabl
 waitForPort = 5000
 
 [[workflows.workflow]]
-name = "test"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/fintechpresshub exec vitest run"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow]]
 name = "typecheck"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm run typecheck && pnpm --filter @workspace/scripts run aeo:check"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/fintechpresshub run test"
 
 [workflows.workflow.metadata]
 outputType = "console"

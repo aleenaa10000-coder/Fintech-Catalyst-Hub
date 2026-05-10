@@ -16,12 +16,26 @@ vi.mock("wouter", async () => {
 
 vi.mock("framer-motion", async () => {
   const { createElement } = await import("react");
+  const MOTION_PROPS = new Set([
+    "layout", "layoutId", "layoutDependency", "initial", "animate", "exit",
+    "transition", "variants", "custom", "inherit", "whileHover", "whileTap",
+    "whileFocus", "whileInView", "whileDrag", "drag", "dragConstraints",
+    "dragElastic", "dragMomentum", "dragListener", "dragSnapToOrigin",
+    "dragTransition", "dragDirectionLock", "onDrag", "onDragStart", "onDragEnd",
+    "onDirectionLock", "onDragTransitionEnd", "onAnimationStart",
+    "onAnimationComplete", "onUpdate", "onViewportEnter", "onViewportLeave",
+    "viewport", "transformTemplate", "transformValues",
+  ]);
   const motionProxy = new Proxy({} as Record<string, unknown>, {
     get(_, tag: string | symbol) {
       if (typeof tag === "symbol") return undefined;
       const tagStr = String(tag);
-      return ({ children, ...props }: { children?: unknown; [k: string]: unknown }) =>
-        createElement(tagStr, props as object, children as never);
+      return ({ children, ...props }: { children?: unknown; [k: string]: unknown }) => {
+        const domProps = Object.fromEntries(
+          Object.entries(props).filter(([k]) => !MOTION_PROPS.has(k)),
+        );
+        return createElement(tagStr, domProps as object, children as never);
+      };
     },
   });
   return {
