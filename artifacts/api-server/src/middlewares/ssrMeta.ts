@@ -50,7 +50,7 @@ import {
   servicesTable,
   authorsTable,
 } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, lte, sql, desc, asc } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 
 const _frontendDist = path.resolve(
@@ -115,6 +115,10 @@ interface MetaPatches {
   articlePublishedTime?: string;
   /** OG article:modified_time (blog posts — ISO 8601). */
   articleModifiedTime?: string;
+  /** OG article:author meta tag value (blog posts — author display name). */
+  articleAuthor?: string;
+  /** twitter:creator tag (blog posts — author's Twitter @handle). */
+  twitterCreator?: string;
   /**
    * Array of JSON-LD strings — each injected as its own
    * <script type="application/ld+json"> block before </head>.
@@ -194,6 +198,14 @@ function patchHtml(base: string, p: MetaPatches): string {
 
   if (p.articleModifiedTime) {
     injections.push(`  <meta property="article:modified_time" content="${esc(p.articleModifiedTime)}" />`);
+  }
+
+  if (p.articleAuthor) {
+    injections.push(`  <meta property="article:author" content="${esc(p.articleAuthor)}" />`);
+  }
+
+  if (p.twitterCreator) {
+    injections.push(`  <meta name="twitter:creator" content="${esc(p.twitterCreator)}" />`);
   }
 
   if (injections.length > 0) {
@@ -547,6 +559,18 @@ async function handleSsrMeta(
       const mentionEntities = Array.isArray(post.mentionEntities) ? (post.mentionEntities as string[]) : [];
       const faqItems        = Array.isArray(post.faqItems)        ? (post.faqItems as Array<{ question: string; answer: string }>) : [];
 
+      // Look up author Twitter handle for twitter:creator tag (E-E-A-T signal).
+      let authorTwitter: string | null = null;
+      if (authorSlug) {
+        const [authorRow] = await db
+          .select({ social: authorsTable.social })
+          .from(authorsTable)
+          .where(eq(authorsTable.slug, authorSlug))
+          .limit(1);
+        const social = (authorRow?.social ?? {}) as { twitter?: string };
+        authorTwitter = social.twitter ?? null;
+      }
+
       const extraLds: string[] = [
         JSON.stringify({
           "@context": "https://schema.org",
@@ -556,6 +580,7 @@ async function handleSsrMeta(
           description,
           url:        canonical,
           image:      ogImage,
+          inLanguage: "en",
           publisher:  { "@id": `${siteUrl}#organization` },
           datePublished: post.publishedAt.toISOString(),
           dateModified,
@@ -618,6 +643,8 @@ async function handleSsrMeta(
         articleTags:          tags.length > 0 ? tags : undefined,
         articlePublishedTime: post.publishedAt.toISOString(),
         articleModifiedTime:  dateModified,
+        articleAuthor:        post.author || undefined,
+        twitterCreator:       authorTwitter ?? undefined,
         extraLds,
       };
     }
@@ -740,6 +767,7 @@ async function handleSsrMeta(
           name:        servicesTable.name,
           tagline:     servicesTable.tagline,
           description: servicesTable.description,
+          deliverables: servicesTable.deliverables,
         })
         .from(servicesTable)
         .where(eq(servicesTable.slug, slug))
@@ -773,7 +801,20 @@ async function handleSsrMeta(
             name:         svc.name,
             description:  svc.tagline ?? svc.description ?? svc.name,
             url:          canonical,
+            areaServed:   "Worldwide",
             provider:     { "@id": `${siteUrl}#organization` },
+            ...(Array.isArray(svc.deliverables) && svc.deliverables.length > 0
+              ? {
+                  hasOfferCatalog: {
+                    "@type": "OfferCatalog",
+                    name:    `${svc.name} — what's included`,
+                    itemListElement: (svc.deliverables as string[]).map((d) => ({
+                      "@type":       "Offer",
+                      itemOffered:   { "@type": "Service", name: d },
+                    })),
+                  },
+                }
+              : {}),
           }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
         ],
@@ -786,11 +827,15 @@ async function handleSsrMeta(
       const slug = authorMatch[1]!;
       const [author] = await db
         .select({
-          name:     authorsTable.name,
-          role:     authorsTable.role,
-          shortBio: authorsTable.shortBio,
-          photo:    authorsTable.photo,
-          social:   authorsTable.social,
+          name:            authorsTable.name,
+          role:            authorsTable.role,
+          shortBio:        authorsTable.shortBio,
+          photo:           authorsTable.photo,
+          social:          authorsTable.social,
+          expertise:       authorsTable.expertise,
+          credentials:     authorsTable.credentials,
+          location:        authorsTable.location,
+          yearsExperience: authorsTable.yearsExperience,
         })
         .from(authorsTable)
         .where(eq(authorsTable.slug, slug))
@@ -835,6 +880,18 @@ async function handleSsrMeta(
               image:        ogImage,
               worksFor:     { "@id": `${siteUrl}#organization` },
               sameAs: [social.linkedin, social.twitter, social.website].filter(Boolean),
+              ...(Array.isArray(author.expertise) && author.expertise.length > 0
+                ? { knowsAbout: author.expertise }
+                : {}),
+              ...(Array.isArray(author.credentials) && author.credentials.length > 0
+                ? { award: author.credentials }
+                : {}),
+              ...(author.location
+                ? { address: { "@type": "PostalAddress", addressLocality: author.location } }
+                : {}),
+              ...(author.yearsExperience > 0
+                ? { description: `${author.shortBio} ${author.yearsExperience} years of experience.`.slice(0, 500) }
+                : {}),
             },
           }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
@@ -855,6 +912,46 @@ async function handleSsrMeta(
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["blog", "category", slug], leafLabel);
 
+      // Fetch posts in this category for ItemList schema.
+      const catPosts = await db
+        .select({ slug: blogPostsTable.slug, title: blogPostsTable.title, category: blogPostsTable.category, noIndex: blogPostsTable.noIndex })
+        .from(blogPostsTable)
+        .where(lte(blogPostsTable.publishedAt, sql`now()`))
+        .orderBy(desc(blogPostsTable.publishedAt))
+        .limit(20);
+      const filteredCatPosts = catPosts.filter(
+        (p) => !p.noIndex && p.category?.toLowerCase().replace(/\s+/g, "-") === slug,
+      );
+
+      const extraLds: string[] = [
+        JSON.stringify({
+          "@context":  "https://schema.org",
+          "@type":     "CollectionPage",
+          "@id":       canonical,
+          name:        catMeta.title,
+          description: catMeta.description,
+          url:         canonical,
+          inLanguage:  "en",
+          isPartOf:    { "@id": `${siteUrl}/blog` },
+          publisher:   { "@id": `${siteUrl}#organization` },
+        }, null, 2),
+        buildBreadcrumbLd(breadcrumbs),
+      ];
+
+      if (filteredCatPosts.length > 0) {
+        extraLds.push(JSON.stringify({
+          "@context": "https://schema.org",
+          "@type":    "ItemList",
+          name:       catMeta.title,
+          itemListElement: filteredCatPosts.map((p, i) => ({
+            "@type":    "ListItem",
+            position:   i + 1,
+            name:       p.title,
+            url:        `${siteUrl}/blog/${p.slug}`,
+          })),
+        }, null, 2));
+      }
+
       patches = {
         title:         catMeta.title,
         description:   catMeta.description,
@@ -863,19 +960,7 @@ async function handleSsrMeta(
         ogDescription: catMeta.description,
         ogImage,
         ogImageAlt:    catMeta.title,
-        extraLds: [
-          JSON.stringify({
-            "@context":  "https://schema.org",
-            "@type":     "CollectionPage",
-            "@id":       canonical,
-            name:        catMeta.title,
-            description: catMeta.description,
-            url:         canonical,
-            isPartOf:    { "@id": `${siteUrl}/blog` },
-            publisher:   { "@id": `${siteUrl}#organization` },
-          }, null, 2),
-          buildBreadcrumbLd(breadcrumbs),
-        ],
+        extraLds,
       };
     }
 
@@ -1001,8 +1086,136 @@ async function handleSsrMeta(
         };
         const pageLastmod = STATIC_PAGE_LASTMOD[reqPath];
 
-        const extraLds: string[] = [
-          JSON.stringify({
+        // Build page-type-specific JSON-LD schemas for key hub pages.
+        const extraLds: string[] = [];
+
+        if (reqPath === "/about") {
+          // ── /about — rich AboutPage with employee list ──────────────────
+          const aboutAuthors = await db
+            .select({ name: authorsTable.name, role: authorsTable.role, slug: authorsTable.slug })
+            .from(authorsTable)
+            .orderBy(asc(authorsTable.name))
+            .limit(20);
+          extraLds.push(JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "AboutPage",
+            "@id":        canonical,
+            url:          canonical,
+            name:         staticMeta.title,
+            description:  staticMeta.description,
+            isPartOf:     { "@id": `${siteUrl}#website` },
+            publisher:    { "@id": `${siteUrl}#organization` },
+            ...(aboutAuthors.length > 0
+              ? {
+                  employee: aboutAuthors.map((a) => ({
+                    "@type":    "Person",
+                    name:       a.name,
+                    jobTitle:   a.role,
+                    url:        `${siteUrl}/authors/${a.slug}`,
+                  })),
+                }
+              : {}),
+          }, null, 2));
+
+        } else if (reqPath === "/blog") {
+          // ── /blog hub — CollectionPage + ItemList of recent posts ────────
+          const hubPosts = await db
+            .select({ slug: blogPostsTable.slug, title: blogPostsTable.title, noIndex: blogPostsTable.noIndex })
+            .from(blogPostsTable)
+            .where(lte(blogPostsTable.publishedAt, sql`now()`))
+            .orderBy(desc(blogPostsTable.publishedAt))
+            .limit(10);
+          const visibleHubPosts = hubPosts.filter((p) => !p.noIndex);
+          extraLds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "CollectionPage",
+            "@id":       canonical,
+            url:         canonical,
+            name:        staticMeta.title,
+            description: staticMeta.description,
+            inLanguage:  "en",
+            isPartOf:    { "@id": `${siteUrl}#website` },
+            publisher:   { "@id": `${siteUrl}#organization` },
+          }, null, 2));
+          if (visibleHubPosts.length > 0) {
+            extraLds.push(JSON.stringify({
+              "@context": "https://schema.org",
+              "@type":    "ItemList",
+              name:       "Latest Fintech Articles",
+              itemListElement: visibleHubPosts.map((p, i) => ({
+                "@type":    "ListItem",
+                position:   i + 1,
+                name:       p.title,
+                url:        `${siteUrl}/blog/${p.slug}`,
+              })),
+            }, null, 2));
+          }
+
+        } else if (reqPath === "/authors") {
+          // ── /authors hub — ItemList of all author profiles ────────────────
+          const hubAuthors = await db
+            .select({ name: authorsTable.name, slug: authorsTable.slug, role: authorsTable.role })
+            .from(authorsTable)
+            .orderBy(asc(authorsTable.name))
+            .limit(30);
+          extraLds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "CollectionPage",
+            "@id":       canonical,
+            url:         canonical,
+            name:        staticMeta.title,
+            description: staticMeta.description,
+            isPartOf:    { "@id": `${siteUrl}#website` },
+            publisher:   { "@id": `${siteUrl}#organization` },
+          }, null, 2));
+          if (hubAuthors.length > 0) {
+            extraLds.push(JSON.stringify({
+              "@context": "https://schema.org",
+              "@type":    "ItemList",
+              name:       "Our Contributors & Expert Authors",
+              itemListElement: hubAuthors.map((a, i) => ({
+                "@type":    "ListItem",
+                position:   i + 1,
+                name:       `${a.name} — ${a.role}`,
+                url:        `${siteUrl}/authors/${a.slug}`,
+              })),
+            }, null, 2));
+          }
+
+        } else if (reqPath === "/services") {
+          // ── /services hub — ItemList of all service pages ─────────────────
+          const hubServices = await db
+            .select({ name: servicesTable.name, slug: servicesTable.slug, tagline: servicesTable.tagline })
+            .from(servicesTable)
+            .orderBy(asc(servicesTable.name))
+            .limit(20);
+          extraLds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "CollectionPage",
+            "@id":       canonical,
+            url:         canonical,
+            name:        staticMeta.title,
+            description: staticMeta.description,
+            isPartOf:    { "@id": `${siteUrl}#website` },
+            publisher:   { "@id": `${siteUrl}#organization` },
+          }, null, 2));
+          if (hubServices.length > 0) {
+            extraLds.push(JSON.stringify({
+              "@context": "https://schema.org",
+              "@type":    "ItemList",
+              name:       "Fintech Content Marketing Services",
+              itemListElement: hubServices.map((s, i) => ({
+                "@type":    "ListItem",
+                position:   i + 1,
+                name:       s.tagline ? `${s.name} — ${s.tagline}` : s.name,
+                url:        `${siteUrl}/services/${s.slug}`,
+              })),
+            }, null, 2));
+          }
+
+        } else {
+          // ── All other static pages — generic WebPage schema ───────────────
+          extraLds.push(JSON.stringify({
             "@context":   "https://schema.org",
             "@type":      "WebPage",
             "@id":        canonical,
@@ -1012,8 +1225,8 @@ async function handleSsrMeta(
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
-          }, null, 2),
-        ];
+          }, null, 2));
+        }
 
         // Only emit BreadcrumbList when there is more than just Home.
         if (breadcrumbs.length > 1) {

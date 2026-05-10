@@ -1004,6 +1004,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         ...(modifiedIso ? [`<meta property="article:modified_time" content="${escapeHtml(modifiedIso)}" />`] : []),
         `<meta property="article:section" content="${escapeHtml(post.category ?? "Insights")}" />`,
         `<meta property="article:author" content="${escapeHtml(post.author ?? "")}" />`,
+        ...(post.authorTwitter ? [`<meta name="twitter:creator" content="${escapeHtml(post.authorTwitter)}" />`] : []),
       ],
       bodyContent,
     };
