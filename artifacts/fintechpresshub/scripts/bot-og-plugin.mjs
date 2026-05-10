@@ -179,6 +179,8 @@ function faqSchema(faqs) {
 }
 
 function articleSchema({ post, image, url, siteUrl }) {
+  const aboutEntities   = Array.isArray(post.aboutEntities)   ? post.aboutEntities   : [];
+  const mentionEntities = Array.isArray(post.mentionEntities) ? post.mentionEntities : [];
   return {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -216,6 +218,13 @@ function articleSchema({ post, image, url, siteUrl }) {
         : undefined,
     url,
     inLanguage: "en",
+    ...(aboutEntities.length > 0
+      ? { about: aboutEntities.map((e) => ({ "@type": "Thing", name: e })) }
+      : {}),
+    ...(mentionEntities.length > 0
+      ? { mentions: mentionEntities.map((e) => ({ "@type": "Thing", name: e })) }
+      : {}),
+    potentialAction: { "@type": "ReadAction", target: url },
   };
 }
 
@@ -957,6 +966,31 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       sections,
     });
 
+    const postFaqItems = Array.isArray(post.faqItems) ? post.faqItems : [];
+    const schemas = [
+      organizationSchema(siteUrl),
+      websiteSchema(siteUrl),
+      breadcrumbSchema(pathname, post.title, siteUrl),
+      articleSchema({ post, image, url: canonical, siteUrl }),
+    ];
+
+    if (postFaqItems.length > 0) {
+      schemas.push(faqSchema(postFaqItems));
+    }
+
+    if (post.blufSummary) {
+      schemas.push({
+        "@context":  "https://schema.org",
+        "@type":     "SpeakableSpecification",
+        "@id":       `${canonical}#speakable`,
+        cssSelector: [".bluf-summary"],
+        name:        String(post.blufSummary).slice(0, 200),
+      });
+    }
+
+    const dateRawModified = post.dateModified ?? post.updatedAt ?? post.date ?? post.publishedAt;
+    const modifiedIso = dateRawModified ? new Date(dateRawModified).toISOString() : "";
+
     return {
       title,
       description,
@@ -964,14 +998,10 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       ogType: "article",
       ogImage: image,
       ogImageAlt: post.title,
-      schemas: [
-        organizationSchema(siteUrl),
-        websiteSchema(siteUrl),
-        breadcrumbSchema(pathname, post.title, siteUrl),
-        articleSchema({ post, image, url: canonical, siteUrl }),
-      ],
+      schemas,
       extraMeta: [
         `<meta property="article:published_time" content="${escapeHtml(post.date ?? post.publishedAt ?? "")}" />`,
+        ...(modifiedIso ? [`<meta property="article:modified_time" content="${escapeHtml(modifiedIso)}" />`] : []),
         `<meta property="article:section" content="${escapeHtml(post.category ?? "Insights")}" />`,
         `<meta property="article:author" content="${escapeHtml(post.author ?? "")}" />`,
       ],

@@ -12,6 +12,10 @@ export const locationPagesTable = pgTable("location_pages", {
   publishedAt: timestamp("published_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export type LocationPageRow = typeof locationPagesTable.$inferSelect;

@@ -41,11 +41,11 @@ async function getLatestBlogDate(): Promise<string> {
 
 async function getLatestLocationDate(): Promise<string> {
   const [latest] = await db
-    .select({ publishedAt: locationPagesTable.publishedAt })
+    .select({ updatedAt: locationPagesTable.updatedAt })
     .from(locationPagesTable)
-    .orderBy(desc(locationPagesTable.publishedAt))
+    .orderBy(desc(locationPagesTable.updatedAt))
     .limit(1);
-  return (latest?.publishedAt ?? new Date()).toISOString().slice(0, 10);
+  return (latest?.updatedAt ?? new Date()).toISOString().slice(0, 10);
 }
 
 async function getLatestGlossaryDate(): Promise<string> {
@@ -252,6 +252,7 @@ async function buildLocationsSitemapXml(): Promise<string> {
       slug:        locationPagesTable.slug,
       city:        locationPagesTable.city,
       publishedAt: locationPagesTable.publishedAt,
+      updatedAt:   locationPagesTable.updatedAt,
     })
     .from(locationPagesTable)
     .orderBy(asc(locationPagesTable.country), asc(locationPagesTable.city));
@@ -263,10 +264,11 @@ async function buildLocationsSitemapXml(): Promise<string> {
   const body = locations
     .map((loc) => {
       const url = `${siteUrl}/locations/${loc.slug}`;
+      const lastmod = (loc.updatedAt ?? loc.publishedAt).toISOString().slice(0, 10);
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(url)}</loc>\n` +
-        `    <lastmod>${loc.publishedAt.toISOString().slice(0, 10)}</lastmod>\n` +
+        `    <lastmod>${lastmod}</lastmod>\n` +
         `    <changefreq>monthly</changefreq>\n` +
         `    <priority>0.7</priority>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(url)}"/>\n` +

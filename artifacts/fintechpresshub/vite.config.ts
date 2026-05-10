@@ -187,6 +187,38 @@ export default defineConfig(({ command }) => {
       // IndexNow verification key file (served by the API at a fixed path
       // — the IndexNow `keyLocation` field is what tells search engines
       // where to look, so we don't need a per-key URL).
+      "/sitemap-locations.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/sitemap-glossary.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/sitemap-tools.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/sitemap-compare.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/rss.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/llms.txt": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/.well-known/ai.txt": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "^/blog/category/[^/]+/rss\\.xml$": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
       "/indexnow-key.txt": {
         target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
         changeOrigin: true,

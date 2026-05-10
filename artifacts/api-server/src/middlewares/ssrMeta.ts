@@ -111,6 +111,10 @@ interface MetaPatches {
   articleSection?: string;
   /** OG article:tag meta tag values (blog posts). */
   articleTags?: string[];
+  /** OG article:published_time (blog posts — ISO 8601). */
+  articlePublishedTime?: string;
+  /** OG article:modified_time (blog posts — ISO 8601). */
+  articleModifiedTime?: string;
   /**
    * Array of JSON-LD strings — each injected as its own
    * <script type="application/ld+json"> block before </head>.
@@ -182,6 +186,14 @@ function patchHtml(base: string, p: MetaPatches): string {
     for (const tag of p.articleTags) {
       injections.push(`  <meta property="article:tag" content="${esc(tag)}" />`);
     }
+  }
+
+  if (p.articlePublishedTime) {
+    injections.push(`  <meta property="article:published_time" content="${esc(p.articlePublishedTime)}" />`);
+  }
+
+  if (p.articleModifiedTime) {
+    injections.push(`  <meta property="article:modified_time" content="${esc(p.articleModifiedTime)}" />`);
   }
 
   if (injections.length > 0) {
@@ -501,6 +513,10 @@ async function handleSsrMeta(
           category:             blogPostsTable.category,
           tags:                 blogPostsTable.tags,
           seoOgImage:           blogPostsTable.seoOgImage,
+          faqItems:             blogPostsTable.faqItems,
+          blufSummary:          blogPostsTable.blufSummary,
+          aboutEntities:        blogPostsTable.aboutEntities,
+          mentionEntities:      blogPostsTable.mentionEntities,
         })
         .from(blogPostsTable)
         .where(eq(blogPostsTable.slug, slug))
@@ -527,44 +543,82 @@ async function handleSsrMeta(
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["blog", slug], pageTitle);
 
+      const aboutEntities   = Array.isArray(post.aboutEntities)   ? (post.aboutEntities   as string[]) : [];
+      const mentionEntities = Array.isArray(post.mentionEntities) ? (post.mentionEntities as string[]) : [];
+      const faqItems        = Array.isArray(post.faqItems)        ? (post.faqItems as Array<{ question: string; answer: string }>) : [];
+
+      const extraLds: string[] = [
+        JSON.stringify({
+          "@context": "https://schema.org",
+          "@type":    "BlogPosting",
+          "@id":      canonical,
+          headline:   post.title,
+          description,
+          url:        canonical,
+          image:      ogImage,
+          publisher:  { "@id": `${siteUrl}#organization` },
+          datePublished: post.publishedAt.toISOString(),
+          dateModified,
+          ...(post.author
+            ? {
+                author: {
+                  "@type":    "Person",
+                  name:       post.author,
+                  ...(post.authorRole ? { jobTitle: post.authorRole } : {}),
+                  ...(authorUrl ? { url: authorUrl, "@id": `${authorUrl}#person` } : {}),
+                },
+              }
+            : {}),
+          ...(post.category ? { articleSection: post.category } : {}),
+          ...(tags.length > 0 ? { keywords: tags.join(", ") } : {}),
+          ...(aboutEntities.length > 0
+            ? { about: aboutEntities.map((e) => ({ "@type": "Thing", name: e })) }
+            : {}),
+          ...(mentionEntities.length > 0
+            ? { mentions: mentionEntities.map((e) => ({ "@type": "Thing", name: e })) }
+            : {}),
+          potentialAction: { "@type": "ReadAction", target: canonical },
+        }, null, 2),
+        buildBreadcrumbLd(breadcrumbs),
+      ];
+
+      if (faqItems.length > 0) {
+        extraLds.push(JSON.stringify({
+          "@context": "https://schema.org",
+          "@type":    "FAQPage",
+          "@id":      `${canonical}#faq`,
+          mainEntity: faqItems.map((item) => ({
+            "@type": "Question",
+            name:    item.question,
+            acceptedAnswer: { "@type": "Answer", text: item.answer },
+          })),
+        }, null, 2));
+      }
+
+      if (post.blufSummary) {
+        extraLds.push(JSON.stringify({
+          "@context":   "https://schema.org",
+          "@type":      "SpeakableSpecification",
+          "@id":        `${canonical}#speakable`,
+          cssSelector:  [".bluf-summary"],
+          name:         post.blufSummary.slice(0, 200),
+        }, null, 2));
+      }
+
       patches = {
-        title:          `${pageTitle} | FintechPressHub`,
+        title:                `${pageTitle} | FintechPressHub`,
         description,
         canonical,
-        ogTitle:        pageTitle,
-        ogDescription:  description,
+        ogTitle:              pageTitle,
+        ogDescription:        description,
         ogImage,
-        ogImageAlt:     pageTitle,
-        ogType:         "article",
-        articleSection: post.category || undefined,
-        articleTags:    tags.length > 0 ? tags : undefined,
-        extraLds: [
-          JSON.stringify({
-            "@context": "https://schema.org",
-            "@type":    "BlogPosting",
-            "@id":      canonical,
-            headline:   post.title,
-            description,
-            url:        canonical,
-            image:      ogImage,
-            publisher:  { "@id": `${siteUrl}#organization` },
-            datePublished: post.publishedAt.toISOString(),
-            dateModified,
-            ...(post.author
-              ? {
-                  author: {
-                    "@type":    "Person",
-                    name:       post.author,
-                    ...(post.authorRole ? { jobTitle: post.authorRole } : {}),
-                    ...(authorUrl ? { url: authorUrl, "@id": `${authorUrl}#person` } : {}),
-                  },
-                }
-              : {}),
-            ...(post.category ? { articleSection: post.category } : {}),
-            ...(tags.length > 0 ? { keywords: tags.join(", ") } : {}),
-          }, null, 2),
-          buildBreadcrumbLd(breadcrumbs),
-        ],
+        ogImageAlt:           pageTitle,
+        ogType:               "article",
+        articleSection:       post.category || undefined,
+        articleTags:          tags.length > 0 ? tags : undefined,
+        articlePublishedTime: post.publishedAt.toISOString(),
+        articleModifiedTime:  dateModified,
+        extraLds,
       };
     }
 
@@ -924,6 +978,29 @@ async function handleSsrMeta(
         const leafLabel   = staticMeta.title.split("|")[0]!.trim();
         const breadcrumbs = buildCrumbsForPath(siteUrl, segments, leafLabel);
 
+        const STATIC_PAGE_LASTMOD: Record<string, string> = {
+          "/write-for-us":                    "2026-04-25",
+          "/editorial-guidelines":            "2026-04-28",
+          "/community-guidelines":            "2026-04-28",
+          "/tools":                           "2026-05-09",
+          "/glossary":                        "2026-05-09",
+          "/resources/fintech-publications":  "2026-05-09",
+          "/press":                           "2026-05-09",
+          "/contact":                         "2026-04-25",
+          "/privacy-policy":                  "2026-04-28",
+          "/refund-policy":                   "2026-04-28",
+          "/cookie-policy":                   "2026-04-28",
+          "/terms":                           "2026-04-28",
+          "/compare":                         "2026-05-09",
+          "/compare/agency-vs-in-house":      "2026-05-09",
+          "/compare/vs-freelancers":          "2026-05-09",
+          "/compare/vs-seo-tools":            "2026-05-09",
+          "/compare/vs-pr-agencies":          "2026-05-09",
+          "/compare/content-led-vs-paid":     "2026-05-09",
+          "/compare/specialist-vs-generalist": "2026-05-09",
+        };
+        const pageLastmod = STATIC_PAGE_LASTMOD[reqPath];
+
         const extraLds: string[] = [
           JSON.stringify({
             "@context":   "https://schema.org",
@@ -934,6 +1011,7 @@ async function handleSsrMeta(
             description:  staticMeta.description,
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2),
         ];
 
