@@ -2157,6 +2157,161 @@ function PostEditor({
  * currently-broken or recently-recovered URLs without leaving the
  * dashboard.
  */
+// ---------------------------------------------------------------------------
+// Hreflang Consistency Panel
+// ---------------------------------------------------------------------------
+
+function HreflangPanel() {
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useGetHreflangCheckReport();
+  const runMut = useRunHreflangCheck();
+
+  const runNow = async () => {
+    try {
+      const fresh = await runMut.mutateAsync();
+      qc.setQueryData(getGetHreflangCheckReportQueryKey(), fresh);
+      const count = fresh.mismatchCount;
+      const description = `Checked ${fresh.checkedCount} URL${fresh.checkedCount === 1 ? "" : "s"}.`;
+      if (count === 0) {
+        toast.success("All hreflang tags look healthy", { description });
+      } else {
+        toast.warning(
+          `${count} hreflang mismatch${count === 1 ? "" : "es"} found`,
+          { description },
+        );
+      }
+    } catch {
+      toast.error("Could not run hreflang check.");
+    }
+  };
+
+  return (
+    <Card className="mb-10">
+      <CardContent className="pt-6">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Globe className="w-5 h-5" /> Hreflang consistency
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Daily background job verifies that every page renders the correct{" "}
+              <code className="px-1 py-0.5 rounded bg-muted text-foreground">
+                hreflang="en"
+              </code>{" "}
+              and{" "}
+              <code className="px-1 py-0.5 rounded bg-muted text-foreground">
+                hreflang="x-default"
+              </code>{" "}
+              self-references. Admins receive an alert when mismatches appear.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={runNow}
+            disabled={runMut.isPending}
+          >
+            <RefreshCw
+              className={`w-4 h-4 mr-1.5 ${runMut.isPending ? "animate-spin" : ""}`}
+            />
+            {runMut.isPending ? "Checking…" : "Run check now"}
+          </Button>
+        </div>
+
+        {error ? (
+          <p className="text-sm text-destructive">
+            Could not load hreflang report.
+          </p>
+        ) : isLoading || !data ? (
+          <p className="text-sm text-muted-foreground">Loading report…</p>
+        ) : (
+          <HreflangBody report={data} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function HreflangBody({ report }: { report: HreflangCheckReport }) {
+  const lastRun = report.generatedAt
+    ? new Date(report.generatedAt as unknown as string).toLocaleString()
+    : "never";
+  const dailyJobEnabled = report.dailyJobEnabled !== false;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs">
+        {dailyJobEnabled ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200">
+            <CheckCircle2 className="w-3 h-3" />
+            Daily job active
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 border border-amber-200">
+            <Clock className="w-3 h-3" />
+            Daily job paused (dev)
+          </span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+        <Stat label="Last run" value={lastRun} />
+        <Stat label="URLs checked" value={String(report.checkedCount)} />
+        <Stat
+          label="Mismatches"
+          value={String(report.mismatchCount)}
+          tone={report.mismatchCount > 0 ? "bad" : "good"}
+        />
+      </div>
+
+      {report.generatedAt === null ? (
+        <p className="text-sm text-muted-foreground">
+          No check has run yet. Click "Run check now" to validate hreflang tags
+          across all pages.
+        </p>
+      ) : report.mismatches.length === 0 ? (
+        <div className="flex items-center gap-2 text-sm text-green-700">
+          <CheckCircle2 className="w-4 h-4" />
+          All sampled pages have valid hreflang self-references.
+        </div>
+      ) : (
+        <div>
+          <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600" /> Hreflang
+            mismatches
+          </h3>
+          <div className="border rounded-md divide-y">
+            {report.mismatches.map(
+              (row: { url: string; kind: string; detail: string }) => (
+                <div
+                  key={row.url}
+                  className="px-3 py-2 text-xs grid grid-cols-[1fr_auto] gap-3 items-start"
+                >
+                  <div className="min-w-0">
+                    <a
+                      href={row.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="truncate block text-[#0052FF] hover:underline font-mono"
+                      title={row.url}
+                    >
+                      {row.url}
+                    </a>
+                    <span className="text-muted-foreground">{row.detail}</span>
+                  </div>
+                  <span className="font-mono text-amber-700 whitespace-nowrap">
+                    {row.kind}
+                  </span>
+                </div>
+              ),
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SitemapHealthPanel() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useGetSitemapHealth();
@@ -4470,6 +4625,8 @@ export default function AdminBlog() {
             </form>
           </CardContent>
         </Card>
+
+        <HreflangPanel />
 
         <SitemapHealthPanel />
 

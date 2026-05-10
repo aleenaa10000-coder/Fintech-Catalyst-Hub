@@ -291,7 +291,7 @@ export function isDailyHreflangEnabled(): boolean {
 
 export async function runHreflangConsistencyCheck(
   siteUrl: string,
-): Promise<HreflangMismatch[]> {
+): Promise<{ mismatches: HreflangMismatch[]; checkedCount: number }> {
   const base = siteUrl.replace(/\/+$/, "");
 
   const staticUrls = STATIC_ROUTES.map((r) => `${base}${r.path}`);
