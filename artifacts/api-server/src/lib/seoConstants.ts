@@ -66,3 +66,44 @@ export const COMPARE_SLUGS = [
 ] as const;
 
 export type CompareSlug = (typeof COMPARE_SLUGS)[number];
+
+/**
+ * Canonical last-modification dates for individual tool pages.
+ * Single source of truth shared by sitemap-tools.xml (via sitemapIndex.ts)
+ * and the SoftwareApplication JSON-LD in ssrMeta.ts.
+ * Update a date here whenever a tool's content or functionality changes.
+ */
+export const TOOL_PAGE_LASTMOD: Readonly<Record<string, string>> = {
+  "financial-health-score-calculator": "2026-04-25",
+  "meta-description-generator":        "2026-04-25",
+  "guest-post-pitch-generator":        "2026-04-25",
+  "readability-checker":               "2026-04-25",
+  "keyword-difficulty-estimator":      "2026-04-25",
+  "backlink-value-estimator":          "2026-04-25",
+  "content-brief-generator":           "2026-04-25",
+  "headline-analyzer":                 "2026-04-25",
+  "link-prospector":                   "2026-05-09",
+  "outreach-email-generator":          "2026-05-09",
+};
+
+/**
+ * Canonical last-modification dates for individual compare pages.
+ * Single source of truth shared by sitemap-compare.xml and FAQPage JSON-LD.
+ * Update a date here whenever a comparison page's content changes.
+ */
+export const COMPARE_PAGE_LASTMOD: Readonly<Record<string, string>> = {
+  "agency-vs-in-house":       "2026-05-09",
+  "vs-freelancers":           "2026-05-09",
+  "vs-seo-tools":             "2026-05-09",
+  "vs-pr-agencies":           "2026-05-09",
+  "content-led-vs-paid":      "2026-05-09",
+  "specialist-vs-generalist": "2026-05-09",
+};
+
+/**
+ * Stable last-modification date for service detail pages.
+ * Services are seeded once and change infrequently — using `today` wastes
+ * crawl budget by signalling a daily update. Update this date manually
+ * whenever service content is revised.
+ */
+export const SERVICE_PAGE_LASTMOD_DATE = "2026-05-09";

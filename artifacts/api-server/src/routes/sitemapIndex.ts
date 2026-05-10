@@ -4,7 +4,7 @@ import { asc, desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
 import { STATIC_ROUTES } from "./sitemap";
-import { STATIC_CATEGORY_SLUGS, TOOL_SLUGS, COMPARE_SLUGS, SERVICE_SLUGS } from "../lib/seoConstants";
+import { STATIC_CATEGORY_SLUGS, TOOL_SLUGS, COMPARE_SLUGS, SERVICE_SLUGS, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, SERVICE_PAGE_LASTMOD_DATE } from "../lib/seoConstants";
 
 const router: IRouter = Router();
 
@@ -120,10 +120,11 @@ async function getLatestGlossaryDate(): Promise<string> {
 }
 
 function getLatestServiceDate(): string {
-  // servicesTable has no updatedAt column — services are managed via admin
-  // seeding and change infrequently. Return today's date so the sitemap index
-  // entry always reflects the last time the index itself was regenerated.
-  return new Date().toISOString().slice(0, 10);
+  // Services are seeded once and change infrequently. Return the canonical
+  // SERVICE_PAGE_LASTMOD_DATE from seoConstants so the sitemap index entry
+  // only signals a change when content actually changes — preventing Google
+  // from wasting crawl budget re-fetching an unchanged sitemap-services.xml.
+  return SERVICE_PAGE_LASTMOD_DATE;
 }
 
 async function buildSitemapIndexXml(): Promise<string> {
@@ -144,8 +145,8 @@ async function buildSitemapIndexXml(): Promise<string> {
     { loc: `${siteUrl}/sitemap-locations.xml`, lastmod: latestLocationDate },
     { loc: `${siteUrl}/sitemap-glossary.xml`,  lastmod: latestGlossaryDate },
     { loc: `${siteUrl}/sitemap-services.xml`,  lastmod: latestServiceDate },
-    { loc: `${siteUrl}/sitemap-tools.xml`,     lastmod: today },
-    { loc: `${siteUrl}/sitemap-compare.xml`,   lastmod: today },
+    { loc: `${siteUrl}/sitemap-tools.xml`,     lastmod: Object.values(TOOL_PAGE_LASTMOD).reduce((a, b) => (a > b ? a : b)) },
+    { loc: `${siteUrl}/sitemap-compare.xml`,   lastmod: Object.values(COMPARE_PAGE_LASTMOD).reduce((a, b) => (a > b ? a : b)) },
     { loc: `${siteUrl}/news-sitemap.xml`,      lastmod: today },
   ];
 
@@ -442,11 +443,11 @@ async function buildGlossarySitemapXml(): Promise<string> {
 
 async function buildToolsSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
-  const today = new Date().toISOString().slice(0, 10);
 
   const entries = [
     {
       loc:        `${siteUrl}/tools`,
+      lastmod:    "2026-05-09",
       changefreq: "monthly",
       priority:   "0.8",
       ogTitle:    "Free Fintech Marketing Tools",
@@ -454,6 +455,7 @@ async function buildToolsSitemapXml(): Promise<string> {
     },
     ...TOOL_SLUGS.map((slug) => ({
       loc:        `${siteUrl}/tools/${slug}`,
+      lastmod:    TOOL_PAGE_LASTMOD[slug] ?? SERVICE_PAGE_LASTMOD_DATE,
       changefreq: "monthly",
       priority:   "0.7",
       ogTitle:    humanizeSlug(slug),
@@ -470,7 +472,7 @@ async function buildToolsSitemapXml(): Promise<string> {
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(u.loc)}</loc>\n` +
-        `    <lastmod>${today}</lastmod>\n` +
+        `    <lastmod>${u.lastmod}</lastmod>\n` +
         `    <changefreq>${u.changefreq}</changefreq>\n` +
         `    <priority>${u.priority}</priority>\n` +
         `    <image:image>\n` +
@@ -491,11 +493,11 @@ async function buildToolsSitemapXml(): Promise<string> {
 
 async function buildCompareSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
-  const today = new Date().toISOString().slice(0, 10);
 
   const entries = [
     {
       loc:        `${siteUrl}/compare`,
+      lastmod:    "2026-05-09",
       changefreq: "monthly",
       priority:   "0.6",
       ogTitle:    "Fintech SEO Agency Comparisons",
@@ -503,6 +505,7 @@ async function buildCompareSitemapXml(): Promise<string> {
     },
     ...COMPARE_SLUGS.map((slug) => ({
       loc:        `${siteUrl}/compare/${slug}`,
+      lastmod:    COMPARE_PAGE_LASTMOD[slug] ?? "2026-05-09",
       changefreq: "monthly",
       priority:   "0.6",
       ogTitle:    humanizeSlug(slug),
@@ -518,7 +521,7 @@ async function buildCompareSitemapXml(): Promise<string> {
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(u.loc)}</loc>\n` +
-        `    <lastmod>${today}</lastmod>\n` +
+        `    <lastmod>${u.lastmod}</lastmod>\n` +
         `    <changefreq>${u.changefreq}</changefreq>\n` +
         `    <priority>${u.priority}</priority>\n` +
         `    <image:image>\n` +
@@ -539,7 +542,6 @@ async function buildCompareSitemapXml(): Promise<string> {
 
 async function buildServicesSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
-  const today = new Date().toISOString().slice(0, 10);
 
   // Select name as well so we can generate accurate OG image titles.
   const services = await db
@@ -553,12 +555,12 @@ async function buildServicesSitemapXml(): Promise<string> {
     services.length > 0
       ? services.map((s) => ({
           loc:     `${siteUrl}/services/${s.slug}`,
-          lastmod: today,
+          lastmod: SERVICE_PAGE_LASTMOD_DATE,
           name:    s.name,
         }))
       : SERVICE_SLUGS.map((slug) => ({
           loc:     `${siteUrl}/services/${slug}`,
-          lastmod: today,
+          lastmod: SERVICE_PAGE_LASTMOD_DATE,
           name:    humanizeSlug(slug),
         }));
 

@@ -852,6 +852,7 @@ async function handleSsrMeta(
           aboutEntities:        blogPostsTable.aboutEntities,
           mentionEntities:      blogPostsTable.mentionEntities,
           wordCount:            blogPostsTable.wordCount,
+          readingMinutes:       blogPostsTable.readingMinutes,
         })
         .from(blogPostsTable)
         .where(eq(blogPostsTable.slug, slug))
@@ -931,6 +932,7 @@ async function handleSsrMeta(
             : {}),
           ...(post.blufSummary ? { abstract: post.blufSummary.slice(0, 500) } : {}),
           ...(post.wordCount ? { wordCount: post.wordCount } : {}),
+          ...(post.readingMinutes && post.readingMinutes > 0 ? { timeRequired: `PT${post.readingMinutes}M` } : {}),
           isAccessibleForFree: true,
           accessMode: ["textual", "visual"],
           potentialAction: { "@type": "ReadAction", target: canonical },
@@ -1149,6 +1151,20 @@ async function handleSsrMeta(
             ...(term.category ? { subjectOf: { "@type": "Thing", name: term.category } } : {}),
             ...(seeAlso.length > 0 ? { seeAlso } : {}),
             potentialAction: { "@type": "ReadAction", target: canonical },
+          }, null, 2),
+          JSON.stringify({
+            "@context":    "https://schema.org",
+            "@type":       "WebPage",
+            "@id":         `${canonical}#webpage`,
+            url:           canonical,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            datePublished: term.publishedAt.toISOString().slice(0, 10),
+            dateModified:  term.updatedAt.toISOString().slice(0, 10),
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: [".glossary-short-def"],
+            },
           }, null, 2),
           JSON.stringify({
             "@context": "https://schema.org",
