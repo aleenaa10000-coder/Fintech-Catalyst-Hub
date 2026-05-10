@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, servicesTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
 import { CreateServiceBody } from "@workspace/api-zod";
+import { invalidateSitemapCache } from "./sitemapIndex";
 
 const router: IRouter = Router();
 
@@ -51,6 +52,7 @@ router.post("/services", async (req, res) => {
       res.status(500).json({ error: "Failed to create" });
       return;
     }
+    invalidateSitemapCache();
     res.json({
       id: row.id,
       slug: row.slug,
@@ -77,6 +79,7 @@ router.delete("/services/:slug", async (req, res) => {
   }
   try {
     await db.delete(servicesTable).where(eq(servicesTable.slug, slug));
+    invalidateSitemapCache();
     res.status(204).end();
   } catch (err) {
     res.status(500).json({ error: "Failed to delete service" });

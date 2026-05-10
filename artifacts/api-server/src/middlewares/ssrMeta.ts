@@ -866,6 +866,7 @@ async function handleSsrMeta(
           description,
           url:        canonical,
           mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+          isPartOf: { "@type": "Blog", "@id": `${siteUrl}/blog`, name: "FintechPressHub Blog" },
           image: ogImage.includes("/api/og")
             ? { "@type": "ImageObject", url: ogImage, width: 1200, height: 630 }
             : { "@type": "ImageObject", url: ogImage },

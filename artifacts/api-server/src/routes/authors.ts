@@ -9,6 +9,7 @@ import { z } from "zod";
 import { db, authorsTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
+import { invalidateSitemapCache } from "./sitemapIndex";
 
 const router: IRouter = Router();
 
@@ -120,6 +121,7 @@ router.post("/admin/authors", requireAdmin, async (req, res, next) => {
         sortOrder: data.sortOrder ?? 0,
       })
       .returning();
+    invalidateSitemapCache();
     res.status(201).json({ ok: true, author: row });
   } catch (err) {
     next(err);
@@ -168,6 +170,7 @@ router.put("/admin/authors/:slug", requireAdmin, async (req, res, next) => {
       res.status(404).json({ error: "Author not found" });
       return;
     }
+    invalidateSitemapCache();
     res.json({ ok: true, author: row });
   } catch (err) {
     next(err);
@@ -185,6 +188,7 @@ router.delete("/admin/authors/:slug", requireAdmin, async (req, res, next) => {
       res.status(404).json({ error: "Author not found" });
       return;
     }
+    invalidateSitemapCache();
     res.json({ ok: true, slug: row.slug });
   } catch (err) {
     next(err);

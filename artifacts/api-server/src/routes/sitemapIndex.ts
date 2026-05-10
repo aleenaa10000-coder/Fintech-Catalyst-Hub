@@ -398,6 +398,7 @@ async function buildGlossarySitemapXml(): Promise<string> {
   const terms = await db
     .select({
       slug:      glossaryTermsTable.slug,
+      term:      glossaryTermsTable.term,
       updatedAt: glossaryTermsTable.updatedAt,
     })
     .from(glossaryTermsTable)
@@ -410,6 +411,11 @@ async function buildGlossarySitemapXml(): Promise<string> {
   const body = terms
     .map((t) => {
       const url = `${siteUrl}/glossary/${t.slug}`;
+      // Include a branded OG image for each glossary term so Google Images can
+      // index the /api/og card, matching the treatment of blog, tools, compare,
+      // services, authors, and location sitemaps. Improves visual search
+      // presence and rich-result eligibility for vocabulary-intent queries.
+      const imageUrl = `${siteUrl}/api/og?title=${encodeURIComponent(t.term)}&category=${encodeURIComponent("Glossary")}`;
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(url)}</loc>\n` +
@@ -418,6 +424,10 @@ async function buildGlossarySitemapXml(): Promise<string> {
         // Glossary definition pages target high-intent vocabulary queries;
         // raising to 0.7 signals stronger crawl-budget priority to Google.
         `    <priority>0.7</priority>\n` +
+        `    <image:image>\n` +
+        `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
+        `      <image:title>${escapeXml(t.term)}</image:title>\n` +
+        `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(url)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(url)}"/>\n` +
         `  </url>`
@@ -425,7 +435,7 @@ async function buildGlossarySitemapXml(): Promise<string> {
     })
     .join("\n");
 
-  return xmlUrlset(body);
+  return xmlUrlset(body, true);
 }
 
 // ── /sitemap-tools.xml ───────────────────────────────────────────────────────
