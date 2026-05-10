@@ -75,10 +75,6 @@ export default function GlossaryTermPage() {
         webPage={{
           dateModified: term.updatedAt.slice(0, 10),
         }}
-        breadcrumbs={[
-          { name: "Glossary", item: `${SITE_URL}/glossary` },
-          { name: term.term, item: canonical },
-        ]}
       />
 
       <PageHero
