@@ -163,12 +163,14 @@ async function buildBlogSitemapXml(): Promise<string> {
   const posts = (
     await db
       .select({
-        slug: blogPostsTable.slug,
-        title: blogPostsTable.title,
-        publishedAt: blogPostsTable.publishedAt,
-        noIndex: blogPostsTable.noIndex,
-        featured: blogPostsTable.featured,
-        coverImage: blogPostsTable.coverImage,
+        slug:                blogPostsTable.slug,
+        title:               blogPostsTable.title,
+        publishedAt:         blogPostsTable.publishedAt,
+        updatedAt:           blogPostsTable.updatedAt,
+        lastMaterialUpdateAt: blogPostsTable.lastMaterialUpdateAt,
+        noIndex:             blogPostsTable.noIndex,
+        featured:            blogPostsTable.featured,
+        coverImage:          blogPostsTable.coverImage,
       })
       .from(blogPostsTable)
       .where(lte(blogPostsTable.publishedAt, sql`now()`))
@@ -182,10 +184,14 @@ async function buildBlogSitemapXml(): Promise<string> {
       const changefreq = p.featured || isRecent ? "weekly" : "monthly";
       const loc = `${siteUrl}/blog/${p.slug}`;
       const imageUrl = p.coverImage?.startsWith("http") ? p.coverImage : `${siteUrl}${p.coverImage}`;
+      // Use the most recent material edit date so Google recrawls updated posts.
+      const lastmod = (p.lastMaterialUpdateAt ?? p.updatedAt ?? p.publishedAt)
+        .toISOString()
+        .slice(0, 10);
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(loc)}</loc>\n` +
-        `    <lastmod>${p.publishedAt.toISOString().slice(0, 10)}</lastmod>\n` +
+        `    <lastmod>${lastmod}</lastmod>\n` +
         `    <changefreq>${changefreq}</changefreq>\n` +
         `    <priority>${priority}</priority>\n` +
         (p.coverImage
