@@ -45,6 +45,22 @@ function humanizeSlug(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/**
+ * Human-readable labels for blog category slugs.
+ * Kept in sync with STATIC_CATEGORY_SLUGS in seoConstants.ts.
+ * Used to generate accurate OG image titles in sitemap-pages.xml.
+ */
+const CATEGORY_LABELS: Record<string, string> = {
+  "payments":        "Payments",
+  "embedded-finance": "Embedded Finance",
+  "open-banking":    "Open Banking",
+  "neobanking":      "Neobanking",
+  "lending":         "Lending",
+  "regtech":         "RegTech",
+  "wealthtech":      "Wealthtech",
+  "fintech-seo":     "Fintech SEO",
+};
+
 function escapeXml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -149,18 +165,28 @@ async function buildPagesSitemapXml(): Promise<string> {
   const today = new Date().toISOString().slice(0, 10);
 
   const staticEntries = STATIC_ROUTES.map((r) => ({
-    loc: `${siteUrl}${r.path}`,
-    lastmod: r.lastmod ?? today,
+    loc:        `${siteUrl}${r.path}`,
+    lastmod:    r.lastmod ?? today,
     changefreq: r.changefreq,
-    priority: r.priority,
+    priority:   r.priority,
+    imageUrl:   undefined as string | undefined,
+    imageTitle: undefined as string | undefined,
   }));
 
-  const categoryEntries = STATIC_CATEGORY_SLUGS.map((slug) => ({
-    loc: `${siteUrl}/blog/category/${slug}`,
-    lastmod: today,
-    changefreq: "weekly",
-    priority: "0.7",
-  }));
+  // Category hub pages include an OG image hint so Google Images can index
+  // the branded card for each topic, improving visual search presence and
+  // increasing rich-result eligibility for category-level queries.
+  const categoryEntries = STATIC_CATEGORY_SLUGS.map((slug) => {
+    const label = CATEGORY_LABELS[slug] ?? humanizeSlug(slug);
+    return {
+      loc:        `${siteUrl}/blog/category/${slug}`,
+      lastmod:    today,
+      changefreq: "weekly",
+      priority:   "0.7",
+      imageUrl:   `${siteUrl}/api/og?title=${encodeURIComponent(label)}&category=${encodeURIComponent("Blog")}`,
+      imageTitle: label,
+    };
+  });
 
   // Author and service detail pages are intentionally omitted here — they are
   // already covered by their dedicated child sitemaps (sitemap-authors.xml and
@@ -170,6 +196,7 @@ async function buildPagesSitemapXml(): Promise<string> {
   // tool/compare sub-pages being omitted from STATIC_ROUTES in sitemap.ts.
 
   const all = [...staticEntries, ...categoryEntries];
+  const hasImages = categoryEntries.length > 0;
 
   const body = all
     .map(
@@ -179,13 +206,19 @@ async function buildPagesSitemapXml(): Promise<string> {
         `    <lastmod>${u.lastmod}</lastmod>\n` +
         `    <changefreq>${u.changefreq}</changefreq>\n` +
         `    <priority>${u.priority}</priority>\n` +
+        (u.imageUrl
+          ? `    <image:image>\n` +
+            `      <image:loc>${escapeXml(u.imageUrl)}</image:loc>\n` +
+            `      <image:title>${escapeXml(u.imageTitle!)}</image:title>\n` +
+            `    </image:image>\n`
+          : "") +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n` +
         `  </url>`,
     )
     .join("\n");
 
-  return xmlUrlset(body);
+  return xmlUrlset(body, hasImages);
 }
 
 // ── /sitemap-blog.xml ────────────────────────────────────────────────────────
@@ -484,39 +517,53 @@ async function buildServicesSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
   const today = new Date().toISOString().slice(0, 10);
 
+  // Select name as well so we can generate accurate OG image titles.
   const services = await db
-    .select({ slug: servicesTable.slug })
+    .select({ slug: servicesTable.slug, name: servicesTable.name })
     .from(servicesTable)
     .orderBy(asc(servicesTable.slug))
-    .catch(() => [] as Array<{ slug: string }>);
+    .catch(() => [] as Array<{ slug: string; name: string }>);
 
   // Fall back to known slugs from seoConstants when the DB has no service rows.
-  const slugs = services.length > 0
-    ? services.map((s) => s.slug)
-    : SERVICE_SLUGS;
-
-  const entries = slugs.map((slug) => ({
-    loc:     `${siteUrl}/services/${slug}`,
-    lastmod: today,
-  }));
+  const entries: Array<{ loc: string; lastmod: string; name: string }> =
+    services.length > 0
+      ? services.map((s) => ({
+          loc:     `${siteUrl}/services/${s.slug}`,
+          lastmod: today,
+          name:    s.name,
+        }))
+      : SERVICE_SLUGS.map((slug) => ({
+          loc:     `${siteUrl}/services/${slug}`,
+          lastmod: today,
+          name:    humanizeSlug(slug),
+        }));
 
   if (entries.length === 0) return xmlUrlset("");
 
+  // Include <image:image> entries so Google Images can index the branded OG
+  // card for each service page, strengthening visual authority signals and
+  // improving rich-result eligibility for fintech agency service queries.
   const body = entries
-    .map(
-      (u) =>
+    .map((u) => {
+      const imageUrl = `${siteUrl}/api/og?title=${encodeURIComponent(u.name)}&category=${encodeURIComponent("Service")}`;
+      return (
         `  <url>\n` +
         `    <loc>${escapeXml(u.loc)}</loc>\n` +
         `    <lastmod>${u.lastmod}</lastmod>\n` +
         `    <changefreq>monthly</changefreq>\n` +
         `    <priority>0.8</priority>\n` +
+        `    <image:image>\n` +
+        `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
+        `      <image:title>${escapeXml(u.name)}</image:title>\n` +
+        `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n` +
-        `  </url>`,
-    )
+        `  </url>`
+      );
+    })
     .join("\n");
 
-  return xmlUrlset(body);
+  return xmlUrlset(body, true);
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

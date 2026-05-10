@@ -1321,6 +1321,11 @@ async function handleSsrMeta(
         ogImage,
         ogImageAlt:    catMeta.title,
         extraLds,
+        // Announce the category RSS feed so RSS readers and Googlebot can
+        // discover per-category feeds without visiting /blog/category/:slug first.
+        headLinks: [
+          `  <link rel="alternate" type="application/rss+xml" title="${esc(`${leafLabel} — FintechPressHub`)}" href="${esc(`${siteUrl}/blog/category/${slug}/rss.xml`)}" />`,
+        ],
       };
     }
 

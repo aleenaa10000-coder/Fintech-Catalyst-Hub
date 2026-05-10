@@ -38,6 +38,9 @@ import {
   getAllLocations,
 } from "./bot-og-plugin.mjs";
 import { PAGE_META, AUTHORS } from "./bot-og-data.mjs";
+// All blog category slugs — single source of truth is seo-constants.mjs.
+// Do NOT add slugs here directly; update seo-constants.mjs and seoConstants.ts.
+import { STATIC_CATEGORY_SLUGS as BLOG_CATEGORY_SLUGS } from "./seo-constants.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
@@ -47,19 +50,6 @@ const indexPath = path.resolve(distDir, "index.html");
 const SITE_URL =
   process.env.SITE_URL ?? "https://www.fintechpresshub.com";
 const API_BASE = process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080";
-
-// All blog category slugs — kept in sync with seoConstants.ts and
-// the BLOG_CATEGORY_META in bot-og-plugin.mjs.
-const BLOG_CATEGORY_SLUGS = [
-  "payments",
-  "embedded-finance",
-  "open-banking",
-  "neobanking",
-  "lending",
-  "regtech",
-  "wealthtech",
-  "fintech-seo",
-];
 
 async function ensureBuildExists() {
   try {

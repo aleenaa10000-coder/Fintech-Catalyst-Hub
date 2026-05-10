@@ -12,7 +12,7 @@ import {
 } from "./bot-og-data.mjs";
 
 const BOT_REGEX =
-  /(googlebot|bingbot|yandex|baiduspider|duckduckbot|twitterbot|facebookexternalhit|facebot|linkedinbot|slackbot|discordbot|telegrambot|whatsapp|embedly|pinterest|redditbot|applebot|skypeuripreview|vkshare|tumblr|bitrix|xing-contenttabreceiver|google-inspectiontool|googleother|chatgpt|gptbot|perplexitybot|claudebot|amazonbot|mj12bot|ahrefsbot|semrushbot)/i;
+  /(googlebot|bingbot|yandex|baiduspider|duckduckbot|twitterbot|facebookexternalhit|facebot|linkedinbot|slackbot|discordbot|telegrambot|whatsapp|embedly|pinterest|redditbot|applebot|applebot-extended|skypeuripreview|vkshare|tumblr|bitrix|xing-contenttabreceiver|google-inspectiontool|googleother|google-extended|chatgpt|gptbot|oai-searchbot|perplexitybot|claudebot|amazonbot|youbot|duckassistbot|meta-externalagent|mj12bot|ahrefsbot|semrushbot)/i;
 
 const BREADCRUMB_LABELS = {
   about: "About",

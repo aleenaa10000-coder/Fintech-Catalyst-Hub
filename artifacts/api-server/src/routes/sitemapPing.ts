@@ -49,7 +49,10 @@ router.post(
         .filter((e) => e.source !== "rss")
         .map((e) => e.loc);
 
-      const sitemapUrl = `${siteUrl}/sitemap.xml`;
+      // Ping the canonical sitemap index — it references all 9 child sitemaps
+      // so search engines can discover every URL in a single submission.
+      // /sitemap.xml is kept for backward compat but is not the primary one.
+      const sitemapUrl = `${siteUrl}/sitemap_index.xml`;
       const allUrls = [sitemapUrl, ...urls];
 
       logger.info(
