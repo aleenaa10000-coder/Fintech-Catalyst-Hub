@@ -17,13 +17,17 @@ import {
   checkSingleSitemapUrl,
   useGetNotificationSettings,
   usePostBrokenUrlsToSlack,
+  useGetHreflangCheckReport,
+  useRunHreflangCheck,
   getListBlogPostsQueryKey,
   getGetSitemapHealthQueryKey,
   getGetNotificationSettingsQueryKey,
+  getGetHreflangCheckReportQueryKey,
   type BlogPost,
   type SeoNotification,
   type SitemapHealthReport,
   type CheckSingleUrlResult,
+  type HreflangCheckReport,
 } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -81,6 +85,7 @@ import {
   CalendarDays,
   ArrowUpDown,
   BookOpen,
+  Globe,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";

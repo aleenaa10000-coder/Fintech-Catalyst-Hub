@@ -707,6 +707,48 @@ paths:
         "401":
           description: Unauthorized
 
+  /admin/hreflang-check:
+    get:
+      operationId: getHreflangCheckReport
+      tags: [admin]
+      summary: Latest hreflang consistency check report (admin)
+      description: |
+        Returns the cached results from the last hreflang consistency check
+        (daily job or on-demand POST). Read-only — does not trigger a fresh
+        check. Returns a "never run" report when the server has just started
+        and no check has completed yet. Pair with POST to refresh on demand.
+      responses:
+        "200":
+          description: Hreflang check report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HreflangCheckReport"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+    post:
+      operationId: runHreflangCheck
+      tags: [admin]
+      summary: Run a fresh hreflang consistency check (admin)
+      description: |
+        Synchronously fetches a representative sample of page URLs, validates
+        that each one renders the expected hreflang tags in its HTML head,
+        caches the result, and returns the report. Designed to be called by
+        the admin dashboard "Run check now" button.
+      responses:
+        "200":
+          description: Hreflang check report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HreflangCheckReport"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+
   /admin/sitemap-health/check-url:
     post:
       operationId: checkSingleSitemapUrl
@@ -1819,6 +1861,63 @@ components:
         - isBroken
         - lastCheckedAt
         - consecutiveFailures
+
+    HreflangMismatch:
+      type: object
+      description: A single page URL that failed the hreflang consistency check.
+      properties:
+        url:
+          type: string
+          description: The canonical page URL that was checked.
+        kind:
+          type: string
+          enum:
+            - fetch_error
+            - no_hreflang_tags
+            - missing_en
+            - missing_x_default
+            - self_ref_mismatch
+          description: |
+            Classification of the mismatch:
+            - `fetch_error` — could not retrieve the page HTML
+            - `no_hreflang_tags` — head has no hreflang link tags at all
+            - `missing_en` — hreflang="en" tag absent
+            - `missing_x_default` — hreflang="x-default" tag absent
+            - `self_ref_mismatch` — href on en or x-default ≠ canonical URL
+        detail:
+          type: string
+          description: Human-readable explanation of the specific mismatch.
+      required: [url, kind, detail]
+
+    HreflangCheckReport:
+      type: object
+      description: |
+        Report from `GET /admin/hreflang-check` or `POST /admin/hreflang-check`.
+        `generatedAt` is null when no check has run since the last server start.
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO timestamp of when the last check completed.
+        checkedCount:
+          type: integer
+          minimum: 0
+          description: Total number of URLs sampled in the last check.
+        mismatchCount:
+          type: integer
+          minimum: 0
+          description: Number of URLs with hreflang mismatches.
+        mismatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/HreflangMismatch"
+        dailyJobEnabled:
+          type: boolean
+          description: |
+            Whether the background daily link-check job (which includes the
+            hreflang validator) is active in this environment.
+      required: [checkedCount, mismatchCount, mismatches]
 
     CheckSingleUrlBody:
       type: object

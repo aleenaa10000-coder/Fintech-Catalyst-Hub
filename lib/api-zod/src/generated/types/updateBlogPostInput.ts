@@ -5,6 +5,7 @@
  * FintechPressHub API
  * OpenAPI spec version: 0.1.0
  */
+import type { UpdateBlogPostInputFaqItemsItem } from './updateBlogPostInputFaqItemsItem';
 
 /**
  * Partial update — only included fields are changed.
@@ -42,4 +43,9 @@ export interface UpdateBlogPostInput {
   /** When true, the public post detail page will emit `<meta name="robots" content="noindex,nofollow">`, hiding the post from search engines while keeping it accessible by URL.
    */
   noIndex?: boolean;
+  faqItems?: UpdateBlogPostInputFaqItemsItem[] | null;
+  blufSummary?: string | null;
+  lastMaterialUpdateAt?: Date | null;
+  aboutEntities?: string[] | null;
+  mentionEntities?: string[] | null;
 }

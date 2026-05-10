@@ -48,6 +48,7 @@ import type {
   GuestPostSubmissionInput,
   HandleBrowserLoginCallbackParams,
   HealthStatus,
+  HreflangCheckReport,
   ListBlogPostsParams,
   ListBulkNoIndexAuditParams,
   LogoutSuccess,
@@ -2126,6 +2127,163 @@ export const useRunSitemapHealth = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRunSitemapHealthMutationOptions(options));
+    }
+
+/**
+ * Returns the cached results from the last hreflang consistency check
+(daily job or on-demand POST). Read-only — does not trigger a fresh
+check. Returns a "never run" report when the server has just started
+and no check has completed yet. Pair with POST to refresh on demand.
+
+ * @summary Latest hreflang consistency check report (admin)
+ */
+export const getGetHreflangCheckReportUrl = () => {
+
+
+
+
+  return `/api/admin/hreflang-check`
+}
+
+export const getHreflangCheckReport = async ( options?: RequestInit): Promise<HreflangCheckReport> => {
+
+  return customFetch<HreflangCheckReport>(getGetHreflangCheckReportUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetHreflangCheckReportQueryKey = () => {
+    return [
+    `/api/admin/hreflang-check`
+    ] as const;
+    }
+
+
+export const getGetHreflangCheckReportQueryOptions = <TData = Awaited<ReturnType<typeof getHreflangCheckReport>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHreflangCheckReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHreflangCheckReportQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHreflangCheckReport>>> = ({ signal }) => getHreflangCheckReport({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getHreflangCheckReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetHreflangCheckReportQueryResult = NonNullable<Awaited<ReturnType<typeof getHreflangCheckReport>>>
+export type GetHreflangCheckReportQueryError = ErrorType<void>
+
+
+/**
+ * @summary Latest hreflang consistency check report (admin)
+ */
+
+export function useGetHreflangCheckReport<TData = Awaited<ReturnType<typeof getHreflangCheckReport>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHreflangCheckReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetHreflangCheckReportQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+/**
+ * Synchronously fetches a representative sample of page URLs, validates
+that each one renders the expected hreflang tags in its HTML head,
+caches the result, and returns the report. Designed to be called by
+the admin dashboard "Run check now" button.
+
+ * @summary Run a fresh hreflang consistency check (admin)
+ */
+export const getRunHreflangCheckUrl = () => {
+
+
+
+
+  return `/api/admin/hreflang-check`
+}
+
+export const runHreflangCheck = async ( options?: RequestInit): Promise<HreflangCheckReport> => {
+
+  return customFetch<HreflangCheckReport>(getRunHreflangCheckUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRunHreflangCheckMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runHreflangCheck>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runHreflangCheck>>, TError,void, TContext> => {
+
+const mutationKey = ['runHreflangCheck'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runHreflangCheck>>, void> = () => {
+
+
+          return  runHreflangCheck(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunHreflangCheckMutationResult = NonNullable<Awaited<ReturnType<typeof runHreflangCheck>>>
+
+    export type RunHreflangCheckMutationError = ErrorType<void>
+
+    /**
+ * @summary Run a fresh hreflang consistency check (admin)
+ */
+export const useRunHreflangCheck = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runHreflangCheck>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runHreflangCheck>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRunHreflangCheckMutationOptions(options));
     }
 
 /**

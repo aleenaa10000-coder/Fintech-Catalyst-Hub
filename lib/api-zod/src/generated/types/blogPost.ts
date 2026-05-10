@@ -5,6 +5,7 @@
  * FintechPressHub API
  * OpenAPI spec version: 0.1.0
  */
+import type { BlogPostFaqItemsItem } from './blogPostFaqItemsItem';
 
 export interface BlogPost {
   id: number;
@@ -50,4 +51,17 @@ export interface BlogPost {
   /** Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means "no scheduled flip; manual control only".
    */
   noindexUntil?: Date | null;
+  /** Structured FAQ items rendered as FAQPage JSON-LD. Each item has a `question` and `answer` string.
+   */
+  faqItems?: BlogPostFaqItemsItem[] | null;
+  /** Bottom-Line-Up-Front summary shown above the fold and emitted in speakable JSON-LD.
+   */
+  blufSummary?: string | null;
+  /** Timestamp of the last material content update. Used as `dateModified` in BlogPosting JSON-LD. Set manually by the admin when structural revisions are made.
+   */
+  lastMaterialUpdateAt?: Date | null;
+  /** Primary topics this article is about (BlogPosting `about`). */
+  aboutEntities?: string[] | null;
+  /** Entities mentioned in the article (BlogPosting `mentions`). */
+  mentionEntities?: string[] | null;
 }

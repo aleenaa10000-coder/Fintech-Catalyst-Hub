@@ -58,12 +58,25 @@ We do NOT offer generalist marketing services and do NOT work outside fintech an
 
 ## Services
 
-- **Fintech SEO** — [${siteUrl}/services/fintech-seo](${siteUrl}/services/fintech-seo): Technical SEO, topical authority, and content cluster strategy for regulated finance verticals. Covers site audits, Core Web Vitals, structured data, and content gap analysis.
-- **Content Marketing** — [${siteUrl}/services/content-marketing](${siteUrl}/services/content-marketing): Expert-written long-form content by writers with direct fintech operating experience. Pillar pages, comparison guides, explainers, and data-driven studies.
-- **Link Building** — [${siteUrl}/services/link-building](${siteUrl}/services/link-building): Tier-1 dofollow placements on Finextra, The Fintech Times, Tearsheet, Finovate, and 50+ niche finance publications. Average 15+ placements per month per client.
-- **Digital PR** — [${siteUrl}/services/digital-pr](${siteUrl}/services/digital-pr): Original research campaigns, HARO expert citations, and media coverage in Bloomberg, FT, TechCrunch, and American Banker.
-- **Guest Posting** — [${siteUrl}/services/guest-posting](${siteUrl}/services/guest-posting): Managed guest post campaigns on high-DR fintech publications. Includes pitch, writing, editing, and live placement tracking.
-- **Fintech SEO Audit** — [${siteUrl}/services/fintech-seo-audit](${siteUrl}/services/fintech-seo-audit): Comprehensive 30-day technical and content audit with a prioritised 90-day roadmap. One-time engagement.
+### Fintech Content Writing
+[${siteUrl}/services/fintech-content-writing](${siteUrl}/services/fintech-content-writing) — Expert-written long-form content by writers with direct fintech operating experience. Pillar pages, comparison guides, explainers, and data-driven studies.
+Fintech sub-verticals covered: Fintech Content Marketing, Payments Content, Embedded Finance, B2B Lending Content, Open Banking, Neobanking, RegTech Content, Wealthtech Content, BNPL Content, Financial Services Copywriting.
+
+### Off-Page SEO & Link Building
+[${siteUrl}/services/off-page-seo](${siteUrl}/services/off-page-seo) — Tier-1 dofollow placements on Finextra, The Fintech Times, Tearsheet, Finovate, and 50+ niche finance publications. Average 15+ placements per month per client.
+Fintech sub-verticals covered: Fintech Link Building, Financial Services Off-Page SEO, Domain Authority Building, Digital PR for Fintech, Finance Publication Outreach, Backlink Strategy, Payments SEO, Open Banking SEO.
+
+### Guest Posting
+[${siteUrl}/services/guest-posting](${siteUrl}/services/guest-posting) — Managed guest post campaigns on high-DR fintech publications. Includes pitch, writing, editing, and live placement tracking.
+Fintech sub-verticals covered: Fintech Guest Posting, Finance Publication Placements, Editorial Link Building, Executive Thought Leadership, Financial Media Relations, BNPL Coverage, Embedded Finance Media, Payments Industry Press.
+
+### Topical Authority
+[${siteUrl}/services/topical-authority](${siteUrl}/services/topical-authority) — Technical SEO, topical authority, and content cluster strategy for regulated finance verticals. Covers site audits, Core Web Vitals, structured data, and content gap analysis.
+Fintech sub-verticals covered: Topical Authority Building, Fintech SEO Strategy, Content Cluster Development, Keyword Research for Fintech, Payments SEO, Lending SEO, Open Banking SEO, Neobanking SEO, Embedded Finance SEO, Wealthtech SEO.
+
+### Fintech SEO Audit
+[${siteUrl}/services/fintech-seo-audit](${siteUrl}/services/fintech-seo-audit) — Comprehensive 30-day technical and content audit with a prioritised 90-day roadmap. One-time engagement.
+Fintech sub-verticals covered: Technical SEO Audit, Fintech SEO Strategy, Competitor Content Analysis, Content Gap Analysis, Core Web Vitals, Financial Services Compliance SEO, SEO Performance Benchmarking, Keyword Opportunity Mapping.
 
 ## Pricing (retainer-based, USD/month)
 

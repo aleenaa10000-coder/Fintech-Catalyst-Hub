@@ -5,6 +5,7 @@
  * FintechPressHub API
  * OpenAPI spec version: 0.1.0
  */
+import type { PublishBlogPostInputFaqItemsItem } from './publishBlogPostInputFaqItemsItem';
 
 export interface PublishBlogPostInput {
   /**
@@ -44,4 +45,9 @@ export interface PublishBlogPostInput {
   /** When true, the public post detail page will emit `<meta name="robots" content="noindex,nofollow">`, hiding the post from search engines while keeping it accessible by URL. Defaults to false.
    */
   noIndex?: boolean;
+  faqItems?: PublishBlogPostInputFaqItemsItem[] | null;
+  blufSummary?: string | null;
+  lastMaterialUpdateAt?: Date | null;
+  aboutEntities?: string[] | null;
+  mentionEntities?: string[] | null;
 }

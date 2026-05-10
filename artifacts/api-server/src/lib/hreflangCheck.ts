@@ -237,6 +237,58 @@ async function runWithConcurrency(
  * rendering, wrong canonical base URL, etc.) and affects every page
  * uniformly, so a sample of ~30 URLs reliably catches it.
  */
+// ---------------------------------------------------------------------------
+// In-memory result cache
+// ---------------------------------------------------------------------------
+// The daily job populates this after every run so the admin dashboard can
+// show the last-known results instantly without triggering a fresh crawl.
+// Lost on server restart — acceptable; the GET route will show "never run"
+// until the next daily tick or an admin manually triggers a check.
+
+export interface HreflangCheckReport {
+  generatedAt: string | null;
+  checkedCount: number;
+  mismatchCount: number;
+  mismatches: HreflangMismatch[];
+  dailyJobEnabled: boolean;
+}
+
+let cachedReport: HreflangCheckReport | null = null;
+
+export function getCachedHreflangReport(): HreflangCheckReport {
+  return (
+    cachedReport ?? {
+      generatedAt: null,
+      checkedCount: 0,
+      mismatchCount: 0,
+      mismatches: [],
+      dailyJobEnabled: isDailyHreflangEnabled(),
+    }
+  );
+}
+
+export function setCachedHreflangReport(
+  mismatches: HreflangMismatch[],
+  checkedCount: number,
+): void {
+  cachedReport = {
+    generatedAt: new Date().toISOString(),
+    checkedCount,
+    mismatchCount: mismatches.length,
+    mismatches,
+    dailyJobEnabled: isDailyHreflangEnabled(),
+  };
+}
+
+/**
+ * Mirrors the gating logic used by the daily link-check job — the
+ * hreflang check runs under the same environment gate.
+ */
+export function isDailyHreflangEnabled(): boolean {
+  if (process.env["NODE_ENV"] === "production") return true;
+  return Boolean(process.env["SITE_URL"]?.trim());
+}
+
 export async function runHreflangConsistencyCheck(
   siteUrl: string,
 ): Promise<HreflangMismatch[]> {
@@ -269,11 +321,12 @@ export async function runHreflangConsistencyCheck(
   const mismatches = rawResults.filter(
     (r): r is HreflangMismatch => r !== null,
   );
+  const checkedCount = allUrls.length;
 
   LOG.info(
-    { checked: allUrls.length, mismatches: mismatches.length },
+    { checked: checkedCount, mismatches: mismatches.length },
     "hreflang-check: run complete",
   );
 
-  return mismatches;
+  return { mismatches, checkedCount };
 }

@@ -121,6 +121,11 @@ export interface HealthStatus {
   checkedAt: string;
 }
 
+export type BlogPostFaqItemsItem = {
+  question: string;
+  answer: string;
+};
+
 export interface BlogPost {
   id: number;
   slug: string;
@@ -165,11 +170,14 @@ export interface BlogPost {
   /** Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means "no scheduled flip; manual control only".
    */
   noindexUntil?: string | null;
-  /** Structured FAQ items for FAQPage JSON-LD. */
-  faqItems?: Array<{ question: string; answer: string }> | null;
-  /** Bottom-Line-Up-Front summary shown above the fold and emitted in speakable JSON-LD. */
+  /** Structured FAQ items rendered as FAQPage JSON-LD. Each item has a `question` and `answer` string.
+   */
+  faqItems?: BlogPostFaqItemsItem[] | null;
+  /** Bottom-Line-Up-Front summary shown above the fold and emitted in speakable JSON-LD.
+   */
   blufSummary?: string | null;
-  /** Timestamp of the last material content update. Used as `dateModified` in BlogPosting JSON-LD. */
+  /** Timestamp of the last material content update. Used as `dateModified` in BlogPosting JSON-LD. Set manually by the admin when structural revisions are made.
+   */
   lastMaterialUpdateAt?: string | null;
   /** Primary topics this article is about (BlogPosting `about`). */
   aboutEntities?: string[] | null;
@@ -190,6 +198,11 @@ export interface BlogPostViewCount {
   /** @minimum 0 */
   viewCount: number;
 }
+
+export type UpdateBlogPostInputFaqItemsItem = {
+  question: string;
+  answer: string;
+};
 
 /**
  * Partial update — only included fields are changed.
@@ -227,7 +240,7 @@ export interface UpdateBlogPostInput {
   /** When true, the public post detail page will emit `<meta name="robots" content="noindex,nofollow">`, hiding the post from search engines while keeping it accessible by URL.
    */
   noIndex?: boolean;
-  faqItems?: Array<{ question: string; answer: string }> | null;
+  faqItems?: UpdateBlogPostInputFaqItemsItem[] | null;
   blufSummary?: string | null;
   lastMaterialUpdateAt?: string | null;
   aboutEntities?: string[] | null;
@@ -291,6 +304,11 @@ export type PublishedBlogPost = BlogPost & {
   seoNotification: SeoNotification;
 };
 
+export type PublishBlogPostInputFaqItemsItem = {
+  question: string;
+  answer: string;
+};
+
 export interface PublishBlogPostInput {
   /**
      * Lowercase, hyphenated URL slug.
@@ -329,7 +347,7 @@ export interface PublishBlogPostInput {
   /** When true, the public post detail page will emit `<meta name="robots" content="noindex,nofollow">`, hiding the post from search engines while keeping it accessible by URL. Defaults to false.
    */
   noIndex?: boolean;
-  faqItems?: Array<{ question: string; answer: string }> | null;
+  faqItems?: PublishBlogPostInputFaqItemsItem[] | null;
   blufSummary?: string | null;
   lastMaterialUpdateAt?: string | null;
   aboutEntities?: string[] | null;
@@ -358,6 +376,69 @@ export interface LinkCheckResult {
   lastCheckedAt: string;
   /** @minimum 0 */
   consecutiveFailures: number;
+}
+
+/**
+ * Classification of the mismatch:
+- `fetch_error` — could not retrieve the page HTML
+- `no_hreflang_tags` — head has no hreflang link tags at all
+- `missing_en` — hreflang="en" tag absent
+- `missing_x_default` — hreflang="x-default" tag absent
+- `self_ref_mismatch` — href on en or x-default ≠ canonical URL
+
+ */
+export type HreflangMismatchKind = typeof HreflangMismatchKind[keyof typeof HreflangMismatchKind];
+
+
+export const HreflangMismatchKind = {
+  fetch_error: 'fetch_error',
+  no_hreflang_tags: 'no_hreflang_tags',
+  missing_en: 'missing_en',
+  missing_x_default: 'missing_x_default',
+  self_ref_mismatch: 'self_ref_mismatch',
+} as const;
+
+/**
+ * A single page URL that failed the hreflang consistency check.
+ */
+export interface HreflangMismatch {
+  /** The canonical page URL that was checked. */
+  url: string;
+  /** Classification of the mismatch:
+  - `fetch_error` — could not retrieve the page HTML
+  - `no_hreflang_tags` — head has no hreflang link tags at all
+  - `missing_en` — hreflang="en" tag absent
+  - `missing_x_default` — hreflang="x-default" tag absent
+  - `self_ref_mismatch` — href on en or x-default ≠ canonical URL
+   */
+  kind: HreflangMismatchKind;
+  /** Human-readable explanation of the specific mismatch. */
+  detail: string;
+}
+
+/**
+ * Report from `GET /admin/hreflang-check` or `POST /admin/hreflang-check`.
+`generatedAt` is null when no check has run since the last server start.
+
+ */
+export interface HreflangCheckReport {
+  /** ISO timestamp of when the last check completed. */
+  generatedAt?: string | null;
+  /**
+     * Total number of URLs sampled in the last check.
+     * @minimum 0
+     */
+  checkedCount: number;
+  /**
+     * Number of URLs with hreflang mismatches.
+     * @minimum 0
+     */
+  mismatchCount: number;
+  mismatches: HreflangMismatch[];
+  /** Whether the background daily link-check job (which includes the
+  hreflang validator) is active in this environment.
+   */
+  dailyJobEnabled?: boolean;
 }
 
 /**

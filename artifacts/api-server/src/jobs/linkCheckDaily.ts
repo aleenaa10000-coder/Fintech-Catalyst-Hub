@@ -8,6 +8,7 @@ import {
 } from "../lib/sitemapHealth";
 import {
   runHreflangConsistencyCheck,
+  setCachedHreflangReport,
   type HreflangMismatch,
 } from "../lib/hreflangCheck";
 import { postPersistentAlertToSlack } from "../lib/slackNotifier";
@@ -378,7 +379,9 @@ export async function runDailyLinkCheck(): Promise<void> {
   // with the concurrent HEAD probes above.
   let hreflangMismatches: HreflangMismatch[] = [];
   try {
-    hreflangMismatches = await runHreflangConsistencyCheck(getSiteUrl());
+    const result = await runHreflangConsistencyCheck(getSiteUrl());
+    hreflangMismatches = result.mismatches;
+    setCachedHreflangReport(result.mismatches, result.checkedCount);
   } catch (err) {
     JOB_LOG.error({ err }, "Hreflang consistency check threw — skipping alert");
   }

@@ -207,7 +207,15 @@ export const ListBlogPostsResponseItem = zod.object({
   "seoDescription": zod.string().nullish().describe('Optional override for `<meta name=\"description\">` on this post\'s detail page. When `null` the description falls back to the post\'s `excerpt`.\n'),
   "seoOgImage": zod.string().nullish().describe('Optional override for `og:image` \/ `twitter:image` on this post\'s detail page. When `null` the social card falls back to the post\'s `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n'),
   "noIndex": zod.boolean().describe('When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n'),
-  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n')
+  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n'),
+  "faqItems": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).nullish().describe('Structured FAQ items rendered as FAQPage JSON-LD. Each item has a `question` and `answer` string.\n'),
+  "blufSummary": zod.string().nullish().describe('Bottom-Line-Up-Front summary shown above the fold and emitted in speakable JSON-LD.\n'),
+  "lastMaterialUpdateAt": zod.coerce.date().nullish().describe('Timestamp of the last material content update. Used as `dateModified` in BlogPosting JSON-LD. Set manually by the admin when structural revisions are made.\n'),
+  "aboutEntities": zod.array(zod.string()).nullish().describe('Primary topics this article is about (BlogPosting `about`).'),
+  "mentionEntities": zod.array(zod.string()).nullish().describe('Entities mentioned in the article (BlogPosting `mentions`).')
 })
 export const ListBlogPostsResponse = zod.array(ListBlogPostsResponseItem)
 
@@ -247,7 +255,15 @@ export const PublishBlogPostBody = zod.object({
   "seoTitle": zod.string().nullish().describe('Optional override for the `<title>` tag on this post\'s detail page. Falls back to `title` when omitted or null.\n'),
   "seoDescription": zod.string().nullish().describe('Optional override for `<meta name=\"description\">`. Falls back to `excerpt` when omitted or null.\n'),
   "seoOgImage": zod.string().nullish().describe('Optional override for `og:image` \/ `twitter:image`. Falls back to `coverImage` when omitted or null.\n'),
-  "noIndex": zod.boolean().optional().describe('When true, the public post detail page will emit `<meta name=\"robots\" content=\"noindex,nofollow\">`, hiding the post from search engines while keeping it accessible by URL. Defaults to false.\n')
+  "noIndex": zod.boolean().optional().describe('When true, the public post detail page will emit `<meta name=\"robots\" content=\"noindex,nofollow\">`, hiding the post from search engines while keeping it accessible by URL. Defaults to false.\n'),
+  "faqItems": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).nullish(),
+  "blufSummary": zod.string().nullish(),
+  "lastMaterialUpdateAt": zod.coerce.date().nullish(),
+  "aboutEntities": zod.array(zod.string()).nullish(),
+  "mentionEntities": zod.array(zod.string()).nullish()
 })
 
 
@@ -284,7 +300,15 @@ export const GetBlogPostResponse = zod.object({
   "seoDescription": zod.string().nullish().describe('Optional override for `<meta name=\"description\">` on this post\'s detail page. When `null` the description falls back to the post\'s `excerpt`.\n'),
   "seoOgImage": zod.string().nullish().describe('Optional override for `og:image` \/ `twitter:image` on this post\'s detail page. When `null` the social card falls back to the post\'s `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n'),
   "noIndex": zod.boolean().describe('When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n'),
-  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n')
+  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n'),
+  "faqItems": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).nullish().describe('Structured FAQ items rendered as FAQPage JSON-LD. Each item has a `question` and `answer` string.\n'),
+  "blufSummary": zod.string().nullish().describe('Bottom-Line-Up-Front summary shown above the fold and emitted in speakable JSON-LD.\n'),
+  "lastMaterialUpdateAt": zod.coerce.date().nullish().describe('Timestamp of the last material content update. Used as `dateModified` in BlogPosting JSON-LD. Set manually by the admin when structural revisions are made.\n'),
+  "aboutEntities": zod.array(zod.string()).nullish().describe('Primary topics this article is about (BlogPosting `about`).'),
+  "mentionEntities": zod.array(zod.string()).nullish().describe('Entities mentioned in the article (BlogPosting `mentions`).')
 })
 
 
@@ -323,7 +347,15 @@ export const UpdateBlogPostBody = zod.object({
   "seoTitle": zod.string().nullish().describe('Override the `<title>` tag for this post. Pass an empty string or `null` to clear an existing override and fall back to the post\'s `title`.\n'),
   "seoDescription": zod.string().nullish().describe('Override `<meta name=\"description\">` for this post. Pass an empty string or `null` to clear an existing override and fall back to the post\'s `excerpt`.\n'),
   "seoOgImage": zod.string().nullish().describe('Override `og:image` \/ `twitter:image` for this post. Pass an empty string or `null` to clear an existing override and fall back to the post\'s `coverImage`.\n'),
-  "noIndex": zod.boolean().optional().describe('When true, the public post detail page will emit `<meta name=\"robots\" content=\"noindex,nofollow\">`, hiding the post from search engines while keeping it accessible by URL.\n')
+  "noIndex": zod.boolean().optional().describe('When true, the public post detail page will emit `<meta name=\"robots\" content=\"noindex,nofollow\">`, hiding the post from search engines while keeping it accessible by URL.\n'),
+  "faqItems": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).nullish(),
+  "blufSummary": zod.string().nullish(),
+  "lastMaterialUpdateAt": zod.coerce.date().nullish(),
+  "aboutEntities": zod.array(zod.string()).nullish(),
+  "mentionEntities": zod.array(zod.string()).nullish()
 }).describe('Partial update — only included fields are changed.')
 
 export const updateBlogPostResponseOneViewCountMin = 0;
@@ -356,7 +388,15 @@ export const UpdateBlogPostResponse = zod.object({
   "seoDescription": zod.string().nullish().describe('Optional override for `<meta name=\"description\">` on this post\'s detail page. When `null` the description falls back to the post\'s `excerpt`.\n'),
   "seoOgImage": zod.string().nullish().describe('Optional override for `og:image` \/ `twitter:image` on this post\'s detail page. When `null` the social card falls back to the post\'s `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n'),
   "noIndex": zod.boolean().describe('When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n'),
-  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n')
+  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n'),
+  "faqItems": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).nullish().describe('Structured FAQ items rendered as FAQPage JSON-LD. Each item has a `question` and `answer` string.\n'),
+  "blufSummary": zod.string().nullish().describe('Bottom-Line-Up-Front summary shown above the fold and emitted in speakable JSON-LD.\n'),
+  "lastMaterialUpdateAt": zod.coerce.date().nullish().describe('Timestamp of the last material content update. Used as `dateModified` in BlogPosting JSON-LD. Set manually by the admin when structural revisions are made.\n'),
+  "aboutEntities": zod.array(zod.string()).nullish().describe('Primary topics this article is about (BlogPosting `about`).'),
+  "mentionEntities": zod.array(zod.string()).nullish().describe('Entities mentioned in the article (BlogPosting `mentions`).')
 }).and(zod.object({
   "seoNotification": zod.object({
   "indexNow": zod.object({
@@ -437,7 +477,15 @@ export const BulkNoIndexBlogPostsResponse = zod.object({
   "seoDescription": zod.string().nullish().describe('Optional override for `<meta name=\"description\">` on this post\'s detail page. When `null` the description falls back to the post\'s `excerpt`.\n'),
   "seoOgImage": zod.string().nullish().describe('Optional override for `og:image` \/ `twitter:image` on this post\'s detail page. When `null` the social card falls back to the post\'s `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n'),
   "noIndex": zod.boolean().describe('When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n'),
-  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n')
+  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n'),
+  "faqItems": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).nullish().describe('Structured FAQ items rendered as FAQPage JSON-LD. Each item has a `question` and `answer` string.\n'),
+  "blufSummary": zod.string().nullish().describe('Bottom-Line-Up-Front summary shown above the fold and emitted in speakable JSON-LD.\n'),
+  "lastMaterialUpdateAt": zod.coerce.date().nullish().describe('Timestamp of the last material content update. Used as `dateModified` in BlogPosting JSON-LD. Set manually by the admin when structural revisions are made.\n'),
+  "aboutEntities": zod.array(zod.string()).nullish().describe('Primary topics this article is about (BlogPosting `about`).'),
+  "mentionEntities": zod.array(zod.string()).nullish().describe('Entities mentioned in the article (BlogPosting `mentions`).')
 })),
   "auditId": zod.number().nullish().describe('Primary key of the audit-log row written for this batch (if\nany rows actually changed). `null` when the request was a\nno-op so no audit row was created.\n')
 })
@@ -494,7 +542,15 @@ export const BulkRescheduleBlogPostsResponse = zod.object({
   "seoDescription": zod.string().nullish().describe('Optional override for `<meta name=\"description\">` on this post\'s detail page. When `null` the description falls back to the post\'s `excerpt`.\n'),
   "seoOgImage": zod.string().nullish().describe('Optional override for `og:image` \/ `twitter:image` on this post\'s detail page. When `null` the social card falls back to the post\'s `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n'),
   "noIndex": zod.boolean().describe('When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n'),
-  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n')
+  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n'),
+  "faqItems": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).nullish().describe('Structured FAQ items rendered as FAQPage JSON-LD. Each item has a `question` and `answer` string.\n'),
+  "blufSummary": zod.string().nullish().describe('Bottom-Line-Up-Front summary shown above the fold and emitted in speakable JSON-LD.\n'),
+  "lastMaterialUpdateAt": zod.coerce.date().nullish().describe('Timestamp of the last material content update. Used as `dateModified` in BlogPosting JSON-LD. Set manually by the admin when structural revisions are made.\n'),
+  "aboutEntities": zod.array(zod.string()).nullish().describe('Primary topics this article is about (BlogPosting `about`).'),
+  "mentionEntities": zod.array(zod.string()).nullish().describe('Entities mentioned in the article (BlogPosting `mentions`).')
 })).describe('Full post objects for every row that was updated.')
 })
 
@@ -732,7 +788,15 @@ export const RepingBlogPostIndexNowResponse = zod.object({
   "seoDescription": zod.string().nullish().describe('Optional override for `<meta name=\"description\">` on this post\'s detail page. When `null` the description falls back to the post\'s `excerpt`.\n'),
   "seoOgImage": zod.string().nullish().describe('Optional override for `og:image` \/ `twitter:image` on this post\'s detail page. When `null` the social card falls back to the post\'s `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n'),
   "noIndex": zod.boolean().describe('When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n'),
-  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n')
+  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n'),
+  "faqItems": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).nullish().describe('Structured FAQ items rendered as FAQPage JSON-LD. Each item has a `question` and `answer` string.\n'),
+  "blufSummary": zod.string().nullish().describe('Bottom-Line-Up-Front summary shown above the fold and emitted in speakable JSON-LD.\n'),
+  "lastMaterialUpdateAt": zod.coerce.date().nullish().describe('Timestamp of the last material content update. Used as `dateModified` in BlogPosting JSON-LD. Set manually by the admin when structural revisions are made.\n'),
+  "aboutEntities": zod.array(zod.string()).nullish().describe('Primary topics this article is about (BlogPosting `about`).'),
+  "mentionEntities": zod.array(zod.string()).nullish().describe('Entities mentioned in the article (BlogPosting `mentions`).')
 }).and(zod.object({
   "seoNotification": zod.object({
   "indexNow": zod.object({
@@ -826,6 +890,60 @@ export const RunSitemapHealthResponse = zod.object({
 
 
 /**
+ * Returns the cached results from the last hreflang consistency check
+(daily job or on-demand POST). Read-only — does not trigger a fresh
+check. Returns a "never run" report when the server has just started
+and no check has completed yet. Pair with POST to refresh on demand.
+
+ * @summary Latest hreflang consistency check report (admin)
+ */
+export const getHreflangCheckReportResponseCheckedCountMin = 0;
+
+export const getHreflangCheckReportResponseMismatchCountMin = 0;
+
+
+
+export const GetHreflangCheckReportResponse = zod.object({
+  "generatedAt": zod.coerce.date().nullish().describe('ISO timestamp of when the last check completed.'),
+  "checkedCount": zod.number().min(getHreflangCheckReportResponseCheckedCountMin).describe('Total number of URLs sampled in the last check.'),
+  "mismatchCount": zod.number().min(getHreflangCheckReportResponseMismatchCountMin).describe('Number of URLs with hreflang mismatches.'),
+  "mismatches": zod.array(zod.object({
+  "url": zod.string().describe('The canonical page URL that was checked.'),
+  "kind": zod.enum(['fetch_error', 'no_hreflang_tags', 'missing_en', 'missing_x_default', 'self_ref_mismatch']).describe('Classification of the mismatch:\n- `fetch_error` — could not retrieve the page HTML\n- `no_hreflang_tags` — head has no hreflang link tags at all\n- `missing_en` — hreflang=\"en\" tag absent\n- `missing_x_default` — hreflang=\"x-default\" tag absent\n- `self_ref_mismatch` — href on en or x-default ≠ canonical URL\n'),
+  "detail": zod.string().describe('Human-readable explanation of the specific mismatch.')
+}).describe('A single page URL that failed the hreflang consistency check.')),
+  "dailyJobEnabled": zod.boolean().optional().describe('Whether the background daily link-check job (which includes the\nhreflang validator) is active in this environment.\n')
+}).describe('Report from `GET \/admin\/hreflang-check` or `POST \/admin\/hreflang-check`.\n`generatedAt` is null when no check has run since the last server start.\n')
+
+
+/**
+ * Synchronously fetches a representative sample of page URLs, validates
+that each one renders the expected hreflang tags in its HTML head,
+caches the result, and returns the report. Designed to be called by
+the admin dashboard "Run check now" button.
+
+ * @summary Run a fresh hreflang consistency check (admin)
+ */
+export const runHreflangCheckResponseCheckedCountMin = 0;
+
+export const runHreflangCheckResponseMismatchCountMin = 0;
+
+
+
+export const RunHreflangCheckResponse = zod.object({
+  "generatedAt": zod.coerce.date().nullish().describe('ISO timestamp of when the last check completed.'),
+  "checkedCount": zod.number().min(runHreflangCheckResponseCheckedCountMin).describe('Total number of URLs sampled in the last check.'),
+  "mismatchCount": zod.number().min(runHreflangCheckResponseMismatchCountMin).describe('Number of URLs with hreflang mismatches.'),
+  "mismatches": zod.array(zod.object({
+  "url": zod.string().describe('The canonical page URL that was checked.'),
+  "kind": zod.enum(['fetch_error', 'no_hreflang_tags', 'missing_en', 'missing_x_default', 'self_ref_mismatch']).describe('Classification of the mismatch:\n- `fetch_error` — could not retrieve the page HTML\n- `no_hreflang_tags` — head has no hreflang link tags at all\n- `missing_en` — hreflang=\"en\" tag absent\n- `missing_x_default` — hreflang=\"x-default\" tag absent\n- `self_ref_mismatch` — href on en or x-default ≠ canonical URL\n'),
+  "detail": zod.string().describe('Human-readable explanation of the specific mismatch.')
+}).describe('A single page URL that failed the hreflang consistency check.')),
+  "dailyJobEnabled": zod.boolean().optional().describe('Whether the background daily link-check job (which includes the\nhreflang validator) is active in this environment.\n')
+}).describe('Report from `GET \/admin\/hreflang-check` or `POST \/admin\/hreflang-check`.\n`generatedAt` is null when no check has run since the last server start.\n')
+
+
+/**
  * Runs the same HEAD-then-fallback-GET probe used by the daily job
 against a single URL and returns its current status. Does NOT
 persist the result or affect the sitemap report — purely a
@@ -900,7 +1018,15 @@ export const ListFeaturedPostsResponseItem = zod.object({
   "seoDescription": zod.string().nullish().describe('Optional override for `<meta name=\"description\">` on this post\'s detail page. When `null` the description falls back to the post\'s `excerpt`.\n'),
   "seoOgImage": zod.string().nullish().describe('Optional override for `og:image` \/ `twitter:image` on this post\'s detail page. When `null` the social card falls back to the post\'s `coverImage`. Must be an absolute URL pointing to a hosted image (1200×630 recommended).\n'),
   "noIndex": zod.boolean().describe('When true, the public post detail page emits `<meta name=\"robots\" content=\"noindex,nofollow\">` so this post is excluded from search engines (still publicly accessible by URL). Useful for sponsored, outdated, or work-in-progress posts.\n'),
-  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n')
+  "noindexUntil": zod.coerce.date().nullish().describe('Optional auto-unsnooze timestamp. When set together with `noIndex=true`, an hourly background job re-flips `noIndex` back to `false` and clears this field once the moment passes. `null` means \"no scheduled flip; manual control only\".\n'),
+  "faqItems": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).nullish().describe('Structured FAQ items rendered as FAQPage JSON-LD. Each item has a `question` and `answer` string.\n'),
+  "blufSummary": zod.string().nullish().describe('Bottom-Line-Up-Front summary shown above the fold and emitted in speakable JSON-LD.\n'),
+  "lastMaterialUpdateAt": zod.coerce.date().nullish().describe('Timestamp of the last material content update. Used as `dateModified` in BlogPosting JSON-LD. Set manually by the admin when structural revisions are made.\n'),
+  "aboutEntities": zod.array(zod.string()).nullish().describe('Primary topics this article is about (BlogPosting `about`).'),
+  "mentionEntities": zod.array(zod.string()).nullish().describe('Entities mentioned in the article (BlogPosting `mentions`).')
 })
 export const ListFeaturedPostsResponse = zod.array(ListFeaturedPostsResponseItem)
 
@@ -1038,15 +1164,13 @@ export const subscribeToNewsletterBodySourceMax = 80;
 
 export const SubscribeToNewsletterBody = zod.object({
   "email": zod.string().email(),
-  "source": zod.string().max(subscribeToNewsletterBodySourceMax).optional(),
-  "keyword": zod.string().max(300).optional()
+  "source": zod.string().max(subscribeToNewsletterBodySourceMax).optional()
 })
 
 export const SubscribeToNewsletterResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
   "source": zod.string().nullish(),
-  "keyword": zod.string().nullish(),
   "alreadySubscribed": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
@@ -1096,10 +1220,7 @@ export const GetNewsletterSubscribersResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
   "createdAt": zod.coerce.date(),
-  "source": zod.string().nullish(),
-  "keyword": zod.string().nullish(),
-  "briefStatus": zod.string().nullish(),
-  "briefStatusUpdatedAt": zod.coerce.date().nullish()
+  "source": zod.string().nullish()
 })),
   "dailySignups": zod.array(zod.object({
   "date": zod.string().describe('ISO calendar date (UTC) — `YYYY-MM-DD`.'),
