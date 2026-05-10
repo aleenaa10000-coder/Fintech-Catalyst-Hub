@@ -180,7 +180,7 @@ export default function Home() {
                 Optimized Fintech Content That <span className="text-cyan-200">Ranks & Converts</span>
               </h1>
               <p
-                className="text-xl text-blue-100/95 mb-10 max-w-2xl mx-auto leading-relaxed"
+                className="speakable-summary hero-description text-xl text-blue-100/95 mb-10 max-w-2xl mx-auto leading-relaxed"
                 style={{ textShadow: "0 1px 12px rgba(8, 18, 51, 0.5)" }}
               >
                 We blend deep financial expertise with high-authority link building and technical SEO to scale organic growth for ambitious fintech companies.

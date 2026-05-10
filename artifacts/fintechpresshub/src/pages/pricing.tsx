@@ -49,6 +49,7 @@ export default function Pricing() {
     <div className="min-h-screen bg-background">
       <PageMeta
         page="pricing"
+        speakableSelectors={["h1", ".speakable-summary"]}
         faq={faqs.map((f) => ({ question: f.q, answer: f.a }))}
         pricingOffers={
           plans?.map((plan: NonNullable<typeof plans>[number]) => ({

@@ -70,7 +70,13 @@ export default function Services() {
       <PageHero
         eyebrow="Services"
         title={<>Growth Engines for Fintech</>}
-        description="Specialized digital marketing services designed to acquire high-value customers, earn high-authority backlinks, and build topical authority inside your sub-vertical."
+        description={
+          <>
+            <p className="speakable-summary">
+              Specialized digital marketing services designed to acquire high-value customers, earn high-authority backlinks, and build topical authority inside your fintech sub-vertical.
+            </p>
+          </>
+        }
       />
 
       <section className="pt-12 pb-24">

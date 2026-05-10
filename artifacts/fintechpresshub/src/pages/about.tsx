@@ -96,11 +96,11 @@ export default function About() {
         titleClassName="text-4xl font-extrabold leading-[1.1] tracking-tight text-white md:text-5xl lg:text-6xl"
         description={
           <div className="max-w-3xl space-y-4 text-base leading-relaxed text-white/85 md:text-lg">
-            <p>
-              We started FintechPressHub because we saw a gap: generalist marketing agencies didn't understand the nuances of Open Banking, BaaS, or DeFi.
+            <p className="speakable-summary">
+              FintechPressHub is a specialist fintech digital marketing agency pairing senior content strategists with experienced fintech writers, technical SEO operators, and digital PR leads to build defensible organic growth engines for payments, lending, banking infrastructure, and wealth tech companies.
             </p>
             <p>
-              At the same time, the financial experts who lived and breathed those topics didn't know how to rank on Google. We built the team that does both.
+              We started because we saw a gap: generalist agencies didn't understand Open Banking, BaaS, or DeFi — and financial experts didn't know how to rank on Google. We built the team that does both.
             </p>
           </div>
         }
