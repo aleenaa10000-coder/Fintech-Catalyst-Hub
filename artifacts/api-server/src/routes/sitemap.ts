@@ -40,6 +40,7 @@ export const STATIC_ROUTES: Array<{
   { path: "/tools/headline-analyzer", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
   { path: "/tools/link-prospector", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/tools/outreach-email-generator", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
+  { path: "/locations", changefreq: "weekly", priority: "0.8", lastmod: "2026-05-10" },
   { path: "/glossary", changefreq: "weekly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/resources/fintech-publications", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/press", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },

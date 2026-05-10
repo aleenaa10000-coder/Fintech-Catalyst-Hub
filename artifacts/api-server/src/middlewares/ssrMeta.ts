@@ -548,6 +548,10 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
     title: "Top Fintech Publications & Media Outlets | FintechPressHub",
     description: "The definitive list of high-authority fintech publications, newsletters, and media outlets for link building and guest post outreach.",
   },
+  "/locations": {
+    title: "Fintech SEO by Location | FintechPressHub",
+    description: "Specialist fintech SEO, content marketing, and link-building services tailored to your city. Browse all locations we serve globally.",
+  },
 };
 
 // ── Module-level SEO maps (computed once at startup, never rebuilt per-request) ──
@@ -592,6 +596,7 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/compare/vs-pr-agencies":          "2026-05-09",
   "/compare/content-led-vs-paid":     "2026-05-09",
   "/compare/specialist-vs-generalist": "2026-05-09",
+  "/locations":                        "2026-05-10",
 };
 
 /**
@@ -621,6 +626,7 @@ const STATIC_OG_META: Readonly<Record<string, { category: string; ogTitle: strin
   "/cookie-policy":                   { category: "Legal",       ogTitle: "Cookie Policy" },
   "/terms":                           { category: "Legal",       ogTitle: "Terms & Conditions" },
   "/resources/fintech-publications":  { category: "Resources",   ogTitle: "Top Fintech Publications" },
+  "/locations":                       { category: "Locations",   ogTitle: "Fintech SEO by Location" },
 };
 
 /**
@@ -926,6 +932,37 @@ async function handleSsrMeta(
             areaServed: { "@type": "Place", name: loc.country },
             publisher:   { "@id": `${siteUrl}#organization` },
           }, null, 2),
+          JSON.stringify({
+            "@context": "https://schema.org",
+            "@type":    "FAQPage",
+            "@id":      `${canonical}#faq`,
+            mainEntity: [
+              {
+                "@type": "Question",
+                name:    `Does FintechPressHub offer fintech SEO services in ${loc.city}?`,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    `Yes. FintechPressHub provides specialist fintech SEO, content marketing, and link-building services to companies operating in ${loc.city}${loc.region ? `, ${loc.region}` : ""}, ${loc.country}. Our team combines local regulatory awareness with deep fintech expertise to build search visibility in your market.`,
+                },
+              },
+              {
+                "@type": "Question",
+                name:    `What fintech SEO services are available in ${loc.country}?`,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    `In ${loc.country} we offer geo-targeted keyword research, regulatory-compliant content writing, high-authority link placements in ${loc.country}-relevant fintech publications, and a full-funnel content strategy designed for the local fintech buyer journey.`,
+                },
+              },
+              {
+                "@type": "Question",
+                name:    `How do I get started with fintech SEO in ${loc.city}?`,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    `Book a free 30-minute strategy call via the FintechPressHub contact page. We will audit your current search footprint in ${loc.city} and identify your fastest path to organic growth in the ${loc.country} market.`,
+                },
+              },
+            ],
+          }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
         ],
       };
@@ -937,10 +974,11 @@ async function handleSsrMeta(
       const slug = glossaryMatch[1]!;
       const [term] = await db
         .select({
-          term:      glossaryTermsTable.term,
-          shortDef:  glossaryTermsTable.shortDef,
-          category:  glossaryTermsTable.category,
-          updatedAt: glossaryTermsTable.updatedAt,
+          term:        glossaryTermsTable.term,
+          shortDef:    glossaryTermsTable.shortDef,
+          category:    glossaryTermsTable.category,
+          publishedAt: glossaryTermsTable.publishedAt,
+          updatedAt:   glossaryTermsTable.updatedAt,
         })
         .from(glossaryTermsTable)
         .where(eq(glossaryTermsTable.slug, slug))
@@ -965,20 +1003,44 @@ async function handleSsrMeta(
         ogImageAlt:    `${term.term} definition — FintechPressHub Fintech Glossary`,
         extraLds: [
           JSON.stringify({
-            "@context":   "https://schema.org",
-            "@type":      "DefinedTerm",
-            "@id":        canonical,
-            name:         term.term,
-            description:  term.shortDef,
-            url:          canonical,
-            inLanguage:   "en",
-            dateModified: term.updatedAt.toISOString().slice(0, 10),
+            "@context":    "https://schema.org",
+            "@type":       "DefinedTerm",
+            "@id":         canonical,
+            name:          term.term,
+            description:   term.shortDef,
+            url:           canonical,
+            inLanguage:    "en",
+            datePublished: term.publishedAt.toISOString().slice(0, 10),
+            dateModified:  term.updatedAt.toISOString().slice(0, 10),
             inDefinedTermSet: {
               "@type": "DefinedTermSet",
               name:    "Fintech Glossary",
               url:     `${siteUrl}/glossary`,
             },
             ...(term.category ? { subjectOf: { "@type": "Thing", name: term.category } } : {}),
+          }, null, 2),
+          JSON.stringify({
+            "@context": "https://schema.org",
+            "@type":    "FAQPage",
+            "@id":      `${canonical}#faq`,
+            mainEntity: [
+              {
+                "@type": "Question",
+                name:    `What is ${term.term}?`,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    term.shortDef,
+                },
+              },
+              {
+                "@type": "Question",
+                name:    `Why is ${term.term} important in fintech?`,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    `${term.term} is a key concept in financial technology${term.category ? ` within the ${term.category} sector` : ""}. Understanding ${term.term} helps fintech founders, marketers, and product teams communicate clearly with investors, regulators, and customers operating in the digital finance space.`,
+                },
+              },
+            ],
           }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
         ],
@@ -1688,6 +1750,49 @@ async function handleSsrMeta(
               url:        pub.url,
             })),
           }, null, 2));
+
+        } else if (reqPath === "/locations") {
+          // ── /locations hub — CollectionPage + ItemList from DB ───────────
+          const hubLocations = await db
+            .select({
+              slug:    locationPagesTable.slug,
+              city:    locationPagesTable.city,
+              region:  locationPagesTable.region,
+              country: locationPagesTable.country,
+              headline: locationPagesTable.headline,
+            })
+            .from(locationPagesTable)
+            .orderBy(asc(locationPagesTable.country), asc(locationPagesTable.city))
+            .catch(() => [] as Array<{ slug: string; city: string; region: string | null; country: string; headline: string }>);
+          extraLds.push(JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "CollectionPage",
+            "@id":        canonical,
+            url:          canonical,
+            name:         staticMeta.title,
+            description:  staticMeta.description,
+            dateModified: pageLastmod ?? "2026-05-10",
+            inLanguage:   "en",
+            isPartOf:     { "@id": `${siteUrl}#website` },
+            publisher:    { "@id": `${siteUrl}#organization` },
+          }, null, 2));
+          if (hubLocations.length > 0) {
+            extraLds.push(JSON.stringify({
+              "@context": "https://schema.org",
+              "@type":    "ItemList",
+              name:       "Fintech SEO Locations",
+              url:        canonical,
+              itemListElement: hubLocations.map((loc, i) => ({
+                "@type":    "ListItem",
+                position:   i + 1,
+                name:       loc.region
+                  ? `${loc.city}, ${loc.region}, ${loc.country}`
+                  : `${loc.city}, ${loc.country}`,
+                description: loc.headline,
+                url:        `${siteUrl}/locations/${loc.slug}`,
+              })),
+            }, null, 2));
+          }
 
         } else if (reqPath === "/press") {
           // ── /press — CollectionPage with brand/media asset focus ──────────

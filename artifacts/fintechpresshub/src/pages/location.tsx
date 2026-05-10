@@ -84,6 +84,20 @@ export default function LocationPage() {
             "https://www.linkedin.com/company/fintechpresshub",
           ],
         }}
+        faq={[
+          {
+            question: `Does FintechPressHub offer fintech SEO services in ${location.city}?`,
+            answer: `Yes. FintechPressHub provides specialist fintech SEO, content marketing, and link-building services to companies operating in ${locationLabel}. Our team combines local regulatory awareness with deep fintech expertise to build search visibility in your market.`,
+          },
+          {
+            question: `What fintech SEO services are available in ${location.country}?`,
+            answer: `In ${location.country} we offer geo-targeted keyword research, regulatory-compliant content writing, high-authority link placements in ${location.country}-relevant fintech publications, and a full-funnel content strategy designed for the local fintech buyer journey.`,
+          },
+          {
+            question: `How do I get started with fintech SEO in ${location.city}?`,
+            answer: `Book a free 30-minute strategy call via the FintechPressHub contact page. We will audit your current search footprint in ${location.city} and identify your fastest path to organic growth in the ${location.country} market.`,
+          },
+        ]}
       />
 
       <PageHero

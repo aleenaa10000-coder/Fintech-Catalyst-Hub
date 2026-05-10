@@ -80,6 +80,16 @@ export default function GlossaryTermPage() {
           description: "Definitions of key fintech, payments, lending, and banking terms.",
           terms: [{ name: term.term, description: term.shortDef, url: canonical }],
         }}
+        faq={[
+          {
+            question: `What is ${term.term}?`,
+            answer: term.shortDef,
+          },
+          {
+            question: `Why is ${term.term} important in fintech?`,
+            answer: `${term.term} is a key concept in financial technology${term.category ? ` within the ${term.category} sector` : ""}. Understanding ${term.term} helps fintech founders, marketers, and product teams communicate clearly with investors, regulators, and customers operating in the digital finance space.`,
+          },
+        ]}
       />
 
       <PageHero

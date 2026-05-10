@@ -113,6 +113,11 @@ export function Footer() {
                 </PrefetchLink>
               </li>
               <li>
+                <PrefetchLink href="/locations" className="text-muted-foreground hover:text-primary transition-colors">
+                  Locations
+                </PrefetchLink>
+              </li>
+              <li>
                 <PrefetchLink
                   href="/tools/financial-health-score-calculator"
                   className="text-muted-foreground hover:text-primary transition-colors"
