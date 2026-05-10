@@ -800,6 +800,8 @@ export default function AdminDashboard() {
                   { label: "SEO", icon: Search, href: "/admin/seo-performance", badge: 0 },
                   { label: "Press", icon: Newspaper, href: "/admin/press", badge: 0 },
                   { label: "Testimonials", icon: Star, href: "/admin/testimonials", badge: 0 },
+                  { label: "Glossary", icon: BookOpen, href: "/admin/glossary", badge: 0 },
+                  { label: "Locations", icon: Map, href: "/admin/locations", badge: 0 },
                 ].map(({ label, icon: Icon, href, badge }) => (
                   <Link
                     key={href}

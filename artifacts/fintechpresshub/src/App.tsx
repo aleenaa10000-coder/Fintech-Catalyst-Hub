@@ -110,6 +110,7 @@ const Compare = lazy(() => import("@/pages/compare"));
 const CompareSlug = lazy(() => import("@/pages/compare-slug"));
 const FintechPublications = lazy(() => import("@/pages/resources/fintech-publications"));
 const AdminGlossary = lazy(() => import("@/pages/admin-glossary"));
+const AdminLocations = lazy(() => import("@/pages/admin-locations"));
 const AdminDisavow = lazy(() => import("@/pages/admin-disavow"));
 const AdminPress = lazy(() => import("@/pages/admin-press"));
 const AdminTestimonials = lazy(() => import("@/pages/admin-testimonials"));
@@ -361,6 +362,7 @@ function Router() {
             <AdminRoute path="/admin/analytics" component={AdminAnalytics} />
             <AdminRoute path="/admin/seo-performance" component={AdminSeoPerformance} />
             <AdminRoute path="/admin/glossary" component={AdminGlossary} />
+            <AdminRoute path="/admin/locations" component={AdminLocations} />
             <AdminRoute path="/admin/disavow" component={AdminDisavow} />
             <AdminRoute path="/admin/press" component={AdminPress} />
             <AdminRoute path="/admin/testimonials" component={AdminTestimonials} />
