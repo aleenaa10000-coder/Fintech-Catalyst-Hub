@@ -94,6 +94,10 @@ export default function FintechPublications() {
         description={`Directory of ${publications.length} fintech publications ranked by Domain Rating, editorial focus, and guest post acceptance. Use this list to plan your link-building outreach.`}
         canonical={canonical}
         faq={faqItems}
+        itemList={{
+          name: "Fintech Publications Directory",
+          items: publications.map((p) => ({ name: p.name, url: p.url })),
+        }}
       />
 
       <PageHero

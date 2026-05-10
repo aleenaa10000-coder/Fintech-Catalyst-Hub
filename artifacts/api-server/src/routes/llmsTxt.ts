@@ -158,6 +158,7 @@ A: Both. The Fintech SEO Audit is a one-time 30-day engagement. Content, link bu
 - [Contact](${siteUrl}/contact) — Free SEO audit and strategy consultation enquiries
 - [Press & Media Kit](${siteUrl}/press) — Brand assets, company boilerplate, and press contact
 - [Editorial Guidelines](${siteUrl}/editorial-guidelines) — Content standards, fact-checking, and corrections policy
+- [Fintech Publications Directory](${siteUrl}/resources/fintech-publications) — 20 curated fintech media outlets ranked by Domain Rating with guest-post acceptance status
 
 ## Comparison pages
 
@@ -221,6 +222,11 @@ Content may not be reproduced verbatim beyond fair-use excerpts without permissi
 - [Sitemap Index](${siteUrl}/sitemap_index.xml)
 - [News Sitemap](${siteUrl}/news-sitemap.xml)
 - [RSS Feed](${siteUrl}/rss.xml)
+- [Pages Sitemap](${siteUrl}/sitemap-pages.xml)
+- [Blog Sitemap](${siteUrl}/sitemap-blog.xml)
+- [Authors Sitemap](${siteUrl}/sitemap-authors.xml)
+- [Tools Sitemap](${siteUrl}/sitemap-tools.xml)
+- [Compare Sitemap](${siteUrl}/sitemap-compare.xml)
 - [Locations Sitemap](${siteUrl}/sitemap-locations.xml)
 - [Glossary Sitemap](${siteUrl}/sitemap-glossary.xml)
 `;

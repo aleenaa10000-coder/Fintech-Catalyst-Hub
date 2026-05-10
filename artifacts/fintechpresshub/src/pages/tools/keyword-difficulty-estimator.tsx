@@ -99,7 +99,7 @@ const NAVIGATIONAL_SIGNALS = [
 
 const FINTECH_LONG_TAIL_TEMPLATES = [
   "{kw} for startups",
-  "{kw} in 2025",
+  "{kw} in 2026",
   "best {kw} for professionals",
   "how to use {kw}",
   "{kw} explained for beginners",
@@ -329,7 +329,7 @@ const CLUSTER_CONTENT_TEMPLATES: Record<Cluster, string[]> = {
     "What Every Professional CTO Must Know About {kw}",
   ],
   "Commercial Solutions": [
-    "Best {kw} Tools in 2025: An Honest Comparison",
+    "Best {kw} Tools in 2026: An Honest Comparison",
     "How to Choose the Right {kw} for Your Tech Stack",
     "{kw} Pricing Explained: What You're Actually Paying For",
     "Why High-Growth Teams Are Switching to {kw}",
@@ -337,7 +337,7 @@ const CLUSTER_CONTENT_TEMPLATES: Record<Cluster, string[]> = {
   ],
   "Digital General": [
     "What Is {kw}? A Plain-English Guide for Professional Teams",
-    "How {kw} Is Reshaping Digital Services in 2025",
+    "How {kw} Is Reshaping Digital Services in 2026",
     "{kw} Trends Every Professional Should Track",
     "The Beginner's Guide to {kw}: Concepts, Tools & Strategy",
     "{kw} Best Practices: Lessons from Industry Leaders",

@@ -256,7 +256,7 @@ const THINGS_TO_AVOID: Record<Tone, string[]> = {
 const H2_TEMPLATES: Record<Audience, (kw: string) => { heading: string; notes: string }[]> = {
   founders: (kw) => [
     { heading: `What Is ${kw}? A Founder's Overview`, notes: "Define the concept clearly. Link to any regulatory definitions." },
-    { heading: `Why ${kw} Matters for Startups in 2025`, notes: "Market context, growth trends, VC interest." },
+    { heading: `Why ${kw} Matters for Startups in 2026`, notes: "Market context, growth trends, VC interest." },
     { heading: `The Business Case: ROI and Revenue Impact`, notes: "Include data on financial upside. Cite industry reports." },
     { heading: `Key Challenges Founders Face with ${kw}`, notes: "Be honest about difficulty. Show you understand the pain." },
     { heading: `How to Get Started: A Practical Framework`, notes: "Step-by-step, actionable. Numbered list preferred." },
@@ -296,7 +296,7 @@ const H2_TEMPLATES: Record<Audience, (kw: string) => { heading: string; notes: s
   ],
   investors: (kw) => [
     { heading: `Market Overview: The ${kw} Landscape`, notes: "TAM, SAM, SOM. Cite authoritative market research." },
-    { heading: `Key Trends Driving Growth in 2025`, notes: "Regulatory tailwinds, technology shifts, consumer adoption curves." },
+    { heading: `Key Trends Driving Growth in 2026`, notes: "Regulatory tailwinds, technology shifts, consumer adoption curves." },
     { heading: `The Competitive Landscape`, notes: "Category leaders, challengers, emerging players." },
     { heading: `Business Model Analysis`, notes: "Revenue models, unit economics, margin profiles." },
     { heading: `Risk Factors and Due Diligence Checklist`, notes: "Regulatory risk, market risk, execution risk." },
@@ -435,7 +435,7 @@ const FK_DATA: Record<Audience, Record<Tone, FleschKincaid>> = {
       exampleStructures: [
         "According to [Source], [X]% of Series A companies that implemented [Y] in year one reported [Z]% higher retention by year two.",
         "The data is clear: [metric] is the single best leading indicator of [outcome] for founders at the $[X]M ARR mark.",
-        "[Statistic] — that figure alone explains why [X] has moved from 'nice to have' to a board-level priority in 2025.",
+        "[Statistic] — that figure alone explains why [X] has moved from 'nice to have' to a board-level priority in 2026.",
       ],
     },
   },
@@ -752,9 +752,9 @@ function generateBrief(form: FormState): Brief {
     tone: TONE_LABELS[form.tone],
     targetWordCount: `${wc.toLocaleString()} words`,
     readingTime: `~${readingMinutes} min read`,
-    metaTitle: `${capKw}: The Definitive Guide for ${AUDIENCE_LABELS[form.audience].split(" ")[0]}s (2025)`,
+    metaTitle: `${capKw}: The Definitive Guide for ${AUDIENCE_LABELS[form.audience].split(" ")[0]}s (2026)`,
     metaDescription: `Everything ${AUDIENCE_LABELS[form.audience].toLowerCase()} need to know about ${kw} — from fundamentals to practical strategies. Read the full guide.`,
-    h1: `${capKw}: What ${AUDIENCE_LABELS[form.audience].split(" ")[0]}s Need to Know in 2025`,
+    h1: `${capKw}: What ${AUDIENCE_LABELS[form.audience].split(" ")[0]}s Need to Know in 2026`,
     intro: `Open with a 2–3 sentence hook that immediately establishes why ${kw} is relevant right now. Include a surprising statistic or a provocative question. Briefly outline what the article covers and who it's for. Keep the intro under 120 words.`,
     h2s: H2_TEMPLATES[form.audience](capKw),
     entities: generateEntities(kw, form.audience),

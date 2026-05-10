@@ -13,7 +13,7 @@ import {
   Twitter,
 } from "lucide-react";
 import { usePublicPosts } from "@/data/usePublicPosts";
-import { authorSlugFromName } from "@/data/authors";
+import { authorSlugFromName, authors } from "@/data/authors";
 import { useAuthors } from "@/data/useAuthors";
 import {
   resolveAuthorPhoto,
@@ -77,6 +77,13 @@ export default function AuthorsIndex() {
       <PageMeta
         title="Meet the Team | FintechPressHub"
         description="The fintech operators, analysts and digital PR leads behind FintechPressHub's content and link-building programs."
+        itemList={{
+          name: "FintechPressHub Editorial Team",
+          items: authors.map((a) => ({
+            name: a.name,
+            url: `/authors/${a.slug}`,
+          })),
+        }}
       />
 
       <PageHero

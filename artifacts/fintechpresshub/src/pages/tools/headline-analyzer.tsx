@@ -435,7 +435,7 @@ function scoreCharCount(h: string): ScoreDimension {
   } else if (n > 0) {
     score = 10;
     feedback = `${n} characters — too short. Headlines under 40 chars tend to lack context.`;
-    tip = "Expand with your target audience, a benefit, or a specific timeframe (e.g. 'in 2025').";
+    tip = "Expand with your target audience, a benefit, or a specific timeframe (e.g. 'in 2026').";
   } else {
     score = 0;
     feedback = "No headline entered.";
