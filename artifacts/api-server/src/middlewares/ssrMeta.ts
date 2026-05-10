@@ -31,7 +31,7 @@ import { fileURLToPath } from "url";
 import { existsSync, readFileSync } from "fs";
 import type { Request, Response, NextFunction } from "express";
 import { db, blogPostsTable, locationPagesTable, glossaryTermsTable, servicesTable } from "@workspace/db";
-import { eq, lte, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 
 const _frontendDist = path.resolve(
