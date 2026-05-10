@@ -315,38 +315,46 @@ function buildCrumbsForPath(
 
 // ---------- static meta lookups (no DB needed) ----------
 
-const CATEGORY_META: Record<string, { title: string; description: string }> = {
+const CATEGORY_META: Record<string, { title: string; description: string; about: string[] }> = {
   payments: {
     title: "Payments Articles | FintechPressHub",
     description: "Expert analysis and guides on payment infrastructure, card issuing, cross-border rails, and payment orchestration for fintech teams.",
+    about: ["Payments Infrastructure", "Card Issuing", "Payment Orchestration", "Cross-border Payments"],
   },
   "embedded-finance": {
     title: "Embedded Finance Articles | FintechPressHub",
     description: "Deep dives into BaaS architecture, embedded lending, and vertical SaaS payments powering the next wave of fintech products.",
+    about: ["Embedded Finance", "BaaS Architecture", "Embedded Lending", "Vertical SaaS"],
   },
   "open-banking": {
     title: "Open Banking Articles | FintechPressHub",
     description: "Coverage of PSD3, account-to-account payments, variable recurring payments, and open data compliance for regulated fintechs.",
+    about: ["Open Banking", "PSD3", "Account-to-Account Payments", "Variable Recurring Payments"],
   },
   neobanking: {
     title: "Neobanking Articles | FintechPressHub",
     description: "Strategies and analysis for digital banks on activation, retention, fee economics, and regulatory positioning.",
+    about: ["Neobanking", "Digital Banks", "Challenger Banks", "Mobile Banking"],
   },
   lending: {
     title: "Lending Articles | FintechPressHub",
     description: "Insights on BNPL, SME lending, cash-flow underwriting, embedded credit, and consumer affordability for lending fintechs.",
+    about: ["Fintech Lending", "BNPL", "SME Lending", "Cash-flow Underwriting"],
   },
   regtech: {
     title: "Regtech & Compliance Articles | FintechPressHub",
     description: "Expert guides on transaction monitoring, reg reporting, sanctions screening, and KYC/AML tooling.",
+    about: ["Regtech", "Compliance", "KYC", "AML", "Transaction Monitoring"],
   },
   wealthtech: {
     title: "Wealthtech Articles | FintechPressHub",
     description: "Analysis of robo-advisors, portfolio construction, advisor SaaS marketing, and self-directed investing platforms.",
+    about: ["Wealthtech", "Robo-advisors", "Wealth Management", "Investment Technology"],
   },
   "fintech-seo": {
     title: "Fintech SEO Articles | FintechPressHub",
     description: "Actionable SEO guides, content strategy, and link-building playbooks specifically for fintech and financial services companies.",
+    about: ["Fintech SEO", "Content Strategy", "Link Building", "Search Engine Optimisation"],
   },
 };
 
@@ -624,6 +632,35 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
 };
 
 /**
+ * First-published dates for static pages — used in WebPage JSON-LD schemas.
+ * Tells Google exactly when each page was created, which is a distinct and
+ * stronger freshness signal than dateModified alone. Use founding date (2021)
+ * for evergreen policy / legal pages that predate the current CMS.
+ */
+const STATIC_PAGE_CREATED: Readonly<Record<string, string>> = {
+  "/":                                "2021-01-01",
+  "/about":                           "2021-01-01",
+  "/services":                        "2021-06-01",
+  "/pricing":                         "2022-01-01",
+  "/blog":                            "2021-06-01",
+  "/authors":                         "2021-06-01",
+  "/write-for-us":                    "2023-01-01",
+  "/editorial-guidelines":            "2023-03-01",
+  "/community-guidelines":            "2023-03-01",
+  "/tools":                           "2024-01-01",
+  "/glossary":                        "2024-06-01",
+  "/compare":                         "2024-09-01",
+  "/press":                           "2023-06-01",
+  "/contact":                         "2021-01-01",
+  "/locations":                       "2025-01-01",
+  "/resources/fintech-publications":  "2024-01-01",
+  "/privacy-policy":                  "2021-01-01",
+  "/refund-policy":                   "2021-01-01",
+  "/cookie-policy":                   "2021-01-01",
+  "/terms":                           "2021-01-01",
+};
+
+/**
  * Per-page OG image parameters for static pages.
  * Every static page previously received the same generic opengraph.jpg, meaning
  * all 19 static routes looked identical in social shares and carried no image
@@ -894,6 +931,8 @@ async function handleSsrMeta(
             : {}),
           ...(post.blufSummary ? { abstract: post.blufSummary.slice(0, 500) } : {}),
           ...(post.wordCount ? { wordCount: post.wordCount } : {}),
+          isAccessibleForFree: true,
+          accessMode: ["textual", "visual"],
           potentialAction: { "@type": "ReadAction", target: canonical },
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
@@ -912,19 +951,26 @@ async function handleSsrMeta(
         }, null, 2));
       }
 
-      if (post.blufSummary) {
-        extraLds.push(JSON.stringify({
-          "@context": "https://schema.org",
-          "@type":    "WebPage",
-          "@id":      `${canonical}#webpage`,
-          url:        canonical,
+      // WebPage entity emitted for every blog post so Google can resolve
+      // the page-level entity distinct from the BlogPosting content entity.
+      // Speakable + abstract are conditional on blufSummary existing.
+      extraLds.push(JSON.stringify({
+        "@context":    "https://schema.org",
+        "@type":       "WebPage",
+        "@id":         `${canonical}#webpage`,
+        url:           canonical,
+        inLanguage:    "en",
+        isPartOf:      { "@id": `${siteUrl}#website` },
+        datePublished: post.publishedAt.toISOString(),
+        dateModified:  dateModified,
+        ...(post.blufSummary ? {
           speakable: {
             "@type":     "SpeakableSpecification",
-            cssSelector: [".bluf-summary"],
+            cssSelector: [".speakable-summary"],
           },
-          abstract:   post.blufSummary.slice(0, 500),
-        }, null, 2));
-      }
+          abstract: post.blufSummary.slice(0, 500),
+        } : {}),
+      }, null, 2));
 
       patches = {
         title:                `${pageTitle} | FintechPressHub`,
@@ -1102,6 +1148,7 @@ async function handleSsrMeta(
             },
             ...(term.category ? { subjectOf: { "@type": "Thing", name: term.category } } : {}),
             ...(seeAlso.length > 0 ? { seeAlso } : {}),
+            potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2),
           JSON.stringify({
             "@context": "https://schema.org",
@@ -1315,6 +1362,9 @@ async function handleSsrMeta(
           isPartOf:     { "@id": `${siteUrl}/blog` },
           publisher:    { "@id": `${siteUrl}#organization` },
           dateModified: new Date().toISOString().slice(0, 10),
+          ...(catMeta.about.length > 0
+            ? { about: catMeta.about.map((e) => ({ "@type": "Thing", name: e })) }
+            : {}),
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
       ];
@@ -1431,6 +1481,7 @@ async function handleSsrMeta(
           },
           provider: { "@id": `${siteUrl}#organization` },
           ...(STATIC_PAGE_LASTMOD[`/tools/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/tools/${slug}`] } : {}),
+          potentialAction: { "@type": "UseAction", target: canonical },
         }, null, 2),
       ];
       const howTo = TOOLS_HOWTO[slug];
@@ -1651,13 +1702,14 @@ async function handleSsrMeta(
                 name:       plan.tagline ? `${plan.name} — ${plan.tagline}` : plan.name,
                 url:        `${canonical}#${plan.name.toLowerCase().replace(/\s+/g, "-")}`,
                 item: {
-                  "@type":       "Offer",
-                  name:          plan.name,
-                  description:   plan.description.slice(0, 300),
-                  price:         plan.priceMonthly > 0 ? String(plan.priceMonthly) : "Custom",
-                  priceCurrency: "USD",
-                  availability:  "https://schema.org/InStock",
-                  seller:        { "@id": `${siteUrl}#organization` },
+                  "@type":         "Offer",
+                  name:            plan.name,
+                  description:     plan.description.slice(0, 300),
+                  ...(plan.priceMonthly > 0
+                    ? { price: plan.priceMonthly, priceCurrency: "USD", billingPeriod: "P1M" }
+                    : {}),
+                  availability:    "https://schema.org/InStock",
+                  seller:          { "@id": `${siteUrl}#organization` },
                 },
               })),
             }, null, 2));
@@ -1949,6 +2001,7 @@ async function handleSsrMeta(
 
         } else {
           // ── All other static pages — generic WebPage schema ───────────────
+          const pageCreated = STATIC_PAGE_CREATED[reqPath];
           extraLds.push(JSON.stringify({
             "@context":   "https://schema.org",
             "@type":      "WebPage",
@@ -1958,6 +2011,7 @@ async function handleSsrMeta(
             description:  staticMeta.description,
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
+            ...(pageCreated ? { datePublished: pageCreated } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
         }
