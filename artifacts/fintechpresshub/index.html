@@ -136,19 +136,9 @@
     }
     </script>
 
-    <!-- Replit badge CSS deduplication — suppresses duplicate badge instances
-         injected by the Replit dev proxy during HMR reloads. No-ops in production. -->
-    <style>
-      #replit-badge + #replit-badge,
-      [data-replit-badge] ~ [data-replit-badge],
-      replit-badge ~ replit-badge,
-      .replit-badge ~ .replit-badge { display: none !important; }
-    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- External script — satisfies CSP script-src 'self' in production -->
-    <script src="/replit-dedup.js" defer></script>
   </body>
 </html>

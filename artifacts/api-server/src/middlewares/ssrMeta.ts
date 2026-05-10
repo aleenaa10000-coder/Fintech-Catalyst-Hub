@@ -35,7 +35,7 @@
  *   /, /about, /services, /pricing, /blog, /authors, /write-for-us,
  *   /editorial-guidelines, /community-guidelines, /tools, /glossary, /compare,
  *   /press, /contact, /privacy-policy, /refund-policy, /cookie-policy,
- *   /terms, /resources/fintech-publications
+ *   /terms, /resources/fintech-publications, /locations
  */
 
 import path from "path";
@@ -1122,10 +1122,11 @@ async function handleSsrMeta(
         extraLds: [
           JSON.stringify({
             "@context":   "https://schema.org",
-            // FinancialService is a more precise subtype for fintech/financial
-            // services — it helps Google's Knowledge Graph classify the offering
-            // correctly and improves LLM entity recognition.
-            "@type":      "FinancialService",
+            // FinancialService + ProfessionalService is the most precise dual-type
+            // for fintech consultancy offerings — helps Google's Knowledge Graph
+            // classify the entity correctly across both financial-services and
+            // professional-services taxonomies, improving LLM entity recognition.
+            "@type":      ["FinancialService", "ProfessionalService"],
             "@id":        canonical,
             name:         svc.name,
             description:  svc.tagline ?? svc.description ?? svc.name,

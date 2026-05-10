@@ -30,16 +30,11 @@ export const STATIC_ROUTES: Array<{
   { path: "/write-for-us", changefreq: "monthly", priority: "0.6", lastmod: "2026-04-25" },
   { path: "/editorial-guidelines", changefreq: "yearly", priority: "0.4", lastmod: "2026-04-28" },
   { path: "/tools", changefreq: "monthly", priority: "0.8", lastmod: "2026-05-09" },
-  { path: "/tools/financial-health-score-calculator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
-  { path: "/tools/meta-description-generator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
-  { path: "/tools/guest-post-pitch-generator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
-  { path: "/tools/readability-checker", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
-  { path: "/tools/keyword-difficulty-estimator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
-  { path: "/tools/backlink-value-estimator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
-  { path: "/tools/content-brief-generator", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
-  { path: "/tools/headline-analyzer", changefreq: "monthly", priority: "0.7", lastmod: "2026-04-25" },
-  { path: "/tools/link-prospector", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
-  { path: "/tools/outreach-email-generator", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
+  // Tool sub-pages intentionally omitted here — they are covered by the
+  // dedicated /sitemap-tools.xml child sitemap (built from TOOL_SLUGS in
+  // seoConstants.ts). Listing them here AND there would triplicate every URL
+  // across sitemap.xml, sitemap-pages.xml, and sitemap-tools.xml, wasting
+  // crawl budget and confusing Google Search Console coverage reports.
   { path: "/locations", changefreq: "weekly", priority: "0.8", lastmod: "2026-05-10" },
   { path: "/glossary", changefreq: "weekly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/resources/fintech-publications", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
@@ -51,12 +46,9 @@ export const STATIC_ROUTES: Array<{
   { path: "/terms", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/community-guidelines", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/compare", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
-  { path: "/compare/agency-vs-in-house", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
-  { path: "/compare/vs-freelancers", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
-  { path: "/compare/vs-seo-tools", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
-  { path: "/compare/vs-pr-agencies", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
-  { path: "/compare/content-led-vs-paid", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
-  { path: "/compare/specialist-vs-generalist", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
+  // Compare sub-pages intentionally omitted here — covered by /sitemap-compare.xml
+  // (built from COMPARE_SLUGS in seoConstants.ts). Same deduplication rationale
+  // as tool sub-pages above.
 ];
 
 
