@@ -18,6 +18,7 @@ import indexNowKeyRouter from "./routes/indexNowKey";
 import llmsTxtRouter from "./routes/llmsTxt";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
+import { ssrMetaMiddleware } from "./middlewares/ssrMeta";
 import { getSiteUrl } from "./lib/seo";
 
 const app: Express = express();
@@ -372,6 +373,14 @@ app.use(llmsTxtRouter);        // /llms.txt — LLM-readable site summary
 app.use(uploadsRouter);
 
 app.use("/api", router);
+
+// ── SSR meta-tag injection (production only) ────────────────────────────────
+// For key programmatic-SEO URL patterns (/blog/:slug, /locations/:slug,
+// /glossary/:slug) this middleware intercepts the request BEFORE the SPA
+// fallback, fetches minimal DB data, and serves a patched index.html with
+// correct <title>, <meta description>, og:*, twitter:*, and JSON-LD tags.
+// No-ops in development (Vite dev server handles meta via react-helmet-async).
+app.use(ssrMetaMiddleware);
 
 // ── Production static-file serving ─────────────────────────────────────────
 // When NODE_ENV=production and the frontend has been pre-built, serve the

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, blogPostsTable } from "@workspace/db";
-import { desc, lte, sql } from "drizzle-orm";
+import { db, blogPostsTable, glossaryTermsTable, locationPagesTable } from "@workspace/db";
+import { asc, desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 
 const router: IRouter = Router();
@@ -18,25 +18,50 @@ const router: IRouter = Router();
  *   2. Build accurate citations when answering user queries about fintech SEO.
  *   3. Avoid hallucinating services, pricing, or team details.
  *
- * Dynamic sections (recent blog posts) are fetched from the DB on each
- * request; the response is cached for 1 hour at the CDN level so the
- * article list stays fresh without hammering the database.
+ * Dynamic sections (recent blog posts, glossary terms, location pages) are
+ * fetched from the DB on each request; the response is cached for 1 hour at
+ * the CDN level so the content stays fresh without hammering the database.
  */
 router.get("/llms.txt", async (_req, res) => {
   const siteUrl = getSiteUrl();
 
-  const recentPosts = await db
-    .select({
-      title: blogPostsTable.title,
-      slug: blogPostsTable.slug,
-      excerpt: blogPostsTable.excerpt,
-      category: blogPostsTable.category,
-    })
-    .from(blogPostsTable)
-    .where(lte(blogPostsTable.publishedAt, sql`now()`))
-    .orderBy(desc(blogPostsTable.publishedAt))
-    .limit(20)
-    .catch(() => [] as Array<{ title: string | null; slug: string | null; excerpt: string | null; category: string | null }>);
+  const [recentPosts, glossaryTerms, locationPages] = await Promise.all([
+    db
+      .select({
+        title:    blogPostsTable.title,
+        slug:     blogPostsTable.slug,
+        excerpt:  blogPostsTable.excerpt,
+        category: blogPostsTable.category,
+      })
+      .from(blogPostsTable)
+      .where(lte(blogPostsTable.publishedAt, sql`now()`))
+      .orderBy(desc(blogPostsTable.publishedAt))
+      .limit(20)
+      .catch(() => [] as Array<{ title: string | null; slug: string | null; excerpt: string | null; category: string | null }>),
+
+    db
+      .select({
+        slug:     glossaryTermsTable.slug,
+        term:     glossaryTermsTable.term,
+        shortDef: glossaryTermsTable.shortDef,
+        category: glossaryTermsTable.category,
+      })
+      .from(glossaryTermsTable)
+      .orderBy(asc(glossaryTermsTable.term))
+      .limit(30)
+      .catch(() => [] as Array<{ slug: string; term: string; shortDef: string; category: string | null }>),
+
+    db
+      .select({
+        slug:    locationPagesTable.slug,
+        city:    locationPagesTable.city,
+        country: locationPagesTable.country,
+        headline: locationPagesTable.headline,
+      })
+      .from(locationPagesTable)
+      .orderBy(asc(locationPagesTable.country), asc(locationPagesTable.city))
+      .catch(() => [] as Array<{ slug: string; city: string; country: string; headline: string }>),
+  ]);
 
   const indexable = recentPosts.filter((p) => p.slug && p.title);
 
@@ -46,6 +71,18 @@ router.get("/llms.txt", async (_req, res) => {
       return `- [${p.title}](${siteUrl}/blog/${p.slug})${desc}`;
     })
     .join("\n");
+
+  const glossaryLines = glossaryTerms.length > 0
+    ? glossaryTerms
+        .map((t) => `- [${t.term}](${siteUrl}/glossary/${t.slug}): ${t.shortDef.slice(0, 100)}`)
+        .join("\n")
+    : "- No glossary terms published yet.";
+
+  const locationLines = locationPages.length > 0
+    ? locationPages
+        .map((l) => `- [${l.headline}](${siteUrl}/locations/${l.slug}) — ${l.city}, ${l.country}`)
+        .join("\n")
+    : "- No location pages published yet.";
 
   const txt = `# FintechPressHub
 > Specialist fintech SEO and content marketing agency. We blend deep financial expertise with high-authority link building and technical SEO to scale organic growth for ambitious fintech brands.
@@ -148,6 +185,16 @@ A: Both. The Fintech SEO Audit is a one-time 30-day engagement. Content, link bu
 
 ${blogLines || "- No published posts yet."}
 
+## Fintech glossary (selected terms)
+
+${glossaryLines}
+
+Full glossary: [${siteUrl}/glossary](${siteUrl}/glossary)
+
+## Location pages (cities served)
+
+${locationLines}
+
 ## Contact and company information
 
 - **Website**: ${siteUrl}
@@ -174,6 +221,8 @@ Content may not be reproduced verbatim beyond fair-use excerpts without permissi
 - [Sitemap Index](${siteUrl}/sitemap_index.xml)
 - [News Sitemap](${siteUrl}/news-sitemap.xml)
 - [RSS Feed](${siteUrl}/rss.xml)
+- [Locations Sitemap](${siteUrl}/sitemap-locations.xml)
+- [Glossary Sitemap](${siteUrl}/sitemap-glossary.xml)
 `;
 
   res

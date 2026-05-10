@@ -3,6 +3,7 @@ import { db, blogPostsTable } from "@workspace/db";
 import { desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
+import { STATIC_CATEGORY_SLUGS } from "../lib/seoConstants";
 
 /** Resolve a cover-image value to a fully-qualified URL. */
 function resolveImageUrl(siteUrl: string, raw: string | null): string | null {
@@ -57,14 +58,6 @@ export const STATIC_ROUTES: Array<{
   { path: "/compare/specialist-vs-generalist", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
 ];
 
-const STATIC_CATEGORY_SLUGS = [
-  "payments",
-  "embedded-finance",
-  "open-banking",
-  "neobanking",
-  "lending",
-  "regtech",
-];
 
 // Author profile slugs come straight from the canonical frontend data file
 // (`artifacts/fintechpresshub/src/data/authors.ts`) via the per-author RSS

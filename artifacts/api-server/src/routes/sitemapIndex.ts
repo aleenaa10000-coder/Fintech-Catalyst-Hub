@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
-import { db, blogPostsTable } from "@workspace/db";
-import { desc, lte, sql } from "drizzle-orm";
+import { db, blogPostsTable, locationPagesTable, glossaryTermsTable, servicesTable } from "@workspace/db";
+import { asc, desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
 import { STATIC_ROUTES } from "./sitemap";
+import { STATIC_CATEGORY_SLUGS } from "../lib/seoConstants";
 
 const router: IRouter = Router();
 
@@ -16,22 +17,16 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-const STATIC_CATEGORY_SLUGS = [
-  "payments", "embedded-finance", "open-banking",
-  "neobanking", "lending", "regtech",
-];
-
 /**
  * Sitemap Index — /sitemap_index.xml
  *
- * Splits the monolithic sitemap.xml into three child sitemaps:
- *   /sitemap-pages.xml  — static pages + author profiles + category hubs
- *   /sitemap-blog.xml   — blog posts (can scale to 50 000 URLs)
- *   /sitemap-authors.xml— author profiles + per-author RSS feeds
- *
- * The original /sitemap.xml is kept intact for backward compatibility and
- * is still submitted to GSC. Register /sitemap_index.xml in GSC as well
- * once deployed to Hostinger.
+ * Child sitemaps:
+ *   /sitemap-pages.xml     — static pages + author profiles + category hubs + services
+ *   /sitemap-blog.xml      — blog posts (scales to 50 000 URLs)
+ *   /sitemap-authors.xml   — author profiles + per-author RSS feeds
+ *   /sitemap-locations.xml — DB-driven location pages (/locations/:slug)
+ *   /sitemap-glossary.xml  — DB-driven glossary term pages (/glossary/:slug)
+ *   /news-sitemap.xml      — Google News
  */
 
 async function getLatestBlogDate(): Promise<string> {
@@ -44,16 +39,41 @@ async function getLatestBlogDate(): Promise<string> {
   return (latest?.publishedAt ?? new Date()).toISOString().slice(0, 10);
 }
 
+async function getLatestLocationDate(): Promise<string> {
+  const [latest] = await db
+    .select({ publishedAt: locationPagesTable.publishedAt })
+    .from(locationPagesTable)
+    .orderBy(desc(locationPagesTable.publishedAt))
+    .limit(1);
+  return (latest?.publishedAt ?? new Date()).toISOString().slice(0, 10);
+}
+
+async function getLatestGlossaryDate(): Promise<string> {
+  const [latest] = await db
+    .select({ updatedAt: glossaryTermsTable.updatedAt })
+    .from(glossaryTermsTable)
+    .orderBy(desc(glossaryTermsTable.updatedAt))
+    .limit(1);
+  return (latest?.updatedAt ?? new Date()).toISOString().slice(0, 10);
+}
+
 async function buildSitemapIndexXml(): Promise<string> {
   const siteUrl = getSiteUrl();
   const today = new Date().toISOString().slice(0, 10);
-  const latestBlogDate = await getLatestBlogDate();
+
+  const [latestBlogDate, latestLocationDate, latestGlossaryDate] = await Promise.all([
+    getLatestBlogDate(),
+    getLatestLocationDate(),
+    getLatestGlossaryDate(),
+  ]);
 
   const sitemaps = [
-    { loc: `${siteUrl}/sitemap-pages.xml`, lastmod: today },
-    { loc: `${siteUrl}/sitemap-blog.xml`, lastmod: latestBlogDate },
-    { loc: `${siteUrl}/sitemap-authors.xml`, lastmod: today },
-    { loc: `${siteUrl}/news-sitemap.xml`, lastmod: today },
+    { loc: `${siteUrl}/sitemap-pages.xml`,     lastmod: today },
+    { loc: `${siteUrl}/sitemap-blog.xml`,      lastmod: latestBlogDate },
+    { loc: `${siteUrl}/sitemap-authors.xml`,   lastmod: today },
+    { loc: `${siteUrl}/sitemap-locations.xml`, lastmod: latestLocationDate },
+    { loc: `${siteUrl}/sitemap-glossary.xml`,  lastmod: latestGlossaryDate },
+    { loc: `${siteUrl}/news-sitemap.xml`,      lastmod: today },
   ];
 
   const entries = sitemaps
@@ -101,7 +121,21 @@ async function buildPagesSitemapXml(): Promise<string> {
     priority: "0.6",
   }));
 
-  const all = [...staticEntries, ...categoryEntries, ...authorEntries];
+  // Service detail pages from DB — dynamic so newly created services appear
+  // automatically without a code deploy.
+  const serviceRows = await db
+    .select({ slug: servicesTable.slug, name: servicesTable.name })
+    .from(servicesTable)
+    .orderBy(asc(servicesTable.id));
+
+  const serviceEntries = serviceRows.map((s) => ({
+    loc: `${siteUrl}/services/${s.slug}`,
+    lastmod: today,
+    changefreq: "monthly",
+    priority: "0.8",
+  }));
+
+  const all = [...staticEntries, ...categoryEntries, ...authorEntries, ...serviceEntries];
 
   const body = all
     .map(
@@ -200,6 +234,81 @@ async function buildAuthorsSitemapXml(): Promise<string> {
   return xmlUrlset(body);
 }
 
+// ── /sitemap-locations.xml ───────────────────────────────────────────────────
+
+async function buildLocationsSitemapXml(): Promise<string> {
+  const siteUrl = getSiteUrl();
+
+  const locations = await db
+    .select({
+      slug:        locationPagesTable.slug,
+      city:        locationPagesTable.city,
+      publishedAt: locationPagesTable.publishedAt,
+    })
+    .from(locationPagesTable)
+    .orderBy(asc(locationPagesTable.country), asc(locationPagesTable.city));
+
+  if (locations.length === 0) {
+    return xmlUrlset("");
+  }
+
+  const body = locations
+    .map((loc) => {
+      const url = `${siteUrl}/locations/${loc.slug}`;
+      return (
+        `  <url>\n` +
+        `    <loc>${escapeXml(url)}</loc>\n` +
+        `    <lastmod>${loc.publishedAt.toISOString().slice(0, 10)}</lastmod>\n` +
+        `    <changefreq>monthly</changefreq>\n` +
+        `    <priority>0.7</priority>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(url)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(url)}"/>\n` +
+        `  </url>`
+      );
+    })
+    .join("\n");
+
+  return xmlUrlset(body);
+}
+
+// ── /sitemap-glossary.xml ────────────────────────────────────────────────────
+
+async function buildGlossarySitemapXml(): Promise<string> {
+  const siteUrl = getSiteUrl();
+
+  const terms = await db
+    .select({
+      slug:      glossaryTermsTable.slug,
+      updatedAt: glossaryTermsTable.updatedAt,
+    })
+    .from(glossaryTermsTable)
+    .orderBy(asc(glossaryTermsTable.term));
+
+  if (terms.length === 0) {
+    return xmlUrlset("");
+  }
+
+  const body = terms
+    .map((t) => {
+      const url = `${siteUrl}/glossary/${t.slug}`;
+      return (
+        `  <url>\n` +
+        `    <loc>${escapeXml(url)}</loc>\n` +
+        `    <lastmod>${t.updatedAt.toISOString().slice(0, 10)}</lastmod>\n` +
+        `    <changefreq>monthly</changefreq>\n` +
+        `    <priority>0.6</priority>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(url)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(url)}"/>\n` +
+        `  </url>`
+      );
+    })
+    .join("\n");
+
+  return xmlUrlset(body);
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
 function xmlUrlset(body: string, withImage = false): string {
   const imageNs = withImage
     ? `\n        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"`
@@ -237,6 +346,18 @@ router.get("/sitemap-authors.xml", async (_req, res) => {
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", CACHE);
   res.send(await buildAuthorsSitemapXml());
+});
+
+router.get("/sitemap-locations.xml", async (_req, res) => {
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("Cache-Control", CACHE);
+  res.send(await buildLocationsSitemapXml());
+});
+
+router.get("/sitemap-glossary.xml", async (_req, res) => {
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("Cache-Control", CACHE);
+  res.send(await buildGlossarySitemapXml());
 });
 
 export default router;
