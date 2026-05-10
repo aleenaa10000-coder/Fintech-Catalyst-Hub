@@ -111,6 +111,8 @@ async function buildPagesSitemapXml(): Promise<string> {
         `    <lastmod>${u.lastmod}</lastmod>\n` +
         `    <changefreq>${u.changefreq}</changefreq>\n` +
         `    <priority>${u.priority}</priority>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n` +
         `  </url>`,
     )
     .join("\n");
@@ -144,10 +146,11 @@ async function buildBlogSitemapXml(): Promise<string> {
       const isRecent = p.publishedAt >= ninetyDaysAgo;
       const priority = p.featured ? "0.9" : isRecent ? "0.7" : "0.6";
       const changefreq = p.featured || isRecent ? "weekly" : "monthly";
+      const loc = `${siteUrl}/blog/${p.slug}`;
       const imageUrl = p.coverImage?.startsWith("http") ? p.coverImage : `${siteUrl}${p.coverImage}`;
       return (
         `  <url>\n` +
-        `    <loc>${escapeXml(`${siteUrl}/blog/${p.slug}`)}</loc>\n` +
+        `    <loc>${escapeXml(loc)}</loc>\n` +
         `    <lastmod>${p.publishedAt.toISOString().slice(0, 10)}</lastmod>\n` +
         `    <changefreq>${changefreq}</changefreq>\n` +
         `    <priority>${priority}</priority>\n` +
@@ -157,6 +160,8 @@ async function buildBlogSitemapXml(): Promise<string> {
             `      <image:title>${escapeXml(p.title)}</image:title>\n` +
             `    </image:image>\n`
           : "") +
+        `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(loc)}"/>\n` +
         `  </url>`
       );
     })
@@ -172,8 +177,8 @@ async function buildAuthorsSitemapXml(): Promise<string> {
   const today = new Date().toISOString().slice(0, 10);
 
   const entries = KNOWN_AUTHOR_SLUGS.flatMap((slug) => [
-    { loc: `${siteUrl}/authors/${slug}`, changefreq: "monthly", priority: "0.6" },
-    { loc: `${siteUrl}/authors/${slug}/rss.xml`, changefreq: "daily", priority: "0.4" },
+    { loc: `${siteUrl}/authors/${slug}`, changefreq: "monthly", priority: "0.6", isPage: true },
+    { loc: `${siteUrl}/authors/${slug}/rss.xml`, changefreq: "daily", priority: "0.4", isPage: false },
   ]);
 
   const body = entries
@@ -184,6 +189,10 @@ async function buildAuthorsSitemapXml(): Promise<string> {
         `    <lastmod>${today}</lastmod>\n` +
         `    <changefreq>${u.changefreq}</changefreq>\n` +
         `    <priority>${u.priority}</priority>\n` +
+        (u.isPage
+          ? `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
+            `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n`
+          : "") +
         `  </url>`,
     )
     .join("\n");
@@ -197,7 +206,8 @@ function xmlUrlset(body: string, withImage = false): string {
     : "";
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
-    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${imageNs}>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${imageNs}\n` +
+    `        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n` +
     body + "\n" +
     `</urlset>\n`
   );

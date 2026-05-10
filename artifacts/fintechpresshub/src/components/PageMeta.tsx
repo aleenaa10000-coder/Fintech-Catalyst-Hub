@@ -878,14 +878,26 @@ export function PageMeta(props: PageMetaProps) {
         <meta name="robots" content="noindex,nofollow" />
       ) : null}
       <meta property="og:locale" content="en_US" />
-      {props.hreflang?.some((h) => h.lang === "en-GB") ? (
-        <meta property="og:locale:alternate" content="en_GB" />
-      ) : null}
-      {props.hreflang?.some((h) => h.lang === "en-SG") ? (
-        <meta property="og:locale:alternate" content="en_SG" />
-      ) : null}
+      {/* Always declare alternate locales — this agency serves US, UK, SG, AU fintech markets. */}
+      <meta property="og:locale:alternate" content="en_GB" />
+      <meta property="og:locale:alternate" content="en_SG" />
+      <meta property="og:locale:alternate" content="en_AU" />
       <link rel="canonical" href={canonical} />
-      {props.hreflang?.map((h) => (
+      {/*
+        hreflang self-referential annotations — tells Google the language/locale
+        of every page. When no explicit hreflang entries are passed we emit the
+        minimum correct set for a monolingual English site: "en" + "x-default"
+        both pointing to the canonical URL. Callers may override with explicit
+        regional variants (e.g. en-US / en-GB split-tests) by passing the
+        hreflang prop.
+      */}
+      {(props.hreflang && props.hreflang.length > 0
+        ? props.hreflang
+        : [
+            { lang: "en", href: canonical },
+            { lang: "x-default", href: canonical },
+          ]
+      ).map((h) => (
         <link
           key={`hreflang-${h.lang}`}
           rel="alternate"

@@ -245,6 +245,20 @@ async function buildSitemapXml(): Promise<string> {
         )
         .join("\n");
 
+      // hreflang self-referential annotations inside the sitemap.
+      // Google recommends declaring language/locale inside sitemaps as an
+      // alternative to HTML <link rel="alternate" hreflang> tags.
+      // For a single-language English site we emit "en" + "x-default" both
+      // pointing to the same canonical URL. RSS feed entries are skipped
+      // because they are not HTML pages and don't carry language metadata.
+      const hreflangBlocks =
+        u.source !== "rss"
+          ? [
+              `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>`,
+              `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>`,
+            ].join("\n")
+          : "";
+
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(u.loc)}</loc>\n` +
@@ -252,6 +266,7 @@ async function buildSitemapXml(): Promise<string> {
         `    <changefreq>${u.changefreq}</changefreq>\n` +
         `    <priority>${u.priority}</priority>\n` +
         (imageBlocks ? imageBlocks + "\n" : "") +
+        (hreflangBlocks ? hreflangBlocks + "\n" : "") +
         `  </url>`
       );
     })
@@ -260,7 +275,8 @@ async function buildSitemapXml(): Promise<string> {
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n` +
-    `        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n` +
+    `        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"\n` +
+    `        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n` +
     body +
     `\n</urlset>\n`
   );
