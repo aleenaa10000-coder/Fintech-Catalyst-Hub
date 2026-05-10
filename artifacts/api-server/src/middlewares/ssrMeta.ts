@@ -559,11 +559,24 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
  */
 const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/":                                "2026-05-10",
+  "/about":                           "2026-05-09",
+  "/services":                        "2026-05-09",
   "/pricing":                         "2026-05-09",
+  "/authors":                         "2026-05-09",
   "/write-for-us":                    "2026-04-25",
   "/editorial-guidelines":            "2026-04-28",
   "/community-guidelines":            "2026-04-28",
   "/tools":                           "2026-05-09",
+  "/tools/financial-health-score-calculator": "2026-04-25",
+  "/tools/meta-description-generator":        "2026-04-25",
+  "/tools/guest-post-pitch-generator":        "2026-04-25",
+  "/tools/readability-checker":               "2026-04-25",
+  "/tools/keyword-difficulty-estimator":      "2026-04-25",
+  "/tools/backlink-value-estimator":          "2026-04-25",
+  "/tools/content-brief-generator":           "2026-04-25",
+  "/tools/headline-analyzer":                 "2026-04-25",
+  "/tools/link-prospector":                   "2026-05-09",
+  "/tools/outreach-email-generator":          "2026-05-09",
   "/glossary":                        "2026-05-09",
   "/resources/fintech-publications":  "2026-05-09",
   "/press":                           "2026-05-09",
@@ -782,7 +795,9 @@ async function handleSsrMeta(
           description,
           url:        canonical,
           mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
-          image:      ogImage,
+          image: ogImage.includes("/api/og")
+            ? { "@type": "ImageObject", url: ogImage, width: 1200, height: 630 }
+            : { "@type": "ImageObject", url: ogImage },
           inLanguage: "en",
           publisher:  { "@id": `${siteUrl}#organization` },
           datePublished: post.publishedAt.toISOString(),
@@ -922,9 +937,10 @@ async function handleSsrMeta(
       const slug = glossaryMatch[1]!;
       const [term] = await db
         .select({
-          term:     glossaryTermsTable.term,
-          shortDef: glossaryTermsTable.shortDef,
-          category: glossaryTermsTable.category,
+          term:      glossaryTermsTable.term,
+          shortDef:  glossaryTermsTable.shortDef,
+          category:  glossaryTermsTable.category,
+          updatedAt: glossaryTermsTable.updatedAt,
         })
         .from(glossaryTermsTable)
         .where(eq(glossaryTermsTable.slug, slug))
@@ -956,6 +972,7 @@ async function handleSsrMeta(
             description:  term.shortDef,
             url:          canonical,
             inLanguage:   "en",
+            dateModified: term.updatedAt.toISOString().slice(0, 10),
             inDefinedTermSet: {
               "@type": "DefinedTermSet",
               name:    "Fintech Glossary",
@@ -1085,7 +1102,9 @@ async function handleSsrMeta(
               "@id":        `${canonical}#person`,
               name:         author.name,
               jobTitle:     author.role,
-              description:  author.shortBio,
+              description:  author.yearsExperience > 0
+                ? `${author.shortBio} ${author.yearsExperience} years of experience.`.slice(0, 500)
+                : author.shortBio.slice(0, 500),
               url:          canonical,
               image:        ogImage,
               worksFor:     { "@id": `${siteUrl}#organization` },
@@ -1098,9 +1117,6 @@ async function handleSsrMeta(
                 : {}),
               ...(author.location
                 ? { address: { "@type": "PostalAddress", addressLocality: author.location } }
-                : {}),
-              ...(author.yearsExperience > 0
-                ? { description: `${author.shortBio} ${author.yearsExperience} years of experience.`.slice(0, 500) }
                 : {}),
             },
           }, null, 2),
@@ -1219,6 +1235,7 @@ async function handleSsrMeta(
             name:       cmpMeta.title,
             url:        canonical,
             publisher:  { "@id": `${siteUrl}#organization` },
+            ...(STATIC_PAGE_LASTMOD[`/compare/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/compare/${slug}`] } : {}),
             mainEntity: faqMainEntity,
           }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
@@ -1254,6 +1271,7 @@ async function handleSsrMeta(
             priceCurrency:  "USD",
           },
           provider: { "@id": `${siteUrl}#organization` },
+          ...(STATIC_PAGE_LASTMOD[`/tools/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/tools/${slug}`] } : {}),
         }, null, 2),
       ];
       const howTo = TOOLS_HOWTO[slug];
@@ -1321,7 +1339,7 @@ async function handleSsrMeta(
             url:          canonical,
             name:         staticMeta.title,
             description:  staticMeta.description,
-            dateModified: "2026-05-09",
+            dateModified: pageLastmod ?? "2026-05-09",
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(aboutAuthors.length > 0
@@ -1339,7 +1357,7 @@ async function handleSsrMeta(
         } else if (reqPath === "/blog") {
           // ── /blog hub — CollectionPage + ItemList of recent posts ────────
           const hubPosts = await db
-            .select({ slug: blogPostsTable.slug, title: blogPostsTable.title, noIndex: blogPostsTable.noIndex })
+            .select({ slug: blogPostsTable.slug, title: blogPostsTable.title, noIndex: blogPostsTable.noIndex, publishedAt: blogPostsTable.publishedAt })
             .from(blogPostsTable)
             .where(lte(blogPostsTable.publishedAt, sql`now()`))
             .orderBy(desc(blogPostsTable.publishedAt))
@@ -1352,7 +1370,7 @@ async function handleSsrMeta(
             url:         canonical,
             name:        staticMeta.title,
             description: staticMeta.description,
-            dateModified: new Date().toISOString().slice(0, 10),
+            dateModified: (visibleHubPosts[0]?.publishedAt ?? new Date()).toISOString().slice(0, 10),
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
@@ -1385,7 +1403,7 @@ async function handleSsrMeta(
             url:         canonical,
             name:        staticMeta.title,
             description: staticMeta.description,
-            dateModified: "2026-05-09",
+            dateModified: pageLastmod ?? "2026-05-09",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
           }, null, 2));
@@ -1417,7 +1435,7 @@ async function handleSsrMeta(
             url:         canonical,
             name:        staticMeta.title,
             description: staticMeta.description,
-            dateModified: "2026-05-09",
+            dateModified: pageLastmod ?? "2026-05-09",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
           }, null, 2));
@@ -1714,7 +1732,7 @@ async function handleSsrMeta(
           ogTitle:       leafLabel,
           ogDescription: staticMeta.description,
           ogImage,
-          ogImageAlt:    "FintechPressHub - Fintech SEO Agency",
+          ogImageAlt:    leafLabel,
           ogType:        staticMeta.ogType,
           extraLds,
         };

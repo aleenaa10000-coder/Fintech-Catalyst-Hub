@@ -114,8 +114,9 @@ function buildRss(opts: {
       const url = `${opts.siteUrl}/blog/${p.slug}`;
       const pubDate = new Date(p.date).toUTCString();
       // Use the stored cover image if present; fall back to the OG-image API.
+      // Resolve relative paths to absolute URLs — RSS <media:content url> must be absolute.
       const mediaUrl = p.coverImage
-        ? p.coverImage
+        ? (p.coverImage.startsWith("http") ? p.coverImage : `${opts.siteUrl}${p.coverImage.startsWith("/") ? "" : "/"}${p.coverImage}`)
         : `${opts.siteUrl}/api/og?title=${encodeURIComponent(p.title)}&type=blog`;
       return (
         `    <item>\n` +
