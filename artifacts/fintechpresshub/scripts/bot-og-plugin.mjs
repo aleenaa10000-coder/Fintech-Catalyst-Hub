@@ -231,7 +231,7 @@ function articleSchema({ post, image, url, siteUrl }) {
 function serviceSchema({ service, url, siteUrl }) {
   return {
     "@context": "https://schema.org",
-    "@type": "FinancialService",
+    "@type": ["FinancialService", "ProfessionalService"],
     name: service.name,
     description: service.description,
     serviceType: service.name,

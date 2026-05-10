@@ -75,8 +75,15 @@ function escapeXml(value: string): string {
  * "press-asset" — brand asset download files listed on /press (favicon,
  * icons, apple-touch-icon). Checked by the link-checker but intentionally
  * excluded from the sitemap XML because they are binary files, not pages.
+ *
+ * "category" — blog category hub pages (/blog/category/:slug). Checked by
+ * the link-checker but excluded from the legacy sitemap.xml because they
+ * are already covered by /sitemap-pages.xml (child of sitemap_index.xml).
+ * Including them in both would duplicate every category URL across two
+ * sitemaps and waste crawl budget — the same rationale as tool/compare
+ * sub-pages being omitted from STATIC_ROUTES.
  */
-export type SitemapEntrySource = "static" | "blog" | "author" | "rss" | "press-asset";
+export type SitemapEntrySource = "static" | "blog" | "author" | "rss" | "press-asset" | "category";
 
 /**
  * Paths of brand asset files served from the site root that the daily
@@ -198,12 +205,15 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
       source: "rss" as const,
     })),
     // Blog category hub pages — one entry per known category slug.
+    // Source is "category" so the link-checker validates these URLs but the
+    // XML renderer below excludes them from sitemap.xml (they are already
+    // covered by /sitemap-pages.xml, the authoritative child sitemap).
     ...STATIC_CATEGORY_SLUGS.map((slug) => ({
       loc: `${siteUrl}/blog/category/${slug}`,
       lastmod: today,
       changefreq: "weekly",
       priority: "0.7",
-      source: "static" as const,
+      source: "category" as const,
     })),
     // Press page brand asset downloads — checked by the daily link-checker
     // but excluded from the sitemap XML (they're binary files, not pages).
@@ -219,13 +229,14 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
 
 async function buildSitemapXml(): Promise<string> {
   const allEntries = await buildSitemapEntries();
-  // Press-asset entries are checked by the link-checker but must not
-  // appear in the XML sitemap — search engines should index pages, not
-  // raw binary files. RSS feed URLs are also excluded: they are XML
-  // feeds, not HTML pages, and their inclusion confuses crawlers that
-  // attempt to index them as web pages.
+  // Press-asset and category entries are checked by the link-checker but
+  // must not appear in the legacy sitemap.xml XML output:
+  //   press-asset — binary files (favicon, icons), not indexable pages.
+  //   rss         — XML feeds, not HTML pages.
+  //   category    — blog category hub pages already in /sitemap-pages.xml;
+  //                 duplicating them here wastes crawl budget.
   const entries = allEntries.filter(
-    (e) => e.source !== "press-asset" && e.source !== "rss",
+    (e) => e.source !== "press-asset" && e.source !== "rss" && e.source !== "category",
   );
 
   const body = entries
