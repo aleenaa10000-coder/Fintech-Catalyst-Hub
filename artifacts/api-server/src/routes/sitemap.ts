@@ -228,8 +228,12 @@ async function buildSitemapXml(): Promise<string> {
   const allEntries = await buildSitemapEntries();
   // Press-asset entries are checked by the link-checker but must not
   // appear in the XML sitemap — search engines should index pages, not
-  // raw binary files.
-  const entries = allEntries.filter((e) => e.source !== "press-asset");
+  // raw binary files. RSS feed URLs are also excluded: they are XML
+  // feeds, not HTML pages, and their inclusion confuses crawlers that
+  // attempt to index them as web pages.
+  const entries = allEntries.filter(
+    (e) => e.source !== "press-asset" && e.source !== "rss",
+  );
 
   const body = entries
     .map((u) => {

@@ -49,6 +49,7 @@ import {
   glossaryTermsTable,
   servicesTable,
   authorsTable,
+  pricingPlansTable,
 } from "@workspace/db";
 import { eq, lte, sql, desc, asc } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
@@ -352,6 +353,74 @@ const COMPARISON_META: Record<string, { title: string; description: string }> = 
   },
 };
 
+/**
+ * Additional FAQ entries per comparison page. Each array supplements the
+ * primary Q&A (derived from COMPARISON_META title + description) to give
+ * the FAQPage schema enough mainEntity items to qualify for rich results.
+ */
+const COMPARE_FAQ_EXTRAS: Record<string, Array<{ question: string; answer: string }>> = {
+  "agency-vs-in-house": [
+    {
+      question: "What does a fintech SEO agency cost compared to an in-house team?",
+      answer: "A mid-tier fintech SEO retainer typically runs $5,000–$15,000/month, covering strategy, content, and link building. Building an equivalent in-house team (SEO lead, writer, digital PR) typically costs $200,000–$350,000/year in salaries, benefits, and tooling — 3–4× the retainer cost for comparable output in year one.",
+    },
+    {
+      question: "When should a fintech company hire in-house SEO instead of using an agency?",
+      answer: "In-house SEO makes sense when your company has Series B+ funding, a content roadmap requiring 20+ pieces per month, or a need for deeply embedded institutional knowledge. For most pre-Series B fintechs, the speed-to-output and specialist expertise of a focused agency outweigh the control benefits of an in-house hire.",
+    },
+  ],
+  "vs-freelancers": [
+    {
+      question: "Are freelance fintech writers cheaper than an agency?",
+      answer: "Per-piece rates from experienced freelance fintech writers range from $300–$1,500 per article. When all costs are included — brief creation, editing rounds, keyword research, and internal coordination — a managed agency is typically 20–40% cheaper at equivalent quality and produces more consistent output.",
+    },
+    {
+      question: "What is the biggest risk of using freelance fintech writers?",
+      answer: "The primary risks are inconsistency and compliance exposure. Freelancers vary in quality between assignments, have no obligation to follow your evolving messaging guidelines, and rarely carry professional indemnity insurance for factual errors in regulated-finance content.",
+    },
+  ],
+  "vs-seo-tools": [
+    {
+      question: "Can Ahrefs or Semrush replace a fintech SEO agency?",
+      answer: "SEO tools provide data — keyword volumes, backlink counts, technical audits — but not execution. A tool can tell you that 'payment orchestration' is a high-value keyword; it cannot create authoritative content, build links from Finextra, or maintain a topical-authority content cluster. Agencies own the strategy and do the work; tools are inputs.",
+    },
+    {
+      question: "How much do enterprise SEO tools cost versus a fintech SEO agency?",
+      answer: "Enterprise Ahrefs or Semrush plans run $500–$1,000/month. Add a content writer, link-builder, and strategist and you're at $11,500–$22,000/month to replicate what a specialist fintech SEO retainer delivers at $5,000–$12,000/month.",
+    },
+  ],
+  "vs-pr-agencies": [
+    {
+      question: "What is the difference between fintech SEO and PR for fintechs?",
+      answer: "PR agencies focus on brand awareness and earned media — success is measured in mentions and impressions. SEO agencies focus on organic search rankings and durable traffic — success is measured in keyword positions, organic sessions, and lead quality. The best fintech programmes combine both, but the disciplines have fundamentally different metrics.",
+    },
+    {
+      question: "Do PR agencies build backlinks for fintech SEO?",
+      answer: "Traditional PR agencies build brand mentions, many of which are nofollow or unlinked. Fintech SEO agencies specifically target dofollow editorial links on high-DR finance publications — a materially different outcome that passes PageRank and drives durable rankings.",
+    },
+  ],
+  "content-led-vs-paid": [
+    {
+      question: "How long does content-led SEO take to generate ROI for fintechs?",
+      answer: "Bottom-of-funnel content can rank and convert within 60–90 days. Competitive head terms typically require 4–6 months of consistent publishing and supporting links. By month 9–12, compounding topical authority means each new piece ranks faster and costs less per organic visitor than any paid channel.",
+    },
+    {
+      question: "What is the average CPC for fintech keywords on Google Ads?",
+      answer: "Fintech keywords are among the most expensive on Google Ads, with average CPCs ranging from $15–$80 for terms like 'business banking', 'payment processing', and 'fintech SEO'. Content-led SEO achieves the same clicks at a fraction of the ongoing cost once content is ranking, with no cost per click regardless of search volume.",
+    },
+  ],
+  "specialist-vs-generalist": [
+    {
+      question: "Why does fintech specifically need a specialist SEO agency?",
+      answer: "Fintech content is regulated under FCA, SEC, and CFPB guidelines in most markets, meaning factual errors carry legal and reputational risk beyond a standard retraction. Generalist agencies lack the writer bench with hands-on fintech experience, the publication relationships with Finextra and The Fintech Times, and the regulatory awareness needed to avoid compliance failures.",
+    },
+    {
+      question: "What is the typical performance gap between specialist and generalist SEO for fintech?",
+      answer: "Fintechs switching from generalist to specialist SEO agencies typically see a 3–5× increase in topically relevant keyword rankings within six months and a 2–4× reduction in content revision cycles due to eliminated fact-checking errors. Link acquisition speed increases because specialist agencies have pre-existing editorial relationships with finance publications.",
+    },
+  ],
+};
+
 const TOOLS_META: Record<string, { title: string; description: string }> = {
   "financial-health-score-calculator": {
     title: "Financial Health Score Calculator | FintechPressHub",
@@ -602,6 +671,7 @@ async function handleSsrMeta(
           ...(mentionEntities.length > 0
             ? { mentions: mentionEntities.map((e) => ({ "@type": "Thing", name: e })) }
             : {}),
+          ...(post.blufSummary ? { abstract: post.blufSummary.slice(0, 500) } : {}),
           potentialAction: { "@type": "ReadAction", target: canonical },
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
@@ -622,11 +692,15 @@ async function handleSsrMeta(
 
       if (post.blufSummary) {
         extraLds.push(JSON.stringify({
-          "@context":   "https://schema.org",
-          "@type":      "SpeakableSpecification",
-          "@id":        `${canonical}#speakable`,
-          cssSelector:  [".bluf-summary"],
-          name:         post.blufSummary.slice(0, 200),
+          "@context": "https://schema.org",
+          "@type":    "WebPage",
+          "@id":      `${canonical}#webpage`,
+          url:        canonical,
+          speakable: {
+            "@type":     "SpeakableSpecification",
+            cssSelector: [".bluf-summary"],
+          },
+          abstract:   post.blufSummary.slice(0, 500),
         }, null, 2));
       }
 
@@ -673,7 +747,7 @@ async function handleSsrMeta(
         : `${loc.city}, ${loc.country}`;
       const description   = `FintechPressHub delivers specialist fintech SEO, content marketing, and link-building services to companies operating in ${locationLabel}. Book a free strategy call.`.slice(0, 160);
       const title         = `${loc.headline} | FintechPressHub`;
-      const ogImage       = `${siteUrl}/api/og?title=${encodeURIComponent(loc.headline)}&type=service`;
+      const ogImage       = `${siteUrl}/api/og?title=${encodeURIComponent(loc.headline)}&category=Location`;
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["locations", slug], loc.city);
 
@@ -727,7 +801,7 @@ async function handleSsrMeta(
       const canonical   = `${siteUrl}/glossary/${slug}`;
       const description = term.shortDef.slice(0, 160);
       const title       = `${term.term} — Fintech Glossary | FintechPressHub`;
-      const ogImage     = `${siteUrl}/api/og?title=${encodeURIComponent(term.term)}&type=glossary`;
+      const ogImage     = `${siteUrl}/api/og?title=${encodeURIComponent(term.term)}&category=Glossary`;
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["glossary", slug], term.term);
 
@@ -735,7 +809,7 @@ async function handleSsrMeta(
         title,
         description,
         canonical,
-        ogTitle:       title,
+        ogTitle:       term.term,
         ogDescription: description,
         ogImage,
         ogImageAlt:    `${term.term} definition — FintechPressHub Fintech Glossary`,
@@ -780,7 +854,7 @@ async function handleSsrMeta(
       const canonical   = `${siteUrl}/services/${slug}`;
       const description = (svc.tagline ?? svc.description ?? `${svc.name} — FintechPressHub`).slice(0, 160);
       const title       = `${svc.name} | FintechPressHub`;
-      const ogImage     = `${siteUrl}/api/og?title=${encodeURIComponent(svc.name)}&type=service`;
+      const ogImage     = `${siteUrl}/api/og?title=${encodeURIComponent(svc.name)}&category=Service`;
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["services", slug], svc.name);
 
@@ -909,7 +983,7 @@ async function handleSsrMeta(
       if (!catMeta) return next();
 
       const canonical   = `${siteUrl}/blog/category/${slug}`;
-      const ogImage     = `${siteUrl}/api/og?title=${encodeURIComponent(catMeta.title.replace(" | FintechPressHub", ""))}&type=blog`;
+      const ogImage     = `${siteUrl}/api/og?title=${encodeURIComponent(catMeta.title.replace(" | FintechPressHub", ""))}&category=${encodeURIComponent(slug)}`;
       const leafLabel   = catMeta.title.replace(" | FintechPressHub", "");
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["blog", "category", slug], leafLabel);
@@ -978,15 +1052,29 @@ async function handleSsrMeta(
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["compare", slug], leafLabel);
 
       // FAQPage schema enables FAQ rich results for comparison queries.
-      // The primary comparison question is structured as a Q&A so Google can
-      // surface a featured snippet directly from this schema.
+      // The primary comparison question is supplemented with extra Q&As from
+      // COMPARE_FAQ_EXTRAS so each page qualifies for featured-snippet display.
+      const extraFaqs = COMPARE_FAQ_EXTRAS[slug] ?? [];
+      const faqMainEntity = [
+        {
+          "@type": "Question",
+          name:    leafLabel,
+          acceptedAnswer: { "@type": "Answer", text: cmpMeta.description },
+        },
+        ...extraFaqs.map((faq) => ({
+          "@type": "Question",
+          name:    faq.question,
+          acceptedAnswer: { "@type": "Answer", text: faq.answer },
+        })),
+      ];
+
       patches = {
         title:         cmpMeta.title,
         description:   cmpMeta.description,
         canonical,
         ogTitle:       leafLabel,
         ogDescription: cmpMeta.description,
-        ogImage:       `${siteUrl}/opengraph.jpg`,
+        ogImage:       `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Compare`,
         ogImageAlt:    leafLabel,
         extraLds: [
           JSON.stringify({
@@ -996,16 +1084,7 @@ async function handleSsrMeta(
             name:       cmpMeta.title,
             url:        canonical,
             publisher:  { "@id": `${siteUrl}#organization` },
-            mainEntity: [
-              {
-                "@type": "Question",
-                name:    leafLabel,
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    cmpMeta.description,
-                },
-              },
-            ],
+            mainEntity: faqMainEntity,
           }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
         ],
@@ -1029,7 +1108,7 @@ async function handleSsrMeta(
         canonical,
         ogTitle:       leafLabel,
         ogDescription: toolMeta.description,
-        ogImage:       `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&type=tool`,
+        ogImage:       `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Tools`,
         ogImageAlt:    leafLabel,
         extraLds: [
           JSON.stringify({
@@ -1067,6 +1146,8 @@ async function handleSsrMeta(
         const breadcrumbs = buildCrumbsForPath(siteUrl, segments, leafLabel);
 
         const STATIC_PAGE_LASTMOD: Record<string, string> = {
+          "/":                                "2026-05-10",
+          "/pricing":                         "2026-05-09",
           "/write-for-us":                    "2026-04-25",
           "/editorial-guidelines":            "2026-04-28",
           "/community-guidelines":            "2026-04-28",
@@ -1106,6 +1187,7 @@ async function handleSsrMeta(
             url:          canonical,
             name:         staticMeta.title,
             description:  staticMeta.description,
+            dateModified: "2026-05-09",
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(aboutAuthors.length > 0
@@ -1136,6 +1218,7 @@ async function handleSsrMeta(
             url:         canonical,
             name:        staticMeta.title,
             description: staticMeta.description,
+            dateModified: new Date().toISOString().slice(0, 10),
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
@@ -1168,6 +1251,7 @@ async function handleSsrMeta(
             url:         canonical,
             name:        staticMeta.title,
             description: staticMeta.description,
+            dateModified: "2026-05-09",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
           }, null, 2));
@@ -1199,6 +1283,7 @@ async function handleSsrMeta(
             url:         canonical,
             name:        staticMeta.title,
             description: staticMeta.description,
+            dateModified: "2026-05-09",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
           }, null, 2));
@@ -1215,6 +1300,258 @@ async function handleSsrMeta(
               })),
             }, null, 2));
           }
+
+        } else if (reqPath === "/pricing") {
+          // ── /pricing — ItemList of retainer pricing plans ─────────────────
+          const pricingList = await db
+            .select({
+              name:         pricingPlansTable.name,
+              tagline:      pricingPlansTable.tagline,
+              priceMonthly: pricingPlansTable.priceMonthly,
+              priceUnit:    pricingPlansTable.priceUnit,
+              description:  pricingPlansTable.description,
+              sortOrder:    pricingPlansTable.sortOrder,
+            })
+            .from(pricingPlansTable)
+            .orderBy(asc(pricingPlansTable.sortOrder))
+            .catch(() => [] as Array<{ name: string; tagline: string; priceMonthly: number; priceUnit: string; description: string; sortOrder: number }>);
+          extraLds.push(JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "WebPage",
+            "@id":        canonical,
+            url:          canonical,
+            name:         staticMeta.title,
+            description:  staticMeta.description,
+            isPartOf:     { "@id": `${siteUrl}#website` },
+            publisher:    { "@id": `${siteUrl}#organization` },
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+          }, null, 2));
+          if (pricingList.length > 0) {
+            extraLds.push(JSON.stringify({
+              "@context": "https://schema.org",
+              "@type":    "ItemList",
+              name:       "Fintech SEO Pricing Plans",
+              url:        canonical,
+              itemListElement: pricingList.map((plan, i) => ({
+                "@type":    "ListItem",
+                position:   i + 1,
+                name:       plan.tagline ? `${plan.name} — ${plan.tagline}` : plan.name,
+                url:        `${canonical}#${plan.name.toLowerCase().replace(/\s+/g, "-")}`,
+                item: {
+                  "@type":       "Offer",
+                  name:          plan.name,
+                  description:   plan.description.slice(0, 300),
+                  price:         plan.priceMonthly > 0 ? String(plan.priceMonthly) : "Custom",
+                  priceCurrency: "USD",
+                  availability:  "https://schema.org/InStock",
+                  seller:        { "@id": `${siteUrl}#organization` },
+                },
+              })),
+            }, null, 2));
+          }
+
+        } else if (reqPath === "/glossary") {
+          // ── /glossary hub — DefinedTermSet + ItemList from DB ────────────
+          const hubTerms = await db
+            .select({
+              slug:     glossaryTermsTable.slug,
+              term:     glossaryTermsTable.term,
+              shortDef: glossaryTermsTable.shortDef,
+            })
+            .from(glossaryTermsTable)
+            .orderBy(asc(glossaryTermsTable.term))
+            .limit(30)
+            .catch(() => [] as Array<{ slug: string; term: string; shortDef: string }>);
+          extraLds.push(JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "DefinedTermSet",
+            "@id":        canonical,
+            url:          canonical,
+            name:         "Fintech Glossary",
+            description:  staticMeta.description,
+            inLanguage:   "en",
+            publisher:    { "@id": `${siteUrl}#organization` },
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+          }, null, 2));
+          if (hubTerms.length > 0) {
+            extraLds.push(JSON.stringify({
+              "@context": "https://schema.org",
+              "@type":    "ItemList",
+              name:       "Fintech Glossary Terms",
+              url:        canonical,
+              itemListElement: hubTerms.map((t, i) => ({
+                "@type":    "ListItem",
+                position:   i + 1,
+                name:       `${t.term}: ${t.shortDef.slice(0, 80)}`,
+                url:        `${siteUrl}/glossary/${t.slug}`,
+              })),
+            }, null, 2));
+          }
+
+        } else if (reqPath === "/tools") {
+          // ── /tools hub — CollectionPage + ItemList ────────────────────────
+          extraLds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "CollectionPage",
+            "@id":       canonical,
+            url:         canonical,
+            name:        staticMeta.title,
+            description: staticMeta.description,
+            inLanguage:  "en",
+            isPartOf:    { "@id": `${siteUrl}#website` },
+            publisher:   { "@id": `${siteUrl}#organization` },
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+          }, null, 2));
+          extraLds.push(JSON.stringify({
+            "@context": "https://schema.org",
+            "@type":    "ItemList",
+            name:       "Free Fintech Marketing Tools",
+            url:        canonical,
+            itemListElement: Object.entries(TOOLS_META).map(([toolSlug, meta], i) => ({
+              "@type":     "ListItem",
+              position:    i + 1,
+              name:        meta.title.split("|")[0]!.trim(),
+              description: meta.description.slice(0, 120),
+              url:         `${siteUrl}/tools/${toolSlug}`,
+            })),
+          }, null, 2));
+
+        } else if (reqPath === "/compare") {
+          // ── /compare hub — CollectionPage + ItemList ──────────────────────
+          extraLds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "CollectionPage",
+            "@id":       canonical,
+            url:         canonical,
+            name:        staticMeta.title,
+            description: staticMeta.description,
+            inLanguage:  "en",
+            isPartOf:    { "@id": `${siteUrl}#website` },
+            publisher:   { "@id": `${siteUrl}#organization` },
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+          }, null, 2));
+          extraLds.push(JSON.stringify({
+            "@context": "https://schema.org",
+            "@type":    "ItemList",
+            name:       "Fintech SEO Agency Comparisons",
+            url:        canonical,
+            itemListElement: Object.entries(COMPARISON_META).map(([cmpSlug, meta], i) => ({
+              "@type":     "ListItem",
+              position:    i + 1,
+              name:        meta.title.split("|")[0]!.trim(),
+              description: meta.description.slice(0, 120),
+              url:         `${siteUrl}/compare/${cmpSlug}`,
+            })),
+          }, null, 2));
+
+        } else if (reqPath === "/contact") {
+          // ── /contact — ContactPage + Organization contactPoint ────────────
+          extraLds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "ContactPage",
+            "@id":       canonical,
+            url:         canonical,
+            name:        staticMeta.title,
+            description: staticMeta.description,
+            inLanguage:  "en",
+            isPartOf:    { "@id": `${siteUrl}#website` },
+            publisher:   { "@id": `${siteUrl}#organization` },
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            mainEntity: {
+              "@type":  "Organization",
+              "@id":    `${siteUrl}#organization`,
+              name:     "FintechPressHub",
+              url:      siteUrl,
+              email:    "hello@fintechpresshub.com",
+              contactPoint: {
+                "@type":       "ContactPoint",
+                contactType:   "customer service",
+                url:           canonical,
+                email:         "hello@fintechpresshub.com",
+                availableLanguage: { "@type": "Language", name: "English", alternateName: "en" },
+              },
+            },
+          }, null, 2));
+
+        } else if (reqPath === "/write-for-us") {
+          // ── /write-for-us — CollectionPage + WriteAction ──────────────────
+          extraLds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "CollectionPage",
+            "@id":       canonical,
+            url:         canonical,
+            name:        staticMeta.title,
+            description: staticMeta.description,
+            inLanguage:  "en",
+            isPartOf:    { "@id": `${siteUrl}#website` },
+            publisher:   { "@id": `${siteUrl}#organization` },
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            potentialAction: {
+              "@type":  "WriteAction",
+              name:     "Submit a Guest Post Pitch",
+              target:   canonical,
+              object: {
+                "@type":    "Article",
+                inLanguage: "en",
+                about:      { "@type": "Thing", name: "Fintech SEO and content marketing" },
+              },
+            },
+          }, null, 2));
+
+        } else if (reqPath === "/resources/fintech-publications") {
+          // ── /resources/fintech-publications — CollectionPage + ItemList ───
+          extraLds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "CollectionPage",
+            "@id":       canonical,
+            url:         canonical,
+            name:        staticMeta.title,
+            description: staticMeta.description,
+            inLanguage:  "en",
+            isPartOf:    { "@id": `${siteUrl}#website` },
+            publisher:   { "@id": `${siteUrl}#organization` },
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+          }, null, 2));
+          const FINTECH_PUBS = [
+            { name: "Finextra", url: "https://www.finextra.com" },
+            { name: "The Fintech Times", url: "https://thefintechtimes.com" },
+            { name: "Tearsheet", url: "https://tearsheet.co" },
+            { name: "Finovate", url: "https://finovate.com" },
+            { name: "PYMNTS", url: "https://www.pymnts.com" },
+            { name: "FinanceMagnates", url: "https://www.financemagnates.com" },
+            { name: "AltFi", url: "https://www.altfi.com" },
+            { name: "Global Finance Magazine", url: "https://gfmag.com" },
+            { name: "Banking Technology", url: "https://www.bankingtech.com" },
+            { name: "Fintechist", url: "https://fintechist.com" },
+          ];
+          extraLds.push(JSON.stringify({
+            "@context": "https://schema.org",
+            "@type":    "ItemList",
+            name:       "Top Fintech Publications for Guest Posting & Link Building",
+            url:        canonical,
+            itemListElement: FINTECH_PUBS.map((pub, i) => ({
+              "@type":    "ListItem",
+              position:   i + 1,
+              name:       pub.name,
+              url:        pub.url,
+            })),
+          }, null, 2));
+
+        } else if (reqPath === "/press") {
+          // ── /press — CollectionPage with brand/media asset focus ──────────
+          extraLds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "CollectionPage",
+            "@id":       canonical,
+            url:         canonical,
+            name:        staticMeta.title,
+            description: staticMeta.description,
+            inLanguage:  "en",
+            isPartOf:    { "@id": `${siteUrl}#website` },
+            publisher:   { "@id": `${siteUrl}#organization` },
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            about:       { "@id": `${siteUrl}#organization` },
+          }, null, 2));
 
         } else {
           // ── All other static pages — generic WebPage schema ───────────────
