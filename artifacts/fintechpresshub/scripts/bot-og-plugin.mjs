@@ -35,6 +35,8 @@ const BREADCRUMB_LABELS = {
   resources: "Resources",
   press: "Press",
   "fintech-publications": "Fintech Publications",
+  tag:                    "Tag",
+  category:               "Category",
 };
 
 function escapeHtml(value) {

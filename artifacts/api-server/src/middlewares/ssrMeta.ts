@@ -1167,6 +1167,9 @@ async function handleSsrMeta(
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["locations", slug], loc.city);
 
+      const geoPlacename = loc.region
+        ? `${loc.city}, ${loc.region}, ${loc.country}`
+        : `${loc.city}, ${loc.country}`;
       patches = {
         title,
         description,
@@ -1175,6 +1178,10 @@ async function handleSsrMeta(
         ogDescription: description,
         ogImage,
         ogImageAlt:    `FintechPressHub — ${loc.city} Fintech SEO`,
+        headLinks: [
+          `  <meta name="geo.placename" content="${esc(geoPlacename)}" />`,
+          `  <meta name="geo.region" content="${esc(loc.countryCode)}" />`,
+        ],
         extraLds: [
           JSON.stringify({
             "@context":      "https://schema.org",
@@ -1546,7 +1553,7 @@ async function handleSsrMeta(
         .from(blogPostsTable)
         .where(lte(blogPostsTable.publishedAt, sql`now()`))
         .orderBy(desc(blogPostsTable.publishedAt))
-        .limit(20);
+        .limit(50);
       const filteredCatPosts = catPosts.filter(
         (p) => !p.noIndex && p.category?.toLowerCase().replace(/\s+/g, "-") === slug,
       );
@@ -1560,7 +1567,7 @@ async function handleSsrMeta(
           description:  catMeta.description,
           url:          canonical,
           inLanguage:   "en",
-          isPartOf:     { "@id": `${siteUrl}/blog` },
+          isPartOf:     { "@type": "WebPage", "@id": `${siteUrl}/blog` },
           publisher:    { "@id": `${siteUrl}#organization` },
           datePublished: "2021-06-01",
           dateModified: (filteredCatPosts[0]?.publishedAt ?? new Date()).toISOString().slice(0, 10),
@@ -1576,6 +1583,7 @@ async function handleSsrMeta(
           "@context": "https://schema.org",
           "@type":    "ItemList",
           name:       catMeta.title,
+          numberOfItems: filteredCatPosts.length,
           itemListElement: filteredCatPosts.map((p, i) => ({
             "@type":    "ListItem",
             position:   i + 1,
@@ -1651,7 +1659,7 @@ async function handleSsrMeta(
           name:         title,
           description,
           inLanguage:   "en",
-          isPartOf:     { "@id": `${siteUrl}/blog` },
+          isPartOf:     { "@type": "WebPage", "@id": `${siteUrl}/blog` },
           publisher:    { "@id": `${siteUrl}#organization` },
           datePublished: "2021-06-01",
           dateModified: (filteredTagPosts[0]?.publishedAt ?? new Date()).toISOString().slice(0, 10),
@@ -1666,6 +1674,7 @@ async function handleSsrMeta(
           "@type":    "ItemList",
           name:       `${tagLabel} Articles`,
           url:        canonical,
+          numberOfItems: filteredTagPosts.slice(0, 20).length,
           itemListElement: filteredTagPosts.slice(0, 20).map((p, i) => ({
             "@type":    "ListItem",
             position:   i + 1,
@@ -1917,6 +1926,7 @@ async function handleSsrMeta(
               "@context": "https://schema.org",
               "@type":    "ItemList",
               name:       "Latest Fintech Articles",
+              numberOfItems: visibleHubPosts.length,
               itemListElement: visibleHubPosts.map((p, i) => ({
                 "@type":    "ListItem",
                 position:   i + 1,
@@ -1951,6 +1961,7 @@ async function handleSsrMeta(
               "@context": "https://schema.org",
               "@type":    "ItemList",
               name:       "Our Contributors & Expert Authors",
+              numberOfItems: hubAuthors.length,
               itemListElement: hubAuthors.map((a, i) => ({
                 "@type":    "ListItem",
                 position:   i + 1,
@@ -1985,6 +1996,7 @@ async function handleSsrMeta(
               "@context": "https://schema.org",
               "@type":    "ItemList",
               name:       "Fintech Content Marketing Services",
+              numberOfItems: hubServices.length,
               itemListElement: hubServices.map((s, i) => ({
                 "@type":    "ListItem",
                 position:   i + 1,
@@ -2244,6 +2256,7 @@ async function handleSsrMeta(
             "@type":    "ItemList",
             name:       "Top Fintech Publications for Guest Posting & Link Building",
             url:        canonical,
+            numberOfItems: FINTECH_PUBS.length,
             itemListElement: FINTECH_PUBS.map((pub, i) => ({
               "@type":    "ListItem",
               position:   i + 1,
@@ -2284,6 +2297,7 @@ async function handleSsrMeta(
               "@type":    "ItemList",
               name:       "Fintech SEO Locations",
               url:        canonical,
+              numberOfItems: hubLocations.length,
               itemListElement: hubLocations.map((loc, i) => ({
                 "@type":    "ListItem",
                 position:   i + 1,
@@ -2333,6 +2347,7 @@ async function handleSsrMeta(
               "@type":    "ItemList",
               name:       "FintechPressHub Press Mentions",
               url:        canonical,
+              numberOfItems: mentions.length,
               itemListElement: mentions.map((m, i) => ({
                 "@type":    "ListItem",
                 position:   i + 1,
@@ -2381,6 +2396,7 @@ async function handleSsrMeta(
               "@type":    "ItemList",
               name:       "Fintech SEO & Content Marketing Services",
               url:        canonical,
+              numberOfItems: homeServices.length,
               itemListElement: homeServices.map((s, i) => ({
                 "@type":    "ListItem",
                 position:   i + 1,
