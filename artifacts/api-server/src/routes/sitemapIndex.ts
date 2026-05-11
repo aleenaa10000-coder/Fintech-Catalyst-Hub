@@ -444,10 +444,12 @@ async function buildGlossarySitemapXml(): Promise<string> {
 async function buildToolsSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
 
+  const toolsHubLastmod = Object.values(TOOL_PAGE_LASTMOD).reduce((a, b) => (a > b ? a : b));
+
   const entries = [
     {
       loc:        `${siteUrl}/tools`,
-      lastmod:    "2026-05-09",
+      lastmod:    toolsHubLastmod,
       changefreq: "monthly",
       priority:   "0.8",
       ogTitle:    "Free Fintech Marketing Tools",
@@ -494,10 +496,12 @@ async function buildToolsSitemapXml(): Promise<string> {
 async function buildCompareSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
 
+  const compareHubLastmod = Object.values(COMPARE_PAGE_LASTMOD).reduce((a, b) => (a > b ? a : b));
+
   const entries = [
     {
       loc:        `${siteUrl}/compare`,
-      lastmod:    "2026-05-09",
+      lastmod:    compareHubLastmod,
       changefreq: "monthly",
       priority:   "0.6",
       ogTitle:    "Fintech SEO Agency Comparisons",

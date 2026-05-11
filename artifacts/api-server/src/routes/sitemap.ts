@@ -26,7 +26,11 @@ export const STATIC_ROUTES: Array<{
   { path: "/services", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-09" },
   { path: "/pricing", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-11" },
   { path: "/blog", changefreq: "daily", priority: "0.9" },
-  { path: "/blog/tag", changefreq: "weekly", priority: "0.5", lastmod: "2026-05-11" },
+  // /blog/tag intentionally omitted — there is no page at /blog/tag; the only
+  // routed path is /blog/tag/:slug. Listing a bare /blog/tag would submit a
+  // confirmed soft-404 to Google, wasting crawl budget. Individual tag hub
+  // pages are served dynamically at /blog/tag/:slug and appear in
+  // /sitemap-tags.xml.
   { path: "/authors", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/write-for-us", changefreq: "monthly", priority: "0.6", lastmod: "2026-04-25" },
   { path: "/editorial-guidelines", changefreq: "yearly", priority: "0.4", lastmod: "2026-04-28" },
