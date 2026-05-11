@@ -29,7 +29,7 @@ export default function CompareSlug() {
         description={comparison.description}
         canonical={canonical}
         faq={comparison.faqItems}
-        webPage={{ dateModified: comparison.lastmod }}
+        webPage={{ datePublished: "2024-09-01", dateModified: comparison.lastmod }}
       />
 
       <PageHero

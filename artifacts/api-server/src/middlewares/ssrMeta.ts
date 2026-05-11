@@ -1713,6 +1713,7 @@ async function handleSsrMeta(
         inLanguage:   "en",
         isPartOf:     { "@id": `${siteUrl}#website` },
         publisher:    { "@id": `${siteUrl}#organization` },
+        datePublished: STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
         ...(STATIC_PAGE_LASTMOD[`/tools/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/tools/${slug}`] } : {}),
       }, null, 2));
       toolExtraLds.push(buildBreadcrumbLd(breadcrumbs));

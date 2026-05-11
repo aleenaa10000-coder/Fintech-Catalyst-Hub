@@ -510,7 +510,7 @@ export function PageMeta(props: PageMetaProps) {
     ? {
         "@context": "https://schema.org",
         "@type": "WebPage",
-        "@id": canonical,
+        "@id": `${canonical}#webpage`,
         url: canonical,
         name: title || undefined,
         description: description || undefined,

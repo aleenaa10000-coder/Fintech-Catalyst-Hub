@@ -76,7 +76,7 @@ export default function AuthorsIndex() {
   return (
     <div className="min-h-screen bg-background">
       <PageMeta
-        title="Meet the Team | FintechPressHub"
+        title="Our Authors | Fintech SEO Specialists | FintechPressHub"
         description="The fintech operators, analysts and digital PR leads behind FintechPressHub's content and link-building programs."
         itemList={{
           name: "FintechPressHub Editorial Team",
