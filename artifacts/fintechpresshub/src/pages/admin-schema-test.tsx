@@ -17,6 +17,8 @@ import {
   ExternalLink,
   Code2,
   ShieldCheck,
+  Copy,
+  CopyCheck,
 } from "lucide-react";
 
 interface SchemaValidationResult {
@@ -101,6 +103,41 @@ function VerdictBadge({ verdict }: { verdict: string | undefined }) {
   );
 }
 
+function CurlCopyButton({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const curlCmd = [
+    `curl -X POST \\`,
+    `  "https://searchconsole.googleapis.com/v1/urlTestingTools/richResultsTest:run?key=YOUR_GOOGLE_RICH_RESULTS_API_KEY" \\`,
+    `  -H "Content-Type: application/json" \\`,
+    `  -d '{"url":"${url}","userAgent":"DESKTOP"}'`,
+  ].join("\n");
+
+  function handleCopy() {
+    void navigator.clipboard.writeText(curlCmd).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleCopy}
+      className="gap-1.5 shrink-0 font-mono text-xs"
+      title={curlCmd}
+    >
+      {copied ? (
+        <CopyCheck className="w-3.5 h-3.5 text-emerald-600" />
+      ) : (
+        <Copy className="w-3.5 h-3.5" />
+      )}
+      {copied ? "Copied!" : "Copy as cURL"}
+    </Button>
+  );
+}
+
 function RichResultsPanel({ data, url }: { data: GoogleRichResultsResponse; url: string }) {
   if (data.error) {
     return (
@@ -133,6 +170,7 @@ function RichResultsPanel({ data, url }: { data: GoogleRichResultsResponse; url:
           {url} <ExternalLink className="w-3 h-3 shrink-0" />
         </a>
         <VerdictBadge verdict={richResult?.verdict} />
+        <CurlCopyButton url={url} />
       </div>
 
       {indexResult && (
