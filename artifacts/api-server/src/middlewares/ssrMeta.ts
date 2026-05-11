@@ -975,8 +975,33 @@ async function handleSsrMeta(
         .limit(1);
 
       if (!post) { res.status(404); return next(); }
-      if (post.noIndex) return next();
       if (post.publishedAt > new Date()) return next();
+
+      // Inject noindex directive server-side so crawlers that cannot execute
+      // JavaScript still see and obey the directive. Without this, a noindex
+      // post served as a bare SPA shell would be treated as indexable because
+      // the React-rendered <meta name="robots"> tag is never evaluated.
+      if (post.noIndex) {
+        const noIndexTitle = post.seoTitle ?? post.title;
+        const noIndexCanon = `${siteUrl}/blog/${slug}`;
+        const noIndexDesc  = (post.seoDescription ?? post.excerpt ?? "").slice(0, 160);
+        const noIndexImg   = `${siteUrl}/api/og?title=${encodeURIComponent(post.title)}&category=${encodeURIComponent(post.category)}&author=${encodeURIComponent(post.author)}&authorRole=${encodeURIComponent(post.authorRole ?? "")}`;
+        const html = patchHtml(baseHtml, {
+          title:         `${noIndexTitle} | FintechPressHub`,
+          description:   noIndexDesc,
+          canonical:     noIndexCanon,
+          ogTitle:       noIndexTitle,
+          ogDescription: noIndexDesc,
+          ogImage:       noIndexImg,
+          ogImageAlt:    noIndexTitle,
+          headLinks:     [`  <meta name="robots" content="noindex, nofollow" />`],
+        });
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("X-Robots-Tag", "noindex, nofollow");
+        res.setHeader("Cache-Control", "private, no-store");
+        res.send(html);
+        return;
+      }
 
       // Respect admin-set SEO overrides; fall back to title/excerpt.
       const pageTitle   = post.seoTitle ?? post.title;
@@ -1807,7 +1832,8 @@ async function handleSsrMeta(
             price:          0,
             priceCurrency:  "USD",
           },
-          provider: { "@id": `${siteUrl}#organization` },
+          provider:      { "@id": `${siteUrl}#organization` },
+          datePublished: STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
           ...(STATIC_PAGE_LASTMOD[`/tools/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/tools/${slug}`] } : {}),
           potentialAction: { "@type": "UseAction", target: canonical },
         }, null, 2),
@@ -1915,7 +1941,7 @@ async function handleSsrMeta(
             .from(blogPostsTable)
             .where(lte(blogPostsTable.publishedAt, sql`now()`))
             .orderBy(desc(blogPostsTable.publishedAt))
-            .limit(10);
+            .limit(20);
           const visibleHubPosts = hubPosts.filter((p) => !p.noIndex);
           extraLds.push(JSON.stringify({
             "@context":  "https://schema.org",
