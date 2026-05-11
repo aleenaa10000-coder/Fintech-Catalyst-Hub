@@ -374,7 +374,19 @@ export function PageMeta(props: PageMetaProps) {
     ? {
         "@context": "https://schema.org",
         "@type": "ProfilePage",
+        name: props.person.jobTitle
+          ? `${props.person.name} — ${props.person.jobTitle}`
+          : props.person.name,
         inLanguage: "en",
+        isPartOf: {
+          "@type": "WebSite",
+          "@id": `${SITE_URL}#website`,
+        },
+        publisher: {
+          "@type": "Organization",
+          "@id": `${SITE_URL}#organization`,
+          name: SITE_NAME,
+        },
         mainEntity: {
           "@type": "Person",
           "@id": `${props.person.url ?? canonical}#person`,
@@ -670,6 +682,10 @@ export function PageMeta(props: PageMetaProps) {
           ...(props.definedTermSet.description
             ? { description: props.definedTermSet.description }
             : {}),
+          isPartOf: {
+            "@type": "WebSite",
+            "@id": `${SITE_URL}#website`,
+          },
           publisher: {
             "@type": "Organization",
             "@id": `${SITE_URL}#organization`,
