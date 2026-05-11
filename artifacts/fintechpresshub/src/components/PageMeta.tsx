@@ -420,6 +420,9 @@ export function PageMeta(props: PageMetaProps) {
         "@type": props.service.schemaType === "FinancialService+ProfessionalService"
           ? ["FinancialService", "ProfessionalService"]
           : (props.service.schemaType ?? "Service"),
+        // @id matches the SSR schema (bare canonical, no fragment) so Google's
+        // Knowledge Graph resolves the same service entity in both rendering modes.
+        "@id": props.service.url ?? canonical,
         name: props.service.name,
         description: props.service.description,
         inLanguage: "en",
@@ -567,6 +570,10 @@ export function PageMeta(props: PageMetaProps) {
     ? {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
+        // @id matches the SSR schema (bare canonical, no fragment) so Google's
+        // Knowledge Graph resolves the same entity whether the page is
+        // server-rendered or hydrated client-side.
+        "@id": props.softwareApp.url ?? canonical,
         name: props.softwareApp.name,
         ...(props.softwareApp.operatingSystem
           ? { operatingSystem: props.softwareApp.operatingSystem }

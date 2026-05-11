@@ -1827,6 +1827,13 @@ async function handleSsrMeta(
           ...(catMeta.about.length > 0
             ? { about: catMeta.about.map((e) => ({ "@type": "Thing", name: e })) }
             : {}),
+          // SpeakableSpecification enables voice-assistant extraction of the category hub
+          // headline for "what is [category] in fintech?" queries — consistent with the
+          // speakable treatment applied to all other hub and collection page types.
+          speakable: {
+            "@type":     "SpeakableSpecification",
+            cssSelector: ["h1"],
+          },
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
       ];
@@ -1917,6 +1924,13 @@ async function handleSsrMeta(
           datePublished: "2021-06-01",
           dateModified: (filteredTagPosts[0]?.publishedAt ?? new Date()).toISOString().slice(0, 10),
           keywords:     tagLabel,
+          // SpeakableSpecification enables voice-assistant extraction of the tag hub headline
+          // for queries like "what is [tag]?" — mirrors the speakable coverage applied to
+          // all category, hub, and collection page types across the site.
+          speakable: {
+            "@type":     "SpeakableSpecification",
+            cssSelector: ["h1"],
+          },
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
       ];
@@ -2021,6 +2035,13 @@ async function handleSsrMeta(
             publisher:    { "@id": `${siteUrl}#organization` },
             datePublished: STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
             ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
+            // SpeakableSpecification enables voice-assistant extraction of the comparison
+            // headline for queries like "agency vs in-house SEO" — mirrors the speakable
+            // coverage on service detail pages and other decision-intent pages.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1"],
+            },
           }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
         ],
@@ -2186,6 +2207,13 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            // SpeakableSpecification enables voice-assistant extraction of the blog hub
+            // headline for queries like "what does FintechPressHub write about?" and
+            // powers AEO snippet extraction by Perplexity, ChatGPT Search, and Claude.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1"],
+            },
           }, null, 2));
           // Blog entity — defines the canonical #blog @id referenced by BlogPosting.isPartOf
           // and CollectionPage.isPartOf throughout the site. Without this entity block,
@@ -2237,6 +2265,13 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            // SpeakableSpecification enables voice-assistant extraction of the authors hub
+            // headline for queries like "who writes for FintechPressHub?" — strengthens
+            // E-E-A-T discoverability for the author entity graph as a whole.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1"],
+            },
           }, null, 2));
           if (hubAuthors.length > 0) {
             extraLds.push(JSON.stringify({
@@ -2432,6 +2467,13 @@ async function handleSsrMeta(
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            // SpeakableSpecification enables voice-assistant extraction of the glossary hub
+            // headline for queries like "what is a fintech glossary?" — reinforces the
+            // DefinedTermSet entity for Google's Knowledge Graph vocabulary signals.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1"],
+            },
           }, null, 2));
           if (hubTerms.length > 0) {
             extraLds.push(JSON.stringify({
@@ -2535,6 +2577,13 @@ async function handleSsrMeta(
             publisher:   { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            // SpeakableSpecification enables voice-assistant extraction of the contact
+            // page headline for queries like "how do I contact FintechPressHub?" —
+            // ensures the CTA and contact method are surfaceable via AEO channels.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1"],
+            },
             mainEntity: {
               "@type":  "Organization",
               "@id":    `${siteUrl}#organization`,
@@ -2565,6 +2614,13 @@ async function handleSsrMeta(
             publisher:   { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            // SpeakableSpecification enables voice-assistant extraction of the write-for-us
+            // headline for queries like "how to write for FintechPressHub?" — surfaces the
+            // guest-post opportunity to AI citation engines and voice-search results.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1"],
+            },
             potentialAction: {
               "@type":  "WriteAction",
               name:     "Submit a Guest Post Pitch",
@@ -2591,6 +2647,13 @@ async function handleSsrMeta(
             publisher:   { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            // SpeakableSpecification enables voice-assistant extraction of the publications
+            // hub headline for queries like "which fintech publications should I target?" —
+            // surfaces this high-value link-building resource via AEO channels.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1"],
+            },
           }, null, 2));
           const FINTECH_PUBS = [
             { name: "Finextra", url: "https://www.finextra.com" },
@@ -2643,6 +2706,13 @@ async function handleSsrMeta(
             inLanguage:   "en",
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
+            // SpeakableSpecification enables voice-assistant extraction of the locations hub
+            // headline for queries like "where does FintechPressHub offer SEO services?" —
+            // ensures AI citation engines can surface geo-targeted service coverage.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1"],
+            },
           }, null, 2));
           if (hubLocations.length > 0) {
             extraLds.push(JSON.stringify({
@@ -2678,6 +2748,13 @@ async function handleSsrMeta(
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
             about:       { "@id": `${siteUrl}#organization` },
+            // SpeakableSpecification enables voice-assistant extraction of the press hub
+            // headline for queries like "has FintechPressHub been featured in the press?" —
+            // surfaces the brand's media credibility to AI citation engines.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1"],
+            },
           }, null, 2));
 
           // Inject real press mentions from DB as an ItemList of NewsArticle
