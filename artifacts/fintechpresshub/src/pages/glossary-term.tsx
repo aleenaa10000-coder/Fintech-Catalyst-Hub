@@ -122,7 +122,9 @@ export default function GlossaryTermPage() {
             {term.body && term.body !== term.shortDef ? (
               <div dangerouslySetInnerHTML={{ __html: term.body }} />
             ) : (
-              <p>{term.shortDef}</p>
+              // .glossary-short-def is referenced by SpeakableSpecification in
+              // the SSR middleware (ssrMeta.ts) — keep the class name in sync.
+              <p className="glossary-short-def">{term.shortDef}</p>
             )}
           </div>
 

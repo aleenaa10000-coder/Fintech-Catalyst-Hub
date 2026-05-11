@@ -56,10 +56,19 @@ import { eq, lte, sql, desc, asc } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { BREADCRUMB_LABELS } from "../lib/seoConstants";
 
-const _frontendDist = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../../fintechpresshub/dist/public",
-);
+// Resolve the frontend dist directory. The relative path differs between:
+//   Replit monorepo:  artifacts/api-server/dist/ → artifacts/fintechpresshub/dist/public/
+//   Hostinger/flat:  api-server/dist/            → fintechpresshub/dist/public/
+// We probe both candidates and use whichever exists, so the same build works
+// in both environments without any per-environment configuration.
+const _frontendDist = (() => {
+  const base = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.resolve(base, "../../fintechpresshub/dist/public"),   // Replit: artifacts/ prefix
+    path.resolve(base, "../../../fintechpresshub/dist/public"), // Hostinger: flat layout
+  ];
+  return candidates.find((p) => existsSync(path.join(p, "index.html"))) ?? candidates[0];
+})();
 
 let _cachedHtml: string | null = null;
 
@@ -122,8 +131,15 @@ interface MetaPatches {
   articlePublishedTime?: string;
   /** OG article:modified_time (blog posts — ISO 8601). */
   articleModifiedTime?: string;
-  /** OG article:author meta tag value (blog posts — author display name). */
+  /** OG article:author display name (kept for twitter/fallback rendering). */
   articleAuthor?: string;
+  /**
+   * OG article:author profile URL (preferred for article:author per the Open
+   * Graph spec — Facebook, LinkedIn, and Google all prefer a profile URL here
+   * rather than a plain display name). Emitted when the author has a profile
+   * page at /authors/:slug. Falls back to display name string when absent.
+   */
+  articleAuthorUrl?: string;
   /** twitter:creator tag (blog posts — author's Twitter @handle). */
   twitterCreator?: string;
   /**
@@ -247,7 +263,11 @@ function patchHtml(base: string, p: MetaPatches): string {
     injections.push(`  <meta property="article:modified_time" content="${esc(p.articleModifiedTime)}" />`);
   }
 
-  if (p.articleAuthor) {
+  // article:author — emit profile URL when available (OG spec prefers URLs);
+  // fall back to display name string for authors without a profile page.
+  if (p.articleAuthorUrl) {
+    injections.push(`  <meta property="article:author" content="${esc(p.articleAuthorUrl)}" />`);
+  } else if (p.articleAuthor) {
     injections.push(`  <meta property="article:author" content="${esc(p.articleAuthor)}" />`);
   }
 
@@ -500,6 +520,41 @@ const TOOLS_META: Record<string, { title: string; description: string }> = {
  * see correct, unique titles and descriptions for every high-priority page.
  * Fixing this once fixes all listed pages simultaneously.
  */
+/**
+ * Pricing page FAQ items — mirrors the static `faqs` array in
+ * artifacts/fintechpresshub/src/pages/pricing.tsx. Kept here so the SSR
+ * middleware can emit FAQPage JSON-LD for Googlebot without a DB query.
+ *
+ * SYNC RULE: When adding, removing, or editing questions in pricing.tsx,
+ * update this array too so SSR and client-side schemas stay identical.
+ */
+const PRICING_FAQS: ReadonlyArray<{ question: string; answer: string }> = [
+  {
+    question: "Do you require long-term contracts?",
+    answer: "We typically operate on 6-month minimum engagements because SEO is a long-term play. It takes time to audit, produce high-quality content, and build the authority needed to see significant ROI.",
+  },
+  {
+    question: "Are the backlinks dofollow?",
+    answer: "Yes. We secure permanent, dofollow backlinks from high Domain Rating (DR 60+) sites relevant to the financial industry. No PBNs, no spam.",
+  },
+  {
+    question: "Can we upgrade or downgrade our plan?",
+    answer: "Absolutely. You can adjust your retainer at the end of any billing cycle to match your current growth priorities and budget.",
+  },
+  {
+    question: "How long until we see results from fintech SEO?",
+    answer: "Most clients see meaningful ranking improvements in 3-4 months and significant organic traffic growth by month 6. Fintech is a competitive, regulated vertical, so authority and topical depth take time to compound — but the traffic we build is durable.",
+  },
+  {
+    question: "Do you only work with fintech companies?",
+    answer: "Yes. We work exclusively with fintech, payments, lending, wealth, and banking infrastructure companies. That focus is what lets our writers and link builders deliver work that meets compliance, accuracy, and E-E-A-T standards Google rewards in YMYL verticals.",
+  },
+  {
+    question: "What is included in a content piece?",
+    answer: "Every article includes topic research, SEO brief with target keywords and SERP analysis, original writing by a fintech-experienced editor, internal linking, on-page optimization, and unlimited revisions before publish. We also handle CMS upload if requested.",
+  },
+];
+
 const STATIC_META: Record<string, { title: string; description: string; ogType?: string }> = {
   "/": {
     title: "FintechPressHub | Fintech SEO & Content Marketing Agency",
@@ -996,6 +1051,7 @@ async function handleSsrMeta(
         articlePublishedTime: post.publishedAt.toISOString(),
         articleModifiedTime:  dateModified,
         articleAuthor:        post.author || undefined,
+        articleAuthorUrl:     authorUrl   || undefined,
         twitterCreator:       authorTwitter ?? undefined,
         extraLds,
       };
@@ -1171,6 +1227,9 @@ async function handleSsrMeta(
             dateModified:  term.updatedAt.toISOString().slice(0, 10),
             speakable: {
               "@type":     "SpeakableSpecification",
+              // .glossary-short-def is rendered on the first <p> inside the
+              // prose area of glossary-term.tsx (when body === shortDef).
+              // Must stay in sync with the className on that element.
               cssSelector: [".glossary-short-def"],
             },
           }, null, 2),
@@ -1746,6 +1805,20 @@ async function handleSsrMeta(
               })),
             }, null, 2));
           }
+
+          // ── FAQPage for /pricing (unlocks featured snippet real estate) ──
+          // Mirrors PRICING_FAQS module-level constant; keep both in sync when
+          // editing Q&A content in pricing.tsx.
+          extraLds.push(JSON.stringify({
+            "@context": "https://schema.org",
+            "@type":    "FAQPage",
+            "@id":      `${canonical}#faq`,
+            mainEntity: PRICING_FAQS.map(({ question, answer }) => ({
+              "@type": "Question",
+              name:    question,
+              acceptedAnswer: { "@type": "Answer", text: answer },
+            })),
+          }, null, 2));
 
         } else if (reqPath === "/glossary") {
           // ── /glossary hub — DefinedTermSet + ItemList from DB ────────────
