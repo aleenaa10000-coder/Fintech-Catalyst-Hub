@@ -1403,14 +1403,18 @@ async function handleSsrMeta(
           // mirrors the pattern used on tools and compare pages for consistent
           // entity resolution across all content-type detail pages site-wide.
           JSON.stringify({
-            "@context":   "https://schema.org",
-            "@type":      "WebPage",
-            "@id":        `${canonical}#webpage`,
-            url:          canonical,
-            inLanguage:   "en",
-            isPartOf:     { "@id": `${siteUrl}#website` },
-            publisher:    { "@id": `${siteUrl}#organization` },
-            dateModified: SERVICE_PAGE_LASTMOD_DATE,
+            "@context":    "https://schema.org",
+            "@type":       "WebPage",
+            "@id":         `${canonical}#webpage`,
+            url:           canonical,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            // datePublished matches the pattern on tools, compare, blog, and
+            // glossary pages — provides Google a freshness anchor for the
+            // service entity and satisfies E-E-A-T's publication-date signal.
+            datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
+            dateModified:  SERVICE_PAGE_LASTMOD_DATE,
           }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
         ],
@@ -1668,6 +1672,14 @@ async function handleSsrMeta(
         ogImage,
         ogImageAlt:    `${tagLabel} — FintechPressHub`,
         extraLds,
+        // Announce the per-tag RSS feed so feed readers and AI crawlers can
+        // discover and subscribe to tag-scoped content without visiting the
+        // tag hub page first — mirrors the autodiscovery already present on
+        // category hub pages for consistent discoverability across both
+        // content-organisation dimensions.
+        headLinks: [
+          `  <link rel="alternate" type="application/rss+xml" title="${esc(`${tagLabel} Articles — FintechPressHub`)}" href="${esc(`${siteUrl}/blog/tag/${rawTag}/rss.xml`)}" />`,
+        ],
       };
     }
 

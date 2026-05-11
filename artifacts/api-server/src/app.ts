@@ -12,6 +12,7 @@ import sitemapIndexRouter from "./routes/sitemapIndex";
 import newsSitemapRouter from "./routes/newsSitemap";
 import authorRssRouter from "./routes/authorRss";
 import categoryRssRouter from "./routes/categoryRss";
+import tagRssRouter from "./routes/tagRss";
 import rssRouter from "./routes/rss";
 import uploadsRouter from "./routes/uploads";
 import indexNowKeyRouter from "./routes/indexNowKey";
@@ -378,6 +379,7 @@ app.use(sitemapRouter);        // /sitemap.xml (kept for backward compat)
 app.use(newsSitemapRouter);    // /news-sitemap.xml
 app.use(authorRssRouter);
 app.use(categoryRssRouter);
+app.use(tagRssRouter);
 app.use(rssRouter);
 app.use(indexNowKeyRouter);
 app.use(llmsTxtRouter);        // /llms.txt — LLM-readable site summary

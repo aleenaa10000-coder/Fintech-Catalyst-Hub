@@ -168,6 +168,7 @@ A: Both. The Fintech SEO Audit is a one-time 30-day engagement. Content, link bu
 - [Pricing](${siteUrl}/pricing) — Transparent retainer-based pricing (USD, monthly)
 - [About](${siteUrl}/about) — Team background, methodology, and agency values
 - [Blog](${siteUrl}/blog) — Fintech SEO strategy, content marketing playbooks, and industry analysis
+- [Blog Tags](${siteUrl}/blog/tag) — Browse articles by topic tag (e.g. /blog/tag/payments, /blog/tag/open-banking)
 - [Glossary](${siteUrl}/glossary) — Definitions of fintech and SEO terms
 - [Free Tools](${siteUrl}/tools) — Calculators, generators, and checkers for fintech marketers
 - [Write For Us](${siteUrl}/write-for-us) — Guest post guidelines and topic pitch form
@@ -240,6 +241,7 @@ Content may not be reproduced verbatim beyond fair-use excerpts without permissi
 - [RSS Feed](${siteUrl}/rss.xml)
 - [Pages Sitemap](${siteUrl}/sitemap-pages.xml)
 - [Blog Sitemap](${siteUrl}/sitemap-blog.xml)
+- [Tags Sitemap](${siteUrl}/sitemap-tags.xml)
 - [Authors Sitemap](${siteUrl}/sitemap-authors.xml)
 - [Tools Sitemap](${siteUrl}/sitemap-tools.xml)
 - [Compare Sitemap](${siteUrl}/sitemap-compare.xml)
@@ -468,7 +470,9 @@ FintechPressHub explicitly permits citation of its published content in AI-gener
 - Google News sitemap: ${siteUrl}/news-sitemap.xml
 - RSS feed (all): ${siteUrl}/rss.xml
 - RSS feed (per author): ${siteUrl}/authors/:slug/rss.xml
-- RSS feed (per category): ${siteUrl}/rss/:category.xml
+- RSS feed (per category): ${siteUrl}/blog/category/:slug/rss.xml
+- RSS feed (per tag): ${siteUrl}/blog/tag/:slug/rss.xml
+- Tags sitemap: ${siteUrl}/sitemap-tags.xml
 - Compact summary: ${siteUrl}/llms.txt
 `;
 
