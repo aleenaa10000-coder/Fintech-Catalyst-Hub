@@ -1,26 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db, blogPostsTable } from "@workspace/db";
-import { desc, lte, sql } from "drizzle-orm";
+import { db, blogPostsTable, authorsTable } from "@workspace/db";
+import { asc, desc, eq, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { escapeXml, RSS_SITE_DESCRIPTION } from "../lib/seoConstants";
-import staticPostsRaw from "../../../fintechpresshub/src/data/posts.js";
-import {
-  authors,
-  authorSlugFromName,
-  getAuthorBySlug,
-} from "../../../fintechpresshub/src/data/authors";
-
-type StaticPost = {
-  slug: string;
-  title: string;
-  excerpt: string;
-  category: string;
-  date: string;
-  author: string;
-  content?: string;
-};
-
-const staticPosts = staticPostsRaw as StaticPost[];
 
 const router: IRouter = Router();
 
@@ -40,21 +22,14 @@ type FeedItem = {
 };
 
 async function collectAuthorPosts(authorSlug: string): Promise<FeedItem[]> {
-  const fromStatic: FeedItem[] = staticPosts
-    .filter((p) => authorSlugFromName(p.author) === authorSlug)
-    .map((p) => ({
-      slug: p.slug,
-      title: p.title,
-      excerpt: p.excerpt,
-      category: p.category,
-      date: p.date,
-      content: p.content,
-    }));
+  const [author] = await db
+    .select({ name: authorsTable.name })
+    .from(authorsTable)
+    .where(eq(authorsTable.slug, authorSlug))
+    .limit(1);
 
-  // API-published posts overlay seed posts on slug collision (same rule used
-  // by the public-facing usePublicPosts hook).
-  // Filter out scheduled (future-dated) posts so feed readers don't see
-  // entries that 404 when clicked.
+  if (!author) return [];
+
   const apiRows = await db
     .select({
       slug: blogPostsTable.slug,
@@ -69,23 +44,22 @@ async function collectAuthorPosts(authorSlug: string): Promise<FeedItem[]> {
     .where(lte(blogPostsTable.publishedAt, sql`now()`))
     .orderBy(desc(blogPostsTable.publishedAt));
 
-  const merged = new Map<string, FeedItem>();
-  for (const p of fromStatic) merged.set(p.slug, p);
-  for (const p of apiRows) {
-    if (authorSlugFromName(p.author) !== authorSlug) continue;
-    merged.set(p.slug, {
+  return apiRows
+    .filter((p) => {
+      const nameSlug = p.author
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+      return nameSlug === authorSlug;
+    })
+    .map((p) => ({
       slug: p.slug,
       title: p.title,
       excerpt: p.excerpt,
       category: p.category,
       date: p.publishedAt.toISOString(),
       content: p.content,
-    });
-  }
-
-  return Array.from(merged.values()).sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+    }));
 }
 
 function buildRss(opts: {
@@ -144,7 +118,18 @@ function buildRss(opts: {
 
 async function handleAuthorRss(req: Request, res: Response): Promise<void> {
   const slug = String(req.params.slug ?? "").toLowerCase();
-  const author = getAuthorBySlug(slug);
+
+  const [author] = await db
+    .select({
+      slug:     authorsTable.slug,
+      name:     authorsTable.name,
+      role:     authorsTable.role,
+      shortBio: authorsTable.shortBio,
+    })
+    .from(authorsTable)
+    .where(eq(authorsTable.slug, slug))
+    .limit(1);
+
   if (!author) {
     res.status(404).type("text/plain").send("Author not found");
     return;
@@ -174,12 +159,20 @@ async function handleAuthorRss(req: Request, res: Response): Promise<void> {
   res.send(xml);
 }
 
-// Mounted at the root of the app (not under /api) so author feed URLs match
-// the public profile URL pattern: /authors/<slug>/rss.xml
 router.get("/authors/:slug/rss.xml", handleAuthorRss);
 
-// Convenience export so the sitemap router can keep its author slug list in
-// sync with the canonical authors data without duplicating the array.
-export const KNOWN_AUTHOR_SLUGS: string[] = authors.map((a) => a.slug);
+/**
+ * Returns all known author slugs from the DB for use in sitemap generation.
+ * Queries the DB at call time — call once at sitemap build, not per-request.
+ */
+export async function getKnownAuthorSlugs(): Promise<string[]> {
+  const rows = await db
+    .select({ slug: authorsTable.slug })
+    .from(authorsTable)
+    .orderBy(asc(authorsTable.slug));
+  return rows.map((r) => r.slug);
+}
+
+void asc;
 
 export default router;

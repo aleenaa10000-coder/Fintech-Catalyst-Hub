@@ -3,6 +3,8 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   authorsTable,
   blogPostsTable,
+  glossaryTermsTable,
+  locationPagesTable,
   pricingPlansTable,
   referringDomainsTable,
   servicesTable,
@@ -17,6 +19,8 @@ import statsSeed from "./seed-data/stats.json";
 import blogPostsSeed from "./seed-data/blog_posts.json";
 import authorsSeed from "./seed-data/authors.json";
 import referringDomainsSeed from "./seed-data/referring_domains.json";
+import locationsSeed from "./seed-data/locations.json";
+import glossarySeed from "./seed-data/glossary.json";
 
 type AnyDb = NodePgDatabase<Record<string, unknown>>;
 
@@ -99,6 +103,27 @@ type ReferringDomainSeedRow = {
   source: string;
 };
 
+type LocationSeedRow = {
+  slug: string;
+  city: string;
+  region: string | null;
+  country: string;
+  country_code: string;
+  headline: string;
+  body: string;
+  seo_title: string | null;
+  seo_description: string | null;
+};
+
+type GlossarySeedRow = {
+  slug: string;
+  term: string;
+  short_def: string;
+  body: string;
+  category: string | null;
+  related_terms: string[];
+};
+
 export type SeedReport = {
   pricingPlans: number;
   services: number;
@@ -107,6 +132,8 @@ export type SeedReport = {
   blogPosts: number;
   authors: number;
   referringDomains: number;
+  locationPages: number;
+  glossaryTerms: number;
 };
 
 export async function runSeed(db: AnyDb): Promise<SeedReport> {
@@ -118,6 +145,8 @@ export async function runSeed(db: AnyDb): Promise<SeedReport> {
     blogPosts: 0,
     authors: 0,
     referringDomains: 0,
+    locationPages: 0,
+    glossaryTerms: 0,
   };
 
   if (await isEmpty(db, "pricing_plans")) {
@@ -218,6 +247,35 @@ export async function runSeed(db: AnyDb): Promise<SeedReport> {
     }));
     await db.insert(referringDomainsTable).values(rows);
     report.referringDomains = rows.length;
+  }
+
+  if (await isEmpty(db, "location_pages")) {
+    const rows = (locationsSeed as LocationSeedRow[]).map((r) => ({
+      slug: r.slug,
+      city: r.city,
+      region: r.region ?? undefined,
+      country: r.country,
+      countryCode: r.country_code,
+      headline: r.headline,
+      body: r.body,
+      seoTitle: r.seo_title ?? undefined,
+      seoDescription: r.seo_description ?? undefined,
+    }));
+    await db.insert(locationPagesTable).values(rows);
+    report.locationPages = rows.length;
+  }
+
+  if (await isEmpty(db, "glossary_terms")) {
+    const rows = (glossarySeed as GlossarySeedRow[]).map((r) => ({
+      slug: r.slug,
+      term: r.term,
+      shortDef: r.short_def,
+      body: r.body,
+      category: r.category ?? undefined,
+      relatedTerms: r.related_terms,
+    }));
+    await db.insert(glossaryTermsTable).values(rows);
+    report.glossaryTerms = rows.length;
   }
 
   return report;

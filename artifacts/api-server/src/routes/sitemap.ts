@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, blogPostsTable } from "@workspace/db";
 import { desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
-import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
+import { getKnownAuthorSlugs } from "./authorRss";
 import { STATIC_CATEGORY_SLUGS, escapeXml } from "../lib/seoConstants";
 
 /** Resolve a cover-image value to a fully-qualified URL. */
@@ -52,11 +52,6 @@ export const STATIC_ROUTES: Array<{
 ];
 
 
-// Author profile slugs come straight from the canonical frontend data file
-// (`artifacts/fintechpresshub/src/data/authors.ts`) via the per-author RSS
-// route — adding a new author there now flows into both the sitemap and the
-// per-author feed without a second list to maintain.
-const AUTHOR_SLUGS: string[] = KNOWN_AUTHOR_SLUGS;
 
 /**
  * Tag describing where a sitemap URL came from. Used by the link-checker
@@ -110,6 +105,7 @@ export interface SitemapEntry {
 export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
   const siteUrl = getSiteUrl();
   const today = new Date().toISOString().slice(0, 10);
+  const AUTHOR_SLUGS = await getKnownAuthorSlugs();
 
   // Skip posts the admin marked as no-index — they shouldn't be advertised
   // in the sitemap even though their URL stays publicly reachable. Also

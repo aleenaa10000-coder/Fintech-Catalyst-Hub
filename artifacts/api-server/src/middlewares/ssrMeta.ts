@@ -856,6 +856,44 @@ const TOOLS_HOWTO: Readonly<Record<string, {
   },
 };
 
+// ---------- per-request SSR-meta patch cache (B1) ────────────────────────────
+//
+// DB-driven route handlers run at least two SELECT queries per SSR hit
+// (e.g. blog: post row + author social row). Under repeated crawler pressure
+// the same slug is fetched dozens of times per minute.
+//
+// Strategy: cache the fully-built `MetaPatches` object for each reqPath with
+// a 60-second TTL. A new publish or sitemap invalidation clears the cache via
+// `invalidateSsrMetaCache()`. The cache is module-level (process-wide) and
+// never persisted, so a fresh deploy always starts cold.
+const SSR_META_CACHE_TTL_MS = 60_000;
+type SsrMetaCacheEntry = { patches: MetaPatches; cachedAt: number };
+const _ssrMetaCache = new Map<string, SsrMetaCacheEntry>();
+
+function getSsrMetaCached(key: string): MetaPatches | null {
+  const entry = _ssrMetaCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt > SSR_META_CACHE_TTL_MS) {
+    _ssrMetaCache.delete(key);
+    return null;
+  }
+  return entry.patches;
+}
+
+function setSsrMetaCached(key: string, patches: MetaPatches): void {
+  _ssrMetaCache.set(key, { patches, cachedAt: Date.now() });
+  // Evict oldest entries if cache grows beyond 500 entries (memory guard).
+  if (_ssrMetaCache.size > 500) {
+    const first = _ssrMetaCache.keys().next().value;
+    if (first !== undefined) _ssrMetaCache.delete(first);
+  }
+}
+
+/** Imperatively evict all cached SSR meta patches (call after content updates). */
+export function invalidateSsrMetaCache(): void {
+  _ssrMetaCache.clear();
+}
+
 // ---------- route regexes (dynamic parameterised routes only) ----------
 // Static pages are matched via exact path lookup in STATIC_META above.
 
@@ -878,6 +916,17 @@ async function handleSsrMeta(
   const reqPath = req.path;
 
   try {
+    // Fast-path: return cached patches for repeated crawler hits on the same URL.
+    // Only dynamic DB-backed routes benefit (static pages are already zero-DB-cost).
+    const cachedPatches = getSsrMetaCached(reqPath);
+    if (cachedPatches) {
+      const html = patchHtml(baseHtml, cachedPatches);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
+      if (req.method === "HEAD") { res.end(); } else { res.send(html); }
+      return;
+    }
+
     let patches: MetaPatches | null = null;
 
     // ── /blog/:slug ──────────────────────────────────────────────────────────
@@ -911,7 +960,8 @@ async function handleSsrMeta(
         .where(eq(blogPostsTable.slug, slug))
         .limit(1);
 
-      if (!post || post.noIndex) return next();
+      if (!post) { res.status(404); return next(); }
+      if (post.noIndex) return next();
       if (post.publishedAt > new Date()) return next();
 
       // Respect admin-set SEO overrides; fall back to title/excerpt.
@@ -1075,7 +1125,7 @@ async function handleSsrMeta(
         .where(eq(locationPagesTable.slug, slug))
         .limit(1);
 
-      if (!loc) return next();
+      if (!loc) { res.status(404); return next(); }
 
       const canonical     = `${siteUrl}/locations/${slug}`;
       const locationLabel = loc.region
@@ -1170,7 +1220,7 @@ async function handleSsrMeta(
         .where(eq(glossaryTermsTable.slug, slug))
         .limit(1);
 
-      if (!term) return next();
+      if (!term) { res.status(404); return next(); }
 
       const canonical   = `${siteUrl}/glossary/${slug}`;
       const description = term.shortDef.slice(0, 160);
@@ -1276,7 +1326,7 @@ async function handleSsrMeta(
         .where(eq(servicesTable.slug, slug))
         .limit(1);
 
-      if (!svc) return next();
+      if (!svc) { res.status(404); return next(); }
 
       const canonical   = `${siteUrl}/services/${slug}`;
       const description = (svc.tagline ?? svc.description ?? `${svc.name} — FintechPressHub`).slice(0, 160);
@@ -1346,7 +1396,7 @@ async function handleSsrMeta(
         .where(eq(authorsTable.slug, slug))
         .limit(1);
 
-      if (!author) return next();
+      if (!author) { res.status(404); return next(); }
 
       const canonical   = `${siteUrl}/authors/${slug}`;
       const description = author.shortBio.slice(0, 160);
@@ -1415,7 +1465,7 @@ async function handleSsrMeta(
     if (categoryMatch) {
       const slug    = categoryMatch[1]!;
       const catMeta = CATEGORY_META[slug];
-      if (!catMeta) return next();
+      if (!catMeta) { res.status(404); return next(); }
 
       const canonical   = `${siteUrl}/blog/category/${slug}`;
       const ogImage     = `${siteUrl}/api/og?title=${encodeURIComponent(catMeta.title.replace(" | FintechPressHub", ""))}&category=${encodeURIComponent(slug)}`;
@@ -1490,7 +1540,7 @@ async function handleSsrMeta(
     if (compareMatch) {
       const slug     = compareMatch[1]!;
       const cmpMeta  = COMPARISON_META[slug];
-      if (!cmpMeta) return next();
+      if (!cmpMeta) { res.status(404); return next(); }
 
       const canonical  = `${siteUrl}/compare/${slug}`;
       const leafLabel  = cmpMeta.title.split("|")[0]!.trim();
@@ -1543,7 +1593,7 @@ async function handleSsrMeta(
     if (toolsMatch) {
       const slug     = toolsMatch[1]!;
       const toolMeta = TOOLS_META[slug];
-      if (!toolMeta) return next();
+      if (!toolMeta) { res.status(404); return next(); }
 
       const canonical  = `${siteUrl}/tools/${slug}`;
       const leafLabel  = toolMeta.title.split("|")[0]!.trim();
@@ -2188,6 +2238,12 @@ async function handleSsrMeta(
     }
 
     if (!patches) return next();
+
+    // Only cache DB-backed dynamic routes (static page patches are already cheap).
+    const isDynamic =
+      BLOG_RE.test(reqPath) || LOCATION_RE.test(reqPath) || GLOSSARY_RE.test(reqPath) ||
+      SERVICE_RE.test(reqPath) || AUTHOR_RE.test(reqPath) || CATEGORY_RE.test(reqPath);
+    if (isDynamic) setSsrMetaCached(reqPath, patches);
 
     const html = patchHtml(baseHtml, patches);
     res.setHeader("Content-Type", "text/html; charset=utf-8");

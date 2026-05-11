@@ -1,0 +1,122 @@
+[
+  {
+    "slug": "api",
+    "term": "API (Application Programming Interface)",
+    "short_def": "A set of protocols and rules that allow different software applications to communicate and share data with each other in a standardised way.",
+    "body": "An API (Application Programming Interface) defines the methods and data formats that two applications can use to communicate. In fintech, APIs are the backbone of modern financial infrastructure — enabling banks to expose account data to third-party apps, payment processors to accept transactions from e-commerce platforms, and embedded finance providers to integrate financial products into non-financial software.\n\nThe rise of open banking has put API standards like the UK's Open Banking API, the EU's PSD2-mandated APIs, and the US's emerging CDR-equivalent frameworks at the centre of financial services modernisation. Well-designed financial APIs use REST or GraphQL architecture, OAuth 2.0 for authentication, and JSON for data exchange.\n\nFor fintechs, API quality — latency, uptime, documentation, and developer experience — is often a primary competitive differentiator. Companies like Stripe, Plaid, and Adyen built billion-dollar businesses primarily on the strength of their API design.",
+    "category": "Technology",
+    "related_terms": ["open-banking", "embedded-finance", "psd2"]
+  },
+  {
+    "slug": "aml",
+    "term": "AML (Anti-Money Laundering)",
+    "short_def": "A set of laws, regulations, and procedures designed to prevent criminals from disguising illegally obtained funds as legitimate income.",
+    "body": "Anti-Money Laundering (AML) refers to the legal and regulatory framework that financial institutions and fintechs must follow to detect, prevent, and report money laundering activity. In most jurisdictions, financial firms are required to implement AML programmes that include customer due diligence (CDD), transaction monitoring, suspicious activity reporting (SAR), and staff training.\n\nKey AML regulations include the EU's Anti-Money Laundering Directives (AMLD), the US Bank Secrecy Act (BSA), and the UK's Proceeds of Crime Act (POCA). Global standards are set by the Financial Action Task Force (FATF).\n\nFor fintechs, AML compliance is a critical operational requirement — particularly for companies with e-money licences, payment institution authorisations, or banking licences. RegTech companies have built entire product categories around automating AML transaction monitoring, adverse media screening, and SAR filing workflows.",
+    "category": "Compliance",
+    "related_terms": ["kyc", "regtech"]
+  },
+  {
+    "slug": "baas",
+    "term": "BaaS (Banking as a Service)",
+    "short_def": "A model in which licensed banks provide their regulated banking infrastructure — accounts, payments, cards, and lending — to non-bank companies via APIs.",
+    "body": "Banking as a Service (BaaS) enables non-bank companies to embed banking products — current accounts, debit cards, loans, and payment rails — into their own products and brands, without obtaining a banking licence themselves. The BaaS provider (typically a licensed bank or e-money institution) handles regulatory compliance, capital requirements, and banking infrastructure, while the distributor focuses on product and customer experience.\n\nProminent BaaS providers include Railsr, Solaris, Treezor, Green Dot, and Sutton Bank. The model has enabled neobanks, consumer apps, and B2B software platforms to launch financial products in weeks rather than years.\n\nBaaS is closely related to embedded finance but is distinguished by the regulated banking layer — BaaS specifically refers to offering bank-licensed products (deposits, payments, lending), while embedded finance is a broader category that includes insurance, investments, and other financial products.",
+    "category": "Business Models",
+    "related_terms": ["embedded-finance", "neobank"]
+  },
+  {
+    "slug": "bnpl",
+    "term": "BNPL (Buy Now Pay Later)",
+    "short_def": "A short-term credit product that allows consumers to purchase goods immediately and pay in interest-free instalments over a fixed period.",
+    "body": "Buy Now Pay Later (BNPL) is a form of point-of-sale credit that splits a purchase into equal instalments, typically three to four payments over six to twelve weeks, often with no interest charged to the consumer (the merchant pays a fee to the BNPL provider instead). BNPL has grown explosively as an alternative to credit cards, particularly for millennial and Gen Z consumers who prefer debit-like payment experiences.\n\nLeading BNPL providers include Klarna, Afterpay (Block), Affirm, Clearpay, and Laybuy. The sector has attracted significant regulatory scrutiny globally — the FCA, CFPB, and ASIC have all launched consultation processes around BNPL regulation, with concerns about consumer affordability, debt accumulation, and the lack of standard creditworthiness checks.\n\nFor fintechs, BNPL represents both an opportunity (as a distribution product embedded at checkout) and a compliance challenge as regulation tightens across key markets.",
+    "category": "Consumer Finance",
+    "related_terms": ["embedded-finance", "baas"]
+  },
+  {
+    "slug": "core-banking",
+    "term": "Core Banking System",
+    "short_def": "The central software system that processes a bank's daily transactions and maintains the general ledger, customer accounts, and product records.",
+    "body": "A core banking system (CBS) is the central nervous system of a bank — processing all financial transactions in real time, maintaining the ledger of record for customer accounts, and supporting the bank's full product suite including deposits, loans, payments, and cards. Traditional core banking systems (built by vendors like Temenos, FIS, Fiserv, and Oracle) were typically large, monolithic mainframe applications that are expensive to maintain and difficult to extend.\n\nThe shift to cloud-native core banking has created a wave of new vendors — Thought Machine, Mambu, SolarisBank, and 10x Banking — offering API-first, microservices-based core platforms that new banks and existing institutions can deploy on public cloud infrastructure. This architectural shift is the foundation of the BaaS and neobanking revolutions.\n\nFor fintechs seeking banking licences or banking partnerships, the choice of core banking system is one of the most consequential infrastructure decisions — affecting product flexibility, compliance capability, and time-to-market for new features.",
+    "category": "Technology",
+    "related_terms": ["baas", "neobank"]
+  },
+  {
+    "slug": "defi",
+    "term": "DeFi (Decentralised Finance)",
+    "short_def": "Financial services — lending, trading, yield, and insurance — built on public blockchains using smart contracts, without traditional financial intermediaries.",
+    "body": "Decentralised Finance (DeFi) refers to financial applications built on public blockchain networks (primarily Ethereum) that replicate traditional financial services — lending, borrowing, trading, yield generation — through self-executing smart contracts, without banks or brokerages as intermediaries. Participants interact directly with protocols using crypto wallets.\n\nMajor DeFi protocols include Uniswap (decentralised exchange), Aave (lending), Compound (lending), MakerDAO (stablecoin), and Curve (stablecoin exchange). Total value locked (TVL) in DeFi peaked at over $180 billion in 2021 before contracting sharply in the 2022 crypto market downturn.\n\nFor regulated fintechs, DeFi presents both a competitive threat (disintermediation) and a product opportunity (DeFi infrastructure, custody, and compliance tooling). Regulators globally are developing frameworks to bring DeFi within scope of existing financial services regulations, with the EU's MiCA regulation representing the most comprehensive attempt to date.",
+    "category": "Blockchain",
+    "related_terms": []
+  },
+  {
+    "slug": "emi",
+    "term": "EMI (E-Money Institution)",
+    "short_def": "A regulated entity licensed to issue electronic money — digital equivalents of cash stored on cards or accounts — and provide related payment services.",
+    "body": "An Electronic Money Institution (EMI) is a firm authorised under the EU's Electronic Money Directive (EMD2) or the UK FCA's equivalent regime to issue e-money and provide payment services. E-money is a digital equivalent of cash — a stored value that can be used to make payments to merchants or transfer value between accounts.\n\nEMIs can offer current account-like products (with IBANs and payment cards), hold customer funds in safeguarded accounts, and process payments — but cannot lend those funds out or pay interest on balances (which distinguishes them from banks). Prominent EMIs include Revolut, Monzo (before it obtained a banking licence), Wise, and Stripe.\n\nFor fintech startups, an EMI licence is often the first regulated entity to obtain before upgrading to a full banking licence, as the capital requirements are lower and the authorisation process faster. The UK and Lithuania are popular jurisdictions for EMI authorisation.",
+    "category": "Licensing",
+    "related_terms": ["baas", "neobank", "psd2"]
+  },
+  {
+    "slug": "embedded-finance",
+    "term": "Embedded Finance",
+    "short_def": "The integration of financial products — payments, lending, insurance, investments — directly into non-financial platforms and applications.",
+    "body": "Embedded finance refers to the seamless integration of financial services into non-financial digital products — an e-commerce platform offering instant checkout loans, a fleet management app embedding commercial insurance, or an HR platform providing on-demand wage access. The financial product becomes a native feature of the software, rather than an external service the customer is redirected to.\n\nEmbedded finance is enabled by BaaS providers, payment processors, insurance APIs, and investment platforms that expose their licensed capabilities to software companies via APIs. Prominent examples include Shopify Balance (banking for merchants), Uber's driver earnings wallet, and Mintos's portfolio of embedded lending products.\n\nThe embedded finance market is projected to exceed $7 trillion in transaction value by 2030, according to multiple industry forecasts. For B2B software companies, embedding financial products is one of the highest-margin expansion revenue opportunities — financial services typically command 3–5x the take-rate of pure SaaS.",
+    "category": "Business Models",
+    "related_terms": ["baas", "api", "bnpl"]
+  },
+  {
+    "slug": "fintech",
+    "term": "Fintech",
+    "short_def": "A portmanteau of 'financial technology' — companies that use technology to innovate in financial services, from payments and lending to insurance and wealth management.",
+    "body": "Fintech (financial technology) refers to technology-driven companies and products that compete with, augment, or partner with traditional financial services. The term encompasses a broad range of sub-sectors including payments (Stripe, Adyen), neobanking (Revolut, Monzo, Nubank), lending (Funding Circle, Kabbage), wealthtech (Betterment, Nutmeg), insurtech (Lemonade, Marshmallow), regtech (ComplyAdvantage, Onfido), and infrastructure (Plaid, Marqeta, Thought Machine).\n\nThe global fintech sector raised $92 billion in venture capital in 2021 at its peak, before contracting in 2022–2023 to more sustainable funding levels. Despite the correction, fintech continues to attract significant investment and regulatory attention globally, with the UK, US, Singapore, and Brazil representing the world's most active fintech ecosystems.\n\nFor marketing and SEO professionals, fintech is a YMYL (Your Money or Your Life) category, meaning Google applies higher authority and trust standards to fintech content — making E-E-A-T signals (Experience, Expertise, Authoritativeness, Trustworthiness) especially important for organic ranking.",
+    "category": "Industry",
+    "related_terms": ["neobank", "embedded-finance", "regtech"]
+  },
+  {
+    "slug": "kyc",
+    "term": "KYC (Know Your Customer)",
+    "short_def": "The process financial institutions use to verify the identity of their customers and assess the risk of illegal activity before and during a business relationship.",
+    "body": "Know Your Customer (KYC) is the process regulated financial firms use to verify customer identities, understand the nature of the business relationship, and assess the risk of money laundering, terrorist financing, or fraud. KYC is a core element of Anti-Money Laundering (AML) programmes required by regulators in virtually every jurisdiction.\n\nA typical KYC process includes identity document verification (passport, driving licence), proof of address, biometric liveness checks, politically exposed person (PEP) screening, and adverse media checks. For business customers, KYC expands to Know Your Business (KYB), which adds beneficial ownership verification and company structure analysis.\n\nThe RegTech sector has built significant innovation around KYC automation, with companies like Onfido, Jumio, Sumsub, and Veriff offering AI-powered identity verification that reduces both verification time and fraud rates. For fintechs at scale, automated KYC is essential — manual review of customer documents does not scale beyond a few thousand onboardings per month.",
+    "category": "Compliance",
+    "related_terms": ["aml", "regtech"]
+  },
+  {
+    "slug": "neobank",
+    "term": "Neobank",
+    "short_def": "A fully digital bank that operates without physical branches, delivering banking services exclusively through mobile apps and web platforms.",
+    "body": "A neobank (also called a digital bank or challenger bank) is a financial institution that operates exclusively online — with no physical branch network — delivering current accounts, savings, cards, loans, and other banking products through mobile apps and web interfaces. Neobanks typically offer faster onboarding, lower fees, and better UX than traditional banks, targeting consumers and SMEs underserved by legacy financial institutions.\n\nProminent neobanks include Revolut (UK), Monzo (UK), N26 (Germany), Nubank (Brazil), Chime (US), and Starling Bank (UK). Some operate with full banking licences (Monzo, Starling, N26), while others operate as e-money institutions or partner with licensed banks for their core regulated products.\n\nNeobanks face structural challenges including high customer acquisition costs, low net interest margin due to limited lending books, and intense competition from incumbent banks that have accelerated their own digital transformations. The sector has consolidated in recent years, with profitability now the dominant investor expectation.",
+    "category": "Business Models",
+    "related_terms": ["baas", "emi", "embedded-finance"]
+  },
+  {
+    "slug": "open-banking",
+    "term": "Open Banking",
+    "short_def": "A system in which banks are required or incentivised to share customer financial data with authorised third-party providers via APIs, with customer consent.",
+    "body": "Open banking is a framework that requires or enables banks to share customer account data and initiate payments on behalf of customers with authorised third-party providers (TPPs), using secure APIs and with explicit customer consent. In the UK, open banking was mandated by the Competition and Markets Authority (CMA) and is overseen by the Open Banking Implementation Entity (OBIE). In the EU, PSD2 created the equivalent framework. The US, Australia (via CDR), Singapore, and Brazil have all implemented their own open banking regimes.\n\nOpen banking has enabled a new generation of fintech products: account aggregation apps (Moneyhub, Yolt), credit decisioning services that use transaction data instead of credit bureau scores (Creditspring, Portify), and payment initiation services that bypass card networks (GoCardless, Truelayer).\n\nFor fintechs, open banking data is a competitive advantage — access to real-time transactional data enables more accurate credit assessments, more personalised financial insights, and lower payment processing costs than card-based alternatives.",
+    "category": "Regulation",
+    "related_terms": ["psd2", "api", "embedded-finance"]
+  },
+  {
+    "slug": "psd2",
+    "term": "PSD2 (Payment Services Directive 2)",
+    "short_def": "The EU regulation that mandated open banking by requiring banks to give authorised third parties access to customer account data and payment initiation capabilities.",
+    "body": "PSD2 (Payment Services Directive 2) is the EU regulatory framework that transformed the European payments landscape by requiring banks to open their payment account infrastructure to authorised third-party providers (TPPs). It introduced two new regulated activities: Account Information Services (AIS) — aggregating account data across banks — and Payment Initiation Services (PIS) — triggering payments directly from bank accounts.\n\nPSD2 also introduced Strong Customer Authentication (SCA) requirements, mandating multi-factor authentication for online payments above €30 to reduce fraud. The directive was transposed into national law across EU member states in 2018–2019, and the UK created an equivalent framework post-Brexit.\n\nPSD2 is being superseded by PSD3 and the Payment Services Regulation (PSR), which the European Commission proposed in 2023 to address gaps in the original directive — particularly around open banking data quality, SCA usability, and fintech access to payment infrastructure.",
+    "category": "Regulation",
+    "related_terms": ["open-banking", "sca", "api"]
+  },
+  {
+    "slug": "regtech",
+    "term": "RegTech (Regulatory Technology)",
+    "short_def": "Technology solutions that help financial firms comply with regulatory requirements more efficiently, including AML, KYC, reporting, and risk management.",
+    "body": "RegTech (Regulatory Technology) refers to the use of technology — particularly AI, machine learning, and cloud computing — to streamline regulatory compliance in financial services. The sector emerged as compliance costs escalated following the 2008 financial crisis and the wave of post-crisis regulation that followed, making manual compliance processes economically unsustainable at scale.\n\nKey RegTech categories include: AML transaction monitoring (NICE Actimize, Featurespace), KYC identity verification (Onfido, Jumio), adverse media and PEP screening (ComplyAdvantage, LexisNexis), regulatory reporting (Regnology, Wolters Kluwer), and risk management (Quantexa, Ayasdi).\n\nFor fintechs seeking or holding regulated status (EMI, payment institution, banking licence), RegTech investment is both a compliance necessity and a competitive advantage. Automated compliance processes reduce operational costs, accelerate customer onboarding, and lower false-positive rates in fraud and AML detection — improving both unit economics and customer experience.",
+    "category": "Industry",
+    "related_terms": ["aml", "kyc"]
+  },
+  {
+    "slug": "sca",
+    "term": "SCA (Strong Customer Authentication)",
+    "short_def": "A European regulatory requirement under PSD2 mandating multi-factor authentication for online payments and account access above certain thresholds.",
+    "body": "Strong Customer Authentication (SCA) is an EU regulatory requirement introduced by PSD2 that mandates multi-factor authentication for electronic payments and account access. To comply, payment authentication must use at least two of three factors: something the customer knows (PIN, password), something the customer has (phone, hardware token), or something the customer is (fingerprint, face recognition).\n\nSCA applies to online transactions above €30 within the European Economic Area and to remote account access. Certain exemptions exist — low-value transactions, trusted payees, low-risk transactions (based on transaction risk analysis), and recurring fixed-amount subscriptions — but exemptions must be applied carefully to avoid both friction and fraud.\n\nFor fintechs operating in Europe, SCA implementation has been a significant engineering and UX challenge. Poor SCA implementation leads to high payment abandonment rates, while over-application of SCA creates unnecessary customer friction. 3D Secure 2 (3DS2) has become the standard protocol for SCA in card payments, and banks have broadly adopted dynamic linking and app-based authentication for account access.",
+    "category": "Regulation",
+    "related_terms": ["psd2", "open-banking"]
+  }
+]

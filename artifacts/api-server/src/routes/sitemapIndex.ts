@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, blogPostsTable, locationPagesTable, glossaryTermsTable, servicesTable, authorsTable } from "@workspace/db";
 import { asc, desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
-import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
+import { getKnownAuthorSlugs } from "./authorRss";
 import { STATIC_ROUTES } from "./sitemap";
 import { STATIC_CATEGORY_SLUGS, TOOL_SLUGS, COMPARE_SLUGS, SERVICE_SLUGS, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, SERVICE_PAGE_LASTMOD_DATE, escapeXml, CATEGORY_LABELS } from "../lib/seoConstants";
 
@@ -302,7 +302,7 @@ async function buildAuthorsSitemapXml(): Promise<string> {
   );
   const slugs = dbAuthors.length > 0
     ? dbAuthors.map((a) => a.slug)
-    : KNOWN_AUTHOR_SLUGS;
+    : await getKnownAuthorSlugs();
 
   const hasAnyPhoto = slugs.some((s) => photoMap.get(s)?.photo);
 

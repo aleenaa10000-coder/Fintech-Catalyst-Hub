@@ -9,13 +9,10 @@ import {
   db,
   newsletterSubscribersTable,
   authorSubscriptionsTable,
+  authorsTable,
 } from "@workspace/db";
-import { eq, sql, desc, and, gte } from "drizzle-orm";
+import { eq, sql, desc, and, gte, asc } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
-import {
-  authors,
-  getAuthorBySlug,
-} from "../../../fintechpresshub/src/data/authors";
 
 const router: IRouter = Router();
 
@@ -51,25 +48,35 @@ router.get(
     try {
       const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-      const totals = await db
-        .select({
-          authorSlug: authorSubscriptionsTable.authorSlug,
-          count: sql<number>`count(*)::int`,
-          latestSubscribedAt: sql<
-            Date | null
-          >`max(${authorSubscriptionsTable.createdAt})`,
-        })
-        .from(authorSubscriptionsTable)
-        .groupBy(authorSubscriptionsTable.authorSlug);
-
-      const recents = await db
-        .select({
-          authorSlug: authorSubscriptionsTable.authorSlug,
-          count: sql<number>`count(*)::int`,
-        })
-        .from(authorSubscriptionsTable)
-        .where(gte(authorSubscriptionsTable.createdAt, since30d))
-        .groupBy(authorSubscriptionsTable.authorSlug);
+      const [allAuthors, totals, recents] = await Promise.all([
+        db
+          .select({
+            slug:  authorsTable.slug,
+            name:  authorsTable.name,
+            role:  authorsTable.role,
+            photo: authorsTable.photo,
+          })
+          .from(authorsTable)
+          .orderBy(asc(authorsTable.sortOrder)),
+        db
+          .select({
+            authorSlug: authorSubscriptionsTable.authorSlug,
+            count: sql<number>`count(*)::int`,
+            latestSubscribedAt: sql<
+              Date | null
+            >`max(${authorSubscriptionsTable.createdAt})`,
+          })
+          .from(authorSubscriptionsTable)
+          .groupBy(authorSubscriptionsTable.authorSlug),
+        db
+          .select({
+            authorSlug: authorSubscriptionsTable.authorSlug,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(authorSubscriptionsTable)
+          .where(gte(authorSubscriptionsTable.createdAt, since30d))
+          .groupBy(authorSubscriptionsTable.authorSlug),
+      ]);
 
       type TotalRow = { authorSlug: string; count: number; latestSubscribedAt: Date | null };
       const totalsBySlug = new Map<string, TotalRow>(
@@ -79,7 +86,7 @@ router.get(
         (recents as { authorSlug: string; count: number }[]).map((r) => [r.authorSlug, r.count]),
       );
 
-      const summary = authors
+      const summary = allAuthors
         .map((a) => {
           const t = totalsBySlug.get(a.slug);
           return {
@@ -105,7 +112,17 @@ router.get(
 );
 
 async function loadAuthorDetail(slug: string) {
-  const author = getAuthorBySlug(slug);
+  const [author] = await db
+    .select({
+      slug:  authorsTable.slug,
+      name:  authorsTable.name,
+      role:  authorsTable.role,
+      photo: authorsTable.photo,
+    })
+    .from(authorsTable)
+    .where(eq(authorsTable.slug, slug))
+    .limit(1);
+
   if (!author) return null;
 
   const since90d = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
@@ -129,7 +146,6 @@ async function loadAuthorDetail(slug: string) {
   const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const last30DayCount = rows.filter((r: { createdAt: Date }) => r.createdAt >= since30d).length;
 
-  // Build daily signup buckets: zero-filled for the last 90 calendar days (UTC).
   const buckets = new Map<string, number>();
   const now = new Date();
   for (let i = 89; i >= 0; i--) {
@@ -186,7 +202,6 @@ router.get(
   },
 );
 
-// CSV export — served outside OpenAPI (binary-ish response). Same auth gate.
 router.get(
   "/admin/authors/:slug/subscribers.csv",
   requireAdmin,
@@ -221,7 +236,6 @@ router.get(
   },
 );
 
-// Suppress unused-import warning for `and` (kept available for future filters).
 void and;
 
 export default router;

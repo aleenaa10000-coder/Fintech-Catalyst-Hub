@@ -25,6 +25,36 @@ router.get("/services", async (_req, res) => {
   }
 });
 
+router.get("/services/:slug", async (req, res) => {
+  const slug = req.params.slug;
+  if (!slug) {
+    res.status(400).json({ error: "Missing slug" });
+    return;
+  }
+  try {
+    const [row] = await db
+      .select()
+      .from(servicesTable)
+      .where(eq(servicesTable.slug, slug))
+      .limit(1);
+    if (!row) {
+      res.status(404).json({ error: "Service not found" });
+      return;
+    }
+    res.json({
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      tagline: row.tagline,
+      description: row.description,
+      deliverables: row.deliverables ?? [],
+      icon: row.icon,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch service" });
+  }
+});
+
 router.post("/services", async (req, res) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });

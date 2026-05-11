@@ -12,6 +12,15 @@ import {
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
+/**
+ * Returns true when the Replit object-storage sidecar is likely available.
+ * On Hostinger (or any non-Replit host) REPL_ID is absent and the sidecar
+ * process does not run, so all storage operations must fail gracefully.
+ */
+function isReplitStorageAvailable(): boolean {
+  return !!process.env.REPL_ID;
+}
+
 // The object storage client is used to interact with the object storage service.
 export const objectStorageClient = new Storage({
   credentials: {
@@ -39,12 +48,26 @@ export class ObjectNotFoundError extends Error {
   }
 }
 
+export class ObjectStorageUnavailableError extends Error {
+  constructor() {
+    super(
+      "Object storage is not available in this environment. " +
+      "File uploads require Replit Object Storage (REPL_ID must be set).",
+    );
+    this.name = "ObjectStorageUnavailableError";
+    Object.setPrototypeOf(this, ObjectStorageUnavailableError.prototype);
+  }
+}
+
 // The object storage service is used to interact with the object storage service.
 export class ObjectStorageService {
   constructor() {}
 
   // Gets the public object search paths.
   getPublicObjectSearchPaths(): Array<string> {
+    if (!isReplitStorageAvailable()) {
+      throw new ObjectStorageUnavailableError();
+    }
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
     const paths = Array.from(
       new Set(
@@ -65,6 +88,9 @@ export class ObjectStorageService {
 
   // Gets the private object directory.
   getPrivateObjectDir(): string {
+    if (!isReplitStorageAvailable()) {
+      throw new ObjectStorageUnavailableError();
+    }
     const dir = process.env.PRIVATE_OBJECT_DIR || "";
     if (!dir) {
       throw new Error(
@@ -133,13 +159,10 @@ export class ObjectStorageService {
 
   // Gets the upload URL for an object entity.
   async getObjectEntityUploadURL(): Promise<string> {
-    const privateObjectDir = this.getPrivateObjectDir();
-    if (!privateObjectDir) {
-      throw new Error(
-        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
-          "tool and set PRIVATE_OBJECT_DIR env var."
-      );
+    if (!isReplitStorageAvailable()) {
+      throw new ObjectStorageUnavailableError();
     }
+    const privateObjectDir = this.getPrivateObjectDir();
 
     const objectId = randomUUID();
     const fullPath = `${privateObjectDir}/uploads/${objectId}`;
@@ -157,6 +180,9 @@ export class ObjectStorageService {
 
   // Gets the object entity file from the object path.
   async getObjectEntityFile(objectPath: string): Promise<File> {
+    if (!isReplitStorageAvailable()) {
+      throw new ObjectStorageUnavailableError();
+    }
     if (!objectPath.startsWith("/objects/")) {
       throw new ObjectNotFoundError();
     }
@@ -188,20 +214,20 @@ export class ObjectStorageService {
     if (!rawPath.startsWith("https://storage.googleapis.com/")) {
       return rawPath;
     }
-  
+
     // Extract the path from the URL by removing query parameters and domain
     const url = new URL(rawPath);
     const rawObjectPath = url.pathname;
-  
+
     let objectEntityDir = this.getPrivateObjectDir();
     if (!objectEntityDir.endsWith("/")) {
       objectEntityDir = `${objectEntityDir}/`;
     }
-  
+
     if (!rawObjectPath.startsWith(objectEntityDir)) {
       return rawObjectPath;
     }
-  
+
     // Extract the entity ID from the path
     const entityId = rawObjectPath.slice(objectEntityDir.length);
     return `/objects/${entityId}`;
@@ -298,4 +324,3 @@ async function signObjectURL({
   const payload = (await response.json()) as { signed_url: string };
   return payload.signed_url;
 }
-

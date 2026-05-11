@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   ObjectStorageService,
   ObjectNotFoundError,
+  ObjectStorageUnavailableError,
 } from "../lib/object-storage";
 import { logger } from "../lib/logger";
 
@@ -26,6 +27,12 @@ router.post("/api/uploads/request-url", async (req, res) => {
     const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
     res.json({ uploadURL, objectPath });
   } catch (err) {
+    if (err instanceof ObjectStorageUnavailableError) {
+      res.status(503).json({
+        error: "File uploads are not available in this environment. Configure Replit Object Storage to enable uploads.",
+      });
+      return;
+    }
     logger.error({ err }, "Failed to generate upload URL");
     res.status(500).json({ error: "Failed to generate upload URL" });
   }
@@ -60,6 +67,12 @@ router.post("/api/uploads/finalize", async (req, res) => {
       res.status(400).json({ error: "Invalid body", issues: err.issues });
       return;
     }
+    if (err instanceof ObjectStorageUnavailableError) {
+      res.status(503).json({
+        error: "File uploads are not available in this environment. Configure Replit Object Storage to enable uploads.",
+      });
+      return;
+    }
     logger.error({ err }, "Failed to finalize upload");
     res.status(500).json({ error: "Failed to finalize upload" });
   }
@@ -86,6 +99,10 @@ router.get("/objects/*objectPath", async (req, res) => {
   } catch (err) {
     if (err instanceof ObjectNotFoundError) {
       res.status(404).json({ error: "Object not found" });
+      return;
+    }
+    if (err instanceof ObjectStorageUnavailableError) {
+      res.status(503).json({ error: "File storage is not available in this environment." });
       return;
     }
     logger.error({ err }, "Failed to serve object");

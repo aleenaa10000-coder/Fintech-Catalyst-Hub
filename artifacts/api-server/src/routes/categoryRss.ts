@@ -3,19 +3,6 @@ import { db, blogPostsTable } from "@workspace/db";
 import { desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { escapeXml, RSS_SITE_DESCRIPTION, CATEGORY_LABELS } from "../lib/seoConstants";
-import staticPostsRaw from "../../../fintechpresshub/src/data/posts.js";
-
-type StaticPost = {
-  slug: string;
-  title: string;
-  excerpt: string;
-  category: string;
-  date: string;
-  author: string;
-  content?: string;
-};
-
-const staticPosts = staticPostsRaw as StaticPost[];
 
 const router: IRouter = Router();
 
@@ -45,24 +32,6 @@ type FeedItem = {
 async function collectCategoryPosts(categorySlug: string): Promise<FeedItem[]> {
   const categoryLabel = slugToCategory(categorySlug);
 
-  const fromStatic: FeedItem[] = staticPosts
-    .filter((p) => {
-      const pCatSlug = p.category
-        .toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/[^a-z0-9-]/g, "");
-      return pCatSlug === categorySlug || p.category === categoryLabel;
-    })
-    .map((p) => ({
-      slug: p.slug,
-      title: p.title,
-      excerpt: p.excerpt,
-      category: p.category,
-      date: p.date,
-      author: p.author,
-      content: p.content,
-    }));
-
   const apiRows = await db
     .select({
       slug: blogPostsTable.slug,
@@ -77,15 +46,15 @@ async function collectCategoryPosts(categorySlug: string): Promise<FeedItem[]> {
     .where(lte(blogPostsTable.publishedAt, sql`now()`))
     .orderBy(desc(blogPostsTable.publishedAt));
 
-  const merged = new Map<string, FeedItem>();
-  for (const p of fromStatic) merged.set(p.slug, p);
-  for (const p of apiRows) {
-    const pCatSlug = p.category
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "");
-    if (pCatSlug !== categorySlug && p.category !== categoryLabel) continue;
-    merged.set(p.slug, {
+  return apiRows
+    .filter((p) => {
+      const pCatSlug = p.category
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+      return pCatSlug === categorySlug || p.category === categoryLabel;
+    })
+    .map((p) => ({
       slug: p.slug,
       title: p.title,
       excerpt: p.excerpt,
@@ -93,12 +62,7 @@ async function collectCategoryPosts(categorySlug: string): Promise<FeedItem[]> {
       date: p.publishedAt.toISOString(),
       author: p.author,
       content: p.content,
-    });
-  }
-
-  return Array.from(merged.values()).sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+    }));
 }
 
 function buildRss(opts: {

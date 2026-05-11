@@ -3,15 +3,11 @@ import {
   useListBlogPosts,
   type BlogPost as ApiBlogPost,
 } from "@workspace/api-client-react";
-import staticPosts from "@/data/posts.js";
 
 /**
  * Unified shape used by the public-facing blog pages (`/blog` and
- * `/blog/<slug>`). It mirrors the legacy static-post shape that lives in
- * `posts.js` so the existing components don't need to be rewritten.
- *
- * `featured` and `tags` are optional because the legacy seed posts in
- * `posts.js` don't always carry them.
+ * `/blog/<slug>`). All posts come from the API (DB) and are served
+ * via the admin publish flow.
  */
 export type PublicPost = {
   id: number | string;
@@ -22,8 +18,7 @@ export type PublicPost = {
   image: string;
   date: string;
   /**
-   * ISO timestamp of the most recent edit. Optional because static seed posts
-   * in `posts.js` don't track edits. For API posts this maps from the DB
+   * ISO timestamp of the most recent edit. For API posts this maps from the DB
    * `updated_at` column (auto-bumped via Drizzle's `$onUpdate`). The UI shows
    * a "Last updated" indicator only when this is materially newer than `date`.
    */
@@ -35,16 +30,13 @@ export type PublicPost = {
   tags?: string[];
   featured?: boolean;
   /**
-   * Lifetime view count, only present for API-managed posts (static seed
-   * posts have no view tracking and fall back to 0 in the "Most read" sort).
+   * Lifetime view count, only present for API-managed posts.
    */
   viewCount?: number;
   /**
    * Optional per-post SEO overrides set in the admin dashboard. When
    * present these take precedence over the auto-derived defaults
-   * (title, excerpt, cover image) inside `<PageMeta>`. Static seed
-   * posts in `posts.js` never set these — they rely entirely on the
-   * defaults — so they're only ever populated from the API source.
+   * (title, excerpt, cover image) inside `<PageMeta>`.
    */
   seoTitle?: string | null;
   seoDescription?: string | null;
@@ -52,11 +44,10 @@ export type PublicPost = {
   /**
    * When true, the post detail page emits
    * `<meta name="robots" content="noindex,nofollow">` so search engines
-   * skip it. Static seed posts default to `false`. Toggled per-post in
-   * the admin dashboard.
+   * skip it. Toggled per-post in the admin dashboard.
    */
   noIndex?: boolean;
-  /** Structured FAQ items for FAQPage JSON-LD. Only populated for API posts. */
+  /** Structured FAQ items for FAQPage JSON-LD. */
   faqItems?: Array<{ question: string; answer: string }> | null;
   /** Bottom-Line-Up-Front summary. Shown above the fold as a callout. */
   blufSummary?: string | null;
@@ -71,17 +62,12 @@ export type PublicPost = {
   mentionEntities?: string[] | null;
 };
 
-type StaticPost = PublicPost;
-
 /**
  * Convert an API-managed `BlogPost` (DB row) into the unified `PublicPost`
  * shape used by the public blog. Field renames:
  *   coverImage     -> image
  *   publishedAt    -> date
  *   readingMinutes -> readTime ("X min read")
- *
- * The API id is namespaced with an `api-` prefix so it can never collide
- * with a static seed post id (those are plain numbers).
  */
 function fromApi(post: ApiBlogPost): PublicPost {
   return {
@@ -113,14 +99,7 @@ function fromApi(post: ApiBlogPost): PublicPost {
 }
 
 /**
- * Returns the merged public-post list. Static seed posts render immediately
- * (no network wait); API-published posts are folded in once the request
- * resolves. When a slug exists in both sources, the API version wins —
- * republishing a seed post through `/admin/blog` is the documented way to
- * "edit" it.
- *
- * The result is sorted newest-first by `date` so the homepage and blog index
- * surface fresh content automatically.
+ * Returns all published blog posts from the API, sorted newest-first.
  */
 export function usePublicPosts(): {
   posts: PublicPost[];
@@ -129,21 +108,8 @@ export function usePublicPosts(): {
   const { data: apiPosts, isLoading } = useListBlogPosts();
 
   const posts = useMemo(() => {
-    const merged = new Map<string, PublicPost>();
-
-    // Seed with static posts first so they're the fallback.
-    for (const p of staticPosts as StaticPost[]) {
-      merged.set(p.slug, p);
-    }
-
-    // Overlay API posts (latest source of truth).
-    if (apiPosts) {
-      for (const p of apiPosts) {
-        merged.set(p.slug, fromApi(p));
-      }
-    }
-
-    return Array.from(merged.values()).sort((a, b) => {
+    if (!apiPosts) return [];
+    return apiPosts.map(fromApi).sort((a, b) => {
       const da = new Date(a.date).getTime();
       const db = new Date(b.date).getTime();
       return db - da;
