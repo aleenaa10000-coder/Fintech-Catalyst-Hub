@@ -57,6 +57,8 @@ type LocationDraft = {
   body: string;
   seoTitle: string;
   seoDescription: string;
+  lat: string;
+  lng: string;
 };
 
 const EMPTY_DRAFT: LocationDraft = {
@@ -69,6 +71,8 @@ const EMPTY_DRAFT: LocationDraft = {
   body: "",
   seoTitle: "",
   seoDescription: "",
+  lat: "",
+  lng: "",
 };
 
 function slugify(s: string) {
@@ -251,6 +255,43 @@ function LocationForm({
 
       <div className="border-t pt-4 space-y-4">
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+          Coordinates{" "}
+          <span className="normal-case font-normal">
+            — optional, enables <code>geo.position</code> / <code>ICBM</code> meta tags
+          </span>
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="lat">Latitude</Label>
+            <Input
+              id="lat"
+              type="number"
+              step="any"
+              min={-90}
+              max={90}
+              value={draft.lat}
+              onChange={set("lat")}
+              placeholder="e.g. 51.5074"
+            />
+          </div>
+          <div>
+            <Label htmlFor="lng">Longitude</Label>
+            <Input
+              id="lng"
+              type="number"
+              step="any"
+              min={-180}
+              max={180}
+              value={draft.lng}
+              onChange={set("lng")}
+              placeholder="e.g. -0.1278"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t pt-4 space-y-4">
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
           SEO overrides{" "}
           <span className="normal-case font-normal">
             — leave blank to use auto-derived title and description
@@ -342,6 +383,8 @@ export default function AdminLocations() {
           body: draft.body,
           seoTitle: draft.seoTitle || undefined,
           seoDescription: draft.seoDescription || undefined,
+          ...(draft.lat !== "" ? { lat: Number(draft.lat) } : {}),
+          ...(draft.lng !== "" ? { lng: Number(draft.lng) } : {}),
         }),
       }),
     onSuccess: (row) => {
@@ -369,6 +412,8 @@ export default function AdminLocations() {
           body: draft.body,
           seoTitle: draft.seoTitle || undefined,
           seoDescription: draft.seoDescription || undefined,
+          ...(draft.lat !== "" ? { lat: Number(draft.lat) } : {}),
+          ...(draft.lng !== "" ? { lng: Number(draft.lng) } : {}),
         }),
       }),
     onSuccess: (row) => {
@@ -497,6 +542,8 @@ export default function AdminLocations() {
                           body: loc.body,
                           seoTitle: loc.seoTitle ?? "",
                           seoDescription: loc.seoDescription ?? "",
+                          lat: (loc as LocationPage & { lat?: number | null }).lat != null ? String((loc as LocationPage & { lat?: number | null }).lat) : "",
+                          lng: (loc as LocationPage & { lng?: number | null }).lng != null ? String((loc as LocationPage & { lng?: number | null }).lng) : "",
                         }}
                         onSave={(draft) =>
                           updateMut.mutate({ id: loc.id, draft })

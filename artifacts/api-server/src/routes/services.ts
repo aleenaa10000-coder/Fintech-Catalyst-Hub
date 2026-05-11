@@ -3,6 +3,9 @@ import { db, servicesTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
 import { CreateServiceBody } from "@workspace/api-zod";
 import { invalidateSitemapCache } from "./sitemapIndex";
+import { getSiteUrl, notifySearchEnginesOfPublishWithTimeout } from "../lib/seo";
+
+const SEO_NOTIFY_TIMEOUT_MS = 4000;
 
 const router: IRouter = Router();
 
@@ -83,6 +86,10 @@ router.post("/services", async (req, res) => {
       return;
     }
     invalidateSitemapCache();
+    notifySearchEnginesOfPublishWithTimeout(
+      [`${getSiteUrl()}/services/${row.slug}`],
+      SEO_NOTIFY_TIMEOUT_MS,
+    ).catch(() => {});
     res.json({
       id: row.id,
       slug: row.slug,

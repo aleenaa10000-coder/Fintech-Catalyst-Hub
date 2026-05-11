@@ -46,6 +46,7 @@ interface AuthorFormState {
   socialWebsite: string;
   socialEmail: string;
   sortOrder: string;
+  datePublished: string;
 }
 
 const EMPTY_FORM: AuthorFormState = {
@@ -64,6 +65,7 @@ const EMPTY_FORM: AuthorFormState = {
   socialWebsite: "",
   socialEmail: "",
   sortOrder: "0",
+  datePublished: "",
 };
 
 function authorToForm(a: AuthorRow): AuthorFormState {
@@ -83,6 +85,7 @@ function authorToForm(a: AuthorRow): AuthorFormState {
     socialWebsite: a.social?.website ?? "",
     socialEmail: a.social?.email ?? "",
     sortOrder: String(a.sortOrder ?? 0),
+    datePublished: (a as AuthorRow & { datePublished?: string }).datePublished ?? "",
   };
 }
 
@@ -114,6 +117,7 @@ function formToPayload(f: AuthorFormState) {
     location: f.location.trim(),
     social,
     sortOrder: Math.max(0, Math.min(10000, Number(f.sortOrder) || 0)),
+    ...(f.datePublished.trim() ? { datePublished: f.datePublished.trim() } : {}),
   };
 }
 
@@ -641,6 +645,25 @@ export default function AdminAuthors() {
                           setForm({ ...form, socialEmail: e.target.value })
                         }
                       />
+                    </div>
+                    <div>
+                      <Label htmlFor="author-date-published">
+                        Date published{" "}
+                        <span className="text-muted-foreground font-normal">(YYYY-MM-DD · optional SEO override)</span>
+                      </Label>
+                      <Input
+                        id="author-date-published"
+                        type="date"
+                        value={form.datePublished}
+                        onChange={(e) =>
+                          setForm({ ...form, datePublished: e.target.value })
+                        }
+                        placeholder="YYYY-MM-DD"
+                        pattern="\d{4}-\d{2}-\d{2}"
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Sets <code>datePublished</code> on the author's JSON-LD Person schema. Defaults to account creation date when blank.
+                      </p>
                     </div>
                   </div>
                 </div>

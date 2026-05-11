@@ -26,6 +26,13 @@ const PAGES_DIR = path.resolve(
   "../../artifacts/fintechpresshub/src/pages",
 );
 
+const SEO_CONSTANTS_PATH = path.resolve(
+  new URL(".", import.meta.url).pathname,
+  "../../artifacts/api-server/src/lib/seoConstants.ts",
+);
+
+const STALE_THRESHOLD_DAYS = 180;
+
 /**
  * Admin pages and pure-utility files that intentionally omit <PageMeta>.
  * Any filename whose basename matches one of these prefixes is skipped for
@@ -58,9 +65,45 @@ function collectTsxFiles(dir: string, acc: string[] = []): string[] {
 
 type Issue = {
   file: string;
-  kind: "RAW_HELMET" | "MISSING_META" | "RAW_JSONLD";
+  kind: "RAW_HELMET" | "MISSING_META" | "RAW_JSONLD" | "STALE_DATE";
   detail: string;
 };
+
+function checkStaleDates(): Issue[] {
+  const issues: Issue[] = [];
+  if (!fs.existsSync(SEO_CONSTANTS_PATH)) return issues;
+
+  const src = fs.readFileSync(SEO_CONSTANTS_PATH, "utf-8");
+  const now = Date.now();
+  const thresholdMs = STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+
+  // Match date strings in STATIC_PAGE_LASTMOD / TOOL_PAGE_LASTMOD / COMPARE_PAGE_LASTMOD
+  // and SERVICE_PAGE_LASTMOD_DATE patterns: "YYYY-MM-DD"
+  const datePattern = /["'](\d{4}-\d{2}-\d{2})["']/g;
+  let match: RegExpExecArray | null;
+  const seen = new Set<string>();
+
+  while ((match = datePattern.exec(src)) !== null) {
+    const dateStr = match[1]!;
+    if (seen.has(dateStr)) continue;
+    seen.add(dateStr);
+
+    const dateMs = new Date(dateStr).getTime();
+    if (isNaN(dateMs)) continue;
+
+    const ageMs = now - dateMs;
+    if (ageMs > thresholdMs) {
+      const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+      issues.push({
+        file: path.relative(PAGES_DIR, SEO_CONSTANTS_PATH),
+        kind: "STALE_DATE",
+        detail: `Date "${dateStr}" is ${ageDays} days old (>${STALE_THRESHOLD_DAYS} day threshold). Update STATIC_PAGE_LASTMOD or the relevant *_LASTMOD constant in seoConstants.ts.`,
+      });
+    }
+  }
+
+  return issues;
+}
 
 function auditFile(filePath: string): Issue[] {
   const rel = path.relative(PAGES_DIR, filePath);
@@ -121,10 +164,14 @@ function main(): void {
     allIssues.push(...auditFile(f));
   }
 
+  // Check seoConstants.ts for stale lastmod dates
+  allIssues.push(...checkStaleDates());
+
   const byKind = {
     RAW_HELMET: allIssues.filter((i) => i.kind === "RAW_HELMET"),
     RAW_JSONLD: allIssues.filter((i) => i.kind === "RAW_JSONLD"),
     MISSING_META: allIssues.filter((i) => i.kind === "MISSING_META"),
+    STALE_DATE: allIssues.filter((i) => i.kind === "STALE_DATE"),
   };
 
   console.log("\n══════════════════════════════════════════════════");
@@ -165,9 +212,17 @@ function main(): void {
     }
   }
 
+  if (byKind.STALE_DATE.length > 0) {
+    console.log(`🔵  STALE_DATE (${byKind.STALE_DATE.length} issue${byKind.STALE_DATE.length > 1 ? "s" : ""})`);
+    console.log(`    These lastmod dates in seoConstants.ts are >${STALE_THRESHOLD_DAYS} days old.\n`);
+    for (const i of byKind.STALE_DATE) {
+      console.log(`    • ${i.detail}\n`);
+    }
+  }
+
   const critical = byKind.RAW_HELMET.length + byKind.RAW_JSONLD.length;
   console.log("══════════════════════════════════════════════════");
-  console.log(`  Total: ${allIssues.length} issue(s)  |  ${critical} critical  |  ${byKind.MISSING_META.length} warnings`);
+  console.log(`  Total: ${allIssues.length} issue(s)  |  ${critical} critical  |  ${byKind.MISSING_META.length} warnings  |  ${byKind.STALE_DATE.length} stale dates`);
   console.log("══════════════════════════════════════════════════\n");
 
   if (critical > 0) {

@@ -1452,6 +1452,20 @@ async function handleSsrMeta(
           isAccessibleForFree: true,
           accessMode: ["textual", "visual"],
           potentialAction: { "@type": "ReadAction", target: canonical },
+          // citation: extract all outbound https:// links from the post body
+          // and emit them as CreativeWork citations. Gives Google a machine-
+          // readable list of sources, strengthening E-E-A-T for financial
+          // content — a direct signal Google uses for Your Money Your Life pages.
+          ...(() => {
+            const bodyText = (post as { body?: string }).body ?? "";
+            const citationUrls = Array.from(
+              bodyText.matchAll(/href="(https?:\/\/(?!(?:www\.)?fintechpresshub\.com)[^"#?]+)"/g),
+              (m: RegExpMatchArray) => m[1] as string,
+            ).filter((u: string, i: number, a: string[]) => a.indexOf(u) === i).slice(0, 10);
+            return citationUrls.length > 0
+              ? { citation: citationUrls.map((url: string) => ({ "@type": "CreativeWork", url })) }
+              : {};
+          })(),
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
       ];
@@ -1556,6 +1570,8 @@ async function handleSsrMeta(
           seoDescription: locationPagesTable.seoDescription,
           publishedAt:    locationPagesTable.publishedAt,
           updatedAt:      locationPagesTable.updatedAt,
+          lat:            locationPagesTable.lat,
+          lng:            locationPagesTable.lng,
         })
         .from(locationPagesTable)
         .where(eq(locationPagesTable.slug, slug))
@@ -1590,6 +1606,12 @@ async function handleSsrMeta(
         headLinks: [
           `  <meta name="geo.placename" content="${esc(geoPlacename)}" />`,
           `  <meta name="geo.region" content="${esc(loc.countryCode)}" />`,
+          ...(loc.lat != null && loc.lng != null
+            ? [
+                `  <meta name="geo.position" content="${loc.lat};${loc.lng}" />`,
+                `  <meta name="ICBM" content="${loc.lat}, ${loc.lng}" />`,
+              ]
+            : []),
         ],
         extraLds: [
           JSON.stringify({
@@ -2549,6 +2571,17 @@ async function handleSsrMeta(
             speakable: {
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
+            },
+            // SearchAction declares that this collection page supports full-text
+            // search — enables Google's Sitelinks Search Box for /blog in SERPs
+            // and provides AI agents a machine-readable interface to query the blog.
+            potentialAction: {
+              "@type":  "SearchAction",
+              target: {
+                "@type":       "EntryPoint",
+                urlTemplate:   `${siteUrl}/blog?q={search_term_string}`,
+              },
+              "query-input": "required name=search_term_string",
             },
           }, null, 2));
           // Blog entity — defines the canonical #blog @id referenced by BlogPosting.isPartOf

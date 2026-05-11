@@ -641,11 +641,12 @@ async function serveSitemap(
 async function buildTagsSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
 
-  const rows = await db.execute<{ tag: string; lastmod: string }>(
+  const rows = await db.execute<{ tag: string; lastmod: string; post_count: string }>(
     sql`
       SELECT
         tag,
-        to_char(max(published_at), 'YYYY-MM-DD') as lastmod
+        to_char(max(published_at), 'YYYY-MM-DD') as lastmod,
+        count(*)::text as post_count
       FROM (
         SELECT
           jsonb_array_elements_text(tags) as tag,
@@ -658,7 +659,7 @@ async function buildTagsSitemapXml(): Promise<string> {
       GROUP BY tag
       ORDER BY tag ASC
     `,
-  ).catch(() => ({ rows: [] as Array<{ tag: string; lastmod: string }> }));
+  ).catch(() => ({ rows: [] as Array<{ tag: string; lastmod: string; post_count: string }> }));
 
   if (rows.rows.length === 0) return xmlUrlset("");
 
@@ -667,21 +668,25 @@ async function buildTagsSitemapXml(): Promise<string> {
       const slug    = r.tag.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
       if (!slug) return "";
       const loc     = `${siteUrl}/blog/tag/${slug}`;
+      const rssUrl  = `${siteUrl}/blog/tag/${slug}/rss.xml`;
       const label   = r.tag;
       const imageUrl = `${siteUrl}/api/og?title=${encodeURIComponent(label)}&category=${encodeURIComponent("Tag")}`;
       const lastmod  = r.lastmod ?? new Date().toISOString().slice(0, 10);
+      const count    = parseInt(r.post_count ?? "0", 10);
+      const priority = count > 20 ? "0.8" : count > 5 ? "0.7" : "0.6";
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(loc)}</loc>\n` +
         `    <lastmod>${lastmod}</lastmod>\n` +
         `    <changefreq>weekly</changefreq>\n` +
-        `    <priority>0.6</priority>\n` +
+        `    <priority>${priority}</priority>\n` +
         `    <image:image>\n` +
         `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
         `      <image:title>${escapeXml(label)}</image:title>\n` +
         `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" type="application/rss+xml" title="${escapeXml(label)} — FintechPressHub" href="${escapeXml(rssUrl)}"/>\n` +
         `  </url>`
       );
     })

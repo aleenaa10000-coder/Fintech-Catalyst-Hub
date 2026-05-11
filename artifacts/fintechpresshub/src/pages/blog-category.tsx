@@ -139,6 +139,10 @@ export default function BlogCategoryPage() {
               }
             : undefined
         }
+        webPage={{
+          datePublished: "2021-06-01",
+          dateModified: new Date().toISOString().slice(0, 10),
+        }}
       />
       <PageHero
         eyebrow="Category"

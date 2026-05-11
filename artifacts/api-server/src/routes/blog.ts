@@ -925,6 +925,76 @@ router.get(
 );
 
 /**
+ * Topical Authority Score — computes a 0–100 score for the blog content graph.
+ * Factors: unique published categories, unique published tags, average posts per
+ * category. A higher score signals broader keyword coverage and deeper subject
+ * matter expertise to Google's topic-authority algorithms.
+ */
+router.get(
+  "/admin/blog/topical-authority",
+  requireAdmin,
+  async (_req, res, next) => {
+    try {
+      const [categoryStats, tagStats] = await Promise.all([
+        db.execute<{ category: string; post_count: string }>(sql`
+          SELECT category, count(*)::text as post_count
+          FROM blog_posts
+          WHERE published_at <= now()
+            AND no_index = false
+            AND category IS NOT NULL
+            AND category <> ''
+          GROUP BY category
+        `),
+        db.execute<{ tag: string; post_count: string }>(sql`
+          SELECT jsonb_array_elements_text(tags) as tag, count(*)::text as post_count
+          FROM blog_posts
+          WHERE published_at <= now()
+            AND no_index = false
+          GROUP BY tag
+          HAVING jsonb_array_elements_text(tags) IS NOT NULL
+            AND jsonb_array_elements_text(tags) <> ''
+        `).catch(() => ({ rows: [] as Array<{ tag: string; post_count: string }> })),
+      ]);
+
+      const categories = categoryStats.rows;
+      const tags = tagStats.rows;
+      const totalPosts = categories.reduce((sum, r) => sum + parseInt(r.post_count, 10), 0);
+      const uniqueCategories = categories.length;
+      const uniqueTags = tags.length;
+      const avgPostsPerCategory = uniqueCategories > 0 ? totalPosts / uniqueCategories : 0;
+
+      // Score components (each 0–100, weighted):
+      //   40% = category breadth (≥8 = full score, mirrors STATIC_CATEGORY_SLUGS count)
+      //   30% = tag depth (≥100 unique tags = full score)
+      //   30% = avg posts per category (≥10 = full score — signals depth not just breadth)
+      const categoryScore = Math.min(uniqueCategories / 8, 1) * 40;
+      const tagScore = Math.min(uniqueTags / 100, 1) * 30;
+      const depthScore = Math.min(avgPostsPerCategory / 10, 1) * 30;
+      const score = Math.round(categoryScore + tagScore + depthScore);
+
+      res.json({
+        score,
+        breakdown: {
+          uniqueCategories,
+          uniqueTags,
+          totalPosts,
+          avgPostsPerCategory: parseFloat(avgPostsPerCategory.toFixed(1)),
+          categoryScore: parseFloat(categoryScore.toFixed(1)),
+          tagScore: parseFloat(tagScore.toFixed(1)),
+          depthScore: parseFloat(depthScore.toFixed(1)),
+        },
+        topCategories: categories
+          .sort((a, b) => parseInt(b.post_count, 10) - parseInt(a.post_count, 10))
+          .slice(0, 5)
+          .map((r) => ({ category: r.category, postCount: parseInt(r.post_count, 10) })),
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/**
  * Delete (unpublish) a blog post by slug. Requires an authenticated session.
  * The deleted URL stays out of the next /sitemap.xml render automatically.
  */

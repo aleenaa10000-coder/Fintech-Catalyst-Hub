@@ -984,7 +984,7 @@ export default function BlogPost() {
                     {post.tags.map((tag: string) => (
                       <Link
                         key={tag}
-                        href={`/blog?tag=${encodeURIComponent(tag)}`}
+                        href={`/blog/tag/${tag.toLowerCase().replace(/\s+/g, "-")}`}
                         aria-label={`Browse other articles tagged ${tag}`}
                         className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-medium text-[#0052FF] hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF] transition-colors duration-200 cursor-pointer"
                         data-testid={`tag-${tag.toLowerCase().replace(/\s+/g, "-")}`}

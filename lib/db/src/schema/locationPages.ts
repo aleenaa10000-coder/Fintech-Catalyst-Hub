@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { doublePrecision, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 export const locationPagesTable = pgTable("location_pages", {
   id: serial("id").primaryKey(),
@@ -21,6 +21,8 @@ export const locationPagesTable = pgTable("location_pages", {
   // location page appears in Google SERPs without editing the headline.
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
+  lat: doublePrecision("lat"),
+  lng: doublePrecision("lng"),
 });
 
 export type LocationPageRow = typeof locationPagesTable.$inferSelect;

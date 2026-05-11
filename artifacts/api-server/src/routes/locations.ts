@@ -46,6 +46,8 @@ const LocationPageBody = z.object({
   body: z.string().min(1),
   seoTitle: z.string().max(100).nullable().optional(),
   seoDescription: z.string().max(300).nullable().optional(),
+  lat: z.number().min(-90).max(90).nullable().optional(),
+  lng: z.number().min(-180).max(180).nullable().optional(),
 });
 
 const UpdateLocationPageBody = LocationPageBody.partial().refine(

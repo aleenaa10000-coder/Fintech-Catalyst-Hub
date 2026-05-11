@@ -10,6 +10,9 @@ import { db, authorsTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
 import { invalidateSitemapCache } from "./sitemapIndex";
+import { getSiteUrl, notifySearchEnginesOfPublishWithTimeout } from "../lib/seo";
+
+const SEO_NOTIFY_TIMEOUT_MS = 4000;
 
 const router: IRouter = Router();
 
@@ -47,6 +50,7 @@ const AuthorBody = z.object({
   location: z.string().trim().max(160).default(""),
   social: SocialSchema.default({}),
   sortOrder: z.number().int().min(0).max(10000).optional(),
+  datePublished: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD").optional(),
 });
 
 function pruneSocial(s: z.infer<typeof SocialSchema>) {
@@ -122,6 +126,10 @@ router.post("/admin/authors", requireAdmin, async (req, res, next) => {
       })
       .returning();
     invalidateSitemapCache();
+    notifySearchEnginesOfPublishWithTimeout(
+      [`${getSiteUrl()}/authors/${data.slug}`],
+      SEO_NOTIFY_TIMEOUT_MS,
+    ).catch(() => {});
     res.status(201).json({ ok: true, author: row });
   } catch (err) {
     next(err);
@@ -171,6 +179,10 @@ router.put("/admin/authors/:slug", requireAdmin, async (req, res, next) => {
       return;
     }
     invalidateSitemapCache();
+    notifySearchEnginesOfPublishWithTimeout(
+      [`${getSiteUrl()}/authors/${row.slug ?? slug}`],
+      SEO_NOTIFY_TIMEOUT_MS,
+    ).catch(() => {});
     res.json({ ok: true, author: row });
   } catch (err) {
     next(err);
