@@ -738,7 +738,7 @@ const PRICING_FAQS: ReadonlyArray<{ question: string; answer: string }> = [
 const STATIC_META: Record<string, { title: string; description: string; ogType?: string }> = {
   "/": {
     title: "Fintech SEO & Content Marketing Agency | FintechPressHub",
-    description: "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
+    description: "Specialist fintech SEO & content marketing agency — expert writers, tier-1 link placements, and measurable organic rankings for ambitious fintech brands.",
     ogType: "website",
   },
   "/about": {

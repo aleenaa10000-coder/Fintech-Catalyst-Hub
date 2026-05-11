@@ -104,6 +104,11 @@ export function Footer() {
                   Compare
                 </PrefetchLink>
               </li>
+              <li>
+                <PrefetchLink href="/press" className="text-muted-foreground hover:text-primary transition-colors">
+                  Press &amp; Media
+                </PrefetchLink>
+              </li>
             </ul>
           </div>
 
@@ -193,7 +198,7 @@ export function Footer() {
 
         <div className="pt-8 border-t border-border text-center md:text-left text-sm text-muted-foreground flex flex-col md:flex-row justify-between items-center">
           <p>© {new Date().getFullYear()} FintechPressHub. All rights reserved.</p>
-          <p className="mt-2 md:mt-0">Built with ⚡ by a Vibe Coder | Optimized for FintechPressHub</p>
+          <p className="mt-2 md:mt-0">Specialist fintech SEO &amp; content marketing since 2021.</p>
         </div>
       </div>
     </footer>

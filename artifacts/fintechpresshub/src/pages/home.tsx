@@ -139,7 +139,7 @@ export default function Home() {
         page="home"
         faq={homeFaqs}
         speakableSelectors={["h1", ".speakable-summary", ".hero-description"]}
-        webPage={{ dateModified: "2026-05-11", datePublished: "2021-01-01" }}
+        webPage={{ dateModified: new Date().toISOString().slice(0, 10), datePublished: "2021-01-01" }}
         aggregateRating={
           Array.isArray(testimonials) && testimonials.length > 0
             ? {
@@ -216,7 +216,7 @@ export default function Home() {
       <TrustedBy />
 
       {/* Trust Stats */}
-      <section className="py-12 bg-secondary/50 border-y">
+      <section className="py-12 bg-secondary/50 border-y" aria-label="Key results and performance metrics">
         <div className="container mx-auto px-4">
           <h2 className="text-center text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-8">
             Fintech SEO Results That Speak for Themselves
@@ -268,7 +268,7 @@ export default function Home() {
       </section>
 
       {/* Services Overview */}
-      <section className="py-24 bg-background">
+      <section className="py-24 bg-background" aria-label="Fintech SEO and content marketing services">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -338,7 +338,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 bg-secondary/30">
+      <section className="py-24 bg-secondary/30" aria-label="Client testimonials">
         <div className="container mx-auto px-4">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -387,7 +387,7 @@ export default function Home() {
       </section>
 
       {/* Featured Posts */}
-      <section className="py-24 bg-background">
+      <section className="py-24 bg-background" aria-label="Latest fintech SEO insights">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -418,13 +418,25 @@ export default function Home() {
                 >
                   <Link href={`/blog/${post.slug}`}>
                     <div className="overflow-hidden mb-6 aspect-video bg-slate-100" style={{ borderRadius: "12px" }}>
-                      <img src={post.coverImage} alt={post.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      <img
+                        src={post.coverImage}
+                        alt={post.title}
+                        loading={i === 0 ? "eager" : "lazy"}
+                        fetchPriority={i === 0 ? "high" : undefined}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
                     </div>
                     <span className="inline-block text-xs font-medium uppercase tracking-wide mb-3 px-2.5 py-1 rounded-full bg-sky-100 text-sky-700">
                       {post.category}
                     </span>
                     <h3 className="text-xl font-semibold mb-3 leading-snug group-hover:text-primary transition-colors line-clamp-2">{post.title}</h3>
                     <p className="text-muted-foreground line-clamp-2 mb-4">{post.excerpt}</p>
+                    {post.author && (
+                      <div className="text-sm text-muted-foreground mb-2">
+                        By <span className="font-medium text-foreground">{post.author}</span>
+                        {post.authorRole && <span> · {post.authorRole}</span>}
+                      </div>
+                    )}
                     <div className="text-sm text-muted-foreground mb-4">{new Date(post.publishedAt).toLocaleDateString()} · {post.readingMinutes} min read</div>
                     <span className="inline-flex items-center text-sm font-medium text-primary">
                       Read More
@@ -556,7 +568,7 @@ export default function Home() {
       ) : null}
 
       {/* FAQ */}
-      <section className="py-20 border-t bg-muted/20" data-testid="section-home-faq">
+      <section className="py-20 border-t bg-muted/20" data-testid="section-home-faq" aria-label="Frequently asked questions about fintech SEO">
         <div className="container mx-auto px-4 max-w-3xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -604,7 +616,7 @@ export default function Home() {
       {isAdmin ? <QuickPublishSheet /> : null}
 
       {/* CTA */}
-      <section className="py-24 bg-primary text-primary-foreground text-center">
+      <section className="py-24 bg-primary text-primary-foreground text-center" aria-label="Get started with FintechPressHub">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -614,14 +626,25 @@ export default function Home() {
         >
           <h2 className="text-4xl font-bold mb-6">Ready to Scale Your Fintech SEO?</h2>
           <p className="text-xl mb-10 opacity-90">Join top fintech companies scaling their organic revenue with our specialized SEO and content strategies.</p>
-          <Link href="/contact">
-            <Button
-              size="lg"
-              className="h-14 px-10 text-lg font-semibold bg-orange-500 hover:bg-orange-600 text-white shadow-lg"
-            >
-              Get Started Today
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/contact">
+              <Button
+                size="lg"
+                className="h-14 px-10 text-lg font-semibold bg-orange-500 hover:bg-orange-600 text-white shadow-lg"
+              >
+                Get Started Today
+              </Button>
+            </Link>
+            <Link href="/pricing">
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 px-10 text-lg font-semibold border-white/40 text-white bg-white/10 hover:bg-white/20 hover:text-white"
+              >
+                View Pricing
+              </Button>
+            </Link>
+          </div>
         </motion.div>
       </section>
     </div>

@@ -71,7 +71,7 @@ export const ORGANIZATION_SCHEMA = {
     caption: SITE_NAME,
   },
   description:
-    "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
+    "Specialist fintech SEO & content marketing agency — expert writers, tier-1 link placements, and measurable organic rankings for ambitious fintech brands.",
   foundingDate: "2021-01-01",
   areaServed: "Worldwide",
   email: "hello@fintechpresshub.com",
@@ -127,7 +127,7 @@ export const PAGE_META = {
   home: {
     title: "Fintech SEO & Content Marketing Agency | FintechPressHub",
     description:
-      "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
+      "Specialist fintech SEO & content marketing agency — expert writers, tier-1 link placements, and measurable organic rankings for ambitious fintech brands.",
   },
   about: {
     title: "About FintechPressHub | Fintech SEO Agency",
