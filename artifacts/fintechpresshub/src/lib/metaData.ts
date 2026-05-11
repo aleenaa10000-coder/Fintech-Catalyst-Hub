@@ -115,6 +115,12 @@ export const ORGANIZATION_SCHEMA = {
     "Answer Engine Optimization",
     "Financial Services Marketing",
   ],
+  publishingPrinciples: `${SITE_URL}/editorial-guidelines`,
+  masthead: `${SITE_URL}/about`,
+  actionableFeedbackPolicy: `${SITE_URL}/contact`,
+  correctionsPolicy: `${SITE_URL}/editorial-guidelines`,
+  noBylinesPolicy: `${SITE_URL}/editorial-guidelines`,
+  ethicsPolicy: `${SITE_URL}/editorial-guidelines`,
 } as const;
 
 export const PAGE_META = {

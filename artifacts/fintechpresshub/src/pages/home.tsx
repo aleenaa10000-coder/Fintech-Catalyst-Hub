@@ -11,8 +11,6 @@ import {
   useListBlogPosts,
   getListBlogPostsQueryKey,
 } from "@workspace/api-client-react";
-import heroBg from "@/assets/hero-bg.png";
-import servicesGraph from "@/assets/services-graph.png";
 import { ArrowRight, CheckCircle2, TrendingUp, ShieldCheck, Globe, FileText, Link2, Cog, HelpCircle, Plus, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -155,7 +153,7 @@ export default function Home() {
         }
       />
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-gradient-to-br from-[#0b1e4d] via-[#102a6b] to-[#0a1633]">
+      <section aria-label="FintechPressHub — Fintech SEO Agency" className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-gradient-to-br from-[#0b1e4d] via-[#102a6b] to-[#0a1633]">
         <div className="absolute inset-0 z-0">
           <div
             className="absolute inset-0 opacity-[0.18]"
@@ -220,6 +218,9 @@ export default function Home() {
       {/* Trust Stats */}
       <section className="py-12 bg-secondary/50 border-y">
         <div className="container mx-auto px-4">
+          <h2 className="text-center text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-8">
+            Fintech SEO Results That Speak for Themselves
+          </h2>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -325,9 +326,12 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="text-center">
+          <div className="flex flex-wrap gap-4 justify-center">
             <Link href="/services">
               <Button size="lg">Explore Solutions <ArrowRight className="ml-2 w-4 h-4" /></Button>
+            </Link>
+            <Link href="/pricing">
+              <Button variant="outline" size="lg">View Pricing</Button>
             </Link>
           </div>
         </div>
@@ -393,7 +397,7 @@ export default function Home() {
             className="flex justify-between items-end mb-12"
           >
             <div>
-              <h2 className="text-3xl font-bold mb-4">Latest Insights</h2>
+              <h2 className="text-3xl font-bold mb-4">Latest Fintech SEO & Content Marketing Insights</h2>
               <p className="text-muted-foreground text-lg">Actionable SEO and marketing strategies for fintech.</p>
             </div>
             <Link href="/blog" className="hidden md:flex">
@@ -457,7 +461,7 @@ export default function Home() {
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
                   <Clock className="w-6 h-6 text-primary" />
-                  Recently published
+                  Recently Published Fintech SEO Articles
                 </h2>
                 <p className="text-muted-foreground flex items-center gap-2 flex-wrap">
                   <span>The three newest posts on the blog.</span>

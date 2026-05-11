@@ -3136,13 +3136,14 @@ async function handleSsrMeta(
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
-            // SpeakableSpecification targets h1 and the .speakable-summary paragraph
-            // (the hero description in home.tsx) — enables voice assistants to surface
-            // the most concise agency description for "what is FintechPressHub?" and
+            // SpeakableSpecification targets h1, the .speakable-summary paragraph,
+            // and the .hero-description paragraph (both classes are on the same <p>
+            // in home.tsx) — enables voice assistants to surface the most concise
+            // agency description for "what is FintechPressHub?" and
             // "best fintech SEO agency" queries — the highest-traffic intent patterns.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".speakable-summary"],
+              cssSelector: ["h1", ".speakable-summary", ".hero-description"],
             },
           }, null, 2));
           if (homeServices.length > 0) {
