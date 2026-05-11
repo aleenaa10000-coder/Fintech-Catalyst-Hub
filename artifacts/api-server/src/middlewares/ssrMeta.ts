@@ -537,6 +537,24 @@ const SERVICE_FAQS: Readonly<Record<string, ReadonlyArray<{ question: string; an
   ],
 };
 
+/**
+ * Indicative price ranges for each service page — injected into the
+ * FinancialService JSON-LD `priceRange` property. This helps Google
+ * populate Knowledge Panel price signals and improves commercial-intent
+ * rich-result eligibility for queries like "fintech SEO agency pricing".
+ *
+ * SYNC RULE: Keep aligned with the pricing plans in /pricing and with the
+ * `pricingPlansTable` data. Use general retainer ranges, not plan-level
+ * point prices, so the schema stays accurate across plan changes.
+ */
+const SERVICE_PRICE_RANGE: Readonly<Record<string, string>> = {
+  "fintech-content-writing": "$3,500–$12,000/month",
+  "off-page-seo":            "$3,500–$12,000/month",
+  "guest-posting":           "$3,500–$12,000/month",
+  "topical-authority":       "$3,500–$12,000/month",
+  "fintech-seo-audit":       "One-time engagement from $2,500",
+};
+
 const COMPARISON_META: Record<string, { title: string; description: string }> = {
   "agency-vs-in-house": {
     title: "Fintech SEO Agency vs Generic Agency vs In-House | FintechPressHub",
@@ -1727,6 +1745,10 @@ async function handleSsrMeta(
               // eligibleRegion strengthens international rich-result targeting by
               // explicitly declaring the geographic scope of service delivery.
               eligibleRegion: { "@type": "Place", name: "Worldwide" },
+              // priceRange signals commercial intent to Google Knowledge Panel and
+              // rich-result classification — without it, FinancialService is treated
+              // as a generic entity with no pricing context.
+              ...(SERVICE_PRICE_RANGE[slug] ? { priceRange: SERVICE_PRICE_RANGE[slug] } : {}),
               // datePublished/dateModified give Google a freshness signal for the
               // service entity itself (not just the WebPage companion), strengthening
               // E-E-A-T scoring for financial-service content.
@@ -2846,6 +2868,43 @@ async function handleSsrMeta(
                 about:      { "@type": "Thing", name: "Fintech SEO and content marketing" },
               },
             },
+          }, null, 2));
+
+          // FAQPage — write-for-us FAQ rich results target queries such as
+          // "how to write for FintechPressHub", "do you accept AI articles",
+          // "what fintech topics do you publish" and "is there a dofollow link".
+          extraLds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "FAQPage",
+            "@id":       `${canonical}#faq`,
+            url:         canonical,
+            name:        "Write For Us — Frequently Asked Questions",
+            mainEntity: [
+              {
+                "@type": "Question",
+                name:    "What types of fintech content does FintechPressHub accept?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    "We publish expert-level content covering fintech SEO, payments infrastructure, open banking, embedded finance, lending, regtech, and wealthtech. Articles must be original, human-written, and targeted at a professional audience of founders, marketers, and operators — not general consumer finance content.",
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "Do guest contributors receive a dofollow backlink?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    "Yes. Accepted guest posts include one permanent, dofollow editorial link to your company website or a relevant resource. The link must be contextually relevant and placed naturally within the article — not in the author bio. Sponsored-content link placements are handled separately under our content partnership programme.",
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "Does FintechPressHub accept AI-generated content?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    "No. We require human-written, expert-led content that meets our editorial guidelines on accuracy, sourcing, and E-E-A-T. AI-assisted research and outline drafting are permitted, but the final article must reflect the author's genuine expertise and original analysis. Submissions that appear AI-generated are rejected without review.",
+                },
+              },
+            ],
           }, null, 2));
 
         } else if (reqPath === "/resources/fintech-publications") {
