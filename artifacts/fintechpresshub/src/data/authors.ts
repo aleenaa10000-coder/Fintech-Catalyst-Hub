@@ -15,6 +15,10 @@ export type Author = {
     website?: string;
     email?: string;
   };
+  /** ISO 8601 — when the author record was first created in the DB. */
+  createdAt?: string;
+  /** ISO 8601 — when the author record was last modified. Drives dateModified in ProfilePage JSON-LD. */
+  updatedAt?: string;
 };
 
 export const authors: Author[] = [

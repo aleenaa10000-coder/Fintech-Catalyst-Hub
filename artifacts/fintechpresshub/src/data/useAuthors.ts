@@ -49,6 +49,8 @@ async function fetchAuthors(): Promise<Author[]> {
     yearsExperience: a.yearsExperience,
     location: a.location,
     social: a.social,
+    createdAt: a.createdAt,
+    updatedAt: a.updatedAt,
   }));
 }
 

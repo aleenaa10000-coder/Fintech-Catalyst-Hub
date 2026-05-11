@@ -106,6 +106,8 @@ export default function AuthorPage() {
             author.social?.twitter,
             author.social?.website,
           ].filter((u): u is string => Boolean(u)),
+          ...(author.createdAt ? { datePublished: author.createdAt } : {}),
+          ...(author.updatedAt ? { dateModified: author.updatedAt } : {}),
         }}
       />
 
