@@ -107,6 +107,10 @@ function buildRss(opts: {
     `    <language>en-us</language>\n` +
     `    <lastBuildDate>${lastBuildDate}</lastBuildDate>\n` +
     `    <atom:link href="${escapeXml(selfUrl)}" rel="self" type="application/rss+xml" />\n` +
+    // TTL (time to live in minutes) — tells RSS aggregators and feed readers
+    // the minimum interval before re-fetching. 60 min matches the CDN s-maxage,
+    // preventing unnecessary polls during the caching window.
+    `    <ttl>60</ttl>\n` +
     `    <image>\n` +
     `      <url>${escapeXml(opts.siteUrl)}/icon-512.png</url>\n` +
     `      <title>${escapeXml(SITE_NAME)}</title>\n` +

@@ -120,6 +120,9 @@ function buildRss(opts: {
     `    <language>en-us</language>\n` +
     `    <lastBuildDate>${lastBuildDate}</lastBuildDate>\n` +
     `    <atom:link href="${escapeXml(opts.selfUrl)}" rel="self" type="application/rss+xml" />\n` +
+    // TTL (time to live in minutes) — category feeds refresh at the same
+    // cadence as the main feed; 60 min matches CDN s-maxage caching window.
+    `    <ttl>60</ttl>\n` +
     (items ? `${items}\n` : "") +
     `  </channel>\n` +
     `</rss>\n`

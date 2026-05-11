@@ -120,6 +120,9 @@ function buildRss(opts: {
     `    <language>en-us</language>\n` +
     `    <lastBuildDate>${lastBuildDate}</lastBuildDate>\n` +
     `    <atom:link href="${escapeXml(opts.selfUrl)}" rel="self" type="application/rss+xml" />\n` +
+    // TTL (time to live in minutes) — per-author feeds update less frequently
+    // than the main feed; 120 min matches reasonable author publish cadence.
+    `    <ttl>120</ttl>\n` +
     (items ? `${items}\n` : "") +
     `  </channel>\n` +
     `</rss>\n`

@@ -1993,12 +1993,15 @@ async function handleSsrMeta(
         ogImageAlt:    leafLabel,
         extraLds: [
           JSON.stringify({
-            "@context": "https://schema.org",
-            "@type":    "FAQPage",
-            "@id":      canonical,
-            name:       cmpMeta.title,
-            url:        canonical,
-            publisher:  { "@id": `${siteUrl}#organization` },
+            "@context":  "https://schema.org",
+            "@type":     "FAQPage",
+            "@id":       canonical,
+            name:        cmpMeta.title,
+            url:         canonical,
+            // inLanguage added for consistency with all other page-type schemas
+            // (blog, glossary, location, tools, services all declare inLanguage).
+            inLanguage:  "en",
+            publisher:   { "@id": `${siteUrl}#organization` },
             datePublished: STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
             ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
             mainEntity: faqMainEntity,

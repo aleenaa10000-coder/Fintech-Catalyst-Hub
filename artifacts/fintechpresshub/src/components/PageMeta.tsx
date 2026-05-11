@@ -709,7 +709,9 @@ export function PageMeta(props: PageMetaProps) {
           name: SITE_NAME,
         },
         potentialAction: {
-          "@type": "CreateAction",
+          // WriteAction is the semantically precise schema.org type for
+          // "submit an article" actions — matches ssrMeta.ts SSR output.
+          "@type": "WriteAction",
           name: props.writeAction.name,
           ...(props.writeAction.description
             ? { description: props.writeAction.description }
@@ -788,10 +790,12 @@ export function PageMeta(props: PageMetaProps) {
   const articleJsonLd = props.article
     ? {
         "@context": "https://schema.org",
-        // BlogPosting is a more specific subtype of Article — it tells Google
-        // this is editorial blog content (vs. news, scholarly, etc.) and is
-        // the recommended type for the Article rich result for blog posts.
-        "@type": "BlogPosting",
+        // Dual @type gives BlogPosting rich-result eligibility AND NewsArticle
+        // eligibility (Google News + article carousels). Both types share the
+        // same required properties so no extra fields are needed.
+        // Mirrors the ["BlogPosting","NewsArticle"] type emitted by ssrMeta.ts
+        // so crawlers see an identical entity graph regardless of rendering path.
+        "@type": ["BlogPosting", "NewsArticle"],
         "@id": `${canonical}#article`,
         headline: props.article.title,
         description: props.article.description,
