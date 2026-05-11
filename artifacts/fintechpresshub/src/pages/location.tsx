@@ -20,6 +20,7 @@ type LocationPage = {
   headline: string;
   body: string;
   publishedAt: string;
+  updatedAt: string;
 };
 
 async function fetchLocation(slug: string): Promise<LocationPage> {
@@ -72,6 +73,10 @@ export default function LocationPage() {
         title={`${location.headline} | FintechPressHub`}
         description={`FintechPressHub delivers specialist fintech SEO, content marketing, and link-building services to companies operating in ${locationLabel}. Book a free strategy call.`}
         canonical={canonical}
+        webPage={{
+          datePublished: location.publishedAt.slice(0, 10),
+          dateModified: location.updatedAt.slice(0, 10),
+        }}
         localBusiness={{
           name: `FintechPressHub — ${location.city} Fintech SEO`,
           description: location.headline,

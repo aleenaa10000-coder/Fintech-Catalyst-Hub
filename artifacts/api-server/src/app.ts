@@ -320,7 +320,7 @@ app.get("/.well-known/ai.txt", (_req: Request, res: Response) => {
   const txt = [
     "# AI Usage Policy for FintechPressHub",
     `# Site: ${siteUrl}`,
-    `# Last-Updated: ${new Date().toISOString().slice(0, 10)}`,
+    `# Last-Updated: 2026-05-10`,
     "",
     "# ── Site identity ───────────────────────────────────────────────────────────",
     "Name: FintechPressHub",

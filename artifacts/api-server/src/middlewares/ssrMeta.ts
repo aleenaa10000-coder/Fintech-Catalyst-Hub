@@ -1133,6 +1133,8 @@ async function handleSsrMeta(
           headline:       locationPagesTable.headline,
           seoTitle:       locationPagesTable.seoTitle,
           seoDescription: locationPagesTable.seoDescription,
+          publishedAt:    locationPagesTable.publishedAt,
+          updatedAt:      locationPagesTable.updatedAt,
         })
         .from(locationPagesTable)
         .where(eq(locationPagesTable.slug, slug))
@@ -1178,6 +1180,17 @@ async function handleSsrMeta(
             },
             areaServed: { "@type": "Place", name: loc.country },
             publisher:   { "@id": `${siteUrl}#organization` },
+          }, null, 2),
+          JSON.stringify({
+            "@context":    "https://schema.org",
+            "@type":       "WebPage",
+            "@id":         `${canonical}#webpage`,
+            url:           canonical,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            datePublished: loc.publishedAt.toISOString().slice(0, 10),
+            dateModified:  loc.updatedAt.toISOString().slice(0, 10),
           }, null, 2),
           JSON.stringify({
             "@context": "https://schema.org",

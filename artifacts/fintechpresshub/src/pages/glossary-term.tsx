@@ -73,6 +73,7 @@ export default function GlossaryTermPage() {
         description={description}
         canonical={canonical}
         webPage={{
+          datePublished: term.publishedAt.slice(0, 10),
           dateModified: term.updatedAt.slice(0, 10),
         }}
         definedTermSet={{
