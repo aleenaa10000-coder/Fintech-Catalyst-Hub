@@ -503,7 +503,7 @@ async function buildCompareSitemapXml(): Promise<string> {
       loc:        `${siteUrl}/compare`,
       lastmod:    compareHubLastmod,
       changefreq: "monthly",
-      priority:   "0.6",
+      priority:   "0.7",
       ogTitle:    "Fintech SEO Agency Comparisons",
       category:   "Compare",
     },

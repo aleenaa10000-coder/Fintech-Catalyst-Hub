@@ -77,7 +77,19 @@ function getBaseHtml(): string | null {
   if (_cachedHtml) return _cachedHtml;
   const indexPath = path.join(_frontendDist, "index.html");
   if (!existsSync(indexPath)) return null;
-  _cachedHtml = readFileSync(indexPath, "utf-8");
+  let html = readFileSync(indexPath, "utf-8");
+  // Inject Google Search Console verification tag from the GOOGLE_SITE_VERIFICATION
+  // env var when set. Replaces the commented-out placeholder in index.html so the
+  // token is never hardcoded in source control and can be activated on any
+  // environment without a code deploy.
+  const gscToken = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+  if (gscToken) {
+    html = html.replace(
+      /<!--\s*<meta name="google-site-verification"[^>]*>\s*-->/,
+      `<meta name="google-site-verification" content="${gscToken}" />`,
+    );
+  }
+  _cachedHtml = html;
   return _cachedHtml;
 }
 
@@ -1155,7 +1167,10 @@ async function handleSsrMeta(
       const extraLds: string[] = [
         JSON.stringify({
           "@context": "https://schema.org",
-          "@type":    "BlogPosting",
+          // Dual @type gives BlogPosting rich-result eligibility AND NewsArticle
+          // eligibility (Google News + article carousels). Both types share the
+          // same required properties so no extra fields are needed.
+          "@type":    ["BlogPosting", "NewsArticle"],
           // Use the #article fragment so Google can distinguish the content
           // entity from the page-level WebPage entity (which uses the bare
           // canonical). Matches the @id convention in PageMeta.tsx client-side
@@ -1263,6 +1278,22 @@ async function handleSsrMeta(
         articleAuthorUrl:     authorUrl   || undefined,
         twitterCreator:       authorTwitter ?? undefined,
         author:               post.author   || undefined,
+        // twitter:label/data cards surface reading time and category in the
+        // Twitter/X card preview — injected as headLinks so patchHtml appends
+        // them alongside article:* meta tags in the </head> injection block.
+        headLinks: [
+          ...(post.readingMinutes && post.readingMinutes > 0
+            ? [
+                `  <meta name="twitter:label1" content="Reading time" />`,
+                `  <meta name="twitter:data1" content="${post.readingMinutes} min read" />`,
+                `  <meta name="twitter:label2" content="Category" />`,
+                `  <meta name="twitter:data2" content="${esc(post.category ?? "Insights")}" />`,
+              ]
+            : [
+                `  <meta name="twitter:label1" content="Category" />`,
+                `  <meta name="twitter:data1" content="${esc(post.category ?? "Insights")}" />`,
+              ]),
+        ],
         extraLds,
       };
     }
@@ -1544,6 +1575,9 @@ async function handleSsrMeta(
               url:          canonical,
               inLanguage:   "en",
               areaServed:   "Worldwide",
+              // eligibleRegion strengthens international rich-result targeting by
+              // explicitly declaring the geographic scope of service delivery.
+              eligibleRegion: { "@type": "Place", name: "Worldwide" },
               // datePublished/dateModified give Google a freshness signal for the
               // service entity itself (not just the WebPage companion), strengthening
               // E-E-A-T scoring for financial-service content.
@@ -1580,6 +1614,14 @@ async function handleSsrMeta(
               // service entity and satisfies E-E-A-T's publication-date signal.
               datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
               dateModified:  SERVICE_PAGE_LASTMOD_DATE,
+              // SpeakableSpecification targets the service tagline heading — the
+              // most concise, authoritative summary of the service. Enables Google
+              // Assistant voice answers and AEO snippet extraction for service-intent
+              // queries ("what is fintech SEO", "how does guest posting work").
+              speakable: {
+                "@type":     "SpeakableSpecification",
+                cssSelector: [".service-tagline", "h1"],
+              },
             }, null, 2),
           ];
           // FAQPage schema unlocks Google's FAQ rich result for service-intent
@@ -2283,6 +2325,43 @@ async function handleSsrMeta(
               name:    question,
               acceptedAnswer: { "@type": "Answer", text: answer },
             })),
+          }, null, 2));
+
+          // HowTo schema for /pricing — unlocks Google's step-by-step rich result
+          // for "how to start fintech SEO" / "how to hire a fintech SEO agency"
+          // queries. Four clear steps match the actual client onboarding journey.
+          extraLds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "HowTo",
+            "@id":       `${canonical}#howto`,
+            name:        "How to Get Started with FintechPressHub Fintech SEO",
+            description: "A step-by-step guide to starting a fintech SEO or content marketing retainer with FintechPressHub.",
+            step: [
+              {
+                "@type":  "HowToStep",
+                position: 1,
+                name:     "Choose your plan",
+                text:     "Review the Starter, Growth, Authority, and Enterprise retainer plans. Most clients begin with Growth for a balanced mix of content production and link-building.",
+              },
+              {
+                "@type":  "HowToStep",
+                position: 2,
+                name:     "Book a free strategy call",
+                text:     "Complete the contact form to schedule a 30-minute call with a FintechPressHub strategist. We will audit your current search footprint and recommend the right plan.",
+              },
+              {
+                "@type":  "HowToStep",
+                position: 3,
+                name:     "Receive your onboarding pack",
+                text:     "Within 3 business days of signing, you will receive a detailed onboarding questionnaire, access to your client dashboard, and your first content brief.",
+              },
+              {
+                "@type":  "HowToStep",
+                position: 4,
+                name:     "Review your first deliverables",
+                text:     "Your strategist delivers the first batch of articles and link-building placements within 30 days. You review, approve, and we publish to your CMS.",
+              },
+            ],
           }, null, 2));
 
         } else if (reqPath === "/glossary") {

@@ -23,6 +23,14 @@ FintechPressHub has an exceptionally mature programmatic SEO infrastructure for 
 | Added `media:content` cover image to category RSS feed items + `xmlns:media` namespace | `categoryRss.ts` | Audit 2 |
 | Added `media:content` cover image + `xmlns:media` namespace to tag RSS feed | `tagRss.ts` | Audit 3 |
 | Removed deprecated `<news:genres>Blog</news:genres>` tag from Google News sitemap | `newsSitemap.ts` | Audit 3 |
+| GSC verification tag driven by `GOOGLE_SITE_VERIFICATION` env var (no code deploy required) | `ssrMeta.ts` | Audit 4 |
+| Blog posts: `@type` changed to `["BlogPosting", "NewsArticle"]` for Google News eligibility | `ssrMeta.ts` | Audit 4 |
+| Blog posts: `twitter:label1/data1` reading time + `label2/data2` category cards injected | `ssrMeta.ts` | Audit 4 |
+| Service pages: `SpeakableSpecification` added to WebPage entity | `ssrMeta.ts` | Audit 4 |
+| Service pages: `eligibleRegion: "Worldwide"` added to FinancialService schema | `ssrMeta.ts` | Audit 4 |
+| Pricing page: `HowTo` JSON-LD schema added (4-step client onboarding journey) | `ssrMeta.ts` | Audit 4 |
+| `/compare` hub priority raised 0.6 → 0.7 in `STATIC_ROUTES` | `sitemap.ts` | Audit 4 |
+| `/compare` hub priority raised 0.6 → 0.7 in `buildCompareSitemapXml` | `sitemapIndex.ts` | Audit 4 |
 
 ---
 

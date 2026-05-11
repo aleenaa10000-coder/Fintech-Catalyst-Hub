@@ -50,7 +50,7 @@ export const STATIC_ROUTES: Array<{
   { path: "/cookie-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/terms", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/community-guidelines", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
-  { path: "/compare", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
+  { path: "/compare", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   // Compare sub-pages intentionally omitted here — covered by /sitemap-compare.xml
   // (built from COMPARE_SLUGS in seoConstants.ts). Same deduplication rationale
   // as tool sub-pages above.
