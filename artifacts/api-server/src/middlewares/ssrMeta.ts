@@ -2874,11 +2874,16 @@ async function handleSsrMeta(
           // "how to write for FintechPressHub", "do you accept AI articles",
           // "what fintech topics do you publish" and "is there a dofollow link".
           extraLds.push(JSON.stringify({
-            "@context":  "https://schema.org",
-            "@type":     "FAQPage",
-            "@id":       `${canonical}#faq`,
-            url:         canonical,
-            name:        "Write For Us — Frequently Asked Questions",
+            "@context":    "https://schema.org",
+            "@type":       "FAQPage",
+            "@id":         `${canonical}#faq`,
+            url:           canonical,
+            name:          "Write For Us — Frequently Asked Questions",
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2023-01-01",
+            dateModified:  pageLastmod ?? "2026-05-11",
             mainEntity: [
               {
                 "@type": "Question",
