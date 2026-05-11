@@ -331,6 +331,7 @@ function itemListSchema({ name, items }) {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name,
+    numberOfItems: items.length,
     itemListElement: items.map((it, i) => ({
       "@type": "ListItem",
       position: i + 1,
@@ -1156,7 +1157,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         breadcrumbSchema(pathname, `${loc.city} Fintech SEO`, siteUrl),
         {
           "@context": "https://schema.org",
-          "@type": "LocalBusiness",
+          "@type": ["LocalBusiness", "ProfessionalService"],
           "@id": canonical,
           name: `FintechPressHub — ${loc.city} Fintech SEO`,
           description: loc.headline,
@@ -1214,7 +1215,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
           description: catMeta.description,
           url:         canonical,
           inLanguage:  "en",
-          isPartOf:    { "@id": `${siteUrl}/blog` },
+          isPartOf:    { "@type": "WebPage", "@id": `${siteUrl}/blog` },
           publisher:   { "@id": `${siteUrl}#organization` },
         },
         catPosts.length > 0

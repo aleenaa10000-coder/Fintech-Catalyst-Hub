@@ -2038,6 +2038,7 @@ async function handleSsrMeta(
               "@type":    "ItemList",
               name:       "Fintech SEO Pricing Plans",
               url:        canonical,
+              numberOfItems: pricingList.length,
               itemListElement: pricingList.map((plan, i) => ({
                 "@type":    "ListItem",
                 position:   i + 1,
@@ -2101,6 +2102,7 @@ async function handleSsrMeta(
               "@type":    "ItemList",
               name:       "Fintech Glossary Terms",
               url:        canonical,
+              numberOfItems: hubTerms.length,
               itemListElement: hubTerms.map((t, i) => ({
                 "@type":    "ListItem",
                 position:   i + 1,
@@ -2130,6 +2132,7 @@ async function handleSsrMeta(
             "@type":    "ItemList",
             name:       "Free Fintech Marketing Tools",
             url:        canonical,
+            numberOfItems: Object.keys(TOOLS_META).length,
             itemListElement: Object.entries(TOOLS_META).map(([toolSlug, meta], i) => ({
               "@type":     "ListItem",
               position:    i + 1,
@@ -2159,6 +2162,7 @@ async function handleSsrMeta(
             "@type":    "ItemList",
             name:       "Fintech SEO Agency Comparisons",
             url:        canonical,
+            numberOfItems: Object.keys(COMPARISON_META).length,
             itemListElement: Object.entries(COMPARISON_META).map(([cmpSlug, meta], i) => ({
               "@type":     "ListItem",
               position:    i + 1,
