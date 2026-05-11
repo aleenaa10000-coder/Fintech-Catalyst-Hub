@@ -1,7 +1,7 @@
 # FintechPressHub — Exhaustive Programmatic SEO Audit Report
 
-**Date:** May 11, 2026 (updated)
-**Auditor:** Automated Code-Level Analysis (two-session exhaustive pass)
+**Date:** May 11, 2026 (updated — three audit sessions)
+**Auditor:** Automated Code-Level Analysis (exhaustive three-session pass)
 **Stack:** React 19 + Vite 7 (SPA) + Express 5 (SSR meta middleware) + Drizzle ORM + PostgreSQL
 **Hosting target:** Hostinger Node.js (single `index.mjs` entrypoint, flat dist layout)
 
@@ -13,7 +13,9 @@ FintechPressHub has an exceptionally mature programmatic SEO infrastructure for 
 
 **Session 1 (previous):** 3 fixes implemented — noindex SSR enforcement, blog hub ItemList depth increase, tool `datePublished`.
 
-**Session 2 (this audit):** 6 additional fixes implemented after a full exhaustive code-level read of all SEO files. No existing features were rebuilt or duplicated. Total fixes to date: **9**.
+**Session 2 (previous):** 6 additional fixes implemented after a full exhaustive code-level read of all SEO files. No existing features were rebuilt or duplicated.
+
+**Session 3 (this audit):** 3 additional fixes implemented after a complete re-read of all 2573 lines of `ssrMeta.ts`, `app.ts`, all sitemap/RSS routes, and `llmsTxt.ts`. Total fixes to date: **12**.
 
 ---
 
@@ -205,6 +207,104 @@ These are injected before `</head>` on every SSR-served page, matching the patte
 **Fix applied:** Removed the `<news:keywords>` element and the now-unused `keywords` variable computation from `buildNewsSitemapXml()`.
 
 **Impact:** Clean Google Search Console validation, spec-compliant News Sitemap, marginally smaller response payload.
+
+---
+
+### Session 3 Fixes
+
+#### Fix 9 — Category hub `CollectionPage.isPartOf` uses wrong type and missing `#blog` fragment (MEDIUM)
+
+**File:** `artifacts/api-server/src/middlewares/ssrMeta.ts` — `/blog/category/:slug` handler (~line 1642)
+
+**Problem:** The `CollectionPage` schema for `/blog/category/:slug` pages used:
+```json
+"isPartOf": { "@type": "WebPage", "@id": "https://fintechpresshub.com/blog" }
+```
+Two errors: (1) `@type` was `"WebPage"` but `/blog` is a `Blog` entity — a distinct schema.org type; (2) the `@id` used the bare URL `/blog` instead of `/blog#blog`, which is the `Blog` entity's canonical `@id` used everywhere else (in `BlogPosting.isPartOf`, the `/blog` hub schema, and `PageMeta.tsx`). Google's Knowledge Graph cannot properly resolve the entity reference.
+
+**Fix applied:** Changed to:
+```json
+"isPartOf": { "@type": "Blog", "@id": "https://fintechpresshub.com/blog#blog" }
+```
+
+**Impact:** Category hub pages now correctly declare themselves as parts of the Blog entity, forming a consistent entity graph — `Blog` → `CollectionPage` (category) → `BlogPosting` (post) — that Google's Knowledge Graph can traverse and validate.
+
+---
+
+#### Fix 10 — Tag hub `CollectionPage.isPartOf` uses wrong type and missing `#blog` fragment (MEDIUM)
+
+**File:** `artifacts/api-server/src/middlewares/ssrMeta.ts` — `/blog/tag/:slug` handler (~line 1735)
+
+**Problem:** Identical to Fix 9 above — the tag hub `CollectionPage` also used:
+```json
+"isPartOf": { "@type": "WebPage", "@id": "https://fintechpresshub.com/blog" }
+```
+
+**Fix applied:** Changed to:
+```json
+"isPartOf": { "@type": "Blog", "@id": "https://fintechpresshub.com/blog#blog" }
+```
+
+**Impact:** Tag hub pages join the same correctly-typed entity graph as category hub pages. Both `/blog/category/*` and `/blog/tag/*` CollectionPages now consistently point to the Blog entity using the same `@id` fragment used in `BlogPosting.isPartOf`.
+
+---
+
+#### Fix 11 — `DefinedTerm.inDefinedTermSet` missing `@id` (LOW)
+
+**File:** `artifacts/api-server/src/middlewares/ssrMeta.ts` — `/glossary/:slug` handler (~line 1376)
+
+**Problem:** The `DefinedTerm` schema's `inDefinedTermSet` object contained `@type`, `name`, and `url` but no `@id`:
+```json
+"inDefinedTermSet": {
+  "@type": "DefinedTermSet",
+  "name": "Fintech Glossary",
+  "url": "https://fintechpresshub.com/glossary"
+}
+```
+Without `@id`, Google's Knowledge Graph cannot link each `DefinedTerm` entity to the `DefinedTermSet` entity emitted on the `/glossary` hub page (which correctly uses `"@id": "https://fintechpresshub.com/glossary"`). The entity link is broken — crawlers see an anonymous inline object rather than a reference to the known Glossary entity.
+
+**Fix applied:** Added `"@id": "${siteUrl}/glossary"` to match the hub entity:
+```json
+"inDefinedTermSet": {
+  "@type": "DefinedTermSet",
+  "@id": "https://fintechpresshub.com/glossary",
+  "name": "Fintech Glossary",
+  "url": "https://fintechpresshub.com/glossary"
+}
+```
+
+**Impact:** Every `DefinedTerm` entity now carries a proper `@id` reference to the `DefinedTermSet` hub entity — consistent with the same pattern used for `BlogPosting.isPartOf → Blog`, `WebPage.isPartOf → WebSite`, etc.
+
+---
+
+#### Fix 12 — `/pricing` `FAQPage` missing `url` and `isPartOf` (LOW)
+
+**File:** `artifacts/api-server/src/middlewares/ssrMeta.ts` — `/pricing` static handler (~line 2141)
+
+**Problem:** The `FAQPage` schema emitted on `/pricing` lacked `url` and `isPartOf`:
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "@id": "https://fintechpresshub.com/pricing#faq",
+  "mainEntity": [...]
+}
+```
+All other `FAQPage` entities in the codebase (location pages, compare pages, glossary terms, blog post FAQ) include `url` and `isPartOf` for entity completeness. The `/pricing` FAQPage was inconsistent with the established pattern, missing both the page URL signal and the website membership link.
+
+**Fix applied:** Added `url: canonical` and `isPartOf: { "@id": "${siteUrl}#website" }`:
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "@id": "https://fintechpresshub.com/pricing#faq",
+  "url": "https://fintechpresshub.com/pricing",
+  "isPartOf": { "@id": "https://fintechpresshub.com#website" },
+  "mainEntity": [...]
+}
+```
+
+**Impact:** The pricing FAQPage is now fully consistent with all other FAQPage entities site-wide. Improves entity resolution for Google's FAQ rich-result eligibility assessment.
 
 ---
 
