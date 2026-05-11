@@ -181,7 +181,7 @@ const bandFor = (score: number): ScoreBand => {
     ring: "stroke-[#D8362A]",
     badge: "bg-[#D8362A]/10 text-[#D8362A] border-[#D8362A]/30",
     Icon: XCircle,
-    blurb: "Cash-flow fragility detected. Stabilize before you optimize.",
+    blurb: "Cash-flow fragility detected. Stabilise before you optimise.",
   };
 };
 
@@ -249,7 +249,7 @@ const buildTips = (m: {
 
   if (tips.length === 0) {
     tips.push({
-      title: "Optimize beyond the basics",
+      title: "Optimise beyond the basics",
       body: "All four core ratios are in healthy ranges. Next moves: max tax-advantaged accounts, diversify across asset classes, and review insurance coverage annually.",
     });
   }
@@ -282,6 +282,11 @@ const FAQS = [
     question: "Is this calculator a substitute for financial advice?",
     answer:
       "No. This tool offers an educational snapshot only. For decisions involving taxes, investments, debt restructuring, or estate planning, consult a licensed financial professional in your jurisdiction.",
+  },
+  {
+    question: "How do I improve my financial health score?",
+    answer:
+      "Target the ratio with the largest penalty first. If your DTI is above 35%, use the avalanche method to pay down the highest-APR debt. If your savings rate is below 10%, automate a fixed transfer on payday. If your emergency fund is under three months, redirect savings there before investing. Small, consistent improvements to one ratio at a time compound into a measurably higher score within 90 days.",
   },
   {
     question: "Are my numbers stored anywhere?",
@@ -802,6 +807,101 @@ export default function FinancialHealthScoreCalculator() {
         </div>
       </section>
 
+      {/* Scoring methodology */}
+      <section className="pb-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-10 h-10 rounded-lg bg-[#0052FF]/10 flex items-center justify-center">
+                <Calculator className="w-5 h-5 text-[#0052FF]" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">
+                  How we calculate your score
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Four evidence-based ratios, each carrying a proportional
+                  penalty above its threshold.
+                </p>
+              </div>
+            </div>
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <th className="px-5 py-3.5 text-left font-semibold text-slate-700">
+                      Metric
+                    </th>
+                    <th className="px-5 py-3.5 text-left font-semibold text-slate-700">
+                      Healthy threshold
+                    </th>
+                    <th className="px-5 py-3.5 text-left font-semibold text-slate-700 hidden sm:table-cell">
+                      Penalty formula
+                    </th>
+                    <th className="px-5 py-3.5 text-right font-semibold text-slate-700">
+                      Max deduction
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {[
+                    {
+                      metric: "Debt-to-Income (DTI)",
+                      threshold: "≤ 35% of after-tax income",
+                      formula: "15 pts at threshold, +1 pt per additional 1% (CFPB guideline)",
+                      max: "25 pts",
+                    },
+                    {
+                      metric: "Savings rate",
+                      threshold: "≥ 10% of after-tax income",
+                      formula: "1.5 pts deducted for every 1% below 10% (Personal Finance Council standard)",
+                      max: "15 pts",
+                    },
+                    {
+                      metric: "Emergency fund",
+                      threshold: "≥ 3 months of expenses",
+                      formula: "5 pts deducted for every month below 3 (FCA / mainstream PF guidance)",
+                      max: "15 pts",
+                    },
+                    {
+                      metric: "Expense ratio",
+                      threshold: "≤ 75% of after-tax income",
+                      formula: "1 pt deducted for every 1% above 75% (50/30/20 budgeting rule)",
+                      max: "15 pts",
+                    },
+                  ].map((row) => (
+                    <tr
+                      key={row.metric}
+                      className="hover:bg-slate-50/60 transition-colors"
+                    >
+                      <td className="px-5 py-3.5 font-semibold text-slate-800">
+                        {row.metric}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-700">
+                        {row.threshold}
+                      </td>
+                      <td className="px-5 py-3.5 text-muted-foreground hidden sm:table-cell">
+                        {row.formula}
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-mono font-semibold text-[#D8362A]">
+                        {row.max}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
+              Scores start at 100. Each ratio above its threshold applies a
+              proportional deduction up to the cap shown. Penalties compound
+              when multiple ratios are off simultaneously. All calculations run
+              locally in your browser — no data is ever transmitted to our
+              servers.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Email report */}
       <section className="pb-16">
         <div className="container mx-auto px-4">
@@ -899,6 +999,62 @@ export default function FinancialHealthScoreCalculator() {
                 </AccordionItem>
               ))}
             </Accordion>
+          </div>
+        </div>
+      </section>
+
+      {/* Related tools */}
+      <section className="pb-20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">
+              Explore more free tools
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              More browser-based tools from FintechPressHub — no sign-up
+              required.
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                {
+                  href: "/tools/meta-description-generator",
+                  title: "Meta Description Generator",
+                  desc: "Generate three keyword-rich meta descriptions for any page in seconds.",
+                },
+                {
+                  href: "/tools/readability-checker",
+                  title: "Readability Checker",
+                  desc: "Score your content's reading level and identify clarity improvements.",
+                },
+                {
+                  href: "/tools/keyword-difficulty-estimator",
+                  title: "Keyword Difficulty Estimator",
+                  desc: "Estimate how competitive a keyword is before investing in content.",
+                },
+                {
+                  href: "/tools/headline-analyzer",
+                  title: "Headline Analyser",
+                  desc: "Rate your headline on clarity, sentiment, and SEO impact instantly.",
+                },
+              ].map((tool) => (
+                <Link key={tool.href} href={tool.href}>
+                  <Card className="h-full border border-slate-200 shadow-sm hover:shadow-md hover:border-[#0052FF]/30 transition-all cursor-pointer group">
+                    <CardContent className="p-5 flex flex-col h-full">
+                      <h3 className="font-semibold text-slate-900 group-hover:text-[#0052FF] transition-colors mb-2 leading-snug">
+                        {tool.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed flex-1">
+                        {tool.desc}
+                      </p>
+                      <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-[#0052FF]">
+                        Try it free
+                        <ArrowRight className="w-3 h-3" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>

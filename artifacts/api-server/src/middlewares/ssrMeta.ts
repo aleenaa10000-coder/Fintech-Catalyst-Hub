@@ -1045,6 +1045,7 @@ const TOOLS_FAQ: Readonly<Record<string, Array<{ question: string; answer: strin
     { question: "What is a good Financial Health Score?", answer: "Scores above 70 indicate strong financial health. 50–70 is average and improvement is achievable. Below 50 suggests actionable areas around debt, savings, or emergency reserves." },
     { question: "How is the debt-to-income (DTI) ratio calculated?", answer: "DTI is your total monthly debt payments divided by your monthly income after tax, expressed as a percentage. Most lenders consider 35% the upper limit; 28% or below is preferred for mortgage qualification." },
     { question: "How many months of emergency fund do I really need?", answer: "Three months of essential expenses is the entry-level baseline. Six months is the gold standard for single-earner households. Freelancers or commission-based earners should target nine months." },
+    { question: "How do I improve my financial health score?", answer: "Target the ratio with the largest penalty first. If your DTI is above 35%, use the avalanche method to pay down the highest-APR debt. If your savings rate is below 10%, automate a fixed transfer on payday. If your emergency fund is under three months, redirect savings there before investing. Small, consistent improvements to one ratio at a time compound into a measurably higher score within 90 days." },
     { question: "Are my numbers stored anywhere?", answer: "No. The calculator runs entirely in your browser. We never transmit, store, or log the figures you enter — refresh the page and everything is gone." },
   ],
   "meta-description-generator": [
@@ -2356,6 +2357,8 @@ async function handleSsrMeta(
         "@type":      "WebPage",
         "@id":        `${canonical}#webpage`,
         url:          canonical,
+        name:         leafLabel,
+        description:  toolMeta.description,
         inLanguage:   "en",
         isPartOf:     { "@id": `${siteUrl}#website` },
         publisher:    { "@id": `${siteUrl}#organization` },
