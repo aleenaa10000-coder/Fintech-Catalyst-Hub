@@ -67,7 +67,7 @@ function fmtSlug(slug) {
 function organizationSchema(siteUrl) {
   return {
     "@context": "https://schema.org",
-    "@type": "Organization",
+    "@type": "NewsMediaOrganization",
     "@id": `${siteUrl}#organization`,
     name: "FintechPressHub",
     url: siteUrl,
@@ -82,7 +82,7 @@ function organizationSchema(siteUrl) {
     },
     description:
       "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
-    foundingDate: "2021",
+    foundingDate: "2021-01-01",
     areaServed: "Worldwide",
     email: "hello@fintechpresshub.com",
     inLanguage: "en",
@@ -999,7 +999,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         personSchema({ author, url: canonical, siteUrl }),
       ],
       extraMeta: [
-        `<meta property="article:author" content="${escapeHtml(author.name)}" />`,
+        `<meta property="article:author" content="${escapeHtml(`${siteUrl}/authors/${author.slug}`)}" />`,
       ],
       bodyContent,
     };
@@ -1083,7 +1083,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         `<meta property="article:published_time" content="${escapeHtml(post.date ?? post.publishedAt ?? "")}" />`,
         ...(modifiedIso ? [`<meta property="article:modified_time" content="${escapeHtml(modifiedIso)}" />`] : []),
         `<meta property="article:section" content="${escapeHtml(post.category ?? "Insights")}" />`,
-        `<meta property="article:author" content="${escapeHtml(post.author ?? "")}" />`,
+        `<meta property="article:author" content="${escapeHtml(post.author ? `${siteUrl}/authors/${post.author.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-")}` : "")}" />`,
         ...(post.authorTwitter ? [`<meta name="twitter:creator" content="${escapeHtml(post.authorTwitter)}" />`] : []),
       ],
       bodyContent,
@@ -1215,7 +1215,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
           description: catMeta.description,
           url:         canonical,
           inLanguage:  "en",
-          isPartOf:    { "@type": "WebPage", "@id": `${siteUrl}/blog` },
+          isPartOf:    { "@id": `${siteUrl}#website` },
           publisher:   { "@id": `${siteUrl}#organization` },
         },
         catPosts.length > 0
@@ -1277,7 +1277,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
           description,
           url:         canonical,
           inLanguage:  "en",
-          isPartOf:    { "@type": "WebPage", "@id": `${siteUrl}/blog` },
+          isPartOf:    { "@id": `${siteUrl}#website` },
           publisher:   { "@id": `${siteUrl}#organization` },
         },
         tagPosts.length > 0
