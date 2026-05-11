@@ -1026,7 +1026,10 @@ export function PageMeta(props: PageMetaProps) {
         />
       ) : null}
       {props.article?.author ? (
-        <meta property="article:author" content={props.article.author} />
+        <meta
+          property="article:author"
+          content={props.article.authorUrl ?? props.article.author}
+        />
       ) : null}
       {props.article?.section ? (
         <meta property="article:section" content={props.article.section} />
