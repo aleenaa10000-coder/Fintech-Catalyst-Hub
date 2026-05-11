@@ -1,0 +1,23 @@
+add a security.txt file at /.well-known/security.txt per RFC 9116 — a machine-readable security contact declaration that is a minor but recognised trust signal for YMYL fintech sites and increasingly checked by security scanners used by enterprise clients. 
+
+ add an IndexNow ping whenever a blog post is unpublished or deleted, so Bing/Yandex are notified to remove the URL from their indexes promptly. 
+
+add a billingPeriod machine-readable duration and a priceSpecification entity to the pricing page's Offer schema in the /pricing handler's ItemList, enabling Google's merchant-class rich results for service pricing pages. 
+
+add a TOOLS_FAQ entry for any new tools added to the site automatically by hooking into the tool creation admin flow — so future tools always ship with FAQPage schema pre-populated 
+
+ add a disavow.txt route that serves a Google Disavow file listing known spam domains, giving you a structured way to manage toxic backlinks directly from the codebase. 
+
+add an automated Schema.org validation step that runs against the live API in production to catch any structured data regressions after future content changes. 
+
+add a TOOLS_FAQ entries audit check — automatically detecting any tool slug in TOOL_SLUGS that lacks a corresponding entry in TOOLS_FAQ and logging a startup warning — so new tools can never be silently shipped without FAQ schema. 
+
+add an automated schema-validation route (/api/admin/schema-test) that fetches each route type and validates the JSON-LD against Schema.org's required fields, surfacing regressions before they reach production.  
+
+add datePublished and dateModified fields to the client-side ProfilePage JSON-LD in PageMeta.tsx to fully match the SSR version's freshness signals (which Google uses for E-E-A-T ranking on author pages). 
+
+add a faqDatePublished and faqDateModified prop directly to PageMeta so callers don't need a webPage wrapper just to supply FAQ dates — making the API more ergonomic for static pages that pass FAQ items without a webPage prop. 
+
+ add a citation field to blog posts — surfacing each article's external sources as structured citation nodes in BlogPosting JSON-LD for Google's E-E-A-T quality rater signals. 
+
+add a dateModified response header to every SSR page (echoing the same date used in WebPage JSON-LD) so crawlers can detect stale pages via HTTP headers without parsing HTML — a GEO/AEO efficiency improvement for Googlebot and AI crawlers 
