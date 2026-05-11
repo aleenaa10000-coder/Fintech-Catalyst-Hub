@@ -52,6 +52,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   locations: "Locations",
   "fintech-publications": "Fintech Publications",
   admin: "Admin",
+  tag: "Tag",
 };
 
 export const ORGANIZATION_SCHEMA = {

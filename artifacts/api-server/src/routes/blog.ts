@@ -352,6 +352,31 @@ router.get("/blog/featured", async (_req, res) => {
   res.json(rows.map(serialize));
 });
 
+router.get("/blog/tags", async (_req, res) => {
+  // Return distinct tags with post counts — only from visible, non-noindex posts.
+  // Uses a raw SQL unnest because Drizzle ORM doesn't expose
+  // jsonb_array_elements_text natively, and a subquery approach over
+  // JSONB is simpler and faster than application-level flattening at scale.
+  const rows = await db.execute<{ tag: string; count: string }>(
+    sql`
+      SELECT
+        tag,
+        cast(count(*) as int) as count
+      FROM (
+        SELECT jsonb_array_elements_text(tags) as tag
+        FROM blog_posts
+        WHERE published_at <= now()
+          AND no_index = false
+      ) t
+      WHERE tag IS NOT NULL AND tag <> ''
+      GROUP BY tag
+      ORDER BY count DESC, tag ASC
+    `,
+  );
+  res.set("Cache-Control", "no-store");
+  res.json(rows.rows.map((r) => ({ tag: r.tag, count: Number(r.count) })));
+});
+
 router.get("/blog/categories", async (_req, res) => {
   // Category counts only count *visible* posts so a category that only
   // contains scheduled posts doesn't appear in the public facets list.

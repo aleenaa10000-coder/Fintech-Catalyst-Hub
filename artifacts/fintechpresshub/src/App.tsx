@@ -105,6 +105,7 @@ const AdminSeoPerformance = lazy(() => import("@/pages/admin-seo-performance"));
 const GlossaryPage = lazy(() => import("@/pages/glossary"));
 const GlossaryTermPage = lazy(() => import("@/pages/glossary-term"));
 const BlogCategoryPage = lazy(() => import("@/pages/blog-category"));
+const BlogTagPage = lazy(() => import("@/pages/blog-tag"));
 const LocationsHub = lazy(() => import("@/pages/locations-hub"));
 const LocationPage = lazy(() => import("@/pages/location"));
 const Compare = lazy(() => import("@/pages/compare"));
@@ -280,6 +281,7 @@ function Router() {
             <SafeRoute path="/glossary/:slug" component={GlossaryTermPage} />
             <SafeRoute path="/glossary" component={GlossaryPage} />
             <SafeRoute path="/blog/category/:slug" component={BlogCategoryPage} />
+            <SafeRoute path="/blog/tag/:slug" component={BlogTagPage} />
             <SafeRoute path="/locations" component={LocationsHub} />
             <SafeRoute path="/locations/:slug" component={LocationPage} />
             <SafeRoute path="/compare/:slug" component={CompareSlug} />

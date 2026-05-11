@@ -126,6 +126,7 @@ async function buildSitemapIndexXml(): Promise<string> {
   const sitemaps = [
     { loc: `${siteUrl}/sitemap-pages.xml`,     lastmod: latestBlogDate },
     { loc: `${siteUrl}/sitemap-blog.xml`,      lastmod: latestBlogDate },
+    { loc: `${siteUrl}/sitemap-tags.xml`,      lastmod: latestBlogDate },
     { loc: `${siteUrl}/sitemap-authors.xml`,   lastmod: latestAuthorDate },
     { loc: `${siteUrl}/sitemap-locations.xml`, lastmod: latestLocationDate },
     { loc: `${siteUrl}/sitemap-glossary.xml`,  lastmod: latestGlossaryDate },
@@ -628,9 +629,68 @@ async function serveSitemap(
   res.send(xml);
 }
 
+// ── /sitemap-tags.xml ────────────────────────────────────────────────────────
+// One URL per unique tag derived from the blog_posts.tags JSONB column.
+// Tag hub pages (/blog/tag/:slug) are generated from this set — keeping the
+// sitemap in sync with the DB means no manual slug maintenance is needed.
+
+async function buildTagsSitemapXml(): Promise<string> {
+  const siteUrl = getSiteUrl();
+
+  const rows = await db.execute<{ tag: string; lastmod: string }>(
+    sql`
+      SELECT
+        tag,
+        to_char(max(published_at), 'YYYY-MM-DD') as lastmod
+      FROM (
+        SELECT
+          jsonb_array_elements_text(tags) as tag,
+          published_at
+        FROM blog_posts
+        WHERE published_at <= now()
+          AND no_index = false
+      ) t
+      WHERE tag IS NOT NULL AND tag <> ''
+      GROUP BY tag
+      ORDER BY tag ASC
+    `,
+  ).catch(() => ({ rows: [] as Array<{ tag: string; lastmod: string }> }));
+
+  if (rows.rows.length === 0) return xmlUrlset("");
+
+  const body = rows.rows
+    .map((r) => {
+      const slug    = r.tag.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      if (!slug) return "";
+      const loc     = `${siteUrl}/blog/tag/${slug}`;
+      const label   = r.tag;
+      const imageUrl = `${siteUrl}/api/og?title=${encodeURIComponent(label)}&category=${encodeURIComponent("Tag")}`;
+      const lastmod  = r.lastmod ?? new Date().toISOString().slice(0, 10);
+      return (
+        `  <url>\n` +
+        `    <loc>${escapeXml(loc)}</loc>\n` +
+        `    <lastmod>${lastmod}</lastmod>\n` +
+        `    <changefreq>weekly</changefreq>\n` +
+        `    <priority>0.6</priority>\n` +
+        `    <image:image>\n` +
+        `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
+        `      <image:title>${escapeXml(label)}</image:title>\n` +
+        `    </image:image>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(loc)}"/>\n` +
+        `  </url>`
+      );
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  return xmlUrlset(body, true);
+}
+
 router.get("/sitemap_index.xml",  (_req, res) => serveSitemap("sitemap_index",  buildSitemapIndexXml,   res));
 router.get("/sitemap-pages.xml",  (_req, res) => serveSitemap("sitemap_pages",  buildPagesSitemapXml,   res));
 router.get("/sitemap-blog.xml",   (_req, res) => serveSitemap("sitemap_blog",   buildBlogSitemapXml,    res));
+router.get("/sitemap-tags.xml",   (_req, res) => serveSitemap("sitemap_tags",   buildTagsSitemapXml,    res));
 router.get("/sitemap-authors.xml",(_req, res) => serveSitemap("sitemap_authors",buildAuthorsSitemapXml, res));
 router.get("/sitemap-locations.xml",(_req, res) => serveSitemap("sitemap_locations", buildLocationsSitemapXml, res));
 router.get("/sitemap-glossary.xml", (_req, res) => serveSitemap("sitemap_glossary",  buildGlossarySitemapXml,  res));

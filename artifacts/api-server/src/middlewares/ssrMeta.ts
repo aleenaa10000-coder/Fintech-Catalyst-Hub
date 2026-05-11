@@ -903,6 +903,7 @@ const GLOSSARY_RE = /^\/glossary\/([^/]+)$/;
 const SERVICE_RE  = /^\/services\/([^/]+)$/;
 const AUTHOR_RE   = /^\/authors\/([^/]+)$/;
 const CATEGORY_RE = /^\/blog\/category\/([^/]+)$/;
+const TAG_RE      = /^\/blog\/tag\/([^/]+)$/;
 const COMPARE_RE  = /^\/compare\/([^/]+)$/;
 const TOOLS_RE    = /^\/tools\/([^/]+)$/;
 
@@ -1582,6 +1583,91 @@ async function handleSsrMeta(
         headLinks: [
           `  <link rel="alternate" type="application/rss+xml" title="${esc(`${leafLabel} — FintechPressHub`)}" href="${esc(`${siteUrl}/blog/category/${slug}/rss.xml`)}" />`,
         ],
+      };
+    }
+
+    // ── /blog/tag/:slug ──────────────────────────────────────────────────────
+    const tagMatch = TAG_RE.exec(reqPath);
+    if (tagMatch) {
+      const rawTag  = tagMatch[1]!;
+      // Slugs use hyphens; display labels restore spaces/capitalisation.
+      const tagLabel = rawTag.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      const canonical  = `${siteUrl}/blog/tag/${rawTag}`;
+      const ogImage    = `${siteUrl}/api/og?title=${encodeURIComponent(tagLabel)}&category=${encodeURIComponent("Tag")}`;
+      const title      = `${tagLabel} Articles | FintechPressHub`;
+      const description = `Browse all FintechPressHub articles tagged with "${tagLabel}" — expert fintech SEO, content marketing, and industry analysis.`;
+      const breadcrumbs = buildCrumbsForPath(siteUrl, ["blog", "tag", rawTag], tagLabel);
+
+      // Fetch posts containing this tag. We pull all recent posts and
+      // filter in JS because Drizzle ORM lacks a native JSONB @> operator
+      // binding for string arrays; a full-table scan is acceptable here
+      // since posts are cached after the first SSR hit per slug.
+      const tagPosts = await db
+        .select({
+          slug:        blogPostsTable.slug,
+          title:       blogPostsTable.title,
+          tags:        blogPostsTable.tags,
+          noIndex:     blogPostsTable.noIndex,
+          publishedAt: blogPostsTable.publishedAt,
+        })
+        .from(blogPostsTable)
+        .where(lte(blogPostsTable.publishedAt, sql`now()`))
+        .orderBy(desc(blogPostsTable.publishedAt))
+        .limit(200);
+
+      const filteredTagPosts = tagPosts.filter(
+        (p) =>
+          !p.noIndex &&
+          Array.isArray(p.tags) &&
+          (p.tags as string[]).some(
+            (t: string) => t.toLowerCase().replace(/\s+/g, "-") === rawTag,
+          ),
+      );
+
+      if (filteredTagPosts.length === 0) { res.status(404); return next(); }
+
+      const extraLds: string[] = [
+        JSON.stringify({
+          "@context":   "https://schema.org",
+          "@type":      "CollectionPage",
+          "@id":        canonical,
+          url:          canonical,
+          name:         title,
+          description,
+          inLanguage:   "en",
+          isPartOf:     { "@id": `${siteUrl}/blog` },
+          publisher:    { "@id": `${siteUrl}#organization` },
+          datePublished: "2021-06-01",
+          dateModified: (filteredTagPosts[0]?.publishedAt ?? new Date()).toISOString().slice(0, 10),
+          keywords:     tagLabel,
+        }, null, 2),
+        buildBreadcrumbLd(breadcrumbs),
+      ];
+
+      if (filteredTagPosts.length > 0) {
+        extraLds.push(JSON.stringify({
+          "@context": "https://schema.org",
+          "@type":    "ItemList",
+          name:       `${tagLabel} Articles`,
+          url:        canonical,
+          itemListElement: filteredTagPosts.slice(0, 20).map((p, i) => ({
+            "@type":    "ListItem",
+            position:   i + 1,
+            name:       p.title,
+            url:        `${siteUrl}/blog/${p.slug}`,
+          })),
+        }, null, 2));
+      }
+
+      patches = {
+        title,
+        description,
+        canonical,
+        ogTitle:       `${tagLabel} Articles`,
+        ogDescription: description,
+        ogImage,
+        ogImageAlt:    `${tagLabel} — FintechPressHub`,
+        extraLds,
       };
     }
 
@@ -2321,7 +2407,8 @@ async function handleSsrMeta(
     // Only cache DB-backed dynamic routes (static page patches are already cheap).
     const isDynamic =
       BLOG_RE.test(reqPath) || LOCATION_RE.test(reqPath) || GLOSSARY_RE.test(reqPath) ||
-      SERVICE_RE.test(reqPath) || AUTHOR_RE.test(reqPath) || CATEGORY_RE.test(reqPath);
+      SERVICE_RE.test(reqPath) || AUTHOR_RE.test(reqPath) || CATEGORY_RE.test(reqPath) ||
+      TAG_RE.test(reqPath);
     if (isDynamic) setSsrMetaCached(reqPath, patches);
 
     const html = patchHtml(baseHtml, patches);
@@ -2353,6 +2440,7 @@ export function ssrMetaMiddleware(req: Request, res: Response, next: NextFunctio
     SERVICE_RE.test(reqPath) ||
     AUTHOR_RE.test(reqPath) ||
     CATEGORY_RE.test(reqPath) ||
+    TAG_RE.test(reqPath) ||
     COMPARE_RE.test(reqPath) ||
     TOOLS_RE.test(reqPath);
 
