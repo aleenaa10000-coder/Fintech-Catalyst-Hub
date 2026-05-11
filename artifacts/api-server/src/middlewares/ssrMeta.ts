@@ -1890,6 +1890,7 @@ async function handleSsrMeta(
               "@context": "https://schema.org",
               "@type":    "ProfilePage",
               "@id":      canonical,
+              name:       title,
               url:        canonical,
               inLanguage: "en",
               // datePublished/dateModified enable Google's freshness ranking
@@ -2699,6 +2700,7 @@ async function handleSsrMeta(
             name:         "Fintech Glossary",
             description:  staticMeta.description,
             inLanguage:   "en",
+            isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
