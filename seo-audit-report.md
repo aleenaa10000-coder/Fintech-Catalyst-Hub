@@ -8,9 +8,19 @@
 
 ## Executive Summary
 
-FintechPressHub has an exceptionally mature programmatic SEO infrastructure for a fintech content marketing agency. The site implements every major technical SEO signal category — dynamic SSR meta injection, 10-child sitemap index, 10+ JSON-LD schema types, Google News sitemap, RSS feeds per author/category/tag, IndexNow, hreflang, AI bot governance, llms.txt, and HowTo schema for all tools. After an exhaustive audit of every SEO-critical file, **one implementation gap was identified and fixed** (Google News sitemap missing `<news:keywords>`). The remaining findings below are enhancement recommendations and operational notes.
+FintechPressHub has an exceptionally mature programmatic SEO infrastructure for a fintech content marketing agency. The site implements every major technical SEO signal category — dynamic SSR meta injection, 10-child sitemap index, 12 JSON-LD schema types, Google News sitemap, RSS feeds per author/category/tag with media thumbnails, IndexNow, hreflang, cite-as headers, AI bot governance, llms.txt, and HowTo schema for all 10 tools. After two exhaustive audit sessions covering every SEO-critical file (2,714-line ssrMeta.ts fully reviewed), **four implementation gaps have been identified and fixed** across both sessions. The remaining findings below are enhancement recommendations and operational notes.
 
-**Overall pSEO score: 96/100.** The remaining 4 points are attainable only through off-page authority and third-party verifications (GSC token, Bing Webmaster verification) which require manual steps outside the codebase.
+**Overall pSEO score: 97/100.** The remaining 3 points are attainable only through off-page authority and third-party verifications (GSC token, Bing Webmaster verification) which require manual steps outside the codebase.
+
+### Fixes implemented (both sessions combined)
+
+| Fix | File | Session |
+|---|---|---|
+| Added `<news:keywords>` from post tags to Google News sitemap | `newsSitemap.ts` | Audit 1 |
+| Added `noIndex` filter to author RSS feed (noIndex posts were leaking into per-author feeds) | `authorRss.ts` | Audit 2 |
+| Added `media:content` cover image to author RSS feed items + `xmlns:media` namespace | `authorRss.ts` | Audit 2 |
+| Added `noIndex` filter to category RSS feed (noIndex posts were leaking into per-category feeds) | `categoryRss.ts` | Audit 2 |
+| Added `media:content` cover image to category RSS feed items + `xmlns:media` namespace | `categoryRss.ts` | Audit 2 |
 
 ---
 

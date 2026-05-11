@@ -27,6 +27,7 @@ type FeedItem = {
   date: string;
   author: string;
   content?: string;
+  coverImage?: string | null;
 };
 
 async function collectCategoryPosts(categorySlug: string): Promise<FeedItem[]> {
@@ -41,6 +42,8 @@ async function collectCategoryPosts(categorySlug: string): Promise<FeedItem[]> {
       author: blogPostsTable.author,
       publishedAt: blogPostsTable.publishedAt,
       content: blogPostsTable.content,
+      noIndex: blogPostsTable.noIndex,
+      coverImage: blogPostsTable.coverImage,
     })
     .from(blogPostsTable)
     .where(lte(blogPostsTable.publishedAt, sql`now()`))
@@ -48,6 +51,7 @@ async function collectCategoryPosts(categorySlug: string): Promise<FeedItem[]> {
 
   return apiRows
     .filter((p) => {
+      if (p.noIndex) return false;
       const pCatSlug = p.category
         .toLowerCase()
         .replace(/\s+/g, "-")
@@ -62,6 +66,7 @@ async function collectCategoryPosts(categorySlug: string): Promise<FeedItem[]> {
       date: p.publishedAt.toISOString(),
       author: p.author,
       content: p.content,
+      coverImage: p.coverImage,
     }));
 }
 
@@ -78,6 +83,9 @@ function buildRss(opts: {
     .map((p) => {
       const url = `${opts.siteUrl}/blog/${p.slug}`;
       const pubDate = new Date(p.date).toUTCString();
+      const mediaUrl = p.coverImage
+        ? (p.coverImage.startsWith("http") ? p.coverImage : `${opts.siteUrl}${p.coverImage.startsWith("/") ? "" : "/"}${p.coverImage}`)
+        : `${opts.siteUrl}/api/og?title=${encodeURIComponent(p.title)}&type=blog`;
       return (
         `    <item>\n` +
         `      <title>${cdata(p.title)}</title>\n` +
@@ -92,6 +100,7 @@ function buildRss(opts: {
         (p.content
           ? `      <content:encoded>${cdata(p.content)}</content:encoded>\n`
           : "") +
+        `      <media:content url="${escapeXml(mediaUrl)}" medium="image" />\n` +
         `    </item>`
       );
     })
@@ -102,7 +111,8 @@ function buildRss(opts: {
     `<rss version="2.0"\n` +
     `  xmlns:content="http://purl.org/rss/1.0/modules/content/"\n` +
     `  xmlns:dc="http://purl.org/dc/elements/1.1/"\n` +
-    `  xmlns:atom="http://www.w3.org/2005/Atom">\n` +
+    `  xmlns:atom="http://www.w3.org/2005/Atom"\n` +
+    `  xmlns:media="http://search.yahoo.com/mrss/">\n` +
     `  <channel>\n` +
     `    <title>${escapeXml(opts.channelTitle)}</title>\n` +
     `    <link>${escapeXml(opts.channelLink)}</link>\n` +
