@@ -32,12 +32,13 @@ router.get("/llms.txt", async (_req, res) => {
         slug:     blogPostsTable.slug,
         excerpt:  blogPostsTable.excerpt,
         category: blogPostsTable.category,
+        noIndex:  blogPostsTable.noIndex,
       })
       .from(blogPostsTable)
       .where(lte(blogPostsTable.publishedAt, sql`now()`))
       .orderBy(desc(blogPostsTable.publishedAt))
       .limit(20)
-      .catch(() => [] as Array<{ title: string | null; slug: string | null; excerpt: string | null; category: string | null }>),
+      .catch(() => [] as Array<{ title: string | null; slug: string | null; excerpt: string | null; category: string | null; noIndex: boolean | null }>),
 
     db
       .select({
@@ -76,7 +77,7 @@ router.get("/llms.txt", async (_req, res) => {
       .catch(() => [] as Array<{ name: string; role: string; slug: string; shortBio: string; yearsExperience: number }>),
   ]);
 
-  const indexable = recentPosts.filter((p) => p.slug && p.title);
+  const indexable = recentPosts.filter((p) => p.slug && p.title && !p.noIndex);
 
   const blogLines = indexable
     .map((p) => {
@@ -279,12 +280,13 @@ router.get("/llms-full.txt", async (_req, res) => {
         excerpt:  blogPostsTable.excerpt,
         category: blogPostsTable.category,
         publishedAt: blogPostsTable.publishedAt,
+        noIndex:  blogPostsTable.noIndex,
       })
       .from(blogPostsTable)
       .where(lte(blogPostsTable.publishedAt, sql`now()`))
       .orderBy(desc(blogPostsTable.publishedAt))
       .limit(50)
-      .catch(() => [] as Array<{ title: string | null; slug: string | null; excerpt: string | null; category: string | null; publishedAt: Date }>),
+      .catch(() => [] as Array<{ title: string | null; slug: string | null; excerpt: string | null; category: string | null; publishedAt: Date; noIndex: boolean | null }>),
 
     db
       .select({
@@ -321,7 +323,7 @@ router.get("/llms-full.txt", async (_req, res) => {
       .catch(() => [] as Array<{ name: string; role: string; slug: string; shortBio: string; yearsExperience: number }>),
   ]);
 
-  const indexable = recentPosts.filter((p) => p.slug && p.title);
+  const indexable = recentPosts.filter((p) => p.slug && p.title && !p.noIndex);
 
   const blogLines = indexable
     .map((p) => {

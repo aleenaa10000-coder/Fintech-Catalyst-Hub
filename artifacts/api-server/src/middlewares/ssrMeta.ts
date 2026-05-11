@@ -54,7 +54,7 @@ import {
 } from "@workspace/db";
 import { eq, lte, sql, desc, asc } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
-import { BREADCRUMB_LABELS } from "../lib/seoConstants";
+import { BREADCRUMB_LABELS, SERVICE_PAGE_LASTMOD_DATE } from "../lib/seoConstants";
 
 // Resolve the frontend dist directory. The relative path differs between:
 //   Replit monorepo:  artifacts/api-server/dist/ → artifacts/fintechpresshub/dist/public/
@@ -1384,6 +1384,20 @@ async function handleSsrMeta(
                 }
               : {}),
           }, null, 2),
+          // WebPage entity emitted alongside FinancialService so Google can
+          // resolve the page-level entity and track freshness independently —
+          // mirrors the pattern used on tools and compare pages for consistent
+          // entity resolution across all content-type detail pages site-wide.
+          JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "WebPage",
+            "@id":        `${canonical}#webpage`,
+            url:          canonical,
+            inLanguage:   "en",
+            isPartOf:     { "@id": `${siteUrl}#website` },
+            publisher:    { "@id": `${siteUrl}#organization` },
+            dateModified: SERVICE_PAGE_LASTMOD_DATE,
+          }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
         ],
       };
@@ -1404,6 +1418,8 @@ async function handleSsrMeta(
           credentials:     authorsTable.credentials,
           location:        authorsTable.location,
           yearsExperience: authorsTable.yearsExperience,
+          createdAt:       authorsTable.createdAt,
+          updatedAt:       authorsTable.updatedAt,
         })
         .from(authorsTable)
         .where(eq(authorsTable.slug, slug))
@@ -1444,6 +1460,14 @@ async function handleSsrMeta(
             "@id":      canonical,
             url:        canonical,
             inLanguage: "en",
+            // datePublished/dateModified enable Google's freshness ranking
+            // signal for author profile pages — without them, Google has no
+            // structured signal to determine when a profile was created or
+            // last substantively changed, weakening E-E-A-T scoring.
+            datePublished: author.createdAt.toISOString().slice(0, 10),
+            dateModified:  author.updatedAt.toISOString().slice(0, 10),
+            isPartOf:   { "@id": `${siteUrl}#website` },
+            publisher:  { "@id": `${siteUrl}#organization` },
             mainEntity: {
               "@type":      "Person",
               "@id":        `${canonical}#person`,
