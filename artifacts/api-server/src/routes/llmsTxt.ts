@@ -170,8 +170,7 @@ A: Both. The Fintech SEO Audit is a one-time 30-day engagement. Content, link bu
 - [Services](${siteUrl}/services) — Full breakdown of SEO, content, link building, and PR services
 - [Pricing](${siteUrl}/pricing) — Transparent retainer-based pricing (USD, monthly)
 - [About](${siteUrl}/about) — Team background, methodology, and agency values
-- [Blog](${siteUrl}/blog) — Fintech SEO strategy, content marketing playbooks, and industry analysis
-- [Blog Tags](${siteUrl}/blog/tag) — Browse articles by topic tag (e.g. /blog/tag/payments, /blog/tag/open-banking)
+- [Blog](${siteUrl}/blog) — Fintech SEO strategy, content marketing playbooks, and industry analysis. Topic tag feeds at /blog/tag/:slug (e.g. /blog/tag/payments, /blog/tag/open-banking)
 - [Glossary](${siteUrl}/glossary) — Definitions of fintech and SEO terms
 - [Free Tools](${siteUrl}/tools) — Calculators, generators, and checkers for fintech marketers
 - [Write For Us](${siteUrl}/write-for-us) — Guest post guidelines and topic pitch form

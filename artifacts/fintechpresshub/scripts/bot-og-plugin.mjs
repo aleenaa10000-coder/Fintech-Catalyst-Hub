@@ -1229,6 +1229,68 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
     };
   }
 
+  // /blog/tag/:slug
+  const tagMatch = /^\/blog\/tag\/([^/]+)\/?$/i.exec(pathname);
+  if (tagMatch) {
+    const rawTag = tagMatch[1];
+    const tags = await loadTags(apiBase);
+    const tagEntry = tags.find((t) => t.slug === rawTag);
+    const tagLabel = tagEntry
+      ? tagEntry.tag
+      : rawTag
+          .split("-")
+          .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+          .join(" ");
+    const canonical = `${siteUrl}/blog/tag/${rawTag}`;
+    const title = `${tagLabel} Articles | FintechPressHub Blog`;
+    const description = `Browse all FintechPressHub articles tagged "${tagLabel}" — expert fintech SEO and content marketing insights.`;
+    const posts = await loadPosts(apiBase);
+    const tagPosts = posts.filter((p) =>
+      Array.isArray(p.tags) && p.tags.some((t) => {
+        const s = String(t).toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+        return s === rawTag;
+      }),
+    );
+    const bodyContent = buildBodyHtml({
+      heading: `${tagLabel} Articles`,
+      lede: description,
+      sections: tagPosts.length > 0
+        ? [{ heading: "Latest Articles", list: tagPosts.slice(0, 10).map((p) => ({ name: p.title, url: `${siteUrl}/blog/${p.slug}` })) }]
+        : [],
+    });
+    return {
+      title,
+      description,
+      canonical,
+      ogType: "website",
+      ogImage: `${siteUrl}/api/og?title=${encodeURIComponent(tagLabel)}&category=Blog`,
+      ogImageAlt: `${tagLabel} — FintechPressHub Blog`,
+      schemas: [
+        organizationSchema(siteUrl),
+        websiteSchema(siteUrl),
+        breadcrumbSchema(pathname, `${tagLabel} Articles`, siteUrl),
+        {
+          "@context":  "https://schema.org",
+          "@type":     "CollectionPage",
+          "@id":       canonical,
+          name:        title,
+          description,
+          url:         canonical,
+          inLanguage:  "en",
+          isPartOf:    { "@type": "WebPage", "@id": `${siteUrl}/blog` },
+          publisher:   { "@id": `${siteUrl}#organization` },
+        },
+        tagPosts.length > 0
+          ? itemListSchema({
+              name: title,
+              items: tagPosts.slice(0, 20).map((p) => ({ name: p.title, url: `${siteUrl}/blog/${p.slug}` })),
+            })
+          : null,
+      ].filter(Boolean),
+      bodyContent,
+    };
+  }
+
   return null;
 }
 

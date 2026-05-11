@@ -203,6 +203,26 @@ export default defineConfig(({ command }) => {
         target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
         changeOrigin: true,
       },
+      "/sitemap-tags.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/sitemap-services.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/llms-full.txt": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      // Per-tag RSS feeds (e.g. /blog/tag/payments/rss.xml) are served
+      // dynamically by the API. The regex limits the proxy to URLs that end
+      // in `/rss.xml` under /blog/tag/, so the SPA still handles the tag
+      // hub pages at /blog/tag/:slug.
+      "^/blog/tag/[^/]+/rss\\.xml$": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
       "/rss.xml": {
         target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
         changeOrigin: true,

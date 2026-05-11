@@ -33,7 +33,7 @@
  *   /tools/:slug           — SoftwareApplication schema
  *
  * Covered static pages:
- *   /, /about, /services, /pricing, /blog, /blog/tag, /authors, /write-for-us,
+ *   /, /about, /services, /pricing, /blog, /authors, /write-for-us,
  *   /editorial-guidelines, /community-guidelines, /tools, /glossary, /compare,
  *   /press, /contact, /privacy-policy, /refund-policy, /cookie-policy,
  *   /terms, /resources/fintech-publications, /locations
@@ -679,10 +679,6 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
     title: "Fintech SEO & Content Marketing Insights | FintechPressHub",
     description: "Strategy, SEO, and content marketing playbooks for fintech operators. Covering payments, embedded finance, open banking, neobanking, lending, regtech, and wealthtech.",
   },
-  "/blog/tag": {
-    title: "Browse Articles by Tag | FintechPressHub Blog",
-    description: "Browse all FintechPressHub blog articles by topic tag — fintech SEO, content marketing, payments, open banking, lending, regtech, and more. Find the exact articles you need.",
-  },
   "/authors": {
     title: "Our Authors | Fintech SEO Specialists | FintechPressHub",
     description: "Meet the fintech SEO specialists, analysts, and content strategists who write for FintechPressHub — all with hands-on experience inside regulated financial services.",
@@ -758,7 +754,6 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/services":                        "2026-05-09",
   "/pricing":                         "2026-05-11",
   "/blog":                            "2026-05-11",
-  "/blog/tag":                        "2026-05-11",
   "/authors":                         "2026-05-09",
   "/write-for-us":                    "2026-04-25",
   "/editorial-guidelines":            "2026-04-28",
@@ -792,7 +787,6 @@ const STATIC_PAGE_CREATED: Readonly<Record<string, string>> = {
   "/services":                        "2021-06-01",
   "/pricing":                         "2022-01-01",
   "/blog":                            "2021-06-01",
-  "/blog/tag":                        "2021-06-01",
   "/authors":                         "2021-06-01",
   "/write-for-us":                    "2023-01-01",
   "/editorial-guidelines":            "2023-03-01",
@@ -823,7 +817,6 @@ const STATIC_OG_META: Readonly<Record<string, { category: string; ogTitle: strin
   "/services":                        { category: "Services",    ogTitle: "Fintech SEO & Content Marketing Services" },
   "/pricing":                         { category: "Pricing",     ogTitle: "Transparent Fintech SEO Pricing" },
   "/blog":                            { category: "Blog",        ogTitle: "Fintech SEO & Content Marketing Insights" },
-  "/blog/tag":                        { category: "Blog",        ogTitle: "Browse Articles by Tag" },
   "/authors":                         { category: "Authors",     ogTitle: "Our Expert Fintech Authors" },
   "/write-for-us":                    { category: "Guest Posts", ogTitle: "Write For FintechPressHub" },
   "/editorial-guidelines":            { category: "Editorial",   ogTitle: "Editorial Guidelines" },
