@@ -50,7 +50,7 @@ export function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -95,7 +95,7 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="flex flex-col gap-6 pt-12">
-              <nav className="flex flex-col gap-4">
+              <nav className="flex flex-col gap-4" aria-label="Mobile navigation">
                 {NAV_LINKS.map((link) => (
                   <Link
                     key={link.href}

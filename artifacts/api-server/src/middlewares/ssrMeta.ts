@@ -3120,9 +3120,15 @@ async function handleSsrMeta(
               .limit(10)
               .catch(() => [] as Array<{ name: string; slug: string; tagline: string }>),
             db
-              .select({ rating: testimonialsTable.rating })
+              .select({
+                rating:  testimonialsTable.rating,
+                name:    testimonialsTable.name,
+                quote:   testimonialsTable.quote,
+                company: testimonialsTable.company,
+                role:    testimonialsTable.role,
+              })
               .from(testimonialsTable)
-              .catch(() => [] as Array<{ rating: number }>),
+              .catch(() => [] as Array<{ rating: number; name: string; quote: string; company: string; role: string }>),
           ]);
           extraLds.push(JSON.stringify({
             "@context":   "https://schema.org",
@@ -3154,10 +3160,11 @@ async function handleSsrMeta(
               url:        canonical,
               numberOfItems: homeServices.length,
               itemListElement: homeServices.map((s, i) => ({
-                "@type":    "ListItem",
-                position:   i + 1,
-                name:       s.tagline ? `${s.name} — ${s.tagline}` : s.name,
-                url:        `${siteUrl}/services/${s.slug}`,
+                "@type":       "ListItem",
+                position:      i + 1,
+                name:          s.tagline ? `${s.name} — ${s.tagline}` : s.name,
+                url:           `${siteUrl}/services/${s.slug}`,
+                ...(s.tagline ? { description: s.tagline } : {}),
               })),
             }, null, 2));
           }
@@ -3169,6 +3176,20 @@ async function handleSsrMeta(
           if (homeTestimonials.length > 0) {
             const ratingSum = homeTestimonials.reduce((s, t) => s + t.rating, 0);
             const ratingValue = (ratingSum / homeTestimonials.length).toFixed(1);
+            // Include up to 5 Review entities — Google uses these alongside
+            // AggregateRating to qualify pages for star-rating rich results.
+            const reviewEntities = homeTestimonials.slice(0, 5).map((t) => ({
+              "@type":       "Review",
+              author:        { "@type": "Person", name: t.name },
+              reviewBody:    t.quote,
+              reviewRating:  {
+                "@type":      "Rating",
+                ratingValue:  t.rating,
+                bestRating:   5,
+                worstRating:  1,
+              },
+              ...(t.company ? { publisher: { "@type": "Organization", name: t.company } } : {}),
+            }));
             extraLds.push(JSON.stringify({
               "@context":   "https://schema.org",
               "@type":      "ProfessionalService",
@@ -3185,6 +3206,7 @@ async function handleSsrMeta(
                 ratingCount:   homeTestimonials.length,
                 reviewCount:   homeTestimonials.length,
               },
+              review: reviewEntities,
             }, null, 2));
           }
 

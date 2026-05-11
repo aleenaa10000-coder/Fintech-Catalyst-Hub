@@ -155,3 +155,9 @@ id = "dVaX6Ww9bv3XThVnXEsEL"
 uri = "file://pseo-audit-report.md"
 type = "text"
 title = "FintechPressHub — pSEO Audit Report"
+
+[[outputs]]
+id = "1CITXYrKfNEHpGhjOFvvZ"
+uri = "file://.local/pseo-home-audit-report-2026-05-11-session3.md"
+type = "text"
+title = "pSEO Home Page Audit Report — Session 3 (2026-05-11)"

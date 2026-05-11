@@ -30,6 +30,7 @@ export function TrustedBy() {
             {[...logos, ...logos].map(({ name, Icon }, i) => (
               <div
                 key={`${name}-${i}`}
+                role="listitem"
                 className="flex items-center gap-3 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-300 shrink-0"
               >
                 <Icon className="w-7 h-7 text-blue-600" />

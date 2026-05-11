@@ -7,11 +7,10 @@ import {
   useGetTrustStats,
   useListTestimonials,
   useListFeaturedPosts,
-  useListServices,
   useListBlogPosts,
   getListBlogPostsQueryKey,
 } from "@workspace/api-client-react";
-import { ArrowRight, CheckCircle2, TrendingUp, ShieldCheck, Globe, FileText, Link2, Cog, HelpCircle, Plus, Clock } from "lucide-react";
+import { ArrowRight, FileText, Link2, Cog, HelpCircle, Plus, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -92,7 +91,6 @@ export default function Home() {
   const { data: stats } = useGetTrustStats();
   const { data: testimonials } = useListTestimonials();
   const { data: featuredPosts } = useListFeaturedPosts();
-  const { data: services } = useListServices();
   // "Recently published" widget — pulls the 3 newest posts from the
   // live API on every mount (the list endpoint already orders by
   // `publishedAt desc`, so a `limit=3` is the whole story). Distinct
@@ -460,6 +458,7 @@ export default function Home() {
       {recentPostsQuery.data !== undefined && recentPosts != null && recentPosts.length > 0 ? (
         <section
           className="py-16 border-t bg-slate-50"
+          aria-label="Recently published fintech articles"
           data-testid="section-home-recently-published"
         >
           <div className="container mx-auto px-4">
