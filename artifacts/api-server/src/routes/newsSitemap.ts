@@ -53,6 +53,14 @@ async function buildNewsSitemapXml(): Promise<string> {
   const entries = indexable
     .map((p) => {
       const pubDate = p.publishedAt.toISOString();
+      // news:keywords — comma-separated list of up to 10 tags. Helps Google News
+      // classify articles into topic buckets (e.g. "open banking", "regtech") so
+      // they surface for readers subscribing to those topics in Google News feeds.
+      // Tags are capped at 10 to stay within Google's recommended keyword count.
+      const tags = Array.isArray(p.tags) ? (p.tags as string[]).slice(0, 10) : [];
+      const keywordsLine = tags.length > 0
+        ? `      <news:keywords>${escapeXml(tags.join(", "))}</news:keywords>\n`
+        : "";
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(`${siteUrl}/blog/${p.slug}`)}</loc>\n` +
@@ -64,6 +72,7 @@ async function buildNewsSitemapXml(): Promise<string> {
         `      <news:publication_date>${pubDate}</news:publication_date>\n` +
         `      <news:title>${escapeXml(p.title)}</news:title>\n` +
         `      <news:genres>Blog</news:genres>\n` +
+        keywordsLine +
         `    </news:news>\n` +
         `  </url>`
       );
