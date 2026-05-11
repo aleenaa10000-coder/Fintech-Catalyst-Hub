@@ -180,6 +180,53 @@ export default function BlogTagPage() {
         </div>
       </section>
 
+      {/* Related Tags widget — shows sibling tags that co-occur with the
+          current tag so readers can explore adjacent topic hubs without
+          returning to the blog index. Computed entirely from local post data,
+          so no extra fetch is needed. */}
+      {(() => {
+        if (tagPosts.length === 0) return null;
+        const tagFreq = new Map<string, number>();
+        for (const p of tagPosts) {
+          if (!Array.isArray(p.tags)) continue;
+          for (const t of p.tags as string[]) {
+            const slug = t.toLowerCase().replace(/\s+/g, "-");
+            if (slug === rawSlug) continue;
+            tagFreq.set(t, (tagFreq.get(t) ?? 0) + 1);
+          }
+        }
+        const related = Array.from(tagFreq.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8);
+        if (related.length === 0) return null;
+        return (
+          <section className="py-12 border-t bg-white">
+            <div className="container mx-auto px-4 max-w-6xl">
+              <div className="flex items-center gap-2 mb-6">
+                <Tag className="w-4 h-4 text-[#0052FF]" />
+                <h2 className="text-base font-bold uppercase tracking-wider text-slate-700">
+                  Related Tag Hubs
+                </h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {related.map(([tag, count]) => (
+                  <Link
+                    key={tag}
+                    href={`/blog/tag/${tag.toLowerCase().replace(/\s+/g, "-")}`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-4 py-1.5 text-sm font-medium text-[#0052FF] hover:bg-[#0052FF] hover:text-white hover:border-[#0052FF] transition-colors duration-200"
+                  >
+                    #{tag}
+                    <span className="text-[10px] opacity-70 font-normal">
+                      {count}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
       <section className="py-12 bg-secondary/30 border-t">
         <div className="container mx-auto px-4 max-w-4xl text-center">
           <p className="text-muted-foreground mb-4">

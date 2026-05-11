@@ -84,6 +84,10 @@ export default function ServiceDetail() {
           knowsAbout,
         }}
         faq={faqs.length > 0 ? faqs : undefined}
+        webPage={{
+          datePublished: "2023-01-01",
+          dateModified: new Date().toISOString().slice(0, 10),
+        }}
       />
 
       <PageHero

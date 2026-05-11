@@ -89,6 +89,10 @@ export default function About() {
           knowsAbout: aboutKnowsAbout,
           employees: teamForSchema,
         }}
+        webPage={{
+          datePublished: "2021-06-01",
+          dateModified: "2025-04-01",
+        }}
       />
       <PageHero
         eyebrow="About FintechPressHub"

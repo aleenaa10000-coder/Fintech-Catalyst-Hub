@@ -972,6 +972,17 @@ router.get(
       const depthScore = Math.min(avgPostsPerCategory / 10, 1) * 30;
       const score = Math.round(categoryScore + tagScore + depthScore);
 
+      const sortedCategories = [...categories].sort(
+        (a, b) => parseInt(b.post_count, 10) - parseInt(a.post_count, 10),
+      );
+      // Categories with fewer than 5 posts are considered "thin" — they may
+      // not have enough depth for Google to recognise topical authority in
+      // that subject area. Surface them so editors can prioritise coverage.
+      const THIN_THRESHOLD = 5;
+      const thinCategories = sortedCategories
+        .filter((r) => parseInt(r.post_count, 10) < THIN_THRESHOLD)
+        .map((r) => ({ category: r.category, postCount: parseInt(r.post_count, 10) }));
+
       res.json({
         score,
         breakdown: {
@@ -983,10 +994,10 @@ router.get(
           tagScore: parseFloat(tagScore.toFixed(1)),
           depthScore: parseFloat(depthScore.toFixed(1)),
         },
-        topCategories: categories
-          .sort((a, b) => parseInt(b.post_count, 10) - parseInt(a.post_count, 10))
+        topCategories: sortedCategories
           .slice(0, 5)
           .map((r) => ({ category: r.category, postCount: parseInt(r.post_count, 10) })),
+        thinCategories,
       });
     } catch (err) {
       next(err);

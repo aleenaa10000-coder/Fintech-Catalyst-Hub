@@ -177,23 +177,27 @@ function SectionHeader({
   );
 }
 
+interface TopicalAuthorityData {
+  score: number;
+  breakdown: Record<string, number>;
+  topCategories: Array<{ category: string; postCount: number }>;
+  thinCategories: Array<{ category: string; postCount: number }>;
+}
+
 function TopicalAuthorityWidget() {
-  const [score, setScore] = useState<number | null>(null);
-  const [breakdown, setBreakdown] = useState<Record<string, number> | null>(null);
+  const [data, setData] = useState<TopicalAuthorityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/blog/topical-authority", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data: { score: number; breakdown: Record<string, number> }) => {
-        setScore(data.score);
-        setBreakdown(data.breakdown);
-      })
+      .then((d: TopicalAuthorityData) => setData(d))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
+  const score = data?.score ?? null;
   const band =
     score === null
       ? null
@@ -204,55 +208,96 @@ function TopicalAuthorityWidget() {
       : { label: "Developing", color: "text-red-600 bg-red-50" };
 
   return (
-    <Card className="mb-6">
-      <CardContent className="pt-5 pb-5 px-5">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart2 className="w-4 h-4 text-muted-foreground" />
-          <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-            Topical Authority Score
-          </h2>
-          {band && (
-            <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full ${band.color}`}>
-              {band.label}
-            </span>
+    <>
+      <Card className="mb-6">
+        <CardContent className="pt-5 pb-5 px-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart2 className="w-4 h-4 text-muted-foreground" />
+            <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+              Topical Authority Score
+            </h2>
+            {band && (
+              <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full ${band.color}`}>
+                {band.label}
+              </span>
+            )}
+          </div>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Computing…</p>
+          ) : error ? (
+            <p className="text-sm text-destructive">Could not load topical authority data.</p>
+          ) : (
+            <>
+              <div className="flex items-end gap-3 mb-4">
+                <span className="text-5xl font-bold tabular-nums">{score}</span>
+                <span className="text-xl text-muted-foreground mb-1">/ 100</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2 mb-4">
+                <div
+                  className="h-2 rounded-full bg-[#0052FF] transition-all"
+                  style={{ width: `${score ?? 0}%` }}
+                />
+              </div>
+              {data?.breakdown && Object.keys(data.breakdown).length > 0 && (
+                <div className="space-y-1.5">
+                  {Object.entries(data.breakdown).map(([label, val]) => (
+                    <div key={label} className="flex items-center gap-2 text-xs">
+                      <span className="flex-1 text-muted-foreground capitalize">{label.replace(/_/g, " ")}</span>
+                      <div className="flex-1 bg-muted rounded h-1.5">
+                        <div
+                          className="h-1.5 rounded bg-[#0052FF]/60"
+                          style={{ width: `${Math.min(100, val)}%` }}
+                        />
+                      </div>
+                      <span className="w-8 text-right font-medium">{Math.round(val)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
-        </div>
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Computing…</p>
-        ) : error ? (
-          <p className="text-sm text-destructive">Could not load topical authority data.</p>
-        ) : (
-          <>
-            <div className="flex items-end gap-3 mb-4">
-              <span className="text-5xl font-bold tabular-nums">{score}</span>
-              <span className="text-xl text-muted-foreground mb-1">/ 100</span>
+        </CardContent>
+      </Card>
+
+      {/* Coverage Gaps panel — shows thin categories so editors know where
+          to publish more content to raise the topical authority score. */}
+      {!loading && !error && data && data.thinCategories.length > 0 && (
+        <Card className="mb-6 border-amber-200 bg-amber-50/40">
+          <CardContent className="pt-5 pb-5 px-5">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              <h2 className="font-semibold text-sm uppercase tracking-wide text-amber-700">
+                Coverage Gaps
+              </h2>
+              <span className="ml-auto text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full font-medium">
+                {data.thinCategories.length} thin {data.thinCategories.length === 1 ? "category" : "categories"}
+              </span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2 mb-4">
-              <div
-                className="h-2 rounded-full bg-[#0052FF] transition-all"
-                style={{ width: `${score ?? 0}%` }}
-              />
-            </div>
-            {breakdown && Object.keys(breakdown).length > 0 && (
-              <div className="space-y-1.5">
-                {Object.entries(breakdown).map(([label, val]) => (
-                  <div key={label} className="flex items-center gap-2 text-xs">
-                    <span className="flex-1 text-muted-foreground capitalize">{label.replace(/_/g, " ")}</span>
-                    <div className="flex-1 bg-muted rounded h-1.5">
+            <p className="text-xs text-amber-700 mb-3">
+              These categories have fewer than 5 published posts. Publishing more content here will increase your topical authority score.
+            </p>
+            <div className="space-y-2">
+              {data.thinCategories.map(({ category, postCount }) => (
+                <div key={category} className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-700 capitalize">{category}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 bg-amber-100 rounded h-1.5">
                       <div
-                        className="h-1.5 rounded bg-[#0052FF]/60"
-                        style={{ width: `${Math.min(100, val)}%` }}
+                        className="h-1.5 rounded bg-amber-400"
+                        style={{ width: `${(postCount / 5) * 100}%` }}
                       />
                     </div>
-                    <span className="w-8 text-right font-medium">{Math.round(val)}</span>
+                    <span className="text-amber-700 font-medium w-16 text-right">
+                      {postCount} / 5 posts
+                    </span>
                   </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </>
   );
 }
 
