@@ -98,10 +98,11 @@ router.get("/llms.txt", async (_req, res) => {
         .join("\n")
     : "- No location pages published yet.";
 
+  const lastUpdated = new Date().toISOString().slice(0, 10);
   const txt = `# FintechPressHub
 > Specialist fintech SEO and content marketing agency. We blend deep financial expertise with high-authority link building and technical SEO to scale organic growth for ambitious fintech brands.
 
-Last-Updated: 2026-05-11
+Last-Updated: ${lastUpdated}
 
 ## What FintechPressHub does
 
@@ -355,11 +356,12 @@ router.get("/llms-full.txt", async (_req, res) => {
         .join("\n")
     : "- No location pages published yet.";
 
+  const fullLastUpdated = new Date().toISOString().slice(0, 10);
   const txt = `# FintechPressHub — Full Content Index for AI Systems
 > This is the extended version of /llms.txt following the llmstxt.org specification.
 > It provides fuller content for AI systems that need complete context for accurate citations.
 
-Last-Updated: 2026-05-11
+Last-Updated: ${fullLastUpdated}
 
 ## About FintechPressHub
 

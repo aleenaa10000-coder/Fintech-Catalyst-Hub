@@ -28,11 +28,12 @@
  *   /services/:slug        — FinancialService schema
  *   /authors/:slug         — ProfilePage + Person schema
  *   /blog/category/:slug   — CollectionPage schema
+ *   /blog/tag/:slug        — CollectionPage schema
  *   /compare/:slug         — FAQPage schema
  *   /tools/:slug           — SoftwareApplication schema
  *
  * Covered static pages:
- *   /, /about, /services, /pricing, /blog, /authors, /write-for-us,
+ *   /, /about, /services, /pricing, /blog, /blog/tag, /authors, /write-for-us,
  *   /editorial-guidelines, /community-guidelines, /tools, /glossary, /compare,
  *   /press, /contact, /privacy-policy, /refund-policy, /cookie-policy,
  *   /terms, /resources/fintech-publications, /locations
@@ -54,7 +55,7 @@ import {
 } from "@workspace/db";
 import { eq, lte, sql, desc, asc } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
-import { BREADCRUMB_LABELS, SERVICE_PAGE_LASTMOD_DATE } from "../lib/seoConstants";
+import { BREADCRUMB_LABELS, SERVICE_PAGE_LASTMOD_DATE, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD } from "../lib/seoConstants";
 
 // Resolve the frontend dist directory. The relative path differs between:
 //   Replit monorepo:  artifacts/api-server/dist/ → artifacts/fintechpresshub/dist/public/
@@ -678,6 +679,10 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
     title: "Fintech SEO & Content Marketing Insights | FintechPressHub",
     description: "Strategy, SEO, and content marketing playbooks for fintech operators. Covering payments, embedded finance, open banking, neobanking, lending, regtech, and wealthtech.",
   },
+  "/blog/tag": {
+    title: "Browse Articles by Tag | FintechPressHub Blog",
+    description: "Browse all FintechPressHub blog articles by topic tag — fintech SEO, content marketing, payments, open banking, lending, regtech, and more. Find the exact articles you need.",
+  },
   "/authors": {
     title: "Our Authors | Fintech SEO Specialists | FintechPressHub",
     description: "Meet the fintech SEO specialists, analysts, and content strategists who write for FintechPressHub — all with hands-on experience inside regulated financial services.",
@@ -752,21 +757,15 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/about":                           "2026-05-09",
   "/services":                        "2026-05-09",
   "/pricing":                         "2026-05-11",
+  "/blog":                            "2026-05-11",
+  "/blog/tag":                        "2026-05-11",
   "/authors":                         "2026-05-09",
   "/write-for-us":                    "2026-04-25",
   "/editorial-guidelines":            "2026-04-28",
   "/community-guidelines":            "2026-04-28",
   "/tools":                           "2026-05-09",
-  "/tools/financial-health-score-calculator": "2026-04-25",
-  "/tools/meta-description-generator":        "2026-04-25",
-  "/tools/guest-post-pitch-generator":        "2026-04-25",
-  "/tools/readability-checker":               "2026-04-25",
-  "/tools/keyword-difficulty-estimator":      "2026-04-25",
-  "/tools/backlink-value-estimator":          "2026-04-25",
-  "/tools/content-brief-generator":           "2026-04-25",
-  "/tools/headline-analyzer":                 "2026-04-25",
-  "/tools/link-prospector":                   "2026-05-09",
-  "/tools/outreach-email-generator":          "2026-05-09",
+  // Tool sub-page lastmod is sourced from TOOL_PAGE_LASTMOD in seoConstants.ts
+  // (single source of truth). Do not add /tools/* entries here.
   "/glossary":                        "2026-05-09",
   "/resources/fintech-publications":  "2026-05-09",
   "/press":                           "2026-05-09",
@@ -776,12 +775,8 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/cookie-policy":                   "2026-04-28",
   "/terms":                           "2026-04-28",
   "/compare":                         "2026-05-09",
-  "/compare/agency-vs-in-house":      "2026-05-09",
-  "/compare/vs-freelancers":          "2026-05-09",
-  "/compare/vs-seo-tools":            "2026-05-09",
-  "/compare/vs-pr-agencies":          "2026-05-09",
-  "/compare/content-led-vs-paid":     "2026-05-09",
-  "/compare/specialist-vs-generalist": "2026-05-09",
+  // Compare sub-page lastmod is sourced from COMPARE_PAGE_LASTMOD in seoConstants.ts
+  // (single source of truth). Do not add /compare/* entries here.
   "/locations":                        "2026-05-10",
 };
 
@@ -797,6 +792,7 @@ const STATIC_PAGE_CREATED: Readonly<Record<string, string>> = {
   "/services":                        "2021-06-01",
   "/pricing":                         "2022-01-01",
   "/blog":                            "2021-06-01",
+  "/blog/tag":                        "2021-06-01",
   "/authors":                         "2021-06-01",
   "/write-for-us":                    "2023-01-01",
   "/editorial-guidelines":            "2023-03-01",
@@ -827,6 +823,7 @@ const STATIC_OG_META: Readonly<Record<string, { category: string; ogTitle: strin
   "/services":                        { category: "Services",    ogTitle: "Fintech SEO & Content Marketing Services" },
   "/pricing":                         { category: "Pricing",     ogTitle: "Transparent Fintech SEO Pricing" },
   "/blog":                            { category: "Blog",        ogTitle: "Fintech SEO & Content Marketing Insights" },
+  "/blog/tag":                        { category: "Blog",        ogTitle: "Browse Articles by Tag" },
   "/authors":                         { category: "Authors",     ogTitle: "Our Expert Fintech Authors" },
   "/write-for-us":                    { category: "Guest Posts", ogTitle: "Write For FintechPressHub" },
   "/editorial-guidelines":            { category: "Editorial",   ogTitle: "Editorial Guidelines" },
@@ -1968,7 +1965,7 @@ async function handleSsrMeta(
             url:        canonical,
             publisher:  { "@id": `${siteUrl}#organization` },
             datePublished: STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
-            ...(STATIC_PAGE_LASTMOD[`/compare/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/compare/${slug}`] } : {}),
+            ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
             mainEntity: faqMainEntity,
           }, null, 2),
           // WebPage entity emitted alongside FAQPage so Google can resolve the
@@ -1983,7 +1980,7 @@ async function handleSsrMeta(
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
             datePublished: STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
-            ...(STATIC_PAGE_LASTMOD[`/compare/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/compare/${slug}`] } : {}),
+            ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
           }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
         ],
@@ -2019,7 +2016,7 @@ async function handleSsrMeta(
           },
           provider:      { "@id": `${siteUrl}#organization` },
           datePublished: STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
-          ...(STATIC_PAGE_LASTMOD[`/tools/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/tools/${slug}`] } : {}),
+          ...(TOOL_PAGE_LASTMOD[slug] ? { dateModified: TOOL_PAGE_LASTMOD[slug] } : {}),
           potentialAction: { "@type": "UseAction", target: canonical },
         }, null, 2),
       ];
@@ -2053,7 +2050,7 @@ async function handleSsrMeta(
         isPartOf:     { "@id": `${siteUrl}#website` },
         publisher:    { "@id": `${siteUrl}#organization` },
         datePublished: STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
-        ...(STATIC_PAGE_LASTMOD[`/tools/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/tools/${slug}`] } : {}),
+        ...(TOOL_PAGE_LASTMOD[slug] ? { dateModified: TOOL_PAGE_LASTMOD[slug] } : {}),
       }, null, 2));
       toolExtraLds.push(buildBreadcrumbLd(breadcrumbs));
 
