@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db, blogPostsTable } from "@workspace/db";
 import { desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
+import { escapeXml, RSS_SITE_DESCRIPTION } from "../lib/seoConstants";
 import staticPostsRaw from "../../../fintechpresshub/src/data/posts.js";
 import {
   authors,
@@ -23,17 +24,7 @@ const staticPosts = staticPostsRaw as StaticPost[];
 
 const router: IRouter = Router();
 
-const SITE_DESCRIPTION =
-  "Insights, playbooks, and field reports on fintech SEO, content marketing, and digital PR.";
-
-function escapeXml(value: string): string {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
+const SITE_DESCRIPTION = RSS_SITE_DESCRIPTION;
 
 function cdata(value: string): string {
   return `<![CDATA[${String(value ?? "").replace(/]]>/g, "]]]]><![CDATA[>")}]]>`;

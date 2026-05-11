@@ -153,9 +153,9 @@ export const BREADCRUMB_LABELS: Readonly<Record<string, string>> = {
 
 /**
  * Escape special XML/HTML characters.
- * Shared utility consumed by sitemap generators (sitemap.ts, sitemapIndex.ts)
- * and the OG image SVG builder (og.ts). Previously duplicated in each file;
- * now defined once here and imported wherever needed.
+ * Shared utility consumed by sitemap generators, RSS feeds, and the OG image
+ * SVG builder. Single source of truth — import from here instead of defining
+ * local copies in each file.
  */
 export function escapeXml(value: string): string {
   return String(value ?? "")
@@ -165,3 +165,28 @@ export function escapeXml(value: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
 }
+
+/**
+ * Shared site description used in RSS channel headers and llms.txt.
+ * Single source of truth — previously duplicated in rss.ts, authorRss.ts,
+ * and categoryRss.ts.
+ */
+export const RSS_SITE_DESCRIPTION =
+  "Insights, playbooks, and field reports on fintech SEO, content marketing, and digital PR.";
+
+/**
+ * Human-readable labels for blog category slugs.
+ * Single source of truth — previously duplicated in sitemapIndex.ts and
+ * categoryRss.ts. Update here when categories are added or renamed; changes
+ * flow automatically into the sitemap, RSS feeds, and meta tags.
+ */
+export const CATEGORY_LABELS: Readonly<Record<string, string>> = {
+  "payments":         "Payments",
+  "embedded-finance": "Embedded Finance",
+  "open-banking":     "Open Banking",
+  "neobanking":       "Neobanking",
+  "lending":          "Lending",
+  "regtech":          "RegTech",
+  "wealthtech":       "Wealthtech",
+  "fintech-seo":      "Fintech SEO",
+};

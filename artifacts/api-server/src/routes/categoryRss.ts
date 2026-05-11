@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db, blogPostsTable } from "@workspace/db";
 import { desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
+import { escapeXml, RSS_SITE_DESCRIPTION, CATEGORY_LABELS } from "../lib/seoConstants";
 import staticPostsRaw from "../../../fintechpresshub/src/data/posts.js";
 
 type StaticPost = {
@@ -18,34 +19,13 @@ const staticPosts = staticPostsRaw as StaticPost[];
 
 const router: IRouter = Router();
 
-const SITE_DESCRIPTION =
-  "Insights, playbooks, and field reports on fintech SEO, content marketing, and digital PR.";
-
-const CATEGORY_LABELS: Record<string, string> = {
-  "payments": "Payments",
-  "embedded-finance": "Embedded Finance",
-  "open-banking": "Open Banking",
-  "neobanking": "Neobanking",
-  "lending": "Lending",
-  "regtech": "RegTech",
-  "wealthtech": "Wealthtech",
-  "fintech-seo": "Fintech SEO",
-};
+const SITE_DESCRIPTION = RSS_SITE_DESCRIPTION;
 
 function slugToCategory(slug: string): string {
   return CATEGORY_LABELS[slug] ?? slug
     .split("-")
     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
     .join(" ");
-}
-
-function escapeXml(value: string): string {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
 }
 
 function cdata(value: string): string {

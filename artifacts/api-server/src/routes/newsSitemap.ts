@@ -2,17 +2,9 @@ import { Router, type IRouter } from "express";
 import { db, blogPostsTable } from "@workspace/db";
 import { desc, gte, lte, sql, and } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
+import { escapeXml } from "../lib/seoConstants";
 
 const router: IRouter = Router();
-
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
 
 /**
  * Google News Sitemap — /news-sitemap.xml

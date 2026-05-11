@@ -4,7 +4,7 @@ import { asc, desc, lte, sql } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
 import { KNOWN_AUTHOR_SLUGS } from "./authorRss";
 import { STATIC_ROUTES } from "./sitemap";
-import { STATIC_CATEGORY_SLUGS, TOOL_SLUGS, COMPARE_SLUGS, SERVICE_SLUGS, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, SERVICE_PAGE_LASTMOD_DATE, escapeXml } from "../lib/seoConstants";
+import { STATIC_CATEGORY_SLUGS, TOOL_SLUGS, COMPARE_SLUGS, SERVICE_SLUGS, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, SERVICE_PAGE_LASTMOD_DATE, escapeXml, CATEGORY_LABELS } from "../lib/seoConstants";
 
 const router: IRouter = Router();
 
@@ -53,22 +53,6 @@ export function invalidateSitemapCache(): void {
 function humanizeSlug(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
-
-/**
- * Human-readable labels for blog category slugs.
- * Kept in sync with STATIC_CATEGORY_SLUGS in seoConstants.ts.
- * Used to generate accurate OG image titles in sitemap-pages.xml.
- */
-const CATEGORY_LABELS: Record<string, string> = {
-  "payments":        "Payments",
-  "embedded-finance": "Embedded Finance",
-  "open-banking":    "Open Banking",
-  "neobanking":      "Neobanking",
-  "lending":         "Lending",
-  "regtech":         "RegTech",
-  "wealthtech":      "Wealthtech",
-  "fintech-seo":     "Fintech SEO",
-};
 
 /**
  * Sitemap Index — /sitemap_index.xml
