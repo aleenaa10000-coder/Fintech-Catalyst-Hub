@@ -1006,6 +1006,66 @@ const TOOLS_HOWTO: Readonly<Record<string, {
   },
 };
 
+// ---------- per-tool FAQ questions (for FAQPage schema on /tools/:slug) ──────
+//
+// FAQPage schema runs alongside SoftwareApplication + HowTo on each tool page,
+// occupying a separate rich-result slot (accordion FAQ) in Google SERPs.
+// Three Q&As per tool are sufficient to qualify; the first two are generic
+// (free access + primary use-case) and the third is tool-specific.
+// Keep answers under 300 chars so Google can render them without truncation.
+const TOOLS_FAQ: Readonly<Record<string, Array<{ question: string; answer: string }>>> = {
+  "readability-checker": [
+    { question: "Is the Readability Checker free?", answer: "Yes — the FintechPressHub Readability Checker is completely free to use with no account or sign-up required." },
+    { question: "What does the Readability Checker measure?", answer: "It calculates the Flesch Reading Ease score (0–100), reading grade level, average sentence length, and syllable count for any pasted text." },
+    { question: "What readability score should fintech content target?", answer: "Aim for a Flesch score of 50–70 (plain English). Complex B2B fintech content often scores 40–55; below 40 risks high bounce rates from non-specialist readers." },
+  ],
+  "financial-health-score-calculator": [
+    { question: "Is the Financial Health Score Calculator free?", answer: "Yes — the FintechPressHub Financial Health Score Calculator is free to use with no login required." },
+    { question: "What does the Financial Health Score measure?", answer: "It produces a 0–100 score across four dimensions: debt-to-income ratio, savings rate, emergency fund coverage, and net-worth trajectory." },
+    { question: "What is a good Financial Health Score?", answer: "Scores above 70 indicate strong financial health. 50–70 is average and improvement is achievable. Below 50 suggests actionable areas around debt, savings, or emergency reserves." },
+  ],
+  "meta-description-generator": [
+    { question: "Is the Meta Description Generator free?", answer: "Yes — the FintechPressHub Meta Description Generator is free with no account needed." },
+    { question: "How long should a meta description be?", answer: "Google typically displays 150–160 characters. The generator targets this range and includes your target keyword naturally for maximum CTR." },
+    { question: "Will the generated meta descriptions include my keyword?", answer: "Yes — the generator weaves your target keyword into all three description variants to strengthen on-page relevance signals for Google." },
+  ],
+  "guest-post-pitch-generator": [
+    { question: "Is the Guest Post Pitch Generator free?", answer: "Yes — the FintechPressHub Guest Post Pitch Generator is completely free with no sign-up required." },
+    { question: "What information do I need to generate a pitch?", answer: "You need your name, company, fintech expertise area, the target publication name, the editor's name, and your proposed article title." },
+    { question: "Can I use the generated pitch for any fintech publication?", answer: "Yes — the pitch is fully customisable and works for any fintech, finance, or B2B publication. Personalise it further with a reference to a recent article before sending." },
+  ],
+  "content-brief-generator": [
+    { question: "Is the Content Brief Generator free?", answer: "Yes — the FintechPressHub Content Brief Generator is free with no account or payment required." },
+    { question: "What does the Content Brief Generator produce?", answer: "It outputs a structured brief with suggested headings, questions to answer, key points to cover, and recommended tone — tailored to your target keyword and audience." },
+    { question: "Who should use the Content Brief Generator?", answer: "Content strategists, fintech marketing managers, and freelance writers who want a consistent, SEO-optimised brief framework for each article assignment." },
+  ],
+  "headline-analyzer": [
+    { question: "Is the Headline Analyzer free?", answer: "Yes — the FintechPressHub Headline Analyzer is completely free with no login required." },
+    { question: "What does the Headline Analyzer score?", answer: "It scores your headline across four dimensions: SEO power, emotional impact, readability, and clarity. You receive an overall score out of 100 with actionable suggestions." },
+    { question: "What makes a high-scoring fintech headline?", answer: "High-scoring headlines include a power word, the primary keyword, a specific number or data point, and are 6–12 words long. Avoid jargon that only insiders understand." },
+  ],
+  "keyword-difficulty-estimator": [
+    { question: "Is the Keyword Difficulty Estimator free?", answer: "Yes — the FintechPressHub Keyword Difficulty Estimator is free with no account required." },
+    { question: "What does a keyword difficulty score of 0–100 mean?", answer: "0–30 = low competition (quick win). 31–60 = moderate (achievable with quality content and links). 61–100 = high competition (requires strong domain authority and sustained effort)." },
+    { question: "Does the estimator suggest alternative keywords?", answer: "Yes — it generates six long-tail keyword variations with lower difficulty scores so you can identify more targeted, quicker-win opportunities within the same topic cluster." },
+  ],
+  "backlink-value-estimator": [
+    { question: "Is the Backlink Value Estimator free?", answer: "Yes — the FintechPressHub Backlink Value Estimator is completely free with no sign-up needed." },
+    { question: "What factors determine the backlink value score?", answer: "The score weights Domain Authority (40%), estimated monthly organic traffic (35%), and topical relevance to fintech (25%) to produce a 0–100 value rating." },
+    { question: "What score indicates a high-value backlink opportunity?", answer: "A score above 70 indicates a premium backlink target. 50–69 is solid. Below 50 suggests the domain may not move the needle enough to justify outreach effort." },
+  ],
+  "link-prospector": [
+    { question: "Is the Link Prospector free?", answer: "Yes — the FintechPressHub Link Prospector is free to use with no account required." },
+    { question: "How many domains can I score with the Link Prospector?", answer: "You can paste and score a list of domains in one batch. It is designed for bulk evaluation so you can prioritise an entire outreach list in a single session." },
+    { question: "Can I export my scored prospect list?", answer: "Yes — once scored, you can copy the prioritised list and paste it into any spreadsheet or outreach CRM to begin your link-building campaign." },
+  ],
+  "outreach-email-generator": [
+    { question: "Is the Outreach Email Generator free?", answer: "Yes — the FintechPressHub Outreach Email Generator is completely free with no account required." },
+    { question: "What types of outreach emails can it generate?", answer: "It generates personalised link-building outreach emails in three tones — professional, friendly, or direct — with three alternative subject lines per email." },
+    { question: "Can I use the generated emails for guest-post pitches too?", answer: "The generator is optimised for link-building outreach, but the template structure works well for guest-post pitches too. Use the Guest Post Pitch Generator for a more targeted pitch format." },
+  ],
+};
+
 // ---------- per-request SSR-meta patch cache (B1) ────────────────────────────
 //
 // DB-driven route handlers run at least two SELECT queries per SSR hit
@@ -2174,6 +2234,30 @@ async function handleSsrMeta(
             position:  i + 1,
             name:      s.name,
             text:      s.text,
+          })),
+        }, null, 2));
+      }
+      // FAQPage schema runs alongside SoftwareApplication + HowTo to occupy
+      // a separate rich-result slot (expandable FAQ accordion) in Google SERPs.
+      // Three Q&As per tool: (1) free-access confirmation, (2) primary use-case,
+      // (3) tool-specific expert tip — matching the pattern used on compare,
+      // glossary, service, and location pages for consistent FAQ coverage.
+      const toolFaqs = TOOLS_FAQ[slug];
+      if (toolFaqs && toolFaqs.length > 0) {
+        toolExtraLds.push(JSON.stringify({
+          "@context":  "https://schema.org",
+          "@type":     "FAQPage",
+          "@id":       `${canonical}#faq`,
+          url:         canonical,
+          inLanguage:  "en",
+          isPartOf:    { "@id": `${siteUrl}#website` },
+          publisher:   { "@id": `${siteUrl}#organization` },
+          datePublished: STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
+          ...(TOOL_PAGE_LASTMOD[slug] ? { dateModified: TOOL_PAGE_LASTMOD[slug] } : {}),
+          mainEntity: toolFaqs.map(({ question, answer }) => ({
+            "@type": "Question",
+            name:    question,
+            acceptedAnswer: { "@type": "Answer", text: answer },
           })),
         }, null, 2));
       }
