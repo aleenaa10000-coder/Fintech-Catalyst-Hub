@@ -211,13 +211,14 @@ export default function BlogCategoryPage() {
                       {post.tags && post.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-3">
                           {post.tags.slice(0, 3).map((tag) => (
-                            <span
+                            <Link
                               key={tag}
-                              className="flex items-center gap-0.5 text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded"
+                              href={`/blog/tag/${tag.toLowerCase().replace(/\s+/g, "-")}`}
+                              className="flex items-center gap-0.5 text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded hover:bg-[#0052FF]/10 hover:text-[#0052FF] transition-colors"
                             >
                               <Tag className="w-2.5 h-2.5" />
                               {tag}
-                            </span>
+                            </Link>
                           ))}
                         </div>
                       )}

@@ -43,6 +43,8 @@ type LocationPage = {
   headline: string;
   body: string;
   publishedAt: string;
+  seoTitle: string | null;
+  seoDescription: string | null;
 };
 
 type LocationDraft = {
@@ -53,6 +55,8 @@ type LocationDraft = {
   countryCode: string;
   headline: string;
   body: string;
+  seoTitle: string;
+  seoDescription: string;
 };
 
 const EMPTY_DRAFT: LocationDraft = {
@@ -63,6 +67,8 @@ const EMPTY_DRAFT: LocationDraft = {
   countryCode: "",
   headline: "",
   body: "",
+  seoTitle: "",
+  seoDescription: "",
 };
 
 function slugify(s: string) {
@@ -243,6 +249,46 @@ function LocationForm({
         />
       </div>
 
+      <div className="border-t pt-4 space-y-4">
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+          SEO overrides{" "}
+          <span className="normal-case font-normal">
+            — leave blank to use auto-derived title and description
+          </span>
+        </p>
+        <div>
+          <Label htmlFor="seoTitle">
+            SEO title{" "}
+            <span className="text-muted-foreground font-normal">
+              (optional · ≤ 100 chars)
+            </span>
+          </Label>
+          <Input
+            id="seoTitle"
+            maxLength={100}
+            value={draft.seoTitle}
+            onChange={set("seoTitle")}
+            placeholder="e.g. Fintech SEO Agency London | FintechPressHub"
+          />
+        </div>
+        <div>
+          <Label htmlFor="seoDescription">
+            SEO description{" "}
+            <span className="text-muted-foreground font-normal">
+              (optional · ≤ 300 chars)
+            </span>
+          </Label>
+          <Textarea
+            id="seoDescription"
+            maxLength={300}
+            rows={3}
+            value={draft.seoDescription}
+            onChange={set("seoDescription")}
+            placeholder="e.g. Grow organic traffic in London's fintech market with FintechPressHub — specialist SEO, content, and link building for UK fintech brands."
+          />
+        </div>
+      </div>
+
       <div className="flex gap-2">
         <Button
           type="submit"
@@ -294,6 +340,8 @@ export default function AdminLocations() {
           countryCode: draft.countryCode,
           headline: draft.headline,
           body: draft.body,
+          seoTitle: draft.seoTitle || undefined,
+          seoDescription: draft.seoDescription || undefined,
         }),
       }),
     onSuccess: (row) => {
@@ -319,6 +367,8 @@ export default function AdminLocations() {
           countryCode: draft.countryCode,
           headline: draft.headline,
           body: draft.body,
+          seoTitle: draft.seoTitle || undefined,
+          seoDescription: draft.seoDescription || undefined,
         }),
       }),
     onSuccess: (row) => {
@@ -445,6 +495,8 @@ export default function AdminLocations() {
                           countryCode: loc.countryCode,
                           headline: loc.headline,
                           body: loc.body,
+                          seoTitle: loc.seoTitle ?? "",
+                          seoDescription: loc.seoDescription ?? "",
                         }}
                         onSave={(draft) =>
                           updateMut.mutate({ id: loc.id, draft })
