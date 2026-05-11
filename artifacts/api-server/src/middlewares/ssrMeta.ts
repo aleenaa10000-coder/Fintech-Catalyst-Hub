@@ -2146,6 +2146,13 @@ async function handleSsrMeta(
             dateModified: pageLastmod ?? "2026-05-09",
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
+            // SpeakableSpecification targets the page headline and agency tagline —
+            // the most concise authority summary. Enables Google Assistant / Siri voice
+            // excerpts and AEO snippet extraction for "who is FintechPressHub?" queries.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1", ".about-tagline", ".about-description"],
+            },
             ...(aboutAuthors.length > 0
               ? {
                   employee: aboutAuthors.map((a) => ({
@@ -2179,6 +2186,22 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+          }, null, 2));
+          // Blog entity — defines the canonical #blog @id referenced by BlogPosting.isPartOf
+          // and CollectionPage.isPartOf throughout the site. Without this entity block,
+          // Google's Knowledge Graph treats #blog as an unresolved dangling reference that
+          // cannot be classified or disambiguated. Periodical co-type signals that the blog
+          // is a regularly updated publication, boosting Google News eligibility.
+          extraLds.push(JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      ["Blog", "Periodical"],
+            "@id":        `${siteUrl}/blog#blog`,
+            url:          `${siteUrl}/blog`,
+            name:         "FintechPressHub Blog",
+            description:  staticMeta.description,
+            inLanguage:   "en",
+            isPartOf:     { "@id": `${siteUrl}#website` },
+            publisher:    { "@id": `${siteUrl}#organization` },
           }, null, 2));
           if (visibleHubPosts.length > 0) {
             extraLds.push(JSON.stringify({
@@ -2249,6 +2272,12 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            // SpeakableSpecification enables voice-assistant extraction of the services
+            // headline and value-proposition tagline for "best fintech SEO agency" queries.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1", ".services-tagline"],
+            },
           }, null, 2));
           if (hubServices.length > 0) {
             extraLds.push(JSON.stringify({
@@ -2289,6 +2318,12 @@ async function handleSsrMeta(
             description:  staticMeta.description,
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
+            // SpeakableSpecification enables voice assistants to surface pricing-tier
+            // headlines as spoken answers to "how much does fintech SEO cost?" queries.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1", ".pricing-tagline"],
+            },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
@@ -2426,6 +2461,12 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            // SpeakableSpecification on the tools hub ensures voice assistants can extract
+            // a concise spoken answer for "what free fintech marketing tools are available?"
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1", ".tools-tagline"],
+            },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
@@ -2456,6 +2497,12 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            // SpeakableSpecification on the compare hub allows voice assistants to
+            // surface the hub headline as a spoken answer for "FintechPressHub vs X" queries.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1", ".compare-tagline"],
+            },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
@@ -2723,6 +2770,10 @@ async function handleSsrMeta(
             url:          canonical,
             name:         staticMeta.title,
             description:  staticMeta.description,
+            // inLanguage is required for consistency — all specific page schemas include it;
+            // this catch-all serves /privacy-policy, /refund-policy, /cookie-policy,
+            // /terms, /editorial-guidelines, /community-guidelines, etc.
+            inLanguage:   "en",
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(pageCreated ? { datePublished: pageCreated } : {}),
