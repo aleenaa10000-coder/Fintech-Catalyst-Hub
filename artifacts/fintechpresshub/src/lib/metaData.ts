@@ -70,7 +70,7 @@ export const ORGANIZATION_SCHEMA = {
     caption: SITE_NAME,
   },
   description:
-    "Specialized content marketing and SEO agency for fintech companies.",
+    "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
   foundingDate: "2021",
   areaServed: "Worldwide",
   email: "hello@fintechpresshub.com",

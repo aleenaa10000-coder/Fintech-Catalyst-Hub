@@ -21,12 +21,12 @@ export const STATIC_ROUTES: Array<{
   priority: string;
   lastmod?: string;
 }> = [
-  { path: "/", changefreq: "weekly", priority: "1.0" },
-  { path: "/about", changefreq: "monthly", priority: "0.7" },
+  { path: "/", changefreq: "weekly", priority: "1.0", lastmod: "2026-05-10" },
+  { path: "/about", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/services", changefreq: "monthly", priority: "0.9" },
   { path: "/pricing", changefreq: "monthly", priority: "0.9" },
   { path: "/blog", changefreq: "daily", priority: "0.9" },
-  { path: "/authors", changefreq: "monthly", priority: "0.7" },
+  { path: "/authors", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/write-for-us", changefreq: "monthly", priority: "0.6", lastmod: "2026-04-25" },
   { path: "/editorial-guidelines", changefreq: "yearly", priority: "0.4", lastmod: "2026-04-28" },
   { path: "/tools", changefreq: "monthly", priority: "0.8", lastmod: "2026-05-09" },

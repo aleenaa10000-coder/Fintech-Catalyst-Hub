@@ -32,6 +32,8 @@ export type Comparison = {
   rows: ComparisonRow[];
   faqItems: FaqItem[];
   bottomLine: BottomLineCard[];
+  /** Canonical last-modification date (YYYY-MM-DD). Used in WebPage dateModified schema. */
+  lastmod: string;
 };
 
 export const COMPARISONS: Comparison[] = [
@@ -126,6 +128,7 @@ export const COMPARISONS: Comparison[] = [
       { label: "Generic SEO agency", score: "5 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Covers technical SEO and basic content but lacks fintech regulatory knowledge and the niche link-building relationships that move the needle.", cta: false },
       { label: "In-house team", score: "6 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Best long-term option for scale, but expensive to build and slow to ramp. Lacks fintech-specific link-building and AEO expertise in early stages.", cta: false },
     ],
+    lastmod: "2026-05-09",
   },
   {
     slug: "vs-freelancers",
@@ -208,6 +211,7 @@ export const COMPARISONS: Comparison[] = [
       { label: "Freelance writers", score: "5 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Cost-effective for individual articles but require active management, provide no link building, and create delivery risk when they take on other clients.", cta: false },
       { label: "Independent consultants", score: "7 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "High strategic value but limited bandwidth for execution. Best paired with an agency that can implement their recommendations at scale.", cta: false },
     ],
+    lastmod: "2026-05-09",
   },
   {
     slug: "vs-seo-tools",
@@ -290,6 +294,7 @@ export const COMPARISONS: Comparison[] = [
       { label: "DIY tools only", score: "4 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Excellent for research and auditing. Useless for publishing content, building links, or implementing schema changes — the things that actually move rankings.", cta: false },
       { label: "Self-managed in-house", score: "6 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Viable if you have the headcount and fintech content expertise. Most growth-stage fintechs don't — and the ramp-up time costs months of compounding ranking opportunity.", cta: false },
     ],
+    lastmod: "2026-05-09",
   },
   {
     slug: "vs-pr-agencies",
@@ -372,6 +377,7 @@ export const COMPARISONS: Comparison[] = [
       { label: "Traditional PR agency", score: "7 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Excellent for brand credibility, investor narrative, and mainstream press. Weak on search attribution and evergreen content that ranks.", cta: false },
       { label: "Digital comms agency", score: "6 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Covers brand content and social distribution but rarely invests in the technical SEO and publisher relationships needed for ranking and link authority.", cta: false },
     ],
+    lastmod: "2026-05-09",
   },
   {
     slug: "content-led-vs-paid",
@@ -454,6 +460,7 @@ export const COMPARISONS: Comparison[] = [
       { label: "Google Ads (paid search)", score: "7 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Fastest path to leads from a standing start. High CPCs in fintech make scaling expensive, and all traffic stops the moment budget is paused.", cta: false },
       { label: "Hybrid approach", score: "10 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Optimal strategy for most growth-stage fintechs: paid search captures demand while content SEO builds a durable organic asset in parallel.", cta: false },
     ],
+    lastmod: "2026-05-09",
   },
   {
     slug: "specialist-vs-generalist",
@@ -536,6 +543,7 @@ export const COMPARISONS: Comparison[] = [
       { label: "B2B generalist agency", score: "6 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Solid for non-regulated B2B SaaS. Falls short on fintech regulatory content, niche link building, and the credibility that fintech enterprise buyers expect.", cta: false },
       { label: "Consumer marketing agency", score: "4 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Strong on brand creativity and social. Fundamentally unsuited for compliance-sensitive financial content or B2B enterprise fintech marketing.", cta: false },
     ],
+    lastmod: "2026-05-09",
   },
 ];
 
