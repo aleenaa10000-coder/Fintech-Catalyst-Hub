@@ -1252,13 +1252,15 @@ async function handleSsrMeta(
         isPartOf:      { "@id": `${siteUrl}#website` },
         datePublished: post.publishedAt.toISOString(),
         dateModified:  dateModified,
-        ...(post.blufSummary ? {
-          speakable: {
-            "@type":     "SpeakableSpecification",
-            cssSelector: [".speakable-summary"],
-          },
-          abstract: post.blufSummary.slice(0, 500),
-        } : {}),
+        speakable: {
+          "@type":     "SpeakableSpecification",
+          // Always emit a speakable selector. When a BLUF summary exists, target
+          // the concise .speakable-summary panel (rendered by blog-post.tsx).
+          // When no summary is present, fall back to h1 so Google always has at
+          // least the headline to extract for voice and AEO snippet answers.
+          cssSelector: post.blufSummary ? [".speakable-summary"] : ["h1"],
+        },
+        ...(post.blufSummary ? { abstract: post.blufSummary.slice(0, 500) } : {}),
       }, null, 2));
 
       patches = {
@@ -1621,13 +1623,13 @@ async function handleSsrMeta(
               // service entity and satisfies E-E-A-T's publication-date signal.
               datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
               dateModified:  SERVICE_PAGE_LASTMOD_DATE,
-              // SpeakableSpecification targets the service tagline heading — the
-              // most concise, authoritative summary of the service. Enables Google
-              // Assistant voice answers and AEO snippet extraction for service-intent
-              // queries ("what is fintech SEO", "how does guest posting work").
+              // SpeakableSpecification targets the h1 headline — the most concise,
+              // authoritative identifier for this service. Enables Google Assistant
+              // voice answers and AEO snippet extraction for service-intent queries
+              // ("what is fintech SEO", "how does guest posting work").
               speakable: {
                 "@type":     "SpeakableSpecification",
-                cssSelector: [".service-tagline", "h1"],
+                cssSelector: ["h1"],
               },
             }, null, 2),
           ];
@@ -2188,12 +2190,13 @@ async function handleSsrMeta(
             dateModified: pageLastmod ?? "2026-05-09",
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification targets the page headline and agency tagline —
-            // the most concise authority summary. Enables Google Assistant / Siri voice
-            // excerpts and AEO snippet extraction for "who is FintechPressHub?" queries.
+            // SpeakableSpecification targets the h1 and the .speakable-summary paragraph
+            // (the agency description rendered in about.tsx PageHero) — the most concise
+            // authority summary. Enables Google Assistant / Siri voice excerpts and AEO
+            // snippet extraction for "who is FintechPressHub?" queries.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".about-tagline", ".about-description"],
+              cssSelector: ["h1", ".speakable-summary"],
             },
             ...(aboutAuthors.length > 0
               ? {
@@ -2328,11 +2331,12 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification enables voice-assistant extraction of the services
-            // headline and value-proposition tagline for "best fintech SEO agency" queries.
+            // SpeakableSpecification targets h1 and the .speakable-summary paragraph
+            // (rendered in services.tsx PageHero) — the value-proposition summary for
+            // "best fintech SEO agency" and "fintech content marketing services" queries.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".services-tagline"],
+              cssSelector: ["h1", ".speakable-summary"],
             },
           }, null, 2));
           if (hubServices.length > 0) {
@@ -2374,11 +2378,13 @@ async function handleSsrMeta(
             description:  staticMeta.description,
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification enables voice assistants to surface pricing-tier
-            // headlines as spoken answers to "how much does fintech SEO cost?" queries.
+            // SpeakableSpecification targets h1 and the .speakable-summary paragraph
+            // (rendered in pricing.tsx PageHero) — enables voice assistants to surface
+            // the pricing value proposition as spoken answers to "how much does fintech
+            // SEO cost?" and "fintech SEO agency pricing" queries.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".pricing-tagline"],
+              cssSelector: ["h1", ".speakable-summary"],
             },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
@@ -2524,11 +2530,12 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification on the tools hub ensures voice assistants can extract
-            // a concise spoken answer for "what free fintech marketing tools are available?"
+            // SpeakableSpecification targets h1 — the clearest spoken answer for
+            // "what free fintech marketing tools are available?" queries. No tagline
+            // paragraph exists on the tools hub, so h1-only is the correct selector.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".tools-tagline"],
+              cssSelector: ["h1"],
             },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
@@ -2560,11 +2567,12 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification on the compare hub allows voice assistants to
-            // surface the hub headline as a spoken answer for "FintechPressHub vs X" queries.
+            // SpeakableSpecification targets h1 — the clearest spoken answer for
+            // "FintechPressHub vs X" queries. No tagline paragraph exists on the
+            // compare hub, so h1-only is the correct selector.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".compare-tagline"],
+              cssSelector: ["h1"],
             },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
@@ -2841,12 +2849,13 @@ async function handleSsrMeta(
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
-            // SpeakableSpecification enables voice-assistant extraction of the homepage headline
-            // and value proposition for "what is FintechPressHub?" and "best fintech SEO agency"
-            // queries — the highest-traffic intent patterns for the root domain.
+            // SpeakableSpecification targets h1 and the .speakable-summary paragraph
+            // (the hero description in home.tsx) — enables voice assistants to surface
+            // the most concise agency description for "what is FintechPressHub?" and
+            // "best fintech SEO agency" queries — the highest-traffic intent patterns.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".home-tagline"],
+              cssSelector: ["h1", ".speakable-summary"],
             },
           }, null, 2));
           if (homeServices.length > 0) {

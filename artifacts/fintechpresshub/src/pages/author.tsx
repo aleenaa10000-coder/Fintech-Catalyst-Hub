@@ -172,7 +172,7 @@ export default function AuthorPage() {
               <div className="text-lg md:text-xl text-white/90 font-semibold mb-4">
                 {author.role}
               </div>
-              <p className="text-base md:text-lg text-white/80 leading-relaxed max-w-3xl">
+              <p className="author-bio text-base md:text-lg text-white/80 leading-relaxed max-w-3xl">
                 {author.shortBio}
               </p>
 
