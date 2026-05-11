@@ -46,6 +46,7 @@ import {
   AlertTriangle,
   ExternalLink,
   Key,
+  ShieldCheck,
 } from "lucide-react";
 
 function timeAgo(iso: string): string {
@@ -678,6 +679,13 @@ export default function AdminDashboard() {
                 value="View →"
                 href="/admin/newsletter#seo-brief-leads"
                 color="bg-violet-100 text-violet-600"
+              />
+              <StatCard
+                icon={ShieldCheck}
+                label="Schema & Rich Results"
+                value="Test →"
+                href="/admin/schema-test"
+                color="bg-sky-100 text-sky-600"
               />
             </div>
 

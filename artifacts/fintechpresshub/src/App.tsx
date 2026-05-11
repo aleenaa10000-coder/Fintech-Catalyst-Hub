@@ -116,6 +116,7 @@ const AdminLocations = lazy(() => import("@/pages/admin-locations"));
 const AdminDisavow = lazy(() => import("@/pages/admin-disavow"));
 const AdminPress = lazy(() => import("@/pages/admin-press"));
 const AdminTestimonials = lazy(() => import("@/pages/admin-testimonials"));
+const AdminSchemaTest = lazy(() => import("@/pages/admin-schema-test"));
 const Press = lazy(() => import("@/pages/press"));
 
 function RouteFallback() {
@@ -370,6 +371,7 @@ function Router() {
             <AdminRoute path="/admin/disavow" component={AdminDisavow} />
             <AdminRoute path="/admin/press" component={AdminPress} />
             <AdminRoute path="/admin/testimonials" component={AdminTestimonials} />
+            <AdminRoute path="/admin/schema-test" component={AdminSchemaTest} />
             <Route path="/404" component={NotFound} />
             <Route component={NotFound} />
           </Switch>
