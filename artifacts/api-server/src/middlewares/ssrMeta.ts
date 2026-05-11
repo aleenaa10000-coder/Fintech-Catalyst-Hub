@@ -1136,7 +1136,9 @@ async function handleSsrMeta(
       res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
       // cite-as Link header — W3C standard that tells AI crawlers (Perplexity,
       // ChatGPT Search, Gemini) which canonical URL to use when citing this page.
-      res.setHeader("Link", `<${cachedPatches.canonical}>; rel="cite-as"`);
+      // Both rel="canonical" (Bing HTTP-header canonical) and rel="cite-as"
+      // (W3C AI citation standard) in one Link header — covers all crawler types.
+      res.setHeader("Link", `<${cachedPatches.canonical}>; rel="canonical", <${cachedPatches.canonical}>; rel="cite-as"`);
       if (req.method === "HEAD") { res.end(); } else { res.send(html); }
       return;
     }
@@ -1298,6 +1300,10 @@ async function handleSsrMeta(
           publisher:  { "@id": `${siteUrl}#organization` },
           copyrightYear: post.publishedAt.getFullYear(),
           copyrightHolder: { "@id": `${siteUrl}#organization` },
+          // Machine-readable content rights URL — completes the rights stack alongside
+          // cite-as header and ai.txt. AI citation engines (Google AIO, Perplexity,
+          // ChatGPT Search) parse this to understand what they may do with the content.
+          license: `${siteUrl}/terms`,
           datePublished: post.publishedAt.toISOString(),
           dateModified,
           ...(post.author
@@ -3094,9 +3100,9 @@ async function handleSsrMeta(
     const html = patchHtml(baseHtml, patches);
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
-    // cite-as Link header — W3C standard that tells AI crawlers (Perplexity,
-    // ChatGPT Search, Gemini) which canonical URL to use when citing this page.
-    res.setHeader("Link", `<${patches.canonical}>; rel="cite-as"`);
+    // Both rel="canonical" (Bing HTTP-header canonical) and rel="cite-as"
+    // (W3C AI citation standard) in one Link header — covers all crawler types.
+    res.setHeader("Link", `<${patches.canonical}>; rel="canonical", <${patches.canonical}>; rel="cite-as"`);
     if (req.method === "HEAD") {
       res.end();
     } else {

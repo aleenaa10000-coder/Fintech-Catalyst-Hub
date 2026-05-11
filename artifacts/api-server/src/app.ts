@@ -110,7 +110,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   if (!isAsset && !req.path.startsWith("/api/")) {
     const siteUrl = getSiteUrl();
     const canonical = `${siteUrl}${req.path === "/" ? "/" : req.path.replace(/\/$/, "")}`;
-    res.setHeader("Link", `<${canonical}>; rel="cite-as"`);
+    // Emit both rel="canonical" (Bing HTTP-header canonical support) and
+    // rel="cite-as" (W3C AI citation standard) in a single Link header so
+    // both search-engine and AI-crawler canonical resolution is covered.
+    res.setHeader("Link", `<${canonical}>; rel="canonical", <${canonical}>; rel="cite-as"`);
   }
   next();
 });
