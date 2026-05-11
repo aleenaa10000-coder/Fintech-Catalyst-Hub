@@ -355,9 +355,19 @@ export function PageMeta(props: PageMetaProps) {
             "@context": "https://schema.org",
             "@type": "FAQPage",
             "@id": `${canonical}#faq`,
+            name: leafTitle
+              ? `${leafTitle} — Frequently Asked Questions`
+              : "Frequently Asked Questions",
             url: canonical,
             inLanguage: "en",
+            isPartOf: { "@type": "WebSite", "@id": `${SITE_URL}#website` },
             publisher: { "@type": "Organization", "@id": `${SITE_URL}#organization`, name: SITE_NAME },
+            ...(props.webPage?.datePublished
+              ? { datePublished: props.webPage.datePublished }
+              : {}),
+            ...(props.webPage?.dateModified
+              ? { dateModified: props.webPage.dateModified }
+              : {}),
             mainEntity: props.faq.map((item) => ({
               "@type": "Question",
               name: item.question,
