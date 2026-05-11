@@ -141,7 +141,7 @@ export const PAGE_META = {
   blog: {
     title: "Fintech SEO & Content Marketing Insights | FintechPressHub",
     description:
-      "Strategy, SEO, and content marketing playbooks for fintech operators — payments, embedded finance, open banking, neobanking, lending, and regtech.",
+      "Strategy, SEO, and content marketing playbooks for fintech operators. Covering payments, embedded finance, open banking, neobanking, lending, regtech, and wealthtech.",
   },
   writeForUs: {
     title: "Write For Us | FintechPressHub",
@@ -151,7 +151,7 @@ export const PAGE_META = {
   contact: {
     title: "Contact Us | FintechPressHub",
     description:
-      "Book a free fintech SEO audit and strategy consultation with FintechPressHub. Reach our team for content marketing, link building, and organic growth enquiries.",
+      "Get in touch for a free SEO audit and strategy consultation. Specialist fintech SEO expertise, no generalist fluff.",
   },
   privacyPolicy: {
     title: "Privacy Policy | FintechPressHub",

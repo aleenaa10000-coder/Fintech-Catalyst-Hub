@@ -21,7 +21,7 @@ export const STATIC_ROUTES: Array<{
   priority: string;
   lastmod?: string;
 }> = [
-  { path: "/", changefreq: "weekly", priority: "1.0", lastmod: "2026-05-10" },
+  { path: "/", changefreq: "weekly", priority: "1.0", lastmod: "2026-05-11" },
   { path: "/about", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/services", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-09" },
   { path: "/pricing", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-09" },

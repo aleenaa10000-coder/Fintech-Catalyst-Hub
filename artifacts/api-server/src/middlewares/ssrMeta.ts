@@ -395,6 +395,88 @@ const CATEGORY_META: Record<string, { title: string; description: string; about:
   },
 };
 
+/**
+ * Static FAQ content for each service detail page.
+ * These Q&As are injected as FAQPage JSON-LD so Google can display rich
+ * featured-snippet results for service-intent queries ("what is fintech
+ * content writing", "how does off-page SEO work for fintech", etc.).
+ *
+ * SYNC RULE: When adding a new service slug, add a corresponding entry here
+ * so the FAQPage schema is never missing from a live service page.
+ */
+const SERVICE_FAQS: Readonly<Record<string, ReadonlyArray<{ question: string; answer: string }>>> = {
+  "fintech-content-writing": [
+    {
+      question: "What is fintech content writing?",
+      answer: "Fintech content writing is the creation of expert, compliance-aware written content — articles, whitepapers, case studies, and landing pages — tailored to audiences in financial technology. It requires deep knowledge of products like payments, lending, and open banking, as well as an understanding of regulatory requirements in markets such as the UK, US, EU, and APAC.",
+    },
+    {
+      question: "Why do fintech companies need specialist content writers?",
+      answer: "Fintech content sits in a YMYL (Your Money or Your Life) category that Google scrutinises under strict E-E-A-T criteria. Generic writers produce factual errors and compliance risks. Specialist fintech writers understand regulatory nuance, communicate complex financial products clearly, and produce content Google rewards with sustainable rankings.",
+    },
+    {
+      question: "What does a fintech content writing retainer include?",
+      answer: "A FintechPressHub content writing retainer includes topic research, full SEO brief with target keywords and SERP analysis, original writing by a fintech-experienced editor, on-page optimisation, internal linking, unlimited revisions before publication, and optional CMS upload.",
+    },
+  ],
+  "off-page-seo": [
+    {
+      question: "What is off-page SEO for fintech?",
+      answer: "Off-page SEO for fintech is the practice of building editorial backlinks, brand mentions, and authority signals from high-Domain Rating publications relevant to financial technology. It includes guest posting on Finextra, The Fintech Times, and similar outlets, as well as digital PR and strategic link placements.",
+    },
+    {
+      question: "Why is off-page SEO harder for fintech companies?",
+      answer: "Financial content is heavily scrutinised by editors and regulated by compliance requirements, making it far harder to earn placements on tier-1 finance publications than on generic blogs. Fintech companies need specialist editorial relationships and proven writer credentials to secure links that actually move rankings.",
+    },
+    {
+      question: "How long does off-page SEO take to show results for fintech?",
+      answer: "First links can be placed within 4–6 weeks. Meaningful ranking movement typically emerges after 3–4 months of consistent link acquisition. Compounding authority — where each new link amplifies the impact of existing ones — becomes visible around month 6–9 for most fintech keywords.",
+    },
+  ],
+  "guest-posting": [
+    {
+      question: "What is guest posting for fintech?",
+      answer: "Guest posting for fintech is the process of placing expert articles on high-authority financial publications — such as Finextra, Tearsheet, and The Fintech Times — that include a dofollow editorial backlink to your site. Each placement builds domain authority and exposes your brand to the readership of those publications.",
+    },
+    {
+      question: "Are the guest post backlinks dofollow?",
+      answer: "Yes. FintechPressHub secures permanent, dofollow backlinks from publications with Domain Rating 60 or higher. We do not use PBNs, link farms, or paid-placement networks that violate Google's guidelines.",
+    },
+    {
+      question: "How do you pitch guest posts for fintech companies?",
+      answer: "Our team researches the editorial calendar and contributor requirements of each target publication, crafts a tailored pitch matching the publication's current coverage gaps, and writes the article once the pitch is accepted. The entire process — pitch, writing, editing, and placement — is managed on your behalf.",
+    },
+  ],
+  "topical-authority": [
+    {
+      question: "What is topical authority in fintech SEO?",
+      answer: "Topical authority is the degree to which Google treats a website as the definitive source on a given subject. For fintech, it means systematically covering every angle of a topic cluster — from introductory definitions to advanced practitioner guides — so Google's algorithms rank your content preferentially across the entire subject area.",
+    },
+    {
+      question: "How do you build topical authority for a fintech brand?",
+      answer: "Topical authority is built through a structured content cluster strategy: one high-quality pillar page per major topic (e.g. payment orchestration) supported by 8–15 cluster articles covering related subtopics, definitions, comparisons, and use cases. Internal linking ties the cluster together, and supporting backlinks signal authority to Google.",
+    },
+    {
+      question: "How long does it take to establish topical authority in fintech?",
+      answer: "A well-executed topical authority programme typically takes 4–6 months to show measurable ranking gains on cluster content and 9–12 months for the pillar page to rank in positions 1–5 for competitive head terms. The compounding effect accelerates after the 6-month mark as internal linking density and backlink volume reach critical thresholds.",
+    },
+  ],
+  "fintech-seo-audit": [
+    {
+      question: "What is a fintech SEO audit?",
+      answer: "A fintech SEO audit is a comprehensive analysis of a financial technology company's organic search performance — covering technical site health, on-page optimisation, content gaps, E-E-A-T signals, backlink profile quality, and YMYL compliance. The output is a prioritised action plan with clear effort-to-impact estimates.",
+    },
+    {
+      question: "What does a FintechPressHub SEO audit include?",
+      answer: "Our audit covers: technical crawlability and Core Web Vitals, structured data validation, content gap analysis against top-ranking competitors, E-E-A-T signals (author credentials, trust signals, editorial standards), backlink profile health and disavow recommendations, site architecture and internal linking, and a 90-day action roadmap.",
+    },
+    {
+      question: "How often should a fintech company run an SEO audit?",
+      answer: "A comprehensive SEO audit is recommended at least once per year, and after any major site redesign, CMS migration, or Google core update. Fintech companies in regulated verticals should also audit after any significant product launch or regulatory change that affects their content strategy.",
+    },
+  ],
+};
+
 const COMPARISON_META: Record<string, { title: string; description: string }> = {
   "agency-vs-in-house": {
     title: "Fintech SEO Agency vs Generic Agency vs In-House | FintechPressHub",
@@ -666,7 +748,7 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
  * on every request. Now at module level for zero allocation cost per request.
  */
 const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
-  "/":                                "2026-05-10",
+  "/":                                "2026-05-11",
   "/about":                           "2026-05-09",
   "/services":                        "2026-05-09",
   "/pricing":                         "2026-05-09",
@@ -1457,59 +1539,82 @@ async function handleSsrMeta(
         ogDescription: description,
         ogImage,
         ogImageAlt:    `${svc.name} — FintechPressHub`,
-        extraLds: [
-          JSON.stringify({
-            "@context":   "https://schema.org",
-            // FinancialService + ProfessionalService is the most precise dual-type
-            // for fintech consultancy offerings — helps Google's Knowledge Graph
-            // classify the entity correctly across both financial-services and
-            // professional-services taxonomies, improving LLM entity recognition.
-            "@type":      ["FinancialService", "ProfessionalService"],
-            "@id":        canonical,
-            name:         svc.name,
-            description:  svc.tagline ?? svc.description ?? svc.name,
-            url:          canonical,
-            inLanguage:   "en",
-            areaServed:   "Worldwide",
-            // datePublished/dateModified give Google a freshness signal for the
-            // service entity itself (not just the WebPage companion), strengthening
-            // E-E-A-T scoring for financial-service content.
-            datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
-            dateModified:  SERVICE_PAGE_LASTMOD_DATE,
-            provider:     { "@id": `${siteUrl}#organization` },
-            ...(Array.isArray(svc.deliverables) && svc.deliverables.length > 0
-              ? {
-                  hasOfferCatalog: {
-                    "@type": "OfferCatalog",
-                    name:    `${svc.name} — what's included`,
-                    itemListElement: (svc.deliverables as string[]).map((d) => ({
-                      "@type":       "Offer",
-                      itemOffered:   { "@type": "Service", name: d },
-                    })),
-                  },
-                }
-              : {}),
-          }, null, 2),
-          // WebPage entity emitted alongside FinancialService so Google can
-          // resolve the page-level entity and track freshness independently —
-          // mirrors the pattern used on tools and compare pages for consistent
-          // entity resolution across all content-type detail pages site-wide.
-          JSON.stringify({
-            "@context":    "https://schema.org",
-            "@type":       "WebPage",
-            "@id":         `${canonical}#webpage`,
-            url:           canonical,
-            inLanguage:    "en",
-            isPartOf:      { "@id": `${siteUrl}#website` },
-            publisher:     { "@id": `${siteUrl}#organization` },
-            // datePublished matches the pattern on tools, compare, blog, and
-            // glossary pages — provides Google a freshness anchor for the
-            // service entity and satisfies E-E-A-T's publication-date signal.
-            datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
-            dateModified:  SERVICE_PAGE_LASTMOD_DATE,
-          }, null, 2),
-          buildBreadcrumbLd(breadcrumbs),
-        ],
+        extraLds: (() => {
+          const lds: string[] = [
+            JSON.stringify({
+              "@context":   "https://schema.org",
+              // FinancialService + ProfessionalService is the most precise dual-type
+              // for fintech consultancy offerings — helps Google's Knowledge Graph
+              // classify the entity correctly across both financial-services and
+              // professional-services taxonomies, improving LLM entity recognition.
+              "@type":      ["FinancialService", "ProfessionalService"],
+              "@id":        canonical,
+              name:         svc.name,
+              description:  svc.tagline ?? svc.description ?? svc.name,
+              url:          canonical,
+              inLanguage:   "en",
+              areaServed:   "Worldwide",
+              // datePublished/dateModified give Google a freshness signal for the
+              // service entity itself (not just the WebPage companion), strengthening
+              // E-E-A-T scoring for financial-service content.
+              datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
+              dateModified:  SERVICE_PAGE_LASTMOD_DATE,
+              provider:     { "@id": `${siteUrl}#organization` },
+              ...(Array.isArray(svc.deliverables) && svc.deliverables.length > 0
+                ? {
+                    hasOfferCatalog: {
+                      "@type": "OfferCatalog",
+                      name:    `${svc.name} — what's included`,
+                      itemListElement: (svc.deliverables as string[]).map((d) => ({
+                        "@type":       "Offer",
+                        itemOffered:   { "@type": "Service", name: d },
+                      })),
+                    },
+                  }
+                : {}),
+            }, null, 2),
+            // WebPage entity emitted alongside FinancialService so Google can
+            // resolve the page-level entity and track freshness independently —
+            // mirrors the pattern used on tools and compare pages for consistent
+            // entity resolution across all content-type detail pages site-wide.
+            JSON.stringify({
+              "@context":    "https://schema.org",
+              "@type":       "WebPage",
+              "@id":         `${canonical}#webpage`,
+              url:           canonical,
+              inLanguage:    "en",
+              isPartOf:      { "@id": `${siteUrl}#website` },
+              publisher:     { "@id": `${siteUrl}#organization` },
+              // datePublished matches the pattern on tools, compare, blog, and
+              // glossary pages — provides Google a freshness anchor for the
+              // service entity and satisfies E-E-A-T's publication-date signal.
+              datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
+              dateModified:  SERVICE_PAGE_LASTMOD_DATE,
+            }, null, 2),
+          ];
+          // FAQPage schema unlocks Google's FAQ rich result for service-intent
+          // queries ("what is fintech content writing", "how does off-page SEO
+          // work"). Only injected when static Q&As exist for the service slug —
+          // avoids an empty FAQPage entity on any future unlisted service pages.
+          const svcFaqs = SERVICE_FAQS[slug];
+          if (svcFaqs && svcFaqs.length > 0) {
+            lds.push(JSON.stringify({
+              "@context":  "https://schema.org",
+              "@type":     "FAQPage",
+              "@id":       `${canonical}#faq`,
+              url:         canonical,
+              isPartOf:    { "@id": `${siteUrl}#website` },
+              publisher:   { "@id": `${siteUrl}#organization` },
+              mainEntity:  svcFaqs.map(({ question, answer }) => ({
+                "@type": "Question",
+                name:    question,
+                acceptedAnswer: { "@type": "Answer", text: answer },
+              })),
+            }, null, 2));
+          }
+          lds.push(buildBreadcrumbLd(breadcrumbs));
+          return lds;
+        })(),
       };
     }
 
@@ -1563,47 +1668,88 @@ async function handleSsrMeta(
         headLinks: [
           `  <link rel="alternate" type="application/rss+xml" title="${esc(`${author.name} — FintechPressHub`)}" href="${esc(`${siteUrl}/authors/${slug}/rss.xml`)}" />`,
         ],
-        extraLds: [
-          JSON.stringify({
-            "@context": "https://schema.org",
-            "@type":    "ProfilePage",
-            "@id":      canonical,
-            url:        canonical,
-            inLanguage: "en",
-            // datePublished/dateModified enable Google's freshness ranking
-            // signal for author profile pages — without them, Google has no
-            // structured signal to determine when a profile was created or
-            // last substantively changed, weakening E-E-A-T scoring.
-            datePublished: author.createdAt.toISOString().slice(0, 10),
-            dateModified:  author.updatedAt.toISOString().slice(0, 10),
-            isPartOf:   { "@id": `${siteUrl}#website` },
-            publisher:  { "@id": `${siteUrl}#organization` },
-            mainEntity: {
-              "@type":      "Person",
-              "@id":        `${canonical}#person`,
-              name:         author.name,
-              jobTitle:     author.role,
-              description:  author.yearsExperience > 0
-                ? `${author.shortBio} ${author.yearsExperience} years of experience.`.slice(0, 500)
+        extraLds: (() => {
+          const lds: string[] = [
+            JSON.stringify({
+              "@context": "https://schema.org",
+              "@type":    "ProfilePage",
+              "@id":      canonical,
+              url:        canonical,
+              inLanguage: "en",
+              // datePublished/dateModified enable Google's freshness ranking
+              // signal for author profile pages — without them, Google has no
+              // structured signal to determine when a profile was created or
+              // last substantively changed, weakening E-E-A-T scoring.
+              datePublished: author.createdAt.toISOString().slice(0, 10),
+              dateModified:  author.updatedAt.toISOString().slice(0, 10),
+              isPartOf:   { "@id": `${siteUrl}#website` },
+              publisher:  { "@id": `${siteUrl}#organization` },
+              mainEntity: {
+                "@type":      "Person",
+                "@id":        `${canonical}#person`,
+                name:         author.name,
+                jobTitle:     author.role,
+                description:  author.yearsExperience > 0
+                  ? `${author.shortBio} ${author.yearsExperience} years of experience.`.slice(0, 500)
+                  : author.shortBio.slice(0, 500),
+                url:          canonical,
+                image:        ogImage,
+                worksFor:     { "@id": `${siteUrl}#organization` },
+                employer:     { "@id": `${siteUrl}#organization` },
+                sameAs: [social.linkedin, social.twitter, social.website].filter(Boolean),
+                ...(Array.isArray(author.expertise) && author.expertise.length > 0
+                  ? { knowsAbout: author.expertise }
+                  : {}),
+                ...(Array.isArray(author.credentials) && author.credentials.length > 0
+                  ? { award: author.credentials }
+                  : {}),
+                ...(author.location
+                  ? { address: { "@type": "PostalAddress", addressLocality: author.location } }
+                  : {}),
+              },
+            }, null, 2),
+          ];
+          // FAQPage schema gives author pages a FAQ rich result opportunity for
+          // queries like "who is [name]" and "what does [name] specialise in" —
+          // two high-frequency question patterns for E-E-A-T author pages.
+          // Q&As are generated dynamically from the author's stored profile data
+          // so they remain accurate without any manual curation overhead.
+          const expertiseList = Array.isArray(author.expertise) && author.expertise.length > 0
+            ? (author.expertise as string[]).slice(0, 3).join(", ")
+            : null;
+          const authorFaqs = [
+            {
+              question: `Who is ${author.name}?`,
+              answer: author.yearsExperience > 0
+                ? `${author.shortBio.slice(0, 400)} ${author.name} brings ${author.yearsExperience} years of experience in financial services and fintech.`
                 : author.shortBio.slice(0, 500),
-              url:          canonical,
-              image:        ogImage,
-              worksFor:     { "@id": `${siteUrl}#organization` },
-              employer:     { "@id": `${siteUrl}#organization` },
-              sameAs: [social.linkedin, social.twitter, social.website].filter(Boolean),
-              ...(Array.isArray(author.expertise) && author.expertise.length > 0
-                ? { knowsAbout: author.expertise }
-                : {}),
-              ...(Array.isArray(author.credentials) && author.credentials.length > 0
-                ? { award: author.credentials }
-                : {}),
-              ...(author.location
-                ? { address: { "@type": "PostalAddress", addressLocality: author.location } }
-                : {}),
             },
-          }, null, 2),
-          buildBreadcrumbLd(breadcrumbs),
-        ],
+            {
+              question: `What does ${author.name} specialise in?`,
+              answer: [
+                author.role ? `${author.name} works as a ${author.role} at FintechPressHub` : `${author.name} is a contributor at FintechPressHub`,
+                expertiseList ? `, with specialist expertise in ${expertiseList}` : "",
+                author.location ? `. Based in ${author.location}` : "",
+                ".",
+              ].join("").trim(),
+            },
+          ];
+          lds.push(JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "FAQPage",
+            "@id":       `${canonical}#faq`,
+            url:         canonical,
+            isPartOf:    { "@id": `${siteUrl}#website` },
+            publisher:   { "@id": `${siteUrl}#organization` },
+            mainEntity:  authorFaqs.map(({ question, answer }) => ({
+              "@type": "Question",
+              name:    question,
+              acceptedAnswer: { "@type": "Answer", text: answer },
+            })),
+          }, null, 2));
+          lds.push(buildBreadcrumbLd(breadcrumbs));
+          return lds;
+        })(),
       };
     }
 
