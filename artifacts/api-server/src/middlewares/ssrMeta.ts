@@ -1377,6 +1377,13 @@ async function handleSsrMeta(
             publisher:     { "@id": `${siteUrl}#organization` },
             datePublished: loc.publishedAt.toISOString().slice(0, 10),
             dateModified:  loc.updatedAt.toISOString().slice(0, 10),
+            // SpeakableSpecification enables voice-assistant extraction of the location page
+            // headline for "fintech SEO in [city]" and "best fintech agency in [city]" queries —
+            // mirrors the speakable coverage applied to all other page types site-wide.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1"],
+            },
           }, null, 2),
           JSON.stringify({
             "@context": "https://schema.org",
@@ -1717,6 +1724,13 @@ async function handleSsrMeta(
               dateModified:  author.updatedAt.toISOString().slice(0, 10),
               isPartOf:   { "@id": `${siteUrl}#website` },
               publisher:  { "@id": `${siteUrl}#organization` },
+              // SpeakableSpecification enables voice-assistant extraction of the author
+              // headline and bio for "who is [name]?" queries — an E-E-A-T discoverability
+              // signal that mirrors speakable coverage applied to all other page types.
+              speakable: {
+                "@type":     "SpeakableSpecification",
+                cssSelector: ["h1", ".author-bio"],
+              },
               mainEntity: {
                 "@type":      "Person",
                 "@id":        `${canonical}#person`,
@@ -2113,6 +2127,13 @@ async function handleSsrMeta(
         publisher:    { "@id": `${siteUrl}#organization` },
         datePublished: STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
         ...(TOOL_PAGE_LASTMOD[slug] ? { dateModified: TOOL_PAGE_LASTMOD[slug] } : {}),
+        // SpeakableSpecification enables voice-assistant extraction of the tool description
+        // for "how does [tool] work?" queries — mirrors the speakable coverage applied to
+        // all other page types site-wide including compare, service, and blog detail pages.
+        speakable: {
+          "@type":     "SpeakableSpecification",
+          cssSelector: ["h1"],
+        },
       }, null, 2));
       toolExtraLds.push(buildBreadcrumbLd(breadcrumbs));
 
@@ -2820,6 +2841,13 @@ async function handleSsrMeta(
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            // SpeakableSpecification enables voice-assistant extraction of the homepage headline
+            // and value proposition for "what is FintechPressHub?" and "best fintech SEO agency"
+            // queries — the highest-traffic intent patterns for the root domain.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1", ".home-tagline"],
+            },
           }, null, 2));
           if (homeServices.length > 0) {
             extraLds.push(JSON.stringify({
