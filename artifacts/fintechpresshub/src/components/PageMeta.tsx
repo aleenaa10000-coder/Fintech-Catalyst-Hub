@@ -339,6 +339,8 @@ export function PageMeta(props: PageMetaProps) {
             "@type": "QAPage",
             "@id": `${canonical}#qa`,
             url: canonical,
+            inLanguage: "en",
+            publisher: { "@type": "Organization", "@id": `${SITE_URL}#organization`, name: SITE_NAME },
             mainEntity: props.faq.map((item) => ({
               "@type": "Question",
               name: item.question,
@@ -354,6 +356,8 @@ export function PageMeta(props: PageMetaProps) {
             "@type": "FAQPage",
             "@id": `${canonical}#faq`,
             url: canonical,
+            inLanguage: "en",
+            publisher: { "@type": "Organization", "@id": `${SITE_URL}#organization`, name: SITE_NAME },
             mainEntity: props.faq.map((item) => ({
               "@type": "Question",
               name: item.question,
@@ -370,6 +374,7 @@ export function PageMeta(props: PageMetaProps) {
     ? {
         "@context": "https://schema.org",
         "@type": "ProfilePage",
+        inLanguage: "en",
         mainEntity: {
           "@type": "Person",
           "@id": `${props.person.url ?? canonical}#person`,
@@ -417,6 +422,7 @@ export function PageMeta(props: PageMetaProps) {
           : (props.service.schemaType ?? "Service"),
         name: props.service.name,
         description: props.service.description,
+        inLanguage: "en",
         serviceType: props.service.serviceType ?? props.service.name,
         category: props.service.category,
         areaServed: props.service.areaServed ?? "Worldwide",
@@ -465,6 +471,7 @@ export function PageMeta(props: PageMetaProps) {
         "@context": "https://schema.org",
         "@type": "AboutPage",
         url: canonical,
+        inLanguage: "en",
         name: title || `About ${SITE_NAME}`,
         description: props.aboutPage.description,
         mainEntity: {
@@ -512,6 +519,7 @@ export function PageMeta(props: PageMetaProps) {
         "@type": "WebPage",
         "@id": `${canonical}#webpage`,
         url: canonical,
+        inLanguage: "en",
         name: title || undefined,
         description: description || undefined,
         dateModified: props.webPage.dateModified,
@@ -765,6 +773,7 @@ export function PageMeta(props: PageMetaProps) {
           ? { description: props.localBusiness.description }
           : {}),
         url: canonical,
+        inLanguage: "en",
         address: {
           "@type": "PostalAddress",
           addressLocality: props.localBusiness.addressLocality,
