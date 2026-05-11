@@ -10,6 +10,7 @@
     "seed:reset": "tsx ./src/seed-reset.ts",
     "setup:check": "tsx ./src/setup-check.ts",
     "aeo:check": "tsx ./src/aeo-health-check.ts",
+    "schema:check": "tsx ./src/schema-validate.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

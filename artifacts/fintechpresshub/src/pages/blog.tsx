@@ -121,6 +121,15 @@ export default function Blog() {
     return new URLSearchParams(search).get("q")?.trim() ?? "";
   }, [search]);
 
+  const initialSort = useMemo(() => {
+    const raw = new URLSearchParams(search).get("sort")?.trim();
+    return (["newest", "oldest", "title", "popular"] as const).includes(
+      raw as "newest" | "oldest" | "title" | "popular",
+    )
+      ? (raw as "newest" | "oldest" | "title" | "popular")
+      : "newest";
+  }, [search]);
+
   const [activeCategory, setActiveCategory] = useState<string | undefined>(
     undefined,
   );
@@ -133,7 +142,7 @@ export default function Blog() {
   const [onlyRecent, setOnlyRecent] = useState(false);
   const [sortBy, setSortBy] = useState<
     "newest" | "oldest" | "title" | "popular"
-  >("newest");
+  >(initialSort);
 
   // How many posts qualify for the "New this week" badge across the
   // unfiltered feed. Drives the count rendered on the toggle chip and
@@ -223,6 +232,24 @@ export default function Blog() {
     window.history.replaceState(window.history.state, "", next);
     lastSyncedSearch.current = searchQuery;
   }, [searchQuery]);
+
+  // Mirror sortBy → ?sort= so sorted views are shareable and survive refresh.
+  const lastSyncedSort = useRef<string>(initialSort);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const current = params.get("sort") ?? "newest";
+    if (current === sortBy) return;
+    if (sortBy !== "newest") {
+      params.set("sort", sortBy);
+    } else {
+      params.delete("sort");
+    }
+    const qs = params.toString();
+    const next = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`;
+    window.history.replaceState(window.history.state, "", next);
+    lastSyncedSort.current = sortBy;
+  }, [sortBy]);
 
   // Distinct tags across the merged feed, with usage counts. Sorted by count
   // desc then alphabetically so the most-used tags surface first.

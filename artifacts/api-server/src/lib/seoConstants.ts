@@ -87,6 +87,20 @@ export const TOOL_PAGE_LASTMOD: Readonly<Record<string, string>> = {
 };
 
 /**
+ * Canonical publication dates for individual compare pages.
+ * Single source of truth for FAQPage and WebPage datePublished in ssrMeta.ts.
+ * Update when a new comparison page is first published.
+ */
+export const COMPARE_PAGE_CREATED: Readonly<Record<string, string>> = {
+  "agency-vs-in-house":       "2024-09-01",
+  "vs-freelancers":           "2024-09-15",
+  "vs-seo-tools":             "2024-09-15",
+  "vs-pr-agencies":           "2024-10-01",
+  "content-led-vs-paid":      "2024-10-15",
+  "specialist-vs-generalist": "2024-11-01",
+};
+
+/**
  * Canonical last-modification dates for individual compare pages.
  * Single source of truth shared by sitemap-compare.xml and FAQPage JSON-LD.
  * Update a date here whenever a comparison page's content changes.

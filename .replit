@@ -44,12 +44,12 @@ waitForPort = 5000
 name = "typecheck"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm run typecheck && pnpm --filter @workspace/scripts run aeo:check"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm run typecheck && pnpm --filter @workspace/scripts run aeo:check && pnpm --filter @workspace/scripts run schema:check"
 
 [[workflows.workflow]]
 name = "test"

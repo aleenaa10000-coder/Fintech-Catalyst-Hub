@@ -1,4 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import { Link } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
 import { PageMeta } from "@/components/PageMeta";
@@ -298,6 +308,91 @@ function TopicalAuthorityWidget() {
         </Card>
       )}
     </>
+  );
+}
+
+interface VelocityRow {
+  week_start: string;
+  published: number;
+  scheduled: number;
+}
+
+function ContentVelocityWidget() {
+  const [rows, setRows] = useState<VelocityRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/analytics", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => setRows((d.velocityByWeek as VelocityRow[]) ?? []))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const chartData = useMemo(
+    () =>
+      rows.map((r) => ({
+        week: r.week_start.slice(5), // "MM-DD"
+        Published: r.published,
+        Scheduled: r.scheduled,
+      })),
+    [rows],
+  );
+
+  return (
+    <Card className="mb-6">
+      <CardContent className="pt-5 pb-5 px-5">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="w-4 h-4 text-muted-foreground" />
+          <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+            Content Velocity
+          </h2>
+          <span className="ml-auto text-xs text-muted-foreground">
+            8 weeks back · 8 weeks forward
+          </span>
+        </div>
+        {loading ? (
+          <div className="h-40 flex items-center justify-center text-sm text-muted-foreground">
+            Loading…
+          </div>
+        ) : error ? (
+          <p className="text-sm text-destructive">Could not load velocity data.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={chartData} barCategoryGap="30%">
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis
+                dataKey="week"
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                axisLine={false}
+                tickLine={false}
+                width={24}
+              />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: "1px solid hsl(var(--border))",
+                  background: "hsl(var(--card))",
+                  color: "hsl(var(--foreground))",
+                }}
+                cursor={{ fill: "hsl(var(--accent))" }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="Published" fill="#0052FF" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="Scheduled" fill="#A8C5FF" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -751,6 +846,9 @@ export default function AdminDashboard() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Content Velocity Chart */}
+            <ContentVelocityWidget />
 
             {/* Topical Authority Score */}
             <TopicalAuthorityWidget />

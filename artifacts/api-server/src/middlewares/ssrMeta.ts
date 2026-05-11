@@ -56,7 +56,7 @@ import {
 } from "@workspace/db";
 import { eq, lte, sql, desc, asc } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
-import { BREADCRUMB_LABELS, SERVICE_PAGE_LASTMOD_DATE, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, TOOL_SLUGS } from "../lib/seoConstants";
+import { BREADCRUMB_LABELS, SERVICE_PAGE_LASTMOD_DATE, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, COMPARE_PAGE_CREATED, TOOL_SLUGS } from "../lib/seoConstants";
 
 // Resolve the frontend dist directory. The relative path differs between:
 //   Replit monorepo:  artifacts/api-server/dist/ → artifacts/fintechpresshub/dist/public/
@@ -1826,6 +1826,8 @@ async function handleSsrMeta(
           tagline:     servicesTable.tagline,
           description: servicesTable.description,
           deliverables: servicesTable.deliverables,
+          createdAt:   servicesTable.createdAt,
+          updatedAt:   servicesTable.updatedAt,
         })
         .from(servicesTable)
         .where(eq(servicesTable.slug, slug))
@@ -1873,8 +1875,8 @@ async function handleSsrMeta(
               // datePublished/dateModified give Google a freshness signal for the
               // service entity itself (not just the WebPage companion), strengthening
               // E-E-A-T scoring for financial-service content.
-              datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
-              dateModified:  SERVICE_PAGE_LASTMOD_DATE,
+              datePublished: svc.createdAt.toISOString().slice(0, 10),
+              dateModified:  svc.updatedAt.toISOString().slice(0, 10),
               provider:     { "@id": `${siteUrl}#organization` },
               ...(Array.isArray(svc.deliverables) && svc.deliverables.length > 0
                 ? {
@@ -1904,8 +1906,8 @@ async function handleSsrMeta(
               // datePublished matches the pattern on tools, compare, blog, and
               // glossary pages — provides Google a freshness anchor for the
               // service entity and satisfies E-E-A-T's publication-date signal.
-              datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
-              dateModified:  SERVICE_PAGE_LASTMOD_DATE,
+              datePublished: svc.createdAt.toISOString().slice(0, 10),
+              dateModified:  svc.updatedAt.toISOString().slice(0, 10),
               // SpeakableSpecification targets the h1 headline — the most concise,
               // authoritative identifier for this service. Enables Google Assistant
               // voice answers and AEO snippet extraction for service-intent queries
@@ -1916,6 +1918,29 @@ async function handleSsrMeta(
               },
             }, null, 2),
           ];
+          // HowTo JSON-LD maps each service deliverable to a named step, giving
+          // Google a structured guide it can surface in rich results for intent
+          // queries like "how to build fintech backlinks" or "how to improve
+          // fintech content". Only injected when deliverables are present.
+          if (Array.isArray(svc.deliverables) && svc.deliverables.length > 0) {
+            lds.push(JSON.stringify({
+              "@context": "https://schema.org",
+              "@type":    "HowTo",
+              "@id":      `${canonical}#howto`,
+              name:       `How to get started with ${svc.name}`,
+              description: `A step-by-step guide to engaging FintechPressHub for ${svc.name} services.`,
+              inLanguage:  "en",
+              url:         canonical,
+              publisher:   { "@id": `${siteUrl}#organization` },
+              step: (svc.deliverables as string[]).map((d, i) => ({
+                "@type":    "HowToStep",
+                position:   i + 1,
+                name:       d,
+                text:       `FintechPressHub delivers: ${d}`,
+                url:        `${canonical}#step-${i + 1}`,
+              })),
+            }, null, 2));
+          }
           // FAQPage schema unlocks Google's FAQ rich result for service-intent
           // queries ("what is fintech content writing", "how does off-page SEO
           // work"). Only injected when static Q&As exist for the service slug —
@@ -2338,7 +2363,7 @@ async function handleSsrMeta(
             // entity graph and may discount the FAQ accordion rich-result.
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
-            datePublished: STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
+            datePublished: COMPARE_PAGE_CREATED[slug] ?? STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
             ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
             mainEntity: faqMainEntity,
           }, null, 2),
@@ -2353,7 +2378,7 @@ async function handleSsrMeta(
             inLanguage:   "en",
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
-            datePublished: STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
+            datePublished: COMPARE_PAGE_CREATED[slug] ?? STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
             ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
             // SpeakableSpecification enables voice-assistant extraction of the comparison
             // headline for queries like "agency vs in-house SEO" — mirrors the speakable

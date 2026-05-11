@@ -38,6 +38,7 @@ import vitalsRouter from "./vitals";
 import categoryRssRouter from "./categoryRss";
 import pressMentionsRouter from "./pressMentions";
 import adminSchemaTestRouter from "./adminSchemaTest";
+import seoValidateRouter from "./seoValidate";
 
 const router: IRouter = Router();
 
@@ -80,6 +81,7 @@ router.use(vitalsRouter);
 router.use(categoryRssRouter);
 router.use(pressMentionsRouter);
 router.use(adminSchemaTestRouter);
+router.use(seoValidateRouter);
 
 // JSON 404 fallback for unmatched /api/* routes — must come last so it
 // doesn't shadow any route registered above.
