@@ -89,6 +89,16 @@ export type PersonSchema = {
   award?: string[];
   addressLocality?: string;
   addressCountry?: string;
+  /**
+   * ISO 8601 date the author profile page was first published.
+   * Emitted on ProfilePage JSON-LD for freshness/E-E-A-T signals.
+   */
+  datePublished?: string;
+  /**
+   * ISO 8601 date the author profile was last materially updated.
+   * Emitted on ProfilePage JSON-LD and as `dateModified` in the WebPage entity.
+   */
+  dateModified?: string;
 };
 
 export type ServiceSchema = {
@@ -294,6 +304,18 @@ type Common = {
    * and by admin-only pages (e.g. /admin/login).
    */
   noindex?: boolean;
+  /**
+   * ISO 8601 date the FAQ content was first published. When set, emitted on
+   * FAQPage JSON-LD for freshness signals — preferred over inheriting from
+   * webPage.datePublished when the FAQ section has its own editorial date.
+   */
+  faqDatePublished?: string;
+  /**
+   * ISO 8601 date the FAQ content was last materially updated.
+   * Emitted on FAQPage JSON-LD as dateModified. Takes priority over
+   * webPage.dateModified for the FAQ schema block.
+   */
+  faqDateModified?: string;
   /** HowTo structured data. Emits HowTo JSON-LD. */
   howTo?: HowToSchema;
   /** SoftwareApplication structured data (A5). */
@@ -409,11 +431,11 @@ export function PageMeta(props: PageMetaProps) {
             inLanguage: "en",
             isPartOf: { "@type": "WebSite", "@id": `${SITE_URL}#website` },
             publisher: { "@type": "Organization", "@id": `${SITE_URL}#organization`, name: SITE_NAME },
-            ...(props.webPage?.datePublished
-              ? { datePublished: props.webPage.datePublished }
+            ...(props.faqDatePublished ?? props.webPage?.datePublished
+              ? { datePublished: props.faqDatePublished ?? props.webPage?.datePublished }
               : {}),
-            ...(props.webPage?.dateModified
-              ? { dateModified: props.webPage.dateModified }
+            ...(props.faqDateModified ?? props.webPage?.dateModified
+              ? { dateModified: props.faqDateModified ?? props.webPage?.dateModified }
               : {}),
             mainEntity: props.faq.map((item) => ({
               "@type": "Question",
@@ -435,6 +457,8 @@ export function PageMeta(props: PageMetaProps) {
           ? `${props.person.name} — ${props.person.jobTitle}`
           : props.person.name,
         inLanguage: "en",
+        ...(props.person.datePublished ? { datePublished: props.person.datePublished } : {}),
+        ...(props.person.dateModified ? { dateModified: props.person.dateModified } : {}),
         isPartOf: {
           "@type": "WebSite",
           "@id": `${SITE_URL}#website`,

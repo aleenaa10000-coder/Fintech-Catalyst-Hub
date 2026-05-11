@@ -902,6 +902,148 @@ export default function FinancialHealthScoreCalculator() {
         </div>
       </section>
 
+      {/* Benchmark comparison table */}
+      <section className="pb-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-8">
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-semibold uppercase tracking-wider mb-3">
+                Reference Benchmarks
+              </span>
+              <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">
+                What is a good score for each ratio?
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground max-w-2xl mx-auto">
+                Industry benchmarks used by lenders, financial planners, and regulators. Use these to interpret your results and set realistic improvement targets.
+              </p>
+            </div>
+
+            {/* DTI benchmark table */}
+            <div className="mb-8 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+              <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200">
+                <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wide">Debt-to-Income Ratio (DTI)</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="px-5 py-3 text-left font-semibold text-slate-700">DTI Range</th>
+                      <th className="px-5 py-3 text-left font-semibold text-slate-700">Rating</th>
+                      <th className="px-5 py-3 text-left font-semibold text-slate-700 hidden sm:table-cell">Typical Lender View</th>
+                      <th className="px-5 py-3 text-left font-semibold text-slate-700">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {[
+                      { range: "< 20%",    rating: "Excellent", view: "Preferred for premium mortgage rates",             action: "Maintain — focus on investing",            color: "text-emerald-600" },
+                      { range: "20 – 28%", rating: "Good",      view: "Qualifies for most mortgage products",            action: "Continue reducing consumer debt",          color: "text-green-600" },
+                      { range: "28 – 35%", rating: "Fair",      view: "Acceptable; some lenders add rate premium",       action: "Prioritise highest-APR debt repayment",    color: "text-yellow-600" },
+                      { range: "35 – 43%", rating: "Stretched", view: "Upper limit for Qualified Mortgage (US/EU rules)", action: "Stop new credit; avalanche method",        color: "text-orange-600" },
+                      { range: "> 43%",    rating: "High Risk",  view: "Most prime lenders will decline",                 action: "Seek debt consolidation advice",            color: "text-red-600" },
+                    ].map((row) => (
+                      <tr key={row.range} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-5 py-3.5 font-mono font-semibold text-slate-900">{row.range}</td>
+                        <td className={`px-5 py-3.5 font-semibold ${row.color}`}>{row.rating}</td>
+                        <td className="px-5 py-3.5 text-slate-600 hidden sm:table-cell">{row.view}</td>
+                        <td className="px-5 py-3.5 text-muted-foreground">{row.action}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Savings rate benchmark */}
+            <div className="mb-8 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+              <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200">
+                <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wide">Monthly Savings Rate</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="px-5 py-3 text-left font-semibold text-slate-700">Savings Rate</th>
+                      <th className="px-5 py-3 text-left font-semibold text-slate-700">Rating</th>
+                      <th className="px-5 py-3 text-left font-semibold text-slate-700 hidden sm:table-cell">Context</th>
+                      <th className="px-5 py-3 text-left font-semibold text-slate-700">Projection (30 yr)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {[
+                      { range: "≥ 25%",   rating: "Excellent", context: "FIRE / early retirement path",            projection: "Financial independence possible by 50s",  color: "text-emerald-600" },
+                      { range: "15 – 24%", rating: "Good",     context: "Standard financial planner recommendation", projection: "Comfortable retirement by 60–65",        color: "text-green-600" },
+                      { range: "10 – 14%", rating: "Fair",     context: "Minimum OECD recommended floor",           projection: "Basic retirement coverage; tight margin", color: "text-yellow-600" },
+                      { range: "5 – 9%",   rating: "Low",      context: "Below global median; vulnerable to shocks", projection: "Likely retirement shortfall without change",color: "text-orange-600" },
+                      { range: "< 5%",    rating: "Critical",  context: "No meaningful wealth accumulation",         projection: "Dependency on state benefits likely",     color: "text-red-600" },
+                    ].map((row) => (
+                      <tr key={row.range} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-5 py-3.5 font-mono font-semibold text-slate-900">{row.range}</td>
+                        <td className={`px-5 py-3.5 font-semibold ${row.color}`}>{row.rating}</td>
+                        <td className="px-5 py-3.5 text-slate-600 hidden sm:table-cell">{row.context}</td>
+                        <td className="px-5 py-3.5 text-muted-foreground">{row.projection}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Emergency fund + expense ratio */}
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200">
+                  <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wide">Emergency Fund</h3>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {[
+                    { label: "≥ 9 months",  badge: "Ideal",     badgeColor: "bg-emerald-100 text-emerald-700", note: "Self-employed / variable income" },
+                    { label: "6 months",    badge: "Excellent", badgeColor: "bg-green-100 text-green-700",    note: "Single-earner household standard" },
+                    { label: "3 – 5 months",badge: "Good",      badgeColor: "bg-yellow-100 text-yellow-700",  note: "Dual-income household floor" },
+                    { label: "1 – 2 months",badge: "Low",       badgeColor: "bg-orange-100 text-orange-700",  note: "Build before investing" },
+                    { label: "< 1 month",   badge: "Critical",  badgeColor: "bg-red-100 text-red-700",        note: "Priority: automate savings transfer" },
+                  ].map((row) => (
+                    <div key={row.label} className="px-5 py-3 flex items-center justify-between gap-3">
+                      <span className="font-mono font-semibold text-slate-900 text-sm">{row.label}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${row.badgeColor}`}>{row.badge}</span>
+                        <span className="text-xs text-muted-foreground hidden sm:inline">{row.note}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200">
+                  <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wide">Expense Ratio (Expenses / Income)</h3>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {[
+                    { label: "< 50%",    badge: "Excellent", badgeColor: "bg-emerald-100 text-emerald-700", note: "50/30/20 rule: well within budget" },
+                    { label: "50 – 60%", badge: "Good",      badgeColor: "bg-green-100 text-green-700",    note: "Leaves meaningful surplus each month" },
+                    { label: "60 – 75%", badge: "Fair",      badgeColor: "bg-yellow-100 text-yellow-700",  note: "Limited buffer; watch discretionary spend" },
+                    { label: "75 – 90%", badge: "High",      badgeColor: "bg-orange-100 text-orange-700",  note: "Savings at risk; review subscriptions" },
+                    { label: "> 90%",    badge: "Critical",  badgeColor: "bg-red-100 text-red-700",        note: "Spending exceeds safe threshold" },
+                  ].map((row) => (
+                    <div key={row.label} className="px-5 py-3 flex items-center justify-between gap-3">
+                      <span className="font-mono font-semibold text-slate-900 text-sm">{row.label}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${row.badgeColor}`}>{row.badge}</span>
+                        <span className="text-xs text-muted-foreground hidden sm:inline">{row.note}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-4 text-xs text-muted-foreground">
+              Sources: CFPB Debt-to-Income guidelines; OECD Pensions Outlook; Fidelity Retirement Savings Guidelines; UK Money and Pensions Service (MaPS).
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Email report */}
       <section className="pb-16">
         <div className="container mx-auto px-4">

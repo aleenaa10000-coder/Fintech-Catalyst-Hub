@@ -56,7 +56,7 @@ import {
 } from "@workspace/db";
 import { eq, lte, sql, desc, asc } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
-import { BREADCRUMB_LABELS, SERVICE_PAGE_LASTMOD_DATE, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD } from "../lib/seoConstants";
+import { BREADCRUMB_LABELS, SERVICE_PAGE_LASTMOD_DATE, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, TOOL_SLUGS } from "../lib/seoConstants";
 
 // Resolve the frontend dist directory. The relative path differs between:
 //   Replit monorepo:  artifacts/api-server/dist/ → artifacts/fintechpresshub/dist/public/
@@ -200,6 +200,12 @@ interface MetaPatches {
    * (e.g. BlogPosting + BreadcrumbList) never end up nested inside one tag.
    */
   extraLds?: string[];
+  /**
+   * ISO 8601 date string for the page's most recent content change.
+   * When present, emitted as the `Last-Modified` HTTP response header so
+   * crawlers can detect stale cached pages without a full re-fetch.
+   */
+  dateModified?: string;
 }
 
 function patchHtml(base: string, p: MetaPatches): string {
@@ -1091,6 +1097,19 @@ const TOOLS_FAQ: Readonly<Record<string, Array<{ question: string; answer: strin
   ],
 };
 
+// ── Startup audit: warn if any tool slug is missing a TOOLS_FAQ entry ────────
+// Runs once at module load. A missing entry means the tool page will not emit
+// FAQPage JSON-LD in production, losing a rich-result slot in Google SERPs.
+// Fix: add a three-entry array for the slug in TOOLS_FAQ above.
+for (const _auditSlug of TOOL_SLUGS) {
+  if (!Object.prototype.hasOwnProperty.call(TOOLS_FAQ, _auditSlug)) {
+    console.warn(
+      `[ssrMeta startup] TOOLS_FAQ audit: no FAQ entry for tool slug "${_auditSlug}". ` +
+      `Add a three-entry array to TOOLS_FAQ in ssrMeta.ts to enable FAQPage JSON-LD on /tools/${_auditSlug}.`,
+    );
+  }
+}
+
 /**
  * Optional featureList for SoftwareApplication schema.
  * Only tools with a meaningful capability list are included — omitting a key
@@ -1158,6 +1177,61 @@ const CATEGORY_RE = /^\/blog\/category\/([^/]+)$/;
 const TAG_RE      = /^\/blog\/tag\/([^/]+)$/;
 const COMPARE_RE  = /^\/compare\/([^/]+)$/;
 const TOOLS_RE    = /^\/tools\/([^/]+)$/;
+
+/**
+ * Compute the most-recent content change date for DB-backed static hub pages.
+ * Falls back to undefined when the table is empty or the query fails — the
+ * caller then falls back to STATIC_PAGE_LASTMOD.
+ * Only called for the handful of routes that aggregate live DB content, so
+ * the per-request cost is one lightweight MAX query per matching path.
+ */
+async function getDynamicPageLastmod(reqPath: string): Promise<string | undefined> {
+  const toDate = (d: Date | null | undefined): string | undefined =>
+    d ? d.toISOString().split("T")[0] : undefined;
+  try {
+    switch (reqPath) {
+      case "/":
+      case "/blog": {
+        const [row] = await db
+          .select({ publishedAt: blogPostsTable.publishedAt })
+          .from(blogPostsTable)
+          .where(lte(blogPostsTable.publishedAt, sql`now()`))
+          .orderBy(desc(blogPostsTable.publishedAt))
+          .limit(1);
+        return toDate(row?.publishedAt);
+      }
+      case "/about":
+      case "/authors": {
+        const [row] = await db
+          .select({ updatedAt: authorsTable.updatedAt })
+          .from(authorsTable)
+          .orderBy(desc(authorsTable.updatedAt))
+          .limit(1);
+        return toDate(row?.updatedAt);
+      }
+      case "/glossary": {
+        const [row] = await db
+          .select({ updatedAt: glossaryTermsTable.updatedAt })
+          .from(glossaryTermsTable)
+          .orderBy(desc(glossaryTermsTable.updatedAt))
+          .limit(1);
+        return toDate(row?.updatedAt);
+      }
+      case "/locations": {
+        const [row] = await db
+          .select({ updatedAt: locationPagesTable.updatedAt })
+          .from(locationPagesTable)
+          .orderBy(desc(locationPagesTable.updatedAt))
+          .limit(1);
+        return toDate(row?.updatedAt);
+      }
+      default:
+        return undefined;
+    }
+  } catch {
+    return undefined;
+  }
+}
 
 async function handleSsrMeta(
   req: Request,
@@ -1437,6 +1511,7 @@ async function handleSsrMeta(
         articleTags:          tags.length > 0 ? tags : undefined,
         articlePublishedTime: post.publishedAt.toISOString(),
         articleModifiedTime:  dateModified,
+        dateModified:         dateModified ?? undefined,
         articleAuthor:        post.author || undefined,
         articleAuthorUrl:     authorUrl   || undefined,
         twitterCreator:       authorTwitter ?? undefined,
@@ -2402,7 +2477,8 @@ async function handleSsrMeta(
         const leafLabel   = staticMeta.title.split("|")[0]!.trim();
         const breadcrumbs = buildCrumbsForPath(siteUrl, segments, leafLabel);
 
-        const pageLastmod = STATIC_PAGE_LASTMOD[reqPath];
+        const dynamicLastmod = await getDynamicPageLastmod(reqPath);
+        const pageLastmod = dynamicLastmod ?? STATIC_PAGE_LASTMOD[reqPath];
 
         // Build page-type-specific JSON-LD schemas for key hub pages.
         const extraLds: string[] = [];
@@ -2642,7 +2718,17 @@ async function handleSsrMeta(
                   name:            plan.name,
                   description:     plan.description.slice(0, 300),
                   ...(plan.priceMonthly > 0
-                    ? { price: plan.priceMonthly, priceCurrency: "USD", billingPeriod: "P1M" }
+                    ? {
+                        price:            plan.priceMonthly,
+                        priceCurrency:    "USD",
+                        priceSpecification: {
+                          "@type":         "UnitPriceSpecification",
+                          price:           plan.priceMonthly,
+                          priceCurrency:   "USD",
+                          billingDuration: "P1M",
+                          unitText:        "month",
+                        },
+                      }
                     : {}),
                   availability:    "https://schema.org/InStock",
                   seller:          { "@id": `${siteUrl}#organization` },
@@ -3245,6 +3331,7 @@ async function handleSsrMeta(
           ogImage,
           ogImageAlt:    leafLabel,
           ogType:        staticMeta.ogType,
+          ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           extraLds,
         };
       }
@@ -3265,6 +3352,15 @@ async function handleSsrMeta(
     // Both rel="canonical" (Bing HTTP-header canonical) and rel="cite-as"
     // (W3C AI citation standard) in one Link header — covers all crawler types.
     res.setHeader("Link", `<${patches.canonical}>; rel="canonical", <${patches.canonical}>; rel="cite-as"`);
+    // Emit Last-Modified so crawlers can revalidate efficiently without
+    // re-downloading the full HTML. Uses the per-page dateModified computed
+    // in the route branch, or falls back to the static lastmod map.
+    const lastModDate = patches.dateModified ?? (STATIC_PAGE_LASTMOD as Record<string, string | undefined>)[req.path];
+    if (lastModDate) {
+      try {
+        res.setHeader("Last-Modified", new Date(lastModDate).toUTCString());
+      } catch { /* ignore invalid date strings */ }
+    }
     if (req.method === "HEAD") {
       res.end();
     } else {

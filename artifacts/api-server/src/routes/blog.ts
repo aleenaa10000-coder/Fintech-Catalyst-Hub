@@ -942,6 +942,22 @@ router.delete("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
       return;
     }
 
+    // Notify search engines so the deleted URL is de-indexed promptly.
+    // Fire-and-forget — the 204 response is not delayed by the ping.
+    const siteUrl = getSiteUrl();
+    notifySearchEnginesOfPublishWithTimeout(
+      [
+        `${siteUrl}/blog/${row.slug}`,
+        `${siteUrl}/blog`,
+        `${siteUrl}/sitemap.xml`,
+      ],
+      SEO_NOTIFY_TIMEOUT_MS,
+    ).catch((err) =>
+      logger.warn({ err }, "IndexNow de-index ping failed after blog post delete"),
+    );
+
+    invalidateSitemapCache();
+
     res.status(204).end();
   } catch (err) {
     if (err instanceof z.ZodError) {

@@ -17,6 +17,7 @@ import rssRouter from "./routes/rss";
 import uploadsRouter from "./routes/uploads";
 import indexNowKeyRouter from "./routes/indexNowKey";
 import llmsTxtRouter from "./routes/llmsTxt";
+import securityTxtRouter from "./routes/securityTxt";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
 import { ssrMetaMiddleware } from "./middlewares/ssrMeta";
@@ -411,6 +412,7 @@ app.use(tagRssRouter);
 app.use(rssRouter);
 app.use(indexNowKeyRouter);
 app.use(llmsTxtRouter);        // /llms.txt — LLM-readable site summary
+app.use(securityTxtRouter);    // /.well-known/security.txt — RFC 9116
 app.use(uploadsRouter);
 
 app.use("/api", router);

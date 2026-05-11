@@ -37,6 +37,7 @@ import referringDomainsRouter from "./referringDomains";
 import vitalsRouter from "./vitals";
 import categoryRssRouter from "./categoryRss";
 import pressMentionsRouter from "./pressMentions";
+import adminSchemaTestRouter from "./adminSchemaTest";
 
 const router: IRouter = Router();
 
@@ -78,6 +79,7 @@ router.use(referringDomainsRouter);
 router.use(vitalsRouter);
 router.use(categoryRssRouter);
 router.use(pressMentionsRouter);
+router.use(adminSchemaTestRouter);
 
 // JSON 404 fallback for unmatched /api/* routes — must come last so it
 // doesn't shadow any route registered above.
