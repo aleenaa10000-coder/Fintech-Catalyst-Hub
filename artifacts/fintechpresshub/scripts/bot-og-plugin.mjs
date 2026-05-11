@@ -486,6 +486,8 @@ const dataCache = {
   glossaryTermsAt: 0,
   locations: null,
   locationsAt: 0,
+  tags: null,
+  tagsAt: 0,
 };
 const TTL_MS = 30_000;
 
@@ -683,6 +685,42 @@ export async function getAllGlossaryTerms(apiBase) {
 // Exported so prerender.mjs can enumerate every location slug at build time.
 export async function getAllLocations(apiBase) {
   return loadLocations(apiBase);
+}
+
+async function loadTags(apiBase) {
+  const now = Date.now();
+  if (dataCache.tags && now - dataCache.tagsAt < TTL_MS) {
+    return dataCache.tags;
+  }
+  try {
+    const res = await fetch(`${apiBase}/api/blog/tags`, {
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const json = await res.json();
+    const items = Array.isArray(json) ? json : [];
+    const withSlug = items
+      .map((t) => ({
+        tag: t.tag,
+        count: t.count,
+        slug: String(t.tag)
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, ""),
+      }))
+      .filter((t) => t.slug);
+    dataCache.tags = withSlug;
+    dataCache.tagsAt = now;
+    return withSlug;
+  } catch (err) {
+    console.warn(`[bot-og-plugin] tags unavailable (${err?.message ?? err}); returning []`);
+    return [];
+  }
+}
+
+// Exported so prerender.mjs can enumerate every tag slug at build time.
+export async function getAllTags(apiBase) {
+  return loadTags(apiBase);
 }
 
 async function _buildMeta(pathname, siteUrl, apiBase) {

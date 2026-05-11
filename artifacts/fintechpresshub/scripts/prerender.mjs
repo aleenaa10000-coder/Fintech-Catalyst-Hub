@@ -36,6 +36,7 @@ import {
   getAllServices,
   getAllGlossaryTerms,
   getAllLocations,
+  getAllTags,
 } from "./bot-og-plugin.mjs";
 import { PAGE_META, AUTHORS } from "./bot-og-data.mjs";
 // All blog category slugs — single source of truth is seo-constants.mjs.
@@ -128,6 +129,16 @@ async function prerender() {
     routes.add(`/blog/category/${slug}`);
   }
 
+  // Blog tag hub pages — pulled from API when available. Tags are dynamic
+  // (derived from the blog_posts.tags JSONB column) so they cannot be
+  // enumerated statically. Falls back to an empty list when the API is not
+  // reachable at build time, in which case tag hub pages are served via the
+  // SSR middleware at runtime (same as newly-published posts).
+  const tags = await getAllTags(API_BASE);
+  for (const t of tags) {
+    if (t.slug) routes.add(`/blog/tag/${t.slug}`);
+  }
+
   const summary = {
     total: routes.size,
     written: 0,
@@ -141,6 +152,7 @@ async function prerender() {
       glossary: 0,
       locations: 0,
       categories: 0,
+      tags: 0,
       home: 0,
     },
   };
@@ -160,6 +172,7 @@ async function prerender() {
 
         if (pathname === "/") summary.byType.home += 1;
         else if (pathname.startsWith("/blog/category/")) summary.byType.categories += 1;
+        else if (pathname.startsWith("/blog/tag/")) summary.byType.tags += 1;
         else if (pathname.startsWith("/blog/")) summary.byType.blog += 1;
         else if (pathname.startsWith("/services/")) summary.byType.services += 1;
         else if (pathname.startsWith("/authors/")) summary.byType.authors += 1;

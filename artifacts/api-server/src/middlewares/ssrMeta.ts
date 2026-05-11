@@ -143,6 +143,12 @@ interface MetaPatches {
   /** twitter:creator tag (blog posts — author's Twitter @handle). */
   twitterCreator?: string;
   /**
+   * HTML <meta name="author"> value — author display name for blog posts.
+   * Understood by search engines as a page-level authorship signal that
+   * supplements the JSON-LD Person entity and article:author OG tag.
+   */
+  author?: string;
+  /**
    * Extra raw <link> HTML tags injected into <head> before JSON-LD blocks.
    * Used for RSS autodiscovery on author pages and any other per-page link
    * annotations that aren't article:* meta tags.
@@ -273,6 +279,10 @@ function patchHtml(base: string, p: MetaPatches): string {
 
   if (p.twitterCreator) {
     injections.push(`  <meta name="twitter:creator" content="${esc(p.twitterCreator)}" />`);
+  }
+
+  if (p.author) {
+    injections.push(`  <meta name="author" content="${esc(p.author)}" />`);
   }
 
   if (injections.length > 0) {
@@ -1117,6 +1127,7 @@ async function handleSsrMeta(
         articleAuthor:        post.author || undefined,
         articleAuthorUrl:     authorUrl   || undefined,
         twitterCreator:       authorTwitter ?? undefined,
+        author:               post.author   || undefined,
         extraLds,
       };
     }
