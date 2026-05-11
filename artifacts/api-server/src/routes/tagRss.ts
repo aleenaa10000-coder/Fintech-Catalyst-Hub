@@ -11,13 +11,14 @@ function cdata(value: string): string {
 }
 
 type FeedItem = {
-  slug:    string;
-  title:   string;
-  excerpt: string;
-  category: string;
-  date:    string;
-  author:  string;
-  content?: string;
+  slug:      string;
+  title:     string;
+  excerpt:   string;
+  category:  string;
+  date:      string;
+  author:    string;
+  content?:  string;
+  coverImage?: string | null;
 };
 
 async function collectTagPosts(tagSlug: string): Promise<FeedItem[]> {
@@ -32,6 +33,7 @@ async function collectTagPosts(tagSlug: string): Promise<FeedItem[]> {
       content:     blogPostsTable.content,
       tags:        blogPostsTable.tags,
       noIndex:     blogPostsTable.noIndex,
+      coverImage:  blogPostsTable.coverImage,
     })
     .from(blogPostsTable)
     .where(lte(blogPostsTable.publishedAt, sql`now()`))
@@ -47,13 +49,14 @@ async function collectTagPosts(tagSlug: string): Promise<FeedItem[]> {
         ),
     )
     .map((p) => ({
-      slug:     p.slug,
-      title:    p.title,
-      excerpt:  p.excerpt,
-      category: p.category,
-      date:     p.publishedAt.toISOString(),
-      author:   p.author,
-      content:  p.content,
+      slug:       p.slug,
+      title:      p.title,
+      excerpt:    p.excerpt,
+      category:   p.category,
+      date:       p.publishedAt.toISOString(),
+      author:     p.author,
+      content:    p.content,
+      coverImage: p.coverImage,
     }));
 }
 
@@ -68,8 +71,11 @@ function buildRss(opts: {
   const lastBuildDate = new Date().toUTCString();
   const items = opts.items
     .map((p) => {
-      const url     = `${opts.siteUrl}/blog/${p.slug}`;
-      const pubDate = new Date(p.date).toUTCString();
+      const url      = `${opts.siteUrl}/blog/${p.slug}`;
+      const pubDate  = new Date(p.date).toUTCString();
+      const mediaUrl = p.coverImage
+        ? (p.coverImage.startsWith("http") ? p.coverImage : `${opts.siteUrl}${p.coverImage.startsWith("/") ? "" : "/"}${p.coverImage}`)
+        : `${opts.siteUrl}/api/og?title=${encodeURIComponent(p.title)}&type=blog`;
       return (
         `    <item>\n` +
         `      <title>${cdata(p.title)}</title>\n` +
@@ -84,6 +90,7 @@ function buildRss(opts: {
         (p.content
           ? `      <content:encoded>${cdata(p.content)}</content:encoded>\n`
           : "") +
+        `      <media:content url="${escapeXml(mediaUrl)}" medium="image" />\n` +
         `    </item>`
       );
     })
@@ -94,7 +101,8 @@ function buildRss(opts: {
     `<rss version="2.0"\n` +
     `  xmlns:content="http://purl.org/rss/1.0/modules/content/"\n` +
     `  xmlns:dc="http://purl.org/dc/elements/1.1/"\n` +
-    `  xmlns:atom="http://www.w3.org/2005/Atom">\n` +
+    `  xmlns:atom="http://www.w3.org/2005/Atom"\n` +
+    `  xmlns:media="http://search.yahoo.com/mrss/">\n` +
     `  <channel>\n` +
     `    <title>${escapeXml(opts.channelTitle)}</title>\n` +
     `    <link>${escapeXml(opts.channelLink)}</link>\n` +

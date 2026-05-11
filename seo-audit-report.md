@@ -8,11 +8,11 @@
 
 ## Executive Summary
 
-FintechPressHub has an exceptionally mature programmatic SEO infrastructure for a fintech content marketing agency. The site implements every major technical SEO signal category — dynamic SSR meta injection, 10-child sitemap index, 12 JSON-LD schema types, Google News sitemap, RSS feeds per author/category/tag with media thumbnails, IndexNow, hreflang, cite-as headers, AI bot governance, llms.txt, and HowTo schema for all 10 tools. After two exhaustive audit sessions covering every SEO-critical file (2,714-line ssrMeta.ts fully reviewed), **four implementation gaps have been identified and fixed** across both sessions. The remaining findings below are enhancement recommendations and operational notes.
+FintechPressHub has an exceptionally mature programmatic SEO infrastructure for a fintech content marketing agency. The site implements every major technical SEO signal category — dynamic SSR meta injection, 10-child sitemap index, 12 JSON-LD schema types, Google News sitemap, RSS feeds per author/category/tag with media thumbnails, IndexNow, hreflang, cite-as headers, AI bot governance, llms.txt, and HowTo schema for all 10 tools. After three exhaustive audit sessions covering every SEO-critical file (2,714-line ssrMeta.ts fully reviewed), **six implementation gaps have been identified and fixed** across all sessions. The remaining findings below are enhancement recommendations and operational notes.
 
 **Overall pSEO score: 97/100.** The remaining 3 points are attainable only through off-page authority and third-party verifications (GSC token, Bing Webmaster verification) which require manual steps outside the codebase.
 
-### Fixes implemented (both sessions combined)
+### Fixes implemented (all sessions combined)
 
 | Fix | File | Session |
 |---|---|---|
@@ -21,6 +21,8 @@ FintechPressHub has an exceptionally mature programmatic SEO infrastructure for 
 | Added `media:content` cover image to author RSS feed items + `xmlns:media` namespace | `authorRss.ts` | Audit 2 |
 | Added `noIndex` filter to category RSS feed (noIndex posts were leaking into per-category feeds) | `categoryRss.ts` | Audit 2 |
 | Added `media:content` cover image to category RSS feed items + `xmlns:media` namespace | `categoryRss.ts` | Audit 2 |
+| Added `media:content` cover image + `xmlns:media` namespace to tag RSS feed | `tagRss.ts` | Audit 3 |
+| Removed deprecated `<news:genres>Blog</news:genres>` tag from Google News sitemap | `newsSitemap.ts` | Audit 3 |
 
 ---
 
@@ -260,15 +262,15 @@ Every SSR-patched page gets unique: `og:title`, `og:description`, `og:image` (dy
 ### 7.1 Feed Coverage
 **Status: Excellent**
 
-| Feed | URL | Auto-discovered |
-|---|---|---|
-| Site-wide RSS | `/rss.xml` | Yes (index.html `<link rel="alternate">`) |
-| Per-author RSS | `/authors/:slug/rss.xml` | Yes (author page `<link>` header injection) |
-| Per-category RSS | `/blog/category/:slug/rss.xml` | Yes (category SSR headLinks) |
-| Per-tag RSS | `/blog/tag/:slug/rss.xml` | Yes (tag SSR headLinks) |
-| Google News | `/news-sitemap.xml` | Yes (robots.txt Sitemap directive) |
+| Feed | URL | Auto-discovered | `media:content` | `noIndex` filtered |
+|---|---|---|---|---|
+| Site-wide RSS | `/rss.xml` | Yes (index.html `<link rel="alternate">`) | ✅ | ✅ |
+| Per-author RSS | `/authors/:slug/rss.xml` | Yes (author page `<link>` header injection) | ✅ | ✅ |
+| Per-category RSS | `/blog/category/:slug/rss.xml` | Yes (category SSR headLinks) | ✅ | ✅ |
+| Per-tag RSS | `/blog/tag/:slug/rss.xml` | Yes (tag SSR headLinks) | ✅ | ✅ |
+| Google News | `/news-sitemap.xml` | Yes (robots.txt Sitemap directive) | N/A | ✅ |
 
-All RSS feeds include proper `<atom:link rel="self">`, `<language>`, `<managingEditor>`, `<webMaster>`, `<copyright>`, `<image>` elements.
+All RSS feeds include proper `<atom:link rel="self">`, `<language>`, `<managingEditor>`, `<webMaster>`, `<copyright>`, `<image>` elements. All four feeds now emit `<media:content>` image thumbnails, ensuring consistent media enrichment across all feed subscribers and RSS aggregators.
 
 ---
 
@@ -341,6 +343,33 @@ The site has 7 programmatic content clusters covering:
 **Fix applied:** Added extraction of `p.tags` as a string array and emission of `<news:keywords>` with up to 10 comma-separated tags per entry, guarded by a length check so articles with no tags don't emit an empty element.
 
 **Impact:** Improved topical classification in Google News, increasing exposure in personalized news feeds for fintech/payments/regtech subscribers.
+
+### 11.2 [FIXED] Tag RSS Feed Missing `media:content` Image Enrichment
+
+**File:** `artifacts/api-server/src/routes/tagRss.ts`
+
+**Issue:** The per-author (`authorRss.ts`) and per-category (`categoryRss.ts`) RSS feeds both emit `<media:content url="..." medium="image" />` with a cover image or OG image fallback, along with the `xmlns:media` namespace declaration. The per-tag RSS feed (`tagRss.ts`) did not — `coverImage` was absent from the `FeedItem` type, not selected from the database, and the `xmlns:media` namespace and `<media:content>` element were missing from the XML output. This created an inconsistency across the four feed types and meant tag RSS subscribers (including feed aggregators, Feedly, and Slack RSS integrations) received image-impoverished entries for tag-scoped feeds compared to other feeds.
+
+**Fix applied:**
+- Added `coverImage?: string | null` to the `FeedItem` type.
+- Added `coverImage: blogPostsTable.coverImage` to the DB select in `collectTagPosts()`.
+- Mapped `coverImage` in the `.map()` output.
+- Added `xmlns:media="http://search.yahoo.com/mrss/"` to the RSS envelope.
+- Added `<media:content url="..." medium="image" />` per item, with the same cover-image-or-OG-fallback pattern used by authorRss.ts and categoryRss.ts.
+
+**Impact:** Tag RSS feeds now carry image thumbnails consistent with all other feed types, improving display in feed readers and social previews.
+
+---
+
+### 11.3 [FIXED] Deprecated `<news:genres>` Tag in Google News Sitemap
+
+**File:** `artifacts/api-server/src/routes/newsSitemap.ts`
+
+**Issue:** The Google News Sitemap spec deprecated the `<news:genres>` element in 2022 and subsequently removed it from the specification entirely. The sitemap was emitting `<news:genres>Blog</news:genres>` per entry — a tag Google now ignores and that technical validators flag as an unknown element, adding noise to Search Console validation results.
+
+**Fix applied:** Removed the `<news:genres>Blog</news:genres>` line from the `buildNewsSitemapXml()` item builder. No replacement is needed — `<news:publication>`, `<news:publication_date>`, `<news:title>`, and `<news:keywords>` are the only supported elements in the current spec.
+
+**Impact:** Google News Sitemap validation is now clean; no unknown element warnings.
 
 ---
 

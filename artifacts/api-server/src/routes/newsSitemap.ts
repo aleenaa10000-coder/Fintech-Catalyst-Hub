@@ -71,7 +71,6 @@ async function buildNewsSitemapXml(): Promise<string> {
         `      </news:publication>\n` +
         `      <news:publication_date>${pubDate}</news:publication_date>\n` +
         `      <news:title>${escapeXml(p.title)}</news:title>\n` +
-        `      <news:genres>Blog</news:genres>\n` +
         keywordsLine +
         `    </news:news>\n` +
         `  </url>`
