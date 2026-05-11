@@ -2,12 +2,15 @@
   "name": "FintechPressHub",
   "short_name": "FintechPress",
   "description": "Fintech SEO and content marketing agency. We blend deep financial expertise with high-authority link building and technical SEO to scale organic growth for ambitious fintech companies.",
+  "id": "/",
   "start_url": "/",
   "scope": "/",
+  "lang": "en-US",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#FFFFFF",
   "theme_color": "#0052FF",
+  "prefer_related_applications": false,
   "categories": ["business", "finance", "marketing"],
   "icons": [
     {

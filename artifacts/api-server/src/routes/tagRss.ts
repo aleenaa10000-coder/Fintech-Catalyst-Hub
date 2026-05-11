@@ -113,6 +113,23 @@ function buildRss(opts: {
     // TTL (time to live in minutes) — tag feeds refresh at the same cadence
     // as category feeds; 60 min matches CDN s-maxage caching window.
     `    <ttl>60</ttl>\n` +
+    // managingEditor + webMaster: RFC 822-format contact fields consumed by
+    // Apple News, Google News Ingestion, and feed aggregators for editorial
+    // attribution and automated error reporting on per-tag feeds.
+    `    <managingEditor>hello@fintechpresshub.com (FintechPressHub)</managingEditor>\n` +
+    `    <webMaster>hello@fintechpresshub.com (FintechPressHub)</webMaster>\n` +
+    // copyright declares content ownership so syndication platforms can
+    // confirm the feed is proprietary before ingesting or republishing it.
+    `    <copyright>Copyright ${new Date().getFullYear()} FintechPressHub. All rights reserved.</copyright>\n` +
+    // channel <image> improves brand recognition in feed readers and
+    // satisfies Apple Podcasts / Apple News channel asset requirements.
+    `    <image>\n` +
+    `      <url>${escapeXml(opts.siteUrl)}/icon-512.png</url>\n` +
+    `      <title>${escapeXml(opts.channelTitle)}</title>\n` +
+    `      <link>${escapeXml(opts.channelLink)}</link>\n` +
+    `      <width>144</width>\n` +
+    `      <height>144</height>\n` +
+    `    </image>\n` +
     (items ? `${items}\n` : "") +
     `  </channel>\n` +
     `</rss>\n`

@@ -56,6 +56,12 @@
     <!-- Performance: preconnect to external origins used above-the-fold -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Blog cover images are commonly served from Unsplash. Preconnect removes
+         the TCP+TLS handshake latency from the critical path for LCP images,
+         reducing Largest Contentful Paint on blog post pages. dns-prefetch is
+         a fallback hint for browsers that don't support preconnect. -->
+    <link rel="preconnect" href="https://images.unsplash.com">
+    <link rel="dns-prefetch" href="https://images.unsplash.com">
     <!-- Preload hint tells the browser to start fetching the font CSS immediately
          while parsing the head, before the non-blocking stylesheet fires. -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">

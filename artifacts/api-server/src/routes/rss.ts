@@ -111,6 +111,17 @@ function buildRss(opts: {
     // the minimum interval before re-fetching. 60 min matches the CDN s-maxage,
     // preventing unnecessary polls during the caching window.
     `    <ttl>60</ttl>\n` +
+    // managingEditor + webMaster are optional RSS 2.0 channel elements but are
+    // consumed by Apple News, Google News Ingestion, and major feed aggregators
+    // (Feedly, Inoreader) to attribute editorial responsibility and provide a
+    // contact path for automated error reports. RFC 822 format requires a name
+    // in parentheses following the email address.
+    `    <managingEditor>hello@fintechpresshub.com (FintechPressHub)</managingEditor>\n` +
+    `    <webMaster>hello@fintechpresshub.com (FintechPressHub)</webMaster>\n` +
+    // copyright element declares content ownership in the RSS channel metadata.
+    // Consumed by rights-management tools and syndication platforms to confirm
+    // the content is proprietary before auto-ingesting or republishing it.
+    `    <copyright>Copyright ${new Date().getFullYear()} FintechPressHub. All rights reserved.</copyright>\n` +
     `    <image>\n` +
     `      <url>${escapeXml(opts.siteUrl)}/icon-512.png</url>\n` +
     `      <title>${escapeXml(SITE_NAME)}</title>\n` +
