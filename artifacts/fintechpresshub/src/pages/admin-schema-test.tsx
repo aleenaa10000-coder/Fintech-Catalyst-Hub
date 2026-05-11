@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@workspace/replit-auth-web";
 import { PageMeta } from "@/components/PageMeta";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,9 @@ import {
   Copy,
   CopyCheck,
   Mail,
+  History,
+  CalendarClock,
+  MousePointerClick,
 } from "lucide-react";
 
 interface SchemaValidationResult {
@@ -68,10 +71,36 @@ interface GoogleRichResultsResponse {
   details?: unknown;
 }
 
+interface HealthRunIssue {
+  schemaType: string;
+  context: string;
+  valid: boolean;
+  warnings: string[];
+}
+
+interface HealthRun {
+  id: number;
+  ranAt: string;
+  trigger: "scheduled" | "manual";
+  total: number;
+  passed: number;
+  failures: number;
+  warnings: number;
+  emailSent: boolean;
+  skipReason: string | null;
+  issues: HealthRunIssue[] | null;
+}
+
 async function fetchSchemaTest(): Promise<SchemaTestData> {
   const res = await fetch("/api/admin/schema-test", { credentials: "include" });
   if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
   return res.json() as Promise<SchemaTestData>;
+}
+
+async function fetchHealthHistory(): Promise<{ runs: HealthRun[] }> {
+  const res = await fetch("/api/admin/schema-health/history", { credentials: "include" });
+  if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+  return res.json() as Promise<{ runs: HealthRun[] }>;
 }
 
 async function fetchRichResults(url: string): Promise<GoogleRichResultsResponse> {
@@ -310,14 +339,162 @@ function SendNowBanner({ result }: { result: SendNowResult }) {
   );
 }
 
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+function HistoryPanel() {
+  const { data, isLoading, isError, refetch, isFetching } = useQuery<{ runs: HealthRun[] }>({
+    queryKey: ["schema-health-history"],
+    queryFn: fetchHealthHistory,
+    staleTime: 0,
+  });
+
+  const runs = data?.runs ?? [];
+
+  return (
+    <Card>
+      <CardHeader className="pb-3 flex flex-row items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <History className="w-4 h-4 text-primary" />
+          <CardTitle className="text-base">Run History</CardTitle>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="gap-1.5 shrink-0"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {isLoading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading history…
+          </div>
+        )}
+        {isError && (
+          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            Failed to load history. Check that you are logged in as admin.
+          </div>
+        )}
+        {!isLoading && !isError && runs.length === 0 && (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            No runs recorded yet — history appears here after the first "Send alert now" click or scheduled run.
+          </p>
+        )}
+        {runs.length > 0 && (
+          <div className="space-y-2">
+            {runs.map((run) => {
+              const healthy = run.failures === 0 && run.warnings === 0;
+              const hasIssues = run.failures > 0 || run.warnings > 0;
+              return (
+                <details key={run.id} className="group rounded-md border overflow-hidden">
+                  <summary className={`flex flex-wrap items-center gap-3 px-4 py-3 cursor-pointer select-none list-none
+                    ${run.failures > 0 ? "bg-red-50/50 hover:bg-red-50" : run.warnings > 0 ? "bg-amber-50/40 hover:bg-amber-50" : "bg-muted/30 hover:bg-muted/50"}`}>
+                    {/* Status dot */}
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${run.failures > 0 ? "bg-red-500" : run.warnings > 0 ? "bg-amber-400" : "bg-emerald-500"}`} />
+                    {/* Timestamp */}
+                    <span className="text-sm font-medium min-w-0 shrink-0" title={new Date(run.ranAt).toLocaleString()}>
+                      {relativeTime(run.ranAt)}
+                    </span>
+                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                      {new Date(run.ranAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                    </span>
+                    {/* Trigger badge */}
+                    <Badge variant="outline" className="gap-1 text-xs shrink-0">
+                      {run.trigger === "manual"
+                        ? <><MousePointerClick className="w-3 h-3" /> Manual</>
+                        : <><CalendarClock className="w-3 h-3" /> Scheduled</>}
+                    </Badge>
+                    {/* Outcome summary */}
+                    <span className="flex items-center gap-2 ml-auto text-xs shrink-0">
+                      {healthy && (
+                        <span className="flex items-center gap-1 text-emerald-700">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> All healthy
+                        </span>
+                      )}
+                      {run.failures > 0 && (
+                        <span className="flex items-center gap-1 text-red-700">
+                          <XCircle className="w-3.5 h-3.5" /> {run.failures} failure{run.failures !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {run.warnings > 0 && (
+                        <span className="flex items-center gap-1 text-amber-700">
+                          <AlertTriangle className="w-3.5 h-3.5" /> {run.warnings} warning{run.warnings !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {run.emailSent && (
+                        <span className="flex items-center gap-1 text-blue-700">
+                          <Mail className="w-3.5 h-3.5" /> Alert sent
+                        </span>
+                      )}
+                    </span>
+                  </summary>
+                  {/* Expanded detail */}
+                  <div className="border-t px-4 py-3 text-sm space-y-2 bg-background">
+                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                      <span><strong className="text-foreground">{run.passed}</strong> / {run.total} schemas passed</span>
+                      {run.skipReason === "all_healthy" && <span>No email sent — silence = healthy</span>}
+                      {run.skipReason === "no_recipients" && <span className="text-amber-700">ADMIN_EMAILS not configured</span>}
+                      {run.skipReason === "build_error" && <span className="text-red-700">Validation threw during build</span>}
+                      {run.emailSent && <span className="text-blue-700">Alert email dispatched</span>}
+                    </div>
+                    {hasIssues && run.issues && run.issues.length > 0 && (
+                      <div className="space-y-1 pt-1">
+                        {run.issues.map((issue, i) => (
+                          <div key={i} className={`rounded px-2 py-1.5 text-xs ${!issue.valid ? "bg-red-50 text-red-800" : "bg-amber-50 text-amber-800"}`}>
+                            <span className="font-medium">{issue.schemaType}</span>
+                            <span className="text-muted-foreground ml-1">— {issue.context}</span>
+                            {issue.warnings.map((w, j) => (
+                              <p key={j} className="mt-0.5 flex items-start gap-1">
+                                <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" /> {w}
+                              </p>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!hasIssues && (
+                      <p className="text-xs text-emerald-700 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> No issues detected in this run.
+                      </p>
+                    )}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function InternalSchemaPanel() {
+  const queryClient = useQueryClient();
   const { data, isLoading, isError, refetch, isFetching } = useQuery<SchemaTestData>({
     queryKey: ["admin-schema-test"],
     queryFn: fetchSchemaTest,
     staleTime: 5 * 60 * 1000,
   });
 
-  const sendNow = useMutation({ mutationFn: triggerSchemaHealthAlert });
+  const sendNow = useMutation({
+    mutationFn: triggerSchemaHealthAlert,
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["schema-health-history"] });
+    },
+  });
 
   return (
     <Card>
@@ -586,6 +763,9 @@ export default function AdminSchemaTest() {
 
         {/* Internal schema validation */}
         <InternalSchemaPanel />
+
+        {/* Run history timeline */}
+        <HistoryPanel />
       </div>
     </>
   );

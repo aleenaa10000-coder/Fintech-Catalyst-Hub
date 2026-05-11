@@ -3,6 +3,7 @@ import { sendMail, cleanEmail } from "../lib/mailer";
 import { validateJsonLd, buildSchemaFixtures, type ValidationResult } from "../lib/schemaValidator";
 import { TOOL_SLUGS, SERVICE_SLUGS } from "../lib/seoConstants";
 import { getSiteUrl } from "../lib/seo";
+import { db, schemaHealthRunsTable } from "@workspace/db";
 
 const JOB_LOG = logger.child({ job: "schema-health-daily" });
 
@@ -177,7 +178,26 @@ function buildHtmlBody(failures: ValidationResult[], warnings: ValidationResult[
  *
  * Silence = healthy: no email is sent when all fixtures pass cleanly.
  */
-export async function runSchemaHealthCheck(): Promise<{
+async function persistRun(row: {
+  trigger: "scheduled" | "manual";
+  total: number;
+  passed: number;
+  failures: number;
+  warnings: number;
+  emailSent: boolean;
+  skipReason: string | null;
+  issues: Array<{ schemaType: string; context: string; valid: boolean; warnings: string[] }>;
+}): Promise<void> {
+  try {
+    await db.insert(schemaHealthRunsTable).values(row);
+  } catch (err) {
+    JOB_LOG.error({ err }, "Failed to persist schema health run to DB");
+  }
+}
+
+export async function runSchemaHealthCheck(
+  trigger: "scheduled" | "manual" = "scheduled",
+): Promise<{
   sent: boolean;
   failures: number;
   warnings: number;
@@ -186,6 +206,10 @@ export async function runSchemaHealthCheck(): Promise<{
   const recipients = alertRecipients();
   if (recipients.length === 0) {
     JOB_LOG.warn("ADMIN_EMAILS not set — schema health check ran but cannot send alert email");
+    await persistRun({
+      trigger, total: 0, passed: 0, failures: 0, warnings: 0,
+      emailSent: false, skipReason: "no_recipients", issues: [],
+    });
     return { sent: false, failures: 0, warnings: 0, reason: "no_recipients" };
   }
 
@@ -195,17 +219,37 @@ export async function runSchemaHealthCheck(): Promise<{
     results = buildResults();
   } catch (err) {
     JOB_LOG.error({ err }, "Schema health check: failed to build validation results");
+    await persistRun({
+      trigger, total: 0, passed: 0, failures: 0, warnings: 0,
+      emailSent: false, skipReason: "build_error", issues: [],
+    });
     return { sent: false, failures: 0, warnings: 0, reason: "build_error" };
   }
 
   const failures = results.filter((r) => !r.valid);
   const warnings = results.filter((r) => r.valid && r.warnings.length > 0);
+  const issueSnapshot = [...failures, ...warnings].map((r) => ({
+    schemaType: r.schemaType,
+    context:    r.context,
+    valid:      r.valid,
+    warnings:   r.warnings,
+  }));
 
   if (failures.length === 0 && warnings.length === 0) {
     JOB_LOG.info(
       { total: results.length },
       "Schema health check: all schemas valid — no alert sent",
     );
+    await persistRun({
+      trigger,
+      total:      results.length,
+      passed:     results.length,
+      failures:   0,
+      warnings:   0,
+      emailSent:  false,
+      skipReason: "all_healthy",
+      issues:     [],
+    });
     return { sent: false, failures: 0, warnings: 0, reason: "all_healthy" };
   }
 
@@ -236,6 +280,17 @@ export async function runSchemaHealthCheck(): Promise<{
       "Schema health alert: email send(s) failed",
     );
   }
+
+  await persistRun({
+    trigger,
+    total:      results.length,
+    passed:     results.filter((r) => r.valid && r.warnings.length === 0).length,
+    failures:   failures.length,
+    warnings:   warnings.length,
+    emailSent:  allSent,
+    skipReason: null,
+    issues:     issueSnapshot,
+  });
 
   return { sent: allSent, failures: failures.length, warnings: warnings.length };
 }

@@ -3,6 +3,8 @@ import { isAdminEmail } from "../lib/auth";
 import { TOOL_SLUGS, SERVICE_SLUGS } from "../lib/seoConstants";
 import { validateJsonLd, buildSchemaFixtures } from "../lib/schemaValidator";
 import { runSchemaHealthCheck } from "../jobs/schemaHealthDaily";
+import { db, schemaHealthRunsTable } from "@workspace/db";
+import { desc } from "drizzle-orm";
 
 const router = Router();
 
@@ -77,7 +79,7 @@ router.get("/admin/schema-test", requireAdmin, async (_req, res, next) => {
  */
 router.post("/admin/schema-health/send-now", requireAdmin, async (_req, res, next) => {
   try {
-    const result = await runSchemaHealthCheck();
+    const result = await runSchemaHealthCheck("manual");
     res.json({
       ok: true,
       sent: result.sent,
@@ -85,6 +87,26 @@ router.post("/admin/schema-health/send-now", requireAdmin, async (_req, res, nex
       warnings: result.warnings,
       reason: result.reason ?? null,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/admin/schema-health/history
+ *
+ * Returns the 30 most recent schema health check runs from the database,
+ * newest first. Each row includes trigger type, pass/fail/warn counts,
+ * whether an email was sent, and the compact issue snapshot.
+ */
+router.get("/admin/schema-health/history", requireAdmin, async (_req, res, next) => {
+  try {
+    const rows = await db
+      .select()
+      .from(schemaHealthRunsTable)
+      .orderBy(desc(schemaHealthRunsTable.ranAt))
+      .limit(30);
+    res.json({ runs: rows });
   } catch (err) {
     next(err);
   }
