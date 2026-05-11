@@ -923,6 +923,9 @@ async function handleSsrMeta(
       const html = patchHtml(baseHtml, cachedPatches);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
+      // cite-as Link header — W3C standard that tells AI crawlers (Perplexity,
+      // ChatGPT Search, Gemini) which canonical URL to use when citing this page.
+      res.setHeader("Link", `<${cachedPatches.canonical}>; rel="cite-as"`);
       if (req.method === "HEAD") { res.end(); } else { res.send(html); }
       return;
     }
@@ -990,9 +993,10 @@ async function handleSsrMeta(
       // sameAs links for the BlogPosting author entity (E-E-A-T signals).
       let authorTwitter: string | null = null;
       let authorSameAs: string[] = [];
+      let authorPhoto: string | null = null;
       if (authorSlug) {
         const [authorRow] = await db
-          .select({ social: authorsTable.social })
+          .select({ social: authorsTable.social, photo: authorsTable.photo })
           .from(authorsTable)
           .where(eq(authorsTable.slug, authorSlug))
           .limit(1);
@@ -1001,6 +1005,12 @@ async function handleSsrMeta(
         // Collect all social profile URLs as sameAs for the Person entity.
         // These strengthen E-E-A-T by linking the author to verified profiles.
         authorSameAs = [social.twitter, social.linkedin, social.website].filter(Boolean) as string[];
+        // Author photo included as an ImageObject so Google can match the author
+        // entity to their Knowledge Panel and headshot — a direct E-E-A-T signal.
+        const rawPhoto = authorRow?.photo ?? null;
+        authorPhoto = rawPhoto
+          ? rawPhoto.startsWith("http") ? rawPhoto : `${siteUrl}${rawPhoto}`
+          : null;
       }
 
       const extraLds: string[] = [
@@ -1032,6 +1042,9 @@ async function handleSsrMeta(
                   // Social profile URLs establish author identity for Google's
                   // E-E-A-T assessment — matches the Person entity on /authors/:slug.
                   ...(authorSameAs.length > 0 ? { sameAs: authorSameAs } : {}),
+                  // Author headshot gives Google a visual entity anchor to match
+                  // the author against their Knowledge Panel — an E-E-A-T signal.
+                  ...(authorPhoto ? { image: { "@type": "ImageObject", url: authorPhoto } } : {}),
                 },
               }
             : {}),
@@ -1583,6 +1596,20 @@ async function handleSsrMeta(
             ...(STATIC_PAGE_LASTMOD[`/compare/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/compare/${slug}`] } : {}),
             mainEntity: faqMainEntity,
           }, null, 2),
+          // WebPage entity emitted alongside FAQPage so Google can resolve the
+          // page-level entity and track freshness — matches the pattern used on
+          // blog posts and glossary terms for consistent entity resolution.
+          JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "WebPage",
+            "@id":        `${canonical}#webpage`,
+            url:          canonical,
+            inLanguage:   "en",
+            isPartOf:     { "@id": `${siteUrl}#website` },
+            publisher:    { "@id": `${siteUrl}#organization` },
+            datePublished: STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
+            ...(STATIC_PAGE_LASTMOD[`/compare/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/compare/${slug}`] } : {}),
+          }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
         ],
       };
@@ -1637,6 +1664,20 @@ async function handleSsrMeta(
           })),
         }, null, 2));
       }
+      // WebPage entity emitted alongside SoftwareApplication so Google can
+      // resolve the page-level entity and track freshness independently of
+      // the application content entity — mirrors the pattern used on blog posts
+      // and glossary terms to keep entity resolution consistent site-wide.
+      toolExtraLds.push(JSON.stringify({
+        "@context":   "https://schema.org",
+        "@type":      "WebPage",
+        "@id":        `${canonical}#webpage`,
+        url:          canonical,
+        inLanguage:   "en",
+        isPartOf:     { "@id": `${siteUrl}#website` },
+        publisher:    { "@id": `${siteUrl}#organization` },
+        ...(STATIC_PAGE_LASTMOD[`/tools/${slug}`] ? { dateModified: STATIC_PAGE_LASTMOD[`/tools/${slug}`] } : {}),
+      }, null, 2));
       toolExtraLds.push(buildBreadcrumbLd(breadcrumbs));
 
       patches = {
@@ -2248,6 +2289,9 @@ async function handleSsrMeta(
     const html = patchHtml(baseHtml, patches);
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
+    // cite-as Link header — W3C standard that tells AI crawlers (Perplexity,
+    // ChatGPT Search, Gemini) which canonical URL to use when citing this page.
+    res.setHeader("Link", `<${patches.canonical}>; rel="cite-as"`);
     if (req.method === "HEAD") {
       res.end();
     } else {
