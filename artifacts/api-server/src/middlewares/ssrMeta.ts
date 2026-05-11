@@ -1483,6 +1483,12 @@ async function handleSsrMeta(
             description:     loc.headline,
             serviceType:     "Fintech SEO & Content Marketing",
             url:             canonical,
+            // inLanguage, datePublished, dateModified — present on all other
+            // primary content entities (FinancialService, SoftwareApplication,
+            // BlogPosting, DefinedTerm) for E-E-A-T freshness scoring.
+            inLanguage:      "en",
+            datePublished:   loc.publishedAt.toISOString().slice(0, 10),
+            dateModified:    loc.updatedAt.toISOString().slice(0, 10),
             address: {
               "@type":          "PostalAddress",
               addressLocality:  loc.city,
@@ -2175,12 +2181,18 @@ async function handleSsrMeta(
           JSON.stringify({
             "@context":  "https://schema.org",
             "@type":     "FAQPage",
-            "@id":       canonical,
+            // #faq fragment is consistent with every other FAQPage entity on
+            // the site (blog, author, glossary, service, pricing, tools,
+            // location all use canonical#faq). The bare canonical URL is
+            // reserved for the primary WebPage entity's @id.
+            "@id":       `${canonical}#faq`,
             name:        cmpMeta.title,
             url:         canonical,
-            // inLanguage added for consistency with all other page-type schemas
-            // (blog, glossary, location, tools, services all declare inLanguage).
             inLanguage:  "en",
+            // isPartOf mirrors the pattern on all 7 other FAQPage entities.
+            // Without it Google cannot resolve this entity within the site
+            // entity graph and may discount the FAQ accordion rich-result.
+            isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
             datePublished: STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
             ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
