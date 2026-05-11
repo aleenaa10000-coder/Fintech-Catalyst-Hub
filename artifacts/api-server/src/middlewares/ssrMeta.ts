@@ -162,6 +162,31 @@ interface MetaPatches {
    */
   author?: string;
   /**
+   * OG article:publisher URL — the organisation's primary social profile URL.
+   * Injected on article pages so Facebook/LinkedIn can attribute the content
+   * to FintechPressHub and surface the org in social previews. Supplements
+   * the per-article article:author tag which points to the individual writer.
+   */
+  articlePublisher?: string;
+  /**
+   * Open Graph profile:first_name — required when og:type is "profile".
+   * Facebook and LinkedIn parse this to enrich social previews for author pages
+   * with the author's given name.
+   */
+  ogProfileFirstName?: string;
+  /**
+   * Open Graph profile:last_name — required when og:type is "profile".
+   * Used by social crawlers to display the author's family name alongside
+   * the given name in card previews and Open Graph debug tools.
+   */
+  ogProfileLastName?: string;
+  /**
+   * Open Graph profile:username — the author's social handle (without @).
+   * Populated from the author's Twitter/X handle when available. Enables
+   * social platforms to link the profile page to the author's social account.
+   */
+  ogProfileUsername?: string;
+  /**
    * Extra raw <link> HTML tags injected into <head> before JSON-LD blocks.
    * Used for RSS autodiscovery on author pages and any other per-page link
    * annotations that aren't article:* meta tags.
@@ -305,6 +330,28 @@ function patchHtml(base: string, p: MetaPatches): string {
 
   if (p.author) {
     injections.push(`  <meta name="author" content="${esc(p.author)}" />`);
+  }
+
+  // article:publisher — organisation's social profile URL for article pages.
+  // Separate from article:author (the individual writer) — Facebook and
+  // LinkedIn use this tag to attribute the article to the publishing entity
+  // and surface FintechPressHub's org profile in social card previews.
+  if (p.articlePublisher) {
+    injections.push(`  <meta property="article:publisher" content="${esc(p.articlePublisher)}" />`);
+  }
+
+  // Open Graph profile namespace — required when og:type is "profile".
+  // Facebook and LinkedIn parse these to populate author profile cards;
+  // without them, social previews for /authors/:slug are missing name
+  // context even though og:type correctly signals a profile page type.
+  if (p.ogProfileFirstName) {
+    injections.push(`  <meta property="profile:first_name" content="${esc(p.ogProfileFirstName)}" />`);
+  }
+  if (p.ogProfileLastName) {
+    injections.push(`  <meta property="profile:last_name" content="${esc(p.ogProfileLastName)}" />`);
+  }
+  if (p.ogProfileUsername) {
+    injections.push(`  <meta property="profile:username" content="${esc(p.ogProfileUsername)}" />`);
   }
 
   if (injections.length > 0) {
@@ -1280,6 +1327,11 @@ async function handleSsrMeta(
         articleAuthorUrl:     authorUrl   || undefined,
         twitterCreator:       authorTwitter ?? undefined,
         author:               post.author   || undefined,
+        // article:publisher reinforces E-E-A-T by linking the article to the
+        // organisation's LinkedIn profile — Facebook and LinkedIn parse this
+        // tag to attribute the content to FintechPressHub in social previews,
+        // distinct from article:author which identifies the individual writer.
+        articlePublisher:     "https://www.linkedin.com/company/fintechpresshub",
         // twitter:label/data cards surface reading time and category in the
         // Twitter/X card preview — injected as headLinks so patchHtml appends
         // them alongside article:* meta tags in the </head> injection block.
@@ -1705,6 +1757,16 @@ async function handleSsrMeta(
         ogImage,
         ogImageAlt:    `${author.name}, ${author.role} at FintechPressHub`,
         ogType:        "profile",
+        // Open Graph profile namespace — required when og:type is "profile".
+        // Parsed by Facebook and LinkedIn to enrich author social card previews
+        // with structured name and username context beyond the bare og:title.
+        ogProfileFirstName: author.name.split(" ")[0] ?? author.name,
+        ogProfileLastName:  author.name.includes(" ")
+          ? author.name.split(" ").slice(1).join(" ")
+          : undefined,
+        ogProfileUsername:  social.twitter
+          ? social.twitter.replace(/^https?:\/\/(www\.)?twitter\.com\/|^@/i, "").split("/")[0]
+          : undefined,
         // RSS autodiscovery link — injected server-side so feed readers and
         // AI crawlers that skip JavaScript can find the per-author feed.
         headLinks: [

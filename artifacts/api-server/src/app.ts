@@ -91,6 +91,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     // Use append so downstream middleware (cors, compression) can also
     // add their own Vary tokens without clobbering this one.
     res.append("Vary", "Accept-Language");
+    // X-Robots-Tag HTTP header — mirrors <meta name="robots"> in index.html.
+    // Bing specifically requires the HTTP header version (not just the <meta>
+    // tag) to honour max-snippet and max-image-preview directives. Without
+    // this, Bing may truncate snippets to 160 chars and show small thumbnails,
+    // reducing CTR on fintech head terms where rich results are competitive.
+    res.setHeader("X-Robots-Tag", "max-snippet:-1, max-image-preview:large, max-video-preview:-1");
   }
   next();
 });
@@ -280,6 +286,18 @@ app.get("/robots.txt", (_req: Request, res: Response) => {
     "# DataForSeo — data harvesting only",
     "User-agent: DataForSeoBot",
     "Disallow: /",
+    "",
+    "# ── Google News (explicit entry for Google News eligibility) ────────────────",
+    "# Explicit Googlebot-News entry is recommended by Google for publishers",
+    "# targeting inclusion in Google News and the Top Stories carousel. The",
+    "# wildcard User-agent: * covers it implicitly, but an explicit block with",
+    "# matching Allow/Disallow rules removes any ambiguity for the News crawler.",
+    "",
+    "User-agent: Googlebot-News",
+    "Allow: /",
+    "Allow: /blog/",
+    "Disallow: /api/",
+    "Disallow: /admin",
     "",
     "# ── Standard search crawlers ─────────────────────────────────────────────────",
     "",
