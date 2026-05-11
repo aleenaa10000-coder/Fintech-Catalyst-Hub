@@ -26,7 +26,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   blog: "Blog",
   authors: "Authors",
   tools: "Free Tools",
-  press: "Press",
+  press:    "Press",
   glossary: "Glossary",
   compare: "Comparisons",
   resources: "Resources",

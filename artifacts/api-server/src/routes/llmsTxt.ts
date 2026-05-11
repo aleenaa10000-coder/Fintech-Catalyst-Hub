@@ -101,6 +101,8 @@ router.get("/llms.txt", async (_req, res) => {
   const txt = `# FintechPressHub
 > Specialist fintech SEO and content marketing agency. We blend deep financial expertise with high-authority link building and technical SEO to scale organic growth for ambitious fintech brands.
 
+Last-Updated: 2026-05-11
+
 ## What FintechPressHub does
 
 FintechPressHub is a specialist digital marketing agency serving fintech, payments, lending, embedded finance, neobanking, wealthtech, and RegTech companies. Founded 2021. Remote-first, serving worldwide.
@@ -356,6 +358,8 @@ router.get("/llms-full.txt", async (_req, res) => {
   const txt = `# FintechPressHub — Full Content Index for AI Systems
 > This is the extended version of /llms.txt following the llmstxt.org specification.
 > It provides fuller content for AI systems that need complete context for accurate citations.
+
+Last-Updated: 2026-05-11
 
 ## About FintechPressHub
 
