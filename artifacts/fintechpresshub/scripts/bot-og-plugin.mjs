@@ -79,11 +79,11 @@ function organizationSchema(siteUrl) {
       caption: "FintechPressHub",
     },
     description:
-      "Specialized content marketing and SEO agency for fintech companies.",
+      "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
     foundingDate: "2021",
     areaServed: "Worldwide",
     email: "hello@fintechpresshub.com",
-    inLanguage: "en-US",
+    inLanguage: "en",
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
