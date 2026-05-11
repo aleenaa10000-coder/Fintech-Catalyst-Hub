@@ -1041,9 +1041,9 @@ const TOOLS_FAQ: Readonly<Record<string, Array<{ question: string; answer: strin
   ],
   "financial-health-score-calculator": [
     { question: "Is the Financial Health Score Calculator free?", answer: "Yes — the FintechPressHub Financial Health Score Calculator is free to use with no login required." },
-    { question: "What does the Financial Health Score measure?", answer: "It produces a 0–100 score across four dimensions: debt-to-income ratio, savings rate, emergency fund coverage, and net-worth trajectory." },
+    { question: "What does the Financial Health Score measure?", answer: "It produces a 0–100 score across four dimensions: debt-to-income ratio, savings rate, emergency fund coverage, and expense ratio — each reflecting a key pillar of personal financial health." },
     { question: "What is a good Financial Health Score?", answer: "Scores above 70 indicate strong financial health. 50–70 is average and improvement is achievable. Below 50 suggests actionable areas around debt, savings, or emergency reserves." },
-    { question: "How is the debt-to-income (DTI) ratio calculated?", answer: "DTI is your total monthly debt payments divided by your gross monthly income, expressed as a percentage. Most lenders consider 35% the upper limit; 28% or below is preferred for mortgage qualification." },
+    { question: "How is the debt-to-income (DTI) ratio calculated?", answer: "DTI is your total monthly debt payments divided by your monthly income after tax, expressed as a percentage. Most lenders consider 35% the upper limit; 28% or below is preferred for mortgage qualification." },
     { question: "How many months of emergency fund do I really need?", answer: "Three months of essential expenses is the entry-level baseline. Six months is the gold standard for single-earner households. Freelancers or commission-based earners should target nine months." },
     { question: "Are my numbers stored anywhere?", answer: "No. The calculator runs entirely in your browser. We never transmit, store, or log the figures you enter — refresh the page and everything is gone." },
   ],

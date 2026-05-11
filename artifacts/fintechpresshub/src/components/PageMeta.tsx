@@ -164,6 +164,16 @@ export type SoftwareAppSchema = {
   isAccessibleForFree?: boolean;
   /** List of features the tool offers — emitted as featureList on SoftwareApplication JSON-LD. */
   featureList?: string[];
+  /** Language of the tool content — emitted as inLanguage on SoftwareApplication JSON-LD. */
+  inLanguage?: string;
+  /** ISO 8601 date the tool was first published — emitted as datePublished on SoftwareApplication JSON-LD. */
+  datePublished?: string;
+  /** ISO 8601 date the tool was last modified — emitted as dateModified on SoftwareApplication JSON-LD. */
+  dateModified?: string;
+  /** Provider organization entity reference — use { "@id": `${SITE_URL}#organization` }. */
+  provider?: { "@id": string };
+  /** Potential action — e.g. { "@type": "UseAction", target: canonicalUrl }. */
+  potentialAction?: { "@type": string; target: string };
 };
 
 /**
@@ -235,6 +245,13 @@ type Common = {
   title?: string;
   description?: string;
   canonical?: string;
+  /**
+   * Override the default OG/social share image. When omitted, non-article pages
+   * fall back to `${SITE_URL}/opengraph.jpg`. Pass the dynamic `/api/og?…` URL
+   * for tool pages so React Helmet serves the correct social card on hydration
+   * (i.e. when the user navigates to the page via SPA routing without a reload).
+   */
+  ogImage?: string;
   article?: ArticleSchema;
   person?: PersonSchema;
   service?: ServiceSchema;
@@ -638,6 +655,11 @@ export function PageMeta(props: PageMetaProps) {
         ...(props.softwareApp.featureList && props.softwareApp.featureList.length > 0
           ? { featureList: props.softwareApp.featureList }
           : {}),
+        ...(props.softwareApp.inLanguage ? { inLanguage: props.softwareApp.inLanguage } : {}),
+        ...(props.softwareApp.datePublished ? { datePublished: props.softwareApp.datePublished } : {}),
+        ...(props.softwareApp.dateModified ? { dateModified: props.softwareApp.dateModified } : {}),
+        ...(props.softwareApp.provider ? { provider: props.softwareApp.provider } : {}),
+        ...(props.softwareApp.potentialAction ? { potentialAction: props.softwareApp.potentialAction } : {}),
       }
     : null;
 
@@ -693,7 +715,7 @@ export function PageMeta(props: PageMetaProps) {
       }
     : null;
 
-  const ogImage = props.article?.image ?? `${SITE_URL}/opengraph.jpg`;
+  const ogImage = props.ogImage ?? props.article?.image ?? `${SITE_URL}/opengraph.jpg`;
 
   const definedTermSetJsonLd =
     props.definedTermSet && props.definedTermSet.terms.length > 0

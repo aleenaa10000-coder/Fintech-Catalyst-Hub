@@ -396,12 +396,13 @@ export default function FinancialHealthScoreCalculator() {
     <div className="min-h-screen bg-background">
       <PageMeta
         page="financialHealthCalculator"
+        ogImage={`${SITE_URL}/api/og?title=${encodeURIComponent("Financial Health Score Calculator")}&category=Tools`}
         faq={FAQS}
         webPage={{
           datePublished: "2024-01-01",
           dateModified:  "2026-05-11",
         }}
-        speakableSelectors={["h1"]}
+        speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{
           name:                "Financial Health Score Calculator",
           description:         "A free browser-based tool that calculates a 0–100 financial health score from monthly income, expenses, debt payments, savings, and emergency fund. Includes debt-to-income ratio, savings rate, expense ratio, and emergency fund coverage in months.",
@@ -410,6 +411,11 @@ export default function FinancialHealthScoreCalculator() {
           url:                 `${SITE_URL}/tools/financial-health-score-calculator`,
           isAccessibleForFree: true,
           offers:              { price: "0", priceCurrency: "USD" },
+          inLanguage:          "en",
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-11",
+          provider:            { "@id": `${SITE_URL}#organization` },
+          potentialAction:     { "@type": "UseAction", target: `${SITE_URL}/tools/financial-health-score-calculator` },
           featureList: [
             "Debt-to-Income (DTI) ratio calculation",
             "Savings rate analysis",
@@ -448,8 +454,14 @@ export default function FinancialHealthScoreCalculator() {
       <PageHero
         eyebrow="Free Tool"
         title={<>Financial Health Score Calculator</>}
-        description="Get a 0–100 snapshot of your financial health in under a minute. We calculate your debt-to-income ratio, savings rate, expense ratio, and emergency fund coverage — then give you personalized tips on what to fix first."
+        description="Get a 0–100 snapshot of your financial health in under a minute. We calculate your debt-to-income ratio, savings rate, expense ratio, and emergency fund coverage — then give you personalised tips on what to fix first."
       />
+
+      <div className="container mx-auto px-4 pb-2">
+        <p className="speakable-summary text-center text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Enter your after-tax monthly income, expenses, debt payments, savings, and emergency fund balance. Your financial health score updates in real time with personalised improvement tips — all calculations run in your browser and no data is stored.
+        </p>
+      </div>
 
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4">
@@ -639,7 +651,7 @@ export default function FinancialHealthScoreCalculator() {
         </div>
       </section>
 
-      {/* Personalized tips */}
+      {/* Personalised tips */}
       <section className="pb-16">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
@@ -649,7 +661,7 @@ export default function FinancialHealthScoreCalculator() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">
-                  Personalized Tips
+                  Personalised Tips
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   {showResults
@@ -690,7 +702,7 @@ export default function FinancialHealthScoreCalculator() {
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-10 text-center text-muted-foreground">
-                Enter your monthly income above to unlock personalized recommendations.
+                Enter your monthly income above to unlock personalised recommendations.
               </div>
             )}
           </div>
@@ -887,7 +899,7 @@ function EmailReportCard({
             </h2>
             <p className="text-sm text-white/70 leading-relaxed">
               Get a polished PDF-style summary of your score, key ratios, and
-              personalized tips delivered straight to your inbox — handy for
+              personalised tips delivered straight to your inbox — handy for
               tracking progress month over month.
             </p>
             <ul className="mt-5 space-y-2 text-sm text-white/80">
@@ -901,7 +913,7 @@ function EmailReportCard({
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 mt-0.5 text-[#22C55E] shrink-0" />
-                Personalized improvement tips
+                Personalised improvement tips
               </li>
             </ul>
           </div>
