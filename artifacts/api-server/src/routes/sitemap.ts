@@ -24,7 +24,7 @@ export const STATIC_ROUTES: Array<{
   { path: "/", changefreq: "weekly", priority: "1.0", lastmod: "2026-05-11" },
   { path: "/about", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/services", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-09" },
-  { path: "/pricing", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-09" },
+  { path: "/pricing", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-11" },
   { path: "/blog", changefreq: "daily", priority: "0.9" },
   { path: "/authors", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/write-for-us", changefreq: "monthly", priority: "0.6", lastmod: "2026-04-25" },

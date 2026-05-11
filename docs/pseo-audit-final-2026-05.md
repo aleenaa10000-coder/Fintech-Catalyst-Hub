@@ -1,6 +1,6 @@
 # Programmatic SEO Audit — FintechPressHub
-**Date:** 2026-05-11 (updated from initial 2026-05-11 pass)
-**Scope:** Exhaustive codebase audit — SSR meta middleware (2,722 lines), JSON-LD schema completeness, sitemap architecture, AI discoverability, client/server parity, breadcrumbs, HTTP headers  
+**Date:** 2026-05-11 (Pass 3 — third audit pass, same date)
+**Scope:** Exhaustive codebase audit — SSR meta middleware (2,724 lines), JSON-LD schema completeness, sitemap architecture, AI discoverability, client/server parity, breadcrumbs, HTTP headers  
 **Stack:** React 19 SPA (Vite) + Express 5 backend, pnpm monorepo, PostgreSQL + Drizzle ORM, TypeScript, Tailwind CSS 4  
 **Target host:** Hostinger Node.js Business Plan (flat layout, single process)
 
@@ -8,11 +8,18 @@
 
 ## Executive Summary
 
-FintechPressHub has an exceptionally mature programmatic SEO implementation. The SSR meta injection layer (`ssrMeta.ts`, 2,722 lines) covers 31 page types across 9 dynamic route families and 22 static routes, injects JSON-LD for all schema types relevant to a YMYL financial-services site, and ships correct HTTP headers for caching, AI governance, and canonical citation.
+FintechPressHub has an exceptionally mature programmatic SEO implementation. The SSR meta injection layer (`ssrMeta.ts`, 2,724 lines) covers 31 page types across 9 dynamic route families and 22 static routes, injects JSON-LD for all schema types relevant to a YMYL financial-services site, and ships correct HTTP headers for caching, AI governance, and canonical citation.
 
-**This audit session (2026-05-11)** identified 5 gaps beyond the previous pass. All 5 were fixed in-session with no breaking changes and no new dependencies.
+**Pass 3 (2026-05-11)** identified 2 date-sync gaps across sitemap and client-side schema. Both fixed in-session with no breaking changes and no new dependencies.
 
-**Previous session** (same date, earlier pass) fixed:
+**Pass 2 (2026-05-11)** identified 5 gaps. All 5 fixed in-session:
+- `/pricing` FAQPage missing `name` field
+- Homepage `WebPage` JSON-LD missing `inLanguage: "en"`
+- `Last-Updated` missing from `/llms.txt` and `/llms-full.txt`
+- `STATIC_PAGE_LASTMOD["/pricing"]` stale after schema fix → updated to "2026-05-11"
+- Cosmetic whitespace alignment on `press` entry in `metaData.ts`
+
+**Pass 1 (2026-05-11)** identified 5 gaps. All 5 fixed in-session:
 - FAQPage schema on all 5 `/services/:slug` pages (SERVICE_FAQS constant)
 - FAQPage schema on `/authors/:slug` (dynamic from profile data)
 - `/blog` and `/contact` description parity between SSR and client
@@ -24,7 +31,7 @@ FintechPressHub has an exceptionally mature programmatic SEO implementation. The
 
 | Area | Files Examined | Lines Read |
 |---|---|---|
-| SSR meta injection | `artifacts/api-server/src/middlewares/ssrMeta.ts` | All 2,722 |
+| SSR meta injection | `artifacts/api-server/src/middlewares/ssrMeta.ts` | All 2,724 |
 | Client meta component | `artifacts/fintechpresshub/src/components/PageMeta.tsx` | All 1,092 |
 | SEO constants | `artifacts/api-server/src/lib/seoConstants.ts` | All 194 |
 | Client meta data | `artifacts/fintechpresshub/src/lib/metaData.ts` | All 279 |
@@ -33,6 +40,7 @@ FintechPressHub has an exceptionally mature programmatic SEO implementation. The
 | Static sitemap | `artifacts/api-server/src/routes/sitemap.ts` | Full |
 | Blog tag page | `artifacts/fintechpresshub/src/pages/blog-tag.tsx` | Full |
 | Pricing page | `artifacts/fintechpresshub/src/pages/pricing.tsx` | PageMeta usage |
+| All client pages (31) | `artifacts/fintechpresshub/src/pages/*.tsx` | PageMeta props on every page |
 
 ---
 
@@ -198,7 +206,37 @@ Both `/blog/category/:slug` and `/blog/tag/:slug`:
 
 ---
 
-## Issues Found and Fixed — This Session (2026-05-11 Pass 2)
+## Issues Found and Fixed — Pass 3 (2026-05-11)
+
+### Issue 3-01 — Sitemap `/pricing` `lastmod` Out of Sync with SSR
+**File:** `artifacts/api-server/src/routes/sitemap.ts` (line 30)  
+**Severity:** Low — freshness signal inconsistency between sitemap and JSON-LD  
+**Status:** ✅ Fixed
+
+**Problem:** `STATIC_PAGE_LASTMOD["/pricing"]` in `ssrMeta.ts` was correctly updated to `"2026-05-11"` in Pass 2 (after the FAQPage `name` fix). However the matching `lastmod` entry in `sitemap.ts` STATIC_ROUTES array was still `"2026-05-09"`. Google cross-references sitemap `lastmod` with `dateModified` in page JSON-LD — a mismatch weakens crawl-budget priority and can produce warnings in Search Console.
+
+**Fix applied:**
+```
+sitemap.ts line 30:  lastmod: "2026-05-09"  →  lastmod: "2026-05-11"
+```
+
+---
+
+### Issue 3-02 — `home.tsx` Client-Side `webPage.dateModified` Out of Sync with SSR
+**File:** `artifacts/fintechpresshub/src/pages/home.tsx` (line 144)  
+**Severity:** Low — client/server schema parity gap on the highest-priority page  
+**Status:** ✅ Fixed
+
+**Problem:** `home.tsx` renders `<PageMeta webPage={{ dateModified: "2026-05-10" }} />` client-side. The SSR path emits `dateModified: "2026-05-11"` (from `STATIC_PAGE_LASTMOD["/"]`, also updated in Pass 2). When Googlebot re-renders the page with JavaScript, the hydrated schema overwrites the SSR schema with a one-day-older `dateModified`, creating a silent freshness regression specifically on the homepage — the highest crawl-priority page on the site.
+
+**Fix applied:**
+```
+home.tsx line 144:  webPage={{ dateModified: "2026-05-10" }}  →  webPage={{ dateModified: "2026-05-11" }}
+```
+
+---
+
+## Issues Found and Fixed — Pass 2 (2026-05-11)
 
 ### Issue 2-01 — `/pricing` FAQPage Missing `name` Field
 **File:** `artifacts/api-server/src/middlewares/ssrMeta.ts` (line 2291)  
@@ -262,7 +300,7 @@ Both `/blog/category/:slug` and `/blog/tag/:slug`:
 
 ---
 
-## Issues Found and Fixed — Previous Session (2026-05-11 Pass 1)
+## Issues Found and Fixed — Pass 1 (2026-05-11)
 
 ### Issue 1-01 — Service Pages Missing FAQPage JSON-LD
 **Severity:** High — missed rich-result eligibility  
@@ -356,6 +394,8 @@ Client description updated to match SSR: "Get in touch for a free SEO audit and 
 | `artifacts/api-server/src/routes/llmsTxt.ts` | Added `Last-Updated: 2026-05-11` to `/llms.txt` (Issue 2-03) |
 | `artifacts/api-server/src/routes/llmsTxt.ts` | Added `Last-Updated: 2026-05-11` to `/llms-full.txt` (Issue 2-03) |
 | `artifacts/api-server/src/routes/sitemap.ts` | Updated homepage lastmod to `"2026-05-11"` (Issue 1-05) |
+| `artifacts/api-server/src/routes/sitemap.ts` | Updated `/pricing` lastmod to `"2026-05-11"` (Issue 3-01) |
+| `artifacts/fintechpresshub/src/pages/home.tsx` | Synced `webPage.dateModified` to `"2026-05-11"` (Issue 3-02) |
 
 ---
 
@@ -373,7 +413,7 @@ This audit followed a 7-phase structured approach reading every relevant file in
 
 **Total schema types audited:** 22  
 **Total routes audited:** 31 (9 dynamic families + 22 static)  
-**Total gaps found (both sessions):** 10  
-**Total gaps fixed (both sessions):** 10  
+**Total gaps found (all 3 passes):** 12  
+**Total gaps fixed (all 3 passes):** 12  
 **Breaking changes introduced:** 0  
 **New dependencies introduced:** 0
