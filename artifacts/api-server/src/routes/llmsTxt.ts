@@ -247,6 +247,10 @@ Content may not be reproduced verbatim beyond fair-use excerpts without permissi
 - [Compare Sitemap](${siteUrl}/sitemap-compare.xml)
 - [Locations Sitemap](${siteUrl}/sitemap-locations.xml)
 - [Glossary Sitemap](${siteUrl}/sitemap-glossary.xml)
+
+## Optional
+
+- [Full content index](${siteUrl}/llms-full.txt): Extended version with fuller blog excerpts, complete glossary definitions, full author bios, and complete tool descriptions — for AI systems that need richer context.
 `;
 
   res
@@ -459,7 +463,7 @@ FintechPressHub explicitly permits citation of its published content in AI-gener
 
 ## Sitemaps and feeds
 
-- Sitemap index: ${siteUrl}/sitemap_index.xml (9 child sitemaps)
+- Sitemap index: ${siteUrl}/sitemap_index.xml (10 child sitemaps)
 - Blog sitemap: ${siteUrl}/sitemap-blog.xml
 - Glossary sitemap: ${siteUrl}/sitemap-glossary.xml
 - Locations sitemap: ${siteUrl}/sitemap-locations.xml

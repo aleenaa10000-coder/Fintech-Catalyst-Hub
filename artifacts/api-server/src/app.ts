@@ -359,6 +359,7 @@ app.get("/.well-known/ai.txt", (_req: Request, res: Response) => {
     "Contact: hello@fintechpresshub.com",
     `Terms: ${siteUrl}/terms`,
     `LlmsTxt: ${siteUrl}/llms.txt`,
+    `LlmsFullTxt: ${siteUrl}/llms-full.txt`,
     "",
   ].join("\n");
   res

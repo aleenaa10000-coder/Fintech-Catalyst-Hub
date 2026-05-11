@@ -75,7 +75,7 @@ export const ORGANIZATION_SCHEMA = {
   foundingDate: "2021",
   areaServed: "Worldwide",
   email: "hello@fintechpresshub.com",
-  inLanguage: "en-US",
+  inLanguage: "en",
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer support",
