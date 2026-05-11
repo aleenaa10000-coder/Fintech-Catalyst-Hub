@@ -8,6 +8,7 @@ import { scheduleNoIndexExpiryHourly } from "./jobs/noindexExpiryHourly";
 import { scheduleWeeklyDigest } from "./jobs/weeklyDigest";
 import { schedulePublishNotifyHourly } from "./jobs/scheduledPostPublishNotify";
 import { schedulePitchDigestDaily } from "./jobs/pitchDigestDaily";
+import { scheduleSchemaHealthDaily } from "./jobs/schemaHealthDaily";
 
 // ── Startup environment validation (F1) ──────────────────────────────────────
 // These vars are required for the server to function correctly. The process
@@ -112,6 +113,7 @@ async function bootstrap() {
     scheduleWeeklyDigest();
     schedulePublishNotifyHourly();
     schedulePitchDigestDaily();
+    scheduleSchemaHealthDaily();
   });
 }
 
