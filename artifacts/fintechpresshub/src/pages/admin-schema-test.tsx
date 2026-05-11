@@ -6,6 +6,7 @@ import { PageMeta } from "@/components/PageMeta";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -19,6 +20,7 @@ import {
   ShieldCheck,
   Copy,
   CopyCheck,
+  Mail,
 } from "lucide-react";
 
 interface SchemaValidationResult {
@@ -252,6 +254,62 @@ function RichResultsPanel({ data, url }: { data: GoogleRichResultsResponse; url:
   );
 }
 
+interface SendNowResult {
+  ok: boolean;
+  sent: boolean;
+  failures: number;
+  warnings: number;
+  reason: string | null;
+}
+
+async function triggerSchemaHealthAlert(): Promise<SendNowResult> {
+  const res = await fetch("/api/admin/schema-health/send-now", {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  return res.json() as Promise<SendNowResult>;
+}
+
+function SendNowBanner({ result }: { result: SendNowResult }) {
+  if (result.sent) {
+    const parts: string[] = [];
+    if (result.failures > 0) parts.push(`${result.failures} failure${result.failures !== 1 ? "s" : ""}`);
+    if (result.warnings > 0) parts.push(`${result.warnings} warning${result.warnings !== 1 ? "s" : ""}`);
+    return (
+      <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 flex items-start gap-2">
+        <Mail className="w-4 h-4 shrink-0 mt-0.5" />
+        <span>Alert email sent to ADMIN_EMAILS — {parts.join(" and ")} detected.</span>
+      </div>
+    );
+  }
+  if (result.reason === "all_healthy") {
+    return (
+      <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 flex items-start gap-2">
+        <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+        <span>All schemas healthy — no alert email sent (silence = healthy).</span>
+      </div>
+    );
+  }
+  if (result.reason === "no_recipients") {
+    return (
+      <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 flex items-start gap-2">
+        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+        <span>
+          Validation ran but <code className="text-xs bg-blue-100 px-1 rounded">ADMIN_EMAILS</code> is
+          not set — configure it to receive alert emails.
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 flex items-start gap-2">
+      <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
+      <span>Email send failed — check server logs for details.</span>
+    </div>
+  );
+}
+
 function InternalSchemaPanel() {
   const { data, isLoading, isError, refetch, isFetching } = useQuery<SchemaTestData>({
     queryKey: ["admin-schema-test"],
@@ -259,25 +317,56 @@ function InternalSchemaPanel() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const sendNow = useMutation({ mutationFn: triggerSchemaHealthAlert });
+
   return (
     <Card>
-      <CardHeader className="pb-3 flex flex-row items-center justify-between gap-3">
+      <CardHeader className="pb-3 flex flex-row items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Code2 className="w-4 h-4 text-primary" />
           <CardTitle className="text-base">Internal Schema Validation</CardTitle>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="gap-1.5 shrink-0"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
-          Re-run
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => sendNow.mutate()}
+            disabled={sendNow.isPending}
+            title="Trigger the daily schema health alert now and deliver a report email to ADMIN_EMAILS"
+            className="gap-1.5"
+          >
+            {sendNow.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Mail className="w-3.5 h-3.5" />
+            )}
+            {sendNow.isPending ? "Sending…" : "Send alert now"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="gap-1.5"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
+            Re-run
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
+        {(sendNow.isSuccess || sendNow.isError) && (
+          <div className="mb-4">
+            {sendNow.isSuccess ? (
+              <SendNowBanner result={sendNow.data} />
+            ) : (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 flex items-start gap-2">
+                <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>Request failed — check that you are logged in as admin.</span>
+              </div>
+            )}
+          </div>
+        )}
         {isLoading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
             <Loader2 className="w-4 h-4 animate-spin" /> Running schema validation…

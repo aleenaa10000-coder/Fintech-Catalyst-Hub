@@ -2,6 +2,7 @@ import { Router, type Request, type Response, type NextFunction } from "express"
 import { isAdminEmail } from "../lib/auth";
 import { TOOL_SLUGS, SERVICE_SLUGS } from "../lib/seoConstants";
 import { validateJsonLd, buildSchemaFixtures } from "../lib/schemaValidator";
+import { runSchemaHealthCheck } from "../jobs/schemaHealthDaily";
 
 const router = Router();
 
@@ -61,6 +62,28 @@ router.get("/admin/schema-test", requireAdmin, async (_req, res, next) => {
       coverageWarnings: [...toolCoverageWarnings, ...serviceCoverageWarnings],
       results,
       runAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/schema-health/send-now
+ *
+ * Manually triggers the daily schema health check immediately and returns the
+ * result. Useful for verifying alert emails without waiting 24 h for the
+ * scheduled run. Returns { sent, failures, warnings, reason }.
+ */
+router.post("/admin/schema-health/send-now", requireAdmin, async (_req, res, next) => {
+  try {
+    const result = await runSchemaHealthCheck();
+    res.json({
+      ok: true,
+      sent: result.sent,
+      failures: result.failures,
+      warnings: result.warnings,
+      reason: result.reason ?? null,
     });
   } catch (err) {
     next(err);
