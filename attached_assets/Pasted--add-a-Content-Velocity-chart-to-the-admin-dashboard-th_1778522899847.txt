@@ -1,0 +1,52 @@
+ add a "Content Velocity" chart to the admin dashboard that plots posts published per week over the last 12 weeks, giving editors a visual trend to track publishing cadence 
+
+add readingMinutes display badges to the admin blog posts list so editors can see and update reading times without database access. 
+
+ add an IndexNow batch-ping call whenever invalidateSitemapCache() is triggered — so Bing and Yandex are notified immediately when blog posts, authors, or locations are created or updated, rather than waiting for their crawl cycles 
+
+add an automated structured-data validation step to the typecheck workflow that checks each SSR-injected JSON-LD block against the schema.org vocabulary — catching invalid properties or missing required fields before deployment. 
+
+add a StructuredData validation endpoint at /api/seo/validate?url= that uses the Google Rich Results API to test any page's JSON-LD schemas and surface errors without leaving the admin dashboard 
+
+add a ?sort= URL parameter sync to the blog page so sort order is also shareable and deep-linkable (matching the pattern now in place for ?q=, ?tag, and ?author). 
+
+ add a HowTo or Product JSON-LD schema to the /services/:slug dynamic routes so each service page can appear as a rich result in Google Search with step-by-step markup or pricing highlights. 
+
+ add a public GET /api/glossary endpoint and a GET /api/glossary/:slug endpoint so the frontend can list and display glossary terms dynamically from the DB rather than a hardcoded list. 
+
+add an admin UI field for blufSummary and faqItems in the blog post editor so you can fill these in from the dashboard and see the FAQPage/SpeakableSpecification schemas light up in Google's Rich Results Test 
+
+add authorTwitter enrichment to the blog post API endpoint so the SPA can display verified Twitter links on post cards and bylines alongside the schema-level signal already in place. 
+
+add a datePublished / dateModified to the SoftwareApplication schema on tools pages using each tool's lastmod date from STATIC_PAGE_LASTMOD — this is a Google Rich Results signal for app content freshness. 
+
+add an IndexNow daily submission job that automatically pings Bing, Yandex, and Naver whenever new blog posts are published, using the existing INDEXNOW_KEY env var that's already wired up but currently disabled.  
+
+ add HowTo structured data to the step-based tool pages (readability checker, financial health score calculator) to unlock an additional rich result type for those pages. 
+
+add a FAQPage schema to service detail pages (/services/:slug) using the DB deliverables as Q&A pairs — a high-value rich result opportunity for high-intent service queries.  
+
+add an /authors/:slug subscriber opt-in widget so readers can follow individual authors and receive email alerts when that author publishes — driving direct return traffic without relying on search. 
+
+add a "Locations" link to the primary navigation header so the locations hub gains internal link equity from every page on the site 
+
+add a NewsArticle schema variant to blog posts that have a category matching financial news topics (like "Open Banking", "Regtech", etc.), giving Google an additional rich-result signal for news-adjacent fintech content 
+
+add an IndexNow auto-ping that fires whenever a new blog post is published via the admin panel, so Bing and Yandex index new content within minutes of going live. 
+
+ add an hreflang self-referencing tag to the SSR middleware so international crawlers see the correct x-default and en signals on every dynamically rendered page, not just in sitemap-pages.xml 
+
+add an automated post-publish IndexNow ping that notifies Bing and Yandex the moment a blog post goes live from the admin dashboard, so new content is indexed within minutes instead of waiting for the next crawl. 
+
+ add an automatic sitemap cache invalidation endpoint so that when a new blog post or glossary term is published via the admin API, the affected child sitemap's cache entry is evicted immediately rather than waiting for the 5-minute TTL.  
+
+
+add <link rel="preconnect"> and <link rel="dns-prefetch"> headers for the object-storage CDN and Google Fonts origins in index.html, which would improve Core Web Vitals LCP scores for first-time visitors. 
+
+add datePublished and dateModified to the /services/:slug SSR JSON-LD by adding createdAt/updatedAt timestamp columns to the services table schema — currently the FinancialService+ProfessionalService structured data emits no freshness signals at all. 
+
+add an admin UI for managing seoTitle/seoDescription overrides on location pages and glossary terms directly from the dashboard, so editors can tune them without touching the API. 
+
+ add datePublished from STATIC_PAGE_CREATED to the individual compare page entries in STATIC_PAGE_CREATED (one per slug) so each /compare/:slug FAQPage can carry a precise creation date rather than the hub's shared date 
+
+add structured SpeakableSpecification to the service detail pages so Google's assistant-driven snippets can surface fintech service descriptions 
