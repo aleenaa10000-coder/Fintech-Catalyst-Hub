@@ -945,7 +945,13 @@ export function PageMeta(props: PageMetaProps) {
       <meta property="og:image:secure_url" content={ogImage} />
       <meta
         property="og:image:type"
-        content={ogImage.includes(".png") ? "image/png" : "image/jpeg"}
+        content={
+          /\.png(\?|#|$)/i.test(ogImage)
+            ? "image/png"
+            : /\.webp(\?|#|$)/i.test(ogImage)
+              ? "image/webp"
+              : "image/jpeg"
+        }
       />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />

@@ -53,9 +53,6 @@ async function buildNewsSitemapXml(): Promise<string> {
   const entries = indexable
     .map((p) => {
       const pubDate = p.publishedAt.toISOString();
-      const tags = Array.isArray(p.tags) ? (p.tags as string[]) : [];
-      const keywords = [p.category, ...tags].filter(Boolean).join(", ");
-
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(`${siteUrl}/blog/${p.slug}`)}</loc>\n` +
@@ -66,7 +63,6 @@ async function buildNewsSitemapXml(): Promise<string> {
         `      </news:publication>\n` +
         `      <news:publication_date>${pubDate}</news:publication_date>\n` +
         `      <news:title>${escapeXml(p.title)}</news:title>\n` +
-        (keywords ? `      <news:keywords>${escapeXml(keywords)}</news:keywords>\n` : "") +
         `    </news:news>\n` +
         `  </url>`
       );

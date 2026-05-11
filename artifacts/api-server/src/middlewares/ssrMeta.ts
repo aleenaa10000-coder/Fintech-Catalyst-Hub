@@ -238,6 +238,15 @@ function patchHtml(base: string, p: MetaPatches): string {
   injections.push(`  <link rel="alternate" hreflang="en" href="${esc(p.canonical)}" />`);
   injections.push(`  <link rel="alternate" hreflang="x-default" href="${esc(p.canonical)}" />`);
 
+  // og:locale:alternate — injected server-side so crawlers see the multi-market
+  // locale signals that PageMeta.tsx emits client-side. Mirrors the en_GB, en_SG,
+  // en_AU alternates declared in PageMeta.tsx for consistent signal across both
+  // rendering paths. FintechPressHub serves UK, Singapore, and Australian fintech
+  // markets alongside the US, so these alternates are semantically accurate.
+  injections.push(`  <meta property="og:locale:alternate" content="en_GB" />`);
+  injections.push(`  <meta property="og:locale:alternate" content="en_SG" />`);
+  injections.push(`  <meta property="og:locale:alternate" content="en_AU" />`);
+
   // Extra per-page <link> tags (e.g., author RSS autodiscovery).
   if (p.headLinks && p.headLinks.length > 0) {
     for (const link of p.headLinks) {
@@ -975,7 +984,29 @@ async function handleSsrMeta(
         .limit(1);
 
       if (!post) { res.status(404); return next(); }
-      if (post.publishedAt > new Date()) return next();
+
+      // Future-dated posts: serve a noindex-patched shell rather than the bare
+      // SPA fallback so crawlers that discover the URL before publish see an
+      // explicit noindex directive instead of a generic unstyled shell.
+      if (post.publishedAt > new Date()) {
+        const futureTitle = post.seoTitle ?? post.title;
+        const futureCanon = `${siteUrl}/blog/${slug}`;
+        const futureHtml = patchHtml(baseHtml, {
+          title:         `${futureTitle} | FintechPressHub`,
+          description:   "",
+          canonical:     futureCanon,
+          ogTitle:       futureTitle,
+          ogDescription: "",
+          ogImage:       `${siteUrl}/opengraph.jpg`,
+          ogImageAlt:    futureTitle,
+          headLinks:     [`  <meta name="robots" content="noindex, nofollow" />`],
+        });
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("X-Robots-Tag", "noindex, nofollow");
+        res.setHeader("Cache-Control", "private, no-store");
+        res.send(futureHtml);
+        return;
+      }
 
       // Inject noindex directive server-side so crawlers that cannot execute
       // JavaScript still see and obey the directive. Without this, a noindex
@@ -1053,12 +1084,19 @@ async function handleSsrMeta(
         JSON.stringify({
           "@context": "https://schema.org",
           "@type":    "BlogPosting",
-          "@id":      canonical,
+          // Use the #article fragment so Google can distinguish the content
+          // entity from the page-level WebPage entity (which uses the bare
+          // canonical). Matches the @id convention in PageMeta.tsx client-side
+          // so both rendering paths produce identical entity references.
+          "@id":      `${canonical}#article`,
           headline:   post.title,
           description,
           url:        canonical,
           mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
-          isPartOf: { "@type": "Blog", "@id": `${siteUrl}/blog`, name: "FintechPressHub Blog" },
+          // #blog fragment matches the Blog entity @id in PageMeta.tsx and the
+          // WebSite's isPartOf Blog reference — consistent entity graph for
+          // Google's Knowledge Graph resolution.
+          isPartOf: { "@type": "Blog", "@id": `${siteUrl}/blog#blog`, url: `${siteUrl}/blog`, name: "FintechPressHub Blog" },
           image: ogImage.includes("/api/og")
             ? { "@type": "ImageObject", url: ogImage, width: 1200, height: 630 }
             : { "@type": "ImageObject", url: ogImage },
