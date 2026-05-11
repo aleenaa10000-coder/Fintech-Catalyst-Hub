@@ -1336,9 +1336,15 @@ async function handleSsrMeta(
 
       if (faqItems.length > 0) {
         extraLds.push(JSON.stringify({
-          "@context": "https://schema.org",
-          "@type":    "FAQPage",
-          "@id":      `${canonical}#faq`,
+          "@context":    "https://schema.org",
+          "@type":       "FAQPage",
+          "@id":         `${canonical}#faq`,
+          url:           canonical,
+          inLanguage:    "en",
+          isPartOf:      { "@id": `${siteUrl}#website` },
+          publisher:     { "@id": `${siteUrl}#organization` },
+          datePublished: post.publishedAt.toISOString(),
+          dateModified:  dateModified,
           mainEntity: faqItems.map((item) => ({
             "@type": "Question",
             name:    item.question,
@@ -1500,12 +1506,16 @@ async function handleSsrMeta(
             },
           }, null, 2),
           JSON.stringify({
-            "@context": "https://schema.org",
-            "@type":    "FAQPage",
-            "@id":      `${canonical}#faq`,
-            url:        canonical,
-            name:       `Frequently Asked Questions — FintechPressHub ${loc.city}`,
-            isPartOf:   { "@id": `${siteUrl}#website` },
+            "@context":    "https://schema.org",
+            "@type":       "FAQPage",
+            "@id":         `${canonical}#faq`,
+            url:           canonical,
+            name:          `Frequently Asked Questions — FintechPressHub ${loc.city}`,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            datePublished: loc.publishedAt.toISOString().slice(0, 10),
+            dateModified:  loc.updatedAt.toISOString().slice(0, 10),
             mainEntity: [
               {
                 "@type": "Question",
@@ -1622,9 +1632,15 @@ async function handleSsrMeta(
             },
           }, null, 2),
           JSON.stringify({
-            "@context": "https://schema.org",
-            "@type":    "FAQPage",
-            "@id":      `${canonical}#faq`,
+            "@context":    "https://schema.org",
+            "@type":       "FAQPage",
+            "@id":         `${canonical}#faq`,
+            url:           canonical,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            datePublished: term.publishedAt.toISOString().slice(0, 10),
+            dateModified:  term.updatedAt.toISOString().slice(0, 10),
             mainEntity: [
               {
                 "@type": "Question",
@@ -1752,13 +1768,15 @@ async function handleSsrMeta(
           const svcFaqs = SERVICE_FAQS[slug];
           if (svcFaqs && svcFaqs.length > 0) {
             lds.push(JSON.stringify({
-              "@context":  "https://schema.org",
-              "@type":     "FAQPage",
-              "@id":       `${canonical}#faq`,
-              url:         canonical,
-              inLanguage:  "en",
-              isPartOf:    { "@id": `${siteUrl}#website` },
-              publisher:   { "@id": `${siteUrl}#organization` },
+              "@context":    "https://schema.org",
+              "@type":       "FAQPage",
+              "@id":         `${canonical}#faq`,
+              url:           canonical,
+              inLanguage:    "en",
+              isPartOf:      { "@id": `${siteUrl}#website` },
+              publisher:     { "@id": `${siteUrl}#organization` },
+              datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
+              dateModified:  SERVICE_PAGE_LASTMOD_DATE,
               mainEntity:  svcFaqs.map(({ question, answer }) => ({
                 "@type": "Question",
                 name:    question,
@@ -1906,13 +1924,15 @@ async function handleSsrMeta(
             },
           ];
           lds.push(JSON.stringify({
-            "@context":  "https://schema.org",
-            "@type":     "FAQPage",
-            "@id":       `${canonical}#faq`,
-            url:         canonical,
-            inLanguage:  "en",
-            isPartOf:    { "@id": `${siteUrl}#website` },
-            publisher:   { "@id": `${siteUrl}#organization` },
+            "@context":    "https://schema.org",
+            "@type":       "FAQPage",
+            "@id":         `${canonical}#faq`,
+            url:           canonical,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            datePublished: author.createdAt.toISOString().slice(0, 10),
+            dateModified:  author.updatedAt.toISOString().slice(0, 10),
             mainEntity:  authorFaqs.map(({ question, answer }) => ({
               "@type": "Question",
               name:    question,
@@ -2565,14 +2585,16 @@ async function handleSsrMeta(
           // Mirrors PRICING_FAQS module-level constant; keep both in sync when
           // editing Q&A content in pricing.tsx.
           extraLds.push(JSON.stringify({
-            "@context": "https://schema.org",
-            "@type":    "FAQPage",
-            "@id":      `${canonical}#faq`,
-            name:       "FintechPressHub Pricing FAQ",
-            url:        canonical,
-            inLanguage: "en",
-            isPartOf:   { "@id": `${siteUrl}#website` },
-            publisher:  { "@id": `${siteUrl}#organization` },
+            "@context":    "https://schema.org",
+            "@type":       "FAQPage",
+            "@id":         `${canonical}#faq`,
+            name:          "FintechPressHub Pricing FAQ",
+            url:           canonical,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2023-01-01",
+            dateModified:  pageLastmod ?? "2026-05-09",
             mainEntity: PRICING_FAQS.map(({ question, answer }) => ({
               "@type": "Question",
               name:    question,
