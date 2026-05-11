@@ -141,7 +141,18 @@ export default function Home() {
         page="home"
         faq={homeFaqs}
         speakableSelectors={["h1", ".speakable-summary", ".hero-description"]}
-        webPage={{ dateModified: "2026-05-11" }}
+        webPage={{ dateModified: "2026-05-11", datePublished: "2021-01-01" }}
+        aggregateRating={
+          Array.isArray(testimonials) && testimonials.length > 0
+            ? {
+                ratingValue: parseFloat(
+                  (testimonials.reduce((s, t) => s + (t.rating ?? 5), 0) / testimonials.length).toFixed(1)
+                ),
+                ratingCount: testimonials.length,
+                reviewCount: testimonials.length,
+              }
+            : undefined
+        }
       />
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-gradient-to-br from-[#0b1e4d] via-[#102a6b] to-[#0a1633]">
@@ -178,7 +189,7 @@ export default function Home() {
                 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-tight"
                 style={{ textShadow: "0 2px 24px rgba(8, 18, 51, 0.55), 0 1px 2px rgba(0,0,0,0.3)" }}
               >
-                Optimized Fintech Content That <span className="text-cyan-200">Ranks & Converts</span>
+                The Fintech SEO Agency That <span className="text-cyan-200">Ranks & Converts</span>
               </h1>
               <p
                 className="speakable-summary hero-description text-xl text-blue-100/95 mb-10 max-w-2xl mx-auto leading-relaxed"
@@ -265,7 +276,7 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="text-center max-w-3xl mx-auto mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Expertise meets execution.</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Fintech SEO & Content Marketing Services</h2>
             <p className="text-lg text-muted-foreground">
               Generic content agencies don't understand Open Banking, DeFi, or payment gateways. We pair industry experts with SEO specialists to drive qualified traffic that actually converts to pipeline.
             </p>
@@ -277,18 +288,21 @@ export default function Home() {
                 Icon: FileText,
                 title: "Authority-Led Content",
                 desc: "In-depth articles, ebooks, and thought leadership written by operators who have actually shipped fintech products. Every asset is engineered to rank, earn citations, and convert qualified buyers.",
+                href: "/services/fintech-content-writing",
               },
               {
                 Icon: Link2,
                 title: "High-Impact PR & Link Building",
                 desc: "Earn coverage and backlinks from the publications your prospects already read — Bloomberg, TechCrunch, Finextra, The Block, and more. We focus on relevance and Domain Rating, never spammy networks.",
+                href: "/services/off-page-seo",
               },
               {
                 Icon: Cog,
                 title: "Technical SEO Architecture",
                 desc: "From Core Web Vitals to schema, internal linking, and crawl efficiency, we engineer your site to compete in YMYL search. We fix the foundations so every new piece of content compounds in value.",
+                href: "/services/fintech-seo-audit",
               },
-            ].map(({ Icon, title, desc }, i) => (
+            ].map(({ Icon, title, desc, href }, i) => (
               <motion.div
                 key={title}
                 initial={{ opacity: 0, y: 20 }}
@@ -296,15 +310,17 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
               >
-                <Card className="h-full border bg-card transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:border-primary/40">
-                  <CardContent className="p-8">
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
-                      <Icon className="w-6 h-6 text-primary" />
-                    </div>
-                    <h3 className="text-xl font-bold mb-3">{title}</h3>
-                    <p className="text-muted-foreground leading-relaxed">{desc}</p>
-                  </CardContent>
-                </Card>
+                <Link href={href} className="block h-full">
+                  <Card className="h-full border bg-card transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:border-primary/40">
+                    <CardContent className="p-8">
+                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
+                        <Icon className="w-6 h-6 text-primary" />
+                      </div>
+                      <h3 className="text-xl font-bold mb-3">{title}</h3>
+                      <p className="text-muted-foreground leading-relaxed">{desc}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
               </motion.div>
             ))}
           </div>
@@ -327,7 +343,7 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-4xl font-bold text-center mb-16"
           >
-            Trusted by Fintech Leaders
+            What Fintech Leaders Say About Our SEO Agency
           </motion.h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {Array.isArray(testimonials) && testimonials.length > 0 ? (
@@ -547,7 +563,7 @@ export default function Home() {
           >
             <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" />
             <h2 className="text-3xl md:text-4xl font-bold mb-3">
-              Fintech SEO, answered
+              Fintech SEO Questions, Answered
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
               The questions fintech founders, CMOs, and growth leads ask us
@@ -592,7 +608,7 @@ export default function Home() {
           transition={{ duration: 0.6 }}
           className="container mx-auto px-4 max-w-3xl"
         >
-          <h2 className="text-4xl font-bold mb-6">Ready to dominate search results?</h2>
+          <h2 className="text-4xl font-bold mb-6">Ready to Scale Your Fintech SEO?</h2>
           <p className="text-xl mb-10 opacity-90">Join top fintech companies scaling their organic revenue with our specialized SEO and content strategies.</p>
           <Link href="/contact">
             <Button

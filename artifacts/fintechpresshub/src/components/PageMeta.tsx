@@ -241,6 +241,25 @@ export type LocalBusinessSchema = {
   sameAs?: string[];
 };
 
+/**
+ * Pre-computed aggregate rating for the site — emitted as ProfessionalService +
+ * AggregateRating JSON-LD on the home page so Google can display star ratings
+ * for commercial-intent queries like "fintech SEO agency reviews".
+ * Compute from live testimonial data and pass only when data is available.
+ */
+export type AggregateRatingSchema = {
+  /** Computed average rating, e.g. 4.9 */
+  ratingValue: number | string;
+  /** Total number of ratings used to compute the average */
+  ratingCount: number;
+  /** Total number of written reviews (defaults to ratingCount) */
+  reviewCount?: number;
+  /** Highest possible rating — defaults to "5" */
+  bestRating?: string;
+  /** Lowest possible rating — defaults to "1" */
+  worstRating?: string;
+};
+
 type Common = {
   title?: string;
   description?: string;
@@ -318,6 +337,13 @@ type Common = {
     description?: string;
     targetUrl?: string;
   };
+  /**
+   * ProfessionalService + AggregateRating JSON-LD (Q7).
+   * Pass when testimonial data is available so Google can display star ratings
+   * in SERPs for commercial-intent queries. Compute the values from live data
+   * in the page component — do not hardcode them.
+   */
+  aggregateRating?: AggregateRatingSchema;
 };
 
 type PageMetaProps =
@@ -864,6 +890,29 @@ export function PageMeta(props: PageMetaProps) {
       }
     : null;
 
+  const aggregateRatingJsonLd = props.aggregateRating
+    ? {
+        "@context": "https://schema.org",
+        "@type": "ProfessionalService",
+        "@id": `${SITE_URL}#service`,
+        name: SITE_NAME,
+        url: SITE_URL,
+        description:
+          "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
+        provider: { "@id": `${SITE_URL}#organization` },
+        aggregateRating: {
+          "@type": "AggregateRating",
+          ratingValue: props.aggregateRating.ratingValue,
+          bestRating: props.aggregateRating.bestRating ?? "5",
+          worstRating: props.aggregateRating.worstRating ?? "1",
+          ratingCount: props.aggregateRating.ratingCount,
+          reviewCount:
+            props.aggregateRating.reviewCount ??
+            props.aggregateRating.ratingCount,
+        },
+      }
+    : null;
+
   const articleJsonLd = props.article
     ? {
         "@context": "https://schema.org",
@@ -1168,6 +1217,11 @@ export function PageMeta(props: PageMetaProps) {
       {localBusinessJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(localBusinessJsonLd)}
+        </script>
+      ) : null}
+      {aggregateRatingJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(aggregateRatingJsonLd)}
         </script>
       ) : null}
     </Helmet>

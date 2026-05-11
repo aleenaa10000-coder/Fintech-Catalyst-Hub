@@ -52,6 +52,7 @@ import {
   authorsTable,
   pricingPlansTable,
   pressMentionsTable,
+  testimonialsTable,
 } from "@workspace/db";
 import { eq, lte, sql, desc, asc } from "drizzle-orm";
 import { getSiteUrl } from "../lib/seo";
@@ -736,7 +737,7 @@ const PRICING_FAQS: ReadonlyArray<{ question: string; answer: string }> = [
 
 const STATIC_META: Record<string, { title: string; description: string; ogType?: string }> = {
   "/": {
-    title: "FintechPressHub | Fintech SEO & Content Marketing Agency",
+    title: "Fintech SEO & Content Marketing Agency | FintechPressHub",
     description: "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
     ogType: "website",
   },
@@ -889,7 +890,7 @@ const STATIC_PAGE_CREATED: Readonly<Record<string, string>> = {
  * via /api/og with a page-specific title and category pill.
  */
 const STATIC_OG_META: Readonly<Record<string, { category: string; ogTitle: string }>> = {
-  "/":                                { category: "Agency",      ogTitle: "Fintech SEO & Content Marketing Agency" },
+  "/":                                { category: "Agency",      ogTitle: "Fintech SEO & Content Marketing Agency | FintechPressHub" },
   "/about":                           { category: "About",       ogTitle: "About FintechPressHub" },
   "/services":                        { category: "Services",    ogTitle: "Fintech SEO & Content Marketing Services" },
   "/pricing":                         { category: "Pricing",     ogTitle: "Transparent Fintech SEO Pricing" },
@@ -3106,17 +3107,23 @@ async function handleSsrMeta(
           }
 
         } else if (reqPath === "/") {
-          // ── Homepage — WebPage + services ItemList for crawler discoverability
+          // ── Homepage — WebPage + services ItemList + AggregateRating for crawler discoverability
           // The index.html already carries the WebSite + Organization @graph;
-          // here we add a page-level WebPage entity and a quick-glance ItemList
-          // of service offerings so crawlers (and LLMs) can classify the site
-          // without executing JavaScript.
-          const homeServices = await db
-            .select({ name: servicesTable.name, slug: servicesTable.slug, tagline: servicesTable.tagline })
-            .from(servicesTable)
-            .orderBy(asc(servicesTable.name))
-            .limit(10)
-            .catch(() => [] as Array<{ name: string; slug: string; tagline: string }>);
+          // here we add a page-level WebPage entity, a quick-glance ItemList
+          // of service offerings, and an AggregateRating from live testimonials
+          // so crawlers (and LLMs) can classify the site without executing JavaScript.
+          const [homeServices, homeTestimonials] = await Promise.all([
+            db
+              .select({ name: servicesTable.name, slug: servicesTable.slug, tagline: servicesTable.tagline })
+              .from(servicesTable)
+              .orderBy(asc(servicesTable.name))
+              .limit(10)
+              .catch(() => [] as Array<{ name: string; slug: string; tagline: string }>),
+            db
+              .select({ rating: testimonialsTable.rating })
+              .from(testimonialsTable)
+              .catch(() => [] as Array<{ rating: number }>),
+          ]);
           extraLds.push(JSON.stringify({
             "@context":   "https://schema.org",
             "@type":      "WebPage",
@@ -3151,6 +3158,32 @@ async function handleSsrMeta(
                 name:       s.tagline ? `${s.name} — ${s.tagline}` : s.name,
                 url:        `${siteUrl}/services/${s.slug}`,
               })),
+            }, null, 2));
+          }
+
+          // AggregateRating — computed from live testimonials so Google can
+          // display star ratings for commercial-intent queries like
+          // "fintech SEO agency reviews". Falls back gracefully when no
+          // testimonials are seeded.
+          if (homeTestimonials.length > 0) {
+            const ratingSum = homeTestimonials.reduce((s, t) => s + t.rating, 0);
+            const ratingValue = (ratingSum / homeTestimonials.length).toFixed(1);
+            extraLds.push(JSON.stringify({
+              "@context":   "https://schema.org",
+              "@type":      "ProfessionalService",
+              "@id":        `${siteUrl}#service`,
+              name:         "FintechPressHub",
+              url:          siteUrl,
+              description:  staticMeta.description,
+              provider:     { "@id": `${siteUrl}#organization` },
+              aggregateRating: {
+                "@type":       "AggregateRating",
+                ratingValue,
+                bestRating:    "5",
+                worstRating:   "1",
+                ratingCount:   homeTestimonials.length,
+                reviewCount:   homeTestimonials.length,
+              },
             }, null, 2));
           }
 

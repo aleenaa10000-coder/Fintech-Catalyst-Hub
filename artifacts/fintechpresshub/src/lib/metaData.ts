@@ -119,7 +119,7 @@ export const ORGANIZATION_SCHEMA = {
 
 export const PAGE_META = {
   home: {
-    title: "FintechPressHub | Fintech SEO & Content Marketing Agency",
+    title: "Fintech SEO & Content Marketing Agency | FintechPressHub",
     description:
       "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
   },

@@ -11,12 +11,16 @@ const logos = [
 
 export function TrustedBy() {
   return (
-    <section className="py-14 border-b" style={{ backgroundColor: "#f8f9fa" }}>
+    <section
+      className="py-14 border-b"
+      style={{ backgroundColor: "#f8f9fa" }}
+      aria-label="Companies that trust FintechPressHub for fintech SEO"
+    >
       <div className="container mx-auto px-4">
         <p className="text-center text-xs font-semibold tracking-[0.2em] uppercase text-muted-foreground mb-8">
           Trusted by leading fintech teams
         </p>
-        <div className="overflow-hidden relative">
+        <div className="overflow-hidden relative" role="list" aria-label="Client logos">
           <div
             className="flex gap-16 items-center w-max animate-[trusted-scroll_30s_linear_infinite]"
             style={{
