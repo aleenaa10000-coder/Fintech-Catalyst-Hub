@@ -938,7 +938,7 @@ const TOOLS_HOWTO: Readonly<Record<string, {
     steps: [
       { name: "Enter your income and debt", text: "Input your gross monthly income and total monthly debt payments to calculate your debt-to-income ratio." },
       { name: "Add your savings data",      text: "Enter your monthly savings amount and total savings balance so the calculator can assess your savings rate and emergency fund coverage." },
-      { name: "Submit your figures",        text: "Click 'Calculate Score' to generate your personalised 0–100 Financial Health Score across four key dimensions." },
+      { name: "Watch your score update",    text: "Your personalised 0–100 Financial Health Score updates automatically across four key dimensions as you fill in each field — no button required." },
       { name: "Review your results",        text: "Read your score breakdown and tailored recommendations to improve your financial health over the next 90 days." },
     ],
   },
@@ -1041,6 +1041,9 @@ const TOOLS_FAQ: Readonly<Record<string, Array<{ question: string; answer: strin
     { question: "Is the Financial Health Score Calculator free?", answer: "Yes — the FintechPressHub Financial Health Score Calculator is free to use with no login required." },
     { question: "What does the Financial Health Score measure?", answer: "It produces a 0–100 score across four dimensions: debt-to-income ratio, savings rate, emergency fund coverage, and net-worth trajectory." },
     { question: "What is a good Financial Health Score?", answer: "Scores above 70 indicate strong financial health. 50–70 is average and improvement is achievable. Below 50 suggests actionable areas around debt, savings, or emergency reserves." },
+    { question: "How is the debt-to-income (DTI) ratio calculated?", answer: "DTI is your total monthly debt payments divided by your gross monthly income, expressed as a percentage. Most lenders consider 35% the upper limit; 28% or below is preferred for mortgage qualification." },
+    { question: "How many months of emergency fund do I really need?", answer: "Three months of essential expenses is the entry-level baseline. Six months is the gold standard for single-earner households. Freelancers or commission-based earners should target nine months." },
+    { question: "Are my numbers stored anywhere?", answer: "No. The calculator runs entirely in your browser. We never transmit, store, or log the figures you enter — refresh the page and everything is gone." },
   ],
   "meta-description-generator": [
     { question: "Is the Meta Description Generator free?", answer: "Yes — the FintechPressHub Meta Description Generator is free with no account needed." },

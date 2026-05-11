@@ -189,9 +189,9 @@ export const PAGE_META = {
       "Free, browser-based tools for fintech marketers and SEO teams — calculators, generators, and checkers. No sign-up required.",
   },
   financialHealthCalculator: {
-    title: "Financial Health Score Calculator | Debt-to-Income Checker",
+    title: "Financial Health Score Calculator | FintechPressHub",
     description:
-      "Free Financial Health Score Calculator. Get your 0–100 score instantly with a debt-to-income ratio check, savings rate, emergency fund coverage, and personalized tips.",
+      "Free Financial Health Score Calculator. Get your 0–100 score instantly with a debt-to-income ratio check, savings rate, emergency fund coverage, and personalised tips.",
   },
   metaDescriptionGenerator: {
     title: "Meta Description Generator for Fintech | Free SEO Tool",

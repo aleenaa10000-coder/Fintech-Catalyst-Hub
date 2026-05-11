@@ -74,7 +74,7 @@ export type CompareSlug = (typeof COMPARE_SLUGS)[number];
  * Update a date here whenever a tool's content or functionality changes.
  */
 export const TOOL_PAGE_LASTMOD: Readonly<Record<string, string>> = {
-  "financial-health-score-calculator": "2026-04-25",
+  "financial-health-score-calculator": "2026-05-11",
   "meta-description-generator":        "2026-04-25",
   "guest-post-pitch-generator":        "2026-04-25",
   "readability-checker":               "2026-04-25",
