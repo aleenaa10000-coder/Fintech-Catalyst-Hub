@@ -1105,7 +1105,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       description,
       canonical,
       ogType: "website",
-      ogImage: `${siteUrl}/api/og?title=${encodeURIComponent(term.term)}&type=glossary`,
+      ogImage: `${siteUrl}/api/og?title=${encodeURIComponent(term.term)}&category=Glossary`,
       ogImageAlt: `${term.term} definition — FintechPressHub Fintech Glossary`,
       schemas: [
         organizationSchema(siteUrl),
@@ -1149,7 +1149,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       description,
       canonical,
       ogType: "website",
-      ogImage: `${siteUrl}/api/og?title=${encodeURIComponent(loc.headline)}&type=service`,
+      ogImage: `${siteUrl}/api/og?title=${encodeURIComponent(loc.headline)}&category=Location`,
       ogImageAlt: `FintechPressHub — ${loc.city} Fintech SEO`,
       schemas: [
         organizationSchema(siteUrl),
@@ -1201,7 +1201,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       description: catMeta.description,
       canonical,
       ogType: "website",
-      ogImage: `${siteUrl}/opengraph.jpg`,
+      ogImage: `${siteUrl}/api/og?title=${encodeURIComponent(catMeta.title)}&category=Blog`,
       ogImageAlt: `${catMeta.title} — FintechPressHub`,
       schemas: [
         organizationSchema(siteUrl),

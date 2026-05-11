@@ -1198,6 +1198,7 @@ async function handleSsrMeta(
               addressCountry:   loc.countryCode,
             },
             areaServed: { "@type": "Place", name: loc.country },
+            parentOrganization: { "@id": `${siteUrl}#organization` },
             publisher:   { "@id": `${siteUrl}#organization` },
           }, null, 2),
           JSON.stringify({
@@ -1215,6 +1216,9 @@ async function handleSsrMeta(
             "@context": "https://schema.org",
             "@type":    "FAQPage",
             "@id":      `${canonical}#faq`,
+            url:        canonical,
+            name:       `Frequently Asked Questions — FintechPressHub ${loc.city}`,
+            isPartOf:   { "@id": `${siteUrl}#website` },
             mainEntity: [
               {
                 "@type": "Question",
@@ -1403,6 +1407,11 @@ async function handleSsrMeta(
             url:          canonical,
             inLanguage:   "en",
             areaServed:   "Worldwide",
+            // datePublished/dateModified give Google a freshness signal for the
+            // service entity itself (not just the WebPage companion), strengthening
+            // E-E-A-T scoring for financial-service content.
+            datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
+            dateModified:  SERVICE_PAGE_LASTMOD_DATE,
             provider:     { "@id": `${siteUrl}#organization` },
             ...(Array.isArray(svc.deliverables) && svc.deliverables.length > 0
               ? {

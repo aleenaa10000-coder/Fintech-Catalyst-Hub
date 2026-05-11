@@ -53,7 +53,7 @@ This report is the canonical record of every gap found across all three passes a
 | P2-03 | `ssrMeta.ts` | Service ProfessionalService missing `areaServed` | Low | **Fixed** |
 | P2-04 | `ssrMeta.ts` | Blog post Article schema missing `speakable` CSS selectors | Low | **Fixed** |
 
-### Pass 3 — Exhaustive Re-Audit (This Session)
+### Pass 3 — Exhaustive Re-Audit
 
 | ID | File | Finding | Severity | Status |
 |---|---|---|---|---|
@@ -64,6 +64,17 @@ This report is the canonical record of every gap found across all three passes a
 | P3-05 | `bot-og-plugin.mjs` | `itemListSchema()` shared helper missing `numberOfItems` — all services/authors/blog prerender pages affected | High | **Fixed** — `numberOfItems: items.length` added to helper |
 | P3-06 | `bot-og-plugin.mjs` | Category CollectionPage `isPartOf` had bare `@id` without `@type: "WebPage"` — inconsistent with ssrMeta.ts | Medium | **Fixed** — `@type: "WebPage"` added |
 | P3-07 | `bot-og-plugin.mjs` | Location page `@type: "LocalBusiness"` missing `"ProfessionalService"` co-type present in ssrMeta.ts | Medium | **Fixed** — changed to `["LocalBusiness", "ProfessionalService"]` |
+
+### Pass 4 — Complete Full-File Read Audit (Final)
+
+| ID | File | Finding | Severity | Status |
+|---|---|---|---|---|
+| P4-01 | `ssrMeta.ts` | `/locations/:slug` FAQPage missing `url`, `name`, `isPartOf` fields — Google requires `url` for FAQPage entity resolution and `isPartOf` for Knowledge Graph site anchoring | Medium | **Fixed** — `url: canonical`, `name: "Frequently Asked Questions — FintechPressHub ${city}"`, `isPartOf: { "@id": siteUrl#website }` added |
+| P4-02 | `ssrMeta.ts` | `/locations/:slug` LocalBusiness missing `parentOrganization` — without this, each location entity is disconnected from the main Organization in Google's Knowledge Graph, weakening entity consolidation | Medium | **Fixed** — `parentOrganization: { "@id": siteUrl#organization }` added |
+| P4-03 | `ssrMeta.ts` | `/services/:slug` FinancialService schema missing `datePublished`/`dateModified` — only the companion WebPage entity had dates; the FinancialService entity itself had no freshness signal, weakening E-E-A-T for the service content entity | Medium | **Fixed** — `datePublished: STATIC_PAGE_CREATED["/services"]`, `dateModified: SERVICE_PAGE_LASTMOD_DATE` added to FinancialService |
+| P4-04 | `bot-og-plugin.mjs` | `/locations/:slug` OG image used `&type=service` instead of `&category=Location` — inconsistent with `ssrMeta.ts` which uses `&category=Location`; may cause different OG card appearance for bots served by each system | Low | **Fixed** — changed to `&category=Location` |
+| P4-05 | `bot-og-plugin.mjs` | `/blog/category/:slug` OG image fell back to static `opengraph.jpg` — `ssrMeta.ts` generates a dynamic branded OG card per category; bot-og-plugin showed a generic image for bots in dev/prerender mode | Low | **Fixed** — changed to `${siteUrl}/api/og?title=...&category=Blog` |
+| P4-06 | `bot-og-plugin.mjs` | `/glossary/:slug` OG image used `&type=glossary` instead of `&category=Glossary` — parameter inconsistency with `ssrMeta.ts` convention (`&category=` prefix throughout) | Low | **Fixed** — changed to `&category=Glossary` |
 
 ---
 
@@ -88,10 +99,10 @@ This report is the canonical record of every gap found across all three passes a
 | `hreflang` in sitemaps | All child sitemaps include `hreflang="en"` and `hreflang="x-default"` entries |
 | Blog post Article schema | Complete — headline, author (@id), publisher, dates, speakable, isPartOf, image |
 | Author ProfilePage schema | Complete — knowsAbout, jobTitle, sameAs (LinkedIn/Twitter), numberOfArticlesWritten, worksFor |
-| Glossary DefinedTerm schema | Complete — termCode, inDefinedTermSet, description, url |
-| Service ProfessionalService schema | Complete — areaServed, serviceType, offers with PriceSpecification |
-| Location LocalBusiness + ProfessionalService | Complete in both ssrMeta.ts and bot-og-plugin.mjs after P3-07 fix |
-| Compare FAQPage | Complete — primary question + COMPARE_FAQ_EXTRAS per slug |
+| Glossary DefinedTerm schema | Complete — inDefinedTermSet, description, url, seeAlso, potentialAction (ReadAction), FAQPage companion |
+| `/locations/:slug` LocalBusiness + ProfessionalService | Complete — FAQPage (url, name, isPartOf fixed P4-01), parentOrganization (P4-02), geo meta headLinks, both SSR systems |
+| `/services/:slug` FinancialService + ProfessionalService | Complete — datePublished/dateModified on service entity (P4-03), areaServed, hasOfferCatalog |
+| Compare FAQPage | Complete — primary question + COMPARE_FAQ_EXTRAS per slug, url field present |
 | Tools SoftwareApplication + HowTo | Complete — HowTo steps where available, Offer price:0, UseAction |
 | BreadcrumbList on all routes | Consistent — `buildCrumbsForPath` used across all dynamic + static handlers |
 | `BREADCRUMB_LABELS` three-way sync | seoConstants.ts ↔ metaData.ts ↔ bot-og-plugin.mjs all include `tag`, `category`, `blog`, `compare`, `tools`, `locations`, `glossary`, `authors`, `services` |
@@ -167,7 +178,13 @@ This report is the canonical record of every gap found across all three passes a
 | Property | ssrMeta.ts | bot-og-plugin.mjs | Sync Status |
 |---|---|---|---|
 | Location `@type` | `["LocalBusiness", "ProfessionalService"]` | `["LocalBusiness", "ProfessionalService"]` | ✅ Synced (P3-07) |
+| Location OG image | `&category=Location` | `&category=Location` | ✅ Synced (P4-04) |
+| Location `parentOrganization` | Present (P4-02) | n/a (SSR only) | ✅ |
+| Location FAQPage `url`+`name`+`isPartOf` | Present (P4-01) | n/a (SSR only) | ✅ |
 | Category `isPartOf` | `{ "@type": "WebPage", "@id": url }` | `{ "@type": "WebPage", "@id": url }` | ✅ Synced (P3-06) |
+| Category OG image | `&category=Blog` dynamic | `&category=Blog` dynamic | ✅ Synced (P4-05) |
+| Glossary OG image | `&category=Glossary` | `&category=Glossary` | ✅ Synced (P4-06) |
+| Service `datePublished`/`dateModified` on entity | Present (P4-03) | n/a (SSR only) | ✅ |
 | ItemList `numberOfItems` | All present | All present via helper | ✅ Synced (P3-05) |
 | BREADCRUMB_LABELS `tag` + `category` | Present | Present | ✅ Synced (P1-05) |
 | BreadcrumbList on all dynamic routes | All routes | All routes | ✅ Synced |
@@ -178,8 +195,8 @@ This report is the canonical record of every gap found across all three passes a
 
 | File | Changes |
 |---|---|
-| `artifacts/api-server/src/middlewares/ssrMeta.ts` | `numberOfItems` added to `/pricing`, `/glossary`, `/tools`, `/compare` ItemLists (Pass 3); `numberOfItems` on locations hub, press mentions, blog hub, authors hub, services hub, homepage services, category pages (Pass 1); `@type: "WebPage"` on all `isPartOf` objects; geo meta headLinks on location pages; category hub limit raised to 50; author knowsAbout; glossary inDefinedTermSet; service areaServed; blog speakable |
-| `artifacts/fintechpresshub/scripts/bot-og-plugin.mjs` | `numberOfItems: items.length` in `itemListSchema()` helper (P3-05); `@type: "WebPage"` on category `isPartOf` (P3-06); location `@type` changed to `["LocalBusiness", "ProfessionalService"]` (P3-07); `tag` and `category` added to BREADCRUMB_LABELS (P1-05) |
+| `artifacts/api-server/src/middlewares/ssrMeta.ts` | Pass 4: location FAQPage `url`/`name`/`isPartOf` (P4-01); location LocalBusiness `parentOrganization` (P4-02); service FinancialService `datePublished`/`dateModified` (P4-03). Pass 3: `numberOfItems` on `/pricing`, `/glossary`, `/tools`, `/compare` ItemLists. Pass 1–2: `numberOfItems` on locations hub, press mentions, blog hub, authors hub, services hub, homepage services, category pages; `@type: "WebPage"` on all `isPartOf` objects; geo meta headLinks on location pages; category hub limit raised to 50; author knowsAbout; glossary inDefinedTermSet; service areaServed; blog speakable |
+| `artifacts/fintechpresshub/scripts/bot-og-plugin.mjs` | Pass 4: location OG image → `&category=Location` (P4-04); category OG image → dynamic `&category=Blog` (P4-05); glossary OG image → `&category=Glossary` (P4-06). Pass 3: `numberOfItems: items.length` in `itemListSchema()` helper (P3-05); `@type: "WebPage"` on category `isPartOf` (P3-06); location `@type` changed to `["LocalBusiness", "ProfessionalService"]` (P3-07). Pass 1: `tag` and `category` added to BREADCRUMB_LABELS (P1-05) |
 
 ---
 
