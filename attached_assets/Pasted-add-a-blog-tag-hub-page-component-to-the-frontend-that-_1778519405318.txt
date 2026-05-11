@@ -1,0 +1,69 @@
+add a /blog/tag hub page component to the frontend that lists all available tags with their post counts, making the newly-crawlable /blog/tag URL serve real navigable content instead of the SPA loading screen 
+
+add image sitemaps (<image:image> entries) to sitemap-tags.xml — currently the only child sitemap without them — using the OG image URL pattern already established in the other child sitemaps. 
+
+ add a "Topical Authority Score" dashboard widget to the admin panel that tracks keyword cluster coverage across published blog posts and surfaces content gaps per fintech category. 
+
+add datePublished/dateModified to every client-side PageMeta.tsx schema that currently omits them (AboutPage, ProfilePage, ServiceJsonLd) so the freshness signal is fully consistent between SSR and CSR rendering paths. 
+
+add a <priority> scoring algorithm to the author and tag sitemaps that weights URLs by post count (more posts = higher priority), matching the tiered priority already in use on the blog sitemap 
+
+add an AggregateRating schema to the homepage by pulling average testimonial ratings from the database, giving the Organization entity a star rating eligible for Knowledge Panel display. 
+
+add an IndexNow ping on author and service page updates (currently only blog posts trigger immediate IndexNow submission, leaving author profile edits and service page updates unsubmitted until the daily batch job runs). 
+
+add the author award (credentials) and knowsAbout arrays to the inline author Person sub-entity inside BlogPosting, strengthening E-E-A-T signals directly on article pages without relying on entity graph resolution. 
+
+add SpeakableSpecification CSS class names to the matching React frontend components (e.g. .home-tagline, .author-bio) so Google's crawler can actually locate those elements in the rendered DOM.  
+
+add potentialAction: SearchAction to the Blog hub's CollectionPage entity — enabling Google to surface the site's blog search box directly in rich results for brand queries.
+
+ add a citation array to the SSR-side BlogPosting schema that reads from the DB's article entities, which would let AI crawlers like Perplexity and ChatGPT Search discover cited sources directly from structured data rather than requiring page parsing.  
+
+add an IndexNow ping trigger for new glossary term and location page publishes (currently only blog posts ping IndexNow), which would accelerate Bing/Yandex crawl discovery for all DB-driven pSEO pages 
+
+add /blog/tag hub page handling to bot-og-plugin.mjs so tag hub pages get full schema injection during Vite dev bot requests and build-time prerender, matching the coverage already present in ssrMeta.ts 
+
+add lastmod per-URL to the sitemap-locations.xml by surfacing the updatedAt column already on the location_pages table — giving Google freshness signals for each location page individually 
+
+add geo.position (latitude/longitude) and ICBM meta tags to location pages, which currently only have geo.placename and geo.region — this would require a DB migration to add lat/lng columns to location_pages, but it's the highest-impact remaining item for local Knowledge Panel signals 
+
+ add og:locale:alternate tags directly to index.html so the SPA shell (served in dev mode and to non-SSR paths) also carries the multi-market locale signals, not just SSR responses.  
+
+ add server-side noindex enforcement for future-dated (scheduled) blog posts, so posts that aren't yet published also receive an X-Robots-Tag directive rather than serving as bare SPA shells to crawlers who discover the URL before publish date. 
+
+add an automated date-sync guard to the AEO health-check script that compares STATIC_PAGE_LASTMOD values in ssrMeta.ts against the sitemap STATIC_ROUTES and client webPage.dateModified props — so any future mismatch fails the typecheck workflow before deployment. 
+
+add a dynamic Last-Updated computation to /llms.txt that derives the date from the most recent blog post's publishedAt timestamp — so the field advances automatically on every new publish without requiring a deployment.  
+
+add a llms-full.txt auto-generation script that dynamically builds the LLM-optimised content summary from live database data (blog posts, services, authors, glossary terms) on each deploy, keeping it always current. 
+
+ add per-tag RSS feeds to the sitemap XML so tag feed URLs are discoverable by RSS aggregators without needing to be manually found via headLinks headers. 
+
+add a "Browse All Tags" hub page at /blog/tag that lists all active tags with post counts — which would make it valid to re-add that URL to the sitemap with full SEO coverage. 
+
+add speakable schema to key blog post sections (intro + conclusion) so AI voice assistants and Google's audio features can identify the most citation-worthy portions of each article for read-aloud answers 
+
+add an admin UI panel for managing the noindexUntil field on blog posts — letting editors schedule a post to automatically reappear in Google after a temporary suppression window, with a visual countdown timer in the posts table 
+
+add an author structured data datePublished/dateModified to each individual /authors/:slug ProfilePage JSON-LD so Google has full freshness signals on author profile pages too. 
+
+ add a datePublished freshness signal to the blog category hub pages' client-side <PageMeta> so they match the SSR CollectionPage schema that already uses the most recent post date.  
+
+add IndexNow ping support to automatically notify Bing and other IndexNow-compatible search engines whenever a new blog post is published or a page's lastmod is updated. 
+
+add a "Related Tags" widget to individual blog post pages — surfacing sibling tag hub links to drive internal crawl depth and distribute PageRank across the new tag pages 
+
+add a /blog/tags static hub page listing all available tags with post counts — giving crawlers an internal-link entry point to all tag hub pages (similar to /glossary or /locations hub pages). 
+
+add a seoDescription override field to the location pages admin UI (the DB column and API already support it, but the /admin/locations form doesn't expose it yet). 
+
+update blog-post.tsx so its in-article tag chips link to the dedicated /blog/tag/:slug pages (giving those pages full internal link equity from article body content, not just from listing pages) 
+
+add a <link rel="preload" as="font"> for the Inter WOFF2 file itself (not the CSS) so the primary typeface loads a render cycle sooner — reducing Largest Contentful Paint on first visit. 
+
+add an automated broken-link scanner that runs nightly and writes results to the admin dashboard — catching 404s in sitemaps or internal links before Googlebot does 
+
+ add an automated sitemap health check endpoint that verifies all 10 child sitemaps are reachable and returns a structured JSON report — useful for monitoring after Hostinger deployment 
+
+add datePublished/dateModified to the author profile pages in the database and wire them into the admin author editor, so editors can track and update each author's profile date without touching code. 
