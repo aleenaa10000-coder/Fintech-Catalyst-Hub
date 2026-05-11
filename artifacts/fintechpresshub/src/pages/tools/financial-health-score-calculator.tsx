@@ -388,38 +388,6 @@ export default function FinancialHealthScoreCalculator() {
     [metrics],
   );
 
-  const softwareApplicationSchema = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: "Financial Health Score Calculator",
-    description:
-      "A free browser-based tool that calculates a 0–100 financial health score from monthly income, expenses, debt payments, savings, emergency fund, credit card debt, loan balances, and rent or mortgage. Includes debt-to-income ratio, savings rate, expense ratio, and emergency fund coverage.",
-    applicationCategory: "FinanceApplication",
-    applicationSubCategory: "Personal Finance Calculator",
-    operatingSystem: "All",
-    browserRequirements: "Requires a modern web browser with JavaScript enabled.",
-    url: `${SITE_URL}/tools/financial-health-score-calculator`,
-    isAccessibleForFree: true,
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
-    },
-    featureList: [
-      "Debt-to-Income (DTI) ratio calculation",
-      "Savings rate analysis",
-      "Expense ratio benchmark",
-      "Emergency fund coverage in months",
-      "Personalized improvement tips",
-      "Client-side, no data stored",
-    ],
-    publisher: {
-      "@type": "Organization",
-      name: "FintechPressHub",
-      url: SITE_URL,
-    },
-  };
-
   const radius = 88;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference - (metrics.score / 100) * circumference;
@@ -429,13 +397,27 @@ export default function FinancialHealthScoreCalculator() {
       <PageMeta
         page="financialHealthCalculator"
         faq={FAQS}
+        webPage={{
+          datePublished: "2024-01-01",
+          dateModified:  "2026-05-11",
+        }}
+        speakableSelectors={["h1"]}
         softwareApp={{
-          name: softwareApplicationSchema.name,
-          description: softwareApplicationSchema.description,
-          applicationCategory: softwareApplicationSchema.applicationCategory,
-          operatingSystem: softwareApplicationSchema.operatingSystem,
-          url: softwareApplicationSchema.url,
-          offers: { price: "0", priceCurrency: "USD" },
+          name:                "Financial Health Score Calculator",
+          description:         "A free browser-based tool that calculates a 0–100 financial health score from monthly income, expenses, debt payments, savings, and emergency fund. Includes debt-to-income ratio, savings rate, expense ratio, and emergency fund coverage in months.",
+          applicationCategory: "FinanceApplication",
+          operatingSystem:     "Web",
+          url:                 `${SITE_URL}/tools/financial-health-score-calculator`,
+          isAccessibleForFree: true,
+          offers:              { price: "0", priceCurrency: "USD" },
+          featureList: [
+            "Debt-to-Income (DTI) ratio calculation",
+            "Savings rate analysis",
+            "Expense ratio benchmark",
+            "Emergency fund coverage in months",
+            "Personalised improvement tips",
+            "Client-side only — no data stored",
+          ],
         }}
         howTo={{
           name: "How to use the Financial Health Score Calculator",

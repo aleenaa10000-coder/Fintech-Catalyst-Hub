@@ -93,9 +93,9 @@ export const PAGE_META = {
   financialHealthCalculator: {
     path: "/tools/financial-health-score-calculator",
     title:
-      "Financial Health Score Calculator | Debt-to-Income Checker",
+      "Financial Health Score Calculator | FintechPressHub",
     description:
-      "Free Financial Health Score Calculator. Get your 0–100 score instantly with a debt-to-income ratio check, savings rate, emergency fund coverage, and personalized tips.",
+      "Free Financial Health Score Calculator. Get your 0–100 score instantly with a debt-to-income ratio check, savings rate, emergency fund coverage, and personalised tips.",
   },
   linkProspector: {
     path: "/tools/link-prospector",

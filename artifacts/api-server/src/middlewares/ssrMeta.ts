@@ -920,6 +920,7 @@ const STATIC_OG_META: Readonly<Record<string, { category: string; ogTitle: strin
 const TOOLS_HOWTO: Readonly<Record<string, {
   name: string;
   description: string;
+  totalTime?: string;
   steps: Array<{ name: string; text: string }>;
 }>> = {
   "readability-checker": {
@@ -935,11 +936,12 @@ const TOOLS_HOWTO: Readonly<Record<string, {
   "financial-health-score-calculator": {
     name: "How to Calculate Your Financial Health Score",
     description: "Use the FintechPressHub Financial Health Score Calculator to benchmark your personal finances with a 0–100 score.",
+    totalTime: "PT2M",
     steps: [
-      { name: "Enter your income and debt", text: "Input your gross monthly income and total monthly debt payments to calculate your debt-to-income ratio." },
-      { name: "Add your savings data",      text: "Enter your monthly savings amount and total savings balance so the calculator can assess your savings rate and emergency fund coverage." },
-      { name: "Watch your score update",    text: "Your personalised 0–100 Financial Health Score updates automatically across four key dimensions as you fill in each field — no button required." },
-      { name: "Review your results",        text: "Read your score breakdown and tailored recommendations to improve your financial health over the next 90 days." },
+      { name: "Enter your monthly income",                    text: "Input your take-home pay after tax, including all income sources." },
+      { name: "Fill in your monthly expenses and debt payments", text: "Add your total living costs and minimum monthly debt payments — credit cards, loans, and BNPL." },
+      { name: "Complete savings and emergency fund fields",    text: "Enter how much you save each month and your total liquid emergency fund balance. Your 0–100 score updates automatically as you type — no button required." },
+      { name: "Review your score and breakdown",              text: "The calculator outputs a financial health score with debt-to-income ratio, savings rate, emergency fund coverage in months, and personalised improvement tips." },
     ],
   },
   "meta-description-generator": {
@@ -2270,7 +2272,7 @@ async function handleSsrMeta(
           description:          toolMeta.description,
           url:                  canonical,
           inLanguage:           "en",
-          applicationCategory:  "WebApplication",
+          applicationCategory:  "FinanceApplication",
           operatingSystem:      "Web",
           isAccessibleForFree:  true,
           offers: {
@@ -2292,6 +2294,7 @@ async function handleSsrMeta(
           "@id":       `${canonical}#howto`,
           name:        howTo.name,
           description: howTo.description,
+          ...(howTo.totalTime ? { totalTime: howTo.totalTime } : {}),
           tool: { "@type": "HowToTool", name: leafLabel },
           step: howTo.steps.map((s, i) => ({
             "@type":   "HowToStep",
@@ -2312,6 +2315,7 @@ async function handleSsrMeta(
           "@context":  "https://schema.org",
           "@type":     "FAQPage",
           "@id":       `${canonical}#faq`,
+          name:        `${leafLabel} — Frequently Asked Questions`,
           url:         canonical,
           inLanguage:  "en",
           isPartOf:    { "@id": `${siteUrl}#website` },

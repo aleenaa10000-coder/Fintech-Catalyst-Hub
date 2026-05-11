@@ -160,6 +160,10 @@ export type SoftwareAppSchema = {
   offers?: { price: string; priceCurrency?: string };
   ratingValue?: number;
   ratingCount?: number;
+  /** Whether the tool is free — emitted as isAccessibleForFree on SoftwareApplication JSON-LD. */
+  isAccessibleForFree?: boolean;
+  /** List of features the tool offers — emitted as featureList on SoftwareApplication JSON-LD. */
+  featureList?: string[];
 };
 
 /**
@@ -569,6 +573,9 @@ export function PageMeta(props: PageMetaProps) {
     ? {
         "@context": "https://schema.org",
         "@type": "HowTo",
+        // @id aligns with the SSR HowTo schema so both rendering paths resolve
+        // the same entity — critical for Google's Knowledge Graph consistency.
+        "@id": `${canonical}#howto`,
         name: props.howTo.name,
         ...(props.howTo.description
           ? { description: props.howTo.description }
@@ -624,6 +631,12 @@ export function PageMeta(props: PageMetaProps) {
                 ratingCount: props.softwareApp.ratingCount ?? 1,
               },
             }
+          : {}),
+        ...(props.softwareApp.isAccessibleForFree !== undefined
+          ? { isAccessibleForFree: props.softwareApp.isAccessibleForFree }
+          : {}),
+        ...(props.softwareApp.featureList && props.softwareApp.featureList.length > 0
+          ? { featureList: props.softwareApp.featureList }
           : {}),
       }
     : null;
