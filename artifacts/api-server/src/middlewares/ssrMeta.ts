@@ -1089,6 +1089,23 @@ const TOOLS_FAQ: Readonly<Record<string, Array<{ question: string; answer: strin
   ],
 };
 
+/**
+ * Optional featureList for SoftwareApplication schema.
+ * Only tools with a meaningful capability list are included — omitting a key
+ * means no featureList property is emitted for that tool's schema.
+ * Sync with the featureList prop in the page's PageMeta softwareApp prop.
+ */
+const TOOLS_FEATURE_LIST: Readonly<Record<string, string[]>> = {
+  "financial-health-score-calculator": [
+    "Debt-to-Income (DTI) ratio calculation",
+    "Savings rate analysis",
+    "Expense ratio benchmark",
+    "Emergency fund coverage in months",
+    "Personalised improvement tips",
+    "Client-side only — no data stored",
+  ],
+};
+
 // ---------- per-request SSR-meta patch cache (B1) ────────────────────────────
 //
 // DB-driven route handlers run at least two SELECT queries per SSR hit
@@ -2277,13 +2294,14 @@ async function handleSsrMeta(
           isAccessibleForFree:  true,
           offers: {
             "@type":        "Offer",
-            price:          0,
+            price:          "0",
             priceCurrency:  "USD",
           },
           provider:      { "@id": `${siteUrl}#organization` },
           datePublished: STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
           ...(TOOL_PAGE_LASTMOD[slug] ? { dateModified: TOOL_PAGE_LASTMOD[slug] } : {}),
           potentialAction: { "@type": "UseAction", target: canonical },
+          ...(TOOLS_FEATURE_LIST[slug] ? { featureList: TOOLS_FEATURE_LIST[slug] } : {}),
         }, null, 2),
       ];
       const howTo = TOOLS_HOWTO[slug];
@@ -2348,7 +2366,7 @@ async function handleSsrMeta(
         // all other page types site-wide including compare, service, and blog detail pages.
         speakable: {
           "@type":     "SpeakableSpecification",
-          cssSelector: ["h1"],
+          cssSelector: ["h1", ".speakable-summary"],
         },
       }, null, 2));
       toolExtraLds.push(buildBreadcrumbLd(breadcrumbs));

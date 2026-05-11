@@ -266,7 +266,7 @@ const FAQS = [
   {
     question: "How is the debt-to-income (DTI) ratio calculated?",
     answer:
-      "DTI is your total monthly debt payments divided by your gross or after-tax monthly income, expressed as a percentage. Most lenders consider 35% the upper limit for healthy borrowing, with 28% or below preferred for mortgage qualification.",
+      "DTI is your total monthly debt payments divided by your after-tax monthly income, expressed as a percentage. Most lenders consider 35% the upper limit for healthy borrowing, with 28% or below preferred for mortgage qualification.",
   },
   {
     question: "How many months of emergency fund do I really need?",
@@ -507,9 +507,6 @@ export default function FinancialHealthScoreCalculator() {
                         {label}
                       </Label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
-                          $
-                        </span>
                         <Input
                           id={`field-${key}`}
                           type="number"
@@ -520,7 +517,7 @@ export default function FinancialHealthScoreCalculator() {
                           value={inputs[key]}
                           onChange={setField(key)}
                           data-testid={`input-${key}`}
-                          className="pl-7 h-11"
+                          className="pl-3 h-11"
                         />
                       </div>
                       <p className="text-[11px] text-muted-foreground leading-snug">
@@ -705,6 +702,102 @@ export default function FinancialHealthScoreCalculator() {
                 Enter your monthly income above to unlock personalised recommendations.
               </div>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* Score band reference table */}
+      <section className="pb-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-10 h-10 rounded-lg bg-[#0052FF]/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-[#0052FF]" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">
+                  What does my score mean?
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Score bands and the key ratios behind each rating.
+                </p>
+              </div>
+            </div>
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <th className="px-5 py-3.5 text-left font-semibold text-slate-700">Band</th>
+                    <th className="px-5 py-3.5 text-left font-semibold text-slate-700">Score</th>
+                    <th className="px-5 py-3.5 text-left font-semibold text-slate-700 hidden sm:table-cell">What it signals</th>
+                    <th className="px-5 py-3.5 text-left font-semibold text-slate-700 hidden md:table-cell">Priority action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {[
+                    {
+                      label: "Excellent",
+                      range: "85–100",
+                      color: "#0BAC6E",
+                      signal: "All four ratios healthy; strong savings velocity.",
+                      action: "Maximise tax-advantaged accounts and diversify assets.",
+                    },
+                    {
+                      label: "Good",
+                      range: "70–84",
+                      color: "#0052FF",
+                      signal: "Solid foundation with minor ratio gaps.",
+                      action: "Close the weakest ratio first to reach Excellent.",
+                    },
+                    {
+                      label: "Fair",
+                      range: "55–69",
+                      color: "#F2A516",
+                      signal: "One or two ratios need improvement.",
+                      action: "Focus on savings rate or emergency fund build-up.",
+                    },
+                    {
+                      label: "Needs Attention",
+                      range: "40–54",
+                      color: "#E67324",
+                      signal: "Multiple stress points detected.",
+                      action: "Attack highest-APR debt first; automate savings.",
+                    },
+                    {
+                      label: "High Risk",
+                      range: "0–39",
+                      color: "#D8362A",
+                      signal: "Cash-flow fragility; high debt or zero savings.",
+                      action: "Stabilise cash flow before optimising investments.",
+                    },
+                  ].map((row) => (
+                    <tr key={row.label} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
+                          style={{
+                            color: row.color,
+                            borderColor: `${row.color}40`,
+                            background: `${row.color}12`,
+                          }}
+                        >
+                          {row.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 font-mono font-semibold text-slate-800 tabular-nums">
+                        {row.range}
+                      </td>
+                      <td className="px-5 py-3.5 text-muted-foreground hidden sm:table-cell">
+                        {row.signal}
+                      </td>
+                      <td className="px-5 py-3.5 text-muted-foreground hidden md:table-cell">
+                        {row.action}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
