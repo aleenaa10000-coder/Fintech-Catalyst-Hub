@@ -108,7 +108,7 @@ export default function GlossaryPage() {
                 terms: terms.slice(0, 50).map((t) => ({
                   name: t.term,
                   description: t.shortDef,
-                  url: `${SITE_URL}/glossary#${t.slug}`,
+                  url: `${SITE_URL}/glossary/${t.slug}`,
                 })),
               }
             : undefined
@@ -242,7 +242,7 @@ export default function GlossaryPage() {
                             {term.relatedTerms.map((rt, i) => (
                               <span key={rt}>
                                 <Link
-                                  href={`/glossary#${rt}`}
+                                  href={`/glossary/${rt}`}
                                   className="text-[#0052FF] hover:underline"
                                 >
                                   {rt}

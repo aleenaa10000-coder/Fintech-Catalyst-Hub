@@ -41,6 +41,7 @@ const GlossaryTermBody = z.object({
   category: z.string().optional(),
   relatedTerms: z.array(z.string()).default([]),
   seoTitle: z.string().max(100).nullable().optional(),
+  seoDescription: z.string().max(160).nullable().optional(),
 });
 
 const UpdateGlossaryTermBody = GlossaryTermBody.partial().refine(

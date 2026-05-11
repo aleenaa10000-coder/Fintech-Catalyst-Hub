@@ -40,6 +40,8 @@ type GlossaryTerm = {
   body: string;
   category: string | null;
   relatedTerms: string[];
+  seoTitle: string | null;
+  seoDescription: string | null;
   publishedAt: string;
   updatedAt: string;
 };
@@ -51,6 +53,8 @@ type TermDraft = {
   body: string;
   category: string;
   relatedTerms: string;
+  seoTitle: string;
+  seoDescription: string;
 };
 
 const EMPTY_DRAFT: TermDraft = {
@@ -60,6 +64,8 @@ const EMPTY_DRAFT: TermDraft = {
   body: "",
   category: "",
   relatedTerms: "",
+  seoTitle: "",
+  seoDescription: "",
 };
 
 function slugify(s: string) {
@@ -183,12 +189,34 @@ function TermForm({
           />
         </div>
         <div>
-          <Label htmlFor="relatedTerms">Related terms <span className="text-muted-foreground font-normal">(comma-separated)</span></Label>
+          <Label htmlFor="relatedTerms">Related terms <span className="text-muted-foreground font-normal">(comma-separated slugs)</span></Label>
           <Input
             id="relatedTerms"
             value={draft.relatedTerms}
             onChange={set("relatedTerms")}
-            placeholder="e.g. PSD2, API Banking, AISP"
+            placeholder="e.g. psd2, api-banking, aisp"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="seoTitle">SEO title override <span className="text-muted-foreground font-normal">(≤ 100 chars — leave blank for auto)</span></Label>
+          <Input
+            id="seoTitle"
+            maxLength={100}
+            value={draft.seoTitle}
+            onChange={set("seoTitle")}
+            placeholder="e.g. Open Banking Explained | FintechPressHub"
+          />
+        </div>
+        <div>
+          <Label htmlFor="seoDescription">SEO description override <span className="text-muted-foreground font-normal">(≤ 160 chars — leave blank to use short def)</span></Label>
+          <Input
+            id="seoDescription"
+            maxLength={160}
+            value={draft.seoDescription}
+            onChange={set("seoDescription")}
+            placeholder="Custom meta description for Google SERPs."
           />
         </div>
       </div>
@@ -240,6 +268,8 @@ export default function AdminGlossary() {
           relatedTerms: draft.relatedTerms
             ? draft.relatedTerms.split(",").map((s) => s.trim()).filter(Boolean)
             : [],
+          seoTitle: draft.seoTitle || null,
+          seoDescription: draft.seoDescription || null,
         }),
       }),
     onSuccess: (row) => {
@@ -265,6 +295,8 @@ export default function AdminGlossary() {
           relatedTerms: draft.relatedTerms
             ? draft.relatedTerms.split(",").map((s) => s.trim()).filter(Boolean)
             : [],
+          seoTitle: draft.seoTitle || null,
+          seoDescription: draft.seoDescription || null,
         }),
       }),
     onSuccess: (row) => {
@@ -377,6 +409,8 @@ export default function AdminGlossary() {
                           body: term.body,
                           category: term.category ?? "",
                           relatedTerms: (term.relatedTerms ?? []).join(", "),
+                          seoTitle: term.seoTitle ?? "",
+                          seoDescription: term.seoDescription ?? "",
                         }}
                         onSave={(draft) => updateMut.mutate({ slug: term.slug, draft })}
                         onCancel={() => setEditingId(null)}

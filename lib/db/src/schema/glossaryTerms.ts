@@ -19,6 +19,9 @@ export const glossaryTermsTable = pgTable("glossary_terms", {
   // "<term> — Fintech Glossary | FintechPressHub" pattern. Lets the admin
   // hand-tune high-value terms for improved SERP click-through.
   seoTitle: text("seo_title"),
+  // Optional meta description override — when set, used instead of shortDef.
+  // Allows custom ≤160-char SERP snippet copy per term without rewriting shortDef.
+  seoDescription: text("seo_description"),
 });
 
 export type GlossaryTermRow = typeof glossaryTermsTable.$inferSelect;

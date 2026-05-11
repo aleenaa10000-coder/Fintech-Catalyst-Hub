@@ -1235,13 +1235,14 @@ async function handleSsrMeta(
       const slug = glossaryMatch[1]!;
       const [term] = await db
         .select({
-          term:         glossaryTermsTable.term,
-          shortDef:     glossaryTermsTable.shortDef,
-          category:     glossaryTermsTable.category,
-          publishedAt:  glossaryTermsTable.publishedAt,
-          updatedAt:    glossaryTermsTable.updatedAt,
-          seoTitle:     glossaryTermsTable.seoTitle,
-          relatedTerms: glossaryTermsTable.relatedTerms,
+          term:           glossaryTermsTable.term,
+          shortDef:       glossaryTermsTable.shortDef,
+          category:       glossaryTermsTable.category,
+          publishedAt:    glossaryTermsTable.publishedAt,
+          updatedAt:      glossaryTermsTable.updatedAt,
+          seoTitle:       glossaryTermsTable.seoTitle,
+          seoDescription: glossaryTermsTable.seoDescription,
+          relatedTerms:   glossaryTermsTable.relatedTerms,
         })
         .from(glossaryTermsTable)
         .where(eq(glossaryTermsTable.slug, slug))
@@ -1250,7 +1251,7 @@ async function handleSsrMeta(
       if (!term) { res.status(404); return next(); }
 
       const canonical   = `${siteUrl}/glossary/${slug}`;
-      const description = term.shortDef.slice(0, 160);
+      const description = (term.seoDescription ?? term.shortDef).slice(0, 160);
       const title       = term.seoTitle
         ? `${term.seoTitle} | FintechPressHub`
         : `${term.term} — Fintech Glossary | FintechPressHub`;
