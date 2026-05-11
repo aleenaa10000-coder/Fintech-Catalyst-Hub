@@ -396,9 +396,29 @@ export default function AdminAuthors() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <h2 className="text-lg font-bold">
-                      {creating ? "New author" : `Edit · ${editingSlug}`}
-                    </h2>
+                    <div>
+                      <h2 className="text-lg font-bold">
+                        {creating ? "New author" : `Edit · ${editingSlug}`}
+                      </h2>
+                      {!creating && editingSlug && (() => {
+                        const a = authors.find((x) => x.slug === editingSlug);
+                        return a?.createdAt || a?.updatedAt ? (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {a.createdAt && (
+                              <span>
+                                Created {new Date(a.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                              </span>
+                            )}
+                            {a.createdAt && a.updatedAt && <span className="mx-1">·</span>}
+                            {a.updatedAt && (
+                              <span>
+                                Last updated {new Date(a.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                              </span>
+                            )}
+                          </p>
+                        ) : null;
+                      })()}
+                    </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={cancel} disabled={busy}>
                         <XIcon className="w-4 h-4 mr-1.5" /> Cancel
