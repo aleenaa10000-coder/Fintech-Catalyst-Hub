@@ -479,9 +479,9 @@ export default function Blog() {
         <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer bg-card">
           <div className="aspect-[16/9] overflow-hidden bg-slate-100">
             <img
-              src={optimizeImageUrl(post.image, 800)}
-              srcSet={buildSrcSet(post.image, [400, 800, 1200])}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+              src={optimizeImageUrl(post.image, 720)}
+              srcSet={buildSrcSet(post.image, [400, 720, 1080, 1440])}
+              sizes="(max-width: 767px) 100vw, (max-width: 1023px) calc(50vw - 1rem), 380px"
               alt={post.title}
               width={800}
               height={450}

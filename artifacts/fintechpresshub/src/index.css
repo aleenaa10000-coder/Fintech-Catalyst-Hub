@@ -11,11 +11,22 @@
 @font-face {
   font-family: "Inter Fallback";
   src: local("Arial");
+  /*
+   * Metrics calibrated to Inter v4 (Google Fonts) usWinAscent/usWinDescent/UPM:
+   *   usWinAscent  = 2728  → 2728/2048 = 133.2 %
+   *   usWinDescent = 680   →  680/2048 =  33.2 %
+   *   lineGap      = 0
+   * size-adjust = (Inter avg char width) / (Arial avg char width) ≈ 96.7 %
+   * Without these overrides, the fallback font allocates a different line-box
+   * height, causing the hero H1 to reflow when Inter swaps in → CLS.
+   * With font-display:optional in the Google Fonts URL the swap no longer
+   * occurs, so these metrics serve as the permanent fallback appearance.
+   */
   size-adjust: 96.7%;
-  ascent-override: 92.2%;
-  descent-override: 24.3%;
+  ascent-override: 133.2%;
+  descent-override: 33.2%;
   line-gap-override: 0%;
-  font-display: swap;
+  font-display: optional;
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -336,6 +347,23 @@ iframe[src*="replit.com/badge"]:hover {
 
 .fade-in-up-init {
   opacity: 0;
+}
+
+/*
+ * Above-fold hero animation: translates up without hiding the element.
+ * Standard .fade-in-up starts at opacity:0 (fill-mode: both) which
+ * makes the LCP element invisible at paint time, directly delaying
+ * Lighthouse's LCP measurement. This variant keeps opacity at 1 so
+ * the LCP candidate (hero H1) is immediately visible and measurable
+ * while still getting the subtle slide-up motion effect.
+ */
+@keyframes heroSlideUp {
+  from { transform: translateY(18px); }
+  to   { transform: translateY(0); }
+}
+
+.hero-fade-in {
+  animation: heroSlideUp 0.55s ease-out both;
 }
 
 /*

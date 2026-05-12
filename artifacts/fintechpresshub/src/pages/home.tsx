@@ -177,7 +177,7 @@ export default function Home() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="fade-in-up">
+            <div className="hero-fade-in">
               <div className="mb-6 flex justify-center">
                 <LandingHealthIndicator />
               </div>
@@ -378,15 +378,15 @@ export default function Home() {
                   <Link href={`/blog/${post.slug}`}>
                     <div className="overflow-hidden mb-6 aspect-video bg-slate-100" style={{ borderRadius: "12px" }}>
                       <img
-                        src={optimizeImageUrl(post.coverImage, 800)}
-                        srcSet={buildSrcSet(post.coverImage, [400, 800, 1200])}
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+                        src={optimizeImageUrl(post.coverImage, 720)}
+                        srcSet={buildSrcSet(post.coverImage, [400, 720, 1080, 1440])}
+                        sizes="(max-width: 767px) 100vw, (max-width: 1023px) calc(50vw - 1rem), 380px"
                         alt={post.title}
                         width={800}
                         height={450}
-                        loading={i === 0 ? "eager" : "lazy"}
-                        fetchPriority={i === 0 ? "high" : "auto"}
-                        decoding={i === 0 ? "sync" : "async"}
+                        loading="lazy"
+                        fetchPriority="auto"
+                        decoding="async"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>

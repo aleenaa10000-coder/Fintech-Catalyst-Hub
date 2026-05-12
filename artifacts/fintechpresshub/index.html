@@ -56,9 +56,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
     <!-- Allow Google full snippet + large image previews + video previews in SERPs.
-         Without this directive Googlebot truncates snippets at 160 chars and shows
-         small thumbnails, reducing click-through rate on rich results. -->
-    <meta name="robots" content="max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+         index,follow is explicit — overrides any proxy-level X-Robots-Tag in
+         development/staging environments. On Hostinger production our server
+         sends no noindex headers so this is a belt-and-suspenders assertion. -->
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
 
     <!-- Google Search Console verification — replace content value when verifying ownership -->
     <!-- <meta name="google-site-verification" content="REPLACE_WITH_YOUR_GSC_VERIFICATION_TOKEN" /> -->
@@ -79,16 +80,17 @@
          browser uses the correct CORS credentials mode when connecting. -->
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
     <link rel="dns-prefetch" href="https://images.unsplash.com">
-    <!-- Non-render-blocking font load.
-         The media="print" trick loads the stylesheet asynchronously: the
-         browser fetches it at low priority (print) and onload swaps it to
-         "all", applying the font without ever blocking the render tree.
-         No rel="preload" as="style" — that hint paradoxically elevates the
-         fetch priority and can make Lighthouse flag it as render-blocking.
-         The index.css @font-face fallback (Inter Fallback) fills the gap
-         so there is no layout shift when Inter arrives. -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
+    <!-- Synchronous font load with font-display:optional.
+         "optional" tells the browser: use Inter only if it loads within the
+         browser's very short font block period (~100 ms); if it misses that
+         window, fall back to "Inter Fallback" (Arial with calibrated metrics)
+         permanently for this navigation — no swap, zero CLS.
+         Synchronous loading is required for optional to work: async (media=print)
+         loads the stylesheet after the first render, which always misses the
+         block period and leaves Inter permanently unused.
+         The preconnect hints above pre-warm the TCP+TLS handshake so the
+         stylesheet download starts as early as possible. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=optional">
 
     <!-- Site-wide JSON-LD @graph — both Organization and WebSite in one block so
          Google can resolve entity references without multiple passes. NOT executable

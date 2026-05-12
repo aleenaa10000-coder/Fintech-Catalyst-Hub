@@ -476,6 +476,12 @@ if (process.env.NODE_ENV === "production" && existsSync(_frontendDist)) {
   const spaFallback = (req: Request, res: Response) => {
     const pathname = req.path.replace(/\/+$/, "") || "/";
 
+    // Explicitly declare the charset in the HTTP Content-Type header.
+    // Without this, Lighthouse (and some proxy setups) flag the charset
+    // audit as failing even when <meta charset="UTF-8"> is present in the
+    // HTML, because the HTTP header takes precedence for encoding detection.
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+
     if (pathname !== "/") {
       const prerendered = path.join(_frontendDist, pathname.slice(1), "index.html");
       if (existsSync(prerendered)) {
