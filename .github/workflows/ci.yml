@@ -118,6 +118,55 @@ jobs:
         env:
           SITE_URL: https://www.fintechpresshub.com
 
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    needs: [build]
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        shell: bash
+        run: echo "dir=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm --filter @workspace/fintechpresshub run build
+        env:
+          SITE_URL: https://www.fintechpresshub.com
+
+      - name: Run Lighthouse CI
+        # lhci autorun: starts Vite preview, collects audits on the URLs in
+        # .lighthouserc.cjs, asserts score thresholds, and uploads a shareable
+        # report URL to temporary-public-storage (link printed in logs).
+        run: pnpm lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
   # Single required status check for branch protection rules.
   # Point your branch protection / merge queue at "CI" instead of the
   # individual job names — adding or renaming jobs in future won't require
@@ -125,7 +174,7 @@ jobs:
   ci:
     name: CI
     runs-on: ubuntu-latest
-    needs: [typecheck, build]
+    needs: [typecheck, build, lighthouse]
     # `always()` ensures this job runs even when an upstream job fails or is
     # cancelled, so GitHub sees an explicit failure rather than "skipped".
     if: always()
@@ -134,8 +183,10 @@ jobs:
       - name: All jobs passed
         run: |
           if [[ "${{ needs.typecheck.result }}" != "success" || \
-                "${{ needs.build.result }}"    != "success" ]]; then
-            echo "typecheck: ${{ needs.typecheck.result }}"
-            echo "build:     ${{ needs.build.result }}"
+                "${{ needs.build.result }}"    != "success" || \
+                "${{ needs.lighthouse.result }}" != "success" ]]; then
+            echo "typecheck:  ${{ needs.typecheck.result }}"
+            echo "build:      ${{ needs.build.result }}"
+            echo "lighthouse: ${{ needs.lighthouse.result }}"
             exit 1
           fi

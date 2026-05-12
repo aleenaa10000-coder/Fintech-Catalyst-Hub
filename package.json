@@ -13,7 +13,8 @@
     "seed:reset": "pnpm --filter @workspace/scripts run seed:reset --",
     "setup:check": "pnpm --filter @workspace/scripts run setup:check",
     "bootstrap": "bash scripts/bootstrap.sh",
-    "setup": "bash scripts/setup.sh"
+    "setup": "bash scripts/setup.sh",
+    "lighthouse": "lhci autorun"
   },
   "private": true,
   "engines": {
@@ -21,6 +22,7 @@
     "pnpm": ">=9.0.0"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.15.0",
     "typescript": "~5.9.2",
     "prettier": "^3.8.3"
   }
