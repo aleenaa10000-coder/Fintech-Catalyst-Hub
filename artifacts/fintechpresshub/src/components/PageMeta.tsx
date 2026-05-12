@@ -440,6 +440,7 @@ export function PageMeta(props: PageMetaProps) {
             mainEntity: props.faq.map((item) => ({
               "@type": "Question",
               name: item.question,
+              answerCount: 1,
               acceptedAnswer: {
                 "@type": "Answer",
                 // Strip any residual HTML tags so Google always receives plain text.

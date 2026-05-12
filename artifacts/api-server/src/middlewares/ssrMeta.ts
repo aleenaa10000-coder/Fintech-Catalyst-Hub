@@ -102,6 +102,11 @@ function esc(s: string): string {
     .replace(/>/g, "&gt;");
 }
 
+/** Strip HTML tags so JSON-LD acceptedAnswer.text is always plain text. */
+function stripHtml(s: string): string {
+  return String(s ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 /** Convert an author display name to the slug used in /authors/:slug URLs. */
 function toAuthorSlug(name: string): string {
   return name
@@ -1484,7 +1489,8 @@ async function handleSsrMeta(
           mainEntity: faqItems.map((item) => ({
             "@type": "Question",
             name:    item.question,
-            acceptedAnswer: { "@type": "Answer", text: item.answer },
+            answerCount: 1,
+            acceptedAnswer: { "@type": "Answer", text: stripHtml(item.answer) },
           })),
         }, null, 2));
       }
@@ -1960,7 +1966,8 @@ async function handleSsrMeta(
               mainEntity:  svcFaqs.map(({ question, answer }) => ({
                 "@type": "Question",
                 name:    question,
-                acceptedAnswer: { "@type": "Answer", text: answer },
+                answerCount: 1,
+                acceptedAnswer: { "@type": "Answer", text: stripHtml(answer) },
               })),
             }, null, 2));
           }
@@ -2117,7 +2124,8 @@ async function handleSsrMeta(
             mainEntity:  authorFaqs.map(({ question, answer }) => ({
               "@type": "Question",
               name:    question,
-              acceptedAnswer: { "@type": "Answer", text: answer },
+              answerCount: 1,
+              acceptedAnswer: { "@type": "Answer", text: stripHtml(answer) },
             })),
           }, null, 2));
           lds.push(buildBreadcrumbLd(breadcrumbs));
@@ -2329,12 +2337,14 @@ async function handleSsrMeta(
         {
           "@type": "Question",
           name:    leafLabel,
-          acceptedAnswer: { "@type": "Answer", text: cmpMeta.description },
+          answerCount: 1,
+          acceptedAnswer: { "@type": "Answer", text: stripHtml(cmpMeta.description) },
         },
         ...extraFaqs.map((faq) => ({
           "@type": "Question",
           name:    faq.question,
-          acceptedAnswer: { "@type": "Answer", text: faq.answer },
+          answerCount: 1,
+          acceptedAnswer: { "@type": "Answer", text: stripHtml(faq.answer) },
         })),
       ];
 
@@ -2467,7 +2477,8 @@ async function handleSsrMeta(
           mainEntity: toolFaqs.map(({ question, answer }) => ({
             "@type": "Question",
             name:    question,
-            acceptedAnswer: { "@type": "Answer", text: answer },
+            answerCount: 1,
+            acceptedAnswer: { "@type": "Answer", text: stripHtml(answer) },
           })),
         }, null, 2));
       }
@@ -2812,7 +2823,8 @@ async function handleSsrMeta(
             mainEntity: PRICING_FAQS.map(({ question, answer }) => ({
               "@type": "Question",
               name:    question,
-              acceptedAnswer: { "@type": "Answer", text: answer },
+              answerCount: 1,
+              acceptedAnswer: { "@type": "Answer", text: stripHtml(answer) },
             })),
           }, null, 2));
 
