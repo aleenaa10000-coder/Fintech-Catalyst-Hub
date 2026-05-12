@@ -23,6 +23,11 @@
 #                     If path is omitted, the most recent previous run in
 #                     lh-reports/ is used automatically. Implies --format json.
 #
+#   --save-baseline   Copy this run's summary.json to the stable path
+#                     lh-reports/baseline/summary.json so future --compare
+#                     runs always have a fixed reference point. Overwrites
+#                     any existing baseline with a warning. Implies --format json.
+#
 # BASE_URL defaults to http://localhost:5000
 #
 # NOTE: Always use http://localhost:5000 (NOT the .replit.dev URL).
@@ -68,6 +73,12 @@
 #
 #   # CI regression gate: specific pages, JSON output, compare against baseline
 #   bash scripts/lighthouse-seo-audit.sh --pages /,/blog --compare lh-reports/baseline/summary.json
+#
+#   # Save this run as the new baseline
+#   bash scripts/lighthouse-seo-audit.sh --save-baseline
+#
+#   # Update baseline + immediately verify no regressions against it
+#   bash scripts/lighthouse-seo-audit.sh --save-baseline && bash scripts/lighthouse-seo-audit.sh --compare
 
 set -euo pipefail
 
@@ -86,9 +97,10 @@ die()  { echo -e "\n  ${RED}✘${RST}  $*" >&2; exit 1; }
 
 # ── Arguments ─────────────────────────────────────────────────────────────────
 BASE_URL=""
-PAGES_RAW=""    # comma-separated paths from --pages flag
-FORMAT=""       # "json" to write machine-readable summary, empty for terminal-only
-COMPARE_FILE="" # path to a previous summary.json, or "auto" to discover latest
+PAGES_RAW=""      # comma-separated paths from --pages flag
+FORMAT=""         # "json" to write machine-readable summary, empty for terminal-only
+COMPARE_FILE=""   # path to a previous summary.json, or "auto" to discover latest
+SAVE_BASELINE=""  # non-empty = copy this run's summary.json to lh-reports/baseline/
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -126,6 +138,10 @@ while [[ $# -gt 0 ]]; do
       COMPARE_FILE="${1#--compare=}"
       shift
       ;;
+    --save-baseline)
+      SAVE_BASELINE="1"
+      shift
+      ;;
     --help|-h)
       sed -n '2,/^set -/{ /^set -/d; s/^# \{0,1\}//; p }' "${BASH_SOURCE[0]}"
       exit 0
@@ -145,8 +161,9 @@ done
 BASE_URL="${BASE_URL:-http://localhost:5000}"
 BASE_URL="${BASE_URL%/}"
 
-# --compare implies --format json (we need summary.json to diff against)
-[[ -n "$COMPARE_FILE" && -z "$FORMAT" ]] && FORMAT="json"
+# --compare and --save-baseline both imply --format json
+[[ -n "$COMPARE_FILE"   && -z "$FORMAT" ]] && FORMAT="json"
+[[ -n "$SAVE_BASELINE"  && -z "$FORMAT" ]] && FORMAT="json"
 
 # Per-page audit timeout in seconds.
 PAGE_TIMEOUT="${LH_TIMEOUT:-60}"
@@ -158,8 +175,9 @@ h "Lighthouse SEO + Performance Audit — FintechPressHub"
 echo -e "  Auditing:        ${BLD}${BASE_URL}${RST}"
 echo -e "  Min perf score:  ${BLD}${PERF_MIN_SCORE}/100${RST}"
 echo -e "  Budgets from:    ${BLD}performance-budget.json${RST}"
-[[ -n "$FORMAT"       ]] && echo -e "  Output format:   ${BLD}${FORMAT}${RST}"
-[[ -n "$COMPARE_FILE" ]] && echo -e "  Compare mode:    ${BLD}on${RST}"
+[[ -n "$FORMAT"        ]] && echo -e "  Output format:   ${BLD}${FORMAT}${RST}"
+[[ -n "$COMPARE_FILE"  ]] && echo -e "  Compare mode:    ${BLD}on${RST}"
+[[ -n "$SAVE_BASELINE" ]] && echo -e "  Save baseline:   ${BLD}on${RST}"
 
 # ── Pre-flight ────────────────────────────────────────────────────────────────
 echo ""
@@ -914,4 +932,30 @@ console.log('');
 
 if (totalRegressions > 0) process.exitCode = 1;
 NODEEOF
+fi
+
+# ── Save baseline ─────────────────────────────────────────────────────────────
+if [[ -n "$SAVE_BASELINE" ]]; then
+  h "Saving Baseline"
+
+  CURRENT_SUMMARY="$OUT_DIR/summary.json"
+  BASELINE_DIR="$ROOT/lh-reports/baseline"
+  BASELINE_FILE="$BASELINE_DIR/summary.json"
+
+  if [[ ! -f "$CURRENT_SUMMARY" ]]; then
+    warn "No summary.json found for this run — cannot save baseline."
+    warn "(--save-baseline implies --format json; something may have gone wrong above)"
+  else
+    mkdir -p "$BASELINE_DIR"
+    if [[ -f "$BASELINE_FILE" ]]; then
+      warn "Overwriting existing baseline."
+      echo -e "  ${DIM}Previous: $BASELINE_FILE${RST}"
+    fi
+    cp "$CURRENT_SUMMARY" "$BASELINE_FILE"
+    ok "Baseline saved → ${BLD}$BASELINE_FILE${RST}"
+    echo -e ""
+    echo -e "  ${DIM}Compare a future run against this baseline:${RST}"
+    echo -e "  ${DIM}  bash scripts/lighthouse-seo-audit.sh --compare lh-reports/baseline/summary.json${RST}"
+    echo -e ""
+  fi
 fi
