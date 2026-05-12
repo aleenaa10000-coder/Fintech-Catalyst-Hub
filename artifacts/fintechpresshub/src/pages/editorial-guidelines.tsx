@@ -579,8 +579,8 @@ export default function EditorialGuidelines() {
                   illustrations only.
                 </li>
                 <li>
-                  <strong>File size:</strong> ≤500&nbsp;KB after compression. Hard cap of
-                  10&nbsp;MB at upload, but anything over 500&nbsp;KB will be re-encoded by an
+                  <strong>File size:</strong> ≤400&nbsp;KB after compression. Hard cap of
+                  10&nbsp;MB at upload, but anything over 400&nbsp;KB will be re-encoded by an
                   editor.
                 </li>
                 <li>
@@ -608,7 +608,7 @@ export default function EditorialGuidelines() {
                   graphics; SVG for charts you control end-to-end.
                 </li>
                 <li>
-                  <strong>File size:</strong> ≤300&nbsp;KB per inline image. Pre-compress
+                  <strong>File size:</strong> ≤200&nbsp;KB per inline image. Pre-compress
                   screenshots with TinyPNG or Squoosh before submitting.
                 </li>
                 <li>
@@ -621,7 +621,8 @@ export default function EditorialGuidelines() {
                 <li>
                   <strong>Author headshots:</strong> 800×800&nbsp;px square (1:1), PNG or JPG,
                   face centred, head-and-shoulders crop, neutral or lightly textured
-                  background.
+                  background. Hard upload cap of 5&nbsp;MB; target ≤500&nbsp;KB after
+                  compression.
                 </li>
                 <li>
                   <strong>Open Graph / Twitter image:</strong> 1200×630&nbsp;px (1.91:1). If

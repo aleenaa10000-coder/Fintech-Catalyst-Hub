@@ -1802,17 +1802,19 @@ async function handleSsrMeta(
               {
                 "@type": "Question",
                 name:    `What is ${term.term}?`,
+                answerCount: 1,
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text:    term.shortDef,
+                  text:    stripHtml(term.shortDef),
                 },
               },
               {
                 "@type": "Question",
                 name:    `Why is ${term.term} important in fintech?`,
+                answerCount: 1,
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text:    `${term.term} is a key concept in financial technology${term.category ? ` within the ${term.category} sector` : ""}. Understanding ${term.term} helps fintech founders, marketers, and product teams communicate clearly with investors, regulators, and customers operating in the digital finance space.`,
+                  text:    stripHtml(`${term.term} is a key concept in financial technology${term.category ? ` within the ${term.category} sector` : ""}. Understanding ${term.term} helps fintech founders, marketers, and product teams communicate clearly with investors, regulators, and customers operating in the digital finance space.`),
                 },
               },
             ],

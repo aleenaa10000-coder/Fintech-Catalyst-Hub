@@ -11,6 +11,13 @@
  * expressions would break that. Instead we just search for required key
  * substrings within each extracted block.
  *
+ * Check #2 — FAQ answer HTML safety:
+ * Every acceptedAnswer.text that references a dynamic variable must be wrapped
+ * in the project's stripHtml() helper. Google rejects FAQPage rich results
+ * when acceptedAnswer.text contains HTML markup. This check catches any future
+ * code that introduces a raw-answer path (e.g. `text: item.answer` instead of
+ * `text: stripHtml(item.answer)`).
+ *
  * Usage:
  *   pnpm --filter @workspace/scripts run schema:check
  */
@@ -148,6 +155,51 @@ function validateBlock(raw: string): ValidationResult | null {
   return { schemaType: type, valid: missing.length === 0, missing };
 }
 
+/**
+ * Check #2 — FAQ answer HTML safety.
+ *
+ * Scans every `acceptedAnswer:` occurrence in the source and verifies that
+ * the `text:` value is either:
+ *   a) a static string literal (safe by definition — no dynamic HTML), or
+ *   b) wrapped in `stripHtml(...)` (the project-standard guard).
+ *
+ * A bare dynamic expression like `text: item.answer` would allow DB-sourced
+ * HTML to leak into JSON-LD, which Google flags as a FAQPage error.
+ *
+ * Returns a list of human-readable error strings, empty if all pass.
+ */
+function checkFaqAnswerStripping(source: string): string[] {
+  const errors: string[] = [];
+
+  // Match `acceptedAnswer: { "@type": "Answer", text: <value> }`
+  // The [^}]* is intentionally non-greedy-ish — acceptedAnswer objects are
+  // always single-depth inline objects in ssrMeta.ts.
+  const re = /acceptedAnswer\s*:\s*\{[^}]*\btext\s*:\s*([^,}\n]+)/g;
+  let m: RegExpExecArray | null;
+
+  while ((m = re.exec(source)) !== null) {
+    const valueExpr = m[1].trim();
+
+    // Static string literals (double-quote, single-quote, or template) are
+    // safe — they cannot contain dynamic HTML.
+    if (
+      valueExpr.startsWith('"') ||
+      valueExpr.startsWith("'") ||
+      valueExpr.startsWith("`")
+    ) {
+      continue;
+    }
+
+    // Dynamic expressions must be wrapped in stripHtml().
+    if (!valueExpr.startsWith("stripHtml(")) {
+      const snippet = valueExpr.slice(0, 70);
+      errors.push(`acceptedAnswer.text not wrapped in stripHtml(): \`${snippet}\``);
+    }
+  }
+
+  return errors;
+}
+
 function main() {
   const ssrMetaPath = resolve(__dirname, "../../artifacts/api-server/src/middlewares/ssrMeta.ts");
   let source: string;
@@ -158,6 +210,10 @@ function main() {
     process.exit(1);
   }
 
+  const lineWidth = 62;
+  let errors = 0;
+
+  // ── Check 1: Required fields per schema type ──────────────────────────────
   const rawBlocks = extractJsonStringifyBlocks(source);
   const results = rawBlocks
     .map(validateBlock)
@@ -174,8 +230,6 @@ function main() {
     if (!seen.has(r.schemaType) || !r.valid) seen.set(r.schemaType, r);
   }
 
-  let errors = 0;
-  const lineWidth = 62;
   console.log(`\nSchema validation — ${results.length} top-level JSON-LD blocks in ssrMeta.ts\n`);
   console.log("─".repeat(lineWidth));
 
@@ -190,6 +244,24 @@ function main() {
 
   console.log("─".repeat(lineWidth));
   console.log(`\nResult: ${seen.size} schema types checked, ${errors} error(s)\n`);
+
+  // ── Check 2: FAQ acceptedAnswer.text HTML safety ──────────────────────────
+  const faqErrors = checkFaqAnswerStripping(source);
+
+  console.log("FAQ answer safety — acceptedAnswer.text must use stripHtml()\n");
+  console.log("─".repeat(lineWidth));
+
+  if (faqErrors.length === 0) {
+    console.log("OK    All acceptedAnswer.text values are HTML-safe");
+  } else {
+    for (const e of faqErrors) {
+      errors++;
+      console.error(`FAIL  ${e}`);
+    }
+  }
+
+  console.log("─".repeat(lineWidth));
+  console.log(`\nFAQ check: ${faqErrors.length === 0 ? "passed" : `${faqErrors.length} violation(s)`}\n`);
 
   if (errors > 0) process.exit(1);
 }
