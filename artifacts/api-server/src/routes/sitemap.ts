@@ -99,6 +99,8 @@ export interface SitemapEntry {
   changefreq: string;
   priority: string;
   source: SitemapEntrySource;
+  /** Article title — used by the news:news block for blog entries. */
+  title?: string;
   images?: SitemapImage[];
 }
 
@@ -177,6 +179,7 @@ export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
         changefreq,
         priority,
         source: "blog" as const,
+        title: p.title,
         ...(imageUrl ? { images: [{ loc: imageUrl, title: p.title }] } : {}),
       };
     }),
@@ -233,12 +236,14 @@ async function buildSitemapXml(): Promise<string> {
   // which are part of sitemap_index.xml. Including them here too causes every
   // URL to appear in multiple sitemaps, wasting crawl budget and making Google
   // Search Console coverage reports harder to read.
+  // Blog posts are included here with news:news blocks for Google News
+  // discovery. Author/RSS/category/press-asset entries are still excluded
+  // to avoid duplicating non-page content.
   const entries = allEntries.filter(
     (e) =>
       e.source !== "press-asset" &&
       e.source !== "rss" &&
       e.source !== "category" &&
-      e.source !== "blog" &&
       e.source !== "author",
   );
 
@@ -270,12 +275,25 @@ async function buildSitemapXml(): Promise<string> {
             ].join("\n")
           : "";
 
+      const newsBlock =
+        u.source === "blog" && u.title
+          ? `    <news:news>\n` +
+            `      <news:publication>\n` +
+            `        <news:name>FintechPressHub</news:name>\n` +
+            `        <news:language>en</news:language>\n` +
+            `      </news:publication>\n` +
+            `      <news:publication_date>${u.lastmod}</news:publication_date>\n` +
+            `      <news:title>${escapeXml(u.title)}</news:title>\n` +
+            `    </news:news>\n`
+          : "";
+
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(u.loc)}</loc>\n` +
         `    <lastmod>${u.lastmod}</lastmod>\n` +
         `    <changefreq>${u.changefreq}</changefreq>\n` +
         `    <priority>${u.priority}</priority>\n` +
+        (newsBlock ? newsBlock : "") +
         (imageBlocks ? imageBlocks + "\n" : "") +
         (hreflangBlocks ? hreflangBlocks + "\n" : "") +
         `  </url>`
@@ -287,7 +305,8 @@ async function buildSitemapXml(): Promise<string> {
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n` +
     `        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"\n` +
-    `        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n` +
+    `        xmlns:xhtml="http://www.w3.org/1999/xhtml"\n` +
+    `        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n` +
     body +
     `\n</urlset>\n`
   );

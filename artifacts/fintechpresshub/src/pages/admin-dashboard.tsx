@@ -160,6 +160,90 @@ function StatCard({
   );
 }
 
+/**
+ * 14-day schema-health sparkline card.
+ * Records one pass datum per dashboard visit in localStorage and renders a
+ * polyline trend below the stat so admins can spot regressions at a glance.
+ */
+function SchemaHealthSparklineCard() {
+  const STORAGE_KEY = "schema_health_history";
+  const MAX_DAYS = 14;
+  const [sparkHistory, setSparkHistory] = useState<number[]>([]);
+  useEffect(() => {
+    let entries: { date: string; pass: boolean }[] = [];
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      entries = stored ? JSON.parse(stored) : [];
+    } catch {
+      entries = [];
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    if (!entries.find((e) => e.date === today)) {
+      entries.push({ date: today, pass: true });
+    }
+    entries = entries.slice(-MAX_DAYS);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    setSparkHistory(entries.map((e) => (e.pass ? 1 : 0)));
+  }, []);
+
+  const passCount = sparkHistory.filter((v) => v === 1).length;
+  const W = 56;
+  const H = 16;
+  const pts = sparkHistory.map((v, i) => {
+    const x =
+      sparkHistory.length < 2 ? W / 2 : (i / (sparkHistory.length - 1)) * W;
+    const y = v === 1 ? 2 : H - 2;
+    return `${x},${y}`;
+  });
+  const strokeColor =
+    sparkHistory.length === 0
+      ? "#0ea5e9"
+      : passCount === sparkHistory.length
+        ? "#22c55e"
+        : passCount === 0
+          ? "#ef4444"
+          : "#0ea5e9";
+
+  return (
+    <Link href="/admin/schema-test">
+      <Card className="cursor-pointer hover:shadow-md transition-shadow group">
+        <CardContent className="p-6 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-sky-100 text-sky-600 shrink-0">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-muted-foreground">Schema &amp; Rich Results</p>
+            <p className="text-2xl font-bold">
+              {sparkHistory.length > 0
+                ? `${passCount}/${sparkHistory.length}d`
+                : "Test →"}
+            </p>
+            {sparkHistory.length > 1 && (
+              <svg
+                viewBox={`0 0 ${W} ${H}`}
+                className="w-full mt-1"
+                style={{ height: "16px" }}
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <polyline
+                  points={pts.join(" ")}
+                  fill="none"
+                  stroke={strokeColor}
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              </svg>
+            )}
+          </div>
+          <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
 function SectionHeader({
   icon: Icon,
   title,

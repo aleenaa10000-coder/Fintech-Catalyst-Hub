@@ -127,7 +127,7 @@ router.post("/admin/authors", requireAdmin, async (req, res, next) => {
       .returning();
     invalidateSitemapCache();
     notifySearchEnginesOfPublishWithTimeout(
-      [`${getSiteUrl()}/authors/${data.slug}`],
+      [`${getSiteUrl()}/authors/${data.slug}`, `${getSiteUrl()}/authors`],
       SEO_NOTIFY_TIMEOUT_MS,
     ).catch(() => {});
     res.status(201).json({ ok: true, author: row });
@@ -180,7 +180,7 @@ router.put("/admin/authors/:slug", requireAdmin, async (req, res, next) => {
     }
     invalidateSitemapCache();
     notifySearchEnginesOfPublishWithTimeout(
-      [`${getSiteUrl()}/authors/${row.slug ?? slug}`],
+      [`${getSiteUrl()}/authors/${row.slug ?? slug}`, `${getSiteUrl()}/authors`],
       SEO_NOTIFY_TIMEOUT_MS,
     ).catch(() => {});
     res.json({ ok: true, author: row });

@@ -6,3 +6,5 @@
  * crashes the bundle. Treat them like `process.env.NODE_ENV`.
  */
 declare const __TERMS_LAST_UPDATED_ISO__: string;
+/** ISO-8601 timestamp of the Vite build, injected at build time. */
+declare const __BUILD_TIME_ISO__: string;

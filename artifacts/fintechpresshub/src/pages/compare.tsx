@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";

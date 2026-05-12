@@ -4,6 +4,7 @@ import {
   db,
   blogPostsTable,
   bulkNoIndexAuditLogTable,
+  kvStoreTable,
 } from "@workspace/db";
 import type { BulkNoIndexAuditPostSnapshot } from "@workspace/db";
 import { eq, desc, asc, sql, inArray, and, lte, gt, type SQL } from "drizzle-orm";
@@ -400,6 +401,18 @@ router.get("/blog/posts/:slug", async (req, res) => {
     .where(eq(blogPostsTable.slug, params.slug))
     .limit(1);
   if (!row) {
+    // Return 410 Gone for permanently deleted slugs so crawlers de-index
+    // the URL faster than a plain 404 would. The tombstone is written to
+    // kv_store by the DELETE /blog/posts/:slug handler.
+    const [tombstone] = await db
+      .select({ key: kvStoreTable.key })
+      .from(kvStoreTable)
+      .where(eq(kvStoreTable.key, `deleted_blog_slug:${params.slug}`))
+      .limit(1);
+    if (tombstone) {
+      res.status(410).json({ error: "Gone — this post has been permanently deleted" });
+      return;
+    }
     res.status(404).json({ error: "Not found" });
     return;
   }
@@ -1036,6 +1049,26 @@ router.delete("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     ).catch((err) =>
       logger.warn({ err }, "IndexNow de-index ping failed after blog post delete"),
     );
+
+    // Write a kvStore tombstone so the public GET /blog/posts/:slug
+    // endpoint returns 410 Gone instead of 404 for this deleted slug.
+    // Fire-and-forget — a tombstone write failure is non-fatal.
+    await db
+      .insert(kvStoreTable)
+      .values({
+        key: `deleted_blog_slug:${row.slug}`,
+        value: { deletedAt: new Date().toISOString(), title: row.title },
+      })
+      .onConflictDoUpdate({
+        target: kvStoreTable.key,
+        set: {
+          value: { deletedAt: new Date().toISOString(), title: row.title },
+          updatedAt: new Date(),
+        },
+      })
+      .catch((err) =>
+        logger.warn({ err, slug: row.slug }, "Failed to write blog post tombstone"),
+      );
 
     invalidateSitemapCache();
 

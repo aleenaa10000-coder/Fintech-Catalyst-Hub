@@ -4174,35 +4174,59 @@ export default function AdminBlog() {
                   const tooLong = wc > 1500;
                   const ok = wc >= 800 && wc <= 1500;
                   return (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span
-                        className={[
-                          "text-xs font-medium tabular-nums",
-                          ok
-                            ? "text-green-700"
-                            : tooShort
-                              ? "text-amber-600"
-                              : tooLong
-                                ? "text-destructive"
-                                : "text-muted-foreground",
-                        ].join(" ")}
-                      >
-                        {wc} words
-                      </span>
-                      {tooShort && (
-                        <span className="text-xs text-amber-600">
-                          — needs {800 - wc} more to reach the 800-word minimum
+                    <div className="mt-1 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={[
+                            "text-xs font-medium tabular-nums",
+                            ok
+                              ? "text-green-700"
+                              : tooShort
+                                ? "text-amber-600"
+                                : tooLong
+                                  ? "text-destructive"
+                                  : "text-muted-foreground",
+                          ].join(" ")}
+                        >
+                          {wc} words
                         </span>
-                      )}
-                      {tooLong && (
-                        <span className="text-xs text-destructive">
-                          — {wc - 1500} words over the 1500-word maximum
-                        </span>
-                      )}
-                      {ok && (
-                        <span className="text-xs text-green-700">
-                          — within 800–1500 word limit ✓
-                        </span>
+                        {tooShort && (
+                          <span className="text-xs text-amber-600">
+                            — needs {800 - wc} more to reach the 800-word minimum
+                          </span>
+                        )}
+                        {tooLong && (
+                          <span className="text-xs text-destructive">
+                            — {wc - 1500} words over the 1500-word maximum
+                          </span>
+                        )}
+                        {ok && (
+                          <span className="text-xs text-green-700">
+                            — within 800–1500 word limit ✓
+                          </span>
+                        )}
+                      </div>
+                      {wc > 0 && (
+                        <div
+                          className="relative h-1.5 w-full rounded-full bg-muted overflow-hidden"
+                          title={`${wc} / 1 500 words`}
+                        >
+                          <div
+                            className={`absolute inset-y-0 left-0 rounded-full transition-all duration-300 ${
+                              ok
+                                ? "bg-emerald-500"
+                                : tooShort
+                                  ? "bg-amber-400"
+                                  : "bg-destructive"
+                            }`}
+                            style={{ width: `${Math.min((wc / 1500) * 100, 100)}%` }}
+                          />
+                          {/* 800-word minimum marker at 53.3 % */}
+                          <div
+                            className="absolute inset-y-0 w-px bg-muted-foreground/30"
+                            style={{ left: "53.33%" }}
+                          />
+                        </div>
                       )}
                     </div>
                   );

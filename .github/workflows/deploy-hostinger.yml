@@ -244,3 +244,45 @@ jobs:
             exit 1
           fi
           echo "Deploy succeeded — site is healthy."
+
+      - name: Notify on deploy failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          secure: false
+          username: ${{ secrets.DEPLOY_EMAIL_USER }}
+          password: ${{ secrets.DEPLOY_EMAIL_PASS }}
+          subject: "🚨 Deploy FAILED — FintechPressHub (${{ github.ref_name }})"
+          body: |
+            A deployment to Hostinger has FAILED.
+
+            Branch : ${{ github.ref_name }}
+            Commit : ${{ github.sha }}
+            Actor  : ${{ github.actor }}
+            Run    : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Please check the workflow logs and investigate the error before the next push.
+          to: ${{ secrets.DEPLOY_NOTIFY_EMAIL }}
+          from: FintechPressHub CI <${{ secrets.DEPLOY_EMAIL_USER }}>
+
+      - name: Notify on deploy success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          secure: false
+          username: ${{ secrets.DEPLOY_EMAIL_USER }}
+          password: ${{ secrets.DEPLOY_EMAIL_PASS }}
+          subject: "✅ Deploy succeeded — FintechPressHub (${{ github.ref_name }})"
+          body: |
+            Deployment to Hostinger completed successfully.
+
+            Branch : ${{ github.ref_name }}
+            Commit : ${{ github.sha }}
+            Actor  : ${{ github.actor }}
+            Site   : https://www.fintechpresshub.com
+          to: ${{ secrets.DEPLOY_NOTIFY_EMAIL }}
+          from: FintechPressHub CI <${{ secrets.DEPLOY_EMAIL_USER }}>

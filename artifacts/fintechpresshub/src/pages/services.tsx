@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { PageMeta } from "@/components/PageMeta";
 import { useListServices } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
@@ -47,6 +48,18 @@ export default function Services() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            url: `${SITE_URL}/services`,
+            name: "Fintech SEO & Content Marketing Services",
+            dateModified: __BUILD_TIME_ISO__,
+            inLanguage: "en",
+          })}
+        </script>
+      </Helmet>
       <PageMeta
         page="services"
         speakableSelectors={["h1", ".speakable-summary"]}

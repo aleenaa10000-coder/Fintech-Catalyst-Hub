@@ -60,6 +60,7 @@ export default defineConfig(({ command }) => {
   base: basePath,
   define: {
     __TERMS_LAST_UPDATED_ISO__: JSON.stringify(TERMS_LAST_UPDATED_ISO),
+    __BUILD_TIME_ISO__: JSON.stringify(new Date().toISOString()),
   },
   plugins: [
     react(),
