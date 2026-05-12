@@ -17,6 +17,9 @@ pnpm run typecheck
 # Unit tests (52 tests, ~5 s)
 pnpm --filter @workspace/fintechpresshub run test
 
+# Blog post content lint — cover image URL, excerpt ≤ 160 chars, slug format
+node scripts/lint-blog-post.mjs
+
 echo ""
 echo "✅  Pre-commit checks passed."
 echo ""

@@ -11,6 +11,7 @@
     "setup:check": "tsx ./src/setup-check.ts",
     "aeo:check": "tsx ./src/aeo-health-check.ts",
     "schema:check": "tsx ./src/schema-validate.ts",
+    "lint:posts": "node ../scripts/lint-blog-post.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

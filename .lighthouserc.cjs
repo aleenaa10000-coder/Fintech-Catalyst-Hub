@@ -116,6 +116,7 @@ module.exports = {
         "color-contrast": ["warn", {}],
         "heading-order": ["warn", {}],
         "unused-javascript": ["warn", {}],
+        "unused-css-rules": ["warn", {}],
         "uses-responsive-images": ["warn", {}],
         "prioritize-lcp-image": ["warn", {}],
         "modern-image-formats": ["warn", {}],

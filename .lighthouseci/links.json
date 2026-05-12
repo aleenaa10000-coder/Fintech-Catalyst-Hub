@@ -1,9 +1,9 @@
 {
-  "http://localhost:4173/": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778606607515-18750.report.html",
-  "http://localhost:4173/blog": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778606609314-63733.report.html",
-  "http://localhost:4173/services": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778606611116-89403.report.html",
-  "http://localhost:4173/pricing": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778606613221-47289.report.html",
-  "http://localhost:4173/blog/fintech-seo-strategy-2026": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778606615117-70932.report.html",
-  "http://localhost:4173/locations/london": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778606617018-94213.report.html",
-  "http://localhost:4173/glossary/api": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778606618770-15055.report.html"
+  "http://localhost:4173/": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778612960658-46599.report.html",
+  "http://localhost:4173/blog": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778612962419-54236.report.html",
+  "http://localhost:4173/services": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778612964286-74110.report.html",
+  "http://localhost:4173/pricing": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778612966158-69794.report.html",
+  "http://localhost:4173/blog/fintech-seo-strategy-2026": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778612968018-5685.report.html",
+  "http://localhost:4173/locations/london": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778612969920-62230.report.html",
+  "http://localhost:4173/glossary/api": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778612971619-59754.report.html"
 }
