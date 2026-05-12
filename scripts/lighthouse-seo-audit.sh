@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # scripts/lighthouse-seo-audit.sh
 #
-# Run a Lighthouse SEO audit against the running FintechPressHub dev server
-# and print a colour-coded summary of every SEO check.
+# Run a Lighthouse SEO + Performance audit against the running FintechPressHub
+# dev server and print a colour-coded summary of every SEO check plus a
+# performance budget gate.
 #
 # Usage:
 #   bash scripts/lighthouse-seo-audit.sh [BASE_URL]
@@ -15,13 +16,18 @@
 #
 # Reports (JSON) are saved to lh-reports/<timestamp>/
 #
+# Performance budgets are read from performance-budget.json at the repo root.
+# The script exits with code 1 if any SEO check fails OR any budget is breached.
+#
+# Environment variables:
+#   LH_TIMEOUT      Per-page audit timeout in seconds (default: 60)
+#   PERF_MIN_SCORE  Minimum Lighthouse performance score 0-100 (default: 80)
+#
 # Expected results (after fixes applied 2026-05-12):
-#   /         → 100/100, all checks PASS
-#   /blog     → 100/100, all checks PASS
-#   /services → 100/100, all checks PASS (link-text fixed via aria-label)
-#   /pricing  → 100/100, all checks PASS
-#   structured-data → always shows MANUAL (Lighthouse cannot auto-validate
-#                     client-rendered JSON-LD in a SPA — this is expected)
+#   /         → 100/100 SEO, all checks PASS
+#   /blog     → 100/100 SEO, all checks PASS
+#   /services → 100/100 SEO, all checks PASS
+#   /pricing  → 100/100 SEO, all checks PASS
 
 set -euo pipefail
 
@@ -42,12 +48,16 @@ die()  { echo -e "\n  ${RED}✘${RST}  $*" >&2; exit 1; }
 BASE_URL="${1:-http://localhost:5000}"
 BASE_URL="${BASE_URL%/}"
 
-# Per-page audit timeout in seconds. Some pages make many API calls that keep
-# the network busy — lhci collect will wait for network idle up to this limit.
+# Per-page audit timeout in seconds.
 PAGE_TIMEOUT="${LH_TIMEOUT:-60}"
 
-h "Lighthouse SEO Audit — FintechPressHub"
-echo -e "  Auditing: ${BLD}${BASE_URL}${RST}"
+# Minimum Lighthouse performance score (0-100) — pages below this fail the budget.
+PERF_MIN_SCORE="${PERF_MIN_SCORE:-80}"
+
+h "Lighthouse SEO + Performance Audit — FintechPressHub"
+echo -e "  Auditing:        ${BLD}${BASE_URL}${RST}"
+echo -e "  Min perf score:  ${BLD}${PERF_MIN_SCORE}/100${RST}"
+echo -e "  Budgets from:    ${BLD}performance-budget.json${RST}"
 
 # ── Pre-flight ────────────────────────────────────────────────────────────────
 echo ""
@@ -61,6 +71,10 @@ ok "Dev server is up (HTTP 200)"
 LHCI="$ROOT/node_modules/.bin/lhci"
 [[ -f "$LHCI" ]] || die "lhci not found — run: pnpm install"
 ok "lhci found"
+
+BUDGET_FILE="$ROOT/performance-budget.json"
+[[ -f "$BUDGET_FILE" ]] || die "performance-budget.json not found at repo root."
+ok "performance-budget.json found"
 
 CHROME=$(which chromium 2>/dev/null \
       || which google-chrome 2>/dev/null \
@@ -83,7 +97,7 @@ PAGES=("/" "/blog" "/services" "/pricing")
 info "Auditing ${#PAGES[@]} pages — reports → lh-reports/$TIMESTAMP/"
 
 # ── Collect reports ───────────────────────────────────────────────────────────
-h "Collecting  (SEO only, no throttling)"
+h "Collecting  (SEO + Performance, no throttling)"
 echo ""
 
 CHROME_FLAGS="--no-sandbox --disable-dev-shm-usage --headless=new --disable-gpu"
@@ -93,19 +107,16 @@ for PAGE in "${PAGES[@]}"; do
   URL="${BASE_URL}${PAGE}"
   echo -e "  Auditing ${BLD}${URL}${RST} ..."
 
-  # Run lhci collect with a hard per-page timeout so a slow page (one that
-  # makes many API calls and delays network idle) doesn't block the script.
   if timeout "$PAGE_TIMEOUT" "$LHCI" collect \
       --url="$URL" \
       --n=1 \
       --no-lighthouserc \
       --chromePath="$CHROME" \
-      --settings.onlyCategories=seo \
+      --settings.onlyCategories=seo,performance \
       --settings.chromeFlags="$CHROME_FLAGS" \
       --settings.throttlingMethod=provided \
       2>&1 | grep -v '^$' | sed 's/^/    /'; then
 
-    # Move generated LHR JSON into our timestamped output dir
     if ls "$LHCI_DIR"/lhr-*.json 1>/dev/null 2>&1; then
       SLUG="${PAGE//\//-}"
       SLUG="${SLUG#-}"
@@ -119,7 +130,6 @@ for PAGE in "${PAGES[@]}"; do
     FAILED_PAGES+=("$PAGE")
   fi
 
-  # Clean up lhci state files regardless of success/failure
   rm -f "$LHCI_DIR"/flags-*.json "$LHCI_DIR"/lhr-*.html 2>/dev/null || true
 done
 
@@ -128,7 +138,6 @@ if [[ ${#FAILED_PAGES[@]} -gt 0 ]]; then
   warn "Re-run with: LH_TIMEOUT=120 bash scripts/lighthouse-seo-audit.sh"
 fi
 
-# ── Check we have at least one report ────────────────────────────────────────
 if ! ls "$OUT_DIR"/lhr-*.json 1>/dev/null 2>&1; then
   die "No LHR reports were generated. Check that the server is running and Chromium works."
 fi
@@ -201,7 +210,6 @@ for (const file of lhrFiles) {
     if (scoreDisplayMode === 'notApplicable') {
       icon = '\u2013'; color = DIM; grandNA++;
     } else if (scoreDisplayMode === 'manual') {
-      // Manual checks cannot be auto-scored — show as informational
       icon = '\u25cb'; color = DIM;
       note = '  ' + DIM + '(manual)' + RST;
       grandManual++;
@@ -233,7 +241,7 @@ for (const file of lhrFiles) {
 }
 
 console.log('');
-console.log('  ' + BLD + CYN + '\u2500\u2500  Summary  ' + RST);
+console.log('  ' + BLD + CYN + '\u2500\u2500  SEO Summary  ' + RST);
 console.log('  ' + '\u2500'.repeat(62));
 console.log('  ' + GRN + '\u2714  Passed  : ' + grandPass + RST);
 if (grandFail > 0) {
@@ -247,9 +255,179 @@ if (grandManual > 0) {
 if (grandNA > 0) {
   console.log('  ' + DIM + '\u2013  N/A     : ' + grandNA + RST);
 }
+
+if (grandFail > 0) process.exitCode = 1;
+NODEEOF
+
+# ── Performance Budget Check ──────────────────────────────────────────────────
+h "Performance Budget"
+
+node --input-type=module << NODEEOF
+import { readdirSync, readFileSync } from 'fs';
+import { join } from 'path';
+
+const outDir      = '${OUT_DIR}';
+const budgetFile  = '${BUDGET_FILE}';
+const minScore    = Number('${PERF_MIN_SCORE}');
+
+const GRN = '\x1b[32m', RED = '\x1b[31m', YEL = '\x1b[33m',
+      CYN = '\x1b[36m', BLD = '\x1b[1m',  DIM = '\x1b[2m',  RST = '\x1b[0m';
+
+// ── Load budget ───────────────────────────────────────────────────────────────
+const budgets = JSON.parse(readFileSync(budgetFile, 'utf8'));
+// Use the first budget entry (applies to /* — all pages)
+const budget = budgets[0] ?? {};
+
+// Map metric IDs → { label, budget (ms or raw), unit }
+const TIMING_BUDGETS = (budget.timings ?? []).reduce((acc, t) => {
+  acc[t.metric] = { budget: t.budget };
+  return acc;
+}, {});
+
+const RESOURCE_BUDGETS = (budget.resourceSizes ?? []).reduce((acc, r) => {
+  acc[r.resourceType] = { budgetKB: r.budget };
+  return acc;
+}, {});
+
+// ── Metric display config ─────────────────────────────────────────────────────
+const TIMING_META = {
+  'first-contentful-paint':   { label: 'First Contentful Paint (FCP)', unit: 'ms',  fmt: v => Math.round(v) + ' ms' },
+  'largest-contentful-paint': { label: 'Largest Contentful Paint (LCP)', unit: 'ms', fmt: v => Math.round(v) + ' ms' },
+  'cumulative-layout-shift':  { label: 'Cumulative Layout Shift (CLS)',  unit: '',   fmt: v => v.toFixed(3) },
+  'total-blocking-time':      { label: 'Total Blocking Time (TBT)',      unit: 'ms', fmt: v => Math.round(v) + ' ms' },
+  'interactive':              { label: 'Time to Interactive (TTI)',      unit: 'ms', fmt: v => Math.round(v) + ' ms' },
+};
+
+const RESOURCE_META = {
+  script:     { label: 'JS bundle size' },
+  stylesheet: { label: 'CSS bundle size' },
+  image:      { label: 'Image size' },
+  font:       { label: 'Font size' },
+  total:      { label: 'Total page weight' },
+};
+
+// ── Process reports ───────────────────────────────────────────────────────────
+const lhrFiles = readdirSync(outDir)
+  .filter(f => f.startsWith('lhr-') && f.endsWith('.json'))
+  .sort();
+
+let budgetBreaches = 0;
+
+for (const file of lhrFiles) {
+  const lhr  = JSON.parse(readFileSync(join(outDir, file), 'utf8'));
+  const rawUrl = lhr.requestedUrl || lhr.finalUrl || '';
+  let pagePath;
+  try { pagePath = new URL(rawUrl).pathname || '/'; } catch { pagePath = rawUrl; }
+
+  const perfScore  = lhr.categories?.performance?.score;
+  const perf100    = perfScore != null ? Math.round(perfScore * 100) : null;
+  const scoreColor = perf100 == null ? DIM
+                   : perf100 >= minScore ? GRN
+                   : perf100 >= minScore * 0.85 ? YEL : RED;
+
+  const scoreBadge = perf100 == null
+    ? DIM + 'n/a' + RST
+    : BLD + scoreColor + perf100 + '/100' + RST +
+      (perf100 < minScore
+        ? '  ' + RED + 'FAIL (min: ' + minScore + ')' + RST
+        : '  ' + GRN + 'PASS' + RST);
+
+  console.log('');
+  console.log(
+    '  ' + BLD + CYN + ('Page: ' + pagePath).padEnd(36) + RST +
+    'Perf Score: ' + scoreBadge
+  );
+  console.log('  ' + '\u2500'.repeat(62));
+
+  if (perf100 != null && perf100 < minScore) budgetBreaches++;
+
+  // ── Core Web Vitals vs timings budget ────────────────────────────────────
+  for (const [auditId, meta] of Object.entries(TIMING_META)) {
+    const audit  = lhr.audits?.[auditId];
+    const bEntry = TIMING_BUDGETS[auditId];
+    if (!audit || audit.numericValue == null) {
+      if (bEntry) console.log('  ' + DIM + '\u2013  ' + meta.label.padEnd(38) + 'no data' + RST);
+      continue;
+    }
+
+    const actual = audit.numericValue;
+    const budgetVal = bEntry?.budget;
+    const fmtActual = meta.fmt(actual);
+
+    if (budgetVal == null) {
+      // No budget configured for this metric — show value only
+      console.log('  ' + DIM + '\u2013  ' + meta.label.padEnd(38) + fmtActual + '  (no budget set)' + RST);
+      continue;
+    }
+
+    const fmtBudget = meta.fmt(budgetVal);
+    const passed    = actual <= budgetVal;
+    const icon      = passed ? '\u2714' : '\u2718';
+    const color     = passed ? GRN : RED;
+    const tag       = passed
+      ? GRN + 'PASS' + RST
+      : RED + 'FAIL' + RST;
+
+    if (!passed) budgetBreaches++;
+
+    console.log(
+      '  ' + color + icon + RST + '  ' +
+      meta.label.padEnd(38) +
+      fmtActual.padStart(10) + '  budget: ' + fmtBudget + '  ' + tag
+    );
+  }
+
+  // ── Resource sizes vs budget ──────────────────────────────────────────────
+  const resourceAudit = lhr.audits?.['resource-summary'];
+  const resourceItems = resourceAudit?.details?.items ?? [];
+  const resourceMap   = {};
+  for (const item of resourceItems) {
+    // transferSize is the compressed on-wire size; size is uncompressed.
+    // Budget uses compressed (transferSize) to match what users actually download.
+    resourceMap[item.resourceType] = item.transferSize ?? item.size ?? 0;
+  }
+
+  for (const [rType, meta] of Object.entries(RESOURCE_META)) {
+    const bEntry = RESOURCE_BUDGETS[rType];
+    if (!bEntry) continue;
+
+    const actualBytes = resourceMap[rType];
+    if (actualBytes == null) {
+      console.log('  ' + DIM + '\u2013  ' + meta.label.padEnd(38) + 'no data' + RST);
+      continue;
+    }
+
+    const actualKB  = actualBytes / 1024;
+    const budgetKB  = bEntry.budgetKB;
+    const passed    = actualKB <= budgetKB;
+    const icon      = passed ? '\u2714' : '\u2718';
+    const color     = passed ? GRN : RED;
+    const tag       = passed ? GRN + 'PASS' + RST : RED + 'FAIL' + RST;
+
+    if (!passed) budgetBreaches++;
+
+    console.log(
+      '  ' + color + icon + RST + '  ' +
+      meta.label.padEnd(38) +
+      (actualKB.toFixed(1) + ' KB').padStart(10) +
+      '  budget: ' + budgetKB + ' KB  ' + tag
+    );
+  }
+}
+
+// ── Budget summary ────────────────────────────────────────────────────────────
+console.log('');
+console.log('  ' + BLD + CYN + '\u2500\u2500  Budget Summary  ' + RST);
+console.log('  ' + '\u2500'.repeat(62));
+if (budgetBreaches === 0) {
+  console.log('  ' + GRN + '\u2714  All performance budgets passed.' + RST);
+} else {
+  console.log('  ' + RED + '\u2718  ' + budgetBreaches + ' budget breach(es) detected.' + RST);
+  console.log('  ' + DIM + '     Adjust thresholds in performance-budget.json or fix the regressions.' + RST);
+}
 console.log('');
 console.log('  ' + DIM + 'Reports saved to: lh-reports/${TIMESTAMP}/' + RST);
 console.log('');
 
-if (grandFail > 0) process.exit(1);
+if (budgetBreaches > 0) process.exitCode = 1;
 NODEEOF
