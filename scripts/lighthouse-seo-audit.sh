@@ -6,7 +6,12 @@
 # performance budget gate.
 #
 # Usage:
-#   bash scripts/lighthouse-seo-audit.sh [BASE_URL]
+#   bash scripts/lighthouse-seo-audit.sh [OPTIONS] [BASE_URL]
+#
+# Options:
+#   --pages <paths>   Comma-separated list of paths to audit.
+#                     Example: --pages /,/blog,/pricing
+#                     Defaults to: /,/blog,/services,/pricing
 #
 # BASE_URL defaults to http://localhost:5000
 #
@@ -23,11 +28,21 @@
 #   LH_TIMEOUT      Per-page audit timeout in seconds (default: 60)
 #   PERF_MIN_SCORE  Minimum Lighthouse performance score 0-100 (default: 80)
 #
-# Expected results (after fixes applied 2026-05-12):
-#   /         → 100/100 SEO, all checks PASS
-#   /blog     → 100/100 SEO, all checks PASS
-#   /services → 100/100 SEO, all checks PASS
-#   /pricing  → 100/100 SEO, all checks PASS
+# Examples:
+#   # Default pages
+#   bash scripts/lighthouse-seo-audit.sh
+#
+#   # Single blog post
+#   bash scripts/lighthouse-seo-audit.sh --pages /blog/fintech-seo-strategy-2026
+#
+#   # Multiple specific routes
+#   bash scripts/lighthouse-seo-audit.sh --pages /,/glossary/api,/locations/london
+#
+#   # Custom base URL + specific pages
+#   bash scripts/lighthouse-seo-audit.sh --pages /pricing http://localhost:5000
+#
+#   # Stricter performance gate with longer timeout
+#   LH_TIMEOUT=120 PERF_MIN_SCORE=90 bash scripts/lighthouse-seo-audit.sh --pages /,/blog
 
 set -euo pipefail
 
@@ -45,7 +60,37 @@ warn() { echo -e "  ${YEL}⚠${RST}  $*"; }
 die()  { echo -e "\n  ${RED}✘${RST}  $*" >&2; exit 1; }
 
 # ── Arguments ─────────────────────────────────────────────────────────────────
-BASE_URL="${1:-http://localhost:5000}"
+BASE_URL=""
+PAGES_RAW=""   # comma-separated paths from --pages flag
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --pages)
+      [[ $# -gt 1 ]] || die "--pages requires a value (comma-separated paths, e.g. /,/blog,/pricing)"
+      PAGES_RAW="$2"
+      shift 2
+      ;;
+    --pages=*)
+      PAGES_RAW="${1#--pages=}"
+      shift
+      ;;
+    --help|-h)
+      sed -n '2,/^set -/{ /^set -/d; s/^# \{0,1\}//; p }' "${BASH_SOURCE[0]}"
+      exit 0
+      ;;
+    -*)
+      die "Unknown flag: $1 (run with --help to see usage)"
+      ;;
+    *)
+      # First positional arg is the base URL
+      [[ -z "$BASE_URL" ]] || die "Unexpected argument: $1"
+      BASE_URL="$1"
+      shift
+      ;;
+  esac
+done
+
+BASE_URL="${BASE_URL:-http://localhost:5000}"
 BASE_URL="${BASE_URL%/}"
 
 # Per-page audit timeout in seconds.
@@ -92,8 +137,19 @@ mkdir -p "$OUT_DIR"
 LHCI_DIR="$ROOT/.lighthouseci"
 
 # ── Pages to audit ────────────────────────────────────────────────────────────
-PAGES=("/" "/blog" "/services" "/pricing")
+# Build PAGES array from --pages flag (comma-separated) or fall back to defaults.
+if [[ -n "$PAGES_RAW" ]]; then
+  IFS=',' read -ra PAGES <<< "$PAGES_RAW"
+  # Trim spaces and ensure each path starts with /
+  for i in "${!PAGES[@]}"; do
+    PAGES[$i]="${PAGES[$i]// /}"
+    [[ "${PAGES[$i]}" == /* ]] || PAGES[$i]="/${PAGES[$i]}"
+  done
+else
+  PAGES=("/" "/blog" "/services" "/pricing")
+fi
 
+echo -e "  Pages (${#PAGES[@]}):       ${BLD}${PAGES[*]}${RST}"
 info "Auditing ${#PAGES[@]} pages — reports → lh-reports/$TIMESTAMP/"
 
 # ── Collect reports ───────────────────────────────────────────────────────────
