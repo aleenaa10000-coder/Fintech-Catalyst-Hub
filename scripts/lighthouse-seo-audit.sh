@@ -18,6 +18,11 @@
 #                     the normal colour output. Useful for CI scripts,
 #                     dashboards, or piping into jq.
 #
+#   --compare [path]  Diff this run against a previous summary.json and print
+#                     a regression report. Regressions exit with code 1.
+#                     If path is omitted, the most recent previous run in
+#                     lh-reports/ is used automatically. Implies --format json.
+#
 # BASE_URL defaults to http://localhost:5000
 #
 # NOTE: Always use http://localhost:5000 (NOT the .replit.dev URL).
@@ -54,6 +59,15 @@
 #
 #   # Full CI-style run: specific pages + JSON output
 #   bash scripts/lighthouse-seo-audit.sh --pages /,/blog,/pricing --format json
+#
+#   # Compare this run against the previous one (auto-discovered)
+#   bash scripts/lighthouse-seo-audit.sh --compare
+#
+#   # Compare against a specific previous summary
+#   bash scripts/lighthouse-seo-audit.sh --compare lh-reports/20260511-120000/summary.json
+#
+#   # CI regression gate: specific pages, JSON output, compare against baseline
+#   bash scripts/lighthouse-seo-audit.sh --pages /,/blog --compare lh-reports/baseline/summary.json
 
 set -euo pipefail
 
@@ -72,8 +86,9 @@ die()  { echo -e "\n  ${RED}✘${RST}  $*" >&2; exit 1; }
 
 # ── Arguments ─────────────────────────────────────────────────────────────────
 BASE_URL=""
-PAGES_RAW=""   # comma-separated paths from --pages flag
-FORMAT=""      # "json" to write machine-readable summary, empty for terminal-only
+PAGES_RAW=""    # comma-separated paths from --pages flag
+FORMAT=""       # "json" to write machine-readable summary, empty for terminal-only
+COMPARE_FILE="" # path to a previous summary.json, or "auto" to discover latest
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -97,6 +112,20 @@ while [[ $# -gt 0 ]]; do
       [[ "$FORMAT" == "json" ]] || die "Unknown format: '$FORMAT'. Only 'json' is supported."
       shift
       ;;
+    --compare)
+      # Optional value: if next arg exists and doesn't start with - it's the path
+      if [[ $# -gt 1 && "${2:-}" != -* && -n "${2:-}" ]]; then
+        COMPARE_FILE="$2"
+        shift 2
+      else
+        COMPARE_FILE="auto"
+        shift
+      fi
+      ;;
+    --compare=*)
+      COMPARE_FILE="${1#--compare=}"
+      shift
+      ;;
     --help|-h)
       sed -n '2,/^set -/{ /^set -/d; s/^# \{0,1\}//; p }' "${BASH_SOURCE[0]}"
       exit 0
@@ -116,6 +145,9 @@ done
 BASE_URL="${BASE_URL:-http://localhost:5000}"
 BASE_URL="${BASE_URL%/}"
 
+# --compare implies --format json (we need summary.json to diff against)
+[[ -n "$COMPARE_FILE" && -z "$FORMAT" ]] && FORMAT="json"
+
 # Per-page audit timeout in seconds.
 PAGE_TIMEOUT="${LH_TIMEOUT:-60}"
 
@@ -126,7 +158,8 @@ h "Lighthouse SEO + Performance Audit — FintechPressHub"
 echo -e "  Auditing:        ${BLD}${BASE_URL}${RST}"
 echo -e "  Min perf score:  ${BLD}${PERF_MIN_SCORE}/100${RST}"
 echo -e "  Budgets from:    ${BLD}performance-budget.json${RST}"
-[[ -n "$FORMAT" ]] && echo -e "  Output format:   ${BLD}${FORMAT}${RST}"
+[[ -n "$FORMAT"       ]] && echo -e "  Output format:   ${BLD}${FORMAT}${RST}"
+[[ -n "$COMPARE_FILE" ]] && echo -e "  Compare mode:    ${BLD}on${RST}"
 
 # ── Pre-flight ────────────────────────────────────────────────────────────────
 echo ""
@@ -676,5 +709,209 @@ console.log('  \x1b[2mPipe into jq:  cat ' + jsonOut + ' | jq .\x1b[0m');
 console.log('  \x1b[2mFailed checks: cat ' + jsonOut + " | jq '[.pages[].seoChecks[] | select(.status == \"fail\")]'\x1b[0m");
 console.log('  \x1b[2mBudget fails:  cat ' + jsonOut + " | jq '[.pages[].budgets.timings[] | select(.passed == false)]'\x1b[0m");
 console.log('');
+NODEEOF
+fi
+
+# ── Regression compare ────────────────────────────────────────────────────────
+if [[ -n "$COMPARE_FILE" ]]; then
+  JSON_OUT_FILE="$OUT_DIR/summary.json"
+  h "Regression Report"
+
+  node --input-type=module << NODEEOF
+import { readdirSync, readFileSync, existsSync } from 'fs';
+import { join, resolve } from 'path';
+
+const GRN = '\x1b[32m', RED = '\x1b[31m', YEL = '\x1b[33m',
+      CYN = '\x1b[36m', BLD = '\x1b[1m',  DIM = '\x1b[2m',  RST = '\x1b[0m';
+
+const currentFile = '${JSON_OUT_FILE}';
+const compareArg  = '${COMPARE_FILE}';
+const lhReports   = '${ROOT}/lh-reports';
+
+// ── Resolve the "previous" summary ───────────────────────────────────────────
+let prevFile;
+if (compareArg === 'auto') {
+  // Find all summary.json files, exclude the current run's dir, pick the newest
+  const currentDir = '${OUT_DIR}';
+  let candidates = [];
+  try {
+    candidates = readdirSync(lhReports)
+      .map(d => join(lhReports, d, 'summary.json'))
+      .filter(f => existsSync(f) && resolve(join(lhReports, f.split('/').slice(-2)[0])) !== resolve(currentDir))
+      .sort();   // dir names are timestamps — lexicographic sort = chronological
+  } catch {}
+  if (candidates.length === 0) {
+    console.log('  ' + YEL + '⚠' + RST + '  No previous summary.json found in lh-reports/ — skipping compare.');
+    console.log('  ' + DIM + '    Run the audit again after this run completes to get a diff.' + RST);
+    console.log('');
+    process.exit(0);
+  }
+  prevFile = candidates[candidates.length - 1];
+} else {
+  prevFile = compareArg;
+}
+
+if (!existsSync(prevFile)) {
+  console.error(RED + '  ✘  Previous summary not found: ' + prevFile + RST);
+  process.exit(1);
+}
+if (!existsSync(currentFile)) {
+  console.error(RED + '  ✘  Current summary not found: ' + currentFile + RST);
+  console.error(DIM + '    (--compare requires --format json or auto-enables it)' + RST);
+  process.exit(1);
+}
+
+const prev = JSON.parse(readFileSync(prevFile, 'utf8'));
+const curr = JSON.parse(readFileSync(currentFile, 'utf8'));
+
+console.log('  ' + DIM + 'Previous: ' + prevFile + RST);
+console.log('  ' + DIM + 'Current:  ' + currentFile + RST);
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const arrow = (delta, lowerIsBetter = true) => {
+  if (delta === 0 || delta == null) return DIM + '  →  ' + RST;
+  const worse = lowerIsBetter ? delta > 0 : delta < 0;
+  return worse ? RED + '  ▲  ' + RST : GRN + '  ▼  ' + RST;
+};
+const scoreArrow = (delta) => {
+  if (delta === 0 || delta == null) return DIM + '  →  ' + RST;
+  return delta > 0 ? GRN + '  ▲  ' + RST : RED + '  ▼  ' + RST;
+};
+const fmtDelta = (delta, unit = '') => {
+  if (delta == null) return '';
+  const sign = delta > 0 ? '+' : '';
+  return DIM + '(' + sign + delta + unit + ')' + RST;
+};
+const pct = (curr, prev) => {
+  if (!prev) return '';
+  const d = Math.round(((curr - prev) / prev) * 100);
+  const sign = d > 0 ? '+' : '';
+  return DIM + ' ' + sign + d + '%' + RST;
+};
+
+// ── Index pages by path ───────────────────────────────────────────────────────
+const prevPages = Object.fromEntries((prev.pages ?? []).map(p => [p.path, p]));
+const currPages = Object.fromEntries((curr.pages ?? []).map(p => [p.path, p]));
+const allPaths  = [...new Set([...Object.keys(prevPages), ...Object.keys(currPages)])].sort();
+
+let totalRegressions = 0;
+let totalFixes       = 0;
+
+for (const path of allPaths) {
+  const p = prevPages[path];
+  const c = currPages[path];
+
+  if (!p) { console.log('\n  ' + GRN + '+ New page: ' + path + RST); continue; }
+  if (!c) { console.log('\n  ' + YEL + '- Removed page: ' + path + RST); continue; }
+
+  console.log('');
+  console.log('  ' + BLD + CYN + 'Page: ' + path + RST);
+  console.log('  ' + '\u2500'.repeat(62));
+
+  // ── Scores ─────────────────────────────────────────────────────────────────
+  for (const [key, label] of [['seo', 'SEO score'], ['performance', 'Performance score']]) {
+    const pv = p.scores?.[key], cv = c.scores?.[key];
+    if (pv == null && cv == null) continue;
+    const delta = (cv != null && pv != null) ? cv - pv : null;
+    const col   = delta == null ? DIM : delta > 0 ? GRN : delta < 0 ? RED : DIM;
+    console.log(
+      '  ' + col + label.padEnd(32) + RST +
+      (pv ?? '?') + '/100' + scoreArrow(delta) + (cv ?? '?') + '/100  ' +
+      fmtDelta(delta, 'pts')
+    );
+    if (delta != null && delta < 0) totalRegressions++;
+  }
+
+  // ── SEO check status changes ────────────────────────────────────────────────
+  const prevSeo = Object.fromEntries((p.seoChecks ?? []).map(c => [c.id, c.status]));
+  const currSeo = Object.fromEntries((c.seoChecks ?? []).map(c => [c.id, c.status]));
+  const seoIds  = [...new Set([...Object.keys(prevSeo), ...Object.keys(currSeo)])];
+
+  for (const id of seoIds) {
+    const ps = prevSeo[id], cs = currSeo[id];
+    if (ps === cs) continue;                                     // unchanged — skip
+    const wasOk  = ps === 'pass';
+    const isOk   = cs === 'pass';
+    const wasNeutral = ps === 'manual' || ps === 'na';
+    const isNeutral  = cs === 'manual' || cs === 'na';
+    if (wasNeutral && isNeutral) continue;                       // both neutral — skip
+
+    const check = (c.seoChecks ?? []).find(x => x.id === id);
+    const label = check?.label ?? id;
+    if (!isOk && wasOk) {
+      console.log('  ' + RED + '✘  REGRESSION  ' + RST + label + '  ' + DIM + ps + ' → ' + cs + RST);
+      if (check?.snippet)     console.log('     ' + DIM + '↳ ' + check.snippet + RST);
+      if (check?.explanation) console.log('     ' + DIM + '↳ ' + check.explanation + RST);
+      totalRegressions++;
+    } else if (isOk && !wasOk) {
+      console.log('  ' + GRN + '✔  FIXED       ' + RST + label + '  ' + DIM + ps + ' → ' + cs + RST);
+      totalFixes++;
+    } else {
+      console.log('  ' + YEL + '⚠  CHANGED     ' + RST + label + '  ' + DIM + ps + ' → ' + cs + RST);
+    }
+  }
+
+  // ── Timing deltas ───────────────────────────────────────────────────────────
+  const prevTimings = Object.fromEntries((p.budgets?.timings ?? []).map(t => [t.metric, t]));
+  const currTimings = Object.fromEntries((c.budgets?.timings ?? []).map(t => [t.metric, t]));
+
+  for (const metric of Object.keys(currTimings)) {
+    const pt = prevTimings[metric], ct = currTimings[metric];
+    if (!pt) continue;
+    const delta    = Math.round((ct.actual - pt.actual) * 1000) / 1000;
+    const unit     = ct.unit || '';
+    const worse    = delta > 0;                           // higher = slower = worse
+    const col      = delta === 0 ? DIM : worse ? RED : GRN;
+    const budgetOk = ct.passed !== false;
+    const flag     = !budgetOk ? '  ' + RED + '> budget' + RST : '';
+    if (delta === 0) continue;
+    if (worse && delta > 0) totalRegressions++;
+    console.log(
+      '  ' + col + (worse ? '▲' : '▼') + RST + '  ' +
+      (ct.label ?? metric).padEnd(30) +
+      String(pt.actual + unit).padStart(12) + arrow(delta) +
+      String(ct.actual + unit).padEnd(12) +
+      fmtDelta(delta, unit) + pct(ct.actual, pt.actual) + flag
+    );
+  }
+
+  // ── Resource deltas ─────────────────────────────────────────────────────────
+  const prevRes = Object.fromEntries((p.budgets?.resources ?? []).map(r => [r.type, r]));
+  const currRes = Object.fromEntries((c.budgets?.resources ?? []).map(r => [r.type, r]));
+
+  for (const rType of Object.keys(currRes)) {
+    const pr = prevRes[rType], cr = currRes[rType];
+    if (!pr) continue;
+    const delta  = Math.round((cr.actualKB - pr.actualKB) * 10) / 10;
+    const worse  = delta > 0;
+    const col    = delta === 0 ? DIM : worse ? RED : GRN;
+    const flag   = !cr.passed ? '  ' + RED + '> budget' + RST : '';
+    if (delta === 0) continue;
+    if (worse && delta > 50) totalRegressions++;  // only flag meaningful size increases (>50 KB)
+    console.log(
+      '  ' + col + (worse ? '▲' : '▼') + RST + '  ' +
+      (cr.label ?? rType).padEnd(30) +
+      String(pr.actualKB + ' KB').padStart(12) + arrow(delta) +
+      String(cr.actualKB + ' KB').padEnd(12) +
+      fmtDelta(delta, ' KB') + pct(cr.actualKB, pr.actualKB) + flag
+    );
+  }
+}
+
+// ── Summary ───────────────────────────────────────────────────────────────────
+console.log('');
+console.log('  ' + BLD + CYN + '\u2500\u2500  Compare Summary  ' + RST);
+console.log('  ' + '\u2500'.repeat(62));
+if (totalRegressions === 0 && totalFixes === 0) {
+  console.log('  ' + DIM + '\u2013  No changes detected between runs.' + RST);
+} else {
+  if (totalFixes > 0)
+    console.log('  ' + GRN + '\u2714  Fixes      : ' + totalFixes + RST);
+  if (totalRegressions > 0)
+    console.log('  ' + RED + '\u2718  Regressions: ' + totalRegressions + RST);
+}
+console.log('');
+
+if (totalRegressions > 0) process.exitCode = 1;
 NODEEOF
 fi
