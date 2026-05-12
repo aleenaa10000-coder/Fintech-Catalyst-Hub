@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { FadeInView } from "@/components/FadeInView";
 import {
   useGetTrustStats,
   useListTestimonials,
@@ -174,11 +174,7 @@ export default function Home() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
+            <div className="fade-in-up">
               <div className="mb-6 flex justify-center">
                 <LandingHealthIndicator />
               </div>
@@ -207,7 +203,7 @@ export default function Home() {
                   </Button>
                 </Link>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -220,13 +216,7 @@ export default function Home() {
           <h2 className="text-center text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-8">
             Fintech SEO Results That Speak for Themselves
           </h2>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.6 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8"
-          >
+          <FadeInView className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats ? (
               <>
                 <div className="text-center">
@@ -262,25 +252,19 @@ export default function Home() {
                 </div>
               ))
             )}
-          </motion.div>
+          </FadeInView>
         </div>
       </section>
 
       {/* Services Overview */}
       <section className="py-24 bg-background" aria-label="Fintech SEO and content marketing services">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center max-w-3xl mx-auto mb-16"
-          >
+          <FadeInView className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Fintech SEO & Content Marketing Services</h2>
             <p className="text-lg text-muted-foreground">
               Generic content agencies don't understand Open Banking, DeFi, or payment gateways. We pair industry experts with SEO specialists to drive qualified traffic that actually converts to pipeline.
             </p>
-          </motion.div>
+          </FadeInView>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             {[
@@ -303,13 +287,7 @@ export default function Home() {
                 href: "/services/fintech-seo-audit",
               },
             ].map(({ Icon, title, desc, href }, i) => (
-              <motion.div
-                key={title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-              >
+              <FadeInView key={title} delay={i * 100}>
                 <Link href={href} className="block h-full">
                   <Card className="h-full border bg-card transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:border-primary/40">
                     <CardContent className="p-8">
@@ -321,7 +299,7 @@ export default function Home() {
                     </CardContent>
                   </Card>
                 </Link>
-              </motion.div>
+              </FadeInView>
             ))}
           </div>
 
@@ -339,25 +317,13 @@ export default function Home() {
       {/* Testimonials */}
       <section className="py-24 bg-secondary/30" aria-label="Client testimonials">
         <div className="container mx-auto px-4">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.5 }}
-            className="text-3xl md:text-4xl font-bold text-center mb-16"
-          >
+          <FadeInView as="h2" className="text-3xl md:text-4xl font-bold text-center mb-16">
             What Fintech Leaders Say About Our SEO Agency
-          </motion.h2>
+          </FadeInView>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {Array.isArray(testimonials) && testimonials.length > 0 ? (
               testimonials.map((testimonial, i) => (
-                <motion.div
-                  key={testimonial.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: i * 0.1 }}
-                >
+                <FadeInView key={testimonial.id} delay={i * 100}>
                   <Card className="h-full bg-card">
                     <CardContent className="p-8 flex flex-col h-full">
                       <div className="flex gap-1 mb-6">
@@ -374,7 +340,7 @@ export default function Home() {
                       </div>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </FadeInView>
               ))
             ) : (
               Array.from({ length: 3 }).map((_, i) => (
@@ -388,13 +354,7 @@ export default function Home() {
       {/* Featured Posts */}
       <section className="py-24 bg-background" aria-label="Latest fintech SEO insights">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.5 }}
-            className="flex justify-between items-end mb-12"
-          >
+          <FadeInView className="flex justify-between items-end mb-12">
             <div>
               <h2 className="text-3xl font-bold mb-4">Latest Fintech SEO & Content Marketing Insights</h2>
               <p className="text-muted-foreground text-lg">Actionable SEO and marketing strategies for fintech.</p>
@@ -402,17 +362,14 @@ export default function Home() {
             <Link href="/blog" className="hidden md:flex">
               <Button variant="ghost">View All Posts <ArrowRight className="ml-2 w-4 h-4" /></Button>
             </Link>
-          </motion.div>
-          
+          </FadeInView>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {Array.isArray(featuredPosts) && featuredPosts.length > 0 ? (
               featuredPosts.map((post, i) => (
-                <motion.div
+                <FadeInView
                   key={post.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  delay={i * 100}
                   className="group cursor-pointer"
                 >
                   <Link href={`/blog/${post.slug}`}>
@@ -446,7 +403,7 @@ export default function Home() {
                       <ArrowRight className="ml-1 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </span>
                   </Link>
-                </motion.div>
+                </FadeInView>
               ))
             ) : (
                Array.from({ length: 3 }).map((_, i) => (
@@ -467,13 +424,7 @@ export default function Home() {
           data-testid="section-home-recently-published"
         >
           <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.5 }}
-              className="flex justify-between items-end mb-8"
-            >
+            <FadeInView className="flex justify-between items-end mb-8">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
                   <Clock className="w-6 h-6 text-primary" />
@@ -511,17 +462,11 @@ export default function Home() {
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
-            </motion.div>
+            </FadeInView>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {recentPosts.map((post, i) => (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: i * 0.05 }}
-                >
+                <FadeInView key={post.id} delay={i * 50}>
                   <Link
                     href={`/blog/${post.slug}`}
                     className="group flex gap-4 p-4 rounded-xl bg-white border border-slate-200 hover:border-primary/40 hover:shadow-md transition-all h-full"
@@ -557,7 +502,7 @@ export default function Home() {
                       </div>
                     </div>
                   </Link>
-                </motion.div>
+                </FadeInView>
               ))}
             </div>
 
@@ -576,13 +521,7 @@ export default function Home() {
       {/* FAQ */}
       <section className="py-20 border-t bg-muted/20" data-testid="section-home-faq" aria-label="Frequently asked questions about fintech SEO">
         <div className="container mx-auto px-4 max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-12"
-          >
+          <FadeInView className="text-center mb-12">
             <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" />
             <h2 className="text-3xl md:text-4xl font-bold mb-3">
               Fintech SEO Questions, Answered
@@ -591,7 +530,7 @@ export default function Home() {
               The questions fintech founders, CMOs, and growth leads ask us
               before they pick up the phone.
             </p>
-          </motion.div>
+          </FadeInView>
           <Accordion
             type="single"
             collapsible
@@ -623,13 +562,7 @@ export default function Home() {
 
       {/* CTA */}
       <section className="py-24 bg-primary text-primary-foreground text-center" aria-label="Get started with FintechPressHub">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6 }}
-          className="container mx-auto px-4 max-w-3xl"
-        >
+        <FadeInView className="container mx-auto px-4 max-w-3xl">
           <h2 className="text-4xl font-bold mb-6">Ready to Scale Your Fintech SEO?</h2>
           <p className="text-xl mb-10 opacity-90">Join top fintech companies scaling their organic revenue with our specialized SEO and content strategies.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -651,7 +584,7 @@ export default function Home() {
               </Button>
             </Link>
           </div>
-        </motion.div>
+        </FadeInView>
       </section>
     </div>
   );

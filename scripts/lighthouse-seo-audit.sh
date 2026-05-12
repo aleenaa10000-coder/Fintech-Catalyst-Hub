@@ -37,6 +37,15 @@
 #                       2 args — A is "before", B is "after"
 #                     Cannot be combined with --compare or --save-baseline.
 #
+#   --trend           Read all saved summary.json runs in lh-reports/ and
+#                     print per-page ASCII sparklines of SEO and Performance
+#                     scores over time, with min/max/latest values and delta
+#                     from first to last run. Includes the baseline snapshot
+#                     (if present) as the first data point. Respects --pages
+#                     to filter which pages are shown. Does not run Lighthouse.
+#                     Cannot be combined with --compare, --save-baseline,
+#                     or --diff-only.
+#
 # BASE_URL defaults to http://localhost:5000
 #
 # NOTE: Always use http://localhost:5000 (NOT the .replit.dev URL).
@@ -97,6 +106,12 @@
 #
 #   # Diff two specific reports
 #   bash scripts/lighthouse-seo-audit.sh --diff-only lh-reports/20260511-120000/summary.json lh-reports/20260512-090000/summary.json
+#
+#   # View score trends across all saved runs
+#   bash scripts/lighthouse-seo-audit.sh --trend
+#
+#   # Trend for specific pages only
+#   bash scripts/lighthouse-seo-audit.sh --trend --pages /,/blog
 
 set -euo pipefail
 
@@ -122,6 +137,7 @@ SAVE_BASELINE=""  # non-empty = copy this run's summary.json to lh-reports/basel
 DIFF_ONLY=""      # non-empty = skip Lighthouse; just diff two existing summary.json files
 DIFF_FILE_A=""    # "before" file for --diff-only (resolved before Node block)
 DIFF_FILE_B=""    # "after"  file for --diff-only (resolved before Node block)
+SHOW_TREND=""     # non-empty = read historical runs and render sparklines; no Lighthouse
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -174,6 +190,10 @@ while [[ $# -gt 0 ]]; do
       fi
       shift
       ;;
+    --trend)
+      SHOW_TREND="1"
+      shift
+      ;;
     --help|-h)
       sed -n '2,/^set -/{ /^set -/d; s/^# \{0,1\}//; p }' "${BASH_SOURCE[0]}"
       exit 0
@@ -200,6 +220,159 @@ BASE_URL="${BASE_URL%/}"
 # --diff-only is mutually exclusive with --compare and --save-baseline
 if [[ -n "$DIFF_ONLY" && ( -n "$COMPARE_FILE" || -n "$SAVE_BASELINE" ) ]]; then
   die "--diff-only cannot be combined with --compare or --save-baseline"
+fi
+
+# --trend is mutually exclusive with --compare, --save-baseline, and --diff-only
+if [[ -n "$SHOW_TREND" && ( -n "$COMPARE_FILE" || -n "$SAVE_BASELINE" || -n "$DIFF_ONLY" ) ]]; then
+  die "--trend cannot be combined with --compare, --save-baseline, or --diff-only"
+fi
+
+# ── Trend mode: sparklines over historical runs ─────────────────────────────
+if [[ -n "$SHOW_TREND" ]]; then
+  h "Score Trend"
+  _lh_dir="$ROOT/lh-reports"
+  TREND_REPORT_DIR="$_lh_dir" TREND_PAGES="$PAGES_RAW" node - <<'NODEEOF'
+'use strict';
+const fs   = require('fs');
+const path = require('path');
+
+const BLD = '\x1b[1m', CYN = '\x1b[36m', DIM = '\x1b[2m';
+const GRN = '\x1b[32m', YEL = '\x1b[33m', RED = '\x1b[31m', RST = '\x1b[0m';
+const BLOCKS = ['▁','▂','▃','▄','▅','▆','▇','█'];
+
+function sparkline(values) {
+  if (!values.length) return DIM + '(no data)' + RST;
+  const lo = 0, hi = 100, range = hi - lo;
+  return values.map(v => {
+    const idx = Math.min(BLOCKS.length - 1, Math.floor(((v - lo) / range) * BLOCKS.length));
+    return BLOCKS[Math.max(0, idx)];
+  }).join('');
+}
+
+function colour(v) {
+  if (v == null) return DIM + '  ?' + RST;
+  const s = String(v).padStart(3);
+  if (v >= 90) return GRN + s + RST;
+  if (v >= 70) return YEL + s + RST;
+  return RED + s + RST;
+}
+
+function fmtDelta(d) {
+  if (d == null) return '';
+  if (d > 0) return GRN + ' (+' + d + ')' + RST;
+  if (d < 0) return RED + ' (' + d + ')' + RST;
+  return DIM + ' (±0)' + RST;
+}
+
+const reportDir = process.env.TREND_REPORT_DIR;
+const pagesRaw  = (process.env.TREND_PAGES || '').trim();
+
+// Collect all timestamped summary.json dirs (sort = chronological for ISO names)
+const summaries = [];
+try {
+  const baseline = path.join(reportDir, 'baseline', 'summary.json');
+  if (fs.existsSync(baseline)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(baseline, 'utf8'));
+      summaries.push({ dir: 'baseline', data });
+    } catch (_) {}
+  }
+  const dirs = fs.readdirSync(reportDir).sort();
+  for (const dir of dirs) {
+    if (dir === 'baseline') continue;
+    const f = path.join(reportDir, dir, 'summary.json');
+    if (!fs.existsSync(f)) continue;
+    try {
+      const data = JSON.parse(fs.readFileSync(f, 'utf8'));
+      summaries.push({ dir, data });
+    } catch (_) {}
+  }
+} catch (e) {
+  console.error('  Error reading lh-reports: ' + e.message);
+  process.exit(1);
+}
+
+if (summaries.length === 0) {
+  console.log('\n  ' + YEL + 'No saved runs found in lh-reports/.' + RST);
+  console.log('  ' + DIM + 'Run the audit first:' + RST);
+  console.log('  ' + DIM + '  bash scripts/lighthouse-seo-audit.sh --format json' + RST + '\n');
+  process.exit(0);
+}
+
+// Build page → time-series map
+const pageMap = new Map(); // path → [{dir, seo, perf}]
+for (const { dir, data } of summaries) {
+  for (const page of data.pages ?? []) {
+    if (!pageMap.has(page.path)) pageMap.set(page.path, []);
+    pageMap.get(page.path).push({
+      dir,
+      seo:  page.scores?.seo          ?? null,
+      perf: page.scores?.performance  ?? null,
+    });
+  }
+}
+
+// Apply --pages filter
+const filterPaths = pagesRaw ? new Set(pagesRaw.split(',').map(p => p.trim())) : null;
+const allPaths = [...pageMap.keys()]
+  .filter(p => !filterPaths || filterPaths.has(p))
+  .sort();
+
+if (allPaths.length === 0) {
+  console.log('\n  ' + YEL + 'No matching pages found.' + RST);
+  if (filterPaths) console.log('  ' + DIM + 'Filter: ' + pagesRaw + RST);
+  process.exit(0);
+}
+
+// Date-range metadata from non-baseline runs
+const tsRuns = summaries.filter(s => s.dir !== 'baseline');
+const firstTs = tsRuns[0]?.data?.createdAt ?? tsRuns[0]?.dir ?? '?';
+const lastTs  = tsRuns[tsRuns.length - 1]?.data?.createdAt ?? tsRuns[tsRuns.length - 1]?.dir ?? '?';
+const hasBaseline = summaries.some(s => s.dir === 'baseline');
+
+console.log('');
+console.log(
+  BLD + CYN + '──  Score Trend  ' + RST +
+  DIM + '(' + summaries.length + ' run' + (summaries.length !== 1 ? 's' : '') +
+  (hasBaseline ? ', inc. baseline' : '') + ')' + RST
+);
+console.log('  ' + '─'.repeat(66));
+
+for (const pagePath of allPaths) {
+  const runs = pageMap.get(pagePath);
+  const seoVals  = runs.map(r => r.seo ).filter(v => v != null);
+  const perfVals = runs.map(r => r.perf).filter(v => v != null);
+
+  console.log('');
+  console.log('  ' + BLD + 'Page: ' + pagePath + RST);
+  console.log('  ' + '─'.repeat(62));
+
+  for (const [vals, label] of [[seoVals, 'SEO score '], [perfVals, 'Perf score']]) {
+    if (vals.length === 0) { continue; }
+    const minV  = Math.min(...vals);
+    const maxV  = Math.max(...vals);
+    const first = vals[0];
+    const last  = vals[vals.length - 1];
+    const delta = last - first;
+    console.log(
+      '  ' + DIM + label + RST + '  ' +
+      sparkline(vals) + '  ' +
+      colour(first) + ' → ' + colour(last) +
+      fmtDelta(delta) +
+      DIM + '  min:' + String(minV).padStart(3) + '  max:' + String(maxV).padStart(3) + RST
+    );
+  }
+}
+
+console.log('');
+if (tsRuns.length > 0) {
+  console.log('  ' + DIM + 'Runs : ' + tsRuns.length + (hasBaseline ? ' timestamped + baseline' : ' timestamped') + RST);
+  console.log('  ' + DIM + 'From : ' + firstTs + RST);
+  console.log('  ' + DIM + 'To   : ' + lastTs  + RST);
+}
+console.log('');
+NODEEOF
+  exit $?
 fi
 
 # ── Diff-only mode: compare two existing summaries, no Lighthouse run ─────────
