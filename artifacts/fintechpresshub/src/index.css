@@ -2,6 +2,22 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
+/*
+ * Inter font-metric overrides on the system-font fallback.
+ * Matches Inter v4's ascent/descent/size so the browser allocates
+ * the exact same line-box space with Arial while Inter loads, which
+ * eliminates the h1 layout-shift (CLS) caused by font-swap.
+ */
+@font-face {
+  font-family: "Inter Fallback";
+  src: local("Arial");
+  size-adjust: 96.7%;
+  ascent-override: 92.2%;
+  descent-override: 24.3%;
+  line-gap-override: 0%;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -121,7 +137,7 @@
   --chart-4: 43 74% 66%;
   --chart-5: 27 87% 67%;
 
-  --app-font-sans: 'Inter', sans-serif;
+  --app-font-sans: 'Inter', 'Inter Fallback', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
   --radius: .5rem; 
@@ -320,4 +336,25 @@ iframe[src*="replit.com/badge"]:hover {
 
 .fade-in-up-init {
   opacity: 0;
+}
+
+/*
+ * content-visibility: auto lets the browser skip paint/layout for
+ * off-screen sections until they are about to scroll into view.
+ * Using it on large below-fold sections measurably reduces initial
+ * main-thread work and improves FCP/LCP on long pages.
+ * `contain-intrinsic-size` gives the browser a placeholder height so
+ * the scrollbar and layout don't jump when sections are skipped.
+ */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 600px;
+}
+
+/*
+ * Hint the GPU to composite the particle canvas on its own layer so
+ * the animation loop doesn't block the main thread layout pipeline.
+ */
+canvas[class*="absolute"] {
+  will-change: transform;
 }

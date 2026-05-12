@@ -130,6 +130,23 @@ export default defineConfig(({ command }) => {
           ) {
             return "vendor-date";
           }
+          if (
+            id.includes("/recharts/") ||
+            id.includes("/victory-vendor/") ||
+            id.includes("/d3-") ||
+            id.includes("/d3/")
+          ) {
+            return "vendor-recharts";
+          }
+          if (id.includes("/jspdf/") || id.includes("/jsPDF/")) {
+            return "vendor-jspdf";
+          }
+          if (
+            id.includes("/@uppy/") ||
+            id.includes("/uppy/")
+          ) {
+            return "vendor-uppy";
+          }
 
           return undefined;
         },
@@ -148,7 +165,6 @@ export default defineConfig(({ command }) => {
       "react-helmet-async",
       "@tanstack/react-query",
       "wouter",
-      "framer-motion",
       "lucide-react",
       "clsx",
       "tailwind-merge",

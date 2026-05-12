@@ -28,6 +28,8 @@ export function ParticleNetwork({
   });
 
   useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -36,22 +38,16 @@ export function ParticleNetwork({
     const dpr = window.devicePixelRatio || 1;
     let particles: Particle[] = [];
     let raf = 0;
+    let running = false;
     let width = 0;
     let height = 0;
 
-    const resize = () => {
-      const parent = canvas.parentElement;
-      if (!parent) return;
-      const rect = parent.getBoundingClientRect();
-      width = rect.width;
-      height = rect.height;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      const target = Math.max(36, Math.min(120, Math.floor(width * height * density)));
+    const buildParticles = () => {
+      const isMobile = width < 768;
+      const effectiveDensity = isMobile ? density * 0.35 : density;
+      const min = isMobile ? 18 : 36;
+      const max = isMobile ? 48 : 120;
+      const target = Math.max(min, Math.min(max, Math.floor(width * height * effectiveDensity)));
       particles = Array.from({ length: target }, () => ({
         x: Math.random() * width,
         y: Math.random() * height,
@@ -59,6 +55,23 @@ export function ParticleNetwork({
         vy: (Math.random() - 0.5) * 0.35,
       }));
     };
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { inlineSize: w, blockSize: h } = entry.contentBoxSize[0];
+      width = w;
+      height = h;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      buildParticles();
+    });
+
+    const parent = canvas.parentElement;
+    if (parent) ro.observe(parent);
 
     const handleMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -72,7 +85,13 @@ export function ParticleNetwork({
       mouseRef.current.y = -9999;
     };
 
+    const effectiveLinkDist =
+      typeof window !== "undefined" && window.innerWidth < 768
+        ? linkDistance * 0.65
+        : linkDistance;
+
     const draw = () => {
+      if (!running) return;
       ctx.clearRect(0, 0, width, height);
 
       for (const p of particles) {
@@ -93,8 +112,8 @@ export function ParticleNetwork({
           const dx = a.x - b.x;
           const dy = a.y - b.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < linkDistance) {
-            const alpha = 1 - dist / linkDistance;
+          if (dist < effectiveLinkDist) {
+            const alpha = 1 - dist / effectiveLinkDist;
             ctx.strokeStyle = color.replace(
               /rgba?\(([^)]+)\)/,
               (_m, inner) => {
@@ -102,7 +121,7 @@ export function ParticleNetwork({
                 const base = parts.slice(0, 3).join(", ");
                 const baseAlpha = parts[3] ? parseFloat(parts[3]) : 1;
                 return `rgba(${base}, ${(alpha * baseAlpha).toFixed(3)})`;
-              }
+              },
             );
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -123,16 +142,38 @@ export function ParticleNetwork({
       raf = requestAnimationFrame(draw);
     };
 
-    resize();
-    draw();
+    const startAnimation = () => {
+      if (running) return;
+      running = true;
+      if ("requestIdleCallback" in window) {
+        (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number })
+          .requestIdleCallback(draw, { timeout: 600 });
+      } else {
+        setTimeout(draw, 100);
+      }
+    };
 
-    window.addEventListener("resize", resize);
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          startAnimation();
+        } else {
+          running = false;
+          cancelAnimationFrame(raf);
+        }
+      },
+      { threshold: 0.01 },
+    );
+
+    io.observe(canvas);
     canvas.addEventListener("mousemove", handleMouseMove);
     canvas.addEventListener("mouseleave", handleMouseLeave);
 
     return () => {
+      running = false;
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
+      ro.disconnect();
+      io.disconnect();
       canvas.removeEventListener("mousemove", handleMouseMove);
       canvas.removeEventListener("mouseleave", handleMouseLeave);
     };

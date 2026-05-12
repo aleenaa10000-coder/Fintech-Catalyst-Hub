@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -22,10 +22,13 @@ import {
 import { CountUp } from "@/components/CountUp";
 import { ParticleNetwork } from "@/components/ParticleNetwork";
 import { TrustedBy } from "@/components/TrustedBy";
-import { QuickPublishSheet } from "@/components/QuickPublishSheet";
 import { LandingHealthIndicator } from "@/components/LandingHealthIndicator";
 import { useAuth } from "@workspace/replit-auth-web";
 import { optimizeImageUrl, buildSrcSet } from "@/lib/imageUtils";
+
+const QuickPublishSheet = lazy(
+  () => import("@/components/QuickPublishSheet").then((m) => ({ default: m.QuickPublishSheet })),
+);
 
 /** Tiny relative-time formatter used by the "Recently published"
  *  homepage widget. Falls back to an absolute date once a post is
@@ -558,7 +561,11 @@ export default function Home() {
         </div>
       </section>
 
-      {isAdmin ? <QuickPublishSheet /> : null}
+      {isAdmin ? (
+        <Suspense fallback={null}>
+          <QuickPublishSheet />
+        </Suspense>
+      ) : null}
 
       {/* CTA */}
       <section className="py-24 bg-primary text-primary-foreground text-center" aria-label="Get started with FintechPressHub">
