@@ -644,6 +644,37 @@ export default function AdminSeoPerformance() {
               </p>
             )}
 
+            {/* Organic Performance Metrics (GSC) */}
+            <Card className="border border-sky-200 bg-sky-50/50">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-start gap-3">
+                  <TrendingUp className="w-4 h-4 mt-0.5 shrink-0 text-sky-600" />
+                  <div className="flex-1 space-y-3">
+                    <p className="text-sm font-semibold text-sky-900">Organic Performance (Google Search Console)</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { label: "Organic Clicks", value: "—", sub: "last 28 days" },
+                        { label: "Impressions", value: "—", sub: "last 28 days" },
+                        { label: "Avg. Position", value: "—", sub: "last 28 days" },
+                      ].map(({ label, value, sub }) => (
+                        <div key={label} className="rounded-lg border border-sky-200 bg-white px-3 py-2.5 text-center">
+                          <p className="text-xl font-bold text-sky-700">{value}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
+                          <p className="text-[9px] text-muted-foreground/70">{sub}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-sky-700 leading-relaxed">
+                      Connect Google Search Console to populate live organic data. Set{" "}
+                      <code className="font-mono bg-sky-100 px-1 rounded text-[10px]">GSC_CLIENT_EMAIL</code> and{" "}
+                      <code className="font-mono bg-sky-100 px-1 rounded text-[10px]">GSC_PRIVATE_KEY</code>{" "}
+                      environment variables and configure the GSC API integration to enable clicks, impressions, and average position.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Data source note */}
             <Card className="border-dashed">
               <CardContent className="pt-4 pb-4">

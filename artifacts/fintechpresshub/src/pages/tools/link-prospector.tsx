@@ -748,6 +748,39 @@ export default function LinkProspector() {
     URL.revokeObjectURL(url);
   };
 
+  const copyMarkdownTable = () => {
+    if (!filteredSorted || filteredSorted.length === 0) {
+      toast.error("No prospects to copy. Run an analysis first.");
+      return;
+    }
+    const headers = ["Domain", "Score", "Tier", "DA", "Traffic/mo", "Status", "Notes"];
+    const rows = filteredSorted.map((r) => [
+      r.domain,
+      String(r.score),
+      r.label,
+      r.da > 0 ? String(r.da) : "—",
+      r.traffic > 0 ? String(r.traffic.toLocaleString()) : "—",
+      STATUS_LABELS[statusMap[r.domain] ?? "not_started"],
+      notesMap[r.domain] ?? "",
+    ]);
+    const widths = headers.map((h, i) =>
+      Math.max(h.length, ...rows.map((row) => (row[i] ?? "").length), 3),
+    );
+    const pad = (s: string, w: number) => s.padEnd(w);
+    const sep = widths.map((w) => "-".repeat(w));
+    const lines = [
+      "| " + headers.map((h, i) => pad(h, widths[i])).join(" | ") + " |",
+      "| " + sep.map((s, i) => pad(s, widths[i])).join(" | ") + " |",
+      ...rows.map(
+        (row) => "| " + row.map((c, i) => pad(c, widths[i])).join(" | ") + " |",
+      ),
+    ];
+    navigator.clipboard
+      .writeText(lines.join("\n"))
+      .then(() => toast.success(`Copied ${rows.length} prospects as Markdown table`))
+      .catch(() => toast.error("Clipboard write failed — check browser permissions"));
+  };
+
   const updateNote = (domain: string, value: string) => {
     setNotesMap((prev) => {
       const updated = { ...prev, [domain]: value };
@@ -1647,6 +1680,18 @@ Looking forward to hearing from you,
                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">Lemlist / Hunter</span>
                               </p>
                               <p className="text-[10px] text-slate-400 mt-0.5 ml-4">Email, Company, Icebreaker, Website</p>
+                            </button>
+                            <div className="mx-3 my-1 border-t border-slate-100" />
+                            <button
+                              type="button"
+                              onClick={() => { copyMarkdownTable(); setShowExportDropdown(false); }}
+                              className="w-full text-left px-3.5 py-2 hover:bg-emerald-50 transition-colors"
+                            >
+                              <p className="text-[11px] font-semibold text-slate-800 flex items-center gap-1.5">
+                                <FileText className="w-3 h-3 text-emerald-600" />
+                                Copy as Markdown Table
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5 ml-4">Paste into Notion, GitHub, or any Markdown editor</p>
                             </button>
                           </div>
                         </>

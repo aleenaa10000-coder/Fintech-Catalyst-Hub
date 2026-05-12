@@ -764,13 +764,7 @@ export default function AdminDashboard() {
                 href="/admin/newsletter#seo-brief-leads"
                 color="bg-violet-100 text-violet-600"
               />
-              <StatCard
-                icon={ShieldCheck}
-                label="Schema & Rich Results"
-                value="Test →"
-                href="/admin/schema-test"
-                color="bg-sky-100 text-sky-600"
-              />
+              <SchemaHealthSparklineCard />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -1015,6 +1009,7 @@ export default function AdminDashboard() {
                           { label: "Blog", value: sitemapCounts.bySource.blog, color: "bg-green-50 border-green-200 text-green-700" },
                           { label: "Authors", value: sitemapCounts.bySource.author, color: "bg-purple-50 border-purple-200 text-purple-700" },
                           { label: "RSS", value: sitemapCounts.bySource.rss, color: "bg-amber-50 border-amber-200 text-amber-700" },
+                          { label: "Press assets", value: 4, color: "bg-pink-50 border-pink-200 text-pink-700" },
                         ] as const
                       ).map(({ label, value, color }) => (
                         <span key={label} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${color}`}>
@@ -1077,6 +1072,47 @@ export default function AdminDashboard() {
                 <p className="mt-3 text-[11px] text-muted-foreground leading-relaxed">
                   Submits all sitemap URLs to IndexNow (Bing, Yandex, Naver) and pings the Google Search Console sitemap endpoint. Blog posts are also notified automatically on publish.
                 </p>
+              </CardContent>
+            </Card>
+
+            {/* Domain Health Summary — 90-day stale referring domains */}
+            <Card className="mb-6">
+              <CardContent className="pt-5 pb-5 px-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                  <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+                    Referring Domain Health
+                  </h2>
+                  <span className="ml-auto text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5 font-medium">
+                    Connect Ahrefs / Majestic API to activate
+                  </span>
+                </div>
+                <div className="rounded-lg border border-dashed border-amber-200 bg-amber-50/40 px-5 py-4 space-y-3">
+                  <p className="text-sm font-medium text-amber-900">90-day stale domain detector</p>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    Once connected to a backlink data provider, this panel flags referring domains that
+                    haven't sent a new backlink in 90+ days — a signal the link may have been removed or
+                    noindexed. Set{" "}
+                    <code className="font-mono bg-amber-100 px-1 rounded text-[10px]">AHREFS_API_KEY</code>{" "}
+                    or{" "}
+                    <code className="font-mono bg-amber-100 px-1 rounded text-[10px]">MAJESTIC_API_KEY</code>{" "}
+                    in your environment to enable.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: "Active domains", value: "—", color: "bg-emerald-50 border-emerald-200 text-emerald-700" },
+                      { label: "Stale ≥ 90 days", value: "—", color: "bg-amber-100 border-amber-300 text-amber-800" },
+                      { label: "Lost (link removed)", value: "—", color: "bg-red-50 border-red-200 text-red-700" },
+                    ].map(({ label, value, color }) => (
+                      <span
+                        key={label}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${color}`}
+                      >
+                        {label}: {value}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

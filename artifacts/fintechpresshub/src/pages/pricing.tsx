@@ -48,6 +48,18 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            url: `${SITE_URL}/pricing`,
+            name: "Fintech SEO & Content Marketing Pricing",
+            dateModified: __BUILD_TIME_ISO__,
+            inLanguage: "en",
+          })}
+        </script>
+      </Helmet>
       <PageMeta
         page="pricing"
         speakableSelectors={["h1", ".speakable-summary"]}

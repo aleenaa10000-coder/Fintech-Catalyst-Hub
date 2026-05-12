@@ -3655,6 +3655,9 @@ export default function AdminBlog() {
     "all" | "elementary" | "middle" | "high" | "college"
   >("all");
 
+  // SEO completeness filter: "missing" = only posts missing seoTitle or seoDescription.
+  const [seoFilter, setSeoFilter] = useState<"all" | "missing">("all");
+
   // Drag-to-reorder state for the Scheduled tab.
   const [dragSrcIdx, setDragSrcIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
@@ -3716,6 +3719,7 @@ export default function AdminBlog() {
   const handleJumpToPost = (id: number) => {
     setActiveTab("published");
     setReadabilityFilter("all");
+    setSeoFilter("all");
     setEditingId(id);
     setTimeout(() => {
       document
@@ -3746,9 +3750,12 @@ export default function AdminBlog() {
 
   /** Published posts narrowed by the active readability filter. */
   const filteredPosts = useMemo(
-    () => (posts ?? []).filter((p: NonNullable<typeof posts>[number]) => matchesReadabilityFilter(p.content as string)),
+    () => (posts ?? []).filter((p: NonNullable<typeof posts>[number]) =>
+      matchesReadabilityFilter(p.content as string) &&
+      (seoFilter === "all" || !p.seoTitle || !p.seoDescription)
+    ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [posts, readabilityFilter],
+    [posts, readabilityFilter, seoFilter],
   );
 
   /** Scheduled posts narrowed by the active readability filter. */
@@ -4762,6 +4769,38 @@ export default function AdminBlog() {
               filteredCount={filteredPosts.length}
             />
           )}
+          {activeTab === "published" && (() => {
+            const missingSeoCount = (posts ?? []).filter(
+              (p: { seoTitle: string | null; seoDescription: string | null }) =>
+                !p.seoTitle || !p.seoDescription,
+            ).length;
+            return missingSeoCount > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground mr-0.5">SEO meta:</span>
+                <button
+                  type="button"
+                  onClick={() => setSeoFilter(seoFilter === "missing" ? "all" : "missing")}
+                  className={[
+                    "text-[11px] font-medium px-2.5 py-0.5 rounded-full border transition-all",
+                    seoFilter === "missing"
+                      ? "bg-amber-100 text-amber-800 border-amber-300 ring-1 ring-amber-300"
+                      : "border-transparent bg-muted/40 text-muted-foreground hover:bg-muted",
+                  ].join(" ")}
+                >
+                  ⚠ Missing ({missingSeoCount})
+                </button>
+                {seoFilter === "missing" && (
+                  <button
+                    type="button"
+                    onClick={() => setSeoFilter("all")}
+                    className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            ) : null;
+          })()}
           {activeTab === "published" && !previewMode && posts && posts.length > 0 && (
             <div className="flex items-center gap-2 text-sm">
               <Checkbox
