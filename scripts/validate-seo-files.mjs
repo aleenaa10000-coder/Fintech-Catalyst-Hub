@@ -519,6 +519,7 @@ async function checkLegacySitemap() {
   const childUrls    = await checkSitemapIndex(sitemapPaths);
   if (childUrls.length > 0) await checkChildSitemaps(childUrls);
   await checkLegacySitemap();
+  await checkXRobotsHeaders();
 
   // ── Summary ──────────────────────────────────────────────────────────────────
   head("Summary");
