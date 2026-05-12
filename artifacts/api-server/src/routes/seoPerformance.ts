@@ -8,6 +8,7 @@ import {
 import { db, blogPostsTable, linkCheckResultsTable, referringDomainsTable } from "@workspace/db";
 import { sql, lte, count, gte } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
+import { fetchGscDetail } from "../lib/gscClient";
 
 const router: IRouter = Router();
 
@@ -178,6 +179,27 @@ router.get(
       const avgPerWeek = weeks.length > 0 ? totalDomains / weeks.length : 0;
 
       res.json({ weeks, totalDomains, avgPerWeek });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// Google Search Console: organic clicks, impressions, avg position (last 28 days).
+// Returns { configured: false } when GSC env vars are absent so the UI can
+// show a setup card instead of an error.
+router.get(
+  "/admin/seo-performance/gsc",
+  requireAdmin,
+  async (req, res, next) => {
+    try {
+      const daysParam = parseInt((req.query.days as string) ?? "28", 10);
+      const days = Number.isFinite(daysParam) && daysParam > 0 && daysParam <= 90
+        ? daysParam
+        : 28;
+
+      const result = await fetchGscDetail(days);
+      res.json(result);
     } catch (err) {
       next(err);
     }

@@ -25,7 +25,66 @@ import {
   RefreshCw,
   FileText,
   TrendingUp,
+  MousePointerClick,
+  Telescope,
+  BarChart2,
+  Percent,
+  ExternalLink,
 } from "lucide-react";
+
+interface GscTopPage {
+  page: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+interface GscTopQuery {
+  query: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+type GscData =
+  | { configured: false; reason: string }
+  | {
+      configured: true;
+      clicks: number;
+      impressions: number;
+      ctr: number;
+      position: number;
+      startDate: string;
+      endDate: string;
+      topPages: GscTopPage[];
+      topQueries: GscTopQuery[];
+    };
+
+async function fetchGscData(): Promise<GscData> {
+  const res = await fetch("/api/admin/seo-performance/gsc", {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+  return res.json() as Promise<GscData>;
+}
+
+function fmtCtr(ctr: number): string {
+  return (ctr * 100).toFixed(1) + "%";
+}
+
+function fmtPos(pos: number): string {
+  return pos.toFixed(1);
+}
+
+function relPath(fullUrl: string): string {
+  try {
+    return new URL(fullUrl).pathname;
+  } catch {
+    return fullUrl;
+  }
+}
 
 interface SeoPost {
   id: number;
@@ -237,6 +296,20 @@ export default function AdminSeoPerformance() {
       enabled: !!user?.isAdmin,
       staleTime: 2 * 60 * 1000,
     });
+
+  const {
+    data: gscData,
+    isLoading: gscLoading,
+    isError: gscError,
+    refetch: gscRefetch,
+    isFetching: gscFetching,
+  } = useQuery<GscData>({
+    queryKey: ["admin-gsc"],
+    queryFn: fetchGscData,
+    enabled: !!user?.isAdmin,
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
 
   const [sortKey, setSortKey] = useState<SortKey>("viewCount");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -644,34 +717,222 @@ export default function AdminSeoPerformance() {
               </p>
             )}
 
-            {/* Organic Performance Metrics (GSC) */}
-            <Card className="border border-sky-200 bg-sky-50/50">
-              <CardContent className="pt-4 pb-4">
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="w-4 h-4 mt-0.5 shrink-0 text-sky-600" />
-                  <div className="flex-1 space-y-3">
-                    <p className="text-sm font-semibold text-sky-900">Organic Performance (Google Search Console)</p>
-                    <div className="grid grid-cols-3 gap-3">
+            {/* Google Search Console — Organic Performance */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-sky-600" />
+                    <CardTitle className="text-base font-semibold">
+                      Organic Performance
+                    </CardTitle>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-sky-300 text-sky-700 bg-sky-50">
+                      Google Search Console
+                    </Badge>
+                  </div>
+                  {gscData?.configured && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => gscRefetch()}
+                      disabled={gscFetching}
+                      className="gap-1.5 h-7 text-xs"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${gscFetching ? "animate-spin" : ""}`} />
+                      Refresh
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {/* Loading */}
+                {gscLoading && (
+                  <div className="py-6 text-center text-sm text-muted-foreground animate-pulse">
+                    Loading Search Console data…
+                  </div>
+                )}
+
+                {/* Error fetching */}
+                {gscError && !gscLoading && (
+                  <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    Failed to load Search Console data. Check that your service account credentials are valid.
+                  </div>
+                )}
+
+                {/* Not configured */}
+                {gscData && !gscData.configured && (
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-sky-200 bg-sky-50/60 px-4 py-4 space-y-3">
+                      <p className="text-sm font-medium text-sky-900">
+                        Connect Google Search Console to see live organic data
+                      </p>
+                      <ol className="text-xs text-sky-800 space-y-1.5 list-decimal list-inside leading-relaxed">
+                        <li>
+                          Create a Google Cloud service account with <em>Search Console API</em> enabled.
+                        </li>
+                        <li>
+                          Add the service account email as a <strong>Verified owner</strong> or <strong>Full user</strong> on your GSC property.
+                        </li>
+                        <li>
+                          Set three environment variables:{" "}
+                          <code className="font-mono bg-sky-100 px-1 rounded">GSC_CLIENT_EMAIL</code>,{" "}
+                          <code className="font-mono bg-sky-100 px-1 rounded">GSC_PRIVATE_KEY</code>{" "}
+                          (PEM, <code className="font-mono bg-sky-100 px-1 rounded">\n</code>-escaped), and{" "}
+                          <code className="font-mono bg-sky-100 px-1 rounded">GSC_SITE_URL</code>{" "}
+                          (e.g. <code className="font-mono bg-sky-100 px-1 rounded">https://www.fintechpresshub.com</code>{" "}
+                          or <code className="font-mono bg-sky-100 px-1 rounded">sc-domain:fintechpresshub.com</code>).
+                        </li>
+                        <li>Restart the server — data will appear here automatically.</li>
+                      </ol>
+                      <p className="text-[10px] text-sky-600 leading-relaxed">
+                        {gscData.reason}
+                      </p>
+                    </div>
+                    {/* Placeholder metric tiles */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 opacity-40 pointer-events-none select-none">
                       {[
-                        { label: "Organic Clicks", value: "—", sub: "last 28 days" },
-                        { label: "Impressions", value: "—", sub: "last 28 days" },
-                        { label: "Avg. Position", value: "—", sub: "last 28 days" },
-                      ].map(({ label, value, sub }) => (
-                        <div key={label} className="rounded-lg border border-sky-200 bg-white px-3 py-2.5 text-center">
-                          <p className="text-xl font-bold text-sky-700">{value}</p>
+                        { label: "Organic Clicks", icon: MousePointerClick },
+                        { label: "Impressions", icon: Telescope },
+                        { label: "Avg. Position", icon: BarChart2 },
+                        { label: "CTR", icon: Percent },
+                      ].map(({ label, icon: Icon }) => (
+                        <div key={label} className="rounded-lg border bg-muted/30 px-3 py-3 text-center">
+                          <Icon className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+                          <p className="text-xl font-bold text-muted-foreground">—</p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
-                          <p className="text-[9px] text-muted-foreground/70">{sub}</p>
                         </div>
                       ))}
                     </div>
-                    <p className="text-xs text-sky-700 leading-relaxed">
-                      Connect Google Search Console to populate live organic data. Set{" "}
-                      <code className="font-mono bg-sky-100 px-1 rounded text-[10px]">GSC_CLIENT_EMAIL</code> and{" "}
-                      <code className="font-mono bg-sky-100 px-1 rounded text-[10px]">GSC_PRIVATE_KEY</code>{" "}
-                      environment variables and configure the GSC API integration to enable clicks, impressions, and average position.
-                    </p>
                   </div>
-                </div>
+                )}
+
+                {/* Live data */}
+                {gscData?.configured && (
+                  <div className="space-y-6">
+                    {/* Date range */}
+                    <p className="text-xs text-muted-foreground">
+                      {gscData.startDate} — {gscData.endDate} (last 28 days, GSC data lags ~3 days)
+                    </p>
+
+                    {/* Summary metric tiles */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        {
+                          label: "Organic Clicks",
+                          value: gscData.clicks.toLocaleString(),
+                          icon: MousePointerClick,
+                          accent: "text-sky-700",
+                          bg: "bg-sky-50 border-sky-200",
+                        },
+                        {
+                          label: "Impressions",
+                          value: gscData.impressions.toLocaleString(),
+                          icon: Telescope,
+                          accent: "text-violet-700",
+                          bg: "bg-violet-50 border-violet-200",
+                        },
+                        {
+                          label: "Avg. Position",
+                          value: fmtPos(gscData.position),
+                          icon: BarChart2,
+                          accent: "text-amber-700",
+                          bg: "bg-amber-50 border-amber-200",
+                        },
+                        {
+                          label: "CTR",
+                          value: fmtCtr(gscData.ctr),
+                          icon: Percent,
+                          accent: "text-emerald-700",
+                          bg: "bg-emerald-50 border-emerald-200",
+                        },
+                      ].map(({ label, value, icon: Icon, accent, bg }) => (
+                        <div key={label} className={`rounded-lg border px-3 py-3 text-center ${bg}`}>
+                          <Icon className={`w-4 h-4 mx-auto mb-1 ${accent}`} />
+                          <p className={`text-2xl font-bold ${accent}`}>{value}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Top pages + Top queries side by side */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Top pages by clicks */}
+                      {gscData.topPages.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                            Top Pages by Clicks
+                          </p>
+                          <div className="rounded-md border overflow-hidden">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="border-b bg-muted/40">
+                                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Page</th>
+                                  <th className="px-2 py-2 text-right font-medium text-muted-foreground">Clicks</th>
+                                  <th className="px-2 py-2 text-right font-medium text-muted-foreground">Impr.</th>
+                                  <th className="px-2 py-2 text-right font-medium text-muted-foreground">Pos.</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y">
+                                {gscData.topPages.map((p) => (
+                                  <tr key={p.page} className="hover:bg-muted/20">
+                                    <td className="px-3 py-1.5 max-w-[180px]">
+                                      <a
+                                        href={p.page}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-sky-700 hover:underline truncate"
+                                        title={p.page}
+                                      >
+                                        <span className="truncate">{relPath(p.page)}</span>
+                                        <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-50" />
+                                      </a>
+                                    </td>
+                                    <td className="px-2 py-1.5 text-right tabular-nums font-medium">{p.clicks.toLocaleString()}</td>
+                                    <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{p.impressions.toLocaleString()}</td>
+                                    <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{fmtPos(p.position)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Top queries by clicks */}
+                      {gscData.topQueries.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                            Top Queries by Clicks
+                          </p>
+                          <div className="rounded-md border overflow-hidden">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="border-b bg-muted/40">
+                                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Query</th>
+                                  <th className="px-2 py-2 text-right font-medium text-muted-foreground">Clicks</th>
+                                  <th className="px-2 py-2 text-right font-medium text-muted-foreground">Impr.</th>
+                                  <th className="px-2 py-2 text-right font-medium text-muted-foreground">Pos.</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y">
+                                {gscData.topQueries.map((q) => (
+                                  <tr key={q.query} className="hover:bg-muted/20">
+                                    <td className="px-3 py-1.5 max-w-[180px]">
+                                      <span className="truncate block" title={q.query}>{q.query}</span>
+                                    </td>
+                                    <td className="px-2 py-1.5 text-right tabular-nums font-medium">{q.clicks.toLocaleString()}</td>
+                                    <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{q.impressions.toLocaleString()}</td>
+                                    <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{fmtPos(q.position)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -689,8 +950,8 @@ export default function AdminSeoPerformance() {
                       link-checker job.
                     </p>
                     <p>
-                      For Google organic clicks, impressions, and average position, connect
-                      Google Search Console and add the GSC API integration.
+                      <strong>Organic clicks, impressions, and position</strong> are pulled
+                      live from the Google Search Console API when credentials are configured.
                     </p>
                   </div>
                 </div>
