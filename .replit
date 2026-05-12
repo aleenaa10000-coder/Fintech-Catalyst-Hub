@@ -70,12 +70,12 @@ outputType = "console"
 name = "lighthouse"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/fintechpresshub run build && pnpm lighthouse"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/fintechpresshub run build && node scripts/validate-seo-files.mjs && pnpm lighthouse"
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
