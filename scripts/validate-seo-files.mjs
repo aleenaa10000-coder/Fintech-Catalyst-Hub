@@ -183,13 +183,70 @@ async function checkSitemapIndex(declaredPaths) {
     fail("Root element is not <sitemapindex> — wrong document type");
   }
 
-  // Extract child <loc> URLs from the index
-  const locMatches = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
+  // Extract child <sitemap> blocks — each has exactly one <loc> and one <lastmod>.
+  // We parse them as blocks so we can correlate loc with lastmod without a full XML parse.
+  const sitemapBlocks = [...xml.matchAll(/<sitemap>([\s\S]*?)<\/sitemap>/gi)].map((m) => {
+    const block = m[1];
+    const loc     = (block.match(/<loc>([^<]+)<\/loc>/i)     ?? [])[1]?.trim() ?? "";
+    const lastmod = (block.match(/<lastmod>([^<]+)<\/lastmod>/i) ?? [])[1]?.trim() ?? "";
+    return { loc, lastmod };
+  });
+
+  const locMatches = sitemapBlocks.map((b) => b.loc).filter(Boolean);
+
   if (locMatches.length > 0) {
     ok(`${locMatches.length} child sitemap(s) listed`);
   } else {
     fail("No <loc> entries found in sitemap_index.xml");
     return [];
+  }
+
+  // ── Lastmod staleness check ─────────────────────────────────────────────────
+  // Sitemaps whose lastmod is stale mislead Googlebot into skipping crawls of
+  // content that may have changed. Thresholds are tuned per content type:
+  //   • Dynamic content (blog, pages, tags, authors, locations, glossary): 30 days
+  //     — these reflect DB dates so they should update whenever content does.
+  //   • Static content (services, tools, compare): 90 days
+  //     — these have hand-curated dates that change only on content edits.
+  //   • news-sitemap.xml: always today — warn if date is > 1 day old.
+  const STATIC_SITEMAPS = new Set(["/sitemap-services.xml", "/sitemap-tools.xml", "/sitemap-compare.xml"]);
+  const now = Date.now();
+  const DAY_MS = 86_400_000;
+
+  for (const { loc, lastmod } of sitemapBlocks) {
+    if (!loc || !lastmod) continue;
+    let path;
+    try { path = new URL(loc).pathname; } catch { path = loc; }
+
+    const lastmodMs = new Date(lastmod).getTime();
+    if (isNaN(lastmodMs)) {
+      warn(`${path} — lastmod "${lastmod}" is not a valid date`);
+      continue;
+    }
+
+    const agedays = Math.floor((now - lastmodMs) / DAY_MS);
+
+    if (path === "/news-sitemap.xml") {
+      // News sitemap lastmod is always set to today in sitemapIndex.ts.
+      // If it's more than 1 day old the sitemap route may have broken.
+      if (agedays > 1) {
+        warn(`${path} — lastmod is ${agedays} day(s) old (expected: today) — check the news sitemap route`);
+      } else {
+        ok(`${path} — lastmod is current (${lastmod})`);
+      }
+    } else if (STATIC_SITEMAPS.has(path)) {
+      if (agedays > 90) {
+        warn(`${path} — lastmod is ${agedays} day(s) old (threshold: 90 days for static sitemaps) — update seoConstants.ts if content has changed`);
+      } else {
+        ok(`${path} — lastmod ${lastmod} (${agedays}d old, within 90-day static threshold)`);
+      }
+    } else {
+      if (agedays > 30) {
+        warn(`${path} — lastmod is ${agedays} day(s) old (threshold: 30 days) — check if new content is being published and dated correctly`);
+      } else {
+        ok(`${path} — lastmod ${lastmod} (${agedays}d old, within 30-day dynamic threshold)`);
+      }
+    }
   }
 
   // Check declared sitemaps in robots.txt are reachable
