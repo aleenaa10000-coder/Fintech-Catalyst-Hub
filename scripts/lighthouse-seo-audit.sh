@@ -28,6 +28,15 @@
 #                     runs always have a fixed reference point. Overwrites
 #                     any existing baseline with a warning. Implies --format json.
 #
+#   --diff-only [A [B]]
+#                     Diff two existing summary.json files without running
+#                     Lighthouse at all. Useful for retrospective comparison
+#                     of any two saved reports.
+#                       0 args — diff the two most recent timestamped runs
+#                       1 arg  — A is "before"; most recent run is "after"
+#                       2 args — A is "before", B is "after"
+#                     Cannot be combined with --compare or --save-baseline.
+#
 # BASE_URL defaults to http://localhost:5000
 #
 # NOTE: Always use http://localhost:5000 (NOT the .replit.dev URL).
@@ -79,6 +88,15 @@
 #
 #   # Update baseline + immediately verify no regressions against it
 #   bash scripts/lighthouse-seo-audit.sh --save-baseline && bash scripts/lighthouse-seo-audit.sh --compare
+#
+#   # Diff the two most recent runs (no Lighthouse invocation)
+#   bash scripts/lighthouse-seo-audit.sh --diff-only
+#
+#   # Diff the saved baseline against the most recent timestamped run
+#   bash scripts/lighthouse-seo-audit.sh --diff-only lh-reports/baseline/summary.json
+#
+#   # Diff two specific reports
+#   bash scripts/lighthouse-seo-audit.sh --diff-only lh-reports/20260511-120000/summary.json lh-reports/20260512-090000/summary.json
 
 set -euo pipefail
 
@@ -101,6 +119,9 @@ PAGES_RAW=""      # comma-separated paths from --pages flag
 FORMAT=""         # "json" to write machine-readable summary, empty for terminal-only
 COMPARE_FILE=""   # path to a previous summary.json, or "auto" to discover latest
 SAVE_BASELINE=""  # non-empty = copy this run's summary.json to lh-reports/baseline/
+DIFF_ONLY=""      # non-empty = skip Lighthouse; just diff two existing summary.json files
+DIFF_FILE_A=""    # "before" file for --diff-only (resolved before Node block)
+DIFF_FILE_B=""    # "after"  file for --diff-only (resolved before Node block)
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -142,6 +163,17 @@ while [[ $# -gt 0 ]]; do
       SAVE_BASELINE="1"
       shift
       ;;
+    --diff-only)
+      DIFF_ONLY="1"
+      # Greedily consume up to 2 optional non-flag path arguments
+      if [[ $# -gt 1 && "${2:-}" != -* && -n "${2:-}" ]]; then
+        DIFF_FILE_A="$2"; shift
+        if [[ $# -gt 1 && "${2:-}" != -* && -n "${2:-}" ]]; then
+          DIFF_FILE_B="$2"; shift
+        fi
+      fi
+      shift
+      ;;
     --help|-h)
       sed -n '2,/^set -/{ /^set -/d; s/^# \{0,1\}//; p }' "${BASH_SOURCE[0]}"
       exit 0
@@ -164,6 +196,196 @@ BASE_URL="${BASE_URL%/}"
 # --compare and --save-baseline both imply --format json
 [[ -n "$COMPARE_FILE"   && -z "$FORMAT" ]] && FORMAT="json"
 [[ -n "$SAVE_BASELINE"  && -z "$FORMAT" ]] && FORMAT="json"
+
+# --diff-only is mutually exclusive with --compare and --save-baseline
+if [[ -n "$DIFF_ONLY" && ( -n "$COMPARE_FILE" || -n "$SAVE_BASELINE" ) ]]; then
+  die "--diff-only cannot be combined with --compare or --save-baseline"
+fi
+
+# ── Diff-only mode: compare two existing summaries, no Lighthouse run ─────────
+if [[ -n "$DIFF_ONLY" ]]; then
+  h "Diff Report (no audit)"
+
+  # Auto-discover files when not fully specified.
+  # lh-reports/<timestamp>/ dirs sort chronologically as ISO timestamps.
+  _lh_dir="$ROOT/lh-reports"
+  _candidates=()
+  while IFS= read -r _f; do
+    # Exclude the stable 'baseline' directory from auto-discovery
+    [[ "$_f" == *"/baseline/"* ]] && continue
+    [[ -f "$_f" ]] && _candidates+=("$_f")
+  done < <(ls -1 "$_lh_dir"/*/summary.json 2>/dev/null | sort)
+
+  if [[ -z "$DIFF_FILE_A" && -z "$DIFF_FILE_B" ]]; then
+    # 0 args: two most recent timestamped runs
+    [[ ${#_candidates[@]} -ge 2 ]] \
+      || die "--diff-only: need at least 2 previous runs in lh-reports/. Run the audit first (with --format json)."
+    DIFF_FILE_A="${_candidates[${#_candidates[@]}-2]}"
+    DIFF_FILE_B="${_candidates[${#_candidates[@]}-1]}"
+  elif [[ -z "$DIFF_FILE_B" ]]; then
+    # 1 arg: A is before, most recent timestamped run is after
+    [[ ${#_candidates[@]} -ge 1 ]] \
+      || die "--diff-only: need at least 1 previous run in lh-reports/. Run the audit first (with --format json)."
+    DIFF_FILE_B="${_candidates[${#_candidates[@]}-1]}"
+  fi
+
+  [[ -f "$DIFF_FILE_A" ]] || die "--diff-only: 'before' file not found: $DIFF_FILE_A"
+  [[ -f "$DIFF_FILE_B" ]] || die "--diff-only: 'after'  file not found: $DIFF_FILE_B"
+
+  node --input-type=module << NODEEOF
+import { readFileSync } from 'fs';
+
+const GRN = '\x1b[32m', RED = '\x1b[31m', YEL = '\x1b[33m',
+      CYN = '\x1b[36m', BLD = '\x1b[1m',  DIM = '\x1b[2m',  RST = '\x1b[0m';
+
+const prevFile = '${DIFF_FILE_A}';
+const currFile = '${DIFF_FILE_B}';
+
+const prev = JSON.parse(readFileSync(prevFile, 'utf8'));
+const curr = JSON.parse(readFileSync(currFile, 'utf8'));
+
+console.log('  ' + DIM + 'Before: ' + prevFile + RST);
+console.log('  ' + DIM + 'After:  ' + currFile + RST);
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const arrow = (delta) => {
+  if (delta === 0 || delta == null) return DIM + '  →  ' + RST;
+  return delta > 0 ? RED + '  ▲  ' + RST : GRN + '  ▼  ' + RST;
+};
+const scoreArrow = (delta) => {
+  if (delta === 0 || delta == null) return DIM + '  →  ' + RST;
+  return delta > 0 ? GRN + '  ▲  ' + RST : RED + '  ▼  ' + RST;
+};
+const fmtDelta = (delta, unit = '') => {
+  if (delta == null) return '';
+  const sign = delta > 0 ? '+' : '';
+  return DIM + '(' + sign + delta + unit + ')' + RST;
+};
+const pct = (c, p) => {
+  if (!p) return '';
+  const d = Math.round(((c - p) / p) * 100);
+  const sign = d > 0 ? '+' : '';
+  return DIM + ' ' + sign + d + '%' + RST;
+};
+
+// ── Index pages by path ───────────────────────────────────────────────────────
+const prevPages = Object.fromEntries((prev.pages ?? []).map(p => [p.path, p]));
+const currPages = Object.fromEntries((curr.pages ?? []).map(p => [p.path, p]));
+const allPaths  = [...new Set([...Object.keys(prevPages), ...Object.keys(currPages)])].sort();
+
+let totalRegressions = 0;
+let totalFixes       = 0;
+
+for (const path of allPaths) {
+  const p = prevPages[path];
+  const c = currPages[path];
+
+  if (!p) { console.log('\n  ' + GRN + '+ New page: ' + path + RST); continue; }
+  if (!c) { console.log('\n  ' + YEL + '- Removed page: ' + path + RST); continue; }
+
+  console.log('');
+  console.log('  ' + BLD + CYN + 'Page: ' + path + RST);
+  console.log('  ' + '\u2500'.repeat(62));
+
+  // Scores
+  for (const [key, label] of [['seo', 'SEO score'], ['performance', 'Performance score']]) {
+    const pv = p.scores?.[key], cv = c.scores?.[key];
+    if (pv == null && cv == null) continue;
+    const delta = (cv != null && pv != null) ? cv - pv : null;
+    const col   = delta == null ? DIM : delta > 0 ? GRN : delta < 0 ? RED : DIM;
+    console.log(
+      '  ' + col + label.padEnd(32) + RST +
+      (pv ?? '?') + '/100' + scoreArrow(delta) + (cv ?? '?') + '/100  ' +
+      fmtDelta(delta, 'pts')
+    );
+    if (delta != null && delta < 0) totalRegressions++;
+  }
+
+  // SEO check status changes
+  const prevSeo = Object.fromEntries((p.seoChecks ?? []).map(c => [c.id, c.status]));
+  const currSeo = Object.fromEntries((c.seoChecks ?? []).map(c => [c.id, c.status]));
+  for (const id of [...new Set([...Object.keys(prevSeo), ...Object.keys(currSeo)])]) {
+    const ps = prevSeo[id], cs = currSeo[id];
+    if (ps === cs) continue;
+    const isNeutral  = s => s === 'manual' || s === 'na';
+    if (isNeutral(ps) && isNeutral(cs)) continue;
+    const check = (c.seoChecks ?? []).find(x => x.id === id);
+    const label = check?.label ?? id;
+    if (cs !== 'pass' && ps === 'pass') {
+      console.log('  ' + RED + '\u2718  REGRESSION  ' + RST + label + '  ' + DIM + ps + ' \u2192 ' + cs + RST);
+      if (check?.snippet)     console.log('     ' + DIM + '\u21b3 ' + check.snippet + RST);
+      if (check?.explanation) console.log('     ' + DIM + '\u21b3 ' + check.explanation + RST);
+      totalRegressions++;
+    } else if (cs === 'pass' && ps !== 'pass') {
+      console.log('  ' + GRN + '\u2714  FIXED       ' + RST + label + '  ' + DIM + ps + ' \u2192 ' + cs + RST);
+      totalFixes++;
+    } else {
+      console.log('  ' + YEL + '\u26a0  CHANGED     ' + RST + label + '  ' + DIM + ps + ' \u2192 ' + cs + RST);
+    }
+  }
+
+  // Timing deltas
+  const prevTimings = Object.fromEntries((p.budgets?.timings ?? []).map(t => [t.metric, t]));
+  const currTimings = Object.fromEntries((c.budgets?.timings ?? []).map(t => [t.metric, t]));
+  for (const metric of Object.keys(currTimings)) {
+    const pt = prevTimings[metric], ct = currTimings[metric];
+    if (!pt) continue;
+    const delta = Math.round((ct.actual - pt.actual) * 1000) / 1000;
+    const unit  = ct.unit || '';
+    if (delta === 0) continue;
+    const worse = delta > 0;
+    const col   = worse ? RED : GRN;
+    const flag  = ct.passed === false ? '  ' + RED + '> budget' + RST : '';
+    if (worse) totalRegressions++;
+    console.log(
+      '  ' + col + (worse ? '\u25b2' : '\u25bc') + RST + '  ' +
+      (ct.label ?? metric).padEnd(30) +
+      String(pt.actual + unit).padStart(12) + arrow(delta) +
+      String(ct.actual + unit).padEnd(12) +
+      fmtDelta(delta, unit) + pct(ct.actual, pt.actual) + flag
+    );
+  }
+
+  // Resource deltas
+  const prevRes = Object.fromEntries((p.budgets?.resources ?? []).map(r => [r.type, r]));
+  const currRes = Object.fromEntries((c.budgets?.resources ?? []).map(r => [r.type, r]));
+  for (const rType of Object.keys(currRes)) {
+    const pr = prevRes[rType], cr = currRes[rType];
+    if (!pr) continue;
+    const delta = Math.round((cr.actualKB - pr.actualKB) * 10) / 10;
+    if (delta === 0) continue;
+    const worse = delta > 0;
+    const col   = worse ? RED : GRN;
+    const flag  = !cr.passed ? '  ' + RED + '> budget' + RST : '';
+    if (worse && delta > 50) totalRegressions++;
+    console.log(
+      '  ' + col + (worse ? '\u25b2' : '\u25bc') + RST + '  ' +
+      (cr.label ?? rType).padEnd(30) +
+      String(pr.actualKB + ' KB').padStart(12) + arrow(delta) +
+      String(cr.actualKB + ' KB').padEnd(12) +
+      fmtDelta(delta, ' KB') + pct(cr.actualKB, pr.actualKB) + flag
+    );
+  }
+}
+
+// Summary
+console.log('');
+console.log('  ' + BLD + CYN + '\u2500\u2500  Diff Summary  ' + RST);
+console.log('  ' + '\u2500'.repeat(62));
+if (totalRegressions === 0 && totalFixes === 0) {
+  console.log('  ' + DIM + '\u2013  No differences detected between the two reports.' + RST);
+} else {
+  if (totalFixes > 0)
+    console.log('  ' + GRN + '\u2714  Improvements: ' + totalFixes + RST);
+  if (totalRegressions > 0)
+    console.log('  ' + RED + '\u2718  Regressions:  ' + totalRegressions + RST);
+}
+console.log('');
+
+if (totalRegressions > 0) process.exitCode = 1;
+NODEEOF
+  exit
+fi
 
 # Per-page audit timeout in seconds.
 PAGE_TIMEOUT="${LH_TIMEOUT:-60}"
