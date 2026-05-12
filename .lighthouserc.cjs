@@ -1,12 +1,21 @@
 module.exports = {
   ci: {
     collect: {
-      // Pages to audit. Covers the main public-facing routes.
+      // Pages to audit. Covers the main public-facing routes plus one
+      // representative URL from each programmatic SEO template so regressions
+      // in dynamic page types are caught early.
       url: [
+        // ── Static marketing pages ───────────────────────────────────────────
         "http://localhost:4173/",
         "http://localhost:4173/blog",
         "http://localhost:4173/services",
         "http://localhost:4173/pricing",
+        // ── Programmatic SEO: blog post (content-heavy, schema markup) ───────
+        "http://localhost:4173/blog/fintech-seo-strategy-2026",
+        // ── Programmatic SEO: location page (local-SEO template) ────────────
+        "http://localhost:4173/locations/london",
+        // ── Programmatic SEO: glossary term (definition template) ────────────
+        "http://localhost:4173/glossary/api",
       ],
       // Vite preview serves the production build on port 4173.
       startServerCommand:
