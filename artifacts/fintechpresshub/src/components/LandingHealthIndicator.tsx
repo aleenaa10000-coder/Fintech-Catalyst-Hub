@@ -75,8 +75,6 @@ export function LandingHealthIndicator({ className }: Props) {
         "inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm hover:bg-white/15 transition-colors",
         className,
       )}
-      role="status"
-      aria-live="polite"
       aria-label={`Site status: ${t.label}. View status page.`}
       data-testid="landing-health-indicator"
       data-tone={tone}
@@ -99,7 +97,7 @@ export function LandingHealthIndicator({ className }: Props) {
           aria-hidden
         />
       </span>
-      <span>{t.label}</span>
+      <span role="status" aria-live="polite" aria-atomic="true">{t.label}</span>
     </Link>
   );
 }

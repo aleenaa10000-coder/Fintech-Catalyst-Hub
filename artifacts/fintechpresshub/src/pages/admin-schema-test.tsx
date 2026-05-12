@@ -175,7 +175,7 @@ function RichResultsPanel({ data, url }: { data: GoogleRichResultsResponse; url:
       <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 space-y-1">
         <p className="font-semibold">{data.error}</p>
         {data.hint && <p className="text-amber-700">{data.hint}</p>}
-        {data.details && (
+        {Boolean(data.details) && (
           <pre className="mt-2 text-xs text-amber-700 overflow-auto whitespace-pre-wrap max-h-40 rounded bg-amber-100 p-2">
             {JSON.stringify(data.details, null, 2)}
           </pre>

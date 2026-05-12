@@ -79,26 +79,39 @@ function checkStaleDates(): Issue[] {
 
   // Match date strings in STATIC_PAGE_LASTMOD / TOOL_PAGE_LASTMOD / COMPARE_PAGE_LASTMOD
   // and SERVICE_PAGE_LASTMOD_DATE patterns: "YYYY-MM-DD"
-  const datePattern = /["'](\d{4}-\d{2}-\d{2})["']/g;
-  let match: RegExpExecArray | null;
+  // Scan line-by-line so we can track the enclosing constant name and skip
+  // *_CREATED constants (which hold immutable historical publication dates).
+  const blockDeclPattern = /^\s*export\s+const\s+(\w+)/;
+  const lineDatePattern = /["'](\d{4}-\d{2}-\d{2})["']/g;
+  let currentBlock = "";
   const seen = new Set<string>();
 
-  while ((match = datePattern.exec(src)) !== null) {
-    const dateStr = match[1]!;
-    if (seen.has(dateStr)) continue;
-    seen.add(dateStr);
+  for (const line of src.split("\n")) {
+    const blockMatch = blockDeclPattern.exec(line);
+    if (blockMatch) currentBlock = blockMatch[1]!;
 
-    const dateMs = new Date(dateStr).getTime();
-    if (isNaN(dateMs)) continue;
+    // Skip dates inside *_CREATED constants — those are immutable publication dates.
+    if (currentBlock.endsWith("_CREATED") || currentBlock.includes("CREATED")) continue;
 
-    const ageMs = now - dateMs;
-    if (ageMs > thresholdMs) {
-      const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
-      issues.push({
-        file: path.relative(PAGES_DIR, SEO_CONSTANTS_PATH),
-        kind: "STALE_DATE",
-        detail: `Date "${dateStr}" is ${ageDays} days old (>${STALE_THRESHOLD_DAYS} day threshold). Update STATIC_PAGE_LASTMOD or the relevant *_LASTMOD constant in seoConstants.ts.`,
-      });
+    let match: RegExpExecArray | null;
+    lineDatePattern.lastIndex = 0;
+    while ((match = lineDatePattern.exec(line)) !== null) {
+      const dateStr = match[1]!;
+      if (seen.has(dateStr)) continue;
+      seen.add(dateStr);
+
+      const dateMs = new Date(dateStr).getTime();
+      if (isNaN(dateMs)) continue;
+
+      const ageMs = now - dateMs;
+      if (ageMs > thresholdMs) {
+        const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+        issues.push({
+          file: path.relative(PAGES_DIR, SEO_CONSTANTS_PATH),
+          kind: "STALE_DATE",
+          detail: `Date "${dateStr}" is ${ageDays} days old (>${STALE_THRESHOLD_DAYS} day threshold). Update STATIC_PAGE_LASTMOD or the relevant *_LASTMOD constant in seoConstants.ts.`,
+        });
+      }
     }
   }
 

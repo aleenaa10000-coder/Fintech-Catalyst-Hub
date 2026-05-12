@@ -79,7 +79,7 @@ export function Header() {
           >
             <Button
               size="sm"
-              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold shadow-sm"
+              className="bg-orange-700 hover:bg-orange-800 text-white font-semibold shadow-sm"
             >
               Contact Us
             </Button>
@@ -122,7 +122,7 @@ export function Header() {
                     onTouchStart={() => prefetchRoute("/contact")}
                     onFocus={() => prefetchRoute("/contact")}
                   >
-                    <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold">
+                    <Button className="w-full bg-orange-700 hover:bg-orange-800 text-white font-semibold">
                       Contact Us
                     </Button>
                   </Link>

@@ -20,12 +20,20 @@ const escapeXml = (s) =>
 
 const cdata = (s) => `<![CDATA[${String(s ?? "").replace(/]]>/g, "]]]]><![CDATA[>")}]]>`;
 
-const postsModule = await import(
-  pathToFileURL(resolve(projectRoot, "src/data/posts.js")).href
-);
-const posts = (postsModule.default ?? [])
-  .slice()
-  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+let posts = [];
+try {
+  const postsModule = await import(
+    pathToFileURL(resolve(projectRoot, "src/data/posts.js")).href
+  );
+  posts = (postsModule.default ?? [])
+    .slice()
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+} catch {
+  // Blog posts are served dynamically by the API server (/api/rss).
+  // Static posts.js no longer exists — emit an empty RSS stub here
+  // so the build succeeds. The real feed is at /rss.xml via the API.
+  console.log("src/data/posts.js not found — writing empty RSS stub (API serves the real feed).");
+}
 
 const lastBuildDate = new Date().toUTCString();
 

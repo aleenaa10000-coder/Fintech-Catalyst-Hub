@@ -48,7 +48,7 @@ function buildResults(): ValidationResult[] {
   }
 
   // Coverage checks: warn if slug arrays are unexpectedly empty
-  if (TOOL_SLUGS.length === 0) {
+  if ((TOOL_SLUGS as readonly string[]).length === 0) {
     results.push({
       schemaType: "SoftwareApplication",
       context:    "coverage: TOOL_SLUGS is empty — no tool pages will emit schema",
@@ -57,7 +57,7 @@ function buildResults(): ValidationResult[] {
       warnings:   [],
     });
   }
-  if (SERVICE_SLUGS.length === 0) {
+  if ((SERVICE_SLUGS as readonly string[]).length === 0) {
     results.push({
       schemaType: "FinancialService",
       context:    "coverage: SERVICE_SLUGS is empty — no service pages will emit schema",

@@ -1,4 +1,3 @@
-import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
@@ -36,22 +35,11 @@ export default function Compare() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet>
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebPage",
-            url: `${SITE_URL}/compare`,
-            name: "Fintech SEO Comparisons",
-            dateModified: __BUILD_TIME_ISO__,
-            inLanguage: "en",
-          })}
-        </script>
-      </Helmet>
       <PageMeta
         title="Fintech SEO Comparisons | FintechPressHub"
         description="Compare FintechPressHub with agencies, freelancers, SEO tools, PR firms, and paid search. Honest, criterion-by-criterion comparisons to help fintech buyers choose the right SEO approach."
         canonical={canonical}
+        webPage={{ dateModified: __BUILD_TIME_ISO__ }}
         faq={faqItems}
         itemList={{
           name: "Fintech SEO Comparisons",

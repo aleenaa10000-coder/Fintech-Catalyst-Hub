@@ -1,4 +1,3 @@
-import { Helmet } from "react-helmet-async";
 import { PageMeta } from "@/components/PageMeta";
 import { SITE_URL } from "@/lib/metaData";
 import { useListPricingPlans } from "@workspace/api-client-react";
@@ -48,20 +47,9 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet>
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebPage",
-            url: `${SITE_URL}/pricing`,
-            name: "Fintech SEO & Content Marketing Pricing",
-            dateModified: __BUILD_TIME_ISO__,
-            inLanguage: "en",
-          })}
-        </script>
-      </Helmet>
       <PageMeta
         page="pricing"
+        webPage={{ dateModified: __BUILD_TIME_ISO__ }}
         speakableSelectors={["h1", ".speakable-summary"]}
         faq={faqs.map((f) => ({ question: f.q, answer: f.a }))}
         pricingOffers={
