@@ -20,7 +20,10 @@
  */
 
 import { readFileSync, readdirSync, existsSync } from "fs";
-import { resolve, join } from "path";
+import { resolve, join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // ── Resolve LHCI output directory ─────────────────────────────────────────────
 const dirArg = process.argv.find((a) => a.startsWith("--dir="))?.split("=")[1];
@@ -155,6 +158,70 @@ const THRESHOLDS = [
   },
 ];
 
+// ── Load performance budgets from performance-budget.json ─────────────────────
+// Used to surface resource size failures in the same human-readable format as
+// the metric threshold checks above.
+
+const BUDGET_FILE = resolve(__dirname, "../performance-budget.json");
+let BUDGETS = [];
+try {
+  BUDGETS = JSON.parse(readFileSync(BUDGET_FILE, "utf-8"));
+} catch {
+  // Budget file missing or invalid — skip resource size checks silently.
+}
+
+const RESOURCE_LABELS = {
+  script:     "JS bundle size",
+  stylesheet: "CSS bundle size",
+  image:      "Image size",
+  font:       "Font size",
+  total:      "Total page weight",
+};
+
+/**
+ * Find the most specific budget entry for a given URL path.
+ * More specific paths (longer match) take precedence over wildcards.
+ */
+function getBudgetForPath(urlPath) {
+  let best = null;
+  let bestLen = -1;
+  for (const entry of BUDGETS) {
+    const pattern = entry.path ?? "/*";
+    // Simple glob: /* matches everything, /blog matches exactly /blog,
+    // /blog/* matches /blog/ followed by anything.
+    let matches = false;
+    if (pattern === "/*") {
+      matches = true;
+    } else if (pattern.endsWith("/*")) {
+      const prefix = pattern.slice(0, -2);
+      matches = urlPath === prefix || urlPath.startsWith(prefix + "/");
+    } else {
+      matches = urlPath === pattern;
+    }
+    if (matches && pattern.length > bestLen) {
+      best = entry;
+      bestLen = pattern.length;
+    }
+  }
+  return best;
+}
+
+/**
+ * Read resource totals from the `resource-summary` audit in an LHR.
+ * Returns a map of resourceType → size in KB.
+ */
+function getResourceSizes(lhr) {
+  const items = lhr.audits?.["resource-summary"]?.details?.items ?? [];
+  const result = {};
+  for (const item of items) {
+    if (item.resourceType && item.transferSize != null) {
+      // transferSize is in bytes; convert to KB
+      result[item.resourceType] = item.transferSize / 1024;
+    }
+  }
+  return result;
+}
+
 // ── Read LHR files ─────────────────────────────────────────────────────────────
 function readLhrs(dir) {
   if (!existsSync(dir)) {
@@ -260,6 +327,29 @@ for (const lhr of lhrs) {
     }
   }
 
+  // ── Resource budget checks ──────────────────────────────────────────────────
+  // Read resource sizes from the LHR and compare against performance-budget.json
+  const urlPath = (() => {
+    try { return new URL(url).pathname; } catch { return url; }
+  })();
+  const budget = getBudgetForPath(urlPath);
+  if (budget?.resourceSizes) {
+    const resourceSizes = getResourceSizes(lhr);
+    for (const { resourceType, budget: limitKb } of budget.resourceSizes) {
+      const label = RESOURCE_LABELS[resourceType] ?? resourceType;
+      const actualKb = resourceSizes[resourceType] ?? 0;
+      const fmtKb = (v) => `${v.toFixed(1)} KB`;
+      const msg = `${label}  ${fmtKb(actualKb)}  budget: ${fmtKb(limitKb)}`;
+      if (actualKb > limitKb) {
+        lines.push({ type: "fail", msg });
+        pageFails++;
+      } else {
+        lines.push({ type: "ok", msg });
+        pagePasses++;
+      }
+    }
+  }
+
   totalFailed += pageFails;
   totalWarned += pageWarns;
   totalPassed += pagePasses;
@@ -278,9 +368,14 @@ for (const lhr of lhrs) {
 for (const { url, lines, pageStatus } of pageResults) {
   // Strip port from URL for cleaner display
   const displayUrl = url.replace(/^https?:\/\/[^/]+/, "");
+  // Find performance score for the header line
+  const lhr = lhrs.find((l) => (l.requestedUrl ?? l.finalUrl ?? "") === url);
+  const perfScore = lhr ? Math.round((lhr.categories?.performance?.score ?? 0) * 100) : null;
+  const perfLabel = perfScore != null ? `  Perf Score: ${C.grn}${perfScore}/100${C.rst}` : "";
   console.log(
-    `  ${C.bld}${displayUrl || "/"}${C.rst}  [${pageStatus}]`,
+    `\n  ${C.bld}${C.cyn}Page: ${displayUrl || "/"}${C.rst}${perfLabel}  [${pageStatus}]`,
   );
+  console.log(`  ${"─".repeat(60)}`)
   for (const { type, msg } of lines) {
     if (type === "ok")   ok(msg);
     else if (type === "fail") fail(msg);

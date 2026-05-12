@@ -10,7 +10,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { useAuth } from "@workspace/replit-auth-web";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { prefetchAdminBundle, prefetchPublicBundle } from "@/lib/route-prefetch";
+import { prefetchAdminBundle } from "@/lib/route-prefetch";
 import { trackPageview } from "@/lib/analytics";
 import { useWebVitals } from "@/hooks/useWebVitals";
 import { TopProgressBar } from "@/components/TopProgressBar";
@@ -178,13 +178,6 @@ function AdminBundlePrefetch() {
   return null;
 }
 
-function PublicBundlePrefetch() {
-  useEffect(() => {
-    prefetchPublicBundle();
-  }, []);
-  return null;
-}
-
 /**
  * Route guard for all /admin/* pages.
  *
@@ -264,7 +257,6 @@ function Router() {
     <div className="flex flex-col min-h-screen">
       <ScrollToTop />
       <AdminBundlePrefetch />
-      <PublicBundlePrefetch />
       <Header />
       <main className="flex-grow pt-16">
         <AdminHealthBanner />
