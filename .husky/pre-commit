@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+# FintechPressHub — pre-commit hook
+# Runs fast checks (~20 s) on every commit.
+# Full Lighthouse CI runs in the pre-push hook.
+#
+# To skip in an emergency: git commit --no-verify
+
+set -e
+
+echo ""
+echo "⏳  Pre-commit: typecheck + unit tests …"
+echo ""
+
+# TypeScript — catches type errors, broken imports, and AEO/schema issues
+pnpm run typecheck
+
+# Unit tests (52 tests, ~5 s)
+pnpm --filter @workspace/fintechpresshub run test
+
+echo ""
+echo "✅  Pre-commit checks passed."
+echo ""

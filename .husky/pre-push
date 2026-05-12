@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+# FintechPressHub — pre-push hook
+# Runs the full Lighthouse CI before any push to prevent deploying code
+# that would fail the TBT / TTI / SEO / Accessibility thresholds on Hostinger.
+#
+# Runtime: ~2–3 minutes (vite build + lhci autorun over 7 routes × 3 runs).
+# Requires the API server (port 8080) to be running via "Start application"
+# so the vite preview proxy can reach it.
+#
+# To skip in an emergency: git push --no-verify
+
+set -e
+
+echo ""
+echo "⏳  Pre-push: Lighthouse CI audit …"
+echo "     (requires API server running on port 8080)"
+echo ""
+
+pnpm --filter @workspace/fintechpresshub run build
+node scripts/validate-seo-files.mjs
+pnpm lighthouse
+node scripts/lh-threshold-check.mjs
+
+echo ""
+echo "✅  Lighthouse CI passed — safe to push."
+echo ""

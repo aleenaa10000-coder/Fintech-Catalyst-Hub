@@ -32,6 +32,14 @@ args = "test"
 task = "workflow.run"
 args = "lighthouse"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "lh-check"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test-suite"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -76,6 +84,28 @@ outputType = "console"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/fintechpresshub run build && node scripts/validate-seo-files.mjs && pnpm lighthouse && node scripts/lh-threshold-check.mjs"
+
+[[workflows.workflow]]
+name = "lh-check"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/fintechpresshub run build && node scripts/validate-seo-files.mjs && pnpm lighthouse && node scripts/lh-threshold-check.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "test-suite"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/fintechpresshub run test"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
