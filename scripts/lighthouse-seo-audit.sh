@@ -13,6 +13,11 @@
 #                     Example: --pages /,/blog,/pricing
 #                     Defaults to: /,/blog,/services,/pricing
 #
+#   --format json     Write a machine-readable JSON summary to
+#                     lh-reports/<timestamp>/summary.json in addition to
+#                     the normal colour output. Useful for CI scripts,
+#                     dashboards, or piping into jq.
+#
 # BASE_URL defaults to http://localhost:5000
 #
 # NOTE: Always use http://localhost:5000 (NOT the .replit.dev URL).
@@ -43,6 +48,12 @@
 #
 #   # Stricter performance gate with longer timeout
 #   LH_TIMEOUT=120 PERF_MIN_SCORE=90 bash scripts/lighthouse-seo-audit.sh --pages /,/blog
+#
+#   # Write JSON summary (piped into jq for pretty-print)
+#   bash scripts/lighthouse-seo-audit.sh --format json | tail -0; cat lh-reports/*/summary.json | jq .
+#
+#   # Full CI-style run: specific pages + JSON output
+#   bash scripts/lighthouse-seo-audit.sh --pages /,/blog,/pricing --format json
 
 set -euo pipefail
 
@@ -62,6 +73,7 @@ die()  { echo -e "\n  ${RED}✘${RST}  $*" >&2; exit 1; }
 # ── Arguments ─────────────────────────────────────────────────────────────────
 BASE_URL=""
 PAGES_RAW=""   # comma-separated paths from --pages flag
+FORMAT=""      # "json" to write machine-readable summary, empty for terminal-only
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -72,6 +84,17 @@ while [[ $# -gt 0 ]]; do
       ;;
     --pages=*)
       PAGES_RAW="${1#--pages=}"
+      shift
+      ;;
+    --format)
+      [[ $# -gt 1 ]] || die "--format requires a value (currently only 'json' is supported)"
+      FORMAT="$2"
+      [[ "$FORMAT" == "json" ]] || die "Unknown format: '$FORMAT'. Only 'json' is supported."
+      shift 2
+      ;;
+    --format=*)
+      FORMAT="${1#--format=}"
+      [[ "$FORMAT" == "json" ]] || die "Unknown format: '$FORMAT'. Only 'json' is supported."
       shift
       ;;
     --help|-h)
@@ -103,6 +126,7 @@ h "Lighthouse SEO + Performance Audit — FintechPressHub"
 echo -e "  Auditing:        ${BLD}${BASE_URL}${RST}"
 echo -e "  Min perf score:  ${BLD}${PERF_MIN_SCORE}/100${RST}"
 echo -e "  Budgets from:    ${BLD}performance-budget.json${RST}"
+[[ -n "$FORMAT" ]] && echo -e "  Output format:   ${BLD}${FORMAT}${RST}"
 
 # ── Pre-flight ────────────────────────────────────────────────────────────────
 echo ""
@@ -487,3 +511,170 @@ console.log('');
 
 if (budgetBreaches > 0) process.exitCode = 1;
 NODEEOF
+
+# ── JSON summary output ───────────────────────────────────────────────────────
+if [[ "$FORMAT" == "json" ]]; then
+  JSON_OUT_FILE="$OUT_DIR/summary.json"
+  h "Writing JSON Summary"
+
+  node --input-type=module << NODEEOF
+import { readdirSync, readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
+
+const outDir     = '${OUT_DIR}';
+const budgetFile = '${BUDGET_FILE}';
+const minScore   = Number('${PERF_MIN_SCORE}');
+const baseUrl    = '${BASE_URL}';
+const jsonOut    = '${JSON_OUT_FILE}';
+
+const budgets    = JSON.parse(readFileSync(budgetFile, 'utf8'));
+const budget     = budgets[0] ?? {};
+
+const TIMING_BUDGETS   = (budget.timings    ?? []).reduce((a, t) => { a[t.metric]       = t.budget;  return a; }, {});
+const RESOURCE_BUDGETS = (budget.resourceSizes ?? []).reduce((a, r) => { a[r.resourceType] = r.budget;  return a; }, {});
+
+const SEO_CHECKS = [
+  ['document-title',    'Document has a <title>'],
+  ['meta-description',  'Document has a meta description'],
+  ['canonical',         'Valid rel=canonical'],
+  ['hreflang',          'Valid hreflang'],
+  ['is-crawlable',      'Page not blocked from indexing'],
+  ['robots-txt',        'robots.txt is valid'],
+  ['http-status-code',  'HTTP status code is 2xx'],
+  ['image-alt',         'Images have [alt] attributes'],
+  ['link-text',         'Links have descriptive text'],
+  ['crawlable-anchors', 'Links are crawlable'],
+  ['structured-data',   'Structured data (manual check)'],
+];
+
+const TIMING_META = {
+  'first-contentful-paint':   { label: 'FCP', unit: 'ms' },
+  'largest-contentful-paint': { label: 'LCP', unit: 'ms' },
+  'cumulative-layout-shift':  { label: 'CLS', unit: ''   },
+  'total-blocking-time':      { label: 'TBT', unit: 'ms' },
+  'interactive':              { label: 'TTI', unit: 'ms' },
+};
+
+const RESOURCE_META = {
+  script:     'JS bundle size',
+  stylesheet: 'CSS bundle size',
+  image:      'Image size',
+  font:       'Font size',
+  total:      'Total page weight',
+};
+
+const lhrFiles = readdirSync(outDir)
+  .filter(f => f.startsWith('lhr-') && f.endsWith('.json'))
+  .sort();
+
+const pages = [];
+let totalSeoPass = 0, totalSeoFail = 0, totalSeoManual = 0, totalSeoNA = 0;
+let totalBudgetBreaches = 0;
+
+for (const file of lhrFiles) {
+  const lhr    = JSON.parse(readFileSync(join(outDir, file), 'utf8'));
+  const rawUrl = lhr.requestedUrl || lhr.finalUrl || '';
+  let pagePath;
+  try { pagePath = new URL(rawUrl).pathname || '/'; } catch { pagePath = rawUrl; }
+
+  const seoScore  = lhr.categories?.seo?.score;
+  const perfScore = lhr.categories?.performance?.score;
+  const seo100    = seoScore  != null ? Math.round(seoScore  * 100) : null;
+  const perf100   = perfScore != null ? Math.round(perfScore * 100) : null;
+
+  // ── SEO checks ─────────────────────────────────────────────────────────────
+  const seoChecks = [];
+  for (const [id, label] of SEO_CHECKS) {
+    const audit = lhr.audits?.[id];
+    if (!audit) { totalSeoNA++; seoChecks.push({ id, label, status: 'na' }); continue; }
+    const { score, scoreDisplayMode } = audit;
+    let status;
+    if      (scoreDisplayMode === 'notApplicable') { status = 'na';     totalSeoNA++; }
+    else if (scoreDisplayMode === 'manual')        { status = 'manual'; totalSeoManual++; }
+    else if (score === 1)                          { status = 'pass';   totalSeoPass++; }
+    else if (score == null || score === 0)         { status = 'fail';   totalSeoFail++; }
+    else if (score < 1)                            { status = 'warn';   totalSeoFail++; }
+    else                                           { status = 'pass';   totalSeoPass++; }
+
+    const entry = { id, label, status };
+    if (status === 'fail' || status === 'warn') {
+      const items   = audit.details?.items ?? [];
+      const snippet = items.map(i => i.source || i.url || i.node?.snippet || '').filter(Boolean).join(', ').slice(0, 200);
+      if (snippet)            entry.snippet     = snippet;
+      if (audit.explanation)  entry.explanation = audit.explanation.slice(0, 200);
+    }
+    seoChecks.push(entry);
+  }
+
+  // ── Performance score budget ────────────────────────────────────────────────
+  const scorePassed = perf100 == null ? null : perf100 >= minScore;
+  if (perf100 != null && !scorePassed) totalBudgetBreaches++;
+
+  // ── Timings ────────────────────────────────────────────────────────────────
+  const timings = [];
+  for (const [auditId, meta] of Object.entries(TIMING_META)) {
+    const audit     = lhr.audits?.[auditId];
+    const budgetVal = TIMING_BUDGETS[auditId] ?? null;
+    if (!audit || audit.numericValue == null) continue;
+    const actual = audit.numericValue;
+    const passed = budgetVal != null ? actual <= budgetVal : null;
+    if (passed === false) totalBudgetBreaches++;
+    timings.push({ metric: auditId, label: meta.label, unit: meta.unit,
+                   actual: Math.round(actual * 1000) / 1000,
+                   budget: budgetVal, passed });
+  }
+
+  // ── Resources ──────────────────────────────────────────────────────────────
+  const resourceItems = lhr.audits?.['resource-summary']?.details?.items ?? [];
+  const resourceMap   = {};
+  for (const item of resourceItems) resourceMap[item.resourceType] = item.transferSize ?? item.size ?? 0;
+
+  const resources = [];
+  for (const [rType, label] of Object.entries(RESOURCE_META)) {
+    const budgetKB  = RESOURCE_BUDGETS[rType] ?? null;
+    if (budgetKB == null) continue;
+    const bytes     = resourceMap[rType];
+    if (bytes == null) continue;
+    const actualKB  = Math.round((bytes / 1024) * 10) / 10;
+    const passed    = actualKB <= budgetKB;
+    if (!passed) totalBudgetBreaches++;
+    resources.push({ type: rType, label, actualKB, budgetKB, passed });
+  }
+
+  pages.push({
+    path: pagePath,
+    url:  rawUrl,
+    scores: { seo: seo100, performance: perf100 },
+    seoChecks,
+    budgets: {
+      scoreCheck: { actual: perf100, min: minScore, passed: scorePassed },
+      timings,
+      resources,
+    },
+  });
+}
+
+const passed = totalSeoFail === 0 && totalBudgetBreaches === 0;
+
+const summary = {
+  timestamp:  new Date().toISOString(),
+  baseUrl,
+  reportsDir: outDir,
+  minPerfScore: minScore,
+  passed,
+  summary: {
+    seoChecks: { pass: totalSeoPass, fail: totalSeoFail, manual: totalSeoManual, na: totalSeoNA },
+    budgetBreaches: totalBudgetBreaches,
+  },
+  pages,
+};
+
+writeFileSync(jsonOut, JSON.stringify(summary, null, 2) + '\n', 'utf8');
+console.log('  \x1b[32m✔\x1b[0m  summary.json written → ' + jsonOut);
+console.log('');
+console.log('  \x1b[2mPipe into jq:  cat ' + jsonOut + ' | jq .\x1b[0m');
+console.log('  \x1b[2mFailed checks: cat ' + jsonOut + " | jq '[.pages[].seoChecks[] | select(.status == \"fail\")]'\x1b[0m");
+console.log('  \x1b[2mBudget fails:  cat ' + jsonOut + " | jq '[.pages[].budgets.timings[] | select(.passed == false)]'\x1b[0m");
+console.log('');
+NODEEOF
+fi
