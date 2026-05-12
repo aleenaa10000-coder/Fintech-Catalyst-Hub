@@ -84,10 +84,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Declares the language of HTML responses so shared caches (CDNs, ISPs, and
 // browser-level translation APIs) do not serve a stale English page to a user
 // who previously requested a different-language version from the same cache key.
-// Scoped to HTML page responses only — assets and API JSON are excluded.
+// Scoped to public HTML page responses only — assets, API JSON, and admin routes
+// are excluded. Admin routes are excluded specifically so the noindex/nofollow
+// header set by the previous middleware is never overwritten by this one.
 app.use((req: Request, res: Response, next: NextFunction) => {
   const isAsset = /\.(js|css|png|jpe?g|webp|svg|ico|woff2?|ttf|otf|map|txt|xml|json)$/i.test(req.path);
-  if (!isAsset && !req.path.startsWith("/api/")) {
+  const isAdmin = req.path.startsWith("/admin") || req.path.startsWith("/api/admin");
+  if (!isAsset && !req.path.startsWith("/api/") && !isAdmin) {
     res.setHeader("Content-Language", "en");
     // Use append so downstream middleware (cors, compression) can also
     // add their own Vary tokens without clobbering this one.

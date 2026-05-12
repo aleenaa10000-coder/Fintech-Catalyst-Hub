@@ -14,7 +14,7 @@
  * BASE_URL defaults to http://localhost:8080.
  */
 
-import { get } from "node:http";
+import { get, request as httpRequest } from "node:http";
 
 const BASE = (process.argv[2] ?? "http://localhost:8080").replace(/\/$/, "");
 
@@ -34,7 +34,7 @@ function warn(msg) { console.log(`  ${C.yel}⚠${C.rst}  ${msg}`); warned++; }
 function info(msg) { console.log(`  ${C.cyn}▸${C.rst}  ${msg}`); }
 function head(msg) { console.log(`\n${C.bld}${C.cyn}──  ${msg}  ${C.rst}`); }
 
-// ── HTTP helper ────────────────────────────────────────────────────────────────
+// ── HTTP helpers ───────────────────────────────────────────────────────────────
 function fetch(url, { maxBytes = 512_000, timeout = 10_000 } = {}) {
   return new Promise((resolve, reject) => {
     const req = get(url, { timeout }, (res) => {
@@ -54,6 +54,24 @@ function fetch(url, { maxBytes = 512_000, timeout = 10_000 } = {}) {
     });
     req.on("timeout", () => { req.destroy(); reject(new Error(`Timed out: ${url}`)); });
     req.on("error", reject);
+  });
+}
+
+// HEAD-only request — fetches status + headers without downloading the body.
+// Used by the X-Robots-Tag check to avoid pulling full HTML/XML payloads.
+function headRequest(url, { timeout = 10_000 } = {}) {
+  return new Promise((resolve, reject) => {
+    const { hostname, port, pathname, search } = new URL(url);
+    const req = httpRequest(
+      { hostname, port: port || 80, path: pathname + search, method: "HEAD", timeout },
+      (res) => {
+        res.resume(); // drain (HEAD has no body, but drain prevents hangs)
+        res.on("end", () => resolve({ status: res.statusCode, headers: res.headers }));
+      },
+    );
+    req.on("timeout", () => { req.destroy(); reject(new Error(`Timed out: ${url}`)); });
+    req.on("error", reject);
+    req.end();
   });
 }
 
@@ -369,6 +387,90 @@ async function checkChildSitemaps(childUrls) {
     } else {
       const sitemapCount = (xml.match(/<sitemap>/g) ?? []).length;
       ok(`${path} — valid <sitemapindex>, ${sitemapCount} child sitemap(s)`);
+    }
+  }
+}
+
+// ── X-Robots-Tag header checks ────────────────────────────────────────────────
+// Verifies that the Express middleware applies the correct X-Robots-Tag header
+// to every route category. The three cases:
+//
+//   Public pages  → must have max-snippet directives, must NOT have noindex
+//   Admin routes  → must have noindex, nofollow (gated by first middleware)
+//   Assets / API  → no X-Robots-Tag expected; must not have noindex
+//
+// Uses HEAD requests to avoid downloading page bodies.
+async function checkXRobotsHeaders() {
+  head("X-Robots-Tag Headers");
+
+  // One representative URL per page template
+  const PUBLIC_PAGES = [
+    "/",
+    "/blog",
+    "/blog/fintech-seo-strategy-2026",
+    "/services",
+    "/pricing",
+    "/locations/london",
+    "/glossary/api",
+  ];
+
+  // Admin routes must be blocked
+  const ADMIN_PAGES = ["/admin", "/admin/blog"];
+
+  // These must not carry noindex even by accident
+  const NON_HTML_ROUTES = ["/sitemap.xml", "/api/healthz"];
+
+  const PUBLIC_EXPECTED = "max-snippet:-1, max-image-preview:large, max-video-preview:-1";
+
+  for (const path of PUBLIC_PAGES) {
+    let res;
+    try {
+      res = await headRequest(`${BASE}${path}`);
+    } catch (err) {
+      warn(`${path} — could not check headers: ${err.message}`);
+      continue;
+    }
+    const tag = res.headers["x-robots-tag"] ?? "";
+    if (/noindex|nofollow/i.test(tag)) {
+      fail(`${path} — X-Robots-Tag leaks noindex/nofollow: "${tag}"`);
+    } else if (tag === PUBLIC_EXPECTED) {
+      ok(`${path} — X-Robots-Tag correct`);
+    } else if (tag) {
+      warn(`${path} — X-Robots-Tag unexpected value: "${tag}"`);
+    } else {
+      warn(`${path} — X-Robots-Tag header absent (expected: ${PUBLIC_EXPECTED})`);
+    }
+  }
+
+  for (const path of ADMIN_PAGES) {
+    let res;
+    try {
+      res = await headRequest(`${BASE}${path}`);
+    } catch (err) {
+      warn(`${path} — could not check headers: ${err.message}`);
+      continue;
+    }
+    const tag = res.headers["x-robots-tag"] ?? "";
+    if (/noindex/i.test(tag) && /nofollow/i.test(tag)) {
+      ok(`${path} — X-Robots-Tag: "${tag}" (correctly blocked)`);
+    } else {
+      fail(`${path} — admin route not blocked; X-Robots-Tag: "${tag || "(none)"}"`);
+    }
+  }
+
+  for (const path of NON_HTML_ROUTES) {
+    let res;
+    try {
+      res = await headRequest(`${BASE}${path}`);
+    } catch (err) {
+      warn(`${path} — could not check headers: ${err.message}`);
+      continue;
+    }
+    const tag = res.headers["x-robots-tag"] ?? "";
+    if (/noindex|nofollow/i.test(tag)) {
+      fail(`${path} — unexpected noindex/nofollow on non-HTML route: "${tag}"`);
+    } else {
+      ok(`${path} — no noindex on asset/API route (correct)`);
     }
   }
 }
