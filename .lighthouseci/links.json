@@ -1,0 +1,9 @@
+{
+  "http://localhost:4173/": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778601010420-17215.report.html",
+  "http://localhost:4173/blog": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778601012315-36353.report.html",
+  "http://localhost:4173/services": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778601014319-64360.report.html",
+  "http://localhost:4173/pricing": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778601016120-18256.report.html",
+  "http://localhost:4173/blog/fintech-seo-strategy-2026": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778601017994-18655.report.html",
+  "http://localhost:4173/locations/london": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778601019725-13537.report.html",
+  "http://localhost:4173/glossary/api": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778601021372-81641.report.html"
+}

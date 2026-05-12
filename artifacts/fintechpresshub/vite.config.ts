@@ -130,23 +130,14 @@ export default defineConfig(({ command }) => {
           ) {
             return "vendor-date";
           }
-          if (
-            id.includes("/recharts/") ||
-            id.includes("/victory-vendor/") ||
-            id.includes("/d3-") ||
-            id.includes("/d3/")
-          ) {
-            return "vendor-recharts";
-          }
-          if (id.includes("/jspdf/") || id.includes("/jsPDF/")) {
-            return "vendor-jspdf";
-          }
-          if (
-            id.includes("/@uppy/") ||
-            id.includes("/uppy/")
-          ) {
-            return "vendor-uppy";
-          }
+          // recharts, jspdf, and uppy are intentionally NOT extracted into
+          // named vendor chunks. Forcing them into named chunks caused Rollup
+          // to include them in a shared `index.es` façade module that became
+          // part of the static import graph, injecting all three into every
+          // page's <link rel="modulepreload"> list (+1 045 KB on every route).
+          // By omitting them here, Rollup bundles each library inside the lazy
+          // page chunk(s) that actually import it, so they are only loaded when
+          // a user navigates to a route that needs them (tools/*, admin/*).
 
           return undefined;
         },
@@ -303,7 +294,7 @@ export default defineConfig(({ command }) => {
     },
   },
   preview: {
-    port,
+    port: 4173,
     host: "0.0.0.0",
     allowedHosts: true,
   },

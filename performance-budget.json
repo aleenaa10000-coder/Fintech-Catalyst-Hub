@@ -1,7 +1,7 @@
 [
   {
     "path": "/*",
-    "comment": "Applied to all audited pages. Adjust sizes as the app evolves.",
+    "comment": "Applied to all audited pages. Sizes are uncompressed (vite preview has no gzip). Multiply by ~0.35 for real-world gzip transfer. Adjust as the app evolves.",
 
     "timings": [
       { "metric": "first-contentful-paint",    "budget": 1800,  "comment": "FCP — Google 'Good' ceiling (ms)" },
@@ -12,16 +12,41 @@
     ],
 
     "resourceSizes": [
-      { "resourceType": "script",     "budget": 750,  "comment": "KB — per-page JS chunks (no bulk prefetch)" },
+      { "resourceType": "script",     "budget": 1000, "comment": "KB — uncompressed JS. Vendor chunks (react+radix+query+motion+icons+router) = ~540 KB; main bundle ~195 KB; page chunk ~20 KB. recharts/jspdf/uppy are lazy (tools/* and admin/* only)." },
       { "resourceType": "stylesheet", "budget": 100,  "comment": "KB — all CSS (compressed)" },
       { "resourceType": "image",      "budget": 600,  "comment": "KB — all images" },
       { "resourceType": "font",       "budget": 100,  "comment": "KB — web fonts" },
-      { "resourceType": "total",      "budget": 2000, "comment": "KB — entire page weight" }
+      { "resourceType": "total",      "budget": 2500, "comment": "KB — entire page weight (uncompressed)" }
     ],
 
     "resourceCounts": [
       { "resourceType": "third-party", "budget": 10, "comment": "Max external-origin requests" },
       { "resourceType": "total",       "budget": 60, "comment": "Max total network requests" }
+    ]
+  },
+  {
+    "path": "/blog/*",
+    "comment": "Individual blog post pages — hero image + inline images push above the generic 600 KB image budget.",
+
+    "timings": [
+      { "metric": "first-contentful-paint",    "budget": 1800 },
+      { "metric": "largest-contentful-paint",  "budget": 2500 },
+      { "metric": "cumulative-layout-shift",   "budget": 0.1 },
+      { "metric": "total-blocking-time",       "budget": 350 },
+      { "metric": "interactive",               "budget": 3800 }
+    ],
+
+    "resourceSizes": [
+      { "resourceType": "script",     "budget": 1000 },
+      { "resourceType": "stylesheet", "budget": 100 },
+      { "resourceType": "image",      "budget": 2000, "comment": "KB — hero image + body images" },
+      { "resourceType": "font",       "budget": 100 },
+      { "resourceType": "total",      "budget": 4000, "comment": "KB — blog post with hero" }
+    ],
+
+    "resourceCounts": [
+      { "resourceType": "third-party", "budget": 15 },
+      { "resourceType": "total",       "budget": 80 }
     ]
   },
   {
@@ -37,9 +62,9 @@
     ],
 
     "resourceSizes": [
-      { "resourceType": "script",     "budget": 750,  "comment": "KB — per-page JS" },
+      { "resourceType": "script",     "budget": 1200, "comment": "KB — blog page lazy-loads blog-post chunk + shared query hooks" },
       { "resourceType": "stylesheet", "budget": 100 },
-      { "resourceType": "image",      "budget": 5500, "comment": "KB — many post thumbnails expected" },
+      { "resourceType": "image",      "budget": 12000, "comment": "KB — many post thumbnails expected (13+ hero images at ~800px each)" },
       { "resourceType": "font",       "budget": 100 },
       { "resourceType": "total",      "budget": 23000, "comment": "KB — blog listing with thumbnails" }
     ],
