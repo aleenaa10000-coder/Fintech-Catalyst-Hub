@@ -144,7 +144,7 @@ export default function Services() {
                       onTouchStart={prefetchServiceDetail}
                     >
                       <Button size="lg" data-testid={`button-learn-more-${service.slug}`}>
-                        Learn more
+                        Learn more about {service.name}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
