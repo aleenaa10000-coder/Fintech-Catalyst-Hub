@@ -1,0 +1,53 @@
+add an email notification step to the deploy workflow that alerts  when a production deployment succeeds or fails
+
+add a "Press-asset" source badge to the admin Site Health dashboard 
+
+add a "Cite this article" structured data block to blog posts that emits a ScholarlyArticle or TechArticle type with a citation field linking to primary sources — this would significantly strengthen AI citation accuracy for YMYL fintech content 
+
+add IndexNow pings to the author create/update routes (POST /admin/authors, PUT /admin/authors/:slug) to complete the full content-type coverage. 
+
+ add a Hostinger-specific GitHub Actions CI/CD workflow that auto-builds and deploys to the server via SSH on every push to main 
+
+ add a /llms-full.txt endpoint that includes the full text of all published blog posts (titles, excerpts, and slugs) so AI citation engines can index the agency's content library directly
+
+ add dateModified WebPage JSON-LD to the services, pricing, and compare pages so Google has fresh crawl signals on non-blog content.  
+
+implement the hostinger-deployment skill items (PM2 config, trust proxy, log persistence, and enhanced health check) as a self-contained bundle that doesn't touch auth — 
+
+implement the 410 Gone HTTP status for deleted blog posts — when a post is deleted via the admin, store its slug in the kvStore table so returning visitors get a proper 410 response instead of 404. 
+
+add a /api/og dynamic Open Graph image endpoint that generates branded social card images server-side for every page, so non-article pages get unique OG previews instead of the static fallback 
+
+add a domain health summary panel that flags referring domains that haven't sent any new backlinks in the past 90 days, helping admins spot link rot before it impacts rankings. 
+
+add a word count progress bar to the content field that visually fills from 0→800→1500 so editors get a glanceable sense of how close they are  
+
+add SSR meta injection for /compare/:slug pages so Googlebot sees correct titles, descriptions, and SoftwareComparison JSON-LD for each comparison page. 
+
+add an admin UI panel that surfaces pages missing seoTitle/seoDescription overrides
+
+add a <news:news> extension to the blog entries in the legacy /sitemap.xml to complement the dedicated news sitemap, enabling both sitemaps to serve the Google News carousel independently 
+
+add a sitemap-services.xml dedicated child sitemap that pulls service slugs dynamically from the database, so newly created services via the admin dashboard appear in their own crawlable sitemap without a code deploy.  
+
+add a dateModified field to the static prerendered pages so Google sees a fresh lastmod signal each time you rebuild, rather than the SPA shell's default date. 
+
+add datePublished and dateModified to the blog category CollectionPage schema by deriving them from the oldest/newest post in each category — this improves freshness signals for Google on the 8 category pages. 
+
+add a content performance dashboard that shows actual SEO metrics (organic clicks, impressions, avg. position) for published blog posts by connecting to the existing SEO ping infrastructure. 
+
+add a bulk no-index toggle to the admin blog page 
+
+ add trackEvent calls to each tool page 
+
+ add an API server build step to the CI workflow so compilation errors in the Express backend are also caught on every push.  
+
+add a GitHub Actions workflow file (.github/workflows/ci.yml) that runs these same typecheck and test checks automatically on every push, so issues are caught before they ever reach the main branch
+
+add a data-testid to the Framer Motion mock's layout prop handling in setup.ts to silence that non-boolean attribute warning cleanly. 
+
+add per-route ErrorBoundaries around each lazy-loaded page so a crash in one tool (e.g. the Content Brief Generator) isolates to that page rather than the whole app shell. 
+
+add a "Copy as Markdown table" export option to the Link Prospector so users can paste prospect results directly into Notion or Confluence without needing to open a CSV  
+
+add a lightweight schema health sparkline chart to the admin dashboard's StatCard — showing a 14-day pass/fail trend at a glance without needing to open the schema-test page
