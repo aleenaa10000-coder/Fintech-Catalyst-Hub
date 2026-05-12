@@ -28,6 +28,8 @@ module.exports = {
           disabled: false,
         },
         throttlingMethod: "simulate",
+        // Apply resource size / timing budgets defined in performance-budget.json.
+        budgets: require("./performance-budget.json"),
       },
     },
 
@@ -35,6 +37,7 @@ module.exports = {
       // Skip PWA category — this is not a PWA.
       preset: "lighthouse:no-pwa",
       assertions: {
+        // ── Category scores ─────────────────────────────────────────────────
         // Performance: warn below 0.8 — noisy in CI due to CPU variance.
         "categories:performance": ["warn", { minScore: 0.8 }],
         // Accessibility & SEO are hard requirements — fail the build below these.
@@ -42,6 +45,33 @@ module.exports = {
         "categories:seo": ["error", { minScore: 0.9 }],
         // Best practices: warn only — some violations are environment-specific.
         "categories:best-practices": ["warn", { minScore: 0.85 }],
+
+        // ── Core Web Vitals ─────────────────────────────────────────────────
+        // Thresholds match Google's "Good" band. All set to warn (not error)
+        // because simulated throttling in CI can inflate timing metrics by
+        // 20–40 % compared to a real device. Use these as trend signals, not
+        // hard gates. Bump to "error" once you have stable baseline numbers.
+
+        // LCP — Largest Contentful Paint. Good: ≤ 2 500 ms.
+        "largest-contentful-paint": ["warn", { maxNumericValue: 2500 }],
+
+        // CLS — Cumulative Layout Shift. Good: ≤ 0.1.
+        "cumulative-layout-shift": ["warn", { maxNumericValue: 0.1 }],
+
+        // TBT — Total Blocking Time (lab proxy for INP / FID). Good: ≤ 200 ms.
+        "total-blocking-time": ["warn", { maxNumericValue: 200 }],
+
+        // FCP — First Contentful Paint. Good: ≤ 1 800 ms.
+        "first-contentful-paint": ["warn", { maxNumericValue: 1800 }],
+
+        // TTI — Time to Interactive. Good: ≤ 3 800 ms.
+        "interactive": ["warn", { maxNumericValue: 3800 }],
+
+        // ── Resource budgets (defined in performance-budget.json) ────────────
+        // These fire when individual asset types exceed their size caps.
+        "resource-summary:script:size": ["warn", {}],
+        "resource-summary:stylesheet:size": ["warn", {}],
+        "resource-summary:total:size": ["warn", {}],
       },
     },
 

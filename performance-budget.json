@@ -1,0 +1,27 @@
+[
+  {
+    "path": "/*",
+    "comment": "Applied to all audited pages. Adjust sizes as the app evolves.",
+
+    "timings": [
+      { "metric": "first-contentful-paint",    "budget": 1800,  "comment": "FCP — Google 'Good' ceiling (ms)" },
+      { "metric": "largest-contentful-paint",  "budget": 2500,  "comment": "LCP — Google 'Good' ceiling (ms)" },
+      { "metric": "cumulative-layout-shift",   "budget": 0.1,   "comment": "CLS — Google 'Good' ceiling" },
+      { "metric": "total-blocking-time",       "budget": 200,   "comment": "TBT — proxy for INP/FID (ms)" },
+      { "metric": "interactive",               "budget": 3800,  "comment": "TTI — Time to Interactive (ms)" }
+    ],
+
+    "resourceSizes": [
+      { "resourceType": "script",     "budget": 350,  "comment": "KB — all JS (compressed)" },
+      { "resourceType": "stylesheet", "budget": 100,  "comment": "KB — all CSS (compressed)" },
+      { "resourceType": "image",      "budget": 600,  "comment": "KB — all images" },
+      { "resourceType": "font",       "budget": 100,  "comment": "KB — web fonts" },
+      { "resourceType": "total",      "budget": 1500, "comment": "KB — entire page weight" }
+    ],
+
+    "resourceCounts": [
+      { "resourceType": "third-party", "budget": 10, "comment": "Max external-origin requests" },
+      { "resourceType": "total",       "budget": 60, "comment": "Max total network requests" }
+    ]
+  }
+]
