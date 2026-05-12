@@ -34,6 +34,7 @@ import { usePublicPosts, type PublicPost } from "@/data/usePublicPosts";
 import { authors, authorSlugFromName, getAuthorBySlug } from "@/data/authors";
 import { prefetchBlogPost } from "@/lib/route-prefetch";
 import { TrendingPosts } from "@/components/TrendingPosts";
+import { optimizeImageUrl, buildSrcSet } from "@/lib/imageUtils";
 
 const formatDate = (iso: string) =>
   new Intl.DateTimeFormat(
@@ -478,8 +479,12 @@ export default function Blog() {
         <Card className="overflow-hidden h-full border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer bg-card">
           <div className="aspect-[16/9] overflow-hidden bg-slate-100">
             <img
-              src={post.image}
+              src={optimizeImageUrl(post.image, 800)}
+              srcSet={buildSrcSet(post.image, [400, 800, 1200])}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
               alt={post.title}
+              width={800}
+              height={450}
               loading="lazy"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />

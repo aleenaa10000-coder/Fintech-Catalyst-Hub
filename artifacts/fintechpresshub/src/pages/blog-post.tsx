@@ -36,6 +36,7 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { useIncrementBlogPostView } from "@workspace/api-client-react";
 import { BlogPostToc } from "@/components/BlogPostToc";
 import { BlogPostNewsletterCta } from "@/components/BlogPostNewsletterCta";
+import { optimizeImageUrl, buildSrcSet } from "@/lib/imageUtils";
 import { COMPARISONS } from "@/data/comparisons";
 
 function getRelatedComparisons(category: string, tags: string[] = []) {
@@ -646,7 +647,9 @@ export default function BlogPost() {
           >
             <div className="aspect-[16/9] sm:aspect-[16/8] w-full">
               <img
-                src={post.image}
+                src={optimizeImageUrl(post.image, 1200)}
+                srcSet={buildSrcSet(post.image, [800, 1200, 1600])}
+                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1200px"
                 alt={`${post.title} — ${post.category} guide cover image`}
                 width={1600}
                 height={800}

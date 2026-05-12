@@ -25,6 +25,7 @@ import { TrustedBy } from "@/components/TrustedBy";
 import { QuickPublishSheet } from "@/components/QuickPublishSheet";
 import { LandingHealthIndicator } from "@/components/LandingHealthIndicator";
 import { useAuth } from "@workspace/replit-auth-web";
+import { optimizeImageUrl, buildSrcSet } from "@/lib/imageUtils";
 
 /** Tiny relative-time formatter used by the "Recently published"
  *  homepage widget. Falls back to an absolute date once a post is
@@ -417,8 +418,12 @@ export default function Home() {
                   <Link href={`/blog/${post.slug}`}>
                     <div className="overflow-hidden mb-6 aspect-video bg-slate-100" style={{ borderRadius: "12px" }}>
                       <img
-                        src={post.coverImage}
+                        src={optimizeImageUrl(post.coverImage, 800)}
+                        srcSet={buildSrcSet(post.coverImage, [400, 800, 1200])}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
                         alt={post.title}
+                        width={800}
+                        height={450}
                         loading={i === 0 ? "eager" : "lazy"}
                         fetchPriority={i === 0 ? "high" : undefined}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -527,8 +532,10 @@ export default function Home() {
                       aria-hidden="true"
                     >
                       <img
-                        src={post.coverImage}
+                        src={optimizeImageUrl(post.coverImage, 160)}
                         alt=""
+                        width={80}
+                        height={80}
                         loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
