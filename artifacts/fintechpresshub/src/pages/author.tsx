@@ -156,6 +156,8 @@ export default function AuthorPage() {
                   src={authorPhoto}
                   alt={`${author.name} headshot`}
                   loading="eager"
+                  width={128}
+                  height={128}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : (
@@ -348,6 +350,8 @@ export default function AuthorPage() {
                           src={post.image}
                           alt={post.title}
                           loading="lazy"
+                          width={640}
+                          height={360}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                       </div>
@@ -407,6 +411,8 @@ export default function AuthorPage() {
                               src={otherPhoto}
                               alt={`${a.name} headshot`}
                               loading="lazy"
+                              width={48}
+                              height={48}
                               className="absolute inset-0 w-full h-full object-cover"
                             />
                           ) : (

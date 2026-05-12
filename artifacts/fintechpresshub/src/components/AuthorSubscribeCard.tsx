@@ -89,6 +89,8 @@ export function AuthorSubscribeCard({ author, className }: Props) {
                 src={photo}
                 alt={`${author.name} headshot`}
                 loading="lazy"
+                width={44}
+                height={44}
                 className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (

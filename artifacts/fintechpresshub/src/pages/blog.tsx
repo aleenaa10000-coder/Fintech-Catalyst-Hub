@@ -569,6 +569,8 @@ export default function Blog() {
                           src={a.photo}
                           alt={`${a.name} headshot`}
                           loading="lazy"
+                          width={36}
+                          height={36}
                           className="absolute inset-0 w-full h-full object-cover"
                         />
                       ) : (
@@ -970,6 +972,8 @@ export default function Blog() {
                                 src={a.photo}
                                 alt=""
                                 loading="lazy"
+                                width={24}
+                                height={24}
                                 className="absolute inset-0 w-full h-full object-cover"
                               />
                             ) : (

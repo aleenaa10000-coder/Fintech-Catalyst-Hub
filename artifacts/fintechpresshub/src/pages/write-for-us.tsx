@@ -523,6 +523,8 @@ function PitchExamplesSection() {
                     alt={`${p.title} — example of a published fintech pitch`}
                     loading="lazy"
                     decoding="async"
+                    width={640}
+                    height={360}
                     className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                   />
                 ) : null}
@@ -804,8 +806,10 @@ export default function WriteForUs() {
                 <img
                   src={aboutOfficeImg}
                   alt="Editorial team reviewing a fintech guest pitch"
-                  className="w-full h-auto object-cover"
                   loading="lazy"
+                  width={800}
+                  height={533}
+                  className="w-full h-auto object-cover"
                 />
                 <div
                   aria-hidden

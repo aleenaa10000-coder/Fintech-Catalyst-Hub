@@ -86,6 +86,9 @@ export default function NotFound() {
                     <img
                       src={p.image}
                       alt={p.title}
+                      loading="lazy"
+                      width={640}
+                      height={360}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>

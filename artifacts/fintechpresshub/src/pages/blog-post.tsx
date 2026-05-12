@@ -699,6 +699,8 @@ export default function BlogPost() {
                         <img
                           src={apPhoto}
                           alt={`${post.author} headshot`}
+                          width={40}
+                          height={40}
                           className="absolute inset-0 w-full h-full object-cover"
                         />
                       ) : (
@@ -1025,6 +1027,8 @@ export default function BlogPost() {
                             <img
                               src={profilePhoto}
                               alt={`${post.author} headshot`}
+                              width={64}
+                              height={64}
                               className="absolute inset-0 w-full h-full object-cover"
                             />
                           ) : (
@@ -1220,6 +1224,8 @@ export default function BlogPost() {
                         src={rp.image}
                         alt={rp.title}
                         loading="lazy"
+                        width={640}
+                        height={360}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>

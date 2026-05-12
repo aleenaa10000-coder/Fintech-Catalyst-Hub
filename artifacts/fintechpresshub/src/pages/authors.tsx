@@ -137,6 +137,8 @@ export default function AuthorsIndex() {
                                 src={photo}
                                 alt={`${author.name} headshot`}
                                 loading="lazy"
+                                width={128}
+                                height={128}
                                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                               />
                             ) : (

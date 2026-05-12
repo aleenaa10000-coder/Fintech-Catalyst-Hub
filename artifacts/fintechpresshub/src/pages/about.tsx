@@ -125,6 +125,8 @@ export default function About() {
                 <img
                   src={aboutOffice}
                   alt="FintechPressHub team office in New York — specialist fintech SEO and content marketing agency"
+                  width={800}
+                  height={600}
                   className="rounded-2xl w-full h-auto aspect-[4/3] object-cover border border-blue-500/20 shadow-2xl shadow-blue-500/10 ring-1 ring-blue-500/10"
                 />
               </motion.div>
@@ -232,6 +234,8 @@ export default function About() {
                             overrides,
                           ) ?? author.photo
                         }
+                        width={80}
+                        height={80}
                         alt={`${author.name} — ${author.role}`}
                         loading="lazy"
                         className="h-20 w-20 rounded-full object-cover ring-2 ring-primary/20 shrink-0"

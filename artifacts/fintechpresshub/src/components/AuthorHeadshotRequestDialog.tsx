@@ -167,6 +167,8 @@ export function AuthorHeadshotRequestDialog({
                     <img
                       src={photoUrl}
                       alt="Submitted headshot preview"
+                      width={64}
+                      height={64}
                       className="w-16 h-16 rounded-lg object-cover border"
                     />
                     <div className="flex-1 min-w-0">
