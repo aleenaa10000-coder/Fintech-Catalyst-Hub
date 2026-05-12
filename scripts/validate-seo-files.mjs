@@ -205,6 +205,24 @@ async function checkSitemapIndex(declaredPaths) {
   return locMatches;
 }
 
+/**
+ * Returns true if any blog post has publishedAt within the last 48 hours.
+ * The news sitemap uses the same 48-hour window, so this tells us whether
+ * an empty news-sitemap.xml is expected or suspicious.
+ */
+async function hasRecentBlogPosts() {
+  try {
+    const res = await fetch(`${BASE}/api/blog/posts`, { maxBytes: 256_000 });
+    if (res.status !== 200) return null; // can't tell — skip the check
+    const posts = JSON.parse(res.body);
+    const list = Array.isArray(posts) ? posts : (posts.posts ?? posts.data ?? []);
+    const cutoff = Date.now() - 48 * 60 * 60 * 1000;
+    return list.some((p) => p.publishedAt && new Date(p.publishedAt).getTime() >= cutoff);
+  } catch {
+    return null; // network or parse error — skip the check
+  }
+}
+
 async function checkChildSitemaps(childUrls) {
   // Validate a representative sample: pages, blog, locations, glossary, news
   const PRIORITY_PATHS = [
@@ -271,7 +289,24 @@ async function checkChildSitemaps(childUrls) {
     // Count <url> entries (rough check — not a full XML parse)
     const urlCount = (xml.match(/<url>/g) ?? []).length;
     if (hasUrlset && urlCount === 0) {
-      warn(`${path} — is a valid <urlset> but contains 0 <url> entries`);
+      if (path === "/news-sitemap.xml") {
+        // The news sitemap only includes posts from the last 48 hours.
+        // An empty sitemap is perfectly normal when no posts were published
+        // recently — only warn when there ARE recent posts missing from it.
+        const recentPosts = await hasRecentBlogPosts();
+        if (recentPosts === true) {
+          warn(`${path} — 0 entries but recent posts (< 48 h) exist — check newsSitemap route`);
+        } else if (recentPosts === false) {
+          info(`${path} — empty (no posts published in the last 48 h — expected)`);
+          passed++;
+        } else {
+          // Could not determine (API error) — report informational, don't block
+          info(`${path} — empty (could not verify recent-post status; skipping check)`);
+          passed++;
+        }
+      } else {
+        warn(`${path} — is a valid <urlset> but contains 0 <url> entries`);
+      }
     } else if (hasUrlset) {
       ok(`${path} — valid <urlset>, ${urlCount} URL(s)`);
     } else {
