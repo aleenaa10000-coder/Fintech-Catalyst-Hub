@@ -1,0 +1,74 @@
+name: Lighthouse Weekly Report
+
+on:
+  # Every Monday at 09:00 UTC
+  schedule:
+    - cron: "0 9 * * 1"
+  # Allow manual runs from the Actions tab
+  workflow_dispatch:
+
+concurrency:
+  group: lighthouse-weekly
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: Collect & email Lighthouse scores
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        shell: bash
+        run: echo "dir=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm --filter @workspace/fintechpresshub run build
+        env:
+          SITE_URL: https://www.fintechpresshub.com
+
+      - name: Collect Lighthouse scores
+        # lhci collect starts Vite preview, runs audits on all URLs defined in
+        # .lighthouserc.cjs, and writes LHR JSON files to .lighthouseci/.
+        # We skip assert here — the weekly run is informational, not a gate.
+        run: pnpm lhci collect
+        env:
+          LHCI_NO_ASSERT: "1"
+
+      - name: Upload reports to temporary storage
+        # Prints a shareable URL for each page's full report in the job logs.
+        run: pnpm lhci upload --target=temporary-public-storage
+        continue-on-error: true
+
+      - name: Send email report
+        run: node scripts/lighthouse-email.mjs
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          REPORT_TO_EMAIL: ${{ vars.LIGHTHOUSE_REPORT_EMAIL || 'hello@fintechpresshub.com' }}
+          REPORT_FROM_EMAIL: "FintechPressHub <hello@fintechpresshub.com>"
+          LHCI_DIR: .lighthouseci
