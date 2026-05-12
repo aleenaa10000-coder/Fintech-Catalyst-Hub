@@ -454,9 +454,16 @@ if (process.env.NODE_ENV === "production" && existsSync(_frontendDist)) {
       setHeaders(res, filePath) {
         const isHashedAsset = /\.[a-f0-9]{8,}\.(js|css|woff2?|ttf|otf|svg|png|jpe?g|webp|gif|ico)$/i.test(filePath);
         if (isHashedAsset) {
+          // Content-hashed filenames never change for a given build — tell
+          // browsers and CDNs to cache forever. immutable skips revalidation.
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          // Vary: Accept-Encoding lets CDNs cache separate gzip/br/identity
+          // copies so compressed and uncompressed clients don't share a stale entry.
+          res.setHeader("Vary", "Accept-Encoding");
         } else {
+          // index.html and other unhashed files: always revalidate.
           res.setHeader("Cache-Control", "no-cache");
+          res.setHeader("Vary", "Accept-Encoding");
         }
       },
     }),

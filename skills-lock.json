@@ -5,7 +5,7 @@
       "source": "inf-sh/skills",
       "sourceType": "github",
       "skillPath": "tools/agent-tools/SKILL.md",
-      "computedHash": "7205d69c186b3c99ce3748fef5c5ca2bf2911df51d279c079f7b59808d4f40c8"
+      "computedHash": "325fe11662350af20d05bc3d607e81c1246ceaa2eb45cf60f2b2819ce99325a8"
     },
     "audit-website": {
       "source": "squirrelscan/skills",

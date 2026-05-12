@@ -74,13 +74,19 @@
     <!-- Blog cover images are commonly served from Unsplash. Preconnect removes
          the TCP+TLS handshake latency from the critical path for LCP images,
          reducing Largest Contentful Paint on blog post pages. dns-prefetch is
-         a fallback hint for browsers that don't support preconnect. -->
-    <link rel="preconnect" href="https://images.unsplash.com">
+         a fallback hint for browsers that don't support preconnect.
+         crossorigin is required for cross-origin image preconnects so the
+         browser uses the correct CORS credentials mode when connecting. -->
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
     <link rel="dns-prefetch" href="https://images.unsplash.com">
-    <!-- Preload hint tells the browser to start fetching the font CSS immediately
-         while parsing the head, before the non-blocking stylesheet fires. -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-    <!-- Non-render-blocking font load: media="print" swaps to "all" once loaded -->
+    <!-- Non-render-blocking font load.
+         The media="print" trick loads the stylesheet asynchronously: the
+         browser fetches it at low priority (print) and onload swaps it to
+         "all", applying the font without ever blocking the render tree.
+         No rel="preload" as="style" — that hint paradoxically elevates the
+         fetch priority and can make Lighthouse flag it as render-blocking.
+         The index.css @font-face fallback (Inter Fallback) fills the gap
+         so there is no layout shift when Inter arrives. -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
 

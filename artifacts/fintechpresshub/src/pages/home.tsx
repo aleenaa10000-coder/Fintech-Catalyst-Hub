@@ -380,12 +380,13 @@ export default function Home() {
                       <img
                         src={optimizeImageUrl(post.coverImage, 800)}
                         srcSet={buildSrcSet(post.coverImage, [400, 800, 1200])}
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
                         alt={post.title}
                         width={800}
                         height={450}
                         loading={i === 0 ? "eager" : "lazy"}
-                        fetchPriority={i === 0 ? "high" : undefined}
+                        fetchPriority={i === 0 ? "high" : "auto"}
+                        decoding={i === 0 ? "sync" : "async"}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>
@@ -481,10 +482,13 @@ export default function Home() {
                     >
                       <img
                         src={optimizeImageUrl(post.coverImage, 160)}
+                        srcSet={buildSrcSet(post.coverImage, [80, 160, 240])}
+                        sizes="80px"
                         alt=""
                         width={80}
                         height={80}
                         loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>

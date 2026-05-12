@@ -297,6 +297,24 @@ export default defineConfig(({ command }) => {
     port: 4173,
     host: "0.0.0.0",
     allowedHosts: true,
+    // Mirror the dev-server proxy so `vite preview` (used by Lighthouse CI
+    // and local production-build testing) can reach the API on port 8080.
+    // Without this, all /api/* calls 404, React shows loading skeletons, and
+    // Lighthouse measures inflated LCP/TBT and missing meta tags.
+    proxy: {
+      "/api": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/robots.txt": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/objects": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+    },
   },
   };
 });

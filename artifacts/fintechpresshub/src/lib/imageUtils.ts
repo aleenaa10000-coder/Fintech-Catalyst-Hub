@@ -7,10 +7,11 @@
  * saving for browsers that support the format (all modern browsers do).
  *
  * Supported Unsplash params:
- *   auto=format  — CDN serves WebP to browsers that accept it
+ *   auto=format  — CDN serves WebP to browsers that accept it (via Accept header)
+ *   fm=webp      — force WebP regardless of Accept header (belt-and-suspenders)
  *   fit=crop     — crop to fill exact dimensions rather than letter-boxing
  *   w=<px>       — resize to this width (maintains aspect ratio with crop)
- *   q=<0-100>    — JPEG/WebP quality (80 is a good default)
+ *   q=<0-100>    — JPEG/WebP quality (75 is a good balance of quality vs size)
  */
 
 const UNSPLASH_HOST = "images.unsplash.com";
@@ -26,18 +27,23 @@ function isUnsplash(url: string | null | undefined): boolean {
 
 /**
  * Returns a URL that asks the Unsplash CDN for a specific width and
- * auto-format (WebP). Non-Unsplash URLs are returned unchanged.
+ * WebP format. Non-Unsplash URLs are returned unchanged.
+ *
+ * Uses `fm=webp` in addition to `auto=format` so the CDN delivers WebP
+ * even when the browser's Accept header is missing (e.g. SSR crawlers,
+ * curl, some CDN edge nodes) — reducing file size by ~30-40% vs JPEG.
  */
 export function optimizeImageUrl(
   url: string | null | undefined,
   width: number,
-  quality = 80,
+  quality = 75,
 ): string {
   if (!url) return "";
   if (!isUnsplash(url)) return url;
 
   const parsed = new URL(url);
   parsed.searchParams.set("auto", "format");
+  parsed.searchParams.set("fm", "webp");
   parsed.searchParams.set("fit", "crop");
   parsed.searchParams.set("w", String(width));
   parsed.searchParams.set("q", String(quality));
@@ -48,14 +54,18 @@ export function optimizeImageUrl(
  * Builds a `srcset` attribute string for Unsplash images at multiple widths.
  * Non-Unsplash URLs get a single-entry srcset pointing to the base URL.
  *
+ * Every entry requests WebP format so the browser always downloads the most
+ * compressed format regardless of srcset entry chosen. Pair this with a
+ * `sizes` attribute so the browser selects the right width descriptor.
+ *
  * @param url     — raw image URL (may be Unsplash or any other host)
  * @param widths  — ordered list of pixel widths to include in srcset
- * @param quality — Unsplash quality param (default 80)
+ * @param quality — Unsplash quality param (default 75)
  */
 export function buildSrcSet(
   url: string | null | undefined,
   widths: number[],
-  quality = 80,
+  quality = 75,
 ): string {
   if (!url) return "";
   if (!isUnsplash(url)) return url;

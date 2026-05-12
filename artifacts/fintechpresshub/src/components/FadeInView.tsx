@@ -8,6 +8,14 @@ interface FadeInViewProps {
   style?: CSSProperties;
 }
 
+/**
+ * Fade-in-up animation on first intersection.
+ *
+ * Uses CSS custom-property-driven transform/opacity so the browser compositor
+ * can handle the animation on the GPU layer — no layout reflow on every frame.
+ * The element is promoted via `will-change: transform, opacity` only while the
+ * animation is pending, then the hint is removed to free compositor memory.
+ */
 export function FadeInView({
   children,
   className = "",
@@ -28,7 +36,7 @@ export function FadeInView({
           observer.disconnect();
         }
       },
-      { rootMargin: "-60px" }
+      { rootMargin: "-60px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
