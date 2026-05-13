@@ -379,11 +379,12 @@ function patchHtml(base: string, p: MetaPatches): string {
  * Build a BreadcrumbList JSON-LD string from an ordered array of {name, url}
  * pairs. The first item is always Home; the last is the current page.
  */
-function buildBreadcrumbLd(crumbs: Array<{ name: string; url: string }>): string {
+function buildBreadcrumbLd(crumbs: Array<{ name: string; url: string }>, id?: string): string {
   return JSON.stringify(
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
+      ...(id ? { "@id": id } : {}),
       itemListElement: crumbs.map((c, i) => ({
         "@type": "ListItem",
         position: i + 1,
@@ -1130,6 +1131,69 @@ const TOOLS_FEATURE_LIST: Readonly<Record<string, string[]>> = {
     "Personalised improvement tips",
     "Client-side only — no data stored",
   ],
+  "meta-description-generator": [
+    "Generates 3 unique meta description variants per request",
+    "Targets your specified primary keyword naturally",
+    "Enforces 155-character limit for full SERP display",
+    "Optimised for fintech, payments, and financial services pages",
+    "No sign-up required — fully client-side",
+  ],
+  "guest-post-pitch-generator": [
+    "Produces a personalised outreach email for any target publication",
+    "Incorporates your company name, niche, and proposed article angle",
+    "Addresses the editor by name for higher open rates",
+    "Formatted for fintech and financial-services editorial teams",
+    "No account required — instant generation",
+  ],
+  "readability-checker": [
+    "Flesch Reading Ease score (0–100 scale)",
+    "Flesch-Kincaid Grade Level calculation",
+    "Average sentence length and passive-voice detection",
+    "Actionable tips to improve clarity for a professional B2B audience",
+    "Processes up to 5,000 words per check",
+  ],
+  "keyword-difficulty-estimator": [
+    "0–100 keyword difficulty score with plain-English interpretation",
+    "Estimated time-to-rank guidance for each difficulty band",
+    "Six long-tail keyword variants with lower competition scores",
+    "Fintech-vertical calibration for accurate YMYL-sector scoring",
+    "Instant results — no API key or account required",
+  ],
+  "backlink-value-estimator": [
+    "0–100 backlink value score for any target domain",
+    "Weighted scoring: Domain Authority (40%), organic traffic (35%), relevance (25%)",
+    "Clear high/medium/low priority rating for outreach prioritisation",
+    "Fintech-industry relevance calibration built in",
+    "Client-side — no external API calls, data stays in browser",
+  ],
+  "content-brief-generator": [
+    "Structured brief with suggested H2/H3 headings",
+    "Key questions to answer and points to cover",
+    "Recommended tone and target audience definition",
+    "Fintech-specific angle suggestions for competitive SERP differentiation",
+    "Export-ready plain-text format for any CMS or doc tool",
+  ],
+  "headline-analyzer": [
+    "Overall headline score out of 100",
+    "Sub-scores for SEO power, emotional impact, readability, and clarity",
+    "Power-word and sentiment detection",
+    "Optimal headline length guidance (6–12 words)",
+    "Actionable rewrite suggestions for low-scoring dimensions",
+  ],
+  "link-prospector": [
+    "Bulk domain scoring — paste an entire outreach list at once",
+    "Value and ease-of-acquisition scores for each prospect",
+    "Sort by highest value or easiest win",
+    "Copyable prioritised output for import into any outreach CRM",
+    "No sign-up required",
+  ],
+  "outreach-email-generator": [
+    "Personalised link-building email in three tone variants (professional, friendly, direct)",
+    "Three alternative subject line options per email",
+    "Customisable anchor text, target URL, and publication fields",
+    "Formatted for cold outreach to editorial and webmaster contacts",
+    "No account required — instant generation",
+  ],
 };
 
 // ---------- per-request SSR-meta patch cache (B1) ────────────────────────────
@@ -1292,6 +1356,7 @@ async function handleSsrMeta(
           mentionEntities:      blogPostsTable.mentionEntities,
           wordCount:            blogPostsTable.wordCount,
           readingMinutes:       blogPostsTable.readingMinutes,
+          content:              blogPostsTable.content,
         })
         .from(blogPostsTable)
         .where(eq(blogPostsTable.slug, slug))
@@ -1364,7 +1429,8 @@ async function handleSsrMeta(
       const authorUrl    = authorSlug ? `${siteUrl}/authors/${authorSlug}` : null;
       const tags         = Array.isArray(post.tags) ? (post.tags as string[]) : [];
 
-      const breadcrumbs = buildCrumbsForPath(siteUrl, ["blog", slug], pageTitle);
+      const breadcrumbs    = buildCrumbsForPath(siteUrl, ["blog", slug], pageTitle);
+      const breadcrumbLdId = `${siteUrl}/blog/${slug}#breadcrumb`;
 
       const aboutEntities   = Array.isArray(post.aboutEntities)   ? (post.aboutEntities   as string[]) : [];
       const mentionEntities = Array.isArray(post.mentionEntities) ? (post.mentionEntities as string[]) : [];
@@ -1407,8 +1473,15 @@ async function handleSsrMeta(
           // so both rendering paths produce identical entity references.
           "@id":      `${canonical}#article`,
           headline:   post.title,
+          // alternativeHeadline gives AI engines a second title for answer
+          // fragment attribution when the main headline is too long for a snippet.
+          alternativeHeadline: description,
           description,
           url:        canonical,
+          // publishingPrinciples is required for YMYL E-E-A-T — Google uses this
+          // URL to confirm the source adheres to editorial standards before citing
+          // it in AI Overviews and Perplexity answers.
+          publishingPrinciples: `${siteUrl}/editorial-guidelines`,
           mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
           // #blog fragment matches the Blog entity @id in PageMeta.tsx and the
           // WebSite's isPartOf Blog reference — consistent entity graph for
@@ -1451,18 +1524,31 @@ async function handleSsrMeta(
           ...(mentionEntities.length > 0
             ? { mentions: mentionEntities.map((e) => ({ "@type": "Thing", name: e })) }
             : {}),
-          ...(post.blufSummary ? { abstract: post.blufSummary.slice(0, 500) } : {}),
+          // abstract: prefer the BLUF summary for maximum AEO impact; fall back
+          // to excerpt so every post has a machine-readable abstract for AI
+          // snippet generation even when no BLUF panel has been authored.
+          ...(post.blufSummary ?? post.excerpt
+            ? { abstract: (post.blufSummary ?? post.excerpt ?? "").slice(0, 500) }
+            : {}),
           ...(post.wordCount ? { wordCount: post.wordCount } : {}),
           ...(post.readingMinutes && post.readingMinutes > 0 ? { timeRequired: `PT${post.readingMinutes}M` } : {}),
           isAccessibleForFree: true,
           accessMode: ["textual", "visual"],
           potentialAction: { "@type": "ReadAction", target: canonical },
-          // citation: extract all outbound https:// links from the post body
+          // audience + educationalLevel declare the intended reader profile so
+          // AI engines surface this B2B fintech content to professional audiences
+          // rather than mixing it with general consumer finance results.
+          audience: {
+            "@type":      "Audience",
+            audienceType: "Fintech professionals — founders, marketers, and operators",
+          },
+          educationalLevel: "Professional",
+          // citation: extract all outbound https:// links from the post content
           // and emit them as CreativeWork citations. Gives Google a machine-
           // readable list of sources, strengthening E-E-A-T for financial
           // content — a direct signal Google uses for Your Money Your Life pages.
           ...(() => {
-            const bodyText = (post as { body?: string }).body ?? "";
+            const bodyText = post.content ?? "";
             const citationUrls = Array.from(
               bodyText.matchAll(/href="(https?:\/\/(?!(?:www\.)?fintechpresshub\.com)[^"#?]+)"/g),
               (m: RegExpMatchArray) => m[1] as string,
@@ -1472,7 +1558,7 @@ async function handleSsrMeta(
               : {};
           })(),
         }, null, 2),
-        buildBreadcrumbLd(breadcrumbs),
+        buildBreadcrumbLd(breadcrumbs, breadcrumbLdId),
       ];
 
       if (faqItems.length > 0) {
@@ -1497,7 +1583,7 @@ async function handleSsrMeta(
 
       // WebPage entity emitted for every blog post so Google can resolve
       // the page-level entity distinct from the BlogPosting content entity.
-      // Speakable + abstract are conditional on blufSummary existing.
+      const breadcrumbId = `${canonical}#breadcrumb`;
       extraLds.push(JSON.stringify({
         "@context":    "https://schema.org",
         "@type":       "WebPage",
@@ -1507,15 +1593,34 @@ async function handleSsrMeta(
         isPartOf:      { "@id": `${siteUrl}#website` },
         datePublished: post.publishedAt.toISOString(),
         dateModified:  dateModified,
+        // breadcrumb cross-references the BreadcrumbList entity via @id so
+        // Google's Knowledge Graph can link the page to its navigation path
+        // without having to infer the hierarchy from the URL structure alone.
+        breadcrumb: { "@id": breadcrumbId },
+        // primaryImageOfPage enables Google's visual carousels and AIO image
+        // attribution to claim the cover image for this article entity in
+        // the Knowledge Graph — without it, the image cannot be attributed.
+        ...(ogImage ? {
+          primaryImageOfPage: {
+            "@type": "ImageObject",
+            url:     ogImage,
+            ...(ogImage.includes("/api/og") ? { width: 1200, height: 630 } : {}),
+          },
+        } : {}),
         speakable: {
           "@type":     "SpeakableSpecification",
-          // Always emit a speakable selector. When a BLUF summary exists, target
-          // the concise .speakable-summary panel (rendered by blog-post.tsx).
-          // When no summary is present, fall back to h1 so Google always has at
-          // least the headline to extract for voice and AEO snippet answers.
-          cssSelector: post.blufSummary ? [".speakable-summary"] : ["h1"],
+          // When a BLUF summary exists, target it plus h2 section headings so
+          // AI engines can build multi-part answers from section-level content.
+          // When no summary is present, h1 + h2 still gives broad coverage.
+          cssSelector: post.blufSummary
+            ? [".speakable-summary", "h2"]
+            : ["h1", "h2"],
         },
-        ...(post.blufSummary ? { abstract: post.blufSummary.slice(0, 500) } : {}),
+        // abstract mirrors the BlogPosting abstract — keeps the WebPage entity
+        // self-contained for crawlers that parse only the first JSON-LD block.
+        ...(post.blufSummary ?? post.excerpt
+          ? { abstract: (post.blufSummary ?? post.excerpt ?? "").slice(0, 500) }
+          : {}),
       }, null, 2));
 
       patches = {
@@ -3370,6 +3475,9 @@ async function handleSsrMeta(
 
         } else {
           // ── All other static pages — generic WebPage schema ───────────────
+          // Covers /privacy-policy, /refund-policy, /cookie-policy, /terms,
+          // /editorial-guidelines, /community-guidelines, and any future static
+          // pages not yet given a dedicated handler above.
           const pageCreated = STATIC_PAGE_CREATED[reqPath];
           extraLds.push(JSON.stringify({
             "@context":   "https://schema.org",
@@ -3378,14 +3486,19 @@ async function handleSsrMeta(
             url:          canonical,
             name:         staticMeta.title,
             description:  staticMeta.description,
-            // inLanguage is required for consistency — all specific page schemas include it;
-            // this catch-all serves /privacy-policy, /refund-policy, /cookie-policy,
-            // /terms, /editorial-guidelines, /community-guidelines, etc.
             inLanguage:   "en",
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(pageCreated ? { datePublished: pageCreated } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            // SpeakableSpecification added to all catch-all pages so voice
+            // assistants and AI citation engines can extract at least the page
+            // headline for policy/guideline queries (e.g. "what are
+            // FintechPressHub's editorial guidelines?").
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1"],
+            },
           }, null, 2));
         }
 
