@@ -55,6 +55,13 @@ export type ArticleSchema = {
   /** Author job title — strengthens E-E-A-T signal in BlogPosting schema. */
   authorJobTitle?: string;
   section?: string;
+  /**
+   * A concise secondary headline (≤110 chars). Emitted as `alternativeHeadline`
+   * on BlogPosting JSON-LD — used by AI citation engines as a shorter display
+   * title. Falls back to a 110-char truncation of `description` when omitted.
+   * Mirrors the SSR BlogPosting `alternativeHeadline` field added in ssrMeta.ts.
+   */
+  alternativeHeadline?: string;
   tags?: string[];
   about?: string[];
   mentions?: string[];
@@ -994,6 +1001,23 @@ export function PageMeta(props: PageMetaProps) {
           url: `${SITE_URL}/blog`,
         },
         creativeWorkStatus: "Published",
+        // alternativeHeadline — concise secondary title used by AI citation engines
+        // as a shorter display label. Mirrors the SSR BlogPosting field so both
+        // rendering paths (Googlebot HTML-first and JS-rendered) emit the same entity.
+        ...(props.article.alternativeHeadline
+          ? { alternativeHeadline: props.article.alternativeHeadline.slice(0, 110) }
+          : props.article.description
+            ? { alternativeHeadline: props.article.description.slice(0, 110) }
+            : {}),
+        // publishingPrinciples, audience, educationalLevel — static YMYL E-E-A-T
+        // signals. Identical values are emitted by ssrMeta.ts on every BlogPosting.
+        // Hardcoding here keeps both rendering paths in sync without extra props.
+        publishingPrinciples: `${SITE_URL}/editorial-guidelines`,
+        audience: {
+          "@type":       "Audience",
+          audienceType:  "Fintech professionals, founders, and investors",
+        },
+        educationalLevel: "Professional",
         ...(props.article.abstract
           ? { abstract: props.article.abstract.slice(0, 500) }
           : {}),

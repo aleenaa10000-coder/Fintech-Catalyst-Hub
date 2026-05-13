@@ -380,11 +380,14 @@ function patchHtml(base: string, p: MetaPatches): string {
  * pairs. The first item is always Home; the last is the current page.
  */
 function buildBreadcrumbLd(crumbs: Array<{ name: string; url: string }>, id?: string): string {
+  // Auto-derive @id from the leaf crumb URL when not explicitly provided so that
+  // every BreadcrumbList entity has a stable @id for WebPage breadcrumb cross-references.
+  const breadcrumbId = id ?? (crumbs.length > 0 ? `${crumbs.at(-1)!.url}#breadcrumb` : undefined);
   return JSON.stringify(
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
-      ...(id ? { "@id": id } : {}),
+      ...(breadcrumbId ? { "@id": breadcrumbId } : {}),
       itemListElement: crumbs.map((c, i) => ({
         "@type": "ListItem",
         position: i + 1,
@@ -1746,6 +1749,12 @@ async function handleSsrMeta(
               addressCountry:   loc.countryCode,
             },
             areaServed: { "@type": "Place", name: loc.country },
+            // GeoCoordinates enable Google Maps pack eligibility and improve
+            // geo-entity resolution for Knowledge Graph disambiguations. Only
+            // injected when both lat and lng are available from the DB row.
+            ...(loc.lat != null && loc.lng != null
+              ? { geo: { "@type": "GeoCoordinates", latitude: loc.lat, longitude: loc.lng } }
+              : {}),
             parentOrganization: { "@id": `${siteUrl}#organization` },
             publisher:   { "@id": `${siteUrl}#organization` },
           }, null, 2),
@@ -1759,6 +1768,8 @@ async function handleSsrMeta(
             publisher:     { "@id": `${siteUrl}#organization` },
             datePublished: loc.publishedAt.toISOString().slice(0, 10),
             dateModified:  loc.updatedAt.toISOString().slice(0, 10),
+            breadcrumb:    { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
             // SpeakableSpecification enables voice-assistant extraction of the location page
             // headline for "fintech SEO in [city]" and "best fintech agency in [city]" queries —
             // mirrors the speakable coverage applied to all other page types site-wide.
@@ -1874,6 +1885,10 @@ async function handleSsrMeta(
             },
             ...(term.category ? { subjectOf: { "@type": "Thing", name: term.category } } : {}),
             ...(seeAlso.length > 0 ? { seeAlso } : {}),
+            // publisher on DefinedTerm mirrors the pattern on BlogPosting, FinancialService,
+            // and SoftwareApplication — omitting it creates an inconsistency that weakens
+            // E-E-A-T entity resolution across the Knowledge Graph.
+            publisher:       { "@id": `${siteUrl}#organization` },
             potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2),
           JSON.stringify({
@@ -1883,8 +1898,13 @@ async function handleSsrMeta(
             url:           canonical,
             inLanguage:    "en",
             isPartOf:      { "@id": `${siteUrl}#website` },
+            // publisher missing from this WebPage was the only entity in ssrMeta where
+            // it was absent — now consistent with all other WebPage entities site-wide.
+            publisher:     { "@id": `${siteUrl}#organization` },
             datePublished: term.publishedAt.toISOString().slice(0, 10),
             dateModified:  term.updatedAt.toISOString().slice(0, 10),
+            breadcrumb:    { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
             speakable: {
               "@type":     "SpeakableSpecification",
               // .glossary-short-def is rendered on the first <p> inside the
@@ -2021,6 +2041,8 @@ async function handleSsrMeta(
               // service entity and satisfies E-E-A-T's publication-date signal.
               datePublished: svc.createdAt.toISOString().slice(0, 10),
               dateModified:  svc.updatedAt.toISOString().slice(0, 10),
+              breadcrumb:    { "@id": `${canonical}#breadcrumb` },
+              potentialAction: { "@type": "ReadAction", target: canonical },
               // SpeakableSpecification targets the h1 headline — the most concise,
               // authoritative identifier for this service. Enables Google Assistant
               // voice answers and AEO snippet extraction for service-intent queries
@@ -2168,6 +2190,8 @@ async function handleSsrMeta(
                 "@type":     "SpeakableSpecification",
                 cssSelector: ["h1", ".author-bio"],
               },
+              breadcrumb:    { "@id": `${canonical}#breadcrumb` },
+              potentialAction: { "@type": "ReadAction", target: canonical },
               mainEntity: {
                 "@type":      "Person",
                 "@id":        `${canonical}#person`,
@@ -2288,6 +2312,7 @@ async function handleSsrMeta(
             "@type":     "SpeakableSpecification",
             cssSelector: ["h1"],
           },
+          potentialAction: { "@type": "ReadAction", target: canonical },
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
       ];
@@ -2297,6 +2322,7 @@ async function handleSsrMeta(
           "@context": "https://schema.org",
           "@type":    "ItemList",
           name:       catMeta.title,
+          url:        canonical,
           numberOfItems: filteredCatPosts.length,
           itemListElement: filteredCatPosts.map((p, i) => ({
             "@type":    "ListItem",
@@ -2385,6 +2411,7 @@ async function handleSsrMeta(
             "@type":     "SpeakableSpecification",
             cssSelector: ["h1"],
           },
+          potentialAction: { "@type": "ReadAction", target: canonical },
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
       ];
@@ -2504,6 +2531,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
             },
+            breadcrumb:    { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
         ],
@@ -2612,6 +2641,8 @@ async function handleSsrMeta(
           "@type":     "SpeakableSpecification",
           cssSelector: ["h1", ".speakable-summary"],
         },
+        breadcrumb:    { "@id": `${canonical}#breadcrumb` },
+        potentialAction: { "@type": "ReadAction", target: canonical },
       }, null, 2));
       toolExtraLds.push(buildBreadcrumbLd(breadcrumbs));
 
