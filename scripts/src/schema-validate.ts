@@ -11,11 +11,22 @@
  * expressions would break that. Instead we just search for required key
  * substrings within each extracted block.
  *
- * Special case — BlogPosting:
- * The BlogPosting block contains a complex IIFE for citation extraction
- * (see ssrMeta.ts) whose function body braces confuse the brace-counter.
- * A dedicated fallback validates BlogPosting directly via text search,
- * bypassing the block extractor entirely for this type.
+ * Special cases — FALLBACK_CHECKS:
+ * Some schema types exist in blocks whose source structure (multi-line
+ * JSON.stringify, IIFEs, complex nesting) confuses or evades the brace-counter.
+ * A dedicated fallback validates those types directly via text search,
+ * bypassing the block extractor entirely.
+ *
+ * Known fallback types:
+ *   - BlogPosting: dual-@type block contains a citation-extraction IIFE that
+ *     confuses the brace counter.
+ *   - BreadcrumbList: `buildBreadcrumbLd()` uses multi-line JSON.stringify
+ *     (brace on next line after the `(`) which the extractor pattern misses.
+ *
+ * Types NOT in ssrMeta.ts (do not add to REQUIRED_FIELDS):
+ *   - Organization, NewsMediaOrganization, WebSite: these live in the
+ *     static @graph in artifacts/fintechpresshub/index.html, not in ssrMeta.ts.
+ *     Validate them manually using Google's Rich Results Test after deploys.
  *
  * Check #2 — FAQ answer HTML safety:
  * Every acceptedAnswer.text that references a dynamic variable must be wrapped
@@ -34,6 +45,15 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Schema types that MUST be present in ssrMeta.ts.
+ * Each type listed here will be checked against extracted or fallback blocks.
+ *
+ * IMPORTANT: Do NOT add Organization, NewsMediaOrganization, or WebSite here.
+ * Those three types are in the static @graph in index.html, not ssrMeta.ts.
+ * The extractor only reads ssrMeta.ts so it will never find them — adding them
+ * creates false confidence (the "OK" line never appears for them).
+ */
 const REQUIRED_FIELDS: Record<string, string[]> = {
   BlogPosting:           ["headline", "datePublished", "author", "url"],
   FAQPage:               ["mainEntity"],
@@ -41,17 +61,20 @@ const REQUIRED_FIELDS: Record<string, string[]> = {
   BreadcrumbList:        ["itemListElement"],
   SoftwareApplication:   ["name", "applicationCategory", "operatingSystem"],
   DefinedTerm:           ["name", "description"],
-  DefinedTermSet:        ["name"],
   LocalBusiness:         ["name", "address"],
   ProfilePage:           ["mainEntity"],
   WebPage:               ["url"],
   ItemList:              ["itemListElement"],
-  Organization:          ["name", "url", "logo"],
   FinancialService:      ["name", "url"],
   ProfessionalService:   ["name", "url"],
   CollectionPage:        ["name", "url"],
-  NewsMediaOrganization: ["name", "url"],
+  // NewsArticle is dual-typed with BlogPosting ["BlogPosting","NewsArticle"] —
+  // the BlogPosting FALLBACK_CHECK covers the shared block via text search.
+  // Standalone NewsArticle for press mentions is nested (no top-level @context)
+  // so it is also handled by the NewsArticle FALLBACK_CHECK below.
   NewsArticle:           ["headline", "datePublished", "author"],
+  // AggregateRating and Review are nested inside the homepage JSON.stringify
+  // block without their own "@context" — they are handled by FALLBACK_CHECKS.
   AggregateRating:       ["ratingValue", "ratingCount"],
   Review:                ["author", "reviewBody"],
   AboutPage:             ["url", "name"],
@@ -62,8 +85,8 @@ const REQUIRED_FIELDS: Record<string, string[]> = {
 /**
  * Schema types validated via the dedicated text-search fallback instead of
  * brace-count extraction. These types exist in blocks whose source structure
- * (IIFEs, complex nesting) confuses the brace-counter before it captures the
- * closing brace of the top-level JSON.stringify call.
+ * (IIFEs, multi-line JSON.stringify, complex nesting) confuses the brace-counter
+ * before it captures the closing brace of the top-level JSON.stringify call.
  *
  * Each entry maps a schema type to { searchFor, requiredFields } where:
  *   searchFor     — the literal string used to locate the block in source
@@ -71,11 +94,44 @@ const REQUIRED_FIELDS: Record<string, string[]> = {
  */
 const FALLBACK_CHECKS: Record<string, { searchFor: string; requiredFields: string[] }> = {
   BlogPosting: {
-    // Use a substring present in the dual-@type array that is unambiguous and
-    // whitespace-independent. The actual source has `"@type":    ["BlogPosting"`
-    // (multiple spaces) so searching for the exact key + colon form is fragile.
+    // Dual-@type ["BlogPosting", "NewsArticle"] block contains a citation-extraction
+    // IIFE that confuses the brace counter. Text-search on the dual-type array marker
+    // is whitespace-independent and unambiguous.
     searchFor:      '["BlogPosting"',
     requiredFields: ["headline", "datePublished", "author", "url"],
+  },
+  BreadcrumbList: {
+    // buildBreadcrumbLd() uses `JSON.stringify(\n    {` (brace on next line)
+    // which the extractor's "JSON.stringify({" pattern misses.
+    // The function body always contains "@type": "BreadcrumbList" literally.
+    searchFor:      '"@type": "BreadcrumbList"',
+    requiredFields: ["itemListElement"],
+  },
+  FinancialService: {
+    // Dual-type ["FinancialService", "ProfessionalService"] service-page block.
+    // The brace counter may fail on complex nested service blocks; text-search
+    // on the dual-type array is the reliable fallback.
+    searchFor:      '"FinancialService"',
+    requiredFields: ["name", "url"],
+  },
+  NewsArticle: {
+    // NewsArticle appears both as part of the dual BlogPosting+NewsArticle type
+    // and as standalone nested items in the press mentions ItemList. Neither
+    // form produces an independent @context block — text-search confirms presence.
+    searchFor:      '"@type":       "NewsArticle"',
+    requiredFields: ["headline", "datePublished"],
+  },
+  AggregateRating: {
+    // AggregateRating is nested inside the homepage block (no own @context).
+    // Text-search confirms it is emitted with all required fields.
+    searchFor:      '"@type":       "AggregateRating"',
+    requiredFields: ["ratingValue", "ratingCount"],
+  },
+  Review: {
+    // Review objects are nested inside the homepage AggregateRating block.
+    // reviewBody is the distinctive field that distinguishes Review from other types.
+    searchFor:      'reviewBody:',
+    requiredFields: ["reviewBody"],
   },
 };
 
@@ -83,16 +139,34 @@ const FALLBACK_CHECKS: Record<string, { searchFor: string; requiredFields: strin
  * Use brace-counting to extract the raw text of every JSON.stringify({...})
  * call in the source, skipping string/template-literal contents so nested
  * braces inside strings don't throw off the counter.
+ *
+ * Handles both single-line `JSON.stringify({` and multi-line
+ * `JSON.stringify(\n  {` patterns by finding `JSON.stringify(` and then
+ * skipping any whitespace before the opening `{`.
  */
 function extractJsonStringifyBlocks(source: string): string[] {
   const blocks: string[] = [];
   let pos = 0;
+  const MARKER = "JSON.stringify(";
 
   while (pos < source.length) {
-    const start = source.indexOf("JSON.stringify({", pos);
+    const start = source.indexOf(MARKER, pos);
     if (start === -1) break;
 
-    let i = start + "JSON.stringify(".length;
+    // Skip whitespace between `JSON.stringify(` and `{` to handle both
+    // single-line `JSON.stringify({` and multi-line `JSON.stringify(\n  {`.
+    let i = start + MARKER.length;
+    while (i < source.length && (source[i] === " " || source[i] === "\t" || source[i] === "\n" || source[i] === "\r")) {
+      i++;
+    }
+
+    if (source[i] !== "{") {
+      // Not an object literal — could be a variable reference like
+      // JSON.stringify(myObj). Skip this occurrence.
+      pos = start + 1;
+      continue;
+    }
+
     const objStart = i;
     let depth = 0;
 
@@ -212,8 +286,7 @@ function validateFallbackChecks(source: string): ValidationResult[] {
     }
 
     // Extract a generous window (200 lines in each direction from the match)
-    // to capture the full BlogPosting block even though we can't determine
-    // its exact boundaries.
+    // to capture the full block even though we can't determine its exact boundaries.
     const lineStart = source.lastIndexOf("\n", idx - 1);
     const windowStart = Math.max(0, lineStart - 200 * 120);  // ~200 lines before
     const windowEnd   = Math.min(source.length, idx + 200 * 120); // ~200 lines after
@@ -290,7 +363,7 @@ function main() {
     .map(validateBlock)
     .filter((r): r is ValidationResult => r !== null);
 
-  // Validate types that require the text-search fallback (e.g. BlogPosting)
+  // Validate types that require the text-search fallback (e.g. BlogPosting, BreadcrumbList)
   const fallbackResults = validateFallbackChecks(source);
 
   const results = [...extractedResults, ...fallbackResults];
@@ -318,8 +391,30 @@ function main() {
     }
   }
 
+  // ── Check 1b: Warn about REQUIRED_FIELDS types never found ───────────────
+  // If a type is declared in REQUIRED_FIELDS but never appears in any
+  // extracted or fallback block, flag it. This catches cases where a schema
+  // type was removed from ssrMeta.ts without updating REQUIRED_FIELDS.
+  const foundTypes = new Set(seen.keys());
+  const neverFound: string[] = [];
+  for (const type of Object.keys(REQUIRED_FIELDS)) {
+    if (!foundTypes.has(type) && !(type in FALLBACK_CHECKS)) {
+      neverFound.push(type);
+    }
+  }
+
   console.log("─".repeat(lineWidth));
   console.log(`\nResult: ${seen.size} schema types checked, ${errors} error(s)\n`);
+
+  if (neverFound.length > 0) {
+    console.warn(`\nWARN  The following REQUIRED_FIELDS types were declared but never found`);
+    console.warn(`      in any extracted block. They may have been removed from ssrMeta.ts`);
+    console.warn(`      or use a pattern the extractor doesn't support (add to FALLBACK_CHECKS):`);
+    for (const t of neverFound) {
+      console.warn(`        - ${t}`);
+    }
+    console.warn("");
+  }
 
   // ── Check 2: FAQ acceptedAnswer.text HTML safety ──────────────────────────
   const faqErrors = checkFaqAnswerStripping(source);

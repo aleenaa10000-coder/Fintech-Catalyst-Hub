@@ -245,7 +245,17 @@ ${locationLines}
 
 ## Structured data
 
-This site publishes JSON-LD structured data (schema.org) on every page including Organization, WebSite, BlogPosting, FAQPage, BreadcrumbList, FinancialService, SpeakableSpecification, and SoftwareApplication schemas. LLM crawlers may parse these for verified entity data.
+This site publishes JSON-LD structured data (schema.org) on every SSR-rendered page. LLM crawlers may parse these for verified entity data. Schema types in use:
+- **Site-wide** (in HTML @graph): NewsMediaOrganization, WebSite with SearchAction
+- **All pages**: BreadcrumbList, WebPage
+- **Blog posts**: BlogPosting + NewsArticle (dual-type), SpeakableSpecification, FAQPage
+- **Services**: FinancialService + ProfessionalService (dual-type), FAQPage, HowTo
+- **Tools**: SoftwareApplication, FAQPage
+- **Glossary**: DefinedTerm, DefinedTermSet, CollectionPage
+- **Authors**: ProfilePage, Person, ItemList
+- **Locations**: LocalBusiness, FAQPage
+- **Compare pages**: FAQPage, ItemList
+- **Homepage**: WebPage, ItemList (services), AggregateRating, Review
 
 ## AI citation policy
 

@@ -352,12 +352,19 @@ app.get("/ai.txt", (_req: Request, res: Response) =>
 // ── /.well-known/ai.txt — AI governance declaration ──────────────────────────
 // Declares AI content usage policy in a machine-readable format.
 // Follows the emerging ai.txt standard for AI governance transparency.
+//
+// AI_TXT_LAST_UPDATED: update ONLY when the governance policy itself changes
+// (e.g. changing Training:, Citation:, or Attribution: fields). Do NOT use
+// new Date() here — a daily-changing date signals false policy modifications
+// to AI crawlers and may trigger unnecessary re-indexing of the policy file.
+const AI_TXT_LAST_UPDATED = "2026-05-13";
+
 app.get("/.well-known/ai.txt", (_req: Request, res: Response) => {
   const siteUrl = getSiteUrl();
   const txt = [
     "# AI Usage Policy for FintechPressHub",
     `# Site: ${siteUrl}`,
-    `# Last-Updated: ${new Date().toISOString().slice(0, 10)}`,
+    `# Last-Updated: ${AI_TXT_LAST_UPDATED}`,
     "",
     "# ── Site identity ───────────────────────────────────────────────────────────",
     "Name: FintechPressHub",
