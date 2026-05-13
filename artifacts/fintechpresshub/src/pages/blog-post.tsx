@@ -514,8 +514,8 @@ export default function BlogPost() {
         }
         speakableSelectors={
           post.blufSummary
-            ? ["h1", ".speakable-summary"]
-            : ["h1"]
+            ? ["h1", ".speakable-summary", "h2"]
+            : ["h1", "h2"]
         }
         rssFeeds={
           post.author

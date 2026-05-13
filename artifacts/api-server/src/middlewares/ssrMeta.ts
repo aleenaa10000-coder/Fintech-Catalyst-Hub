@@ -1616,7 +1616,7 @@ async function handleSsrMeta(
           // AI engines can build multi-part answers from section-level content.
           // When no summary is present, h1 + h2 still gives broad coverage.
           cssSelector: post.blufSummary
-            ? [".speakable-summary", "h2"]
+            ? ["h1", ".speakable-summary", "h2"]
             : ["h1", "h2"],
         },
         // abstract mirrors the BlogPosting abstract — keeps the WebPage entity
@@ -2706,6 +2706,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1", ".speakable-summary"],
             },
+            breadcrumb:   { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
             ...(aboutAuthors.length > 0
               ? {
                   employee: aboutAuthors.map((a) => ({
@@ -2757,6 +2759,7 @@ async function handleSsrMeta(
               },
               "query-input": "required name=search_term_string",
             },
+            breadcrumb: { "@id": `${canonical}#breadcrumb` },
           }, null, 2));
           // Blog entity — defines the canonical #blog @id referenced by BlogPosting.isPartOf
           // and CollectionPage.isPartOf throughout the site. Without this entity block,
@@ -2815,6 +2818,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
             },
+            breadcrumb:      { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2));
           if (hubAuthors.length > 0) {
             extraLds.push(JSON.stringify({
@@ -2857,6 +2862,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1", ".speakable-summary"],
             },
+            breadcrumb:      { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2));
           if (hubServices.length > 0) {
             extraLds.push(JSON.stringify({
@@ -2905,6 +2912,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1", ".speakable-summary"],
             },
+            breadcrumb:      { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
@@ -3034,6 +3043,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
             },
+            breadcrumb:      { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2));
           if (hubTerms.length > 0) {
             extraLds.push(JSON.stringify({
@@ -3070,6 +3081,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
             },
+            breadcrumb:      { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
@@ -3107,6 +3120,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
             },
+            breadcrumb:      { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
@@ -3146,6 +3161,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
             },
+            breadcrumb:      { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
             mainEntity: {
               "@type":  "Organization",
               "@id":    `${siteUrl}#organization`,
@@ -3183,6 +3200,7 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
             },
+            breadcrumb:   { "@id": `${canonical}#breadcrumb` },
             potentialAction: {
               "@type":  "WriteAction",
               name:     "Submit a Guest Post Pitch",
@@ -3258,6 +3276,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
             },
+            breadcrumb:      { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2));
           const FINTECH_PUBS = [
             { name: "Finextra", url: "https://www.finextra.com" },
@@ -3317,6 +3337,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
             },
+            breadcrumb:      { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2));
           if (hubLocations.length > 0) {
             extraLds.push(JSON.stringify({
@@ -3359,6 +3381,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
             },
+            breadcrumb:      { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2));
 
           // Inject real press mentions from DB as an ItemList of NewsArticle
@@ -3445,6 +3469,7 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1", ".speakable-summary", ".hero-description"],
             },
+            potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2));
           if (homeServices.length > 0) {
             extraLds.push(JSON.stringify({
@@ -3530,6 +3555,8 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1"],
             },
+            breadcrumb:      { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2));
         }
 
