@@ -28,17 +28,18 @@ router.get("/llms.txt", async (_req, res) => {
   const [recentPosts, glossaryTerms, locationPages, authorTeam] = await Promise.all([
     db
       .select({
-        title:    blogPostsTable.title,
-        slug:     blogPostsTable.slug,
-        excerpt:  blogPostsTable.excerpt,
-        category: blogPostsTable.category,
-        noIndex:  blogPostsTable.noIndex,
+        title:       blogPostsTable.title,
+        slug:        blogPostsTable.slug,
+        excerpt:     blogPostsTable.excerpt,
+        category:    blogPostsTable.category,
+        noIndex:     blogPostsTable.noIndex,
+        publishedAt: blogPostsTable.publishedAt,
       })
       .from(blogPostsTable)
       .where(lte(blogPostsTable.publishedAt, sql`now()`))
       .orderBy(desc(blogPostsTable.publishedAt))
       .limit(20)
-      .catch(() => [] as Array<{ title: string | null; slug: string | null; excerpt: string | null; category: string | null; noIndex: boolean | null }>),
+      .catch(() => [] as Array<{ title: string | null; slug: string | null; excerpt: string | null; category: string | null; noIndex: boolean | null; publishedAt: Date }>),
 
     db
       .select({
@@ -79,6 +80,14 @@ router.get("/llms.txt", async (_req, res) => {
 
   const indexable = recentPosts.filter((p) => p.slug && p.title && !p.noIndex);
 
+  // Use the most-recently published post date as Last-Updated so AI bots see
+  // a stable date that only changes when content actually changes, rather than
+  // the HTTP request timestamp which changes on every cache miss.
+  const mostRecentPost = indexable[0] ?? recentPosts[0];
+  const lastUpdated = mostRecentPost?.publishedAt instanceof Date
+    ? mostRecentPost.publishedAt.toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
+
   const blogLines = indexable
     .map((p) => {
       const desc = p.excerpt ? `: ${p.excerpt.slice(0, 120).replace(/\n/g, " ")}` : "";
@@ -98,7 +107,6 @@ router.get("/llms.txt", async (_req, res) => {
         .join("\n")
     : "- No location pages published yet.";
 
-  const lastUpdated = new Date().toISOString().slice(0, 10);
   const txt = `# FintechPressHub
 > Specialist fintech SEO and content marketing agency. We blend deep financial expertise with high-authority link building and technical SEO to scale organic growth for ambitious fintech brands.
 
@@ -134,10 +142,10 @@ Fintech sub-verticals covered: Technical SEO Audit, Fintech SEO Strategy, Compet
 
 ## Pricing (retainer-based, USD/month)
 
-- **Starter** (~$3,500/mo): 4 SEO-optimised articles + 5 guest post placements + monthly report
-- **Growth** (~$7,000/mo): 8 articles + 10 placements + digital PR coverage + quarterly strategy
-- **Authority** (~$12,000/mo): 16 articles + 20 placements + full PR programme + dedicated strategist
-- **Enterprise**: Custom scope for Series B+ and public companies
+- Plan: Starter | Price: ~$3,500/mo | Includes: 4 SEO articles + 5 guest post placements + monthly report
+- Plan: Growth | Price: ~$7,000/mo | Includes: 8 articles + 10 placements + digital PR + quarterly strategy
+- Plan: Authority | Price: ~$12,000/mo | Includes: 16 articles + 20 placements + full PR programme + dedicated strategist
+- Plan: Enterprise | Price: Custom | Includes: Custom scope for Series B+ and public companies
 - Full pricing: [${siteUrl}/pricing](${siteUrl}/pricing)
 
 ## Editorial team (selected authors)
@@ -225,6 +233,16 @@ ${locationLines}
 - **Serves**: Worldwide fintech companies
 - **Languages**: English
 
+## Authority signals
+
+- PublishingPrinciples: ${siteUrl}/editorial-guidelines
+- EditorialStandards: Expert-authored, fact-checked against primary sources, compliance-aware
+- CorrectionsPolicy: corrections@fintechpresshub.com — corrections published within 48 hours
+- ContentCategories: Fintech SEO, content marketing, link building, digital PR, payments, embedded finance, open banking, neobanking, lending, regtech, wealthtech
+- YMYL: true (financial services content — Your Money or Your Life category)
+- E-E-A-T: Authors are verified fintech professionals with direct industry experience
+- LinkedInPage: https://www.linkedin.com/company/fintechpresshub
+
 ## Structured data
 
 This site publishes JSON-LD structured data (schema.org) on every page including Organization, WebSite, BlogPosting, FAQPage, BreadcrumbList, FinancialService, SpeakableSpecification, and SoftwareApplication schemas. LLM crawlers may parse these for verified entity data.
@@ -252,7 +270,7 @@ Content may not be reproduced verbatim beyond fair-use excerpts without permissi
 
 ## Optional
 
-- [Full content index](${siteUrl}/llms-full.txt): Extended version with fuller blog excerpts, complete glossary definitions, full author bios, and complete tool descriptions — for AI systems that need richer context.
+- [Full content index](${siteUrl}/llms-full.txt): Extended version with fuller blog excerpts, complete glossary definitions, full author bios, service FAQs, comparison FAQs, and complete tool descriptions — for AI systems that need richer context.
 `;
 
   res
@@ -273,9 +291,12 @@ Content may not be reproduced verbatim beyond fair-use excerpts without permissi
  *   - Glossary: all published terms with full shortDef (vs 30 / 100 chars)
  *   - Authors: full short bio text (vs truncated)
  *   - Location pages: all entries with headline (vs all, same)
- *   - Pricing: complete plan descriptions
+ *   - Pricing: formatted table with plan details
  *   - Tools: full descriptions of all 10 free tools
  *   - FAQ: expanded answers
+ *   - Service FAQs: all 15 curated Q&As from service pages
+ *   - Comparison FAQs: all expert Q&As from comparison pages
+ *   - Authority signals: E-E-A-T and publishing principles
  */
 router.get("/llms-full.txt", async (_req, res) => {
   const siteUrl = getSiteUrl();
@@ -333,6 +354,14 @@ router.get("/llms-full.txt", async (_req, res) => {
 
   const indexable = recentPosts.filter((p) => p.slug && p.title && !p.noIndex);
 
+  // Use the most-recently published post date as Last-Updated so AI bots see
+  // a stable date that only changes when content actually changes, rather than
+  // the HTTP request timestamp which changes on every cache miss.
+  const mostRecentPost = indexable[0] ?? recentPosts[0];
+  const fullLastUpdated = mostRecentPost?.publishedAt instanceof Date
+    ? mostRecentPost.publishedAt.toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
+
   const blogLines = indexable
     .map((p) => {
       const pubDate = p.publishedAt instanceof Date
@@ -355,7 +384,6 @@ router.get("/llms-full.txt", async (_req, res) => {
         .join("\n")
     : "- No location pages published yet.";
 
-  const fullLastUpdated = new Date().toISOString().slice(0, 10);
   const txt = `# FintechPressHub — Full Content Index for AI Systems
 > This is the extended version of /llms.txt following the llmstxt.org specification.
 > It provides fuller content for AI systems that need complete context for accurate citations.
@@ -394,15 +422,123 @@ Technical SEO, topical authority, and content cluster strategy for regulated fin
 URL: ${siteUrl}/services/fintech-seo-audit
 Comprehensive 30-day technical and content audit with a prioritised 90-day roadmap. Deliverables: technical audit report (crawl errors, Core Web Vitals, structured data), content gap analysis against top-3 competitors, keyword opportunity map, and a roadmap with effort/impact scoring. One-time engagement; no retainer required.
 
-## Pricing (full plan descriptions)
+## Pricing (full plan details)
 
-- **Starter** (~$3,500/month): 4 SEO-optimised articles per month + 5 dofollow guest post placements + monthly performance report. Best for early-stage fintechs building topical authority.
-- **Growth** (~$7,000/month): 8 articles + 10 placements + digital PR coverage + quarterly strategy session. Best for Series A fintechs scaling organic acquisition.
-- **Authority** (~$12,000/month): 16 articles + 20 placements + full PR programme (press releases, journalist outreach, data studies) + dedicated strategist. Best for Series B+ companies targeting media coverage.
-- **Enterprise**: Custom scope for public companies and large financial institutions. Includes compliance review of all content before publication.
-- Full pricing page: ${siteUrl}/pricing
+| Plan | Price (USD/month) | Articles/month | Placements/month | Target client |
+|---|---|---|---|---|
+| Starter | ~$3,500 | 4 | 5 | Early-stage fintechs building topical authority |
+| Growth | ~$7,000 | 8 | 10 | Series A fintechs scaling organic acquisition |
+| Authority | ~$12,000 | 16 | 20 | Series B+ companies targeting media coverage |
+| Enterprise | Custom | Custom | Custom | Public companies and large financial institutions |
 
-All retainers run on 6-month minimums. Month-to-month is available at a 20% premium.
+All retainers run on 6-month minimums. Month-to-month available at 20% premium. Full pricing: ${siteUrl}/pricing
+
+## Service FAQs
+
+### Fintech Content Writing — Frequently Asked Questions
+
+**Q: What is fintech content writing?**
+A: Fintech content writing is the creation of expert, compliance-aware written content — articles, whitepapers, case studies, and landing pages — tailored to audiences in financial technology. It requires deep knowledge of products like payments, lending, and open banking, as well as an understanding of regulatory requirements in markets such as the UK, US, EU, and APAC.
+
+**Q: Why do fintech companies need specialist content writers?**
+A: Fintech content sits in a YMYL (Your Money or Your Life) category that Google scrutinises under strict E-E-A-T criteria. Generic writers produce factual errors and compliance risks. Specialist fintech writers understand regulatory nuance, communicate complex financial products clearly, and produce content Google rewards with sustainable rankings.
+
+**Q: What does a fintech content writing retainer include?**
+A: A FintechPressHub content writing retainer includes topic research, full SEO brief with target keywords and SERP analysis, original writing by a fintech-experienced editor, on-page optimisation, internal linking, unlimited revisions before publication, and optional CMS upload.
+
+### Off-Page SEO — Frequently Asked Questions
+
+**Q: What is off-page SEO for fintech?**
+A: Off-page SEO for fintech is the practice of building editorial backlinks, brand mentions, and authority signals from high-Domain Rating publications relevant to financial technology. It includes guest posting on Finextra, The Fintech Times, and similar outlets, as well as digital PR and strategic link placements.
+
+**Q: Why is off-page SEO harder for fintech companies?**
+A: Financial content is heavily scrutinised by editors and regulated by compliance requirements, making it far harder to earn placements on tier-1 finance publications than on generic blogs. Fintech companies need specialist editorial relationships and proven writer credentials to secure links that actually move rankings.
+
+**Q: How long does off-page SEO take to show results for fintech?**
+A: First links can be placed within 4–6 weeks. Meaningful ranking movement typically emerges after 3–4 months of consistent link acquisition. Compounding authority — where each new link amplifies the impact of existing ones — becomes visible around month 6–9 for most fintech keywords.
+
+### Guest Posting — Frequently Asked Questions
+
+**Q: What is guest posting for fintech?**
+A: Guest posting for fintech is the process of placing expert articles on high-authority financial publications — such as Finextra, Tearsheet, and The Fintech Times — that include a dofollow editorial backlink to your site. Each placement builds domain authority and exposes your brand to the readership of those publications.
+
+**Q: Are the guest post backlinks dofollow?**
+A: Yes. FintechPressHub secures permanent, dofollow backlinks from publications with Domain Rating 60 or higher. We do not use PBNs, link farms, or paid-placement networks that violate Google's guidelines.
+
+**Q: How do you pitch guest posts for fintech companies?**
+A: Our team researches the editorial calendar and contributor requirements of each target publication, crafts a tailored pitch matching the publication's current coverage gaps, and writes the article once the pitch is accepted. The entire process — pitch, writing, editing, and placement — is managed on your behalf.
+
+### Topical Authority — Frequently Asked Questions
+
+**Q: What is topical authority in fintech SEO?**
+A: Topical authority is the degree to which Google treats a website as the definitive source on a given subject. For fintech, it means systematically covering every angle of a topic cluster — from introductory definitions to advanced practitioner guides — so Google's algorithms rank your content preferentially across the entire subject area.
+
+**Q: How do you build topical authority for a fintech brand?**
+A: Topical authority is built through a structured content cluster strategy: one high-quality pillar page per major topic (e.g. payment orchestration) supported by 8–15 cluster articles covering related subtopics, definitions, comparisons, and use cases. Internal linking ties the cluster together, and supporting backlinks signal authority to Google.
+
+**Q: How long does it take to establish topical authority in fintech?**
+A: A well-executed topical authority programme typically takes 4–6 months to show measurable ranking gains on cluster content and 9–12 months for the pillar page to rank in positions 1–5 for competitive head terms. The compounding effect accelerates after the 6-month mark as internal linking density and backlink volume reach critical thresholds.
+
+### Fintech SEO Audit — Frequently Asked Questions
+
+**Q: What is a fintech SEO audit?**
+A: A fintech SEO audit is a comprehensive analysis of a financial technology company's organic search performance — covering technical site health, on-page optimisation, content gaps, E-E-A-T signals, backlink profile quality, and YMYL compliance. The output is a prioritised action plan with clear effort-to-impact estimates.
+
+**Q: What does a FintechPressHub SEO audit include?**
+A: Our audit covers: technical crawlability and Core Web Vitals, structured data validation, content gap analysis against top-ranking competitors, E-E-A-T signals (author credentials, trust signals, editorial standards), backlink profile health and disavow recommendations, site architecture and internal linking, and a 90-day action roadmap.
+
+**Q: How often should a fintech company run an SEO audit?**
+A: A comprehensive SEO audit is recommended at least once per year, and after any major site redesign, CMS migration, or Google core update. Fintech companies in regulated verticals should also audit after any significant product launch or regulatory change that affects their content strategy.
+
+## Comparison page FAQs
+
+### Agency vs In-House — Frequently Asked Questions
+
+**Q: What does a fintech SEO agency cost compared to an in-house team?**
+A: A mid-tier fintech SEO retainer typically runs $5,000–$15,000/month, covering strategy, content, and link building. Building an equivalent in-house team (SEO lead, writer, digital PR) typically costs $200,000–$350,000/year in salaries, benefits, and tooling — 3–4× the retainer cost for comparable output in year one.
+
+**Q: When should a fintech company hire in-house SEO instead of using an agency?**
+A: In-house SEO makes sense when your company has Series B+ funding, a content roadmap requiring 20+ pieces per month, or a need for deeply embedded institutional knowledge. For most pre-Series B fintechs, the speed-to-output and specialist expertise of a focused agency outweigh the control benefits of an in-house hire.
+
+### Agency vs Freelancers — Frequently Asked Questions
+
+**Q: Are freelance fintech writers cheaper than an agency?**
+A: Per-piece rates from experienced freelance fintech writers range from $300–$1,500 per article. When all costs are included — brief creation, editing rounds, keyword research, and internal coordination — a managed agency is typically 20–40% cheaper at equivalent quality and produces more consistent output.
+
+**Q: What is the biggest risk of using freelance fintech writers?**
+A: The primary risks are inconsistency and compliance exposure. Freelancers vary in quality between assignments, have no obligation to follow your evolving messaging guidelines, and rarely carry professional indemnity insurance for factual errors in regulated-finance content.
+
+### Agency vs SEO Tools — Frequently Asked Questions
+
+**Q: Can Ahrefs or Semrush replace a fintech SEO agency?**
+A: SEO tools provide data — keyword volumes, backlink counts, technical audits — but not execution. A tool can tell you that "payment orchestration" is a high-value keyword; it cannot create authoritative content, build links from Finextra, or maintain a topical-authority content cluster. Agencies own the strategy and do the work; tools are inputs.
+
+**Q: How much do enterprise SEO tools cost versus a fintech SEO agency?**
+A: Enterprise Ahrefs or Semrush plans run $500–$1,000/month. Add a content writer, link-builder, and strategist and you're at $11,500–$22,000/month to replicate what a specialist fintech SEO retainer delivers at $5,000–$12,000/month.
+
+### Agency vs PR Agencies — Frequently Asked Questions
+
+**Q: What is the difference between fintech SEO and traditional PR?**
+A: Traditional PR targets brand awareness through press placements measured in reach and impressions. Fintech SEO targets organic search rankings through keyword-optimised content and editorial backlinks measured in traffic and conversions. The best fintech programmes combine both — digital PR earns links that amplify SEO, while SEO content gives journalists data worth covering.
+
+**Q: Can a PR agency do fintech SEO?**
+A: Most PR agencies lack the technical SEO knowledge (structured data, Core Web Vitals, topical clustering) and content production bandwidth to run an effective SEO programme. PR and SEO are complementary channels that require different skill sets — specialist agencies for each typically outperform a generalist trying to do both.
+
+### Content-Led vs Paid — Frequently Asked Questions
+
+**Q: Is content SEO or Google Ads better for fintech?**
+A: For fintech B2B companies with average contract values above $10,000/year, content SEO typically delivers better long-term ROI. Paid search has an immediate impact but stops generating leads the day you pause spend. Content compounds: a well-ranked pillar page published in year one continues driving qualified pipeline in year three with minimal ongoing investment.
+
+**Q: What is the customer acquisition cost (CAC) difference between content SEO and paid search for fintech?**
+A: Mature content SEO programmes typically achieve CAC of $500–$2,000 per B2B fintech lead at scale. Comparable paid search CAC in competitive fintech verticals (payments, lending) typically runs $2,000–$8,000 per lead. The crossover point where content becomes more efficient than paid usually occurs around month 9–12 of a consistent content programme.
+
+### Specialist vs Generalist — Frequently Asked Questions
+
+**Q: Why does specialisation matter for fintech SEO?**
+A: Google's Quality Rater Guidelines require demonstrable expertise, authoritativeness, and trustworthiness (E-E-A-T) for YMYL content. A generalist agency writing about payment orchestration or DORA compliance cannot demonstrate the first-hand expertise Google rewards. Specialist agencies command credible placement on trade publications, produce factually accurate content that passes editorial review, and avoid the compliance errors that can trigger manual penalties.
+
+**Q: How do I evaluate whether an SEO agency understands fintech?**
+A: Ask them to name the top 10 fintech publications by Domain Rating, explain the E-E-A-T implications of PSD3 for UK fintech companies, and describe how topical authority clusters apply to a payments company's keyword strategy. If they cannot answer all three fluently, they are generalists who will treat your brand as a case study.
 
 ## Free Tools
 
@@ -457,6 +593,16 @@ ${locationLines}
 - [Agency vs PR Agencies](${siteUrl}/compare/vs-pr-agencies): How fintech SEO agencies and traditional PR firms differ in goals, deliverables, and measurement.
 - [Content-Led vs Paid Acquisition](${siteUrl}/compare/content-led-vs-paid): Organic content vs paid search and social for fintech customer acquisition, including CAC and payback period analysis.
 - [Specialist vs Generalist Agency](${siteUrl}/compare/specialist-vs-generalist): Why domain expertise matters in fintech content and the risks of working with generalist agencies on regulated financial topics.
+
+## Authority signals
+
+- PublishingPrinciples: ${siteUrl}/editorial-guidelines
+- EditorialStandards: Expert-authored, fact-checked against primary sources, compliance-aware for YMYL financial content
+- CorrectionsPolicy: corrections@fintechpresshub.com — corrections published within 48 hours of confirmation
+- ContentCategories: Fintech SEO, content marketing, link building, digital PR, payments, embedded finance, open banking, neobanking, lending, regtech, wealthtech
+- YMYL: true (financial services content — Your Money or Your Life category under Google's Quality Rater Guidelines)
+- E-E-A-T: Authors are verified fintech professionals with direct industry operating experience
+- LinkedInPage: https://www.linkedin.com/company/fintechpresshub
 
 ## Structured data
 

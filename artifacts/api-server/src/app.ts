@@ -401,6 +401,11 @@ app.get("/.well-known/ai.txt", (_req: Request, res: Response) => {
     `Terms: ${siteUrl}/terms`,
     `LlmsTxt: ${siteUrl}/llms.txt`,
     `LlmsFullTxt: ${siteUrl}/llms-full.txt`,
+    // Grounding-URL points AI systems (Vertex AI, Gemini, ChatGPT Retrieval)
+    // to the canonical LLM-readable summary for grounding responses about
+    // this site. ContentModel declares that all content is human-authored.
+    `Grounding-URL: ${siteUrl}/llms.txt`,
+    "ContentModel: editorial-human-only",
     "",
   ].join("\n");
   res

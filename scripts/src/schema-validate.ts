@@ -11,6 +11,12 @@
  * expressions would break that. Instead we just search for required key
  * substrings within each extracted block.
  *
+ * Special case — BlogPosting:
+ * The BlogPosting block contains a complex IIFE for citation extraction
+ * (see ssrMeta.ts) whose function body braces confuse the brace-counter.
+ * A dedicated fallback validates BlogPosting directly via text search,
+ * bypassing the block extractor entirely for this type.
+ *
  * Check #2 — FAQ answer HTML safety:
  * Every acceptedAnswer.text that references a dynamic variable must be wrapped
  * in the project's stripHtml() helper. Google rejects FAQPage rich results
@@ -35,6 +41,7 @@ const REQUIRED_FIELDS: Record<string, string[]> = {
   BreadcrumbList:        ["itemListElement"],
   SoftwareApplication:   ["name", "applicationCategory", "operatingSystem"],
   DefinedTerm:           ["name", "description"],
+  DefinedTermSet:        ["name"],
   LocalBusiness:         ["name", "address"],
   ProfilePage:           ["mainEntity"],
   WebPage:               ["url"],
@@ -44,6 +51,32 @@ const REQUIRED_FIELDS: Record<string, string[]> = {
   ProfessionalService:   ["name", "url"],
   CollectionPage:        ["name", "url"],
   NewsMediaOrganization: ["name", "url"],
+  NewsArticle:           ["headline", "datePublished", "author"],
+  AggregateRating:       ["ratingValue", "ratingCount"],
+  Review:                ["author", "reviewBody"],
+  AboutPage:             ["url", "name"],
+  ContactPage:           ["url", "name"],
+  Blog:                  ["url", "name"],
+};
+
+/**
+ * Schema types validated via the dedicated text-search fallback instead of
+ * brace-count extraction. These types exist in blocks whose source structure
+ * (IIFEs, complex nesting) confuses the brace-counter before it captures the
+ * closing brace of the top-level JSON.stringify call.
+ *
+ * Each entry maps a schema type to { searchFor, requiredFields } where:
+ *   searchFor     — the literal string used to locate the block in source
+ *   requiredFields — fields to verify are present in the 200-line window
+ */
+const FALLBACK_CHECKS: Record<string, { searchFor: string; requiredFields: string[] }> = {
+  BlogPosting: {
+    // Use a substring present in the dual-@type array that is unambiguous and
+    // whitespace-independent. The actual source has `"@type":    ["BlogPosting"`
+    // (multiple spaces) so searching for the exact key + colon form is fragile.
+    searchFor:      '["BlogPosting"',
+    requiredFields: ["headline", "datePublished", "author", "url"],
+  },
 };
 
 /**
@@ -150,9 +183,47 @@ function validateBlock(raw: string): ValidationResult | null {
   const type = extractType(raw);
   if (!type) return null;
 
+  // Skip types handled by the dedicated fallback — they will be validated
+  // separately via validateFallbackChecks() to avoid the brace-counter issue.
+  if (type in FALLBACK_CHECKS) return null;
+
   const required = REQUIRED_FIELDS[type] ?? [];
   const missing = required.filter((f) => !hasField(raw, f));
   return { schemaType: type, valid: missing.length === 0, missing };
+}
+
+/**
+ * Validate schema types that require text-search instead of brace extraction.
+ *
+ * For each FALLBACK_CHECKS entry, locate the searchFor string in the source,
+ * extract a 200-line window around it, and verify all required fields appear
+ * somewhere in that window. This approach is robust to complex IIFE expressions
+ * or deeply nested arrow-function bodies that confuse the brace counter.
+ */
+function validateFallbackChecks(source: string): ValidationResult[] {
+  const results: ValidationResult[] = [];
+
+  for (const [schemaType, { searchFor, requiredFields }] of Object.entries(FALLBACK_CHECKS)) {
+    const idx = source.indexOf(searchFor);
+    if (idx === -1) {
+      // Type not found at all — flag every required field as missing
+      results.push({ schemaType, valid: false, missing: requiredFields });
+      continue;
+    }
+
+    // Extract a generous window (200 lines in each direction from the match)
+    // to capture the full BlogPosting block even though we can't determine
+    // its exact boundaries.
+    const lineStart = source.lastIndexOf("\n", idx - 1);
+    const windowStart = Math.max(0, lineStart - 200 * 120);  // ~200 lines before
+    const windowEnd   = Math.min(source.length, idx + 200 * 120); // ~200 lines after
+    const window      = source.slice(windowStart, windowEnd);
+
+    const missing = requiredFields.filter((f) => !hasField(window, f));
+    results.push({ schemaType, valid: missing.length === 0, missing });
+  }
+
+  return results;
 }
 
 /**
@@ -215,9 +286,14 @@ function main() {
 
   // ── Check 1: Required fields per schema type ──────────────────────────────
   const rawBlocks = extractJsonStringifyBlocks(source);
-  const results = rawBlocks
+  const extractedResults = rawBlocks
     .map(validateBlock)
     .filter((r): r is ValidationResult => r !== null);
+
+  // Validate types that require the text-search fallback (e.g. BlogPosting)
+  const fallbackResults = validateFallbackChecks(source);
+
+  const results = [...extractedResults, ...fallbackResults];
 
   if (results.length === 0) {
     console.warn("WARNING: No top-level (@context) JSON-LD blocks found.");
@@ -230,7 +306,7 @@ function main() {
     if (!seen.has(r.schemaType) || !r.valid) seen.set(r.schemaType, r);
   }
 
-  console.log(`\nSchema validation — ${results.length} top-level JSON-LD blocks in ssrMeta.ts\n`);
+  console.log(`\nSchema validation — ${extractedResults.length} extracted + ${fallbackResults.length} fallback JSON-LD blocks in ssrMeta.ts\n`);
   console.log("─".repeat(lineWidth));
 
   for (const r of seen.values()) {

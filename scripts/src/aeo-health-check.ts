@@ -2,18 +2,27 @@
  * AEO Health Check
  *
  * Scans every page component under artifacts/fintechpresshub/src/pages/ and
- * reports three classes of issue:
+ * reports four classes of issue:
  *
- *  1. RAW_HELMET   — file imports { Helmet } from react-helmet-async and uses
- *                    it to inject <script type="application/ld+json"> directly.
- *                    All JSON-LD must go through <PageMeta> props instead.
+ *  1. RAW_HELMET      — file imports { Helmet } from react-helmet-async and uses
+ *                       it to inject <script type="application/ld+json"> directly.
+ *                       All JSON-LD must go through <PageMeta> props instead.
  *
- *  2. MISSING_META — non-admin, non-utility page has no <PageMeta usage at all,
- *                    meaning it ships with no structured data or OG tags.
+ *  2. MISSING_META    — non-admin, non-utility page has no <PageMeta usage at all,
+ *                       meaning it ships with no structured data or OG tags.
  *
- *  3. RAW_JSONLD   — file contains a raw application/ld+json string outside
- *                    of PageMeta (catches cases where Helmet import was removed
- *                    but a JSON-LD string constant was left dangling).
+ *  3. RAW_JSONLD      — file contains a raw application/ld+json string outside
+ *                       of PageMeta (catches cases where Helmet import was removed
+ *                       but a JSON-LD string constant was left dangling).
+ *
+ *  4. STALE_DATE      — a lastmod date in seoConstants.ts is older than
+ *                       STALE_THRESHOLD_DAYS. Stale dates cause crawlers to
+ *                       deprioritise pages as un-maintained.
+ *
+ *  5. MISSING_SSR_FIELD — a critical AEO field is absent from ssrMeta.ts.
+ *                         These fields (abstract, publishingPrinciples, speakable)
+ *                         are set server-side and invisible to the component
+ *                         scanner above, so they need their own dedicated check.
  *
  * Run: pnpm --filter @workspace/scripts run aeo:check
  */
@@ -29,6 +38,11 @@ const PAGES_DIR = path.resolve(
 const SEO_CONSTANTS_PATH = path.resolve(
   new URL(".", import.meta.url).pathname,
   "../../artifacts/api-server/src/lib/seoConstants.ts",
+);
+
+const SSR_META_PATH = path.resolve(
+  new URL(".", import.meta.url).pathname,
+  "../../artifacts/api-server/src/middlewares/ssrMeta.ts",
 );
 
 const STALE_THRESHOLD_DAYS = 180;
@@ -65,7 +79,7 @@ function collectTsxFiles(dir: string, acc: string[] = []): string[] {
 
 type Issue = {
   file: string;
-  kind: "RAW_HELMET" | "MISSING_META" | "RAW_JSONLD" | "STALE_DATE";
+  kind: "RAW_HELMET" | "MISSING_META" | "RAW_JSONLD" | "STALE_DATE" | "MISSING_SSR_FIELD";
   detail: string;
 };
 
@@ -91,7 +105,8 @@ function checkStaleDates(): Issue[] {
     if (blockMatch) currentBlock = blockMatch[1]!;
 
     // Skip dates inside *_CREATED constants — those are immutable publication dates.
-    if (currentBlock.endsWith("_CREATED") || currentBlock.includes("CREATED")) continue;
+    // Match only the exact _CREATED suffix to avoid over-broad skipping.
+    if (currentBlock.endsWith("_CREATED")) continue;
 
     let match: RegExpExecArray | null;
     lineDatePattern.lastIndex = 0;
@@ -112,6 +127,60 @@ function checkStaleDates(): Issue[] {
           detail: `Date "${dateStr}" is ${ageDays} days old (>${STALE_THRESHOLD_DAYS} day threshold). Update STATIC_PAGE_LASTMOD or the relevant *_LASTMOD constant in seoConstants.ts.`,
         });
       }
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Check that ssrMeta.ts contains critical AEO fields that are injected
+ * server-side and are therefore invisible to the component scanner.
+ *
+ * Checks performed:
+ *   - BlogPosting `abstract` field (AI snippet generation)
+ *   - BlogPosting `publishingPrinciples` (YMYL E-E-A-T signal)
+ *   - WebPage/homepage `speakable` field (voice assistant eligibility)
+ *   - `.speakable-summary` CSS selector in SpeakableSpecification
+ */
+function checkSsrSchemaCompleteness(): Issue[] {
+  const issues: Issue[] = [];
+  if (!fs.existsSync(SSR_META_PATH)) return issues;
+
+  const src = fs.readFileSync(SSR_META_PATH, "utf-8");
+  const rel = path.relative(PAGES_DIR, SSR_META_PATH);
+
+  const checks: Array<{ search: string; fieldDesc: string }> = [
+    {
+      search: "abstract:",
+      fieldDesc: "BlogPosting `abstract` field — required for AI snippet generation. " +
+        "Add `abstract: post.blufSummary ?? post.excerpt` to the BlogPosting JSON-LD block.",
+    },
+    {
+      search: "publishingPrinciples:",
+      fieldDesc: "BlogPosting `publishingPrinciples` field — required for YMYL E-E-A-T compliance. " +
+        "Add `publishingPrinciples: siteUrl + '/editorial-guidelines'` to the BlogPosting block.",
+    },
+    {
+      search: "speakable:",
+      fieldDesc: "WebPage `speakable` / SpeakableSpecification — required for voice assistant eligibility. " +
+        "Add SpeakableSpecification with cssSelector to the homepage or blog post WebPage blocks.",
+    },
+    {
+      search: ".speakable-summary",
+      fieldDesc: "SpeakableSpecification cssSelector `.speakable-summary` — the CSS class used by " +
+        "SpeakableSpecification must match what is rendered in page components. " +
+        "Ensure at least one page block uses `.speakable-summary` as a cssSelector value.",
+    },
+  ];
+
+  for (const { search, fieldDesc } of checks) {
+    if (!src.includes(search)) {
+      issues.push({
+        file: rel,
+        kind: "MISSING_SSR_FIELD",
+        detail: `Missing "${search}" in ssrMeta.ts. ${fieldDesc}`,
+      });
     }
   }
 
@@ -180,11 +249,15 @@ function main(): void {
   // Check seoConstants.ts for stale lastmod dates
   allIssues.push(...checkStaleDates());
 
+  // Check ssrMeta.ts for critical AEO fields
+  allIssues.push(...checkSsrSchemaCompleteness());
+
   const byKind = {
-    RAW_HELMET: allIssues.filter((i) => i.kind === "RAW_HELMET"),
-    RAW_JSONLD: allIssues.filter((i) => i.kind === "RAW_JSONLD"),
-    MISSING_META: allIssues.filter((i) => i.kind === "MISSING_META"),
-    STALE_DATE: allIssues.filter((i) => i.kind === "STALE_DATE"),
+    RAW_HELMET:       allIssues.filter((i) => i.kind === "RAW_HELMET"),
+    RAW_JSONLD:       allIssues.filter((i) => i.kind === "RAW_JSONLD"),
+    MISSING_META:     allIssues.filter((i) => i.kind === "MISSING_META"),
+    STALE_DATE:       allIssues.filter((i) => i.kind === "STALE_DATE"),
+    MISSING_SSR_FIELD: allIssues.filter((i) => i.kind === "MISSING_SSR_FIELD"),
   };
 
   console.log("\n══════════════════════════════════════════════════");
@@ -233,9 +306,19 @@ function main(): void {
     }
   }
 
+  if (byKind.MISSING_SSR_FIELD.length > 0) {
+    console.log(`🟣  MISSING_SSR_FIELD (${byKind.MISSING_SSR_FIELD.length} issue${byKind.MISSING_SSR_FIELD.length > 1 ? "s" : ""})`);
+    console.log("    Critical AEO fields are absent from ssrMeta.ts.\n");
+    for (const i of byKind.MISSING_SSR_FIELD) {
+      console.log(`    • ${i.file}`);
+      console.log(`      ${i.detail}\n`);
+    }
+  }
+
   const critical = byKind.RAW_HELMET.length + byKind.RAW_JSONLD.length;
+  const warnings  = byKind.MISSING_META.length + byKind.MISSING_SSR_FIELD.length;
   console.log("══════════════════════════════════════════════════");
-  console.log(`  Total: ${allIssues.length} issue(s)  |  ${critical} critical  |  ${byKind.MISSING_META.length} warnings  |  ${byKind.STALE_DATE.length} stale dates`);
+  console.log(`  Total: ${allIssues.length} issue(s)  |  ${critical} critical  |  ${warnings} warnings  |  ${byKind.STALE_DATE.length} stale dates`);
   console.log("══════════════════════════════════════════════════\n");
 
   if (critical > 0) {
