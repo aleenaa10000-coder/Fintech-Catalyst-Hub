@@ -269,6 +269,9 @@ Content may not be reproduced verbatim beyond fair-use excerpts without permissi
 - [Sitemap Index](${siteUrl}/sitemap_index.xml)
 - [News Sitemap](${siteUrl}/news-sitemap.xml)
 - [RSS Feed](${siteUrl}/rss.xml)
+- RSS feed (per author): ${siteUrl}/authors/:slug/rss.xml — replace :slug with any author slug from the Editorial team section
+- RSS feed (per category): ${siteUrl}/blog/category/:slug/rss.xml — e.g. /blog/category/payments/rss.xml
+- RSS feed (per tag): ${siteUrl}/blog/tag/:slug/rss.xml — e.g. /blog/tag/open-banking/rss.xml
 - [Pages Sitemap](${siteUrl}/sitemap-pages.xml)
 - [Blog Sitemap](${siteUrl}/sitemap-blog.xml)
 - [Tags Sitemap](${siteUrl}/sitemap-tags.xml)

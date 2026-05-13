@@ -61,6 +61,10 @@ const REQUIRED_FIELDS: Record<string, string[]> = {
   BreadcrumbList:        ["itemListElement"],
   SoftwareApplication:   ["name", "applicationCategory", "operatingSystem"],
   DefinedTerm:           ["name", "description"],
+  // DefinedTermSet is emitted on /glossary as a top-level block with @context.
+  // It uses a multi-line or IIFE-complex pattern that confuses the brace counter —
+  // validated via FALLBACK_CHECKS below instead of pure extraction.
+  DefinedTermSet:        ["name", "url"],
   LocalBusiness:         ["name", "address"],
   ProfilePage:           ["mainEntity"],
   WebPage:               ["url"],
@@ -132,6 +136,15 @@ const FALLBACK_CHECKS: Record<string, { searchFor: string; requiredFields: strin
     // reviewBody is the distinctive field that distinguishes Review from other types.
     searchFor:      'reviewBody:',
     requiredFields: ["reviewBody"],
+  },
+  DefinedTermSet: {
+    // DefinedTermSet is emitted on /glossary as a top-level block. The block
+    // uses spread expressions (e.g. `...(cond ? {} : {})`) and DB-driven term
+    // lists that confuse the brace-counter before it captures the closing brace.
+    // Text-search on the unique `"@type":      "DefinedTermSet"` literal reliably
+    // locates the glossary hub block and verifies required fields are present.
+    searchFor:      '"@type":      "DefinedTermSet"',
+    requiredFields: ["name", "url"],
   },
 };
 

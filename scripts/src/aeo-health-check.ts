@@ -83,30 +83,64 @@ type Issue = {
   detail: string;
 };
 
-function checkStaleDates(): Issue[] {
+/**
+ * Scan a single file for stale lastmod dates.
+ *
+ * Rules:
+ *  - Reads line-by-line tracking the enclosing `const <NAME>` declaration.
+ *  - Skips any block whose name ends with `_CREATED` — those hold immutable
+ *    historical publication dates that should never be updated.
+ *  - Deduplicates date strings within the file so a single date string that
+ *    appears in multiple places only triggers one warning.
+ *  - Reports any date older than STALE_THRESHOLD_DAYS with the file and
+ *    a hint pointing to the relevant constant name.
+ */
+/**
+ * When provided, only report stale dates found inside blocks whose constant
+ * name ends with one of the listed suffixes. Provide `undefined` to report
+ * stale dates from all non-`_CREATED` blocks (the seoConstants.ts strategy).
+ *
+ * Used for ssrMeta.ts where we only want to monitor `STATIC_PAGE_LASTMOD`
+ * (which ends in `_LASTMOD`) but not the many inline `datePublished` fallback
+ * strings that appear in function bodies (e.g. `?? "2021-01-01"`).
+ */
+function scanFileForStaleDates(
+  filePath: string,
+  hint: string,
+  seen: Set<string>,
+  blockSuffixAllowlist?: string[],
+): Issue[] {
   const issues: Issue[] = [];
-  if (!fs.existsSync(SEO_CONSTANTS_PATH)) return issues;
+  if (!fs.existsSync(filePath)) return issues;
 
-  const src = fs.readFileSync(SEO_CONSTANTS_PATH, "utf-8");
+  const src = fs.readFileSync(filePath, "utf-8");
   const now = Date.now();
   const thresholdMs = STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
 
-  // Match date strings in STATIC_PAGE_LASTMOD / TOOL_PAGE_LASTMOD / COMPARE_PAGE_LASTMOD
-  // and SERVICE_PAGE_LASTMOD_DATE patterns: "YYYY-MM-DD"
-  // Scan line-by-line so we can track the enclosing constant name and skip
-  // *_CREATED constants (which hold immutable historical publication dates).
-  const blockDeclPattern = /^\s*export\s+const\s+(\w+)/;
+  // Detect both `export const NAME` (seoConstants.ts) and
+  // `const NAME` (ssrMeta.ts — constants are not exported).
+  const blockDeclPattern = /^\s*(?:export\s+)?const\s+(\w+)/;
   const lineDatePattern = /["'](\d{4}-\d{2}-\d{2})["']/g;
   let currentBlock = "";
-  const seen = new Set<string>();
 
   for (const line of src.split("\n")) {
     const blockMatch = blockDeclPattern.exec(line);
     if (blockMatch) currentBlock = blockMatch[1]!;
 
-    // Skip dates inside *_CREATED constants — those are immutable publication dates.
-    // Match only the exact _CREATED suffix to avoid over-broad skipping.
+    // Skip immutable historical publication dates.
     if (currentBlock.endsWith("_CREATED")) continue;
+
+    // When an allowlist of block name suffixes is provided (e.g. ["_LASTMOD"]),
+    // only report dates from blocks whose name ends with one of those suffixes.
+    // This prevents false-positive STALE_DATE warnings for inline `datePublished`
+    // fallback strings that appear in function bodies in ssrMeta.ts.
+    if (
+      blockSuffixAllowlist !== undefined &&
+      blockSuffixAllowlist.length > 0 &&
+      !blockSuffixAllowlist.some((suffix) => currentBlock.endsWith(suffix))
+    ) {
+      continue;
+    }
 
     let match: RegExpExecArray | null;
     lineDatePattern.lastIndex = 0;
@@ -122,15 +156,42 @@ function checkStaleDates(): Issue[] {
       if (ageMs > thresholdMs) {
         const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
         issues.push({
-          file: path.relative(PAGES_DIR, SEO_CONSTANTS_PATH),
+          file: path.relative(PAGES_DIR, filePath),
           kind: "STALE_DATE",
-          detail: `Date "${dateStr}" is ${ageDays} days old (>${STALE_THRESHOLD_DAYS} day threshold). Update STATIC_PAGE_LASTMOD or the relevant *_LASTMOD constant in seoConstants.ts.`,
+          detail: `Date "${dateStr}" is ${ageDays} days old (>${STALE_THRESHOLD_DAYS} day threshold) in ${currentBlock}. ${hint}`,
         });
       }
     }
   }
 
   return issues;
+}
+
+function checkStaleDates(): Issue[] {
+  // Deduplicate date strings across both files — a date like "2026-05-09"
+  // that appears in both seoConstants.ts AND ssrMeta.ts should only produce
+  // one STALE_DATE warning when it eventually goes stale.
+  const seen = new Set<string>();
+
+  return [
+    // seoConstants.ts: TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, SERVICE_PAGE_LASTMOD_DATE
+    ...scanFileForStaleDates(
+      SEO_CONSTANTS_PATH,
+      "Update the relevant *_LASTMOD constant in seoConstants.ts.",
+      seen,
+    ),
+    // ssrMeta.ts: STATIC_PAGE_LASTMOD (dates for /, /about, /services, etc.)
+    // This file is NOT scanned by the standard seoConstants path, so without
+    // this check the STATIC_PAGE_LASTMOD dates would silently go stale.
+    // Only blocks ending in "_LASTMOD" are checked — inline `datePublished`
+    // fallback strings like `?? "2021-01-01"` in function bodies are excluded.
+    ...scanFileForStaleDates(
+      SSR_META_PATH,
+      "Update the STATIC_PAGE_LASTMOD constant in ssrMeta.ts.",
+      seen,
+      ["_LASTMOD"],
+    ),
+  ];
 }
 
 /**
@@ -171,6 +232,17 @@ function checkSsrSchemaCompleteness(): Issue[] {
       fieldDesc: "SpeakableSpecification cssSelector `.speakable-summary` — the CSS class used by " +
         "SpeakableSpecification must match what is rendered in page components. " +
         "Ensure at least one page block uses `.speakable-summary` as a cssSelector value.",
+    },
+    {
+      // inLanguage is required on every schema entity for international SEO
+      // (Google uses it for multilingual content deduplication) and for AI
+      // citation engine language filtering. Every blog post, service page,
+      // tool page, and static page entity must declare inLanguage: "en".
+      search: 'inLanguage:   "en"',
+      fieldDesc: '`inLanguage` field — required on every schema entity for multilingual ' +
+        'signal accuracy. Add `inLanguage: "en"` to all JSON-LD blocks in ssrMeta.ts. ' +
+        'Use the exact string `inLanguage:   "en"` (with alignment spaces) or adjust ' +
+        'the search string in checkSsrSchemaCompleteness() if the formatting changes.',
     },
   ];
 

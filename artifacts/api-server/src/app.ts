@@ -25,6 +25,11 @@ import { getSiteUrl } from "./lib/seo";
 
 const app: Express = express();
 
+// Remove the "X-Powered-By: Express" header that Express adds by default.
+// Leaking the framework name is unnecessary information for crawlers and a
+// minor hardening step for a YMYL (fintech) site under E-E-A-T scrutiny.
+app.disable("x-powered-by");
+
 // Trust the reverse proxy (Hostinger Nginx / Replit dev proxy) so that
 // rate-limiters and other middleware can read the real client IP from
 // X-Forwarded-For. Required on Hostinger — without this the rate-limiter
