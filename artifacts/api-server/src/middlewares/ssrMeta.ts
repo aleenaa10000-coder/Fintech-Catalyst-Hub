@@ -2313,6 +2313,11 @@ async function handleSsrMeta(
             cssSelector: ["h1"],
           },
           potentialAction: { "@type": "ReadAction", target: canonical },
+          // breadcrumb @id cross-reference links this CollectionPage to its
+          // BreadcrumbList entity so Google's Knowledge Graph can resolve the
+          // navigation hierarchy for category hub pages — matches the pattern
+          // used on every other dynamic page type (blog, glossary, service, etc.).
+          breadcrumb: { "@id": `${canonical}#breadcrumb` },
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
       ];
@@ -2412,6 +2417,10 @@ async function handleSsrMeta(
             cssSelector: ["h1"],
           },
           potentialAction: { "@type": "ReadAction", target: canonical },
+          // breadcrumb @id cross-reference — mirrors the pattern on all other
+          // dynamic page types; without it Google's Knowledge Graph treats the
+          // BreadcrumbList as an orphan entity unconnected to this CollectionPage.
+          breadcrumb: { "@id": `${canonical}#breadcrumb` },
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs),
       ];

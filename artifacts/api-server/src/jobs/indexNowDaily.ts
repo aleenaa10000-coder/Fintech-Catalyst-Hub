@@ -1,4 +1,11 @@
-import { db, blogPostsTable, kvStoreTable } from "@workspace/db";
+import {
+  db,
+  blogPostsTable,
+  kvStoreTable,
+  glossaryTermsTable,
+  servicesTable,
+  locationPagesTable,
+} from "@workspace/db";
 import { gt, eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/seo";
@@ -101,25 +108,57 @@ export async function runIndexNowDaily(): Promise<void> {
     since = earliestAllowed;
   }
 
-  const recentPosts = await db
-    .select({ slug: blogPostsTable.slug })
-    .from(blogPostsTable)
-    .where(gt(blogPostsTable.publishedAt, since));
+  // Collect recently updated content across all four tables in parallel.
+  // Blog posts use publishedAt; glossary/service/location pages use updatedAt.
+  const [recentPosts, recentGlossary, recentServices, recentLocations] =
+    await Promise.all([
+      db
+        .select({ slug: blogPostsTable.slug })
+        .from(blogPostsTable)
+        .where(gt(blogPostsTable.publishedAt, since)),
+      db
+        .select({ slug: glossaryTermsTable.slug })
+        .from(glossaryTermsTable)
+        .where(gt(glossaryTermsTable.updatedAt, since)),
+      db
+        .select({ slug: servicesTable.slug })
+        .from(servicesTable)
+        .where(gt(servicesTable.updatedAt, since)),
+      db
+        .select({ slug: locationPagesTable.slug })
+        .from(locationPagesTable)
+        .where(gt(locationPagesTable.updatedAt, since)),
+    ]);
 
-  if (recentPosts.length === 0) {
+  const urlList: string[] = [
+    ...recentPosts.map((p: { slug: string }) => `${config.siteUrl}/blog/${p.slug}`),
+    ...recentGlossary.map((t: { slug: string }) => `${config.siteUrl}/glossary/${t.slug}`),
+    ...recentServices.map((s: { slug: string }) => `${config.siteUrl}/services/${s.slug}`),
+    ...recentLocations.map((l: { slug: string }) => `${config.siteUrl}/locations/${l.slug}`),
+  ];
+
+  if (urlList.length === 0) {
     JOB_LOG.info(
       { since: since.toISOString() },
-      "No new blog posts since last run; nothing to submit",
+      "No updated content since last run; nothing to submit",
     );
     await writeLastRunAt(now);
     return;
   }
 
-  const urlList = recentPosts.map((p: { slug: string }) => `${config.siteUrl}/blog/${p.slug}`);
-
   JOB_LOG.info(
-    { count: urlList.length, since: since.toISOString(), host: config.host },
-    "Submitting blog post URLs to IndexNow",
+    {
+      count: urlList.length,
+      since: since.toISOString(),
+      host: config.host,
+      breakdown: {
+        posts: recentPosts.length,
+        glossary: recentGlossary.length,
+        services: recentServices.length,
+        locations: recentLocations.length,
+      },
+    },
+    "Submitting updated content URLs to IndexNow",
   );
 
   try {

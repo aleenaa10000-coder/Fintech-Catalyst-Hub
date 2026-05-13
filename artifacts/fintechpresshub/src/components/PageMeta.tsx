@@ -256,6 +256,17 @@ export type LocalBusinessSchema = {
   areaServedName?: string;
   /** Additional sameAs URLs (LinkedIn, Crunchbase, etc.) */
   sameAs?: string[];
+  /**
+   * Geographic coordinates for Google Maps Knowledge Panel placement.
+   * Mirrors the GeoCoordinates emitted by the SSR location handler from DB data.
+   * Pass when the location API exposes latitude/longitude fields.
+   */
+  geo?: { latitude: number; longitude: number };
+  /**
+   * Price range indicator, e.g. "$$$$" — signals commercial tier to Google Maps
+   * and Knowledge Panel. Mirrors the priceRange on the SSR FinancialService entity.
+   */
+  priceRange?: string;
 };
 
 /**
@@ -641,6 +652,28 @@ export function PageMeta(props: PageMetaProps) {
           "@id": `${SITE_URL}#organization`,
           name: SITE_NAME,
         },
+        // ReadAction declares primary read intent on every WebPage entity —
+        // mirrors the potentialAction emitted by ssrMeta.ts on all page types
+        // so both rendering paths (SSR and SPA hydration) produce identical signals.
+        potentialAction: { "@type": "ReadAction", target: canonical },
+        // breadcrumb @id cross-reference links this WebPage to its BreadcrumbList
+        // entity for Knowledge Graph hierarchy resolution. Omitted on the homepage
+        // (no breadcrumb at root) — matches the SSR rule applied in ssrMeta.ts.
+        ...(canonical !== SITE_URL && canonical !== `${SITE_URL}/`
+          ? { breadcrumb: { "@id": `${canonical}#breadcrumb` } }
+          : {}),
+        // Speakable fallback — when no speakableSelectors prop and no article is
+        // provided, speakableJsonLd is not emitted. Adding a minimal h1 selector
+        // here ensures voice assistants can always extract the page headline,
+        // matching the h1-only SpeakableSpecification SSR adds to policy/hub pages.
+        ...(props.speakableSelectors === undefined && !props.article
+          ? {
+              speakable: {
+                "@type": "SpeakableSpecification",
+                cssSelector: ["h1"],
+              },
+            }
+          : {}),
       }
     : null;
 
@@ -725,7 +758,10 @@ export function PageMeta(props: PageMetaProps) {
     props.speakableSelectors !== undefined
       ? props.speakableSelectors
       : props.article
-        ? ["h1", ".speakable-summary"]
+        // "h2" added in Pass 3 to match ssrMeta.ts BlogPosting speakable
+        // — voice assistants and AEO citation engines extract section headlines
+        // as secondary answer candidates when the summary selector is absent.
+        ? ["h1", ".speakable-summary", "h2"]
         : null;
 
   const speakableJsonLd =
@@ -918,6 +954,24 @@ export function PageMeta(props: PageMetaProps) {
           : {}),
         ...(props.localBusiness.sameAs && props.localBusiness.sameAs.length > 0
           ? { sameAs: props.localBusiness.sameAs }
+          : {}),
+        // GeoCoordinates enables Google Maps Knowledge Panel placement for
+        // geo-targeted location pages — mirrors the geo block emitted by the
+        // SSR location handler when lat/lng data is present in the DB.
+        ...(props.localBusiness.geo
+          ? {
+              geo: {
+                "@type": "GeoCoordinates",
+                latitude: props.localBusiness.geo.latitude,
+                longitude: props.localBusiness.geo.longitude,
+              },
+            }
+          : {}),
+        // priceRange signals commercial tier to Google Maps and Knowledge Panel
+        // for "fintech SEO agency [city]" queries — mirrors the SSR FinancialService
+        // priceRange used on service detail pages for consistent entity signals.
+        ...(props.localBusiness.priceRange
+          ? { priceRange: props.localBusiness.priceRange }
           : {}),
       }
     : null;
