@@ -1225,6 +1225,11 @@ export function PageMeta(props: PageMetaProps) {
         <meta key={`og-tag-${tag}`} property="article:tag" content={tag} />
       ))}
       <meta name="twitter:card" content="summary_large_image" />
+      {/* twitter:site declared explicitly here so React Helmet manages it
+          and it survives across all route transitions. Without this, the tag
+          exists only in the static index.html shell and may be duplicated or
+          absent after Helmet reconciles the head on client navigation. */}
+      <meta name="twitter:site" content="@fintechpresshub" />
       {title ? <meta name="twitter:title" content={title} /> : null}
       {description ? (
         <meta name="twitter:description" content={description} />

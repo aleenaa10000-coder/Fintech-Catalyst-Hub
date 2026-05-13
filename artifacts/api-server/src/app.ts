@@ -126,8 +126,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // These headers are minor Google trust signals and protect against common
 // web vulnerabilities. Required for YMYL (fintech) E-E-A-T compliance.
 app.use((_req: Request, res: Response, next: NextFunction) => {
-  // Force HTTPS for 1 year, including subdomains.
-  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  // Force HTTPS for 1 year, including subdomains. The `preload` directive
+  // makes the site eligible for submission to the HSTS Preload List
+  // (https://hstspreload.org), a browser-level hardcoded list that enforces
+  // HTTPS before the first connection — removing the trust-on-first-use gap
+  // that HSTS headers alone cannot protect. Required for full E-E-A-T
+  // compliance on a YMYL (fintech) site.
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   // Prevent MIME-type sniffing.
   res.setHeader("X-Content-Type-Options", "nosniff");
   // Prevent clickjacking by disallowing iframe embedding.
