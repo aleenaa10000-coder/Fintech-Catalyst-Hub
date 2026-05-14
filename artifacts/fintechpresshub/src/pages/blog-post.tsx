@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   usePublicPosts,
@@ -621,7 +622,10 @@ export default function BlogPost() {
             : undefined
         }
       />
-      {/* Floating vertical share bar (xl+) */}
+      {/* Floating vertical share bar (xl+) — rendered in a portal so it is a
+          direct child of <body> and is never affected by parent transforms,
+          filters, or stacking contexts that would break fixed positioning. */}
+      {createPortal(
       <aside
         className="hidden xl:flex flex-col items-center gap-2 fixed left-4 top-1/2 -translate-y-1/2 z-30 bg-white/90 backdrop-blur border border-slate-200 rounded-2xl px-2 py-3 shadow-sm"
         aria-label="Share this article"
@@ -686,7 +690,9 @@ export default function BlogPost() {
         >
           {copied ? <Check className="w-4 h-4 text-green-500" /> : <Link2 className="w-4 h-4" />}
         </button>
-      </aside>
+      </aside>,
+      document.body
+      )}
 
       {/* Hero — Moov-style image-first layout.
           The large cover image is the hero. Title, excerpt, and a compact
