@@ -74,6 +74,7 @@ export const ORGANIZATION_SCHEMA = {
     "Specialist fintech SEO & content marketing agency — expert writers, tier-1 link placements, and measurable organic rankings for ambitious fintech brands.",
   foundingDate: "2021-01-01",
   areaServed: "Worldwide",
+  currenciesAccepted: "USD, GBP, EUR, SGD, AUD, CAD",
   email: "hello@fintechpresshub.com",
   inLanguage: "en",
   contactPoint: {

@@ -1119,10 +1119,11 @@ export function PageMeta(props: PageMetaProps) {
         <meta name="robots" content="noindex,nofollow" />
       ) : null}
       <meta property="og:locale" content="en_US" />
-      {/* Always declare alternate locales — this agency serves US, UK, SG, AU fintech markets. */}
+      {/* Always declare alternate locales — this agency serves US, UK, SG, AU, CA fintech markets. */}
       <meta property="og:locale:alternate" content="en_GB" />
       <meta property="og:locale:alternate" content="en_SG" />
       <meta property="og:locale:alternate" content="en_AU" />
+      <meta property="og:locale:alternate" content="en_CA" />
       <link rel="canonical" href={canonical} />
       {/*
         hreflang self-referential annotations — tells Google the language/locale

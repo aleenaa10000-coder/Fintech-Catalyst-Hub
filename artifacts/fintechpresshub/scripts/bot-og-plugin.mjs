@@ -84,6 +84,7 @@ function organizationSchema(siteUrl) {
       "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
     foundingDate: "2021-01-01",
     areaServed: "Worldwide",
+    currenciesAccepted: "USD, GBP, EUR, SGD, AUD, CAD",
     email: "hello@fintechpresshub.com",
     inLanguage: "en",
     contactPoint: {

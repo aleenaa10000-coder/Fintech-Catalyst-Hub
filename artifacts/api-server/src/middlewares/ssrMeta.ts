@@ -291,12 +291,14 @@ function patchHtml(base: string, p: MetaPatches): string {
 
   // og:locale:alternate — injected server-side so crawlers see the multi-market
   // locale signals that PageMeta.tsx emits client-side. Mirrors the en_GB, en_SG,
-  // en_AU alternates declared in PageMeta.tsx for consistent signal across both
-  // rendering paths. FintechPressHub serves UK, Singapore, and Australian fintech
+  // en_AU, en_CA alternates declared in PageMeta.tsx, index.html shell, and
+  // bot-og-plugin.mjs for consistent signal across all four rendering paths.
+  // FintechPressHub serves UK, Singapore, Australian, and Canadian fintech
   // markets alongside the US, so these alternates are semantically accurate.
   injections.push(`  <meta property="og:locale:alternate" content="en_GB" />`);
   injections.push(`  <meta property="og:locale:alternate" content="en_SG" />`);
   injections.push(`  <meta property="og:locale:alternate" content="en_AU" />`);
+  injections.push(`  <meta property="og:locale:alternate" content="en_CA" />`);
 
   // Extra per-page <link> tags (e.g., author RSS autodiscovery).
   if (p.headLinks && p.headLinks.length > 0) {

@@ -187,3 +187,54 @@ must be verified post-deployment are:
    shell scripts; none depend on Replit-only services. They will continue to
    function on Hostinger because the agent runtime that consumes them is not
    part of this deployment artefact.
+
+---
+
+## International SEO checks (added 2026-05-14)
+
+The full international-SEO posture is documented in
+`docs/i18n-seo-audit-2026-05.md`. Hostinger Business shared hosting can
+sometimes strip custom HTTP response headers via the reverse proxy, so
+verify these post-deploy:
+
+```bash
+# 1. Content-Language header survives the proxy
+curl -sI https://www.fintechpresshub.com/ | grep -i "^content-language:"
+# Expected: content-language: en
+
+# 2. Vary header includes Accept-Language
+curl -sI https://www.fintechpresshub.com/ | grep -i "^vary:"
+# Expected: vary contains Accept-Language
+
+# 3. Hreflang <link> tags are in served HTML head
+curl -s https://www.fintechpresshub.com/ | grep -E 'hreflang="(en|x-default)"'
+# Expected: two lines (rel="alternate" hreflang="en" and hreflang="x-default")
+
+# 4. og:locale + all four alternates present
+curl -s https://www.fintechpresshub.com/ | grep -E 'og:locale'
+# Expected: en_US + en_GB + en_SG + en_AU + en_CA
+
+# 5. Sitemap hreflang annotations reach the wire
+curl -s https://www.fintechpresshub.com/sitemap.xml | grep -c '<xhtml:link'
+# Expected: 2 × number of URLs in that sitemap
+
+# 6. Currency declaration on Organization @graph
+curl -s https://www.fintechpresshub.com/ | grep -o '"currenciesAccepted":"[^"]*"'
+# Expected: "currenciesAccepted":"USD, GBP, EUR, SGD, AUD, CAD"
+```
+
+If any header (1, 2) is missing post-deploy, add it explicitly in
+`.htaccess` at the site root:
+
+```apache
+<IfModule mod_headers.c>
+    Header set Content-Language "en"
+    Header append Vary "Accept-Language"
+</IfModule>
+```
+
+**Search Console geo-targeting:** leave the international-targeting setting
+as "Unlisted" (i.e., not country-specific). The site serves five English
+markets and a country-specific target would suppress ranking in the other
+four. The `hreflang="en"` + `hreflang="x-default"` tags already give Google
+the correct signal.
