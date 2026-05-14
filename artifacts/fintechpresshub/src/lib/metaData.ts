@@ -5,6 +5,36 @@ export type PageMeta = {
 
 export const SITE_NAME = "FintechPressHub";
 
+/**
+ * BRAND_NAP — Name, Address, Phone.
+ *
+ * Off-Page SEO single source of truth for the brand's citation profile.
+ * Local-search ranking signals require Name + Address + Phone to match
+ * **byte-for-byte** across the website, third-party citations (Crunchbase,
+ * LinkedIn, industry directories), and Google Business Profile. Any drift
+ * between these surfaces fragments the brand entity in Google's Knowledge
+ * Graph and dilutes link equity.
+ *
+ * USAGE: import this constant in:
+ *   - ORGANIZATION_SCHEMA (below) — emits PostalAddress on every page
+ *   - pages/contact.tsx — visible NAP block
+ *   - components/Footer.tsx — site-wide visible NAP for citation parity
+ *
+ * Telephone is intentionally OMITTED. The brand has no published phone
+ * number — fabricating one here would create false NAP across all pages
+ * and *harm* off-page SEO rather than help it. When a real phone is
+ * provisioned, add it here and it will propagate everywhere.
+ */
+export const BRAND_NAP = {
+  name: SITE_NAME,
+  email: "hello@fintechpresshub.com",
+  streetAddress: "100 Financial District",
+  addressLocality: "New York",
+  addressRegion: "NY",
+  postalCode: "10005",
+  addressCountry: "US",
+} as const;
+
 export const SITE_URL =
   (typeof import.meta !== "undefined" &&
     (import.meta as { env?: { VITE_SITE_URL?: string } }).env
@@ -75,13 +105,30 @@ export const ORGANIZATION_SCHEMA = {
   foundingDate: "2021-01-01",
   areaServed: "Worldwide",
   currenciesAccepted: "USD, GBP, EUR, SGD, AUD, CAD",
-  email: "hello@fintechpresshub.com",
+  email: BRAND_NAP.email,
   inLanguage: "en",
+  // Brand name sourced from BRAND_NAP for consistency with the documented
+  // single-source-of-truth model. Value resolves to the same SITE_NAME
+  // string but the indirection keeps the audit-trail honest.
+  // Off-Page SEO: PostalAddress on the Organization entity is what Google
+  // uses to populate the Knowledge Panel "Headquarters" field and to match
+  // citations across the web. Sourced from BRAND_NAP so any future address
+  // change updates schema, footer, and contact page in one edit.
+  address: {
+    "@type": "PostalAddress",
+    streetAddress:   BRAND_NAP.streetAddress,
+    addressLocality: BRAND_NAP.addressLocality,
+    addressRegion:   BRAND_NAP.addressRegion,
+    postalCode:      BRAND_NAP.postalCode,
+    addressCountry:  BRAND_NAP.addressCountry,
+  },
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer support",
     url: `${SITE_URL}/contact`,
-    email: "hello@fintechpresshub.com",
+    // Sourced from BRAND_NAP — see note above. Eliminates the previous
+    // hardcoded duplicate that risked drift from the top-level email field.
+    email: BRAND_NAP.email,
     availableLanguage: {
       "@type": "Language",
       name: "English",

@@ -3,6 +3,7 @@ import { Twitter, Linkedin } from "lucide-react";
 import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
 import { CookiePreferencesButton } from "@/components/CookiePreferencesButton";
 import { prefetchRoute } from "@/lib/route-prefetch";
+import { BRAND_NAP } from "@/lib/metaData";
 
 function PrefetchLink({
   href,
@@ -47,6 +48,46 @@ export function Footer() {
             <p className="text-muted-foreground max-w-sm mb-6 leading-relaxed">
               We are a specialized content marketing agency bridging the gap between deep fintech expertise and search visibility. We help financial technology companies scale their organic growth.
             </p>
+            {/*
+              Off-Page SEO: visible site-wide NAP block. Microdata is modelled
+              correctly as `Organization` with a nested `PostalAddress`
+              (`itemProp="address"`) and `email` scoped at the Organization
+              level — `email` is NOT a property of `PostalAddress` in
+              schema.org, so wrapping the email inside a PostalAddress block
+              would be invalid microdata. Brand name is rendered explicitly
+              via the visible logo above (`alt="FintechPressHub - ..."`) AND
+              via `itemProp="name"` here so the Organization entity has the
+              required name property. All textual values come from BRAND_NAP
+              so a future change updates schema, footer, and contact page in
+              one edit.
+            */}
+            <div
+              itemScope
+              itemType="https://schema.org/Organization"
+              className="text-sm text-muted-foreground mb-6 leading-relaxed"
+              data-testid="footer-nap"
+            >
+              <meta itemProp="name" content={BRAND_NAP.name} />
+              <address
+                itemProp="address"
+                itemScope
+                itemType="https://schema.org/PostalAddress"
+                className="not-italic"
+              >
+                <span itemProp="streetAddress">{BRAND_NAP.streetAddress}</span>,{" "}
+                <span itemProp="addressLocality">{BRAND_NAP.addressLocality}</span>,{" "}
+                <span itemProp="addressRegion">{BRAND_NAP.addressRegion}</span>{" "}
+                <span itemProp="postalCode">{BRAND_NAP.postalCode}</span>,{" "}
+                <span itemProp="addressCountry">{BRAND_NAP.addressCountry}</span>
+              </address>
+              <a
+                href={`mailto:${BRAND_NAP.email}`}
+                className="hover:text-primary transition-colors"
+                itemProp="email"
+              >
+                {BRAND_NAP.email}
+              </a>
+            </div>
             <div className="flex items-center gap-4 text-muted-foreground">
               <a
                 href="https://twitter.com/fintechpresshub"

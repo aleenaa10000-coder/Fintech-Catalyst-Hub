@@ -1,4 +1,5 @@
 import { PageMeta } from "@/components/PageMeta";
+import { BRAND_NAP } from "@/lib/metaData";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -139,7 +140,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Email</h3>
-                    <p className="text-muted-foreground">hello@fintechpresshub.com</p>
+                    <p className="text-muted-foreground">{BRAND_NAP.email}</p>
                   </div>
                 </div>
                 
@@ -149,7 +150,17 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Office</h3>
-                    <p className="text-muted-foreground">100 Financial District<br/>New York, NY 10005</p>
+                    {/* Off-Page SEO: render NAP from BRAND_NAP so the address
+                        on this page is byte-identical to what's emitted in
+                        Organization JSON-LD and shown in the footer. NAP
+                        consistency across the site is a primary local-SEO
+                        ranking factor — drift between surfaces fragments
+                        the brand entity in Google's Knowledge Graph. */}
+                    <p className="text-muted-foreground">
+                      {BRAND_NAP.streetAddress}<br/>
+                      {BRAND_NAP.addressLocality}, {BRAND_NAP.addressRegion} {BRAND_NAP.postalCode}<br/>
+                      {BRAND_NAP.addressCountry}
+                    </p>
                   </div>
                 </div>
 
