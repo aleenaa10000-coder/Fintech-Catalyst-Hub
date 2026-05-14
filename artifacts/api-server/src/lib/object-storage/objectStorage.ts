@@ -129,13 +129,37 @@ export class ObjectStorageService {
       // Get the ACL policy for the object.
       const aclPolicy = await getObjectAclPolicy(file);
       const isPublic = aclPolicy?.visibility === "public";
-      // Set appropriate headers
+
+      // SECURITY: object Content-Type is set by the uploader via the
+      // presigned URL — an attacker can upload arbitrary bytes with
+      // `text/html` and would otherwise get them executed in this origin
+      // (XSS, cookie theft). Restrict served Content-Type to a safe
+      // allow-list of media types and force everything else to download
+      // as an opaque attachment.
+      const rawType = (metadata.contentType || "").toLowerCase().split(";")[0]?.trim() || "";
+      // NOTE: image/svg+xml is intentionally excluded — SVG files can contain
+      // <script> tags that execute when served inline, so we treat them as
+      // arbitrary binary downloads.
+      const SAFE_INLINE_TYPES = new Set([
+        "image/jpeg", "image/png", "image/gif", "image/webp", "image/avif",
+        "image/x-icon", "image/vnd.microsoft.icon",
+        "video/mp4", "video/webm", "video/ogg",
+        "audio/mpeg", "audio/ogg", "audio/wav", "audio/webm",
+        "application/pdf",
+      ]);
+      const isSafeInline = SAFE_INLINE_TYPES.has(rawType);
+      const safeContentType = isSafeInline ? rawType : "application/octet-stream";
+
       res.set({
-        "Content-Type": metadata.contentType || "application/octet-stream",
+        "Content-Type": safeContentType,
         "Content-Length": metadata.size,
         "Cache-Control": `${
           isPublic ? "public" : "private"
         }, max-age=${cacheTtlSec}`,
+        // Prevent browsers from MIME-sniffing the body back to text/html.
+        "X-Content-Type-Options": "nosniff",
+        // Force a download for anything outside the safe inline allow-list.
+        ...(isSafeInline ? {} : { "Content-Disposition": "attachment" }),
       });
 
       // Stream the file to the response

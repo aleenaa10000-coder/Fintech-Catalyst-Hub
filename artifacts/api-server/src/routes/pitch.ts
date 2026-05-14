@@ -19,6 +19,7 @@ const PitchBody = z.object({
 type PitchInput = z.infer<typeof PitchBody>;
 
 type SanitizedPitch = {
+  // HTML-escaped values — safe to interpolate into HTML email bodies.
   name: string;
   email: string;
   website: string;
@@ -26,18 +27,42 @@ type SanitizedPitch = {
   category: string;
   pitch: string;
   sampleUrl: string;
+  // Raw values for use in plain-text contexts that re-encode themselves
+  // (email headers like Subject / Reply-To, the persisted DB row, the
+  // plain-text email body). Trimmed only — never HTML-escaped, otherwise
+  // a `&` in a topic would arrive as `&amp;` in the inbox subject line.
+  raw: {
+    name: string;
+    email: string;
+    website: string;
+    topic: string;
+    category: string;
+    pitch: string;
+    sampleUrl: string;
+  };
 };
 
 function sanitize(input: PitchInput): SanitizedPitch {
-  const safe = (value: string | undefined): string => validator.escape((value ?? "").trim());
+  const trimmed = (value: string | undefined): string => (value ?? "").trim();
+  const escape = (value: string | undefined): string => validator.escape(trimmed(value));
+  const raw = {
+    name: trimmed(input.name),
+    email: validator.normalizeEmail(input.email.trim()) || input.email.trim(),
+    website: trimmed(input.website),
+    topic: trimmed(input.topic),
+    category: trimmed(input.category),
+    pitch: trimmed(input.pitch),
+    sampleUrl: trimmed(input.sampleUrl),
+  };
   return {
-    name: safe(input.name),
-    email: validator.normalizeEmail(input.email.trim()) || safe(input.email),
-    website: safe(input.website),
-    topic: safe(input.topic),
-    category: safe(input.category),
-    pitch: safe(input.pitch),
-    sampleUrl: safe(input.sampleUrl),
+    name: escape(input.name),
+    email: validator.escape(raw.email),
+    website: escape(input.website),
+    topic: escape(input.topic),
+    category: escape(input.category),
+    pitch: escape(input.pitch),
+    sampleUrl: escape(input.sampleUrl),
+    raw,
   };
 }
 
@@ -66,18 +91,21 @@ function buildHtml(s: SanitizedPitch): string {
 }
 
 function buildText(s: SanitizedPitch): string {
+  // Plain-text email — use RAW (un-escaped) values so an `&` in a topic
+  // arrives as `&` not `&amp;`.
+  const r = s.raw;
   return [
     "New Guest-Post Pitch — FintechPressHub",
     "",
-    `Name:       ${s.name}`,
-    `Email:      ${s.email}`,
-    s.website ? `Website:    ${s.website}` : null,
-    `Topic:      ${s.topic}`,
-    s.category ? `Category:   ${s.category}` : null,
-    s.sampleUrl ? `Sample URL: ${s.sampleUrl}` : null,
+    `Name:       ${r.name}`,
+    `Email:      ${r.email}`,
+    r.website ? `Website:    ${r.website}` : null,
+    `Topic:      ${r.topic}`,
+    r.category ? `Category:   ${r.category}` : null,
+    r.sampleUrl ? `Sample URL: ${r.sampleUrl}` : null,
     "",
     "The Pitch:",
-    s.pitch,
+    r.pitch,
   ]
     .filter(Boolean)
     .join("\n");
@@ -110,16 +138,17 @@ function buildConfirmationHtml(s: SanitizedPitch): string {
 }
 
 function buildConfirmationText(s: SanitizedPitch): string {
+  const r = s.raw;
   return [
-    `Hi ${s.name},`,
+    `Hi ${r.name},`,
     "",
     "Thanks for sending us your guest-post pitch — we've received it and added it to our editorial review queue.",
     "",
     "Our editors will read it carefully and get back to you at this email address within 2–3 days. If we'd like to move forward, we'll reply with next steps and a writer brief; if the pitch isn't a fit, we'll let you know quickly so you can take it elsewhere.",
     "",
     "Your pitch summary",
-    `  Working title: ${s.topic}`,
-    s.category ? `  Category:      ${s.category}` : null,
+    `  Working title: ${r.topic}`,
+    r.category ? `  Category:      ${r.category}` : null,
     "",
     "In the meantime, please don't submit the same article elsewhere while we evaluate it.",
     "",
@@ -144,14 +173,17 @@ router.post("/pitch", formRateLimiter, async (req, res) => {
   const recipient = cleanEmail(process.env["PITCH_RECIPIENT_EMAIL"]);
 
   try {
+    // Persist RAW (un-escaped) values so the admin UI can render them
+    // safely with React's automatic escaping. Storing already-escaped
+    // values would result in double-escaping when re-rendered.
     await db.insert(guestPostSubmissionsTable).values({
-      name: safe.name,
-      email: safe.email,
-      website: safe.website || null,
-      topic: safe.topic,
-      category: safe.category || null,
-      pitch: safe.pitch,
-      sampleUrl: safe.sampleUrl || null,
+      name: safe.raw.name,
+      email: safe.raw.email,
+      website: safe.raw.website || null,
+      topic: safe.raw.topic,
+      category: safe.raw.category || null,
+      pitch: safe.raw.pitch,
+      sampleUrl: safe.raw.sampleUrl || null,
     });
   } catch (err) {
     logger.error({ err }, "pitch: failed to persist submission");
@@ -169,20 +201,23 @@ router.post("/pitch", formRateLimiter, async (req, res) => {
 
   const notified = await sendMail({
     to: recipient,
-    subject: `New pitch: ${safe.topic} — ${safe.name}`,
+    // Subject and Reply-To are RFC-822 header fields — not HTML — so use the
+    // raw values. validator.escape would turn `&` into `&amp;` in the inbox
+    // subject line and corrupt the Reply-To address.
+    subject: `New pitch: ${safe.raw.topic} — ${safe.raw.name}`,
     text: buildText(safe),
     html: buildHtml(safe),
-    replyTo: safe.email,
+    replyTo: safe.raw.email,
   });
 
   if (!notified) {
-    logger.error({ topic: safe.topic }, "pitch: failed to send editorial notification");
+    logger.error({ topic: safe.raw.topic }, "pitch: failed to send editorial notification");
     res.status(502).json({ ok: false, error: "Failed to send email. Please try again later." });
     return;
   }
 
   const confirmationEmailed = await sendMail({
-    to: safe.email,
+    to: safe.raw.email,
     subject: "We received your pitch — FintechPressHub",
     text: buildConfirmationText(safe),
     html: buildConfirmationHtml(safe),
@@ -190,7 +225,7 @@ router.post("/pitch", formRateLimiter, async (req, res) => {
   });
 
   if (!confirmationEmailed) {
-    logger.warn({ email: safe.email }, "pitch: failed to send confirmation to contributor");
+    logger.warn({ email: safe.raw.email }, "pitch: failed to send confirmation to contributor");
   }
 
   res.status(200).json({ ok: true, emailed: true, confirmationEmailed });

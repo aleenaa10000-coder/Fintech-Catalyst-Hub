@@ -55,6 +55,7 @@ import {
   testimonialsTable,
 } from "@workspace/db";
 import { eq, lte, sql, desc, asc } from "drizzle-orm";
+import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/seo";
 import { BREADCRUMB_LABELS, SERVICE_PAGE_LASTMOD_DATE, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, COMPARE_PAGE_CREATED, TOOL_SLUGS } from "../lib/seoConstants";
 
@@ -1112,9 +1113,10 @@ const TOOLS_FAQ: Readonly<Record<string, Array<{ question: string; answer: strin
 // Fix: add a three-entry array for the slug in TOOLS_FAQ above.
 for (const _auditSlug of TOOL_SLUGS) {
   if (!Object.prototype.hasOwnProperty.call(TOOLS_FAQ, _auditSlug)) {
-    console.warn(
-      `[ssrMeta startup] TOOLS_FAQ audit: no FAQ entry for tool slug "${_auditSlug}". ` +
-      `Add a three-entry array to TOOLS_FAQ in ssrMeta.ts to enable FAQPage JSON-LD on /tools/${_auditSlug}.`,
+    logger.warn(
+      { slug: _auditSlug, route: `/tools/${_auditSlug}` },
+      `[ssrMeta startup] TOOLS_FAQ audit: no FAQ entry for tool slug — ` +
+      `add a three-entry array to TOOLS_FAQ in ssrMeta.ts to enable FAQPage JSON-LD.`,
     );
   }
 }

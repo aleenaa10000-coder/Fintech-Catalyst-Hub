@@ -16,6 +16,20 @@ import {
   SESSION_TTL,
   type SessionData,
 } from "../lib/auth";
+import { formRateLimiter } from "../lib/rateLimiter";
+
+// Constant placeholder hash used to keep bcrypt.compare timing equivalent
+// for missing-user / no-password-hash branches. The actual value never
+// matches a real password — its sole purpose is to spend the same CPU as
+// a real comparison so attackers cannot enumerate admin emails by timing.
+//
+// IMPORTANT: this MUST be a valid 60-char $2b$12$ bcrypt hash matching the
+// cost factor used in production (12). bcryptjs short-circuits on malformed
+// hashes and returns false in <1ms, which would defeat the whole point.
+// Generated once with bcrypt.hashSync("<placeholder>", 12) — the plaintext
+// was discarded; only the hash is kept.
+const DUMMY_BCRYPT_HASH =
+  "$2b$12$mdG.GFV2AeTLd972juUkKOaJIEYhwjIIiHTYoO1JDV1aFWhwgueLO";
 
 const router: IRouter = Router();
 
@@ -41,7 +55,7 @@ function setSessionCookie(res: Response, sid: string) {
  * `GET /auth/user` so the existing `useAuth()` hook on the client just
  * works after a refetch.
  */
-router.post("/admin-auth/login", async (req: Request, res: Response) => {
+router.post("/admin-auth/login", formRateLimiter, async (req: Request, res: Response) => {
   const parsed = LoginAdminWithPasswordBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Email and password are required" });
@@ -64,15 +78,14 @@ router.post("/admin-auth/login", async (req: Request, res: Response) => {
     .where(eq(usersTable.email, email))
     .limit(1);
 
-  if (!user || !user.passwordHash) {
-    res.status(401).json({
-      error: "Email or password is incorrect.",
-    });
-    return;
-  }
+  // Always run bcrypt.compare — even when the user/hash is missing — so the
+  // response timing for "no user" and "wrong password" is indistinguishable.
+  // Without this, an attacker can enumerate which allowlisted emails have
+  // a password set by measuring response latency.
+  const hashToCompare = user?.passwordHash ?? DUMMY_BCRYPT_HASH;
+  const passwordOk = await bcrypt.compare(password, hashToCompare);
 
-  const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) {
+  if (!user || !user.passwordHash || !passwordOk) {
     res.status(401).json({ error: "Email or password is incorrect." });
     return;
   }
