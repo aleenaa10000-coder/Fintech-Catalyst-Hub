@@ -2,9 +2,9 @@
   {
     "name": "maxNumericValue",
     "expected": 200,
-    "actual": 308,
+    "actual": 1185.5,
     "values": [
-      308
+      1185.5
     ],
     "operator": "<=",
     "passed": false,
@@ -15,11 +15,41 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-total-blocking-time/"
   },
   {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "bootup-time",
+    "level": "warn",
+    "url": "http://localhost:4173/",
+    "auditTitle": "Reduce JavaScript execution time",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/bootup-time/"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "dom-size-insight",
+    "level": "warn",
+    "url": "http://localhost:4173/",
+    "auditTitle": "Optimize DOM size",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/dom-size/"
+  },
+  {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3063.3678,
+    "actual": 3255.983,
     "values": [
-      3063.3678
+      3255.983
     ],
     "operator": "<=",
     "passed": false,
@@ -47,9 +77,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3790.9195,
+    "actual": 4263.9745,
     "values": [
-      3790.9195
+      4263.9745
     ],
     "operator": "<=",
     "passed": false,
@@ -77,9 +107,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.49,
+    "actual": 0.06,
     "values": [
-      0.49
+      0.06
     ],
     "operator": ">=",
     "passed": false,
@@ -137,9 +167,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.25,
+    "actual": 0.21,
     "values": [
-      0.25
+      0.21
     ],
     "operator": ">=",
     "passed": false,
@@ -165,11 +195,26 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-javascript/"
   },
   {
+    "name": "maxNumericValue",
+    "expected": 3800,
+    "actual": 4694.3330000000005,
+    "values": [
+      4694.3330000000005
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "interactive",
+    "level": "warn",
+    "url": "http://localhost:4173/",
+    "auditTitle": "Time to Interactive",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/interactive/"
+  },
+  {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.5,
+    "actual": 0.32,
     "values": [
-      0.5
+      0.32
     ],
     "operator": ">=",
     "passed": false,
@@ -181,9 +226,9 @@
   {
     "name": "maxNumericValue",
     "expected": 200,
-    "actual": 338,
+    "actual": 409,
     "values": [
-      338
+      409
     ],
     "operator": "<=",
     "passed": false,
@@ -211,9 +256,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3057.5208,
+    "actual": 3060.1331,
     "values": [
-      3057.5208
+      3060.1331
     ],
     "operator": "<=",
     "passed": false,
@@ -222,6 +267,21 @@
     "url": "http://localhost:4173/blog",
     "auditTitle": "First Contentful Paint",
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "forced-reflow-insight",
+    "level": "warn",
+    "url": "http://localhost:4173/blog",
+    "auditTitle": "Forced reflow",
+    "auditDocumentationLink": "https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts"
   },
   {
     "name": "minScore",
@@ -241,9 +301,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 7331.802,
+    "actual": 7415.332749999999,
     "values": [
-      7331.802
+      7415.332749999999
     ],
     "operator": "<=",
     "passed": false,
@@ -271,9 +331,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.33,
+    "actual": 0.27,
     "values": [
-      0.33
+      0.27
     ],
     "operator": ">=",
     "passed": false,
@@ -346,9 +406,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.12,
+    "actual": 0.18,
     "values": [
-      0.12
+      0.18
     ],
     "operator": ">=",
     "passed": false,
@@ -421,9 +481,9 @@
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 7625.28586,
+    "actual": 7733.0594575,
     "values": [
-      7625.28586
+      7733.0594575
     ],
     "operator": "<=",
     "passed": false,
@@ -436,9 +496,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.43,
+    "actual": 0.4,
     "values": [
-      0.43
+      0.4
     ],
     "operator": ">=",
     "passed": false,
@@ -465,9 +525,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3047.0454,
+    "actual": 3058.6241,
     "values": [
-      3047.0454
+      3058.6241
     ],
     "operator": "<=",
     "passed": false,
@@ -478,11 +538,26 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/"
   },
   {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "forced-reflow-insight",
+    "level": "warn",
+    "url": "http://localhost:4173/services",
+    "auditTitle": "Forced reflow",
+    "auditDocumentationLink": "https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts"
+  },
+  {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4247.0908,
+    "actual": 4207.2482,
     "values": [
-      4247.0908
+      4207.2482
     ],
     "operator": "<=",
     "passed": false,
@@ -495,9 +570,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.86,
+    "actual": 0.84,
     "values": [
-      0.86
+      0.84
     ],
     "operator": ">=",
     "passed": false,
@@ -555,9 +630,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.26,
+    "actual": 0.25,
     "values": [
-      0.26
+      0.25
     ],
     "operator": ">=",
     "passed": false,
@@ -600,9 +675,9 @@
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4277.053315,
+    "actual": 4230.0765725,
     "values": [
-      4277.053315
+      4230.0765725
     ],
     "operator": "<=",
     "passed": false,
@@ -615,9 +690,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.6,
+    "actual": 0.57,
     "values": [
-      0.6
+      0.57
     ],
     "operator": ">=",
     "passed": false,
@@ -629,9 +704,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3157.3225999999995,
+    "actual": 3079.1363,
     "values": [
-      3157.3225999999995
+      3079.1363
     ],
     "operator": "<=",
     "passed": false,
@@ -659,9 +734,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4111.6452,
+    "actual": 4211.2726,
     "values": [
-      4111.6452
+      4211.2726
     ],
     "operator": "<=",
     "passed": false,
@@ -674,9 +749,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.88,
+    "actual": 0.8,
     "values": [
-      0.88
+      0.8
     ],
     "operator": ">=",
     "passed": false,
@@ -734,9 +809,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.23,
+    "actual": 0.25,
     "values": [
-      0.23
+      0.25
     ],
     "operator": ">=",
     "passed": false,
@@ -779,9 +854,9 @@
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4111.6452,
+    "actual": 4223.335117500001,
     "values": [
-      4111.6452
+      4223.335117500001
     ],
     "operator": "<=",
     "passed": false,
@@ -794,9 +869,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.6,
+    "actual": 0.57,
     "values": [
-      0.6
+      0.57
     ],
     "operator": ">=",
     "passed": false,
@@ -804,21 +879,6 @@
     "auditId": "categories",
     "level": "warn",
     "url": "http://localhost:4173/pricing"
-  },
-  {
-    "name": "maxNumericValue",
-    "expected": 200,
-    "actual": 202,
-    "values": [
-      202
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "total-blocking-time",
-    "level": "warn",
-    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "Total Blocking Time",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-total-blocking-time/"
   },
   {
     "name": "minScore",
@@ -836,11 +896,26 @@
     "auditDocumentationLink": "https://dequeuniversity.com/rules/axe/4.10/color-contrast"
   },
   {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "dom-size-insight",
+    "level": "warn",
+    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
+    "auditTitle": "Optimize DOM size",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/dom-size/"
+  },
+  {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3161.6047,
+    "actual": 3006.8998,
     "values": [
-      3161.6047
+      3006.8998
     ],
     "operator": "<=",
     "passed": false,
@@ -883,9 +958,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4612.612724999999,
+    "actual": 4483.0959,
     "values": [
-      4612.612724999999
+      4483.0959
     ],
     "operator": "<=",
     "passed": false,
@@ -913,9 +988,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.81,
+    "actual": 0.85,
     "values": [
-      0.81
+      0.85
     ],
     "operator": ">=",
     "passed": false,
@@ -1003,9 +1078,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.23,
+    "actual": 0.27,
     "values": [
-      0.23
+      0.27
     ],
     "operator": ">=",
     "passed": false,
@@ -1063,9 +1138,9 @@
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4621.4391175,
+    "actual": 4492.132070000001,
     "values": [
-      4621.4391175
+      4492.132070000001
     ],
     "operator": "<=",
     "passed": false,
@@ -1078,9 +1153,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.54,
+    "actual": 0.56,
     "values": [
-      0.54
+      0.56
     ],
     "operator": ">=",
     "passed": false,
@@ -1092,9 +1167,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3052.6648999999998,
+    "actual": 3162.2428,
     "values": [
-      3052.6648999999998
+      3162.2428
     ],
     "operator": "<=",
     "passed": false,
@@ -1105,11 +1180,26 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/"
   },
   {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "forced-reflow-insight",
+    "level": "warn",
+    "url": "http://localhost:4173/locations/london",
+    "auditTitle": "Forced reflow",
+    "auditDocumentationLink": "https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts"
+  },
+  {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3976.49735,
+    "actual": 4093.8642,
     "values": [
-      3976.49735
+      4093.8642
     ],
     "operator": "<=",
     "passed": false,
@@ -1122,9 +1212,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.85,
+    "actual": 0.82,
     "values": [
-      0.85
+      0.82
     ],
     "operator": ">=",
     "passed": false,
@@ -1182,9 +1272,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.25,
+    "actual": 0.23,
     "values": [
-      0.25
+      0.23
     ],
     "operator": ">=",
     "passed": false,
@@ -1227,9 +1317,9 @@
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4047.7473499999996,
+    "actual": 4172.9142,
     "values": [
-      4047.7473499999996
+      4172.9142
     ],
     "operator": "<=",
     "passed": false,
@@ -1242,9 +1332,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.59,
+    "actual": 0.57,
     "values": [
-      0.59
+      0.57
     ],
     "operator": ">=",
     "passed": false,
@@ -1255,10 +1345,25 @@
   },
   {
     "name": "maxNumericValue",
-    "expected": 1800,
-    "actual": 3157.7927,
+    "expected": 200,
+    "actual": 316,
     "values": [
-      3157.7927
+      316
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "total-blocking-time",
+    "level": "warn",
+    "url": "http://localhost:4173/glossary/api",
+    "auditTitle": "Total Blocking Time",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-total-blocking-time/"
+  },
+  {
+    "name": "maxNumericValue",
+    "expected": 1800,
+    "actual": 2617.6218,
+    "values": [
+      2617.6218
     ],
     "operator": "<=",
     "passed": false,
@@ -1286,9 +1391,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4094.68905,
+    "actual": 4063.9326999999994,
     "values": [
-      4094.68905
+      4063.9326999999994
     ],
     "operator": "<=",
     "passed": false,
@@ -1301,9 +1406,24 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.8,
+    "actual": 0,
     "values": [
-      0.8
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "mainthread-work-breakdown",
+    "level": "warn",
+    "url": "http://localhost:4173/glossary/api",
+    "auditTitle": "Minimize main-thread work",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/mainthread-work-breakdown/"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0.65,
+    "values": [
+      0.65
     ],
     "operator": ">=",
     "passed": false,
@@ -1361,9 +1481,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.23,
+    "actual": 0.38,
     "values": [
-      0.23
+      0.38
     ],
     "operator": ">=",
     "passed": false,
@@ -1406,9 +1526,9 @@
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4222.48905,
+    "actual": 4456.632699999999,
     "values": [
-      4222.48905
+      4456.632699999999
     ],
     "operator": "<=",
     "passed": false,
@@ -1421,9 +1541,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.57,
+    "actual": 0.51,
     "values": [
-      0.57
+      0.51
     ],
     "operator": ">=",
     "passed": false,
