@@ -2768,7 +2768,7 @@ async function handleSsrMeta(
         answerCount: 1,
         acceptedAnswer: {
           "@type":     "Answer",
-          text:        faq.answer,
+          text:        stripHtml(faq.answer),
           inLanguage:  "en",
         },
       }));
