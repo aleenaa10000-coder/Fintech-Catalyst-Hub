@@ -852,8 +852,13 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
  */
 const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/":                                "2026-05-11",
-  "/about":                           "2026-05-09",
-  "/services":                        "2026-05-09",
+  // Bumped to 2026-05-14: White-Hat audit (rel=me on author socials,
+  // §12 Editorial Disclosure) and Off-Page audit (BRAND_NAP centralisation,
+  // visible footer NAP) materially changed what these pages render.
+  "/about":                           "2026-05-14",
+  // Bumped to 2026-05-14: On-Page audit rewrote the /services meta
+  // description to land in the SERP-optimal 150-160 char window.
+  "/services":                        "2026-05-14",
   "/pricing":                         "2026-05-11",
   "/blog":                            "2026-05-11",
   "/authors":                         "2026-05-09",
@@ -866,7 +871,10 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/glossary":                        "2026-05-09",
   "/resources/fintech-publications":  "2026-05-09",
   "/press":                           "2026-05-09",
-  "/contact":                         "2026-04-25",
+  // Bumped to 2026-05-14: Off-Page audit refactored the contact page to
+  // render NAP from BRAND_NAP, adding the country line — visible content
+  // change material enough to warrant a freshness signal to crawlers.
+  "/contact":                         "2026-05-14",
   "/privacy-policy":                  "2026-04-28",
   "/refund-policy":                   "2026-04-28",
   "/cookie-policy":                   "2026-04-28",
@@ -2323,6 +2331,17 @@ async function handleSsrMeta(
         (p) => !p.noIndex && p.category?.toLowerCase().replace(/\s+/g, "-") === slug,
       );
 
+      // pSEO Pass 4: noindex thin facet pages.
+      // Category hubs with fewer than 2 indexable posts are below the
+      // utility threshold for a Google search-result destination — the
+      // page is essentially a card linking to a single article that
+      // already ranks on its own. Indexing it creates near-duplicate
+      // SERP results and wastes crawl budget. The page stays publicly
+      // accessible (a curious visitor can still browse it), it just
+      // signals to crawlers that the *single article inside* is the
+      // canonical destination for any query they'd send here.
+      const categoryThinFacet = filteredCatPosts.length < 2;
+
       const extraLds: string[] = [
         JSON.stringify({
           "@context":   "https://schema.org",
@@ -2372,6 +2391,13 @@ async function handleSsrMeta(
         }, null, 2));
       }
 
+      // pSEO Pass 4: emit noindex header + meta when the facet is thin.
+      // Server-side header is the authoritative signal for crawlers that
+      // skip JavaScript; the in-head meta covers HTML-only parsers.
+      if (categoryThinFacet) {
+        res.setHeader("X-Robots-Tag", "noindex, follow");
+      }
+
       patches = {
         title:         catMeta.title,
         description:   catMeta.description,
@@ -2385,6 +2411,9 @@ async function handleSsrMeta(
         // discover per-category feeds without visiting /blog/category/:slug first.
         headLinks: [
           `  <link rel="alternate" type="application/rss+xml" title="${esc(`${leafLabel} — FintechPressHub`)}" href="${esc(`${siteUrl}/blog/category/${slug}/rss.xml`)}" />`,
+          ...(categoryThinFacet
+            ? [`  <meta name="robots" content="noindex, follow" />`]
+            : []),
         ],
       };
     }
@@ -2428,6 +2457,15 @@ async function handleSsrMeta(
       );
 
       if (filteredTagPosts.length === 0) { res.status(404); return next(); }
+
+      // pSEO Pass 4: noindex thin tag facets (< 2 posts) for the same
+      // reason as thin category hubs — a tag page that wraps a single
+      // article is a near-duplicate SERP destination of the article
+      // itself. Page stays accessible; only the indexability bit flips.
+      const tagThinFacet = filteredTagPosts.length < 2;
+      if (tagThinFacet) {
+        res.setHeader("X-Robots-Tag", "noindex, follow");
+      }
 
       const extraLds: string[] = [
         JSON.stringify({
@@ -2491,6 +2529,9 @@ async function handleSsrMeta(
         // content-organisation dimensions.
         headLinks: [
           `  <link rel="alternate" type="application/rss+xml" title="${esc(`${tagLabel} Articles — FintechPressHub`)}" href="${esc(`${siteUrl}/blog/tag/${rawTag}/rss.xml`)}" />`,
+          ...(tagThinFacet
+            ? [`  <meta name="robots" content="noindex, follow" />`]
+            : []),
         ],
       };
     }

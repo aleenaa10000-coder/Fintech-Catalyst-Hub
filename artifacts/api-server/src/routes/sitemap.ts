@@ -22,8 +22,8 @@ export const STATIC_ROUTES: Array<{
   lastmod?: string;
 }> = [
   { path: "/", changefreq: "weekly", priority: "1.0", lastmod: "2026-05-11" },
-  { path: "/about", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
-  { path: "/services", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-09" },
+  { path: "/about", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-14" },
+  { path: "/services", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-14" },
   { path: "/pricing", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-11" },
   { path: "/blog", changefreq: "daily", priority: "0.9" },
   // /blog/tag intentionally omitted — there is no page at /blog/tag; the only
@@ -44,7 +44,7 @@ export const STATIC_ROUTES: Array<{
   { path: "/glossary", changefreq: "weekly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/resources/fintech-publications", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/press", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
-  { path: "/contact", changefreq: "yearly", priority: "0.5", lastmod: "2026-04-25" },
+  { path: "/contact", changefreq: "yearly", priority: "0.5", lastmod: "2026-05-14" },
   { path: "/privacy-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/refund-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
   { path: "/cookie-policy", changefreq: "yearly", priority: "0.3", lastmod: "2026-04-28" },
