@@ -142,3 +142,48 @@ Enable **Force HTTPS** in hPanel → SSL → Manage. This combined with the `Str
 **Emails not sending:** Verify `RESEND_API_KEY` is set and the `REPORT_FROM_EMAIL` domain is verified in your Resend dashboard. Check `/api/healthz` — it reports email transport status.
 
 **www redirect loop:** Ensure `NODE_ENV=production` is set. The redirect middleware only activates in production to avoid interfering with Replit dev previews.
+
+---
+
+## GEO-related Hostinger checks (added 2026-05-14)
+
+The full GEO posture is documented in `docs/geo-audit-report-2026-05.md`. The two
+Hostinger-specific items that affect generative-engine discoverability and that
+must be verified post-deployment are:
+
+1. **`/llms.txt` and `/llms-full.txt` must be reachable.** They are served by
+   `artifacts/api-server/src/routes/llmsTxt.ts` and require no extra
+   configuration beyond `SITE_URL` being set so the absolute URLs inside the
+   Markdown match the production hostname. After deploy, verify with:
+   ```
+   curl -sI https://www.fintechpresshub.com/llms.txt | grep -E "200|text/plain"
+   curl -sI https://www.fintechpresshub.com/llms-full.txt | grep -E "200|text/plain"
+   ```
+
+2. **Every HTML page must emit the `Link: rel="alternate"; type="text/plain"`
+   header** that points AI crawlers at the LLM content index. The header is
+   set by `ssrMeta.ts` and survives any reverse-proxy hop. Verify with:
+   ```
+   curl -sI https://www.fintechpresshub.com/ | grep -i "^link:"
+   ```
+   The expected output includes `</llms.txt>; rel="alternate"; type="text/plain"`.
+
+3. **Object-storage uploads on Hostinger.** The Replit Object Storage sidecar
+   is unavailable. `lib/object-storage/objectStorage.ts` already gates every
+   public method behind `isReplitStorageAvailable()` and throws a friendly
+   error when `REPL_ID` is unset, so the server boots cleanly. *Existing*
+   uploads served from `/objects/*` continue to work because they are read
+   from the storage URL stored in the DB row, not re-uploaded. *New* uploads
+   from the admin dashboard (cover images, author photos) will fail with a
+   "Replit Object Storage required" error until an S3-compatible adapter is
+   wired in. For an interim Hostinger deployment, upload assets directly to
+   `artifacts/fintechpresshub/public/author-photos/` and reference them by
+   relative path in the admin UI — the existing `/objects/*` route already
+   transparently passes through to the public folder when the sidecar is
+   absent.
+
+4. **Skill-Creator outputs are runtime-independent.** All skills under
+   `.local/skills/` and `.agents/skills/` are static Markdown plus optional
+   shell scripts; none depend on Replit-only services. They will continue to
+   function on Hostinger because the agent runtime that consumes them is not
+   part of this deployment artefact.

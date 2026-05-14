@@ -1328,7 +1328,17 @@ async function handleSsrMeta(
       // ChatGPT Search, Gemini) which canonical URL to use when citing this page.
       // Both rel="canonical" (Bing HTTP-header canonical) and rel="cite-as"
       // (W3C AI citation standard) in one Link header — covers all crawler types.
-      res.setHeader("Link", `<${cachedPatches.canonical}>; rel="canonical", <${cachedPatches.canonical}>; rel="cite-as"`);
+      // Also advertise the LLM-readable Markdown alternates so AI engines
+      // (Perplexity, ChatGPT Search, Claude, Gemini) can fetch a higher-
+      // fidelity content index without guessing the path. Mirrors the
+      // # LLM-Content: hints in robots.txt — belt-and-suspenders discovery.
+      res.setHeader(
+        "Link",
+        `<${cachedPatches.canonical}>; rel="canonical", ` +
+        `<${cachedPatches.canonical}>; rel="cite-as", ` +
+        `<${siteUrl}/llms.txt>; rel="alternate"; type="text/plain"; title="LLM content index", ` +
+        `<${siteUrl}/llms-full.txt>; rel="alternate"; type="text/plain"; title="LLM full content index"`,
+      );
       if (req.method === "HEAD") { res.end(); } else { res.send(html); }
       return;
     }
@@ -1388,6 +1398,14 @@ async function handleSsrMeta(
         res.setHeader("Content-Type", "text/html; charset=utf-8");
         res.setHeader("X-Robots-Tag", "noindex, nofollow");
         res.setHeader("Cache-Control", "private, no-store");
+        // Even on noindex/future-dated pages, advertise the LLM content
+        // alternates so a crawler that lands here can still discover the
+        // canonical Markdown indexes — keeps the "every HTML page" promise.
+        res.setHeader(
+          "Link",
+          `<${siteUrl}/llms.txt>; rel="alternate"; type="text/plain"; title="LLM content index", ` +
+          `<${siteUrl}/llms-full.txt>; rel="alternate"; type="text/plain"; title="LLM full content index"`,
+        );
         res.send(futureHtml);
         return;
       }
@@ -1414,6 +1432,12 @@ async function handleSsrMeta(
         res.setHeader("Content-Type", "text/html; charset=utf-8");
         res.setHeader("X-Robots-Tag", "noindex, nofollow");
         res.setHeader("Cache-Control", "private, no-store");
+        // Same LLM-alternates advertisement as the future-dated branch above.
+        res.setHeader(
+          "Link",
+          `<${siteUrl}/llms.txt>; rel="alternate"; type="text/plain"; title="LLM content index", ` +
+          `<${siteUrl}/llms-full.txt>; rel="alternate"; type="text/plain"; title="LLM full content index"`,
+        );
         res.send(html);
         return;
       }
@@ -3605,7 +3629,16 @@ async function handleSsrMeta(
     res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
     // Both rel="canonical" (Bing HTTP-header canonical) and rel="cite-as"
     // (W3C AI citation standard) in one Link header — covers all crawler types.
-    res.setHeader("Link", `<${patches.canonical}>; rel="canonical", <${patches.canonical}>; rel="cite-as"`);
+    // Also advertise the LLM-readable Markdown alternates (mirrors the
+    // # LLM-Content: hints in robots.txt) so AI engines can fetch the
+    // higher-fidelity content index without guessing the path.
+    res.setHeader(
+      "Link",
+      `<${patches.canonical}>; rel="canonical", ` +
+      `<${patches.canonical}>; rel="cite-as", ` +
+      `<${siteUrl}/llms.txt>; rel="alternate"; type="text/plain"; title="LLM content index", ` +
+      `<${siteUrl}/llms-full.txt>; rel="alternate"; type="text/plain"; title="LLM full content index"`,
+    );
     // Emit Last-Modified so crawlers can revalidate efficiently without
     // re-downloading the full HTML. Uses the per-page dateModified computed
     // in the route branch, or falls back to the static lastmod map.

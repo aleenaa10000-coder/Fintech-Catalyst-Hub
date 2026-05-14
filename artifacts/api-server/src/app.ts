@@ -340,6 +340,14 @@ app.get("/robots.txt", (_req: Request, res: Response) => {
     `Sitemap: ${siteUrl}/sitemap.xml`,
     `Sitemap: ${siteUrl}/news-sitemap.xml`,
     "",
+    "# ── LLM-readable content index (llmstxt.org convention) ─────────────────────",
+    "# AI search agents (Perplexity, ChatGPT Search, Claude, Gemini) that follow",
+    "# the emerging llmstxt.org standard discover higher-fidelity Markdown",
+    "# summaries of the site at these URLs. The same content is also advertised",
+    "# via an HTTP Link: rel=\"alternate\" header on every HTML page.",
+    `# LLM-Content: ${siteUrl}/llms.txt`,
+    `# LLM-Content: ${siteUrl}/llms-full.txt`,
+    "",
   ].join("\n");
   res
     .type("text/plain")
