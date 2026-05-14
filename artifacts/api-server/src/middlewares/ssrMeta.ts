@@ -1884,24 +1884,27 @@ async function handleSsrMeta(
                 "@type": "Question",
                 name:    `Does FintechPressHub offer fintech SEO services in ${loc.city}?`,
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    `Yes. FintechPressHub provides specialist fintech SEO, content marketing, and link-building services to companies operating in ${loc.city}${loc.region ? `, ${loc.region}` : ""}, ${loc.country}. Our team combines local regulatory awareness with deep fintech expertise to build search visibility in your market.`,
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       `Yes. FintechPressHub provides specialist fintech SEO, content marketing, and link-building services to companies operating in ${loc.city}${loc.region ? `, ${loc.region}` : ""}, ${loc.country}. Our team combines local regulatory awareness with deep fintech expertise to build search visibility in your market.`,
                 },
               },
               {
                 "@type": "Question",
                 name:    `What fintech SEO services are available in ${loc.country}?`,
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    `In ${loc.country} we offer geo-targeted keyword research, regulatory-compliant content writing, high-authority link placements in ${loc.country}-relevant fintech publications, and a full-funnel content strategy designed for the local fintech buyer journey.`,
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       `In ${loc.country} we offer geo-targeted keyword research, regulatory-compliant content writing, high-authority link placements in ${loc.country}-relevant fintech publications, and a full-funnel content strategy designed for the local fintech buyer journey.`,
                 },
               },
               {
                 "@type": "Question",
                 name:    `How do I get started with fintech SEO in ${loc.city}?`,
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    `Book a free 30-minute strategy call via the FintechPressHub contact page. We will audit your current search footprint in ${loc.city} and identify your fastest path to organic growth in the ${loc.country} market.`,
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       `Book a free 30-minute strategy call via the FintechPressHub contact page. We will audit your current search footprint in ${loc.city} and identify your fastest path to organic growth in the ${loc.country} market.`,
                 },
               },
             ],
@@ -2019,8 +2022,9 @@ async function handleSsrMeta(
                 name:    `What is ${term.term}?`,
                 answerCount: 1,
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    stripHtml(term.shortDef),
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text:         stripHtml(term.shortDef),
                 },
               },
               {
@@ -2028,8 +2032,19 @@ async function handleSsrMeta(
                 name:    `Why is ${term.term} important in fintech?`,
                 answerCount: 1,
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    stripHtml(`${term.term} is a key concept in financial technology${term.category ? ` within the ${term.category} sector` : ""}. Understanding ${term.term} helps fintech founders, marketers, and product teams communicate clearly with investors, regulators, and customers operating in the digital finance space.`),
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       stripHtml(`${term.term} is a key concept in financial technology${term.category ? ` within the ${term.category} sector` : ""}. Understanding ${term.term} helps fintech founders, marketers, and product teams communicate clearly with investors, regulators, and customers operating in the digital finance space.`),
+                },
+              },
+              {
+                "@type": "Question",
+                name:    `How does ${term.term} apply to fintech companies?`,
+                answerCount: 1,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       stripHtml(`Fintech companies encounter ${term.term} when building, scaling, or marketing products${term.category ? ` in the ${term.category} sector` : ""}. A clear grasp of ${term.term} supports better product decisions, regulatory compliance, and communication with investors, partners, and end users across digital finance.`),
                 },
               },
             ],
@@ -2186,7 +2201,7 @@ async function handleSsrMeta(
                 "@type": "Question",
                 name:    question,
                 answerCount: 1,
-                acceptedAnswer: { "@type": "Answer", text: stripHtml(answer) },
+                acceptedAnswer: { "@type": "Answer", inLanguage: "en", text: stripHtml(answer) },
               })),
             }, null, 2));
           }
@@ -2346,7 +2361,7 @@ async function handleSsrMeta(
               "@type": "Question",
               name:    question,
               answerCount: 1,
-              acceptedAnswer: { "@type": "Answer", text: stripHtml(answer) },
+              acceptedAnswer: { "@type": "Answer", inLanguage: "en", text: stripHtml(answer) },
             })),
           }, null, 2));
           lds.push(buildBreadcrumbLd(breadcrumbs));

@@ -435,6 +435,7 @@ export function PageMeta(props: PageMetaProps) {
               acceptedAnswer: {
                 "@type": "Answer",
                 text: item.answer.replace(/<[^>]*>/g, "").trim(),
+                inLanguage: "en",
               },
             })),
           }
@@ -463,6 +464,10 @@ export function PageMeta(props: PageMetaProps) {
                 "@type": "Answer",
                 // Strip any residual HTML tags so Google always receives plain text.
                 text: item.answer.replace(/<[^>]*>/g, "").trim(),
+                // inLanguage on acceptedAnswer is an AEO/GEO signal — AI citation
+                // engines (Perplexity, Google AI Overviews) prefer answers that
+                // explicitly declare their language for multi-lingual corpora ranking.
+                inLanguage: "en",
               },
             })),
           }

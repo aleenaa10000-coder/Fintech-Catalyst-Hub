@@ -344,6 +344,15 @@ export default function BlogPost() {
 
   // Split article content roughly in half (at the closest </p> after midpoint)
   // so we can insert an inline Lead Magnet CTA between the two halves.
+  const citations = useMemo(() => {
+    if (!contentHtml) return undefined;
+    const matches = Array.from(
+      contentHtml.matchAll(/href="(https?:\/\/(?!(?:www\.)?fintechpresshub\.com)[^"#?]+)"/g),
+      (m) => m[1] as string,
+    ).filter((u, i, a) => a.indexOf(u) === i).slice(0, 10);
+    return matches.length > 0 ? matches : undefined;
+  }, [contentHtml]);
+
   const { firstHalfHtml, secondHalfHtml } = useMemo(() => {
     if (!contentHtml) return { firstHalfHtml: "", secondHalfHtml: "" };
     const mid = Math.floor(contentHtml.length / 2);
@@ -588,6 +597,8 @@ export default function BlogPost() {
             const at = handle.replace(/^https?:\/\/(www\.)?(twitter|x)\.com\//i, "@");
             return at.startsWith("@") ? at : `@${at}`;
           })(),
+          alternativeHeadline: post.excerpt?.trim().slice(0, 110) || undefined,
+          citation: citations,
         }}
         faq={
           post.faqItems && post.faqItems.length > 0
@@ -687,18 +698,34 @@ export default function BlogPost() {
           <div className="flex items-center justify-between gap-4 mb-6 lg:mb-8">
             <nav
               aria-label="Breadcrumb"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0"
+              className="flex items-center gap-1 text-sm text-muted-foreground min-w-0 flex-wrap"
             >
               <Link
-                href="/blog"
-                className="inline-flex items-center font-medium text-slate-600 hover:text-[#0052FF] transition-colors"
+                href="/"
+                className="font-medium text-slate-600 hover:text-[#0052FF] transition-colors shrink-0"
               >
-                <ArrowLeft className="w-4 h-4 mr-1.5" />
-                Back to Blog
+                Home
+              </Link>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <Link
+                href="/blog"
+                className="font-medium text-slate-600 hover:text-[#0052FF] transition-colors shrink-0"
+              >
+                Blog
+              </Link>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0 hidden sm:inline" />
+              <Link
+                href={`/blog/category/${post.category.toLowerCase().replace(/\s+/g, "-")}`}
+                className="font-medium text-slate-600 hover:text-[#0052FF] transition-colors truncate max-w-[100px] hidden sm:inline"
+              >
+                {post.category
+                  .split("-")
+                  .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+                  .join(" ")}
               </Link>
               <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span
-                className="text-slate-500 truncate max-w-[260px] sm:max-w-md"
+                className="text-slate-500 truncate max-w-[160px] sm:max-w-xs"
                 aria-current="page"
               >
                 {post.title}
@@ -813,7 +840,9 @@ export default function BlogPost() {
                     aria-hidden="true"
                   />
                   <dt className="sr-only">Published</dt>
-                  <dd>{formatDate(post.date)}</dd>
+                  <dd>
+                    <time dateTime={post.date}>{formatDate(post.date)}</time>
+                  </dd>
                 </div>
                 {isMeaningfullyUpdated(post.date, post.dateModified) ? (
                   <div className="flex items-center gap-1.5 text-slate-600">
@@ -1306,6 +1335,7 @@ export default function BlogPost() {
                         src={rp.image}
                         alt={rp.title}
                         loading="lazy"
+                        decoding="async"
                         width={640}
                         height={360}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
