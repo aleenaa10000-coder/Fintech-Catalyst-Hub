@@ -249,7 +249,13 @@ export async function runSeed(db: AnyDb): Promise<SeedReport> {
     report.referringDomains = rows.length;
   }
 
-  if (await isEmpty(db, "location_pages")) {
+  // Location pages and glossary terms use upsert (ON CONFLICT DO NOTHING on slug)
+  // so that new entries added to the seed files are inserted on every re-run
+  // without duplicating rows that already exist. This allows the seed files to
+  // grow incrementally (e.g. adding new fintech hub cities or glossary terms)
+  // and have those additions reflected on the next deploy / auto-seed run
+  // without requiring a full table wipe-and-reseed cycle.
+  {
     const rows = (locationsSeed as LocationSeedRow[]).map((r) => ({
       slug: r.slug,
       city: r.city,
@@ -261,11 +267,14 @@ export async function runSeed(db: AnyDb): Promise<SeedReport> {
       seoTitle: r.seo_title ?? undefined,
       seoDescription: r.seo_description ?? undefined,
     }));
-    await db.insert(locationPagesTable).values(rows);
-    report.locationPages = rows.length;
+    const result = await db
+      .insert(locationPagesTable)
+      .values(rows)
+      .onConflictDoNothing({ target: locationPagesTable.slug });
+    report.locationPages = (result.rowCount ?? 0);
   }
 
-  if (await isEmpty(db, "glossary_terms")) {
+  {
     const rows = (glossarySeed as GlossarySeedRow[]).map((r) => ({
       slug: r.slug,
       term: r.term,
@@ -274,8 +283,11 @@ export async function runSeed(db: AnyDb): Promise<SeedReport> {
       category: r.category ?? undefined,
       relatedTerms: r.related_terms,
     }));
-    await db.insert(glossaryTermsTable).values(rows);
-    report.glossaryTerms = rows.length;
+    const result = await db
+      .insert(glossaryTermsTable)
+      .values(rows)
+      .onConflictDoNothing({ target: glossaryTermsTable.slug });
+    report.glossaryTerms = (result.rowCount ?? 0);
   }
 
   return report;

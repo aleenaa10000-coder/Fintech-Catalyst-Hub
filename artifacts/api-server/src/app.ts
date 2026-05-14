@@ -176,6 +176,13 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
   // cross-origin (not same-origin) so our cover images and OG images can be
   // loaded by social crawlers and CDNs hosted on other origins.
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  // Content-Language: en — declares the language of the intended audience.
+  // Reinforces the lang="en" attribute on <html>, the og:locale meta tags,
+  // and the hreflang="en" / "x-default" sitemap declarations. Some CDNs
+  // (Cloudflare, Fastly) use this header for language-aware cache partitioning,
+  // and crawlers use it as a secondary signal for language detection on pages
+  // where the <html lang> attribute is absent or incorrect.
+  res.setHeader("Content-Language", "en");
   // Content-Security-Policy — production only.
   // Development skips CSP so Vite HMR, Replit tooling, and pino-pretty all
   // work unrestricted. The Replit badge inline script is also development-only.

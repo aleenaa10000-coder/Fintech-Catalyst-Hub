@@ -118,5 +118,125 @@
     "body": "Strong Customer Authentication (SCA) is an EU regulatory requirement introduced by PSD2 that mandates multi-factor authentication for electronic payments and account access. To comply, payment authentication must use at least two of three factors: something the customer knows (PIN, password), something the customer has (phone, hardware token), or something the customer is (fingerprint, face recognition).\n\nSCA applies to online transactions above €30 within the European Economic Area and to remote account access. Certain exemptions exist — low-value transactions, trusted payees, low-risk transactions (based on transaction risk analysis), and recurring fixed-amount subscriptions — but exemptions must be applied carefully to avoid both friction and fraud.\n\nFor fintechs operating in Europe, SCA implementation has been a significant engineering and UX challenge. Poor SCA implementation leads to high payment abandonment rates, while over-application of SCA creates unnecessary customer friction. 3D Secure 2 (3DS2) has become the standard protocol for SCA in card payments, and banks have broadly adopted dynamic linking and app-based authentication for account access.",
     "category": "Regulation",
     "related_terms": ["psd2", "open-banking"]
+  },
+  {
+    "slug": "cbdc",
+    "term": "CBDC (Central Bank Digital Currency)",
+    "short_def": "A digital form of a country's sovereign currency, issued and regulated by the central bank — a state-backed alternative to cash and commercial bank deposits.",
+    "body": "A Central Bank Digital Currency (CBDC) is a digital liability of a central bank, denominated in the sovereign currency, and available for retail or wholesale use. Unlike cryptocurrencies such as Bitcoin, CBDCs are centralised, government-issued, and fully backed by the state — making them equivalent in status to physical banknotes.\n\nOver 130 countries representing 98% of global GDP are now exploring CBDCs, according to the Atlantic Council. The digital yuan (e-CNY) from China's People's Bank of China is the most advanced major-economy CBDC, with pilots covering hundreds of millions of transactions. The European Central Bank is in an advanced preparation phase for a digital euro, and the Federal Reserve has been researching a digital dollar.\n\nFor fintechs, CBDCs represent both a threat (disintermediation from payment flows) and an opportunity (infrastructure for CBDC wallets, merchant integrations, and cross-border settlement). Programmable CBDCs — with smart contract functionality — could enable entirely new financial product categories.",
+    "category": "Digital Assets",
+    "related_terms": ["defi", "embedded-finance"]
+  },
+  {
+    "slug": "cross-border-payments",
+    "term": "Cross-Border Payments",
+    "short_def": "Payment transactions where the payer and recipient are located in different countries, involving currency conversion and multiple correspondent banking relationships.",
+    "body": "Cross-border payments encompass any financial transaction where money moves between parties in different countries — including consumer remittances, B2B trade payments, treasury sweeps, and e-commerce settlements. Traditional cross-border payments routed through the SWIFT correspondent banking network have long been criticised for high fees (averaging 6.4% for consumer remittances per the World Bank), slow settlement times (2–5 business days), and limited transparency on fees and delivery times.\n\nThe cross-border payments fintech sector has grown rapidly around the $150 trillion annual market, with companies like Wise, Airwallex, Nium, Rapyd, and Flywire offering faster, cheaper, and more transparent alternatives. The G20 has made cross-border payment improvement a priority, targeting 1% cost, 1-hour settlement, and universal access by 2027 under the FSB Roadmap.\n\nFor fintech SEO, cross-border payments is a high-intent category with strong commercial search volume from SMEs, treasury teams, and enterprise buyers comparing solutions.",
+    "category": "Payments",
+    "related_terms": ["swift-gpi", "virtual-iban", "embedded-finance"]
+  },
+  {
+    "slug": "digital-wallet",
+    "term": "Digital Wallet",
+    "short_def": "A software application that stores payment credentials, loyalty cards, and identification documents, enabling contactless and online transactions.",
+    "body": "A digital wallet (also called an e-wallet or mobile wallet) is a software-based system that securely stores payment information — credit and debit card details, bank account credentials, and sometimes cryptocurrency — enabling users to make payments online or in-person via NFC contactless technology. Wallets may also store loyalty cards, boarding passes, digital ID, and event tickets.\n\nLeading digital wallet platforms include Apple Pay, Google Pay, Samsung Pay, PayPal, Venmo, and Cash App in consumer markets, and Alipay and WeChat Pay in China. In emerging markets, mobile wallets like M-Pesa (Kenya), bKash (Bangladesh), and Paytm (India) function as the primary financial account for the unbanked population.\n\nFor fintechs, digital wallets represent a critical distribution channel and a battleground for customer ownership. The wallet becomes the primary interface through which consumers interact with financial products — making wallet strategy a key component of embedded finance and neobank competitive positioning.",
+    "category": "Payments",
+    "related_terms": ["embedded-finance", "neobank", "bnpl"]
+  },
+  {
+    "slug": "financial-inclusion",
+    "term": "Financial Inclusion",
+    "short_def": "The goal of ensuring that all individuals and businesses have access to useful and affordable financial products and services that meet their needs.",
+    "body": "Financial inclusion refers to the effort to provide individuals, households, and businesses — particularly those historically excluded from formal financial systems — with access to appropriate and affordable financial services. The World Bank estimates that 1.4 billion adults globally remain unbanked, concentrated in South Asia, Sub-Saharan Africa, and Latin America.\n\nDigital financial services, mobile money platforms, and alternative credit scoring models have dramatically advanced financial inclusion over the past decade. M-Pesa in Kenya enabled millions of previously unbanked adults to send, receive, and save money via basic mobile phones. Nubank in Brazil has extended credit to tens of millions of Brazilians rejected by traditional banks.\n\nFor fintechs targeting emerging markets or underserved segments in developed economies, financial inclusion framing is both a genuine mission and a powerful narrative for media coverage, regulatory goodwill, and ESG investor positioning.",
+    "category": "Industry",
+    "related_terms": ["neobank", "digital-wallet", "baas"]
+  },
+  {
+    "slug": "insurtech",
+    "term": "InsurTech (Insurance Technology)",
+    "short_def": "Technology-driven innovation in the insurance industry — using AI, telematics, and embedded distribution to redesign traditional insurance products and processes.",
+    "body": "InsurTech refers to the application of technology to the insurance industry, encompassing companies that use data science, machine learning, IoT, and digital distribution to create new insurance products, improve underwriting accuracy, streamline claims, and reduce operational costs. The sector spans B2C digital insurers (Lemonade, Marshmallow, Zego), B2B infrastructure providers (Socotra, Majesco), and embedded insurance distributors (Cover Genius, Qover).\n\nKey instech innovations include: usage-based insurance (UBI) using telematics data for auto policies, AI-powered claims processing, parametric insurance that pays automatically on defined trigger events, and embedded insurance that distributes policies at the point of purchase within partner platforms.\n\nFor fintech SEO, insurtech content requires careful navigation of FCA and state insurance regulatory language. E-E-A-T signals — demonstrable expertise in insurance regulation and actuarial concepts — are especially important for ranking in this YMYL sub-sector.",
+    "category": "Industry",
+    "related_terms": ["embedded-finance", "regtech"]
+  },
+  {
+    "slug": "iso-20022",
+    "term": "ISO 20022",
+    "short_def": "The international financial messaging standard replacing SWIFT MT formats — enabling richer data, better compliance screening, and faster cross-border payment processing.",
+    "body": "ISO 20022 is the global standard for financial messaging that is replacing legacy SWIFT MT message formats across major payment systems worldwide. Unlike MT messages, ISO 20022 uses XML-based schemas with structured data fields — allowing significantly richer information to travel with each payment, including full originator and beneficiary names, addresses, and purposes.\n\nThe migration to ISO 20022 is one of the largest infrastructure transitions in financial services history. SWIFT completed its cross-border coexistence period in November 2025, with full mandatory adoption expected by 2027. Major domestic systems including TARGET2 (EU), CHAPS (UK), Fedwire (US), and CIPS (China) have already migrated or are in process.\n\nFor fintechs, ISO 20022 adoption enables better AML screening (more data means fewer false positives), faster straight-through processing, and compatibility with the G20's cross-border payment improvement roadmap. Fintechs that support ISO 20022 natively gain a competitive advantage in enterprise and institutional payment flows.",
+    "category": "Standards",
+    "related_terms": ["cross-border-payments", "swift-gpi", "aml"]
+  },
+  {
+    "slug": "kyb",
+    "term": "KYB (Know Your Business)",
+    "short_def": "The process of verifying a business's identity, ownership structure, and legitimacy before establishing a financial or commercial relationship.",
+    "body": "Know Your Business (KYB) is the corporate equivalent of Know Your Customer (KYC) — the due diligence process that regulated financial institutions perform on business clients to verify their legal existence, beneficial ownership, and the nature of their business activities. KYB checks are mandatory under AML regulations in most jurisdictions and are a prerequisite for business bank accounts, payment processing relationships, and credit facilities.\n\nA typical KYB process includes: verification of company registration documents, identification of ultimate beneficial owners (UBOs) holding more than 25% ownership, adverse media and sanctions screening of directors and UBOs, and assessment of the company's business activities and revenue model against permitted use cases.\n\nThe RegTech sector has developed automated KYB platforms — including Comply Advantage, Moody's (Bureau van Dijk), and Creditsafe — that reduce verification time from days to minutes using registry data APIs, AI-powered document processing, and global sanctions databases.",
+    "category": "Compliance",
+    "related_terms": ["kyc", "aml", "regtech"]
+  },
+  {
+    "slug": "merchant-acquiring",
+    "term": "Merchant Acquiring",
+    "short_def": "The banking or payment service that enables merchants to accept card and digital payments by connecting them to the card networks and settling funds to their accounts.",
+    "body": "Merchant acquiring (also called card acquiring or payment acceptance) refers to the service provided by acquirer banks or independent payment processors that enables merchants to accept payments from customers using credit cards, debit cards, and digital wallets. The acquirer acts as the merchant's bank in the four-party card scheme — processing transactions through Visa or Mastercard, receiving funds from the issuing bank, and settling net proceeds to the merchant after deducting interchange fees and acquirer margins.\n\nProminent acquirers include Worldline, Adyen, Fiserv, Global Payments, Stripe, and Square. The acquiring market has disaggregated significantly with the rise of payment facilitators (PayFacs) — companies like Stripe and Square that enable sub-merchants to begin accepting payments under a master merchant relationship without undergoing individual acquiring agreements.\n\nFor fintech SEO, merchant acquiring content targets CFOs, payment managers, and e-commerce leaders evaluating payment processing partners. High-intent queries include 'best merchant acquirer', 'payment processing fees comparison', and 'card-present vs card-not-present acquiring'.",
+    "category": "Payments",
+    "related_terms": ["embedded-finance", "pci-dss", "digital-wallet"]
+  },
+  {
+    "slug": "open-finance",
+    "term": "Open Finance",
+    "short_def": "An extension of open banking that encompasses sharing data across all financial products — including savings, investments, insurance, mortgages, and pensions.",
+    "body": "Open finance extends the data-sharing principles of open banking beyond payment accounts to encompass the full breadth of consumer financial data — including savings accounts, investment portfolios, insurance policies, mortgages, pension funds, and consumer credit. While open banking is mandated by regulation in the UK and EU for payment accounts, open finance represents the next wave of data liberation, currently progressing through regulatory consultation and voluntary industry initiatives.\n\nThe UK's FCA published an open finance feedback statement in 2021, and the EU's Financial Data Access (FiDA) Regulation proposed in 2023 would create mandatory open finance data sharing across the EU. Australia's Consumer Data Right (CDR) already covers banking and energy and is planned to extend to other sectors.\n\nFor fintechs, open finance data enables holistic financial management products (Moneyhub, Yolt), whole-of-market advice tools, and more accurate underwriting models that incorporate the full financial picture of a customer. It represents a fundamental shift in who controls financial data — from institutions to consumers.",
+    "category": "Regulation",
+    "related_terms": ["open-banking", "psd2", "embedded-finance"]
+  },
+  {
+    "slug": "payment-orchestration",
+    "term": "Payment Orchestration",
+    "short_def": "The intelligent routing of payment transactions across multiple payment service providers, processors, and methods to optimise authorisation rates, costs, and reliability.",
+    "body": "Payment orchestration refers to the use of a middleware layer — a payment orchestration platform — that sits between a merchant's checkout and multiple payment service providers (PSPs), enabling dynamic routing decisions based on transaction type, card issuer, geography, cost, and historical performance data. Instead of being locked into a single PSP, orchestrated payments can route a French Visa card to one acquirer and a UK Amex to another, maximising authorisation rates and minimising processing costs.\n\nLeading payment orchestration platforms include Spreedly, Gr4vy, Payrails, and Primer. As enterprise merchants accept payments across dozens of geographies and payment methods, orchestration has become essential to manage the complexity of a fragmented global payments landscape.\n\nFor fintech marketers, payment orchestration content targets enterprise payment managers, CTOs, and e-commerce directors at high-GMV merchants. The category has high commercial search intent with queries like 'reduce payment decline rates', 'multi-PSP routing strategy', and 'payment orchestration platform comparison'.",
+    "category": "Payments",
+    "related_terms": ["merchant-acquiring", "cross-border-payments", "api"]
+  },
+  {
+    "slug": "pci-dss",
+    "term": "PCI DSS (Payment Card Industry Data Security Standard)",
+    "short_def": "The security standard that all organisations that store, process, or transmit payment card data must comply with to protect cardholder information.",
+    "body": "PCI DSS (Payment Card Industry Data Security Standard) is a set of security controls established by the PCI Security Standards Council — founded jointly by Visa, Mastercard, American Express, Discover, and JCB — that any organisation accepting, transmitting, or storing payment card data must implement. Compliance is not a legal requirement in most jurisdictions but is contractually mandated by card schemes and acquirers as a condition of accepting card payments.\n\nPCI DSS version 4.0, released in 2022 and mandated since April 2024, introduced significant changes including a new customised approach allowing organisations to meet security goals through alternative controls, enhanced requirements for e-commerce and phishing protection, and more granular authentication requirements. The standard is divided into 12 requirements covering network security, access controls, encryption, vulnerability management, monitoring, and security policies.\n\nFor fintechs processing card payments, PCI DSS compliance is a prerequisite for acquiring relationships. Payment facilitators like Stripe absorb PCI scope for their merchants by ensuring card data never touches merchant servers — reducing compliance burden to SAQ A (self-assessment questionnaire A), the simplest tier.",
+    "category": "Compliance",
+    "related_terms": ["merchant-acquiring", "sca", "regtech"]
+  },
+  {
+    "slug": "swift-gpi",
+    "term": "SWIFT gpi (Global Payments Innovation)",
+    "short_def": "SWIFT's enhanced cross-border payment service providing end-to-end tracking, same-day value delivery, and transparent fee deduction for international bank transfers.",
+    "body": "SWIFT gpi (Global Payments Innovation) is SWIFT's upgraded cross-border payment service, launched in 2017, which introduced tracking, speed, and transparency to correspondent banking payments that previously operated as opaque, slow, and difficult to trace. SWIFT gpi payments carry a Unique End-to-End Transaction Reference (UETR) that enables both sending and receiving banks to track payment status in real time through the SWIFT Tracker portal.\n\nSWIFT gpi mandatory compliance for all financial institutions sending cross-border payments via SWIFT took effect in November 2020. The service has significantly improved the performance of correspondent banking: over 50% of SWIFT gpi payments now settle within 30 minutes, and over 90% within 24 hours. SWIFT gpi also introduced the Nostro Data Analytics tool, enabling banks to optimise their liquidity across correspondent accounts.\n\nFor fintechs competing in cross-border payments, SWIFT gpi has narrowed the speed gap between traditional correspondent banking and fintech alternatives like Wise and Airwallex, making transparent pricing and superior UX the primary battleground for differentiation.",
+    "category": "Standards",
+    "related_terms": ["cross-border-payments", "iso-20022", "baas"]
+  },
+  {
+    "slug": "tokenization",
+    "term": "Tokenization",
+    "short_def": "The process of replacing sensitive payment card or account data with a unique, non-sensitive substitute (a token) that can be used in transactions without exposing the original data.",
+    "body": "Tokenization in payments replaces a sensitive data element — typically a 16-digit primary account number (PAN) — with a surrogate value called a token. The token has no exploitable value outside the specific transaction, merchant, or device for which it was generated, making it useless to fraudsters even if intercepted. Network tokenization — provided by Visa (VTS), Mastercard (MDES), and American Express — replaces the PAN with a network-issued token that travels through the payment chain in its place.\n\nNetwork tokenization offers significant benefits: lower interchange rates (Visa and Mastercard offer up to 10 basis point reductions for tokenized transactions), higher authorisation rates (5–10% improvement in some markets due to reduced fraud signals), and improved customer experience for card-on-file payments with automatic account updates when cards expire or are replaced.\n\nFor fintech card issuers, wallet providers, and e-commerce platforms, network tokenization implementation has become a competitive necessity. Apple Pay, Google Pay, and Samsung Pay all use tokenization as the basis for contactless payments security, replacing the PAN with a Device Account Number (DAN) stored securely in the device's Secure Element.",
+    "category": "Technology",
+    "related_terms": ["merchant-acquiring", "pci-dss", "digital-wallet"]
+  },
+  {
+    "slug": "virtual-iban",
+    "term": "Virtual IBAN",
+    "short_def": "A unique account identifier that routes incoming payments to a master account — enabling multi-currency collection, client money segregation, and automated reconciliation.",
+    "body": "A virtual IBAN (vIBAN) is an IBAN that is not associated with a physical bank account but acts as a routing alias that directs incoming payments to a designated master or pooled account. Unlike a standard IBAN, a virtual IBAN can be generated programmatically and assigned individually to each client, transaction, or currency — enabling the account owner to identify exactly who sent each incoming payment without requiring separate physical accounts for each payer.\n\nVirtual IBANs are widely used in cross-border payments, treasury management, and payment infrastructure. Prominent vIBAN providers include Modulr, ClearBank, Railsr, and Banking Circle. Use cases include: assigning unique receiving references to clients for reconciliation, segregating client money without opening individual bank accounts (important for FCA client money rules), and enabling multi-currency collection in a single banking relationship.\n\nFor B2B fintechs and payment platforms, virtual IBAN infrastructure is often a core product component — providing the account structure that enables payment collection, FX conversion, and settlement without the cost and complexity of maintaining hundreds of individual bank accounts across jurisdictions.",
+    "category": "Payments",
+    "related_terms": ["cross-border-payments", "baas", "embedded-finance"]
+  },
+  {
+    "slug": "wealthtech",
+    "term": "WealthTech",
+    "short_def": "Technology solutions that modernise wealth management, investment advisory, and personal finance — including robo-advisors, digital brokerages, and portfolio management tools.",
+    "body": "WealthTech refers to the segment of fintech focused on wealth management, investment advisory, and personal finance — encompassing robo-advisors (Betterment, Nutmeg, Wealthify), digital brokerages (Robinhood, Trading 212, Freetrade), portfolio management platforms (Addepar, Orion, Envestnet), and financial planning tools (Moneyfarm, PensionBee). The sector targets both the mass retail market (democratising access to investment) and institutional wealth managers (efficiency and analytics tools).\n\nKey wealthtech trends include: model portfolio services (MPS) delivered via robo-advisory platforms to independent financial advisers, direct indexing (personalised index funds at the individual stock level), alternative asset platforms (Moonfare, iCapital), and AI-driven financial planning tools that personalise advice at scale.\n\nFor fintech marketers, wealthtech content must navigate UCITS, MiFID II, and FCA conduct of business rules — particularly around suitability, fair value, and the consumer duty framework. E-E-A-T signals are critical in this YMYL category, where Google holds wealth management content to the highest authority standards.",
+    "category": "Industry",
+    "related_terms": ["embedded-finance", "regtech", "open-finance"]
   }
 ]

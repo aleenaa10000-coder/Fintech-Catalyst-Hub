@@ -349,6 +349,41 @@ async function buildAuthorsSitemapXml(): Promise<string> {
 
 // ── /sitemap-locations.xml ───────────────────────────────────────────────────
 
+/**
+ * Maps ISO 3166-1 alpha-2 country codes to BCP-47 language-region tags for
+ * hreflang attribution on location pages.
+ *
+ * Purpose: Google's International Targeting documentation recommends declaring
+ * market-specific hreflang tags (e.g. en-GB) alongside the generic language
+ * tag (en) so that the correct location page surfaces in the appropriate
+ * national Google index. Without these tags, /locations/london may compete
+ * with /locations/new-york for the same "en" audience signal.
+ *
+ * Each location page emits:
+ *   hreflang="en"        — generic English (covers any market)
+ *   hreflang="en-{CC}"  — market-specific (e.g. en-GB for London)
+ *   hreflang="x-default" — fallback for unmatched locales
+ */
+const COUNTRY_HREFLANG: Readonly<Record<string, string>> = {
+  AE: "en-AE",
+  AU: "en-AU",
+  BR: "en-BR",
+  CA: "en-CA",
+  CH: "en-CH",
+  DE: "en-DE",
+  FR: "en-FR",
+  GB: "en-GB",
+  HK: "en-HK",
+  IL: "en-IL",
+  IN: "en-IN",
+  KE: "en-KE",
+  NL: "en-NL",
+  NO: "en-NO",
+  SE: "en-SE",
+  SG: "en-SG",
+  US: "en-US",
+};
+
 async function buildLocationsSitemapXml(): Promise<string> {
   const siteUrl = getSiteUrl();
 
@@ -356,6 +391,7 @@ async function buildLocationsSitemapXml(): Promise<string> {
     .select({
       slug:        locationPagesTable.slug,
       city:        locationPagesTable.city,
+      countryCode: locationPagesTable.countryCode,
       publishedAt: locationPagesTable.publishedAt,
       updatedAt:   locationPagesTable.updatedAt,
     })
@@ -371,6 +407,7 @@ async function buildLocationsSitemapXml(): Promise<string> {
       const url = `${siteUrl}/locations/${loc.slug}`;
       const lastmod = (loc.updatedAt ?? loc.publishedAt).toISOString().slice(0, 10);
       const imageUrl = `${siteUrl}/api/og?title=${encodeURIComponent(loc.city)}&category=${encodeURIComponent("Location")}`;
+      const marketHreflang = loc.countryCode ? (COUNTRY_HREFLANG[loc.countryCode] ?? null) : null;
       return (
         `  <url>\n` +
         `    <loc>${escapeXml(url)}</loc>\n` +
@@ -382,6 +419,7 @@ async function buildLocationsSitemapXml(): Promise<string> {
         `      <image:title>${escapeXml(loc.city)}</image:title>\n` +
         `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(url)}"/>\n` +
+        (marketHreflang ? `    <xhtml:link rel="alternate" hreflang="${marketHreflang}" href="${escapeXml(url)}"/>\n` : "") +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(url)}"/>\n` +
         `  </url>`
       );

@@ -1835,6 +1835,14 @@ async function handleSsrMeta(
                 `  <meta name="twitter:label1" content="Category" />`,
                 `  <meta name="twitter:data1" content="${esc(post.category ?? "Insights")}" />`,
               ]),
+          // rel="author" — links the blog post <head> to the author's profile page.
+          // Injected server-side so crawlers that do not execute JavaScript still
+          // receive the authorship signal. Reinforces E-E-A-T by associating the
+          // BlogPosting with its named Person entity without relying on React
+          // Helmet (client-side only) to inject the tag. Per the HTML spec, the
+          // href should resolve to a page that describes the author — our
+          // /authors/:slug profile pages satisfy this requirement.
+          ...(authorUrl ? [`  <link rel="author" href="${esc(authorUrl)}" />`] : []),
         ],
         extraLds,
       };

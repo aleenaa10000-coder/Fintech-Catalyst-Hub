@@ -9,6 +9,12 @@
     <meta name="keywords" content="fintech SEO, fintech content marketing, fintech link building, fintech SEO agency, financial services SEO, fintech digital PR, payments SEO, neobanking SEO, embedded finance SEO, regtech SEO, wealthtech content" />
     <link rel="alternate" type="application/rss+xml" title="FintechPressHub Blog" href="https://www.fintechpresshub.com/rss.xml" />
     <link rel="sitemap" type="application/xml" title="Sitemap Index" href="https://www.fintechpresshub.com/sitemap_index.xml" />
+    <!-- Canonical URL for the homepage — MUST be present in the HTML shell so
+         the SSR middleware's regex replacement can inject the correct per-page
+         canonical on all server-rendered routes (blog posts, locations, etc.).
+         Without this tag the regex silently fails and every Hostinger-served
+         page is missing a server-side canonical declaration. -->
+    <link rel="canonical" href="https://www.fintechpresshub.com/" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -64,10 +70,20 @@
 
     <!-- Google Search Console verification — replace content value when verifying ownership -->
     <!-- <meta name="google-site-verification" content="REPLACE_WITH_YOUR_GSC_VERIFICATION_TOKEN" /> -->
+    <!-- Bing Webmaster Tools verification — replace content value when verifying ownership.
+         Bing's index feeds DuckDuckGo, Yahoo, MSN, and Ecosia. Verifying ownership
+         unlocks IndexNow pings (already implemented) and crawl diagnostics. -->
+    <!-- <meta name="msvalidate.01" content="REPLACE_WITH_YOUR_BING_VERIFICATION_TOKEN" /> -->
 
     <!-- Performance: preconnect to external origins used above-the-fold -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- dns-prefetch is a fallback for browsers that do not support preconnect
+         (older Safari, some mobile Chromium builds). It resolves the DNS for
+         Google Fonts before the stylesheet download begins — reducing the latency
+         penalty on the font connection without duplicating the preconnect effect
+         in supporting browsers. -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <!-- Author headshots and uploads are served via Replit Object Storage, which is
          backed by Google Cloud Storage. Preconnecting eliminates the TCP+TLS handshake
          latency from the critical path for LCP images such as author photos. -->
