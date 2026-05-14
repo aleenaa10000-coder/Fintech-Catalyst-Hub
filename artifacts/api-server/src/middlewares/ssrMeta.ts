@@ -2656,19 +2656,59 @@ async function handleSsrMeta(
           description:          toolMeta.description,
           url:                  canonical,
           inLanguage:           "en",
+          // availableLanguage is the explicit per-locale signal AI rankers and
+          // hreflang validators read first; the bare `inLanguage: "en"` only
+          // documents the runtime language. Listing both keeps us aligned with
+          // schema.org guidance for international audiences and gives Google a
+          // clean target when future locales are added.
+          availableLanguage:    ["en"],
           applicationCategory:  "FinanceApplication",
           operatingSystem:      "Web",
+          // browserRequirements states the runtime expectation explicitly so
+          // Google Rich Results and AI rankers know the tool is fully
+          // browser-resident — no install, no native dependency, no payment.
+          browserRequirements:  "Requires JavaScript. Requires HTML5.",
           isAccessibleForFree:  true,
           offers: {
             "@type":        "Offer",
             price:          "0",
             priceCurrency:  "USD",
+            availability:   "https://schema.org/InStock",
+            url:            canonical,
           },
+          // creator + provider are both pointed at the org @id so AI engines
+          // resolving SoftwareApplication.creator.name surface "FintechPressHub"
+          // verbatim. Without `creator`, citation engines often drop attribution
+          // entirely on tool pages and surface the bare URL instead.
+          creator:       { "@id": `${siteUrl}#organization` },
           provider:      { "@id": `${siteUrl}#organization` },
+          publisher:     { "@id": `${siteUrl}#organization` },
+          // audience signals the intended professional segment. AEO engines
+          // (Perplexity, Google AI Overviews) use audience signals to filter
+          // out tools that look generic and prefer ones with clear ICP.
+          audience: {
+            "@type":          "Audience",
+            audienceType:     "Fintech marketing & SEO professionals",
+          },
+          // license points at the human + machine-readable AI usage policy
+          // already published at /editorial-guidelines#ai-citation-policy and
+          // mirrored in /.well-known/ai.txt. This closes the loop between the
+          // tool's structured data and the site-wide citation/training rules.
+          license:       `${siteUrl}/editorial-guidelines#ai-citation-policy`,
           datePublished: STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
           ...(TOOL_PAGE_LASTMOD[slug] ? { dateModified: TOOL_PAGE_LASTMOD[slug] } : {}),
           potentialAction: { "@type": "UseAction", target: canonical },
-          ...(TOOLS_FEATURE_LIST[slug] ? { featureList: TOOLS_FEATURE_LIST[slug] } : {}),
+          ...(TOOLS_FEATURE_LIST[slug]
+            ? {
+                featureList: TOOLS_FEATURE_LIST[slug],
+                // Re-emitting the feature list as a comma-joined `keywords`
+                // string gives Google's keyword-matching layer a second
+                // surface to read — schema.org accepts both, and AEO rankers
+                // (Perplexity in particular) bias on `keywords` over
+                // `featureList` when scoring topical relevance.
+                keywords:    TOOLS_FEATURE_LIST[slug]!.join(", "),
+              }
+            : {}),
         }, null, 2),
       ];
       const howTo = TOOLS_HOWTO[slug];
@@ -2708,10 +2748,25 @@ async function handleSsrMeta(
           datePublished: STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
           ...(TOOL_PAGE_LASTMOD[slug] ? { dateModified: TOOL_PAGE_LASTMOD[slug] } : {}),
           mainEntity: toolFaqs.map(({ question, answer }) => ({
-            "@type": "Question",
-            name:    question,
-            answerCount: 1,
-            acceptedAnswer: { "@type": "Answer", text: stripHtml(answer) },
+            "@type":      "Question",
+            name:         question,
+            answerCount:  1,
+            // Per-Question dateCreated + author + inLanguage mirror the blog
+            // FAQ enrichment from Round 4. AEO rankers (Perplexity, Google AI
+            // Overviews, Bing/Copilot) prefer attributed, dated Q&As when
+            // ranking citation candidates — an undated, anonymous Q&A loses
+            // to one with explicit provenance every time, even when the
+            // answer text is identical.
+            dateCreated:  TOOL_PAGE_LASTMOD[slug] ?? STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
+            inLanguage:   "en",
+            author:       { "@id": `${siteUrl}#organization` },
+            acceptedAnswer: {
+              "@type":     "Answer",
+              text:        stripHtml(answer),
+              dateCreated: TOOL_PAGE_LASTMOD[slug] ?? STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
+              inLanguage:  "en",
+              author:      { "@id": `${siteUrl}#organization` },
+            },
           })),
         }, null, 2));
       }
