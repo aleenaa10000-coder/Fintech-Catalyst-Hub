@@ -35,7 +35,7 @@
       "source": "coreyhaines31/marketingskills",
       "sourceType": "github",
       "skillPath": "skills/copywriting/SKILL.md",
-      "computedHash": "2e83eda2221e97166172a0798e9b0379e34080595e107e2fc0cf580e9b3bbf7b"
+      "computedHash": "d3191c3ad90610e0cacecf638d927418852264fabbd6e81c045094dad7d96f11"
     },
     "find-skills": {
       "source": "vercel-labs/skills",
@@ -77,7 +77,7 @@
       "source": "coreyhaines31/marketingskills",
       "sourceType": "github",
       "skillPath": "skills/seo-audit/SKILL.md",
-      "computedHash": "ddd028951738fcbcdebf0f9bd90b708c55d1b9370a31603e0c13e5b262d8b8bb"
+      "computedHash": "f2dc52130189068981f21e1c0bdc4471ac7cd9b08d8a1320604411aa0f950385"
     },
     "skill-creator": {
       "source": "anthropics/skills",
