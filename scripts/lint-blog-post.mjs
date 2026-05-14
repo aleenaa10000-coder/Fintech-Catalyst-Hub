@@ -13,6 +13,7 @@
  *   ⑤  blufSummary      — present and ≥ 50 chars (AEO/GEO answer snippet anchor)
  *   ⑥  faqItems         — at least 3 Q&A pairs for FAQPage schema rich result
  *   ⑦  aboutEntities    — at least 1 entity for Knowledge Graph `about` linking
+ *   ⑭  mentionEntities  — warn if missing (secondary entity co-citation signal)
  *   ⑧  tags             — at least 3 tags for keyword breadth signal
  *   ⑨  wordCount        — stored word count ≥ 1 000 words (GEO authority threshold)
  *   ⑩  readingMinutes   — positive integer, consistent with wordCount
@@ -267,6 +268,29 @@ function lintAboutEntities(post) {
 }
 
 /**
+ * Rule 14 — mentionEntities: warn if missing or empty.
+ * Maps to BlogPosting `mentions` in JSON-LD — secondary entity linking
+ * strengthens the Knowledge Graph co-citation network and is an E-E-A-T
+ * signal for YMYL financial content. Not a hard fail because omission
+ * does not break any rich result, but missing entities weaken topical
+ * authority scores used by AI ranking engines (Perplexity, Google AIO).
+ */
+function lintMentionEntities(post) {
+  const v = post.mentionEntities;
+  if (!v || !Array.isArray(v) || v.length === 0) {
+    warn("mentionEntities — missing or empty (add secondary entities to strengthen co-citation graph)");
+    return true;
+  }
+  const populated = v.filter((e) => typeof e === "string" && e.trim() !== "");
+  if (populated.length === 0) {
+    warn("mentionEntities — all entries are blank strings");
+    return true;
+  }
+  ok(`mentionEntities — ${populated.length} entit${populated.length === 1 ? "y" : "ies"}: ${populated.slice(0, 3).map((e) => `"${e}"`).join(", ")}${populated.length > 3 ? "…" : ""}`);
+  return true;
+}
+
+/**
  * Rule 8 — tags: at least 3 for keyword breadth signal.
  * BlogPosting `keywords` aggregates these; fewer than 3 leaves topical
  * coverage sparse. Warn (not hard fail) to avoid blocking legitimate short-form posts.
@@ -417,6 +441,7 @@ function lintPost(post) {
   const r5  = lintBlufSummary(post);
   const r6  = lintFaqItems(post);
   const r7  = lintAboutEntities(post);
+  lintMentionEntities(post);  // ⑭ — warning only; does not affect pass/fail
   const r8  = lintTags(post);
   const r9  = lintWordCount(post);
   const r10 = lintReadingMinutes(post);
@@ -478,12 +503,12 @@ function lintPost(post) {
   if (warned > 0) console.log(`  ${C.yel}⚠  Warnings : ${warned}${C.rst}`);
   if (failed > 0) console.log(`  ${C.red}✘  Failed   : ${failed}${C.rst}`);
   else            console.log(`  ${C.dim}✘  Failed   : 0${C.rst}`);
-  console.log(`\n  Rules checked       : 13 (①–⑬)`);
+  console.log(`\n  Rules checked       : 14 (①–⑭)`);
   console.log(`  Hard fails          : coverImage, excerpt, slug, title, blufSummary,`);
   console.log(`                        faqItems (≥ 3), aboutEntities, wordCount (≥ 800),`);
   console.log(`                        readingMinutes, seoTitle length, seoDescription length`);
-  console.log(`  Warnings            : tags (< 3), wordCount (800–999), category unknown,`);
-  console.log(`                        blufSummary > 500, readingMinutes inconsistency`);
+  console.log(`  Warnings            : mentionEntities, tags (< 3), wordCount (800–999),`);
+  console.log(`                        category unknown, blufSummary > 500, readingMinutes inconsistency`);
   console.log("");
 
   if (failed > 0) {

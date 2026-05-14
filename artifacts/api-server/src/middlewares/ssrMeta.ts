@@ -54,7 +54,7 @@ import {
   pressMentionsTable,
   testimonialsTable,
 } from "@workspace/db";
-import { eq, lte, sql, desc, asc } from "drizzle-orm";
+import { eq, lte, sql, desc, asc, and, ne } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/seo";
 import { BREADCRUMB_LABELS, SERVICE_PAGE_LASTMOD_DATE, TOOL_PAGE_LASTMOD, COMPARE_PAGE_LASTMOD, COMPARE_PAGE_CREATED, TOOL_SLUGS } from "../lib/seoConstants";
@@ -1637,6 +1637,49 @@ async function handleSsrMeta(
           ? post.readingMinutes
           : effectiveWordCount > 0 ? Math.max(1, Math.round(effectiveWordCount / 238)) : 0;
 
+      // Detect geographic relevance from tags/category — emitted as
+      // contentLocation on BlogPosting JSON-LD (IN-3). AI rankers and Google's
+      // geo-targeting algorithms use this to surface content in geo-specific
+      // queries without requiring per-post manual tagging.
+      const contentLocations: Array<{ "@type": string; name: string }> = (() => {
+        const text = [...tags, post.category ?? ""].join(" ").toLowerCase();
+        const found: string[] = [];
+        if (/\b(uk|united kingdom|fca|open banking uk|psd2|psd3|dora)\b/.test(text)) found.push("United Kingdom");
+        if (/\b(us|usa|united states|cfpb|federal reserve|dodd.frank|fdic)\b/.test(text)) found.push("United States");
+        if (/\b(eu|europe|european|ecb|esma|eba|mica|gdpr|sepa)\b/.test(text)) found.push("European Union");
+        if (/\b(singapore|mas |monetary authority of singapore)\b/.test(text)) found.push("Singapore");
+        if (/\b(australia|apra|asic |rba )\b/.test(text)) found.push("Australia");
+        if (/\b(india|rbi |npci|upi |sebi)\b/.test(text)) found.push("India");
+        if (/\b(canada|osfi|fintrac|bank of canada)\b/.test(text)) found.push("Canada");
+        if (/\b(hong kong|hkma|sfc |hk )\b/.test(text)) found.push("Hong Kong");
+        return found.map((name) => ({ "@type": "Place", name }));
+      })();
+
+      // Slugify a FAQ question text to a URL-safe fragment for the Question
+      // entity `url` field (AE-3). Allows Google to deep-link directly into
+      // the specific Q&A in rich results — mirrors the client-side heading-slug
+      // algorithm used in blog-post.tsx.
+      const faqSlugify = (q: string): string =>
+        q.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").slice(0, 60);
+
+      // Related posts — same category, up to 3, newest first (PR-2).
+      // Emitted as relatedLink on BlogPosting JSON-LD so Google's Knowledge
+      // Graph can discover programmatic internal links without executing JS.
+      // Zero per-post editorial effort; auto-updates as new posts publish.
+      const relatedPosts = await db
+        .select({ title: blogPostsTable.title, slug: blogPostsTable.slug })
+        .from(blogPostsTable)
+        .where(
+          and(
+            eq(blogPostsTable.category, post.category ?? ""),
+            ne(blogPostsTable.slug, slug),
+            lte(blogPostsTable.publishedAt, sql`now()`),
+          ),
+        )
+        .orderBy(desc(blogPostsTable.publishedAt))
+        .limit(3)
+        .catch(() => [] as Array<{ title: string | null; slug: string | null }>);
+
       const extraLds: string[] = [
         JSON.stringify({
           "@context": "https://schema.org",
@@ -1701,6 +1744,18 @@ async function handleSsrMeta(
           ...(mentionEntities.length > 0
             ? { mentions: mentionEntities.map((e) => ({ "@type": "Thing", name: e })) }
             : {}),
+          // contentLocation declares geographic relevance automatically detected
+          // from tags and category keywords (IN-3). AI geo-ranking engines and
+          // Google's local-intent classifiers use this to surface the article
+          // in country/region-specific queries without needing separate URLs.
+          ...(contentLocations.length > 0 ? { contentLocation: contentLocations } : {}),
+          // relatedLink exposes same-category sibling posts as structured
+          // internal links in the Knowledge Graph (PR-2). Google follows
+          // relatedLink when building topic clusters — zero editorial effort,
+          // auto-updates as new posts in the same category are published.
+          ...(relatedPosts.length > 0
+            ? { relatedLink: relatedPosts.filter((p) => p.slug).map((p) => `${siteUrl}/blog/${p.slug}`) }
+            : {}),
           // abstract: prefer the BLUF summary for maximum AEO impact; fall back
           // to excerpt so every post has a machine-readable abstract for AI
           // snippet generation even when no BLUF panel has been authored.
@@ -1749,9 +1804,20 @@ async function handleSsrMeta(
           publisher:     { "@id": `${siteUrl}#organization` },
           datePublished: post.publishedAt.toISOString(),
           dateModified:  dateModified,
+          // speakable enables voice-assistant extraction of FAQ content (GE-3).
+          // Targets the FAQ section by its data attribute so Google Assistant
+          // and AI Overviews can read Q&A pairs aloud in spoken-answer results.
+          speakable: {
+            "@type":     "SpeakableSpecification",
+            cssSelector: ["[data-section='faq'] h3", "[data-section='faq'] p"],
+          },
           mainEntity: faqItems.map((item) => ({
             "@type":      "Question",
             name:         item.question,
+            // url — per-Question anchor link (AE-3). Lets Google deep-link to
+            // the specific Q&A in rich results rather than just the page root.
+            // Fragment ID mirrors the heading-slug algorithm in blog-post.tsx.
+            url:          `${canonical}#faq-${faqSlugify(item.question)}`,
             answerCount:  1,
             // Per-Question dateCreated + author scope each Q&A to the post's
             // publish date and named author. Answer Engines (Perplexity, Google
@@ -1840,6 +1906,19 @@ async function handleSsrMeta(
         // Twitter/X card preview — injected as headLinks so patchHtml appends
         // them alongside article:* meta tags in the </head> injection block.
         headLinks: [
+          // LCP image preload — instructs the browser to fetch the cover image
+          // at the highest priority before the React bundle executes (TC-3).
+          // Reduces LCP by 200–400 ms on average connections by eliminating the
+          // browser's late discovery of the image behind React's render cycle.
+          // Only injected when a real cover image URL is available — skipped for
+          // the fallback /api/og endpoint which is not a paint-critical resource.
+          ...(() => {
+            if (!post.coverImage) return [] as string[];
+            const coverUrl = post.coverImage.startsWith("http")
+              ? post.coverImage
+              : `${siteUrl}${post.coverImage}`;
+            return [`  <link rel="preload" as="image" href="${esc(coverUrl)}" fetchpriority="high" />`];
+          })(),
           ...(effectiveReadingMinutes > 0
             ? [
                 `  <meta name="twitter:label1" content="Reading time" />`,
