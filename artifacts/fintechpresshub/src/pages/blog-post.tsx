@@ -107,25 +107,107 @@ function processContent(html: string): { html: string; headings: Heading[] } {
       return `<${tag}${attrs} id="${id}">${inner}</${tag}>`;
     },
   );
-  // 2. Add rel="noopener noreferrer" to all outbound <a href="http…"> links
-  // (F2: external link security + SEO hygiene).
+  // 2. Add rel attributes to outbound <a href="http…"> links.
+  //   - rel="noopener noreferrer" — security hygiene (always).
+  //   - rel="sponsored"           — when the URL carries an affiliate /
+  //                                 referral / partner tracking parameter
+  //                                 (heuristic match below). White Hat
+  //                                 requirement per Google's Link Spam Policy
+  //                                 (https://developers.google.com/search/docs/
+  //                                 essentials/spam-policies#link-spam):
+  //                                 paid / incentivised links MUST be marked
+  //                                 sponsored or nofollow. Catching these
+  //                                 automatically defends against accidental
+  //                                 link-scheme exposure when a contributor
+  //                                 pastes an affiliate URL.
+  //   - rel="ugc"                 — when the link sits inside an element with
+  //                                 class containing "ugc" (e.g. an editor
+  //                                 wrapping a quoted reader comment in
+  //                                 <blockquote class="ugc">). Google's UGC
+  //                                 attribute (introduced 2019) is the
+  //                                 White Hat way to declare user-contributed
+  //                                 outbound links without a blanket nofollow.
+  // Affiliate / referral query-param patterns recognised by major networks:
+  //   ?ref= ?aff= ?affiliate= ?fpr= ?referral= ?partner= ?pid= &tag= (Amazon)
+  //   ?utm_medium=affiliate  &utm_source=affiliate
+  // Affiliate / referral / partner query-param keys recognised by major
+  // networks (Amazon Associates, Impact, ShareASale, CJ, Awin, Rakuten,
+  // PartnerStack, Refersion, etc.).
+  const AFFILIATE_PARAM_KEYS = new Set([
+    "ref", "aff", "affiliate", "fpr", "referral", "partner", "pid", "tag",
+  ]);
+  const mergeRel = (existing: string, additions: string[]): string => {
+    const parts = new Set(existing.split(/\s+/).filter(Boolean));
+    for (const a of additions) parts.add(a);
+    return Array.from(parts).join(" ");
+  };
+  // hrefs in HTML body content frequently arrive entity-encoded
+  // (`&amp;tag=...` instead of `&tag=...`). Decode the common entities
+  // before parsing so an affiliate parameter in any non-first query
+  // position is still detected. We don't need a full HTML-entity decoder
+  // here — only the four entities that legally appear inside an href value.
+  const decodeHrefEntities = (s: string): string =>
+    s.replace(/&amp;/g, "&").replace(/&#38;/g, "&").replace(/&#x26;/gi, "&");
+  const isAffiliateHref = (rawHref: string): boolean => {
+    const href = decodeHrefEntities(rawHref);
+    try {
+      const u = new URL(href);
+      for (const key of u.searchParams.keys()) {
+        if (AFFILIATE_PARAM_KEYS.has(key.toLowerCase())) return true;
+      }
+      const med = (u.searchParams.get("utm_medium") || "").toLowerCase();
+      const src = (u.searchParams.get("utm_source") || "").toLowerCase();
+      if (med === "affiliate" || src === "affiliate") return true;
+    } catch {
+      // Malformed URL — fall back to a permissive pattern so we still
+      // catch obvious affiliate shapes rather than silently letting them
+      // through unmarked.
+      if (/[?&](ref|aff|affiliate|fpr|referral|partner|pid|tag)=/i.test(href)) return true;
+      if (/utm_(medium|source)=affiliate/i.test(href)) return true;
+    }
+    return false;
+  };
+
+  // UGC marker: walk the DOM rather than regex-match same-tag nesting,
+  // because nested <blockquote>...<blockquote>...</blockquote>...</blockquote>
+  // breaks any non-greedy regex (it closes at the first inner </blockquote>).
+  // DOMParser is available in both real browsers and jsdom (used by our
+  // prerender pipeline at scripts/prerender.mjs), so this works in every
+  // render path. We mark <a> descendants of any element whose `class`
+  // attribute contains the token "ugc" with `data-ugc="1"`, then the
+  // regex-based rel rewriter below picks them up — same contract as before
+  // but now correct for arbitrarily nested wrappers.
+  if (typeof DOMParser !== "undefined") {
+    try {
+      const doc = new DOMParser().parseFromString(
+        `<!doctype html><body>${processed}</body>`,
+        "text/html",
+      );
+      doc.querySelectorAll<HTMLElement>('[class~="ugc"]').forEach((wrapper) => {
+        wrapper.querySelectorAll("a").forEach((a) => a.setAttribute("data-ugc", "1"));
+      });
+      processed = doc.body.innerHTML;
+    } catch {
+      // If DOMParser is unavailable (e.g. SSR without jsdom shim), skip the
+      // ugc tagging — links will still get noopener/noreferrer/sponsored.
+    }
+  }
+
   processed = processed.replace(
     /<a\s([^>]*href=["'](https?:\/\/)[^"'>][^"'>]*["'][^>]*)>/gi,
     (_match, attrs: string) => {
+      const hrefMatch = attrs.match(/href=["']([^"']+)["']/);
+      const href = hrefMatch ? hrefMatch[1] : "";
+      const additions = ["noopener", "noreferrer"];
+      if (isAffiliateHref(href)) additions.push("sponsored");
+      if (/\bdata-ugc=["']1["']/.test(attrs)) additions.push("ugc");
       if (/rel=["'][^"']*["']/.test(attrs)) {
         return `<a ${attrs.replace(
           /rel=["']([^"']*)["']/,
-          (_r, existing: string) => {
-            const parts = existing
-              .split(/\s+/)
-              .filter(
-                (p) => p !== "noopener" && p !== "noreferrer",
-              );
-            return `rel="${[...parts, "noopener", "noreferrer"].join(" ")}"`;
-          },
+          (_r, existing: string) => `rel="${mergeRel(existing, additions)}"`,
         )}>`;
       }
-      return `<a ${attrs} rel="noopener noreferrer">`;
+      return `<a ${attrs} rel="${additions.join(" ")}">`;
     },
   );
   return { html: processed, headings };

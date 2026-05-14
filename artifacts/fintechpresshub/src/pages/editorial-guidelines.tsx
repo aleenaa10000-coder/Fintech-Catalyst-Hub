@@ -787,6 +787,62 @@ export default function EditorialGuidelines() {
                   link removal and a permanent contributor ban.
                 </li>
               </ul>
+
+              <h2 id="sponsored-and-affiliate-disclosure">
+                12. Sponsored, Affiliate &amp; Paid-Link Disclosure
+              </h2>
+              <p>
+                FintechPressHub follows Google&rsquo;s{" "}
+                <a
+                  href="https://developers.google.com/search/docs/essentials/spam-policies#link-spam"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Link Spam Policy
+                </a>{" "}
+                and the{" "}
+                <a
+                  href="https://www.ftc.gov/business-guidance/resources/disclosures-101-social-media-influencers"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  US FTC endorsement &amp; testimonial guidelines
+                </a>{" "}
+                in full. We do not currently run an affiliate or sponsored-content
+                programme. If that changes, every monetised placement will be
+                handled exactly as follows so you know what you are reading:
+              </p>
+              <ul>
+                <li>
+                  <strong>Paid placements / sponsored articles</strong> — labelled
+                  &ldquo;Sponsored&rdquo; in the byline area, with all outbound links
+                  in the body marked <code>rel=&quot;sponsored&quot;</code>.
+                </li>
+                <li>
+                  <strong>Affiliate links</strong> — auto-detected by tracking
+                  parameters (<code>?ref=</code>, <code>?aff=</code>, <code>?fpr=</code>,
+                  Amazon <code>tag=</code>, etc.) and marked{" "}
+                  <code>rel=&quot;sponsored&quot;</code> at render time so the
+                  link attribution itself carries the disclosure to both readers
+                  inspecting the markup and search-engine crawlers.
+                </li>
+                <li>
+                  <strong>User-quoted content</strong> — any reader-submitted
+                  excerpt an editor publishes inside a quote block is marked{" "}
+                  <code>rel=&quot;ugc&quot;</code> per Google&rsquo;s 2019 link-attribute
+                  framework.
+                </li>
+                <li>
+                  <strong>No money for editorial coverage</strong> — we do not
+                  accept payment, gifts, or trips in exchange for editorial
+                  product reviews, mentions, or rankings.
+                </li>
+                <li>
+                  <strong>No PBN, link-farm, or reciprocal-link participation</strong>{" "}
+                  — we do not exchange links with networks, doorway sites, or
+                  domains operating outside the fintech topical scope.
+                </li>
+              </ul>
             </div>
           </article>
         </div>

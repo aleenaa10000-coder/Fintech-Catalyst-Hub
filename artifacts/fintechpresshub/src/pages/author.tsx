@@ -204,7 +204,15 @@ export default function AuthorPage() {
                     <a
                       href={author.social.linkedin}
                       target="_blank"
-                      rel="noopener noreferrer"
+                      // rel="me" is the IndieWeb identity-verification signal
+                      // Google, Mastodon, and modern E-E-A-T scrapers use rel="me"
+                      // links to confirm that an author profile on this site
+                      // belongs to the same real person referenced on LinkedIn /
+                      // X. It costs nothing and reinforces author authority for
+                      // White Hat E-E-A-T (Experience, Expertise, Authoritativeness,
+                      // Trustworthiness) — the same signal cited in Google's
+                      // Quality Rater Guidelines.
+                      rel="me noopener noreferrer"
                       aria-label={`${author.name} on LinkedIn`}
                       className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
                     >
@@ -215,7 +223,7 @@ export default function AuthorPage() {
                     <a
                       href={author.social.twitter}
                       target="_blank"
-                      rel="noopener noreferrer"
+                      rel="me noopener noreferrer"
                       aria-label={`${author.name} on X / Twitter`}
                       className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
                     >
