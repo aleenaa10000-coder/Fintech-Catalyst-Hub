@@ -145,7 +145,21 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
   // Limit referrer information to same-origin.
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   // Restrict access to browser features not needed by this app.
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  // camera/mic/geolocation: features unused by this app; deny everywhere.
+  // browsing-topics, interest-cohort, join-ad-interest-group, run-ad-auction,
+  // attribution-reporting: explicit opt-out from Google's Privacy Sandbox /
+  // FLoC / Topics ad-targeting APIs. SEO-relevant because privacy-conscious
+  // crawlers and audit tools (Mozilla Observatory, securityheaders.com) ding
+  // sites that don't declare these — and competitors with weaker scores can
+  // outrank on parity-quality content. Also defends against future browser
+  // additions that might leak signal data without an explicit deny.
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), " +
+    "browsing-topics=(), interest-cohort=(), " +
+    "join-ad-interest-group=(), run-ad-auction=(), " +
+    "attribution-reporting=()",
+  );
   // Prevent this origin from being opened as a popup by cross-origin pages
   // (COOP) and prevent cross-origin pages from loading this site's resources
   // directly (CORP). Both are important isolation signals for YMYL sites.
@@ -499,6 +513,39 @@ if (process.env.NODE_ENV === "production" && existsSync(_frontendDist)) {
     }),
   );
 
+  // Valid SPA routes — kept in sync with artifacts/fintechpresshub/src/App.tsx.
+  // Used by spaFallback to distinguish a real React route (200) from a path
+  // no React route handles (Google "soft 404"). The previous behaviour served
+  // index.html with a 200 status for ANY unknown URL, which is one of the
+  // most penalised technical-SEO bugs — Google explicitly flags soft 404s
+  // and removes the page from the index. Dynamic-segment routes like
+  // /blog/:slug are already handled upstream by ssrMeta (which sets 404
+  // before we get here when the entity doesn't exist), so this list only
+  // needs to enumerate the *route shapes* the SPA actually declares.
+  const VALID_SPA_ROUTES: RegExp[] = [
+    /^\/$/,
+    /^\/(about|services|pricing|blog|authors|glossary|locations|compare|press|contact|tools)$/,
+    /^\/(write-for-us|privacy-policy|refund-policy|cookie-policy|status|terms)$/,
+    /^\/(editorial-guidelines|community-guidelines)$/,
+    /^\/resources\/fintech-publications$/,
+    /^\/services\/[a-z0-9-]+$/,
+    /^\/blog\/[a-z0-9-]+$/,
+    /^\/blog\/(category|tag)\/[a-z0-9-]+$/,
+    /^\/authors\/[a-z0-9-]+$/,
+    /^\/glossary\/[a-z0-9-]+$/,
+    /^\/locations\/[a-z0-9-]+$/,
+    /^\/compare\/[a-z0-9-]+$/,
+    /^\/tools\/[a-z0-9-]+$/,
+    /^\/admin(\/.*)?$/, // /admin and all sub-paths (login, dashboard, etc.)
+    /^\/404$/, // App.tsx exposes an explicit /404 route; treat as a real
+    // SPA page (200) so the not-found UI is reachable for direct links and
+    // for any hand-written internal "report a broken link" flows. Unknown
+    // paths still get HTTP 404 via the catch-all below — only the explicit
+    // /404 URL itself is a valid 200.
+  ];
+  const isValidSpaRoute = (pathname: string): boolean =>
+    VALID_SPA_ROUTES.some((re) => re.test(pathname));
+
   // SPA fallback — check for a pre-rendered route file first (written by
   // scripts/prerender.mjs at build time), then fall back to index.html.
   // Handles both GET and HEAD — search engines and uptime monitors send
@@ -511,6 +558,16 @@ if (process.env.NODE_ENV === "production" && existsSync(_frontendDist)) {
     // audit as failing even when <meta charset="UTF-8"> is present in the
     // HTML, because the HTTP header takes precedence for encoding detection.
     res.setHeader("Content-Type", "text/html; charset=utf-8");
+
+    // Soft-404 prevention: if upstream middleware already set a 4xx/5xx
+    // status (ssrMeta does this for missing blog posts, locations, etc.)
+    // we preserve it. Otherwise check whether the path matches any declared
+    // SPA route — if not, return a real 404 so search engines don't index
+    // junk URLs as identical copies of the SPA shell.
+    if (res.statusCode < 400 && !isValidSpaRoute(pathname)) {
+      res.status(404);
+      res.setHeader("X-Robots-Tag", "noindex");
+    }
 
     if (pathname !== "/") {
       const prerendered = path.join(_frontendDist, pathname.slice(1), "index.html");

@@ -238,3 +238,57 @@ as "Unlisted" (i.e., not country-specific). The site serves five English
 markets and a country-specific target would suppress ranking in the other
 four. The `hreflang="en"` + `hreflang="x-default"` tags already give Google
 the correct signal.
+
+---
+
+## Technical SEO checks (added 2026-05-14)
+
+The full technical-SEO posture is documented in
+`docs/technical-seo-audit-2026-05.md`. Verify these post-deploy:
+
+```bash
+# 1. Soft-404 fix — unknown URL returns 404, not 200
+curl -sI https://www.fintechpresshub.com/random-junk-xyz | head -1
+# Expected: HTTP/1.1 404 Not Found
+
+# 2. Real SPA route still returns 200
+curl -sI https://www.fintechpresshub.com/about | head -1
+# Expected: HTTP/1.1 200 OK
+
+# 3. Permissions-Policy includes Privacy Sandbox denials
+curl -sI https://www.fintechpresshub.com/ | grep -i "^permissions-policy:"
+# Expected line includes: browsing-topics=(), interest-cohort=(),
+#   join-ad-interest-group=(), run-ad-auction=(), attribution-reporting=()
+
+# 4. Strict CSP active
+curl -sI https://www.fintechpresshub.com/ | grep -i "^content-security-policy:"
+# Expected: starts with default-src 'self'
+
+# 5. HSTS preload-eligible
+curl -sI https://www.fintechpresshub.com/ | grep -i "^strict-transport-security:"
+# Expected: max-age=31536000; includeSubDomains; preload
+
+# 6. Brotli active on hashed assets (LiteSpeed mod_brotli on Hostinger)
+ASSET=$(curl -s https://www.fintechpresshub.com/ | grep -oE '/assets/[a-z0-9-]+\.[a-f0-9]+\.js' | head -1)
+curl -sI -H "Accept-Encoding: br, gzip" "https://www.fintechpresshub.com${ASSET}" | grep -i "^content-encoding:"
+# Expected: content-encoding: br  (gzip is acceptable fallback)
+
+# 7. Immutable cache on hashed asset
+curl -sI "https://www.fintechpresshub.com${ASSET}" | grep -i "^cache-control:"
+# Expected: public, max-age=31536000, immutable
+```
+
+If brotli is not active on `/assets/*`, add to `.htaccess` at the site root:
+
+```apache
+<IfModule mod_brotli.c>
+    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css text/javascript
+    AddOutputFilterByType BROTLI_COMPRESS application/javascript application/json
+    AddOutputFilterByType BROTLI_COMPRESS application/xml image/svg+xml
+</IfModule>
+```
+
+LiteSpeed Web Server (the default on Hostinger Business shared) honours
+the same directive natively. If `Content-Encoding: gzip` keeps appearing
+even after the snippet is added, contact Hostinger support to enable
+`mod_brotli` on the account — this is a single-click toggle on their side.
