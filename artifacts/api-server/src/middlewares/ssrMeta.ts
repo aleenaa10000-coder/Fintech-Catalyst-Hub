@@ -602,69 +602,102 @@ const COMPARISON_META: Record<string, { title: string; description: string }> = 
 };
 
 /**
- * Additional FAQ entries per comparison page. Each array supplements the
- * primary Q&A (derived from COMPARISON_META title + description) to give
- * the FAQPage schema enough mainEntity items to qualify for rich results.
+ * Canonical FAQ Q&As for each comparison page — mirrors comparisons.ts
+ * faqItems exactly so the SSR and SPA navigation paths emit identical
+ * FAQPage mainEntity arrays. Having a single source of truth here
+ * prevents crawlers seeing different questions than human users.
+ *
+ * Kept as a SSR-local constant because cross-package imports between
+ * api-server and fintechpresshub are not permitted. When faqItems change
+ * in comparisons.ts, update the matching slug entry here too.
  */
-const COMPARE_FAQ_EXTRAS: Record<string, Array<{ question: string; answer: string }>> = {
+const COMPARE_FAQS: Record<string, Array<{ question: string; answer: string }>> = {
   "agency-vs-in-house": [
     {
-      question: "What does a fintech SEO agency cost compared to an in-house team?",
-      answer: "A mid-tier fintech SEO retainer typically runs $5,000–$15,000/month, covering strategy, content, and link building. Building an equivalent in-house team (SEO lead, writer, digital PR) typically costs $200,000–$350,000/year in salaries, benefits, and tooling — 3–4× the retainer cost for comparable output in year one.",
+      question: "How does FintechPressHub differ from a general digital marketing agency?",
+      answer: "We work exclusively with fintech companies. Our writers, link builders, and strategists all have fintech domain knowledge — every piece of content is fact-checked against actual regulatory frameworks, not approximated from generic sources. General agencies can replicate our workflows but not our domain expertise.",
     },
     {
-      question: "When should a fintech company hire in-house SEO instead of using an agency?",
-      answer: "In-house SEO makes sense when your company has Series B+ funding, a content roadmap requiring 20+ pieces per month, or a need for deeply embedded institutional knowledge. For most pre-Series B fintechs, the speed-to-output and specialist expertise of a focused agency outweigh the control benefits of an in-house hire.",
+      question: "Why not build an in-house SEO team instead?",
+      answer: "A competent in-house team covering content, technical SEO, and link building requires at least 3 FTEs and $300k+ in annual salary. Most growth-stage fintechs cannot justify that headcount before Series B. We provide the full capability at a fraction of that cost.",
+    },
+    {
+      question: "Can I use FintechPressHub alongside my existing agency?",
+      answer: "Yes. About 40% of our clients bring us in as a specialist fintech layer alongside a broader performance marketing agency. We define clear swim-lanes upfront — typically organic content and link building — and share data through joint GSC and GA4 access.",
+    },
+    {
+      question: "What is the minimum engagement?",
+      answer: "Our minimum is the one-time SEO audit (30-day delivery). Ongoing retainers start at the equivalent of a mid-level content manager's salary and cover strategy, content, and link building in one package.",
     },
   ],
   "vs-freelancers": [
     {
-      question: "Are freelance fintech writers cheaper than an agency?",
-      answer: "Per-piece rates from experienced freelance fintech writers range from $300–$1,500 per article. When all costs are included — brief creation, editing rounds, keyword research, and internal coordination — a managed agency is typically 20–40% cheaper at equivalent quality and produces more consistent output.",
+      question: "Can't I just hire a good freelance fintech writer?",
+      answer: "A talented freelancer can produce excellent content, but they cannot simultaneously manage technical SEO, build backlinks, update schema, and track keyword performance. You would need 3–4 freelancers to cover what a single retainer with us covers, plus the management overhead to coordinate them.",
     },
     {
-      question: "What is the biggest risk of using freelance fintech writers?",
-      answer: "The primary risks are inconsistency and compliance exposure. Freelancers vary in quality between assignments, have no obligation to follow your evolving messaging guidelines, and rarely carry professional indemnity insurance for factual errors in regulated-finance content.",
+      question: "What about an independent SEO consultant?",
+      answer: "Senior consultants bring genuine strategic value — we often work alongside them. The gap is execution: consultants advise but rarely write, build links, or implement schema themselves. Our retainer covers both strategy and full execution.",
+    },
+    {
+      question: "How do you maintain consistency across writers?",
+      answer: "Every piece is written against a client style guide and reviewed by a senior editor with fintech domain expertise. We use a shared brand voice document, regulatory reference sheet, and internal link matrix that every writer follows.",
     },
   ],
   "vs-seo-tools": [
     {
-      question: "Can Ahrefs or Semrush replace a fintech SEO agency?",
-      answer: "SEO tools provide data — keyword volumes, backlink counts, technical audits — but not execution. A tool can tell you that 'payment orchestration' is a high-value keyword; it cannot create authoritative content, build links from Finextra, or maintain a topical-authority content cluster. Agencies own the strategy and do the work; tools are inputs.",
+      question: "We already pay for Ahrefs. Why do we need a managed service?",
+      answer: "Ahrefs tells you what to do; we do it. The bottleneck for most fintech marketing teams is not access to data — it's the time and expertise to act on it. We use Ahrefs (and Semrush) internally as part of our workflow; your subscription and ours are solving different problems.",
     },
     {
-      question: "How much do enterprise SEO tools cost versus a fintech SEO agency?",
-      answer: "Enterprise Ahrefs or Semrush plans run $500–$1,000/month. Add a content writer, link-builder, and strategist and you're at $11,500–$22,000/month to replicate what a specialist fintech SEO retainer delivers at $5,000–$12,000/month.",
+      question: "Can't our marketing team manage SEO themselves?",
+      answer: "A fintech marketing team typically owns product marketing, paid acquisition, events, and PR simultaneously. Adding a content-led SEO programme — which requires consistent publishing, link outreach, and technical implementation — is effectively a fourth full-time job. Our retainer covers it without pulling your team off higher-priority work.",
+    },
+    {
+      question: "What tools do you use internally?",
+      answer: "We use Ahrefs for keyword research and backlink analysis, Semrush for technical audits, Google Search Console for performance tracking, and our own internal tooling for schema validation and IndexNow pings. All data is shared with clients monthly.",
     },
   ],
   "vs-pr-agencies": [
     {
-      question: "What is the difference between fintech SEO and PR for fintechs?",
-      answer: "PR agencies focus on brand awareness and earned media — success is measured in mentions and impressions. SEO agencies focus on organic search rankings and durable traffic — success is measured in keyword positions, organic sessions, and lead quality. The best fintech programmes combine both, but the disciplines have fundamentally different metrics.",
+      question: "Should I choose SEO or PR for my fintech?",
+      answer: "They serve different objectives. PR builds brand credibility and earns press mentions — valuable for fundraising, recruiting, and regulatory relationships. SEO builds an organic traffic engine that compounds over time. Both are worth investing in; they are not mutually exclusive. Many of our clients run us alongside a PR retainer.",
     },
     {
-      question: "Do PR agencies build backlinks for fintech SEO?",
-      answer: "Traditional PR agencies build brand mentions, many of which are nofollow or unlinked. Fintech SEO agencies specifically target dofollow editorial links on high-DR finance publications — a materially different outcome that passes PageRank and drives durable rankings.",
+      question: "Do PR placements help SEO?",
+      answer: "Sometimes. Tier-1 press coverage (FT, Bloomberg, Reuters) rarely links back with followed links — they typically add nofollow or no link at all. Specialist fintech publications (Finextra, The Paypers, Fintech Futures) more frequently include dofollow links, which is why our outreach focuses there.",
+    },
+    {
+      question: "Can you handle both SEO and comms?",
+      answer: "Our focus is content-led SEO and link building. We are not a PR or crisis comms agency. If you need integrated coverage, we recommend running us alongside a specialist fintech PR firm and we will coordinate on shared publisher relationships.",
     },
   ],
   "content-led-vs-paid": [
     {
-      question: "How long does content-led SEO take to generate ROI for fintechs?",
-      answer: "Bottom-of-funnel content can rank and convert within 60–90 days. Competitive head terms typically require 4–6 months of consistent publishing and supporting links. By month 9–12, compounding topical authority means each new piece ranks faster and costs less per organic visitor than any paid channel.",
+      question: "We need leads now. Can content SEO deliver fast?",
+      answer: "Honest answer: paid search is faster for immediate pipeline. Content SEO typically takes 3–6 months to show ranking movement and 6–12 months to become a primary lead source. The payoff is that cost per lead drops significantly in year 2 and 3 as content compounds. Most growth-stage fintechs run both in parallel.",
     },
     {
-      question: "What is the average CPC for fintech keywords on Google Ads?",
-      answer: "Fintech keywords are among the most expensive on Google Ads, with average CPCs ranging from $15–$80 for terms like 'business banking', 'payment processing', and 'fintech SEO'. Content-led SEO achieves the same clicks at a fraction of the ongoing cost once content is ranking, with no cost per click regardless of search volume.",
+      question: "What does a hybrid approach look like in practice?",
+      answer: "A typical hybrid splits budget roughly 60/40 between paid search (for immediate capture) and content SEO (for compound growth). As organic traffic grows over months 6–18, the paid budget is gradually shifted toward higher-intent keywords where CPCs are lower because organic rankings are doing the heavy lifting.",
+    },
+    {
+      question: "How do fintech Google Ads compare to other verticals on cost?",
+      answer: "Fintech and financial services consistently rank among the highest CPC categories on Google — often $15–$80 per click for competitive terms. This is one reason content SEO has exceptional long-term ROI in fintech: organic clicks are effectively free once the content ranks, versus CPC costs that compound with inflation.",
     },
   ],
   "specialist-vs-generalist": [
     {
-      question: "Why does fintech specifically need a specialist SEO agency?",
-      answer: "Fintech content is regulated under FCA, SEC, and CFPB guidelines in most markets, meaning factual errors carry legal and reputational risk beyond a standard retraction. Generalist agencies lack the writer bench with hands-on fintech experience, the publication relationships with Finextra and The Fintech Times, and the regulatory awareness needed to avoid compliance failures.",
+      question: "Why does specialisation matter for fintech marketing?",
+      answer: "Financial services content carries compliance and regulatory risk. A writer who does not understand the difference between a payment institution and an e-money institution, or who misrepresents APR in a blog post, creates legal exposure. Specialists self-correct because they understand the domain — generalists rely on client review cycles to catch errors.",
     },
     {
-      question: "What is the typical performance gap between specialist and generalist SEO for fintech?",
-      answer: "Fintechs switching from generalist to specialist SEO agencies typically see a 3–5× increase in topically relevant keyword rankings within six months and a 2–4× reduction in content revision cycles due to eliminated fact-checking errors. Link acquisition speed increases because specialist agencies have pre-existing editorial relationships with finance publications.",
+      question: "Can a B2B generalist agency learn fintech?",
+      answer: "With time, yes. The typical ramp-up for a generalist to produce genuinely authoritative fintech content is 3–6 months. During that period, output quality is lower and revision cycles are longer. For a Series A or B fintech where brand credibility matters, that ramp cost is real.",
+    },
+    {
+      question: "We are a B2C fintech (neobank, BNPL). Do you work with consumer brands?",
+      answer: "Yes. Our editorial team includes former consumer fintech operators. We adjust content tone, keyword strategy, and audience persona for consumer-facing products. The regulatory expertise is particularly valuable here — consumer financial product marketing has stricter FCA and CFPB rules than B2B.",
     },
   ],
 };
@@ -2658,24 +2691,22 @@ async function handleSsrMeta(
       const leafLabel  = cmpMeta.title.split("|")[0]!.trim();
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["compare", slug], leafLabel);
 
-      // FAQPage schema enables FAQ rich results for comparison queries.
-      // The primary comparison question is supplemented with extra Q&As from
-      // COMPARE_FAQ_EXTRAS so each page qualifies for featured-snippet display.
-      const extraFaqs = COMPARE_FAQ_EXTRAS[slug] ?? [];
-      const faqMainEntity = [
-        {
-          "@type": "Question",
-          name:    leafLabel,
-          answerCount: 1,
-          acceptedAnswer: { "@type": "Answer", text: stripHtml(cmpMeta.description) },
+      // FAQPage schema enables FAQ rich results for high-intent "vs" queries.
+      // COMPARE_FAQS mirrors comparisons.ts faqItems exactly so crawlers and
+      // SPA navigation see identical question sets — consistency is important
+      // for Google's FAQ rich-result deduplication logic.
+      // inLanguage: "en" on every acceptedAnswer is required by the site-wide
+      // FAQ schema rules (GEO/AEO compliance, matches all other FAQPage nodes).
+      const faqMainEntity = (COMPARE_FAQS[slug] ?? []).map((faq) => ({
+        "@type": "Question",
+        name:    faq.question,
+        answerCount: 1,
+        acceptedAnswer: {
+          "@type":     "Answer",
+          text:        faq.answer,
+          inLanguage:  "en",
         },
-        ...extraFaqs.map((faq) => ({
-          "@type": "Question",
-          name:    faq.question,
-          answerCount: 1,
-          acceptedAnswer: { "@type": "Answer", text: stripHtml(faq.answer) },
-        })),
-      ];
+      }));
 
       patches = {
         title:         cmpMeta.title,
