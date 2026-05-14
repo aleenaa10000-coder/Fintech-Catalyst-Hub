@@ -765,7 +765,13 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
   },
   "/services": {
     title: "Growth Engines for Fintech Brands | FintechPressHub",
-    description: "Comprehensive fintech SEO, link building, and content marketing services built to compound organic growth.",
+    // Expanded from the previous 105-char description to land at exactly
+    // 154 characters — inside Google's ~155-char desktop SERP truncation
+    // window. Adds the four service categories (technical SEO, link
+    // building, content marketing, digital PR) so the SERP snippet
+    // previews the actual service taxonomy. Length verified manually:
+    // any future edit MUST keep this string between 150 and 160 chars.
+    description: "Fintech technical SEO, niche link building, content marketing, and digital PR — built by operators inside payments, lending, and banking, not generalists.",
   },
   "/pricing": {
     title: "Transparent Fintech SEO Pricing | FintechPressHub",

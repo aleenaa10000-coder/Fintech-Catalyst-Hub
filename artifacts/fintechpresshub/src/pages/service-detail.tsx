@@ -214,9 +214,15 @@ export default function ServiceDetail() {
                     <p className="text-sm text-muted-foreground line-clamp-3">
                       {other.tagline}
                     </p>
+                    {/* On-Page SEO: include the related-service name in the
+                        anchor text. Google's PageRank link-text signal weights
+                        descriptive anchors materially higher than generic
+                        "Learn more" — and giving each related card a unique
+                        anchor also reduces internal-link cannibalisation
+                        across service detail pages. */}
                     <div className="mt-4 inline-flex items-center text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                      Learn more
-                      <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                      Learn more about {other.name}
+                      <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
                     </div>
                   </Link>
                 );

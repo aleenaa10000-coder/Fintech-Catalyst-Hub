@@ -402,9 +402,17 @@ export default function Home() {
                       </div>
                     )}
                     <div className="text-sm text-muted-foreground mb-4">{new Date(post.publishedAt).toLocaleDateString()} · {post.readingMinutes} min read</div>
+                    {/* On-Page SEO: descriptive anchor text. The visible
+                        "Read article" copy keeps the card scannable, while
+                        the visually-hidden suffix gives screen readers and
+                        search-engine link-text classifiers the article title
+                        as the actual anchor — replacing the previous generic
+                        "Read More" which Google's quality-rater documentation
+                        flags as low-signal anchor text. */}
                     <span className="inline-flex items-center text-sm font-medium text-primary">
-                      Read More
-                      <ArrowRight className="ml-1 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                      Read article
+                      <span className="sr-only">: {post.title}</span>
+                      <ArrowRight className="ml-1 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
                     </span>
                   </Link>
                 </FadeInView>
