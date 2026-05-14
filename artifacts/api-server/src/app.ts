@@ -74,12 +74,18 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// ── X-Robots-Tag for admin routes ───────────────────────────────────────────
-// Prevents admin dashboard pages from appearing in search results even if a
-// crawler somehow follows a link to them. Belt-and-suspenders alongside the
-// client-side <meta name="robots" content="noindex"> in PageMeta.
+// ── X-Robots-Tag for admin and API routes ───────────────────────────────────
+// Prevents admin dashboard pages and internal API JSON endpoints from
+// appearing in search results. Belt-and-suspenders alongside robots.txt
+// Disallow: /api/ and client-side <meta name="robots" content="noindex">.
+// The /api/og OG image endpoint is excluded so Googlebot can validate
+// og:image tags on article pages (explicitly Allow-listed in robots.txt).
 app.use((req: Request, res: Response, next: NextFunction) => {
-  if (req.path.startsWith("/admin") || req.path.startsWith("/api/admin")) {
+  if (
+    req.path.startsWith("/admin") ||
+    req.path.startsWith("/api/admin") ||
+    (req.path.startsWith("/api/") && !req.path.startsWith("/api/og"))
+  ) {
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
   }
   next();

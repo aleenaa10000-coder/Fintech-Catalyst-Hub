@@ -212,6 +212,13 @@ interface MetaPatches {
    * crawlers can detect stale cached pages without a full re-fetch.
    */
   dateModified?: string;
+  /**
+   * Raw HTML fragment injected immediately after <div id="root"> so
+   * speakable-summary and other crawler-targeted elements appear in the
+   * static HTML before JavaScript executes. React reconciles the node
+   * normally on hydration — no double-render or mismatch.
+   */
+  bodyPatch?: string;
 }
 
 function patchHtml(base: string, p: MetaPatches): string {
@@ -371,6 +378,15 @@ function patchHtml(base: string, p: MetaPatches): string {
 
   if (injections.length > 0) {
     html = html.replace("</head>", injections.join("\n") + "\n</head>");
+  }
+
+  // Body patch — inject content immediately after <div id="root"> so
+  // crawler-readable elements (e.g. speakable summary) appear in the
+  // static HTML served to bots before JavaScript executes. Closes
+  // GEO Gap 4.1 and AEO Gap 5.1: the SpeakableSpecification cssSelector
+  // ".speakable-summary" now resolves in the server-rendered DOM.
+  if (p.bodyPatch) {
+    html = html.replace(/(<div\s+id="root"\s*>)/, `$1${p.bodyPatch}`);
   }
 
   return html;
@@ -1844,11 +1860,28 @@ async function handleSsrMeta(
           // /authors/:slug profile pages satisfy this requirement.
           ...(authorUrl ? [`  <link rel="author" href="${esc(authorUrl)}" />`] : []),
         ],
+        // SSR-inject the BLUF summary as a sr-only <p> immediately after <div id="root">
+        // so the SpeakableSpecification cssSelector (".speakable-summary") resolves in
+        // static HTML served to voice-assistant bots before React hydration. Closes
+        // GEO Gap 4.1 and AEO Gap 5.1 — the element no longer relies on client-side
+        // React rendering to become selectable by speakable crawlers.
+        bodyPatch: post.blufSummary
+          ? `<p class="speakable-summary sr-only">${esc(stripHtml(post.blufSummary))}</p>`
+          : undefined,
         extraLds,
       };
     }
 
     // ── /locations/:slug ─────────────────────────────────────────────────────
+    // Market-specific hreflang codes per country — mirrors COUNTRY_HREFLANG in
+    // sitemapIndex.ts so the HTML <head> and sitemap emit identical tags for
+    // each market. Both files must be kept in sync when new markets are added.
+    const LOCATION_HREFLANG: Readonly<Record<string, string>> = {
+      AE: "en-AE", AU: "en-AU", BR: "en-BR", CA: "en-CA", CH: "en-CH",
+      DE: "en-DE", FR: "en-FR", GB: "en-GB", HK: "en-HK", IL: "en-IL",
+      IN: "en-IN", KE: "en-KE", NL: "en-NL", NO: "en-NO", SE: "en-SE",
+      SG: "en-SG", US: "en-US",
+    };
     const locationMatch = LOCATION_RE.exec(reqPath);
     if (locationMatch) {
       const slug = locationMatch[1]!;
@@ -1904,6 +1937,14 @@ async function handleSsrMeta(
                 `  <meta name="geo.position" content="${loc.lat};${loc.lng}" />`,
                 `  <meta name="ICBM" content="${loc.lat}, ${loc.lng}" />`,
               ]
+            : []),
+          // Market-specific hreflang in HTML <head> — completes the hreflang
+          // triangle: sitemap xhtml:link (sitemapIndex.ts), this SSR injection,
+          // and PageMeta.tsx (client-side). All three must match for Google to
+          // treat them as a consistent international targeting signal per the
+          // hreflang spec (developers.google.com/search/docs/specialty/international).
+          ...(LOCATION_HREFLANG[loc.countryCode]
+            ? [`  <link rel="alternate" hreflang="${LOCATION_HREFLANG[loc.countryCode]}" href="${esc(canonical)}" />`]
             : []),
         ],
         extraLds: [
@@ -2040,6 +2081,17 @@ async function handleSsrMeta(
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["glossary", slug], term.term);
 
+      // Extract abbreviation and expansion from terms like "AML (Anti-Money Laundering)"
+      // or "SCA (Strong Customer Authentication)". Both forms are registered as
+      // alternateNames so Knowledge Graph and voice assistants resolve the entity
+      // from either query form — improving AEO snippet match rates for vocabulary queries.
+      const _abbrevParen =
+        term.term.match(/^([A-Za-z][A-Za-z0-9]{1,8})\s+\(([^)]{5,})\)$/) ??
+        term.term.match(/^(.{5,})\s+\(([A-Z][A-Z0-9]{1,8})\)$/);
+      const termAlternateNames: string[] = _abbrevParen
+        ? [_abbrevParen[1].trim(), _abbrevParen[2].trim()].filter((n) => n !== term.term)
+        : [];
+
       patches = {
         title,
         description,
@@ -2057,6 +2109,11 @@ async function handleSsrMeta(
             description:   term.shortDef,
             url:           canonical,
             inLanguage:    "en",
+            // alternateName registers both the abbreviation ("AML") and the full
+            // expansion ("Anti-Money Laundering") when the term name contains a
+            // parenthetical — gives Knowledge Graph and voice assistants a second
+            // anchor for entity resolution across both query forms.
+            ...(termAlternateNames.length > 0 ? { alternateName: termAlternateNames } : {}),
             datePublished: term.publishedAt.toISOString().slice(0, 10),
             dateModified:  term.updatedAt.toISOString().slice(0, 10),
             inDefinedTermSet: {

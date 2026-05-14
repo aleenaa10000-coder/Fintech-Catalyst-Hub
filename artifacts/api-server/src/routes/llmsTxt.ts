@@ -172,6 +172,18 @@ A: We use editorial outreach and original-research digital PR — no PBNs, no pa
 **Q: Do you offer one-time projects or only ongoing retainers?**
 A: Both. The Fintech SEO Audit is a one-time 30-day engagement. Content, link building, and authority programs run as 6-month minimum retainers because organic results compound over time.
 
+**Q: What is E-E-A-T and why does it matter for fintech SEO?**
+A: E-E-A-T stands for Experience, Expertise, Authoritativeness, and Trustworthiness — Google's core content quality framework for YMYL (Your Money or Your Life) pages. Fintech content falls squarely in YMYL, so every article we publish is written by fintech practitioners, fact-checked against primary regulatory sources, and published with full author bios, credentials, and schema.org Person markup.
+
+**Q: How does fintech content differ from general financial content?**
+A: Fintech content targets B2B decision-makers — CTOs, CFOs, heads of payments, and compliance officers — who expect deep technical accuracy, regulatory precision (FCA, PSD2, CFPB, MAS, APRA), and actionable operational insights. Generic financial content targeting retail consumers uses entirely different vocabulary, search intent signals, and trust requirements. Conflating the two is the most common mistake fintech brands make when hiring generalist agencies.
+
+**Q: Which link-building tactics work best for fintech companies?**
+A: The highest-ROI tactics for fintech are: (1) original research and data studies that earn natural citations in fintech media, (2) expert commentary and editorial placements on Finextra, The Fintech Times, Tearsheet, and Finovate, and (3) regulatory explainers that journalists and policy teams cite as primary references. We avoid PBNs, link exchanges, and paid placements without editorial disclosure — all tactics that violate Google's link spam policy and carry significant algorithmic and manual penalty risk on YMYL financial content.
+
+**Q: What structured data types matter most for fintech SEO?**
+A: FAQPage schema unlocks rich results for informational queries and is the highest-ROI structured data type for fintech content. BlogPosting plus NewsArticle gives Google News eligibility and Top Stories carousel inclusion. FinancialService and ProfessionalService schemas help Google correctly classify service pages in Knowledge Graph. SpeakableSpecification enables voice assistant answer extraction. LocalBusiness on location pages improves geo-targeted rankings. HowTo schema on service pages targets process queries like "how to build fintech backlinks" with step-rich results.
+
 ## Key pages
 
 - [Home](${siteUrl}/) — Overview of services, trust signals, and featured content
