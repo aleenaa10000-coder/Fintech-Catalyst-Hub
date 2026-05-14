@@ -1422,6 +1422,7 @@ async function handleSsrMeta(
           mentionEntities:      blogPostsTable.mentionEntities,
           wordCount:            blogPostsTable.wordCount,
           readingMinutes:       blogPostsTable.readingMinutes,
+          noindexUntil:         blogPostsTable.noindexUntil,
           content:              blogPostsTable.content,
         })
         .from(blogPostsTable)
@@ -1493,6 +1494,37 @@ async function handleSsrMeta(
         return;
       }
 
+      // Admin-set timed noindex: honour noindexUntil even if permanent noIndex
+      // flag is off — lets editors embargo a post until a specific date while
+      // still letting the SSR serve a proper noindex shell to crawlers rather
+      // than a blank SPA fallback.
+      if (post.noindexUntil && new Date() <= post.noindexUntil) {
+        const timedTitle = post.seoTitle ?? post.title;
+        const timedCanon = `${siteUrl}/blog/${slug}`;
+        const timedDesc  = (post.seoDescription ?? post.excerpt ?? "").slice(0, 160);
+        const timedImg   = `${siteUrl}/api/og?title=${encodeURIComponent(post.title)}&category=${encodeURIComponent(post.category)}&author=${encodeURIComponent(post.author)}&authorRole=${encodeURIComponent(post.authorRole ?? "")}`;
+        const timedHtml  = patchHtml(baseHtml, {
+          title:         `${timedTitle} | FintechPressHub`,
+          description:   timedDesc,
+          canonical:     timedCanon,
+          ogTitle:       timedTitle,
+          ogDescription: timedDesc,
+          ogImage:       timedImg,
+          ogImageAlt:    timedTitle,
+          headLinks:     [`  <meta name="robots" content="noindex, nofollow" />`],
+        });
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("X-Robots-Tag", "noindex, nofollow");
+        res.setHeader("Cache-Control", "private, no-store");
+        res.setHeader(
+          "Link",
+          `<${siteUrl}/llms.txt>; rel="alternate"; type="text/plain"; title="LLM content index", ` +
+          `<${siteUrl}/llms-full.txt>; rel="alternate"; type="text/plain"; title="LLM full content index"`,
+        );
+        res.send(timedHtml);
+        return;
+      }
+
       // Respect admin-set SEO overrides; fall back to title/excerpt.
       const pageTitle   = post.seoTitle ?? post.title;
       const canonical   = `${siteUrl}/blog/${slug}`;
@@ -1539,6 +1571,22 @@ async function handleSsrMeta(
           ? rawPhoto.startsWith("http") ? rawPhoto : `${siteUrl}${rawPhoto}`
           : null;
       }
+
+      // Compute effective wordCount and readingMinutes — fall back to deriving
+      // them from the raw content HTML for any post where the DB columns are
+      // null (e.g. seed posts inserted before these columns existed, or posts
+      // updated via direct SQL without triggering the route's htmlWordCount()).
+      // This guarantees every blog post — present and future — always emits
+      // wordCount and timeRequired in its BlogPosting JSON-LD and Twitter card.
+      const effectiveWordCount: number = post.wordCount ??
+        (post.content
+          ? post.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().split(" ").filter((w: string) => w.length > 0).length
+          : 0);
+      // Average adult reading speed: 238 wpm (based on Nielsen Norman research).
+      const effectiveReadingMinutes: number =
+        (post.readingMinutes && post.readingMinutes > 0)
+          ? post.readingMinutes
+          : effectiveWordCount > 0 ? Math.max(1, Math.round(effectiveWordCount / 238)) : 0;
 
       const extraLds: string[] = [
         JSON.stringify({
@@ -1610,8 +1658,8 @@ async function handleSsrMeta(
           ...(post.blufSummary ?? post.excerpt
             ? { abstract: (post.blufSummary ?? post.excerpt ?? "").slice(0, 500) }
             : {}),
-          ...(post.wordCount ? { wordCount: post.wordCount } : {}),
-          ...(post.readingMinutes && post.readingMinutes > 0 ? { timeRequired: `PT${post.readingMinutes}M` } : {}),
+          ...(effectiveWordCount > 0 ? { wordCount: effectiveWordCount } : {}),
+          ...(effectiveReadingMinutes > 0 ? { timeRequired: `PT${effectiveReadingMinutes}M` } : {}),
           isAccessibleForFree: true,
           accessMode: ["textual", "visual"],
           potentialAction: { "@type": "ReadAction", target: canonical },
@@ -1743,10 +1791,10 @@ async function handleSsrMeta(
         // Twitter/X card preview — injected as headLinks so patchHtml appends
         // them alongside article:* meta tags in the </head> injection block.
         headLinks: [
-          ...(post.readingMinutes && post.readingMinutes > 0
+          ...(effectiveReadingMinutes > 0
             ? [
                 `  <meta name="twitter:label1" content="Reading time" />`,
-                `  <meta name="twitter:data1" content="${post.readingMinutes} min read" />`,
+                `  <meta name="twitter:data1" content="${effectiveReadingMinutes} min read" />`,
                 `  <meta name="twitter:label2" content="Category" />`,
                 `  <meta name="twitter:data2" content="${esc(post.category ?? "Insights")}" />`,
               ]
