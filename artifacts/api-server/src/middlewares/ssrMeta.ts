@@ -1618,10 +1618,23 @@ async function handleSsrMeta(
           datePublished: post.publishedAt.toISOString(),
           dateModified:  dateModified,
           mainEntity: faqItems.map((item) => ({
-            "@type": "Question",
-            name:    item.question,
-            answerCount: 1,
-            acceptedAnswer: { "@type": "Answer", text: stripHtml(item.answer) },
+            "@type":      "Question",
+            name:         item.question,
+            answerCount:  1,
+            // Per-Question dateCreated + author scope each Q&A to the post's
+            // publish date and named author. Answer Engines (Perplexity, Google
+            // AI Overviews) use these granular fields to prefer fresher,
+            // attributed answers when ranking citation candidates — without
+            // them, every FAQ block looks anonymous and undated to AI rankers.
+            dateCreated:  post.publishedAt.toISOString(),
+            author:       { "@type": "Person", name: post.author ?? "FintechPressHub Editorial Team" },
+            acceptedAnswer: {
+              "@type":     "Answer",
+              text:        stripHtml(item.answer),
+              dateCreated: post.publishedAt.toISOString(),
+              author:      { "@type": "Person", name: post.author ?? "FintechPressHub Editorial Team" },
+              inLanguage:  "en",
+            },
           })),
         }, null, 2));
       }

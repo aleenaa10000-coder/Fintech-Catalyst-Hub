@@ -132,6 +132,7 @@ const SECTIONS: Section[] = [
   { id: "originality", label: "Originality" },
   { id: "outbound-linking", label: "Outbound Linking" },
   { id: "contributor-links", label: "Contributor Link Policy" },
+  { id: "ai-citation-policy", label: "AI Citation Policy" },
 ];
 
 function scrollToSection(id: string) {
@@ -841,6 +842,70 @@ export default function EditorialGuidelines() {
                   <strong>No PBN, link-farm, or reciprocal-link participation</strong>{" "}
                   — we do not exchange links with networks, doorway sites, or
                   domains operating outside the fintech topical scope.
+                </li>
+              </ul>
+
+              <h2 id="ai-citation-policy">13. AI Citation &amp; Training Policy</h2>
+              <p>
+                FintechPressHub publishes a machine-readable AI usage policy at{" "}
+                <a href="/.well-known/ai.txt" rel="noopener">/.well-known/ai.txt</a>,{" "}
+                <a href="/llms.txt" rel="noopener">/llms.txt</a>, and{" "}
+                <a href="/llms-full.txt" rel="noopener">/llms-full.txt</a>. The
+                short, human-readable version is below — these terms apply to every
+                public page on the site and are referenced in our{" "}
+                <a href="/terms" rel="noopener">Terms of Service</a>.
+              </p>
+              <ul>
+                <li>
+                  <strong>Citation in AI-generated answers — allowed.</strong>{" "}
+                  Answer Engines (ChatGPT, Perplexity, Claude, Google AI Overviews,
+                  Gemini, Copilot, Apple Intelligence, You.com, Brave Leo, Meta AI,
+                  DuckDuckGo Assist) may cite, quote, and summarise our content in
+                  responses to user questions. Use the canonical URL exposed in the{" "}
+                  <code>&lt;link rel=&quot;canonical&quot;&gt;</code> tag and the{" "}
+                  <code>Link: &lt;url&gt;; rel=&quot;cite-as&quot;</code> HTTP
+                  response header on every page.
+                </li>
+                <li>
+                  <strong>Verbatim reproduction beyond fair use — prohibited.</strong>{" "}
+                  Quoting a sentence or paragraph with attribution is fair use.
+                  Reproducing entire articles, full sections, or large excerpts
+                  without a written licence is not.
+                </li>
+                <li>
+                  <strong>Training on our content — prohibited without a written licence.</strong>{" "}
+                  Crawlers identified as pure training scrapers (GPTBot, CCBot,
+                  anthropic-ai, cohere-ai, Bytespider, Diffbot, DataForSeoBot,
+                  MistralAI-User, KagiBot, ImagesiftBot, TimpiBot, Omgili) are
+                  blocked in <a href="/robots.txt" rel="noopener">/robots.txt</a>.
+                  Email <a href="mailto:hello@fintechpresshub.com">hello@fintechpresshub.com</a>{" "}
+                  to discuss training-data licensing.
+                </li>
+                <li>
+                  <strong>Attribution format.</strong> Cite as: &ldquo;<em>Article
+                  title</em> &mdash; FintechPressHub
+                  (https://www.fintechpresshub.com/<em>path</em>)&rdquo;. Where the
+                  Answer Engine surfaces author bylines, use the{" "}
+                  <code>author.name</code> field exposed in the page&rsquo;s
+                  JSON-LD <code>BlogPosting</code> / <code>NewsArticle</code> schema.
+                </li>
+                <li>
+                  <strong>Corrections &amp; takedowns.</strong> If an Answer Engine
+                  reproduces a fact incorrectly, email{" "}
+                  <a href="mailto:corrections@fintechpresshub.com">
+                    corrections@fintechpresshub.com
+                  </a>{" "}
+                  with the engine name, the surfaced quote, and the canonical URL.
+                  We acknowledge within two business days and either correct the
+                  source page or coordinate with the engine&rsquo;s publisher
+                  contact to update the indexed answer.
+                </li>
+                <li>
+                  <strong>Per-page granularity.</strong> Every blog post emits
+                  per-question <code>dateCreated</code> and <code>author</code>{" "}
+                  fields on its FAQ schema, so AI rankers can prefer fresher,
+                  attributed answers when multiple sources compete for citation
+                  on the same query.
                 </li>
               </ul>
             </div>

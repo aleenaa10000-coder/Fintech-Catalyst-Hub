@@ -562,7 +562,16 @@ async function loadStaticPosts() {
     const items = mod.default ?? mod.posts ?? [];
     return Array.isArray(items) ? items : [];
   } catch (err) {
-    console.error("[bot-og-plugin] failed to load static posts.js:", err);
+    // src/data/posts.js is an OPTIONAL static seed used as a build-time
+    // fallback when the live API is unreachable. Its absence is the expected
+    // production state (the API is the source of truth), so log this at debug
+    // verbosity to avoid scaring deploys with a misleading error stack.
+    const code = /** @type {{ code?: string }} */ (err)?.code;
+    if (code === "ERR_MODULE_NOT_FOUND") {
+      console.log("[bot-og-plugin] no static posts.js seed (expected when API serves posts).");
+    } else {
+      console.warn("[bot-og-plugin] static posts.js load failed:", err);
+    }
     return [];
   }
 }

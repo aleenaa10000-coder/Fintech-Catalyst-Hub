@@ -292,3 +292,23 @@ LiteSpeed Web Server (the default on Hostinger Business shared) honours
 the same directive natively. If `Content-Encoding: gzip` keeps appearing
 even after the snippet is added, contact Hostinger support to enable
 `mod_brotli` on the account — this is a single-click toggle on their side.
+
+---
+
+## Replit-only Subsystems (Graceful Degradation on Hostinger)
+
+The codebase contains two subsystems that depend on Replit-specific
+infrastructure. Both detect the runtime via `process.env.REPL_ID` and
+gracefully fail (or no-op) when that variable is absent — so they will
+**not** crash a Hostinger deployment, but the corresponding feature
+surfaces will be inactive.
+
+| Subsystem | File | Behaviour on Hostinger | Mitigation |
+|-----------|------|------------------------|-----------|
+| Object Storage (admin author photo / asset uploads) | `artifacts/api-server/src/lib/object-storage/objectStorage.ts` | `ObjectStorageUnavailableError` thrown on any upload attempt; existing photos served from `/api/author-photos` continue to work because they hit the database, not the sidecar | Either (a) leave admin uploads disabled and continue to seed author photos via DB only, or (b) swap the sidecar fetch (gated by `isReplitStorageAvailable()` in `objectStorage.ts`) for an S3-compatible adapter (Hostinger Object Storage add-on, Backblaze B2, or Cloudflare R2). The rest of the surface is environment-agnostic. |
+| Replit OIDC login (admin auth) | `artifacts/api-server/src/lib/auth.ts`, `artifacts/api-server/src/routes/auth.ts` | Login route returns 503 with a clear "REPL_ID must be set" message when the env var is absent | If admin login is needed in production, point `ISSUER_URL` and `REPL_ID` at any OIDC provider (Auth0, Clerk, Keycloak, Cognito) — the OIDC client is generic. Otherwise, leave the routes inactive; everything else (blog, services, tools, AEO endpoints) runs without auth. |
+
+Neither subsystem affects AEO signal delivery: `robots.txt`, `sitemap*.xml`,
+`llms.txt`, `llms-full.txt`, `.well-known/ai.txt`, `/.well-known/security.txt`,
+RSS feeds, and all SSR JSON-LD are emitted from environment-independent
+routes that run identically on Hostinger.
