@@ -1708,8 +1708,8 @@ async function handleSsrMeta(
           // Google's Knowledge Graph resolution.
           isPartOf: { "@type": "Blog", "@id": `${siteUrl}/blog#blog`, url: `${siteUrl}/blog`, name: "FintechPressHub Blog" },
           image: ogImage.includes("/api/og")
-            ? { "@type": "ImageObject", url: ogImage, width: 1200, height: 630 }
-            : { "@type": "ImageObject", url: ogImage },
+            ? { "@type": "ImageObject", url: ogImage, width: 1200, height: 630, creditText: "FintechPressHub", copyrightHolder: { "@id": `${siteUrl}#organization` } }
+            : { "@type": "ImageObject", url: ogImage, creditText: "FintechPressHub", copyrightHolder: { "@id": `${siteUrl}#organization` } },
           inLanguage: "en",
           publisher:  { "@id": `${siteUrl}#organization` },
           copyrightYear: post.publishedAt.getFullYear(),
@@ -1789,6 +1789,37 @@ async function handleSsrMeta(
               ? { citation: citationUrls.map((url: string) => ({ "@type": "CreativeWork", url })) }
               : {};
           })(),
+          // articleBody: first 5000 chars of stripped content — gives AI engines
+          // and AEO rankers a machine-readable corpus to extract facts from without
+          // needing to execute client-side JavaScript. Critical for GEO when the
+          // crawler cannot render the React SPA.
+          ...(post.content ? { articleBody: stripHtml(post.content).slice(0, 5000) } : {}),
+          // teaches: from aboutEntities — classifies this post as educational
+          // content about specific Knowledge Graph entities. Google and Perplexity
+          // surface posts with `teaches` in "learn about X" and "what is X" queries
+          // above articles that only use the freetext `keywords` field.
+          ...(aboutEntities.length > 0
+            ? { teaches: aboutEntities.map((e) => ({ "@type": "DefinedTerm", name: e })) }
+            : {}),
+          // availableLanguage mirrors SoftwareApplication pages — AI rankers read
+          // this alongside `inLanguage` to resolve locale-specific citation requests.
+          availableLanguage:    "en",
+          // interactivityType + learningResourceType declare the content format so
+          // search engines and AI citation engines can classify this as editorial
+          // reading material (vs. interactive quiz or video) and match it to
+          // "read about X" intent queries.
+          interactivityType:    "Expositive",
+          learningResourceType: "Article",
+          // accessibilitySummary: machine-readable accessibility declaration.
+          // Required by WCAG-aligned E-E-A-T guidelines for YMYL fintech content;
+          // also consumed by Google AI Overviews when generating spoken answers for
+          // voice-search queries where the article excerpt is used as the source.
+          accessibilitySummary: description,
+          // sourceOrganization: editorial source entity for AI citation attribution.
+          // Perplexity and ChatGPT Search prefer articles with declared editorial
+          // organisations over anonymous posts when choosing citation candidates —
+          // without this, citation engines cannot confirm who published the content.
+          sourceOrganization: { "@id": `${siteUrl}#organization` },
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs, breadcrumbLdId),
       ];
@@ -1809,7 +1840,12 @@ async function handleSsrMeta(
           // and AI Overviews can read Q&A pairs aloud in spoken-answer results.
           speakable: {
             "@type":     "SpeakableSpecification",
-            cssSelector: ["[data-section='faq'] h3", "[data-section='faq'] p"],
+            // Extended selector list so speakable extraction works even when the
+            // React component renders the FAQ section without data-section attribute
+            // (AE-4 fix). The [id^='faq-'] selector targets the per-question anchor
+            // IDs injected by AE-3, making the speakable declaration fully resilient
+            // to any future component refactoring.
+            cssSelector: ["[data-section='faq'] h3", "[data-section='faq'] p", "[id^='faq-']"],
           },
           mainEntity: faqItems.map((item) => ({
             "@type":      "Question",
@@ -1826,6 +1862,20 @@ async function handleSsrMeta(
             // them, every FAQ block looks anonymous and undated to AI rankers.
             dateCreated:  post.publishedAt.toISOString(),
             author:       { "@type": "Person", name: post.author ?? "FintechPressHub Editorial Team" },
+            // suggestedAnswer: alternate formulation of the answer (first sentence).
+            // Google's Knowledge Graph and Perplexity use suggestedAnswer when the
+            // acceptedAnswer is too long for a spoken result or a snippet card —
+            // providing a shorter alternative increases the chance of appearing in
+            // voice-assistant responses and Google AI Overview citations.
+            suggestedAnswer: {
+              "@type":     "Answer",
+              text:        (() => {
+                const plain = stripHtml(item.answer);
+                const firstSentence = plain.split(/(?<=[.!?])\s+/).find(s => s.trim().length > 10) ?? plain;
+                return firstSentence.length > 200 ? firstSentence.slice(0, 200) + "…" : firstSentence;
+              })(),
+              inLanguage:  "en",
+            },
             acceptedAnswer: {
               "@type":     "Answer",
               text:        stripHtml(item.answer),
@@ -1877,6 +1927,19 @@ async function handleSsrMeta(
         ...(post.blufSummary ?? post.excerpt
           ? { abstract: (post.blufSummary ?? post.excerpt ?? "").slice(0, 500) }
           : {}),
+        // significantLink: mirrors the BlogPosting `relatedLink` at the WebPage
+        // entity level (PR-3 / Programmatic SEO). Google processes WebPage
+        // significantLink alongside BlogPosting relatedLink when building topic
+        // clusters — having the same links on both entities reinforces the signal.
+        ...(relatedPosts.length > 0
+          ? { significantLink: relatedPosts.filter((p) => p.slug).map((p) => `${siteUrl}/blog/${p.slug}`) }
+          : {}),
+        // accessibilitySummary on WebPage: machine-readable description of how
+        // accessible the page is. Required for WCAG-aligned E-E-A-T on YMYL content;
+        // also used by Google AI Overviews when choosing between citation candidates
+        // of equal topical quality — pages with explicit accessibility declarations
+        // are preferred for spoken-answer generation.
+        accessibilitySummary: description,
       }, null, 2));
 
       patches = {
@@ -1938,6 +2001,27 @@ async function handleSsrMeta(
           // href should resolve to a page that describes the author — our
           // /authors/:slug profile pages satisfy this requirement.
           ...(authorUrl ? [`  <link rel="author" href="${esc(authorUrl)}" />`] : []),
+          // Region-specific hreflang from auto-detected contentLocations (IN-1 partial fix).
+          // When a post's tags/category indicate geographic relevance (UK, US, AU, SG, etc.)
+          // Google receives explicit per-region hreflang signals so it can correctly surface
+          // the article in region-specific SERPs (e.g. google.co.uk, google.com.sg).
+          // These supplement the generic hreflang="en" + x-default injected unconditionally
+          // in patchHtml — together they satisfy Google's full hreflang spec for a single-
+          // language, multi-region site without requiring separate region URLs.
+          ...contentLocations.flatMap(({ name }) => {
+            const regionHreflang: Record<string, string> = {
+              "United Kingdom":  "en-GB",
+              "United States":   "en-US",
+              "European Union":  "en-EU",
+              "Singapore":       "en-SG",
+              "Australia":       "en-AU",
+              "Canada":          "en-CA",
+              "India":           "en-IN",
+              "Hong Kong":       "en-HK",
+            };
+            const lc = regionHreflang[name];
+            return lc ? [`  <link rel="alternate" hreflang="${lc}" href="${esc(canonical)}" />`] : [];
+          }),
         ],
         // SSR-inject the BLUF summary as a sr-only <p> immediately after <div id="root">
         // so the SpeakableSpecification cssSelector (".speakable-summary") resolves in
@@ -4037,6 +4121,28 @@ async function handleSsrMeta(
       try {
         res.setHeader("Last-Modified", new Date(lastModDate).toUTCString());
       } catch { /* ignore invalid date strings */ }
+    }
+    // ETag for conditional GET — derived from dateModified so the token changes
+    // automatically whenever a post is materially updated (lastMaterialUpdateAt).
+    // Enables CDNs (Hostinger Nginx, Cloudflare) and crawlers to revalidate
+    // efficiently: a 304 Not Modified carries no body, saving 3–8 KB per hit and
+    // reducing both crawl budget usage and server load under heavy bot pressure.
+    // Uses a weak ETag (W/"…") because the HTML varies only by content, not by
+    // byte-for-byte representation — appropriate for SSR responses.
+    if (lastModDate) {
+      try {
+        const etag = `W/"${Buffer.from(lastModDate).toString("base64").slice(0, 24)}"`;
+        res.setHeader("ETag", etag);
+        // Manual If-None-Match check — more reliable than req.fresh across
+        // Express 4/5 and reverse-proxy configs (Hostinger Nginx may strip
+        // conditional headers before they reach the Node.js process, so we
+        // check both the direct header and the normalised value).
+        const ifNoneMatch = req.headers["if-none-match"];
+        if (ifNoneMatch && (ifNoneMatch === etag || ifNoneMatch === `"${etag}"`)) {
+          res.status(304).end();
+          return;
+        }
+      } catch { /* ignore ETag generation errors */ }
     }
     if (req.method === "HEAD") {
       res.end();

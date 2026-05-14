@@ -6,20 +6,22 @@
  * Validates every post for SEO-critical field hygiene across
  * On-Page, AEO, GEO, Technical, and White-Hat dimensions:
  *
- *   ①  coverImage       — non-empty, valid http/https URL
- *   ②  excerpt          — present, ≤ 160 characters (meta-description budget)
- *   ③  slug             — lowercase alphanumeric + hyphens; no leading/trailing/consecutive hyphens
- *   ④  title            — 50–70 chars optimal for SERP display
- *   ⑤  blufSummary      — present and ≥ 50 chars (AEO/GEO answer snippet anchor)
- *   ⑥  faqItems         — at least 3 Q&A pairs for FAQPage schema rich result
- *   ⑦  aboutEntities    — at least 1 entity for Knowledge Graph `about` linking
- *   ⑭  mentionEntities  — warn if missing (secondary entity co-citation signal)
- *   ⑧  tags             — at least 3 tags for keyword breadth signal
- *   ⑨  wordCount        — stored word count ≥ 1 000 words (GEO authority threshold)
- *   ⑩  readingMinutes   — positive integer, consistent with wordCount
- *   ⑪  category         — one of the eight known fintech category slugs
- *   ⑫  seoTitle         — when set, 50–70 chars (same rule as title)
- *   ⑬  seoDescription   — when set, 150–160 chars (SERP truncation budget)
+ *   ①  coverImage        — non-empty, valid http/https URL
+ *   ②  excerpt           — present, ≤ 160 characters (meta-description budget)
+ *   ③  slug              — lowercase alphanumeric + hyphens; no leading/trailing/consecutive hyphens
+ *   ④  title             — 50–70 chars optimal for SERP display
+ *   ⑤  blufSummary       — present and ≥ 50 chars (AEO/GEO answer snippet anchor)
+ *   ⑥  faqItems          — at least 3 Q&A pairs for FAQPage schema rich result
+ *   ⑦  aboutEntities     — at least 1 entity for Knowledge Graph `about` linking
+ *   ⑭  mentionEntities   — warn if missing (secondary entity co-citation signal)
+ *   ⑧  tags              — at least 3 tags for keyword breadth signal
+ *   ⑨  wordCount         — stored word count ≥ 1 000 words (GEO authority threshold)
+ *   ⑩  readingMinutes    — positive integer, consistent with wordCount
+ *   ⑪  category          — one of the eight known fintech category slugs
+ *   ⑫  seoTitle          — when set, 50–70 chars (same rule as title)
+ *   ⑬  seoDescription    — when set, 150–160 chars (SERP truncation budget)
+ *   ⑮  citationDensity   — warn if < 2 external links per 1 000 words (YMYL E-E-A-T signal)
+ *   ⑯  sponsoredLinks    — warn if likely affiliate/sponsored links lack rel="sponsored"
  *
  * Targets the Express API server (default: http://localhost:8080).
  *
@@ -291,6 +293,85 @@ function lintMentionEntities(post) {
 }
 
 /**
+ * Rule 15 — citationDensity: warn if fewer than 2 external authority links per
+ * 1 000 words. YMYL fintech content must demonstrate credibility through
+ * outbound citations (FCA, BIS, PwC, SEC, academic studies, etc.).
+ * Google's E-E-A-T framework treats citation density as a trustworthiness
+ * signal — too few external sources relative to word count weakens ranking
+ * eligibility for competitive financial queries.
+ * Warning-only: blocked posts may still have editorial value, just need citing.
+ */
+function lintCitationDensity(post) {
+  const content = post.content;
+  const wordCount = post.wordCount;
+  if (!content || typeof content !== "string") {
+    // content field not in API response — skip gracefully
+    return true;
+  }
+  if (!wordCount || typeof wordCount !== "number" || wordCount <= 0) {
+    return true; // wordCount already covered by rule ⑨
+  }
+  // Count external links — exclude fintechpresshub.com (internal links don't count)
+  const externalLinkMatches = content.match(
+    /href="https?:\/\/(?!(?:www\.)?fintechpresshub\.com)[^"]+"/g,
+  ) ?? [];
+  const externalCount = externalLinkMatches.length;
+  const density = (externalCount / wordCount) * 1000;
+  const threshold = 2; // ≥ 2 per 1 000 words for YMYL credibility
+  if (density < threshold) {
+    warn(
+      `citationDensity — ${externalCount} external link(s) in ${wordCount} words ` +
+      `(${density.toFixed(1)}/1k; target ≥ ${threshold}/1k for YMYL E-E-A-T). ` +
+      `Add authority citations (FCA, SEC, BIS, academic studies) to strengthen credibility.`,
+    );
+    return true; // warning only — does not block publish
+  }
+  ok(`citationDensity — ${externalCount} external link(s), ${density.toFixed(1)}/1k words (above ${threshold}/1k YMYL threshold)`);
+  return true;
+}
+
+/**
+ * Rule 16 — sponsoredLinks: warn if likely affiliate or sponsored links are
+ * present without rel="sponsored". Google's link scheme policy requires
+ * `rel="sponsored"` on any compensated outbound link — missing attributes
+ * are a White-Hat violation that can trigger manual actions on fintech sites.
+ * Warning-only because the detection is heuristic (pattern matching on
+ * common affiliate network domains); a human editor must confirm.
+ */
+const AFFILIATE_DOMAIN_RE = /href="https?:\/\/[^"]*(?:amazon\.|shareasale\.|cj\.com|awin\.com|impact\.com|partnerize\.|pepperjam\.|commission|affiliate|referral|partner|track\.|go\.)[^"]*"/i;
+function lintSponsoredLinks(post) {
+  const content = post.content;
+  if (!content || typeof content !== "string") return true;
+  const potentialAffiliate = (content.match(/href="[^"]+"/g) ?? []).filter(
+    (href) => AFFILIATE_DOMAIN_RE.test(href),
+  );
+  if (potentialAffiliate.length === 0) {
+    ok(`sponsoredLinks  — no potential affiliate/sponsored links detected`);
+    return true;
+  }
+  // Check if any of those links lack rel="sponsored"
+  // In HTML, rel attributes appear on the <a> tag, not the href alone.
+  // We use a heuristic: if the post content contains the domain without a
+  // nearby rel="sponsored", flag it for manual review.
+  const hasSponsoredAttr = potentialAffiliate.some((href) => {
+    // Look for rel="sponsored" within 200 chars of this href in the HTML
+    const idx = content.indexOf(href);
+    if (idx === -1) return false;
+    const context = content.slice(Math.max(0, idx - 100), idx + href.length + 100);
+    return /rel="[^"]*sponsored[^"]*"/.test(context);
+  });
+  if (!hasSponsoredAttr) {
+    warn(
+      `sponsoredLinks  — ${potentialAffiliate.length} potential affiliate link(s) detected without rel="sponsored". ` +
+      `Add rel="sponsored" to compensated/affiliate outbound links per Google's link scheme policy.`,
+    );
+    return true;
+  }
+  ok(`sponsoredLinks  — potential affiliate link(s) have rel="sponsored" (compliant)`);
+  return true;
+}
+
+/**
  * Rule 8 — tags: at least 3 for keyword breadth signal.
  * BlogPosting `keywords` aggregates these; fewer than 3 leaves topical
  * coverage sparse. Warn (not hard fail) to avoid blocking legitimate short-form posts.
@@ -441,13 +522,15 @@ function lintPost(post) {
   const r5  = lintBlufSummary(post);
   const r6  = lintFaqItems(post);
   const r7  = lintAboutEntities(post);
-  lintMentionEntities(post);  // ⑭ — warning only; does not affect pass/fail
+  lintMentionEntities(post);   // ⑭ — warning only; does not affect pass/fail
   const r8  = lintTags(post);
   const r9  = lintWordCount(post);
   const r10 = lintReadingMinutes(post);
   const r11 = lintCategory(post);
   const r12 = lintSeoTitle(post);
   const r13 = lintSeoDescription(post);
+  lintCitationDensity(post);   // ⑮ — warning only; requires `content` field in API response
+  lintSponsoredLinks(post);    // ⑯ — warning only; heuristic affiliate-domain detection
   return r1 && r2 && r3 && r4 && r5 && r6 && r7 && r9 && r10 && r12 && r13;
 }
 
@@ -503,12 +586,13 @@ function lintPost(post) {
   if (warned > 0) console.log(`  ${C.yel}⚠  Warnings : ${warned}${C.rst}`);
   if (failed > 0) console.log(`  ${C.red}✘  Failed   : ${failed}${C.rst}`);
   else            console.log(`  ${C.dim}✘  Failed   : 0${C.rst}`);
-  console.log(`\n  Rules checked       : 14 (①–⑭)`);
+  console.log(`\n  Rules checked       : 16 (①–⑭, ⑮–⑯)`);
   console.log(`  Hard fails          : coverImage, excerpt, slug, title, blufSummary,`);
   console.log(`                        faqItems (≥ 3), aboutEntities, wordCount (≥ 800),`);
   console.log(`                        readingMinutes, seoTitle length, seoDescription length`);
   console.log(`  Warnings            : mentionEntities, tags (< 3), wordCount (800–999),`);
-  console.log(`                        category unknown, blufSummary > 500, readingMinutes inconsistency`);
+  console.log(`                        category unknown, blufSummary > 500, readingMinutes inconsistency,`);
+  console.log(`                        citationDensity (< 2/1k words), sponsoredLinks (untagged affiliate)`);
   console.log("");
 
   if (failed > 0) {
