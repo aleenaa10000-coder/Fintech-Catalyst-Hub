@@ -46,6 +46,8 @@ import {
   List,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { readSharedState } from "@/lib/toolShare";
+import { ToolShareEmbed } from "@/components/ToolShareEmbed";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1111,7 +1113,7 @@ function AnnotatedEmailBody({
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export default function OutreachEmailGenerator() {
-  const [form, setForm]         = useState<FormState>(DEFAULTS);
+  const [form, setForm]         = useState<FormState>(() => readSharedState(DEFAULTS));
   const [tone, setTone]         = useState<Tone>("professional");
   const [body, setBody]         = useState<string | null>(null);
   const [variants, setVariants] = useState<[string, string] | null>(null);
@@ -2608,6 +2610,8 @@ export default function OutreachEmailGenerator() {
               </div>
             </DialogContent>
           </Dialog>
+
+          <ToolShareEmbed slug="outreach-email-generator" state={form} />
         </div>
       </section>
     </div>

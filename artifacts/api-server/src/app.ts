@@ -140,8 +140,17 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   // Prevent MIME-type sniffing.
   res.setHeader("X-Content-Type-Options", "nosniff");
-  // Prevent clickjacking by disallowing iframe embedding.
-  res.setHeader("X-Frame-Options", "DENY");
+  // Prevent clickjacking by disallowing iframe embedding everywhere EXCEPT
+  // the public `/embed/*` routes, which are designed to be iframed by third
+  // parties (white-hat backlink hook for the free tools). Within the embed
+  // routes we still enforce a CSP `frame-ancestors *` (and rely on the
+  // EmbedShell's noindex meta) so the canonical `/tools/:slug` page is not
+  // diluted by the embed clone.
+  if (_req.path.startsWith("/embed/")) {
+    res.setHeader("X-Frame-Options", "ALLOWALL");
+  } else {
+    res.setHeader("X-Frame-Options", "DENY");
+  }
   // Limit referrer information to same-origin.
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   // Restrict access to browser features not needed by this app.
@@ -194,6 +203,12 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
         "base-uri 'self'",
         "form-action 'self'",
         "upgrade-insecure-requests",
+        // Default: only self may embed us (matches X-Frame-Options: DENY for
+        // older browsers). The /embed/* override below relaxes this for the
+        // dedicated embed surface only.
+        _req.path.startsWith("/embed/")
+          ? "frame-ancestors *"
+          : "frame-ancestors 'self'",
       ].join("; "),
     );
   }
@@ -371,6 +386,12 @@ app.get("/robots.txt", (_req: Request, res: Response) => {
     "Disallow: /404",
     "# System status — internal utility page",
     "Disallow: /status",
+    "# Embeddable tool surface — chrome-free clones of /tools/:slug for third-",
+    "# party iframes. Intentionally noindex (X-Robots-Tag: noindex,follow on",
+    "# every embed response) so they cannot dilute the canonical /tools/:slug",
+    "# pages. Disallow here is belt-and-suspenders for crawlers that don't",
+    "# fetch the headers (or honour them weakly).",
+    "Disallow: /embed/",
     "",
     `Sitemap: ${siteUrl}/sitemap_index.xml`,
     `Sitemap: ${siteUrl}/sitemap.xml`,

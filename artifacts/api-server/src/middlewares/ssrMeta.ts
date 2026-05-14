@@ -1332,6 +1332,41 @@ async function handleSsrMeta(
   const siteUrl = getSiteUrl();
   const reqPath = req.path;
 
+  // ── /embed/:slug ───────────────────────────────────────────────────────────
+  // The chrome-free embed surface is intentionally NOT indexable: it would
+  // dilute the canonical /tools/:slug page and split ranking signals. We emit:
+  //   - X-Robots-Tag: noindex,follow   (the `follow` keeps the in-embed
+  //     attribution backlink discoverable without indexing the embed itself)
+  //   - <meta name="robots" content="noindex,follow">
+  //   - Link: rel="canonical" pointing to the real /tools/:slug
+  // Returning early avoids running the heavyweight TOOLS_RE branch for a
+  // surface that will never be indexed.
+  const EMBED_RE = /^\/embed\/([^/]+)$/;
+  const embedMatch = EMBED_RE.exec(reqPath);
+  if (embedMatch) {
+    const slug = embedMatch[1]!;
+    const canonical = `${siteUrl}/tools/${slug}`;
+    res.setHeader("X-Robots-Tag", "noindex, follow");
+    res.setHeader("Link", `<${canonical}>; rel="canonical"`);
+    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    const html = patchHtml(baseHtml, {
+      title:         "Free FintechPressHub Tool",
+      description:   "Embeddable free tool from FintechPressHub.",
+      canonical,
+      ogTitle:       "Free FintechPressHub Tool",
+      ogDescription: "Embeddable free tool from FintechPressHub.",
+      ogImage:       `${siteUrl}/og-default.png`,
+      ogImageAlt:    "FintechPressHub free tool",
+      headLinks: [
+        `  <meta name="robots" content="noindex, follow" />`,
+        `  <link rel="canonical" href="${canonical}" />`,
+      ],
+    });
+    if (req.method === "HEAD") { res.end(); } else { res.send(html); }
+    return;
+  }
+
   try {
     // Fast-path: return cached patches for repeated crawler hits on the same URL.
     // Only dynamic DB-backed routes benefit (static pages are already zero-DB-cost).

@@ -35,6 +35,8 @@ import {
 } from "lucide-react";
 import { SITE_URL } from "@/lib/metaData";
 import { trackEvent } from "@/lib/analytics";
+import { readSharedState } from "@/lib/toolShare";
+import { ToolShareEmbed } from "@/components/ToolShareEmbed";
 import { useEmailFinancialHealthScoreReport } from "@workspace/api-client-react";
 
 type Inputs = {
@@ -296,7 +298,8 @@ const FAQS = [
 ];
 
 export default function FinancialHealthScoreCalculator() {
-  const [inputs, setInputs] = useState<Inputs>(DEFAULTS);
+  // Pre-fill from a share link if present. Falls back to DEFAULTS otherwise.
+  const [inputs, setInputs] = useState<Inputs>(() => readSharedState(DEFAULTS));
   const [touched, setTouched] = useState(false);
 
   const setField = (key: keyof Inputs) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -484,7 +487,7 @@ export default function FinancialHealthScoreCalculator() {
                         Your Numbers
                       </h2>
                       <p className="text-xs text-muted-foreground">
-                        Enter monthly figures unless noted otherwise. All in your local currency.
+                        Enter monthly figures unless noted otherwise. All in your local currency. The Debt-to-Income (DTI) ratio used here is the global lending-industry definition (also known as the &ldquo;debt service ratio&rdquo; in UK and Commonwealth markets).
                       </p>
                     </div>
                   </div>
@@ -1198,6 +1201,12 @@ export default function FinancialHealthScoreCalculator() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="pb-16">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <ToolShareEmbed slug="financial-health-score-calculator" state={inputs} />
         </div>
       </section>
     </div>

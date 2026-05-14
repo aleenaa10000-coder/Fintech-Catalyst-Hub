@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { trackEvent } from "@/lib/analytics";
+import { readSharedState } from "@/lib/toolShare";
+import { ToolShareEmbed } from "@/components/ToolShareEmbed";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
 import { PageMeta } from "@/components/PageMeta";
@@ -2224,7 +2226,7 @@ function timeAgo(ts: number): string {
 }
 
 export default function ContentBriefGenerator() {
-  const [form, setForm] = useState<FormState>(DEFAULTS);
+  const [form, setForm] = useState<FormState>(() => readSharedState(DEFAULTS));
   const [brief, setBrief] = useState<Brief | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedMd, setCopiedMd] = useState(false);
@@ -3432,6 +3434,8 @@ export default function ContentBriefGenerator() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          <ToolShareEmbed slug="content-brief-generator" state={form} />
         </div>
       </section>
     </div>

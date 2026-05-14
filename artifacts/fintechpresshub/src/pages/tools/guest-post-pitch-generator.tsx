@@ -51,6 +51,8 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { readSharedState } from "@/lib/toolShare";
+import { ToolShareEmbed } from "@/components/ToolShareEmbed";
 
 const MINOR_WORDS = new Set([
   "a","an","the","and","but","or","nor","for","so","yet",
@@ -488,7 +490,7 @@ function isUrl(value: string): boolean {
 }
 
 export default function GuestPostPitchGenerator() {
-  const [form, setForm] = useState<FormState>(DEFAULTS);
+  const [form, setForm] = useState<FormState>(() => readSharedState(DEFAULTS));
   const [pitch, setPitch] = useState("");
   const [editedPitch, setEditedPitch] = useState("");
   const [copied, setCopied] = useState(false);
@@ -2261,6 +2263,8 @@ export default function GuestPostPitchGenerator() {
               </div>
             </DialogContent>
           </Dialog>
+
+          <ToolShareEmbed slug="guest-post-pitch-generator" state={form} />
         </div>
       </section>
     </div>

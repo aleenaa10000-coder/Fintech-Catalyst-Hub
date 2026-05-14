@@ -31,6 +31,8 @@ import {
   Printer,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { readSharedState } from "@/lib/toolShare";
+import { ToolShareEmbed } from "@/components/ToolShareEmbed";
 
 function countSyllables(word: string): number {
   word = word.toLowerCase().replace(/[^a-z]/g, "");
@@ -818,7 +820,8 @@ function saveHistory(entries: HistoryEntry[]) {
 }
 
 export default function ReadabilityChecker() {
-  const [text, setText] = useState("");
+  // Pre-fill from `?s=` share link if present (text wrapped as `{ text }`).
+  const [text, setText] = useState(() => readSharedState({ text: "" }).text);
   const [checked, setChecked] = useState(false);
   const [checkedText, setCheckedText] = useState("");
   const [scoreHistory, setScoreHistory] = useState<number[]>([]);
@@ -2422,6 +2425,8 @@ export default function ReadabilityChecker() {
             )}
           </AnimatePresence>
           </ErrorBoundary>
+
+          <ToolShareEmbed slug="readability-checker" state={{ text }} />
         </div>
       </section>
 

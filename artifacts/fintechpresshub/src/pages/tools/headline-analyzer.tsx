@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { trackEvent } from "@/lib/analytics";
+import { readSharedState } from "@/lib/toolShare";
+import { ToolShareEmbed } from "@/components/ToolShareEmbed";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -1067,7 +1069,9 @@ function timeAgo(ts: number): string {
 }
 
 export default function HeadlineAnalyzer() {
-  const [headline, setHeadline] = useState("");
+  // Pre-fill from share link `?s=`. The headline state is a single string,
+  // so we wrap as `{ headline }` to share via the same generic encoder.
+  const [headline, setHeadline] = useState(() => readSharedState({ headline: "" }).headline);
   const [result, setResult] = useState<Analysis | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
   const [sentToComparison, setSentToComparison] = useState<number | null>(null);
@@ -2635,6 +2639,8 @@ export default function HeadlineAnalyzer() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          <ToolShareEmbed slug="headline-analyzer" state={{ headline }} />
         </div>
       </section>
 

@@ -19,6 +19,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { readSharedState } from "@/lib/toolShare";
+import { ToolShareEmbed } from "@/components/ToolShareEmbed";
 
 type FormState = {
   pageTitle: string;
@@ -243,7 +245,9 @@ const TONE_STYLES: Record<ToneLabel, { badge: string; label: string }> = {
 };
 
 export default function MetaDescriptionGenerator() {
-  const [form, setForm] = useState<FormState>(DEFAULTS);
+  // Pre-fill from `?s=<base64url>` if the visitor arrived via a share link.
+  // readSharedState falls back to DEFAULTS for missing/malformed payloads.
+  const [form, setForm] = useState<FormState>(() => readSharedState(DEFAULTS));
   const [results, setResults] = useState<GeneratedResult[]>([]);
   const [edited, setEdited] = useState<string[]>([]);
   const [copied, setCopied] = useState<number | null>(null);
@@ -529,6 +533,8 @@ export default function MetaDescriptionGenerator() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          <ToolShareEmbed slug="meta-description-generator" state={form} />
         </div>
       </section>
     </div>

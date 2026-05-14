@@ -60,6 +60,8 @@ import {
   Bell,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { readSharedState } from "@/lib/toolShare";
+import { ToolShareEmbed } from "@/components/ToolShareEmbed";
 import {
   Chart as ChartJS,
   LinearScale,
@@ -352,7 +354,8 @@ nerdwallet.com,88,3200000
 paymentsdive.com,51,18000`;
 
 export default function LinkProspector() {
-  const [textarea, setTextarea] = useState("");
+  // Pre-fill from `?s=` share link (raw textarea content wrapped as `{ textarea }`).
+  const [textarea, setTextarea] = useState(() => readSharedState({ textarea: "" }).textarea);
   const [results, setResults] = useState<ProspectResult[]>([]);
   const [sortKey, setSortKey] = useState<SortKey>("priority");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -2635,6 +2638,8 @@ Looking forward to hearing from you,
               </motion.div>
             )}
           </AnimatePresence>
+
+          <ToolShareEmbed slug="link-prospector" state={{ textarea }} />
         </div>
       </section>
 

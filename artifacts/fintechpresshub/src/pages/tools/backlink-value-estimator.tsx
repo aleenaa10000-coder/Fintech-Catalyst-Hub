@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { trackEvent } from "@/lib/analytics";
+import { readSharedState } from "@/lib/toolShare";
+import { ToolShareEmbed } from "@/components/ToolShareEmbed";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
 import { PageMeta } from "@/components/PageMeta";
@@ -74,6 +76,7 @@ type FormState = {
   relevance: string;
   linkType: "dofollow" | "nofollow";
   placement: "editorial" | "sidebar" | "footer" | "sponsored";
+  currency?: "USD" | "GBP" | "EUR";
 };
 
 type Relevance = "high" | "medium" | "low";
@@ -86,6 +89,7 @@ const DEFAULTS: FormState = {
   relevance: "high",
   linkType: "dofollow",
   placement: "editorial",
+  currency: "USD",
 };
 
 const RELEVANCE_LABELS: Record<Relevance, string> = {
@@ -141,9 +145,40 @@ function computeLinkValue(score: number, traffic: number): LinkValue {
   return { min, max };
 }
 
-function fmtMoney(n: number): string {
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
-  return `$${n}`;
+// Currency presentation is i18n-aware so non-US visitors see locally
+// meaningful pricing. Score and methodology are currency-neutral; we only
+// swap the display symbol. Estimates are anchored to USD; we apply
+// approximate FX rates for GBP/EUR rather than re-deriving the model
+// per-currency, and disclose the rate to keep the tool honest.
+type CurrencyCode = "USD" | "GBP" | "EUR";
+const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
+  USD: "$",
+  GBP: "£",
+  EUR: "€",
+};
+// Approximate, conservative FX (rounded). The estimate is already a wide
+// range; precision beyond 2 d.p. would imply false accuracy.
+const CURRENCY_RATES: Record<CurrencyCode, number> = {
+  USD: 1,
+  GBP: 0.79,
+  EUR: 0.92,
+};
+
+// Module-level current display currency. Updated by the React component
+// whenever the user changes the currency selector. Centralizing here avoids
+// threading a `currency` argument through 30+ call sites including jsPDF
+// generators and HTML string builders. Defaults to USD until the form
+// hydrates from share-link state or user input.
+let CURRENT_CURRENCY: CurrencyCode = "USD";
+function setCurrentCurrency(c: CurrencyCode) {
+  CURRENT_CURRENCY = c;
+}
+
+function fmtMoney(n: number, currency: CurrencyCode = CURRENT_CURRENCY): string {
+  const symbol = CURRENCY_SYMBOLS[currency];
+  const v = Math.round(n * CURRENCY_RATES[currency]);
+  if (v >= 1_000) return `${symbol}${(v / 1_000).toFixed(1)}K`;
+  return `${symbol}${v}`;
 }
 
 function fmtTraffic(n: number): string {
@@ -520,7 +555,7 @@ type SavedOpportunity = {
 type SortMode = "value-score" | "market-price";
 
 export default function BacklinkValueEstimator() {
-  const [form, setForm] = useState<FormState>(DEFAULTS);
+  const [form, setForm] = useState<FormState>(() => readSharedState(DEFAULTS));
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedPitch, setCopiedPitch] = useState(false);
@@ -559,6 +594,14 @@ export default function BacklinkValueEstimator() {
       if (pitchCopyTimeoutRef.current) clearTimeout(pitchCopyTimeoutRef.current);
     };
   }, []);
+
+  // Sync the user's chosen display currency to the module-level
+  // CURRENT_CURRENCY *synchronously during render* so all downstream
+  // fmtMoney() calls (including those inside jsPDF generators and HTML
+  // string builders) see the up-to-date symbol without us having to thread
+  // the currency through every call site. A useEffect would run *after*
+  // render, leaving the first frame after a currency switch stale.
+  setCurrentCurrency((form.currency ?? "USD") as CurrencyCode);
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -1426,6 +1469,33 @@ export default function BacklinkValueEstimator() {
                     Reset
                   </Button>
                 </div>
+              </div>
+
+              {/* Currency selector — i18n display preference. Methodology and
+                  scoring are currency-neutral; this only swaps the symbol and
+                  applies a disclosed FX rate for non-USD output. */}
+              <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <div className="flex flex-col">
+                  <Label className="text-xs font-semibold text-slate-700">
+                    Display currency
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Estimates anchored in USD; converted at fixed rate for display.
+                  </p>
+                </div>
+                <select
+                  data-testid="select-currency"
+                  aria-label="Display currency"
+                  value={form.currency ?? "USD"}
+                  onChange={(e) =>
+                    setField("currency", e.target.value as "USD" | "GBP" | "EUR")
+                  }
+                  className="h-9 px-2 text-sm font-semibold border border-slate-300 rounded-md bg-white"
+                >
+                  <option value="USD">USD ($)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="EUR">EUR (€)</option>
+                </select>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-5 mb-5">
@@ -2863,6 +2933,12 @@ export default function BacklinkValueEstimator() {
           </Dialog>
         );
       })()}
+
+      <section className="pb-16">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <ToolShareEmbed slug="backlink-value-estimator" state={form} />
+        </div>
+      </section>
     </div>
   );
 }

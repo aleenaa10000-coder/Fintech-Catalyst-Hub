@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Link } from "wouter";
 import jsPDF from "jspdf";
 import { trackEvent } from "@/lib/analytics";
+import { readSharedState } from "@/lib/toolShare";
+import { ToolShareEmbed } from "@/components/ToolShareEmbed";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart,
@@ -2825,7 +2827,9 @@ function CampaignExportModal({
 }
 
 export default function KeywordDifficultyEstimator() {
-  const [keyword, setKeyword] = useState("");
+  // Pre-fill from `?s=<base64url>` share link (keyword wrapped as `{ keyword }`).
+  // Falls back to legacy `?q=` plain-text format below for backwards compat.
+  const [keyword, setKeyword] = useState(() => readSharedState({ keyword: "" }).keyword);
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
   const [copiedCluster, setCopiedCluster] = useState<number | null>(null);
@@ -2921,10 +2925,14 @@ export default function KeywordDifficultyEstimator() {
   }, [result]);
 
   useEffect(() => {
+    // Auto-analyse if a keyword arrived via either share-state (`?s=`,
+    // hydrated into `keyword` state above) or the legacy `?q=` plain param.
     const params = new URLSearchParams(window.location.search);
-    const q = params.get("q");
-    if (q && q.trim().length >= 2) {
-      analyseKw(q.trim());
+    const q = params.get("q") ?? "";
+    const seed = (keyword.trim() || q.trim());
+    if (seed.length >= 2) {
+      if (!keyword) setKeyword(seed);
+      analyseKw(seed);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -4981,6 +4989,9 @@ export default function KeywordDifficultyEstimator() {
 
             </div>{/* /main content */}
           </div>{/* /flex layout */}
+          <div className="mt-8 max-w-3xl mx-auto">
+            <ToolShareEmbed slug="keyword-difficulty-estimator" state={{ keyword }} />
+          </div>
         </div>{/* /container */}
       </section>
 

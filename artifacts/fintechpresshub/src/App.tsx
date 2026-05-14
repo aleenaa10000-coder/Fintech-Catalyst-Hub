@@ -118,6 +118,9 @@ const AdminPress = lazy(() => import("@/pages/admin-press"));
 const AdminTestimonials = lazy(() => import("@/pages/admin-testimonials"));
 const AdminSchemaTest = lazy(() => import("@/pages/admin-schema-test"));
 const Press = lazy(() => import("@/pages/press"));
+// Chrome-free wrapper for the third-party-iframe `/embed/:slug` route.
+// Lives in its own chunk so the embed payload doesn't pull in admin/blog code.
+const EmbedShell = lazy(() => import("@/components/EmbedShell"));
 
 function RouteFallback() {
   const [location] = useLocation();
@@ -253,6 +256,25 @@ function AdminRoute({ path, component }: { path: string; component: ComponentTyp
 
 function Router() {
   useWebVitals();
+  const [location] = useLocation();
+  // The /embed/:slug route is rendered chrome-free so third-party iframes
+  // host the tool without our header/footer/cookie banner conflicting with
+  // the host site's layout. EmbedShell renders its own minimal attribution
+  // footer instead.
+  const isEmbed = location.startsWith("/embed/");
+  if (isEmbed) {
+    return (
+      <div className="flex flex-col min-h-screen" data-embed-route="true">
+        <ScrollToTop />
+        <Suspense fallback={<RouteFallback />}>
+          <Switch>
+            <SafeRoute path="/embed/:slug" component={EmbedShell} />
+            <Route><NotFound /></Route>
+          </Switch>
+        </Suspense>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col min-h-screen">
       <ScrollToTop />
