@@ -183,9 +183,9 @@ export const PAGE_META = {
       "FintechPressHub is a specialist fintech SEO agency built by operators who have worked inside payments, lending, and banking — not generalists learning on your account. Meet the team.",
   },
   services: {
-    title: "Growth Engines for Fintech Brands | FintechPressHub",
+    title: "Fintech SEO & Content Marketing Services | FintechPressHub",
     description:
-      "Comprehensive fintech SEO, link building, and content marketing services built to compound organic growth.",
+      "Expert fintech SEO, editorial link building, guest posting, topical authority, and SEO audits — specialist services built to compound organic growth for ambitious fintech brands.",
   },
   pricing: {
     title: "Transparent Fintech SEO Pricing | FintechPressHub",

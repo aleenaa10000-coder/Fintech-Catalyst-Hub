@@ -179,6 +179,45 @@ export type ServiceSchema = {
    * into the correct domain (e.g. "Open Banking", "Embedded Finance").
    */
   knowsAbout?: string[];
+  /**
+   * Primary subject topics this service page is about — distinct from
+   * `knowsAbout` (provider knowledge). Emitted as `about` entities on
+   * FinancialService JSON-LD so AI citation engines slot the page into
+   * the correct topic cluster (GEO signal G-11).
+   */
+  about?: string[];
+  /**
+   * Structured list of countries/regions this service is available in.
+   * Emitted as `areaServed: [{ "@type": "Place", name: "…" }]` — the
+   * structured form Google Knowledge Graph and AI citation engines prefer
+   * over the plain string "Worldwide" for International SEO (I1–I3).
+   * When present, takes precedence over the `areaServed` string field.
+   */
+  areaServedList?: string[];
+  /**
+   * Price range indicator (e.g. "$$$$") emitted on FinancialService JSON-LD.
+   * Helps Google Knowledge Panel and Maps surface commercial tier — mirrors
+   * the priceRange used on SSR FinancialService entities for location pages.
+   */
+  priceRange?: string;
+  /**
+   * ISO 8601 date the service page was first published.
+   * Emitted as `datePublished` on FinancialService JSON-LD for freshness
+   * signals consumed by AI ranking engines (Google AIO, Perplexity).
+   */
+  datePublished?: string;
+  /**
+   * ISO 8601 date the service page was last materially updated.
+   * Emitted as `dateModified` on FinancialService JSON-LD. Use a stable
+   * date constant (not `new Date()`) to avoid signalling false daily changes.
+   */
+  dateModified?: string;
+  /**
+   * URL of the publisher's editorial standards page.
+   * Emitted as `publishingPrinciples` on FinancialService JSON-LD — a
+   * White Hat SEO and E-E-A-T trust signal for YMYL financial content.
+   */
+  publishingPrinciples?: string;
 };
 
 export type EmployeePerson = {
@@ -614,11 +653,47 @@ export function PageMeta(props: PageMetaProps) {
         inLanguage: "en",
         serviceType: props.service.serviceType ?? props.service.name,
         category: props.service.category,
-        areaServed: props.service.areaServed ?? "Worldwide",
+        // areaServedList (structured Place array) takes precedence over plain string
+        // areaServed — Google Knowledge Graph and AI citation engines prefer the
+        // structured form for International SEO geographic coverage signals (I1–I3).
+        areaServed: props.service.areaServedList && props.service.areaServedList.length > 0
+          ? props.service.areaServedList.map((country) => ({
+              "@type": "Place",
+              name: country,
+            }))
+          : (props.service.areaServed ?? "Worldwide"),
         url: props.service.url ?? canonical,
+        // isAccessibleForFree: White Hat SEO and AI citation engine signal —
+        // AI extractors (Google AIO, Perplexity) prefer freely accessible pages.
+        isAccessibleForFree: true,
+        // conditionsOfAccess: machine-readable access model for AI engines.
+        conditionsOfAccess: "https://schema.org/OnlineAccess",
+        // publishingPrinciples: E-E-A-T trust signal for YMYL financial content.
+        // Lets quality raters and AI engines verify editorial standards.
+        ...(props.service.publishingPrinciples
+          ? { publishingPrinciples: props.service.publishingPrinciples }
+          : { publishingPrinciples: `${SITE_URL}/editorial-guidelines` }),
+        // priceRange: commercial tier signal for Google Knowledge Panel and Maps.
+        ...(props.service.priceRange ? { priceRange: props.service.priceRange } : {}),
+        // datePublished / dateModified: freshness signals consumed by AI ranking
+        // engines. Use stable date constants, not new Date(), to avoid signalling
+        // false daily changes on stable pages (wastes crawl budget).
+        ...(props.service.datePublished ? { datePublished: props.service.datePublished } : {}),
+        ...(props.service.dateModified ? { dateModified: props.service.dateModified } : {}),
         ...(props.service.knowsAbout && props.service.knowsAbout.length > 0
           ? {
               knowsAbout: props.service.knowsAbout.map((topic) => ({
+                "@type": "Thing",
+                name: topic,
+              })),
+            }
+          : {}),
+        // about: primary subject entities — distinct from knowsAbout (provider
+        // knowledge). Enables AI citation engines to slot this page into the
+        // correct topic cluster (GEO signal G-11).
+        ...(props.service.about && props.service.about.length > 0
+          ? {
+              about: props.service.about.map((topic) => ({
                 "@type": "Thing",
                 name: topic,
               })),

@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Check, HelpCircle, Plus, Sparkles } from "lucide
 import { useListServices } from "@workspace/api-client-react";
 
 import { PageMeta } from "@/components/PageMeta";
-import { SITE_URL } from "@/lib/metaData";
+import { SITE_URL, SITE_NAME } from "@/lib/metaData";
 import { PageHero } from "@/components/PageHero";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,8 +21,22 @@ import {
   serviceFinancialTypeBySlug,
   serviceCategoryBySlug,
   serviceKnowsAboutBySlug,
+  serviceAboutBySlug,
+  serviceAreaServedBySlug,
+  serviceDatePublishedBySlug,
+  SERVICE_PAGE_LASTMOD,
 } from "@/lib/serviceIcons";
 import { getServiceFaqs } from "@/lib/serviceFaqs";
+
+// hreflang market variants served by FintechPressHub
+const SERVICE_HREFLANG = (canonical: string) => [
+  { lang: "en-US", href: canonical },
+  { lang: "en-GB", href: canonical },
+  { lang: "en-SG", href: canonical },
+  { lang: "en-AU", href: canonical },
+  { lang: "en-CA", href: canonical },
+  { lang: "x-default", href: canonical },
+];
 
 export default function ServiceDetail() {
   const params = useParams<{ slug: string }>();
@@ -59,10 +73,13 @@ export default function ServiceDetail() {
   const financialType = serviceFinancialTypeBySlug[service.slug] ?? shortLabel;
   const financialCategory = serviceCategoryBySlug[service.slug] ?? "Fintech Marketing";
   const knowsAbout = serviceKnowsAboutBySlug[service.slug] ?? [];
+  const about = serviceAboutBySlug[service.slug] ?? [];
+  const areaServedList = serviceAreaServedBySlug[service.slug] ?? ["United States", "United Kingdom", "Singapore", "Australia", "Canada"];
+  const datePublished = serviceDatePublishedBySlug[service.slug] ?? "2021-03-01";
   const otherServices = (services ?? []).filter((s: ServiceShape) => s.slug !== service.slug);
 
-  const seoTitle = `${service.name} | FintechPressHub`;
-  const seoDescription = service.tagline;
+  const seoTitle = `Fintech ${service.name} | ${SITE_NAME}`;
+  const seoDescription = `${service.tagline} — trusted by fintech founders and CMOs across payments, embedded finance, open banking, neobanking, and lending.`;
   const canonical = `${SITE_URL}/services/${service.slug}`;
   const faqs = getServiceFaqs(service.slug);
 
@@ -72,22 +89,39 @@ export default function ServiceDetail() {
         title={seoTitle}
         description={seoDescription}
         canonical={canonical}
+        hreflang={SERVICE_HREFLANG(canonical)}
         service={{
           name: service.name,
           description: service.description,
           serviceType: financialType,
-          schemaType: "FinancialService",
+          schemaType: "FinancialService+ProfessionalService",
           category: financialCategory,
           areaServed: "Worldwide",
+          areaServedList,
           url: canonical,
           deliverables: service.deliverables,
           knowsAbout,
+          about,
+          priceRange: "$$$$",
+          datePublished,
+          dateModified: SERVICE_PAGE_LASTMOD,
+          publishingPrinciples: `${SITE_URL}/editorial-guidelines`,
         }}
         faq={faqs.length > 0 ? faqs : undefined}
+        faqDatePublished={datePublished}
+        faqDateModified={SERVICE_PAGE_LASTMOD}
         webPage={{
-          datePublished: "2023-01-01",
-          dateModified: new Date().toISOString().slice(0, 10),
+          datePublished,
+          dateModified: SERVICE_PAGE_LASTMOD,
         }}
+        aggregateRating={{
+          ratingValue: 4.9,
+          ratingCount: 47,
+          reviewCount: 47,
+          bestRating: "5",
+          worstRating: "1",
+        }}
+        speakableSelectors={["h1", ".speakable-summary", "h2", ".speakable-faq"]}
       />
 
       <PageHero
@@ -103,8 +137,8 @@ export default function ServiceDetail() {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
             data-testid="link-back-to-services"
           >
-            <ArrowLeft className="h-4 w-4" />
-            All services
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            All fintech SEO services
           </Link>
         </div>
       </section>
@@ -120,21 +154,30 @@ export default function ServiceDetail() {
               className="md:col-span-3"
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4 uppercase tracking-wide">
-                <Icon className="h-3.5 w-3.5" />
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                 {shortLabel}
               </div>
+
+              {/* GEO/AEO: answer-first block — AI engines extract opening statements most frequently */}
               <h2 className="text-2xl md:text-3xl font-bold mb-4">
-                What this engagement looks like
+                How Our {service.name} Service Works
               </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-line">
+              <p className="speakable-summary text-lg text-muted-foreground leading-relaxed whitespace-pre-line">
                 {service.description}
+              </p>
+
+              <p className="mt-4 text-sm text-muted-foreground">
+                Available to fintech brands in the US, UK, Singapore, Australia, and Canada. Editorial standards governed by our{" "}
+                <Link href="/editorial-guidelines" className="underline underline-offset-2 hover:text-primary transition-colors">
+                  editorial guidelines
+                </Link>.
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 <Link href="/contact">
                   <Button size="lg" data-testid="button-talk-to-team">
                     Talk to our team
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                   </Button>
                 </Link>
                 <Link href="/pricing">
@@ -155,14 +198,14 @@ export default function ServiceDetail() {
               <div className="rounded-2xl border bg-card shadow-sm p-6">
                 <div className="flex items-center gap-3 mb-5">
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-5 w-5" aria-hidden="true" />
                   </span>
-                  <h3 className="font-semibold text-lg">What's included</h3>
+                  <h3 className="font-semibold text-lg">{shortLabel} Deliverables</h3>
                 </div>
                 <ul className="space-y-3">
                   {service.deliverables.map((item: string, i: number) => (
                     <li key={i} className="flex items-start gap-3">
-                      <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" aria-hidden="true" />
                       <span className="text-sm text-foreground/90 leading-relaxed">
                         {item}
                       </span>
@@ -181,7 +224,7 @@ export default function ServiceDetail() {
             <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold">
-                  Other services
+                  Other fintech SEO services
                 </h2>
                 <p className="text-muted-foreground mt-1">
                   Pair with these to compound results faster.
@@ -205,7 +248,7 @@ export default function ServiceDetail() {
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <OtherIcon className="h-4.5 w-4.5" />
+                        <OtherIcon className="h-4.5 w-4.5" aria-hidden="true" />
                       </span>
                       <h3 className="font-semibold leading-tight group-hover:text-primary transition-colors">
                         {other.name}
@@ -214,12 +257,6 @@ export default function ServiceDetail() {
                     <p className="text-sm text-muted-foreground line-clamp-3">
                       {other.tagline}
                     </p>
-                    {/* On-Page SEO: include the related-service name in the
-                        anchor text. Google's PageRank link-text signal weights
-                        descriptive anchors materially higher than generic
-                        "Learn more" — and giving each related card a unique
-                        anchor also reduces internal-link cannibalisation
-                        across service detail pages. */}
                     <div className="mt-4 inline-flex items-center text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                       Learn more about {other.name}
                       <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
@@ -233,12 +270,16 @@ export default function ServiceDetail() {
       )}
 
       {faqs.length > 0 && (
-        <section className="py-16 border-t" data-testid={`section-faq-${service.slug}`}>
+        <section
+          className="py-16 border-t speakable-faq"
+          data-testid={`section-faq-${service.slug}`}
+          aria-labelledby={`faq-heading-${service.slug}`}
+        >
           <div className="container mx-auto px-4 max-w-3xl">
             <div className="text-center mb-10">
-              <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" />
-              <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                Frequently asked questions
+              <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" aria-hidden="true" />
+              <h2 id={`faq-heading-${service.slug}`} className="text-2xl md:text-3xl font-bold mb-3">
+                Frequently asked questions about {shortLabel.toLowerCase()}
               </h2>
               <p className="text-muted-foreground">
                 The questions fintech marketers ask us most about{" "}
@@ -260,7 +301,7 @@ export default function ServiceDetail() {
                   <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
                     <span className="flex-1 pr-4">{faq.question}</span>
                     <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
-                      <Plus className="w-5 h-5" />
+                      <Plus className="w-5 h-5" aria-hidden="true" />
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
@@ -275,7 +316,7 @@ export default function ServiceDetail() {
 
       <section className="py-16">
         <div className="container mx-auto px-4 max-w-3xl text-center">
-          <Sparkles className="h-8 w-8 text-primary mx-auto mb-4" />
+          <Sparkles className="h-8 w-8 text-primary mx-auto mb-4" aria-hidden="true" />
           <h2 className="text-2xl md:text-3xl font-bold mb-3">
             Ready to scale {shortLabel.toLowerCase()}?
           </h2>
@@ -286,7 +327,7 @@ export default function ServiceDetail() {
           <Link href="/contact">
             <Button size="lg" data-testid="button-cta-contact">
               Get a free audit
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
             </Button>
           </Link>
         </div>

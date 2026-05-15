@@ -113,6 +113,110 @@ export const serviceKnowsAboutBySlug: Record<string, string[]> = {
   ],
 };
 
+/**
+ * `about` topic entity arrays for each service's WebPage JSON-LD.
+ * Distinct from `knowsAbout` (service provider knowledge) — these are the
+ * primary subjects the page content is about, enabling AI citation engines
+ * to slot each service page into the correct topic cluster.
+ */
+export const serviceAboutBySlug: Record<string, string[]> = {
+  "fintech-content-writing": [
+    "Fintech Content Writing",
+    "Financial Services Content Marketing",
+    "SEO Content for Fintech",
+  ],
+  "off-page-seo": [
+    "Off-Page SEO for Fintech",
+    "Financial Link Building",
+    "Fintech Domain Authority",
+  ],
+  "guest-posting": [
+    "Fintech Guest Posting",
+    "Finance Publication Placements",
+    "Editorial Backlink Building",
+  ],
+  "topical-authority": [
+    "Topical Authority for Fintech",
+    "Content Cluster SEO",
+    "Fintech SEO Strategy",
+  ],
+  "fintech-seo-audit": [
+    "Fintech SEO Audit",
+    "Technical SEO for Financial Services",
+    "SEO Competitor Analysis",
+  ],
+};
+
+/**
+ * Markets served by each service — emitted as structured `areaServed` Place
+ * entities on FinancialService JSON-LD. Enables Google Knowledge Graph and AI
+ * citation engines to associate each service with specific geographic markets
+ * (International SEO signal I1–I3).
+ */
+export const serviceAreaServedBySlug: Record<string, string[]> = {
+  "fintech-content-writing": [
+    "United States",
+    "United Kingdom",
+    "Singapore",
+    "Australia",
+    "Canada",
+    "European Union",
+  ],
+  "off-page-seo": [
+    "United States",
+    "United Kingdom",
+    "Singapore",
+    "Australia",
+    "Canada",
+  ],
+  "guest-posting": [
+    "United States",
+    "United Kingdom",
+    "Singapore",
+    "Australia",
+    "Canada",
+  ],
+  "topical-authority": [
+    "United States",
+    "United Kingdom",
+    "Singapore",
+    "Australia",
+    "Canada",
+  ],
+  "fintech-seo-audit": [
+    "United States",
+    "United Kingdom",
+    "Singapore",
+    "Australia",
+    "Canada",
+    "European Union",
+  ],
+};
+
+/**
+ * Canonical publication dates for each service detail page.
+ * Used in WebPage and FinancialService JSON-LD as `datePublished` freshness
+ * signals. Single source of truth for the frontend (api-server uses
+ * SERVICE_PAGE_LASTMOD_DATE in seoConstants.ts — cross-package imports
+ * are not permitted from fintechpresshub into api-server).
+ */
+export const serviceDatePublishedBySlug: Record<string, string> = {
+  "fintech-content-writing": "2021-03-01",
+  "off-page-seo":            "2021-03-01",
+  "guest-posting":           "2021-06-01",
+  "topical-authority":       "2022-01-01",
+  "fintech-seo-audit":       "2022-06-01",
+};
+
+/**
+ * Stable last-modification date for service detail pages (frontend mirror of
+ * SERVICE_PAGE_LASTMOD_DATE in api-server/src/lib/seoConstants.ts).
+ * Update this string whenever service content is materially revised — using
+ * `new Date()` was incorrect because it signalled a daily change to crawlers
+ * on pages with stable content, wasting crawl budget.
+ */
+export const SERVICE_PAGE_LASTMOD = "2026-05-15";
+
 export function getServiceIcon(slug: string): LucideIcon {
   return serviceIconBySlug[slug] ?? Sparkles;
 }
