@@ -2665,10 +2665,17 @@ async function handleSsrMeta(
         // databases) parse DC tags as a secondary channel — matches the DC provenance
         // pattern on blog posts, write-for-us, services, and pricing pages.
         headLinks: [
+          // International: en-US listed explicitly so all 5 regional markets are
+          // enumerated consistently with /glossary hub, /services, /pricing, /contact.
+          `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
           `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
           `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
           `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
           `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+          // Technical: RSS autodiscovery on each term page points to the glossary feed
+          // so RSS readers, Feedly, and AI feed bots can subscribe to new-term alerts
+          // from any entry point in the glossary — not just the hub page.
+          `  <link rel="alternate" type="application/rss+xml" title="FintechPressHub Fintech Glossary" href="${siteUrl}/glossary/rss.xml" />`,
           `  <meta name="DC.title" content="${esc(title)}" />`,
           `  <meta name="DC.creator" content="FintechPressHub Editorial Team" />`,
           `  <meta name="DC.subject" content="${esc(term.category ?? "Financial Technology")}" />`,
@@ -2755,6 +2762,17 @@ async function handleSsrMeta(
             // content is textually accessible and structurally navigable.
             accessMode:           ["textual"],
             accessibilityFeature: ["readingOrder", "structuralNavigation"],
+            // LRMI: interactivityType classifies this as expository content (a
+            // definition is purely read — no interactive component). Matches
+            // schema.org/interactivityType values from the LRMI specification.
+            interactivityType:    "expositive",
+            // typicalAgeRange: professional fintech audience is 18+. LRMI signal
+            // used by AI citation engines to infer content appropriateness.
+            typicalAgeRange:      "18-",
+            // creativeWorkStatus: "Published" confirms the term is live editorial
+            // content (not a draft) — important for Quality Raters and AI engines
+            // that prefer published, citable definitions over draft content.
+            creativeWorkStatus:   "Published",
             // educationalUse + teaches: LRMI properties that classify the
             // DefinedTerm as educational reference content — used by Google's
             // Knowledge Graph and AI citation engines (Perplexity, ChatGPT
@@ -5754,6 +5772,11 @@ async function handleSsrMeta(
             `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+            // Technical: RSS autodiscovery link lets RSS readers, Feedly, and AI
+            // feed bots detect the glossary feed from the hub page — the same
+            // pattern used for the blog RSS in index.html. Required for full
+            // feed-autodiscovery compliance (Technical T-8).
+            `  <link rel="alternate" type="application/rss+xml" title="FintechPressHub Fintech Glossary" href="${siteUrl}/glossary/rss.xml" />`,
             // On-Page: glossary-specific keywords meta for vocabulary-intent head terms.
             `  <meta name="keywords" content="fintech glossary, fintech terms, fintech definitions, payments terminology, embedded finance definitions, open banking glossary, regtech terms, neobanking glossary, wealthtech definitions" />`,
             // Technical: extended robots directives — max-snippet:-1 allows full
@@ -5771,6 +5794,26 @@ async function handleSsrMeta(
             `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
             `  <meta name="DC.rights" content="${esc(`${siteUrl}/terms`)}" />`,
           ];
+          // On-Page: article:* OG meta on the glossary hub — treats the hub as an
+          // editorial reference publication (which it is: written by FintechPressHub
+          // Editorial Team, first published 2024-06-01). Unlocks article-namespace
+          // social cards on LinkedIn and Facebook, and signals editorial provenance to
+          // Google's content classifier — matching the pattern on /write-for-us.
+          patches.ogType               = "article";
+          patches.articlePublishedTime = "2024-06-01";
+          patches.articleModifiedTime  = pageLastmod ?? "2026-05-15";
+          patches.articleSection       = "Fintech Reference";
+          patches.articleTags          = [
+            "fintech glossary",
+            "fintech terms",
+            "payments",
+            "embedded finance",
+            "open banking",
+            "regtech",
+          ];
+          patches.articleAuthor    = "FintechPressHub Editorial Team";
+          patches.articlePublisher = "https://twitter.com/fintechpresshub";
+          patches.author           = "FintechPressHub Editorial Team";
         }
 
         if (reqPath === "/write-for-us" && patches) {

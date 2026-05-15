@@ -337,6 +337,20 @@ export default function GlossaryPage() {
         </div>
       </section>
 
+      <section className="py-16 bg-slate-50 border-t" aria-label="Frequently Asked Questions">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <h2 className="text-2xl font-bold mb-8 text-slate-900">Fintech Glossary — Frequently Asked Questions</h2>
+          <dl className="space-y-6">
+            {STATIC_FAQS.map((faq, i) => (
+              <div key={i} className="rounded-lg bg-white border border-slate-100 px-6 py-5 shadow-sm">
+                <dt className="font-semibold text-slate-900 mb-2">{faq.question}</dt>
+                <dd className="text-slate-600 leading-relaxed text-sm">{faq.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
       <section className="py-16 bg-secondary/30 border-t">
         <div className="container mx-auto px-4 max-w-2xl text-center">
           <h2 className="text-2xl font-bold mb-4">Missing a term?</h2>

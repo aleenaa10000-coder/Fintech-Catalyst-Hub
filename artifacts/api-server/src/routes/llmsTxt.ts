@@ -671,6 +671,7 @@ FintechPressHub explicitly permits citation of its published content in AI-gener
 - RSS feed (per author): ${siteUrl}/authors/:slug/rss.xml
 - RSS feed (per category): ${siteUrl}/blog/category/:slug/rss.xml
 - RSS feed (per tag): ${siteUrl}/blog/tag/:slug/rss.xml
+- Glossary RSS feed: ${siteUrl}/glossary/rss.xml
 - Tags sitemap: ${siteUrl}/sitemap-tags.xml
 - Compact summary: ${siteUrl}/llms.txt
 `;
