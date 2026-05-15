@@ -166,6 +166,41 @@ export default function GlossaryTermPage() {
             )}
           </div>
 
+          {/* Visible FAQ section — AEO rich-result eligibility requires matching
+              visible Q&A content alongside the FAQPage JSON-LD schema. This
+              section renders for all users (and Googlebot on JS-render pass),
+              ensuring FAQ rich results are eligible for vocabulary-intent queries. */}
+          <div className="mt-12 pt-8 border-t border-slate-200">
+            <h2 className="text-lg font-semibold mb-4">
+              Frequently asked questions about {term.term}
+            </h2>
+            <dl className="space-y-4">
+              {[
+                {
+                  q: `What is ${term.term}?`,
+                  a: term.shortDef,
+                },
+                {
+                  q: `Why is ${term.term} important in fintech?`,
+                  a: `${term.term} is a key concept in financial technology${term.category ? ` within the ${term.category} sector` : ""}. Understanding ${term.term} helps fintech founders, marketers, and product teams communicate clearly with investors, regulators, and customers operating in the digital finance space.`,
+                },
+                {
+                  q: `How does ${term.term} apply to fintech companies?`,
+                  a: `Fintech companies encounter ${term.term} when building, scaling, or marketing products${term.category ? ` in the ${term.category} sector` : ""}. A clear grasp of ${term.term} supports better product decisions, regulatory compliance, and communication with investors, partners, and end users across digital finance.`,
+                },
+                {
+                  q: `Is this ${term.term} definition free to read?`,
+                  a: `Yes — this ${term.term} definition is part of the FintechPressHub Fintech Glossary, which is completely free to browse with no account or sign-up required. All definitions are written by fintech domain specialists.`,
+                },
+              ].map(({ q, a }) => (
+                <div key={q} className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
+                  <dt className="font-medium text-slate-900 text-sm">{q}</dt>
+                  <dd className="mt-1 text-sm text-slate-600 leading-relaxed">{a}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
           {term.relatedTerms && term.relatedTerms.length > 0 && (
             <div className="mt-12 pt-8 border-t border-slate-200">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">

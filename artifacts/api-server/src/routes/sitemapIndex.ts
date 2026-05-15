@@ -443,11 +443,38 @@ async function buildGlossarySitemapXml(): Promise<string> {
     .from(glossaryTermsTable)
     .orderBy(asc(glossaryTermsTable.term));
 
+  // ── /glossary hub entry ─────────────────────────────────────────────────
+  // Include the hub URL so Googlebot discovers it via the dedicated glossary
+  // sitemap in addition to sitemap.xml. Priority 0.8 matches the hub's
+  // STATIC_ROUTES entry. International: all 6 hreflang variants (en-US added
+  // for parity with /services, /pricing, /contact sitemaps — Technical T-4,
+  // International I-2).
+  const hubUrl = `${siteUrl}/glossary`;
+  const hubImageUrl = `${siteUrl}/api/og?title=${encodeURIComponent("Fintech Glossary")}&category=${encodeURIComponent("Glossary")}`;
+  const hubEntry =
+    `  <url>\n` +
+    `    <loc>${escapeXml(hubUrl)}</loc>\n` +
+    `    <lastmod>${new Date().toISOString().slice(0, 10)}</lastmod>\n` +
+    `    <changefreq>weekly</changefreq>\n` +
+    `    <priority>0.8</priority>\n` +
+    `    <image:image>\n` +
+    `      <image:loc>${escapeXml(hubImageUrl)}</image:loc>\n` +
+    `      <image:title>FintechPressHub Fintech Glossary</image:title>\n` +
+    `    </image:image>\n` +
+    `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(hubUrl)}"/>\n` +
+    `    <xhtml:link rel="alternate" hreflang="en-US" href="${escapeXml(hubUrl)}"/>\n` +
+    `    <xhtml:link rel="alternate" hreflang="en-GB" href="${escapeXml(hubUrl)}"/>\n` +
+    `    <xhtml:link rel="alternate" hreflang="en-AU" href="${escapeXml(hubUrl)}"/>\n` +
+    `    <xhtml:link rel="alternate" hreflang="en-SG" href="${escapeXml(hubUrl)}"/>\n` +
+    `    <xhtml:link rel="alternate" hreflang="en-CA" href="${escapeXml(hubUrl)}"/>\n` +
+    `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(hubUrl)}"/>\n` +
+    `  </url>`;
+
   if (terms.length === 0) {
-    return xmlUrlset("");
+    return xmlUrlset(hubEntry);
   }
 
-  const body = terms
+  const termEntries = terms
     .map((t) => {
       const url = `${siteUrl}/glossary/${t.slug}`;
       // Include a branded OG image for each glossary term so Google Images can
@@ -467,7 +494,11 @@ async function buildGlossarySitemapXml(): Promise<string> {
         `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
         `      <image:title>${escapeXml(t.term)}</image:title>\n` +
         `    </image:image>\n` +
+        // International: en-US added for parity with /services, /pricing,
+        // /contact sitemaps — Google requires all locale variants to be listed
+        // when regional hreflang is in use (International I-2).
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(url)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-US" href="${escapeXml(url)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="en-GB" href="${escapeXml(url)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="en-AU" href="${escapeXml(url)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="en-SG" href="${escapeXml(url)}"/>\n` +
@@ -478,7 +509,7 @@ async function buildGlossarySitemapXml(): Promise<string> {
     })
     .join("\n");
 
-  return xmlUrlset(body, true);
+  return xmlUrlset(`${hubEntry}\n${termEntries}`, true);
 }
 
 // ── /sitemap-tools.xml ───────────────────────────────────────────────────────

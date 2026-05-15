@@ -17,6 +17,7 @@ import rssRouter from "./routes/rss";
 import uploadsRouter from "./routes/uploads";
 import indexNowKeyRouter from "./routes/indexNowKey";
 import llmsTxtRouter from "./routes/llmsTxt";
+import glossaryRssRouter from "./routes/glossaryRss";
 import securityTxtRouter from "./routes/securityTxt";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
@@ -513,6 +514,7 @@ app.use(authorRssRouter);
 app.use(categoryRssRouter);
 app.use(tagRssRouter);
 app.use(rssRouter);
+app.use(glossaryRssRouter);    // /glossary/rss.xml — RSS feed for glossary terms
 app.use(indexNowKeyRouter);
 app.use(llmsTxtRouter);        // /llms.txt — LLM-readable site summary
 app.use(securityTxtRouter);    // /.well-known/security.txt — RFC 9116

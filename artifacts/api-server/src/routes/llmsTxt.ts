@@ -310,6 +310,7 @@ Content may not be reproduced verbatim beyond fair-use excerpts without permissi
 - [Compare Sitemap](${siteUrl}/sitemap-compare.xml)
 - [Locations Sitemap](${siteUrl}/sitemap-locations.xml)
 - [Glossary Sitemap](${siteUrl}/sitemap-glossary.xml)
+- [Glossary RSS Feed](${siteUrl}/glossary/rss.xml) — RSS 2.0 feed of all glossary terms, ordered alphabetically; subscribe for new-term alerts
 
 ## Optional
 

@@ -2680,6 +2680,13 @@ async function handleSsrMeta(
           `  <meta name="DC.language" scheme="RFC5646" content="en" />`,
           `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
           `  <meta name="DC.rights" content="${esc(`${siteUrl}/terms`)}" />`,
+          // On-Page: term-specific keywords meta supplements title + description
+          // — targets "what is X", "X definition", and category-level queries.
+          // Mirrors the keywords meta pattern on /services, /pricing, /contact.
+          `  <meta name="keywords" content="${esc([term.term, `${term.term} definition`, `what is ${term.term}`, "fintech glossary", ...(term.category ? [term.category.toLowerCase()] : [])].join(", "))}" />`,
+          // Technical: extended robots directives permit unlimited SERP snippet
+          // and large OG social card — same treatment as /services and /contact.
+          `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
         ],
         bodyPatch:     termBodyPatch,
         extraLds: [
@@ -2742,6 +2749,44 @@ async function handleSsrMeta(
               "@type":      "Audience",
               audienceType: "Fintech founders, marketers, product managers, and journalists",
             },
+            // accessMode + accessibilityFeature: WCAG / schema.org accessibility
+            // declarations required for full White Hat schema coverage (W-6).
+            // AI citation engines and Quality Raters verify these to confirm the
+            // content is textually accessible and structurally navigable.
+            accessMode:           ["textual"],
+            accessibilityFeature: ["readingOrder", "structuralNavigation"],
+            // educationalUse + teaches: LRMI properties that classify the
+            // DefinedTerm as educational reference content — used by Google's
+            // Knowledge Graph and AI citation engines (Perplexity, ChatGPT
+            // Search) to slot the entity into the "definition" content
+            // category, improving AEO snippet ranking (AEO A-5).
+            educationalUse: "definition",
+            teaches:        { "@type": "DefinedTerm", name: term.term },
+            // mainEntityOfPage: links the DefinedTerm entity back to its
+            // owning WebPage — closes the entity-graph cycle that the
+            // Knowledge Graph uses for entity disambiguation and SERP
+            // entity card population (Off-Page O-6).
+            mainEntityOfPage: {
+              "@type": "WebPage",
+              "@id":   `${canonical}#webpage`,
+            },
+            // isRelatedTo: schema:Thing.isRelatedTo — broader semantic
+            // relationship between this term and its related terms.
+            // Complements seeAlso (URL-only) with typed entity references
+            // for Knowledge Graph topical-cluster mapping (Off-Page O-3,
+            // GEO G-11). Only emitted when relatedTerms are present.
+            ...(seeAlso.length > 0
+              ? {
+                  isRelatedTo: seeAlso.map((url) => ({
+                    "@type": "DefinedTerm",
+                    url,
+                    inDefinedTermSet: {
+                      "@type": "DefinedTermSet",
+                      "@id":   `${siteUrl}/glossary`,
+                    },
+                  })),
+                }
+              : {}),
           }, null, 2),
           JSON.stringify({
             "@context":    "https://schema.org",
@@ -4485,6 +4530,11 @@ async function handleSsrMeta(
             // Graph that this DefinedTermSet is the canonical representation of the
             // Financial Technology domain on this site (Off-Page O-5, White Hat W-4).
             sameAs:       ["https://www.wikidata.org/wiki/Q182578"],
+            // subjectOf: inverse of about — points from the DefinedTermSet entity
+            // to the CollectionPage that publishes it. Closes the entity→page→entity
+            // cycle in the Knowledge Graph for improved GEO topic-cluster mapping
+            // and AI citation engine entity resolution (GEO G-11, Off-Page O-6).
+            subjectOf:    { "@type": "CollectionPage", "@id": `${canonical}#webpage` },
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
@@ -4622,6 +4672,49 @@ async function handleSsrMeta(
                 },
               },
             ],
+          }, null, 2));
+
+          // ── CollectionPage + WebPage for /glossary hub ────────────────────
+          // Every page needs a WebPage (or typed subtype) schema for the
+          // Knowledge Graph and AI citation engines to anchor the page as a
+          // distinct entity. CollectionPage is the correct subtype for a
+          // curated reference hub (Technical T-3, Programmatic P-7).
+          extraLds.push(JSON.stringify({
+            "@context":    "https://schema.org",
+            "@type":       ["WebPage", "CollectionPage"],
+            "@id":         `${canonical}#webpage`,
+            url:           canonical,
+            name:          staticMeta.title,
+            description:   staticMeta.description,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            about: [
+              { "@type": "Thing", name: "Financial Technology" },
+              { "@type": "Thing", name: "Fintech Glossary" },
+            ],
+            // mainEntity: references the DefinedTermSet this page publishes —
+            // closes the page↔entity cycle in the Knowledge Graph (Off-Page O-6).
+            mainEntity:  { "@type": "DefinedTermSet", "@id": canonical },
+            breadcrumb:  { "@id": `${canonical}#breadcrumb` },
+            potentialAction: { "@type": "ReadAction", target: canonical },
+            // White Hat / AI citation signals mirroring DefinedTermSet above.
+            isAccessibleForFree:  true,
+            conditionsOfAccess:   "https://schema.org/OnlineAccess",
+            publishingPrinciples: `${siteUrl}/editorial-guidelines`,
+            copyrightNotice:      "© 2024 FintechPressHub. All rights reserved.",
+            license:              `${siteUrl}/terms`,
+            usageInfo:            `${siteUrl}/terms`,
+            // accessMode + accessibilityFeature: White Hat accessibility signals
+            // required for full White Hat schema coverage on hub pages (W-6).
+            accessMode:           ["textual"],
+            accessibilityFeature: ["readingOrder", "structuralNavigation"],
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1", ".page-hero-description", ".geo-answer-block"],
+            },
+            ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           }, null, 2));
 
         } else if (reqPath === "/tools") {
@@ -5653,10 +5746,19 @@ async function handleSsrMeta(
           // write-for-us, services, and pricing so the glossary hub is indexed with full
           // DC metadata by library, academic, and financial research indexers.
           patches.headLinks = [
+            // International: en-US added for consistency with /services, /pricing,
+            // /contact. Google requires all locale variants to be listed when using
+            // regional hreflang — including the primary market (en-US).
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+            // On-Page: glossary-specific keywords meta for vocabulary-intent head terms.
+            `  <meta name="keywords" content="fintech glossary, fintech terms, fintech definitions, payments terminology, embedded finance definitions, open banking glossary, regtech terms, neobanking glossary, wealthtech definitions" />`,
+            // Technical: extended robots directives — max-snippet:-1 allows full
+            // SERP snippet; max-image-preview:large enables OG social card display.
+            `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
             `  <meta name="DC.title" content="Fintech Glossary: 100+ Key Terms &amp; Definitions | FintechPressHub" />`,
             `  <meta name="DC.creator" content="FintechPressHub Editorial Team" />`,
             `  <meta name="DC.subject" content="Fintech Glossary, Financial Technology Terms, Payments, Embedded Finance, Open Banking, Regtech, Neobanking, Wealthtech" />`,
