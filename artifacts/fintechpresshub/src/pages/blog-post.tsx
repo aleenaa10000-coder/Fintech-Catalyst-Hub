@@ -460,6 +460,29 @@ export default function BlogPost() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  /* ── Persist reading progress to localStorage (debounced 2 s) ──
+     Saved under "fph-read-progress" as { [slug]: number } so the
+     /reading-list page can show per-card progress badges without
+     any server state. Wrapped in try/catch because Safari private
+     mode throws on localStorage.setItem. */
+  const saveProgressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!slug || readProgress <= 0) return;
+    if (saveProgressTimer.current) clearTimeout(saveProgressTimer.current);
+    saveProgressTimer.current = setTimeout(() => {
+      try {
+        const stored = JSON.parse(
+          localStorage.getItem("fph-read-progress") ?? "{}",
+        ) as Record<string, number>;
+        stored[slug] = Math.round(readProgress);
+        localStorage.setItem("fph-read-progress", JSON.stringify(stored));
+      } catch { /* noop */ }
+    }, 2000);
+    return () => {
+      if (saveProgressTimer.current) clearTimeout(saveProgressTimer.current);
+    };
+  }, [slug, readProgress]);
+
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
   useEffect(() => {

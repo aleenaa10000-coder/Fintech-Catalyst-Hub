@@ -19,10 +19,12 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 const BOOKMARK_KEY = "fph-bookmarks";
+const PROGRESS_KEY = "fph-read-progress";
 type BookmarkEntry = { slug: string; title: string; date: string; readTime: string };
 
 export default function ReadingListPage() {
   const [bookmarks, setBookmarks] = useState<BookmarkEntry[]>([]);
+  const [readProgressMap, setReadProgressMap] = useState<Record<string, number>>({});
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -32,6 +34,13 @@ export default function ReadingListPage() {
       );
     } catch {
       setBookmarks([]);
+    }
+    try {
+      setReadProgressMap(
+        JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? "{}") as Record<string, number>,
+      );
+    } catch {
+      setReadProgressMap({});
     }
     setHydrated(true);
   }, []);
@@ -166,6 +175,7 @@ export default function ReadingListPage() {
                   key={bookmark.slug}
                   bookmark={bookmark}
                   post={post}
+                  progress={readProgressMap[bookmark.slug] ?? 0}
                   onRemove={() => removeBookmark(bookmark.slug)}
                 />
               ))}
@@ -180,10 +190,12 @@ export default function ReadingListPage() {
 function ReadingCard({
   bookmark,
   post,
+  progress,
   onRemove,
 }: {
   bookmark: BookmarkEntry;
   post: PublicPost | null;
+  progress: number;
   onRemove: () => void;
 }) {
   const title = post?.title ?? bookmark.title;
@@ -192,6 +204,9 @@ function ReadingCard({
   const coverImage = post?.coverImage;
   const category = post?.category;
   const author = post?.author;
+
+  const inProgress = progress >= 5 && progress < 95;
+  const done = progress >= 95;
 
   const formattedDate = date
     ? new Date(date).toLocaleDateString("en-US", {
@@ -203,10 +218,10 @@ function ReadingCard({
 
   return (
     <article className="group flex flex-col rounded-2xl border border-slate-200 bg-white overflow-hidden hover:shadow-lg hover:border-[#0052FF]/25 transition-all duration-200">
-      {/* Cover image */}
+      {/* Cover image + progress overlays */}
       <Link
         href={`/blog/${bookmark.slug}`}
-        className="block overflow-hidden shrink-0"
+        className="relative block overflow-hidden shrink-0"
         aria-hidden="true"
         tabIndex={-1}
       >
@@ -222,6 +237,28 @@ function ReadingCard({
         ) : (
           <div className="w-full aspect-video bg-gradient-to-br from-slate-100 to-blue-50 flex items-center justify-center">
             <BookOpen className="w-10 h-10 text-slate-200" aria-hidden="true" />
+          </div>
+        )}
+
+        {/* Progress badge — top-right corner */}
+        {inProgress && (
+          <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm text-[#0052FF] text-[11px] font-bold rounded-full px-2 py-0.5 shadow-sm tabular-nums">
+            {Math.round(progress)}% read
+          </span>
+        )}
+        {done && (
+          <span className="absolute top-2 right-2 bg-emerald-500 text-white text-[11px] font-bold rounded-full px-2 py-0.5 shadow-sm">
+            ✓ Done
+          </span>
+        )}
+
+        {/* Progress bar — bottom of cover */}
+        {(inProgress || done) && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20" aria-hidden="true">
+            <div
+              className={done ? "h-full bg-emerald-400" : "h-full bg-[#0052FF]"}
+              style={{ width: `${progress}%` }}
+            />
           </div>
         )}
       </Link>
@@ -262,7 +299,8 @@ function ReadingCard({
         <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 mt-1">
           <Button asChild size="sm" className="gap-1.5 h-8 text-xs font-semibold">
             <Link href={`/blog/${bookmark.slug}`}>
-              Read article <ArrowRight className="w-3.5 h-3.5" />
+              {inProgress ? "Resume reading" : "Read article"}
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </Button>
           <button
