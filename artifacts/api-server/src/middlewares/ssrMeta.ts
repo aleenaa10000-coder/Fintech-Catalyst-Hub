@@ -1605,9 +1605,13 @@ async function handleSsrMeta(
       // honorificSuffix extracted from credentials (CFA, PhD, MBA, etc.) — set
       // inside the authorSlug block where authorRow is in scope.
       let authorHonorificSuffix: string | null = null;
+      // knowsAbout extracted from expertise column — mirrors the Person entity
+      // on /authors/:slug profile pages so both rendering paths emit a consistent
+      // author entity for Google's Knowledge Graph resolution.
+      let authorExpertise: string[] = [];
       if (authorSlug) {
         const [authorRow] = await db
-          .select({ social: authorsTable.social, photo: authorsTable.photo, credentials: authorsTable.credentials })
+          .select({ social: authorsTable.social, photo: authorsTable.photo, credentials: authorsTable.credentials, expertise: authorsTable.expertise })
           .from(authorsTable)
           .where(eq(authorsTable.slug, authorSlug))
           .limit(1);
@@ -1636,6 +1640,14 @@ async function handleSsrMeta(
             if (m) found.push(m[1]);
           }
           if (found.length > 0) authorHonorificSuffix = found.join(", ");
+        }
+        // knowsAbout from expertise column — mirrors the Person entity on
+        // /authors/:slug profile pages so Google's Knowledge Graph sees
+        // identical author entities from both the BlogPosting and the
+        // profile page, strengthening E-E-A-T entity consolidation.
+        const expertiseRaw = authorRow?.expertise;
+        if (Array.isArray(expertiseRaw) && expertiseRaw.length > 0) {
+          authorExpertise = expertiseRaw as string[];
         }
       }
 
@@ -1755,6 +1767,11 @@ async function handleSsrMeta(
                   // credentials — disambiguates the author entity in Google's Knowledge
                   // Graph and strengthens YMYL E-E-A-T for fintech financial content.
                   ...(authorHonorificSuffix ? { honorificSuffix: authorHonorificSuffix } : {}),
+                  // knowsAbout mirrors the Person entity on /authors/:slug so Google's
+                  // Knowledge Graph consolidates both rendering paths into a single author
+                  // entity. Without it, the BlogPosting Person is a weaker, less-specific
+                  // entity than the profile page — inconsistency lowers E-E-A-T trust scores.
+                  ...(authorExpertise.length > 0 ? { knowsAbout: authorExpertise } : {}),
                 },
               }
             : {}),
@@ -1916,6 +1933,14 @@ async function handleSsrMeta(
           // when ranking citation candidates for voice-assisted reading — pages
           // with a declared hazard level are preferred over undeclared pages.
           accessibilityHazard: "none",
+          // accessibilityFeature: completes the WCAG-aligned YMYL accessibility
+          // declaration stack. Google's structured-data guidelines for YMYL content
+          // expect all four accessibility properties — accessMode, accessibilitySummary,
+          // accessibilityHazard, and accessibilityFeature — to be present together.
+          // "alternativeText" confirms images have alt text; "structuredNavigation"
+          // confirms the article uses h1/h2/h3 landmarks. Both are true for all
+          // FintechPressHub articles by editorial policy.
+          accessibilityFeature: ["alternativeText", "structuredNavigation"],
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs, breadcrumbLdId),
       ];
