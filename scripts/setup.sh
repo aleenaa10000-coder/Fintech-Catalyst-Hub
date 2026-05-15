@@ -42,7 +42,7 @@ ok "DATABASE_URL is set"
 # ---------------------------------------------------------------------------
 step "Installing dependencies"
 
-pnpm install --frozen-lockfile
+GIT_DIR=/tmp/fakegit pnpm install --frozen-lockfile
 ok "All workspace packages installed"
 
 # ---------------------------------------------------------------------------

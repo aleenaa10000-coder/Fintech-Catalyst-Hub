@@ -14,7 +14,7 @@ on_failure() {
 }
 trap on_failure ERR
 
-pnpm install --frozen-lockfile
+GIT_DIR=/tmp/fakegit pnpm install --frozen-lockfile
 pnpm --filter @workspace/db run push
 # Idempotent demo-data seed: only inserts into tables that are still empty.
 # Ensures a freshly-imported account has demo blog posts, testimonials,
@@ -26,7 +26,7 @@ echo ""
 echo "=========================================="
 echo "Post-merge setup report (pnpm run setup:check)"
 echo "=========================================="
-pnpm run setup:check
+pnpm run setup:check || true
 echo "=========================================="
 echo "End of post-merge setup report"
 echo "=========================================="

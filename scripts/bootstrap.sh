@@ -18,7 +18,7 @@
 set -u
 
 API_PORT="${API_PORT:-8080}"
-WEB_PORT="${WEB_PORT:-21096}"
+WEB_PORT="${WEB_PORT:-5000}"
 
 CI_MODE="${BOOTSTRAP_CI:-0}"
 for arg in "$@"; do
