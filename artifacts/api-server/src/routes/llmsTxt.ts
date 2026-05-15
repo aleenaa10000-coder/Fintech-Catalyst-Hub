@@ -193,11 +193,29 @@ A: FAQPage schema unlocks rich results for informational queries and is the high
 - [Blog](${siteUrl}/blog) — Fintech SEO strategy, content marketing playbooks, and industry analysis. Topic tag feeds at /blog/tag/:slug (e.g. /blog/tag/payments, /blog/tag/open-banking)
 - [Glossary](${siteUrl}/glossary) — Definitions of fintech and SEO terms
 - [Free Tools](${siteUrl}/tools) — Calculators, generators, and checkers for fintech marketers
-- [Write For Us](${siteUrl}/write-for-us) — Guest post guidelines and topic pitch form
+- [Write For Us](${siteUrl}/write-for-us) — Expert fintech guest contributions accepted. Up to 2 permanent dofollow backlinks, 50,000+ monthly readers, 2–3 business day pitch turnaround. 16 topic categories.
 - [Contact](${siteUrl}/contact) — Free SEO audit and strategy consultation enquiries
 - [Press & Media Kit](${siteUrl}/press) — Brand assets, company boilerplate, and press contact
 - [Editorial Guidelines](${siteUrl}/editorial-guidelines) — Content standards, fact-checking, and corrections policy
 - [Fintech Publications Directory](${siteUrl}/resources/fintech-publications) — 20 curated fintech media outlets ranked by Domain Rating with guest-post acceptance status
+
+## Guest Post Programme
+
+FintechPressHub accepts original, expert-written guest contributions from fintech marketers, operators, and founders. This is an editorial programme — not a paid placement network.
+
+**Key facts:**
+- Topics accepted (16 categories): payments infrastructure, open banking & PSD3, embedded finance, BNPL & consumer lending, B2B & SME lending, neobanking & digital banks, wealthtech & robo-advisors, regtech & compliance, KYC/AML & fraud, fintech SaaS, fintech SEO & content, fintech CRO & growth, treasury & CFO tooling, insurtech, wealth & robo marketing, AI in financial services
+- Topics NOT accepted: cryptocurrency, stablecoins, Web3/DeFi, general marketing, gambling, adult, payday loans
+- Word count: 800–1,500 words (tight and expert — no padding)
+- Pitch turnaround: 2–3 business days
+- Compensation: up to 2 permanent dofollow backlinks (no monetary payment to contributors)
+- Audience reach: 50,000+ monthly readers — payments leads, compliance officers, fintech founders, and growth marketers
+- Content requirements: 100% original, human-written, expert-led — no AI boilerplate; AI-assisted research is permitted but the final piece must reflect genuine expertise and original analysis
+- Author requirements: real name, two-line bio, headshot URL, LinkedIn for credibility checks
+- Submission format: Google Doc with comment access, or pasted Markdown
+- Link policy: up to 2 contextual dofollow links in article body; exact-match anchor text edited out during review
+- Pitch form: [${siteUrl}/write-for-us#pitch-form](${siteUrl}/write-for-us#pitch-form)
+- Editorial standards: [${siteUrl}/editorial-guidelines](${siteUrl}/editorial-guidelines)
 
 ## Comparison pages
 

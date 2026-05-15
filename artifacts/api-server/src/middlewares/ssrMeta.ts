@@ -3887,6 +3887,14 @@ async function handleSsrMeta(
             // to associate the page with "fintech guest posting worldwide" in their
             // knowledge graphs, surfacing it for region-agnostic queries.
             areaServed: { "@type": "Place", name: "Worldwide" },
+            // audience — declares the intended professional readership of this
+            // guest-post programme. Strengthens targeting signal for "fintech
+            // write for us" and "fintech guest post for marketers" queries in
+            // Google AI Overviews and Perplexity answer surfaces.
+            audience: {
+              "@type": "Audience",
+              audienceType: "Fintech marketers, operators, founders, and content strategists",
+            },
             // about — topical entity declarations for knowledge graph association.
             // Each entry strengthens the page's signal for intent-matching on
             // "fintech write for us", "fintech guest post", and "dofollow fintech".

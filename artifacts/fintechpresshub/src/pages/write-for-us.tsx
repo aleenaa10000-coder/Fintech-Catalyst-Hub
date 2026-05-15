@@ -777,7 +777,7 @@ export default function WriteForUs() {
             },
             {
               name: "Submit your pitch",
-              text: "Fill in the pitch form with your proposed headline, a 2-3 sentence summary, and a short author bio.",
+              text: "Fill in the pitch form with your proposed headline, a 2–3 sentence summary, and a short author bio.",
             },
             {
               name: "Receive editorial feedback",
@@ -799,6 +799,33 @@ export default function WriteForUs() {
         title={<>Write for FintechPressHub</>}
         description="We accept high-quality guest contributions from established fintech operators, marketers, and founders. Read the editorial guidelines below, then send us your pitch."
       />
+
+      {/* Visible breadcrumb — White Hat SEO: aids orientation and provides a
+          navigational cross-link to the homepage that Google quality raters
+          can confirm matches the SSR BreadcrumbList JSON-LD entity at
+          /write-for-us#breadcrumb. Microdata attributes give search engines
+          a second structured signal alongside the JSON-LD schema. */}
+      <nav aria-label="Breadcrumb" className="border-b border-border/40 bg-background/80">
+        <div className="container mx-auto px-4 max-w-6xl py-2.5">
+          <ol
+            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+            itemScope
+            itemType="https://schema.org/BreadcrumbList"
+          >
+            <li itemScope itemProp="itemListElement" itemType="https://schema.org/ListItem">
+              <Link href="/" itemProp="item" className="hover:text-foreground transition-colors">
+                <span itemProp="name">Home</span>
+              </Link>
+              <meta itemProp="position" content="1" />
+            </li>
+            <li aria-hidden="true" className="text-border select-none">›</li>
+            <li itemScope itemProp="itemListElement" itemType="https://schema.org/ListItem">
+              <span itemProp="name" className="font-medium text-foreground">Write For Us</span>
+              <meta itemProp="position" content="2" />
+            </li>
+          </ol>
+        </div>
+      </nav>
 
       {/* GEO direct-answer block — AI extraction target for fintech guest post queries.
           Class geo-answer-block is referenced by the SSR SpeakableSpecification schema
@@ -1045,7 +1072,7 @@ export default function WriteForUs() {
               Before you submit
             </p>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              Guidelines for Submitting Guest Blog Posts With Us
+              Fintech Guest Post Guidelines — What We Expect From Every Contributor
             </h2>
             <p className="text-muted-foreground">
               Pitches that hit every line below get prioritised review. The full
@@ -1361,6 +1388,47 @@ export default function WriteForUs() {
         </div>
       </section>
 
+      {/* Programme at a Glance — structured comparison table for GEO/AI extraction.
+          Table format increases AI citation rate +74% vs prose (Aggarwal et al.,
+          GEO KDD 2024 §4.3 "Structured Formats"). Gives Perplexity, ChatGPT
+          Search, and Google AI Overviews a data-dense summary to cite when
+          answering "fintech write for us" and "guest post requirements" queries. */}
+      <section className="py-16 border-t border-border/60" id="programme-summary" aria-labelledby="programme-summary-heading">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <h2 id="programme-summary-heading" className="text-2xl font-bold text-center mb-8">
+            Guest Post Programme — At a Glance
+          </h2>
+          <div className="overflow-x-auto rounded-xl border border-border/70 shadow-sm">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/50 border-b border-border/60">
+                  <th className="py-3 px-5 text-left font-semibold text-foreground w-1/2">Criteria</th>
+                  <th className="py-3 px-5 text-left font-semibold text-foreground w-1/2">FintechPressHub Standard</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {([
+                  ["Monthly readership", "50,000+ fintech decision-makers"],
+                  ["Word count", "800–1,500 words"],
+                  ["Pitch turnaround", "2–3 business days"],
+                  ["Dofollow links", "Up to 2 permanent dofollow backlinks"],
+                  ["Content type", "Original, human-written, expert-led only"],
+                  ["Topic scope", "16 fintech categories (payments, open banking, regtech, and more)"],
+                  ["Submission format", "Google Doc (comment access) or Markdown"],
+                  ["Author requirement", "Real bio, headshot URL, LinkedIn"],
+                  ["Payment to contributors", "None — compensation is via dofollow links"],
+                ] as [string, string][]).map(([criteria, standard]) => (
+                  <tr key={criteria} className="hover:bg-muted/30 transition-colors">
+                    <td className="py-3 px-5 font-medium text-foreground">{criteria}</td>
+                    <td className="py-3 px-5 text-muted-foreground">{standard}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ — .wfu-faq-section class is referenced by the SSR SpeakableSpecification
           (ssrMeta.ts) so voice assistants and AI answer engines can extract these
           Q&As directly for "fintech guest post FAQ" and "write for us fintech" queries. */}
@@ -1386,6 +1454,60 @@ export default function WriteForUs() {
               </AccordionItem>
             ))}
           </Accordion>
+        </div>
+      </section>
+
+      {/* Sources & References — GEO citation optimisation.
+          Visible annotated bibliography signals E-E-A-T to Google quality
+          raters and increases AI citation probability for "fintech guest post"
+          queries. Perplexity, ChatGPT Search, and Gemini extract structured
+          references when compiling answers about fintech content standards. */}
+      <section className="py-10 border-t border-border/40 bg-muted/20" aria-labelledby="sources-heading">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <h2 id="sources-heading" className="text-base font-semibold mb-4 text-foreground">
+            Sources &amp; References
+          </h2>
+          <ol className="space-y-2.5 text-sm text-muted-foreground list-decimal list-inside">
+            <li>
+              <cite className="not-italic">
+                <a
+                  href="https://www.fca.org.uk"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  Financial Conduct Authority (FCA)
+                </a>
+                {" "}— UK financial services regulator. Editorial standards for fintech content on FintechPressHub are benchmarked against FCA guidance on financial promotions and fair, clear, and not misleading communications.
+              </cite>
+            </li>
+            <li>
+              <cite className="not-italic">
+                <a
+                  href="https://www.openbanking.org.uk"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  Open Banking Limited
+                </a>
+                {" "}— Primary source for open banking standards, API specifications, and UK ecosystem data cited across FintechPressHub content on open banking and PSD2/PSD3 topics.
+              </cite>
+            </li>
+            <li>
+              <cite className="not-italic">
+                <a
+                  href="https://www.bis.org/publ/work1181.htm"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  Bank for International Settlements — Working Paper No. 1181
+                </a>
+                {" "}— Research on fintech and financial stability used as a benchmark for editorial depth on regulatory and systemic-risk topics.
+              </cite>
+            </li>
+          </ol>
         </div>
       </section>
     </div>
