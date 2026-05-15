@@ -1,6 +1,6 @@
 import { Link, useParams } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, HelpCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, HelpCircle, Plus, Sparkles } from "lucide-react";
 import { useListServices } from "@workspace/api-client-react";
 
 import { PageMeta } from "@/components/PageMeta";
@@ -245,17 +245,25 @@ export default function ServiceDetail() {
                 {shortLabel.toLowerCase()}.
               </p>
             </div>
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion
+              type="single"
+              collapsible
+              className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
+            >
               {faqs.map((faq, idx) => (
                 <AccordionItem
                   key={faq.question}
                   value={`faq-${idx}`}
                   data-testid={`accordion-faq-${idx}`}
+                  className="border-b-0 group"
                 >
-                  <AccordionTrigger className="text-base md:text-lg font-medium">
-                    {faq.question}
+                  <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
+                    <span className="flex-1 pr-4">{faq.question}</span>
+                    <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
+                      <Plus className="w-5 h-5" />
+                    </span>
                   </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground text-base leading-relaxed">
+                  <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
                     {faq.answer}
                   </AccordionContent>
                 </AccordionItem>

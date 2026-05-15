@@ -26,6 +26,12 @@ function detectEmailProvider(): EmailProvider {
 }
 
 router.get("/healthz", async (_req, res) => {
+  // Redirect browsers to the visual status dashboard
+  const accept = _req.headers["accept"] ?? "";
+  if (accept.includes("text/html") && !accept.startsWith("application/")) {
+    res.redirect(302, "/status");
+    return;
+  }
   const t0 = Date.now();
   let dbOk = false;
   let dbLatencyMs = 0;

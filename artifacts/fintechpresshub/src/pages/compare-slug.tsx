@@ -1,9 +1,15 @@
 import { useParams, Link } from "wouter";
-import { Check, X, ArrowRight, Minus } from "lucide-react";
+import { Check, X, ArrowRight, Minus, Plus } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { SITE_URL } from "@/lib/metaData";
 import { getComparison, COMPARISONS, type Verdict } from "@/data/comparisons";
 import NotFound from "@/pages/not-found";
@@ -124,14 +130,25 @@ export default function CompareSlug() {
         <section className="py-16">
           <div className="container mx-auto px-4 max-w-3xl">
             <h2 className="text-2xl font-bold text-center mb-8">Frequently asked questions</h2>
-            <div className="space-y-4">
-              {comparison.faqItems.map((faq) => (
-                <div key={faq.question} className="rounded-lg border p-5">
-                  <h3 className="font-semibold mb-2">{faq.question}</h3>
-                  <p className="text-sm text-muted-foreground">{faq.answer}</p>
-                </div>
+            <Accordion
+              type="single"
+              collapsible
+              className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
+            >
+              {comparison.faqItems.map((faq, i) => (
+                <AccordionItem key={faq.question} value={`slug-faq-${i}`} className="border-b-0 group">
+                  <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
+                    <span className="flex-1 pr-4">{faq.question}</span>
+                    <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
+                      <Plus className="w-5 h-5" />
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
               ))}
-            </div>
+            </Accordion>
           </div>
         </section>
       )}
