@@ -1,6 +1,6 @@
 import { PageMeta } from "@/components/PageMeta";
 import { SITE_URL } from "@/lib/metaData";
-import { useParams, Link, Redirect } from "wouter";
+import { useParams, useLocation, Link, Redirect } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -252,6 +252,7 @@ function isMeaningfullyUpdated(
 export default function BlogPost() {
   const params = useParams();
   const slug = params.slug || "";
+  const [, navigate] = useLocation();
   // Admin-only "Edit on /admin/blog" affordance. `user.isAdmin` is computed
   // server-side from the ADMIN_EMAILS allowlist on every /api/auth/user call,
   // so non-admins (and signed-out visitors) never see the button.
@@ -511,7 +512,14 @@ export default function BlogPost() {
         : [...stored, { slug: post.slug, title: post.title, date: post.date, readTime: post.readTime ?? "" }];
       localStorage.setItem(BOOKMARK_KEY, JSON.stringify(next));
       setIsBookmarked(!exists);
-      toast.success(exists ? "Removed from bookmarks" : "Bookmarked — saved to your reading list");
+      if (exists) {
+        toast.success("Removed from bookmarks");
+      } else {
+        toast.success("Bookmarked", {
+          description: "Saved to your reading list",
+          action: { label: "View list →", onClick: () => navigate("/reading-list") },
+        });
+      }
     } catch {
       toast.error("Could not save bookmark");
     }

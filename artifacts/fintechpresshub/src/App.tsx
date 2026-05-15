@@ -121,6 +121,7 @@ const Press = lazy(() => import("@/pages/press"));
 // Chrome-free wrapper for the third-party-iframe `/embed/:slug` route.
 // Lives in its own chunk so the embed payload doesn't pull in admin/blog code.
 const EmbedShell = lazy(() => import("@/components/EmbedShell"));
+const ReadingList = lazy(() => import("@/pages/reading-list"));
 
 function RouteFallback() {
   const [location] = useLocation();
@@ -312,6 +313,7 @@ function Router() {
             <SafeRoute path="/terms" component={Terms} />
             <SafeRoute path="/editorial-guidelines" component={EditorialGuidelines} />
             <SafeRoute path="/community-guidelines" component={CommunityGuidelines} />
+            <SafeRoute path="/reading-list" component={ReadingList} />
             <SafeRoute path="/tools" component={ToolsIndex} />
             <SafeRoute
               path="/tools/financial-health-score-calculator"
