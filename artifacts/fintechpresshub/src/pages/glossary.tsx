@@ -309,7 +309,7 @@ export default function GlossaryPage() {
                                   href={`/glossary/${rt}`}
                                   className="text-[#0052FF] hover:underline"
                                 >
-                                  {rt}
+                                  {rt.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
                                 </Link>
                                 {i < term.relatedTerms.length - 1 ? ", " : ""}
                               </span>

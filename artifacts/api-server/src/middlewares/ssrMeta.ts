@@ -2635,6 +2635,12 @@ async function handleSsrMeta(
       const termDatePublished = term.publishedAt.toISOString().slice(0, 10);
       const termDateModified  = term.updatedAt.toISOString().slice(0, 10);
       const termCopyright     = `© ${term.publishedAt.getFullYear()} FintechPressHub. All rights reserved.`;
+      // Blog category slug derived from the term's category — used to generate
+      // mention and citation cross-links that connect the glossary entity graph
+      // to the blog category pages (GEO G-11, Off-Page SEO, Programmatic SEO).
+      const blogCategorySlug = term.category
+        ? term.category.toLowerCase().replace(/\s+/g, "-")
+        : null;
       // GEO direct-answer block: injected into the raw HTML before React hydrates.
       // Googlebot reads this before executing JS. The .geo-answer-block class is
       // also referenced in the SpeakableSpecification cssSelector array so that
@@ -2651,6 +2657,30 @@ async function handleSsrMeta(
         ogDescription: description,
         ogImage,
         ogImageAlt:    `${term.term} definition — FintechPressHub Fintech Glossary`,
+        // International SEO: regional English hreflang codes for the 4 primary fintech
+        // markets served by FintechPressHub — UK, Australia, Singapore, Canada.
+        // The default patchHtml already injects hreflang="en" and "x-default"; these
+        // 4 regional codes are additive and align with the glossary sitemap hreflang entries.
+        // Dublin Core: library and academic indexers (BASE, EuroPubMed, financial research
+        // databases) parse DC tags as a secondary channel — matches the DC provenance
+        // pattern on blog posts, write-for-us, services, and pricing pages.
+        headLinks: [
+          `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+          `  <meta name="DC.title" content="${esc(title)}" />`,
+          `  <meta name="DC.creator" content="FintechPressHub Editorial Team" />`,
+          `  <meta name="DC.subject" content="${esc(term.category ?? "Financial Technology")}" />`,
+          `  <meta name="DC.description" content="${esc(description)}" />`,
+          `  <meta name="DC.publisher" content="FintechPressHub" />`,
+          `  <meta name="DC.date" scheme="W3CDTF" content="${esc(termDatePublished)}" />`,
+          `  <meta name="DC.type" scheme="DCMIType" content="Text" />`,
+          `  <meta name="DC.format" content="text/html" />`,
+          `  <meta name="DC.language" scheme="RFC5646" content="en" />`,
+          `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
+          `  <meta name="DC.rights" content="${esc(`${siteUrl}/terms`)}" />`,
+        ],
         bodyPatch:     termBodyPatch,
         extraLds: [
           JSON.stringify({
@@ -2676,6 +2706,15 @@ async function handleSsrMeta(
             },
             ...(term.category ? { subjectOf: { "@type": "Thing", name: term.category } } : {}),
             ...(seeAlso.length > 0 ? { seeAlso } : {}),
+            // citation: references to related editorial content — tells Google Quality
+            // Raters and AI citation engines (Google AIO, Perplexity, ChatGPT Search)
+            // that definitions are supported by deeper editorial coverage on this site.
+            // Off-Page SEO: creates cross-page entity connections that strengthen the
+            // topical authority graph between the glossary and the blog (O-3, O-5).
+            citation: [
+              { "@type": "CreativeWork", url: `${siteUrl}/editorial-guidelines`, name: "FintechPressHub Editorial Guidelines" },
+              ...(blogCategorySlug ? [{ "@type": "WebPage", url: `${siteUrl}/blog/category/${blogCategorySlug}`, name: `${term.category ?? "Fintech"} Articles — FintechPressHub` }] : []),
+            ],
             // publisher on DefinedTerm mirrors the pattern on BlogPosting, FinancialService,
             // and SoftwareApplication — omitting it creates an inconsistency that weakens
             // E-E-A-T entity resolution across the Knowledge Graph.
@@ -2733,6 +2772,15 @@ async function handleSsrMeta(
               { "@type": "Thing", name: term.term },
               ...(term.category ? [{ "@type": "Thing", name: term.category }] : []),
               { "@type": "Thing", name: "Financial Technology" },
+            ],
+            // mention: cross-links from glossary term WebPage to blog category and
+            // glossary hub — creates entity graph connections for GEO topic-cluster
+            // mapping and AI citation engine entity resolution (GEO G-11, Off-Page).
+            mention: [
+              { "@type": "WebPage", url: `${siteUrl}/glossary`, name: "FintechPressHub Fintech Glossary" },
+              ...(blogCategorySlug
+                ? [{ "@type": "WebPage", url: `${siteUrl}/blog/category/${blogCategorySlug}`, name: `${term.category ?? "Fintech"} Analysis — FintechPressHub Blog` }]
+                : []),
             ],
             // keywords: page-level keyword signal for AI summary extraction.
             keywords: [
@@ -4430,6 +4478,13 @@ async function handleSsrMeta(
             name:         "Fintech Glossary",
             description:  staticMeta.description,
             inLanguage:   "en",
+            // sameAs: links the DefinedTermSet to the Wikidata Financial Technology entity
+            // (Q182578) — strengthens Knowledge Graph entity resolution and Google's entity
+            // confidence score for the glossary as an authoritative fintech reference.
+            // White Hat SEO: an explicit sameAs on the glossary hub tells the Knowledge
+            // Graph that this DefinedTermSet is the canonical representation of the
+            // Financial Technology domain on this site (Off-Page O-5, White Hat W-4).
+            sameAs:       ["https://www.wikidata.org/wiki/Q182578"],
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
@@ -5590,6 +5645,30 @@ async function handleSsrMeta(
           // The .geo-answer-block class is referenced in the SpeakableSpecification
           // cssSelector in the DefinedTermSet schema above (GEO Gap 4.1 fix).
           patches.bodyPatch = `<div class="geo-answer-block" style="display:none" aria-hidden="true"><p>The FintechPressHub Fintech Glossary is a free, continuously updated reference of 100+ plain-English fintech definitions — covering payments infrastructure, embedded finance, open banking, regtech, neobanking, wealthtech, and lending. Written by fintech domain specialists. No account required.</p></div>`;
+          // International SEO: regional English hreflang codes for the 4 primary fintech
+          // markets — UK, Australia, Singapore, Canada. The default patchHtml already
+          // injects hreflang="en" and "x-default"; these 4 regional codes are additive
+          // and align with the signals on service pages, locations, and blog categories.
+          // Dublin Core: extends the DC provenance pattern established across blog posts,
+          // write-for-us, services, and pricing so the glossary hub is indexed with full
+          // DC metadata by library, academic, and financial research indexers.
+          patches.headLinks = [
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+            `  <meta name="DC.title" content="Fintech Glossary: 100+ Key Terms &amp; Definitions | FintechPressHub" />`,
+            `  <meta name="DC.creator" content="FintechPressHub Editorial Team" />`,
+            `  <meta name="DC.subject" content="Fintech Glossary, Financial Technology Terms, Payments, Embedded Finance, Open Banking, Regtech, Neobanking, Wealthtech" />`,
+            `  <meta name="DC.description" content="Plain-English definitions for payments, embedded finance, open banking, regtech, neobanking, wealthtech, and lending — written by fintech domain specialists." />`,
+            `  <meta name="DC.publisher" content="FintechPressHub" />`,
+            `  <meta name="DC.date" scheme="W3CDTF" content="2024-06-01" />`,
+            `  <meta name="DC.type" scheme="DCMIType" content="Text" />`,
+            `  <meta name="DC.format" content="text/html" />`,
+            `  <meta name="DC.language" scheme="RFC5646" content="en" />`,
+            `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
+            `  <meta name="DC.rights" content="${esc(`${siteUrl}/terms`)}" />`,
+          ];
         }
 
         if (reqPath === "/write-for-us" && patches) {

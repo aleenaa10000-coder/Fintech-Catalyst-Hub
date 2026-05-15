@@ -468,6 +468,10 @@ async function buildGlossarySitemapXml(): Promise<string> {
         `      <image:title>${escapeXml(t.term)}</image:title>\n` +
         `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(url)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-GB" href="${escapeXml(url)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-AU" href="${escapeXml(url)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-SG" href="${escapeXml(url)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-CA" href="${escapeXml(url)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(url)}"/>\n` +
         `  </url>`
       );

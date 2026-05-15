@@ -41,7 +41,7 @@ export const STATIC_ROUTES: Array<{
   // across sitemap.xml, sitemap-pages.xml, and sitemap-tools.xml, wasting
   // crawl budget and confusing Google Search Console coverage reports.
   { path: "/locations", changefreq: "weekly", priority: "0.8", lastmod: "2026-05-10" },
-  { path: "/glossary", changefreq: "weekly", priority: "0.7", lastmod: "2026-05-09" },
+  { path: "/glossary", changefreq: "weekly", priority: "0.8", lastmod: "2026-05-15" },
   { path: "/resources/fintech-publications", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
   { path: "/press", changefreq: "monthly", priority: "0.6", lastmod: "2026-05-09" },
   { path: "/contact", changefreq: "yearly", priority: "0.5", lastmod: "2026-05-14" },

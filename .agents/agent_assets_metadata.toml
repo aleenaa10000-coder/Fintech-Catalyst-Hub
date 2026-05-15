@@ -167,3 +167,9 @@ id = "x9liC5p7Dw-Hca0LcG3KT"
 uri = "file://docs/seo-audit-contact-2026-05-15.md"
 type = "text"
 title = "FintechPressHub /contact — SEO Audit Report (2026-05-15)"
+
+[[outputs]]
+id = "MSkzkMte5nJ3rTRktFQR7"
+uri = "file://docs/glossary-seo-audit-report.md"
+type = "text"
+title = "Fintech Glossary SEO Audit Report"
