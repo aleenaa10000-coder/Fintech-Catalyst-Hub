@@ -732,10 +732,10 @@ export default function BlogPost() {
           The bar fades in once the user scrolls past the hero section. */}
       {createPortal(
       <aside
-        className="hidden xl:flex flex-col items-center gap-2 z-30 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-2xl px-2 py-3 shadow-md"
+        className="hidden 2xl:flex flex-col items-center gap-2 z-30 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-2xl px-2 py-3 shadow-md"
         style={{
           position: "fixed",
-          left: "1rem",
+          left: "max(1rem, calc((100vw - 80rem) / 2 - 4.5rem))",
           top: "50%",
           transform: "translateY(-50%)",
           opacity: shareBarVisible ? 1 : 0,
