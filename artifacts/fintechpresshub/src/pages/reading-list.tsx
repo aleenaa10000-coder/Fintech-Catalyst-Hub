@@ -13,6 +13,7 @@ import {
   Clock,
   Calendar,
   BookOpen,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ export default function ReadingListPage() {
   const [bookmarks, setBookmarks] = useState<BookmarkEntry[]>([]);
   const [readProgressMap, setReadProgressMap] = useState<Record<string, number>>({});
   const [hydrated, setHydrated] = useState(false);
+  const [sortBy, setSortBy] = useState<"saved" | "progress">("saved");
 
   useEffect(() => {
     try {
@@ -51,6 +53,22 @@ export default function ReadingListPage() {
     bookmark: b,
     post: (allPosts as PublicPost[]).find((p) => p.slug === b.slug) ?? null,
   }));
+
+  // In progress (5–94%) first → Not started (0–4%) → Done (≥95%)
+  function progressGroup(p: number): number {
+    if (p >= 5 && p < 95) return 0;
+    if (p < 5) return 1;
+    return 2;
+  }
+
+  const sorted =
+    sortBy === "progress"
+      ? [...enriched].sort((a, b) => {
+          const pa = readProgressMap[a.bookmark.slug] ?? 0;
+          const pb = readProgressMap[b.bookmark.slug] ?? 0;
+          return progressGroup(pa) - progressGroup(pb);
+        })
+      : enriched;
 
   const removeBookmark = (slug: string) => {
     try {
@@ -167,10 +185,31 @@ export default function ReadingListPage() {
             </div>
           )}
 
+          {/* Sort control */}
+          {!loading && enriched.length > 0 && (
+            <div className="flex items-center gap-2 mb-6">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
+              {(["saved", "progress"] as const).map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setSortBy(opt)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                    sortBy === opt
+                      ? "bg-[#0052FF] text-white shadow-sm"
+                      : "bg-white border border-slate-200 text-slate-500 hover:border-[#0052FF]/40 hover:text-[#0052FF]"
+                  }`}
+                >
+                  {opt === "saved" ? "Saved order" : "By progress"}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Cards */}
           {!loading && enriched.length > 0 && (
             <div className="grid sm:grid-cols-2 gap-6">
-              {enriched.map(({ bookmark, post }) => (
+              {sorted.map(({ bookmark, post }) => (
                 <ReadingCard
                   key={bookmark.slug}
                   bookmark={bookmark}
