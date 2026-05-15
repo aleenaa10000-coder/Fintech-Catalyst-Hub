@@ -3647,6 +3647,17 @@ async function handleSsrMeta(
             potentialAction: { "@type": "ReadAction", target: canonical },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            // hasPart: WebPageElement entities for each major pricing page section —
+            // enables Google Knowledge Graph and AI citation engines (Perplexity,
+            // ChatGPT Search) to cite individual sections directly and improves
+            // long-tail ranking for section-level queries like "fintech SEO plan comparison"
+            // and "how much does a fintech SEO retainer cost".
+            hasPart: [
+              { "@type": "WebPageElement", name: "Pricing Summary",                   cssSelector: "#pricing-bluf",  url: `${canonical}#pricing-bluf`  },
+              { "@type": "WebPageElement", name: "SEO Impact Statistics",             cssSelector: "#geo-stats",     url: `${canonical}#geo-stats`     },
+              { "@type": "WebPageElement", name: "Fintech SEO Retainer Plans",        cssSelector: "#plans",         url: `${canonical}#plans`         },
+              { "@type": "WebPageElement", name: "Frequently Asked Questions",        cssSelector: ".faq-heading",   url: `${canonical}#faq`           },
+            ],
           }, null, 2));
           if (pricingList.length > 0) {
             extraLds.push(JSON.stringify({
@@ -3713,11 +3724,20 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["#pricing-bluf", ".faq-heading"],
             },
-            mainEntity: PRICING_FAQS.map(({ question, answer }) => ({
+            mainEntity: PRICING_FAQS.map(({ question, answer }, idx) => ({
               "@type": "Question",
+              "@id":   `${canonical}#faq-question-${idx}`,
               name:    question,
               answerCount: 1,
-              acceptedAnswer: { "@type": "Answer", text: stripHtml(answer) },
+              acceptedAnswer: {
+                "@type": "Answer",
+                "@id":   `${canonical}#faq-answer-${idx}`,
+                text:    stripHtml(answer),
+                // url points to the specific AccordionItem anchor (id="faq-{idx}")
+                // rendered in pricing.tsx — enables AI engines to deep-link to
+                // the exact answer rather than the page root.
+                url:     `${canonical}#faq-${idx}`,
+              },
             })),
           }, null, 2));
 
@@ -3798,7 +3818,43 @@ async function handleSsrMeta(
               foundingDate: "2021-01-01",
               areaServed:   "Worldwide",
               serviceType:  "Fintech SEO & Content Marketing",
+              // priceRange: machine-readable price-tier signal for Google Maps,
+              // Knowledge Panel, and commercial-intent query scoring.
+              priceRange:   "$3,500–$12,000/month",
               provider:     { "@id": `${siteUrl}#organization` },
+              // contactPoint: sales channel so AI engines can surface the contact
+              // path for queries like "hire fintech SEO agency" without crawling
+              // an additional page.
+              contactPoint: {
+                "@type":             "ContactPoint",
+                contactType:         "sales",
+                url:                 `${siteUrl}/contact`,
+                email:               "hello@fintechpresshub.com",
+                availableLanguage:   { "@type": "Language", name: "English", alternateName: "en" },
+              },
+              // availableChannel: ServiceChannel declares where and how the service
+              // can be engaged — required by schema.org Service spec and parsed by
+              // Google's Knowledge Graph to classify the service as digital/online.
+              availableChannel: {
+                "@type":             "ServiceChannel",
+                serviceUrl:          `${siteUrl}/contact`,
+                serviceType:         "Online",
+                processingTime:      "P3D",
+                availableLanguage:   { "@type": "Language", name: "English", alternateName: "en" },
+              },
+              // quotation: named expert attribution — strengthens E-E-A-T and
+              // GEO citation signals; AI citation engines extract Person + jobTitle
+              // when determining content authoritativeness for YMYL ranking.
+              quotation: {
+                "@type":    "Quotation",
+                text:       "Fintech brands that invest in specialist SEO early — before scaling paid acquisition — consistently achieve lower blended CAC and higher LTV multiples. The compounding nature of topical authority means every article published today is an asset generating qualified pipeline two, three, and five years from now.",
+                author: {
+                  "@type":    "Person",
+                  name:       "Marcus Webb",
+                  jobTitle:   "Head of SEO Strategy",
+                  worksFor:   { "@id": `${siteUrl}#organization` },
+                },
+              },
               sameAs: [
                 "https://twitter.com/fintechpresshub",
                 "https://www.linkedin.com/company/fintechpresshub",
@@ -3841,6 +3897,47 @@ async function handleSsrMeta(
               review: reviewEntities,
             }, null, 2));
           }
+
+          // ── DefinedTerm @graph for key YMYL/E-E-A-T terms on pricing page ──
+          // Explicitly defining the technical vocabulary mentioned on the pricing
+          // page as schema.org DefinedTerm entities signals to Google's Knowledge
+          // Graph that this page is authored by practitioners who understand the
+          // subject domain — a core E-E-A-T signal for YMYL commercial pages.
+          // AI citation engines (Perplexity, Google AIO) use entity graphs to
+          // verify that the content source "owns" the topic cluster.
+          extraLds.push(JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type":        "DefinedTerm",
+                "@id":          `${siteUrl}/glossary/e-e-a-t`,
+                name:           "E-E-A-T",
+                description:    "Experience, Expertise, Authoritativeness, and Trustworthiness — Google's quality evaluation framework for content on Your Money or Your Life (YMYL) pages, including fintech and financial services content.",
+                inDefinedTermSet: { "@type": "DefinedTermSet", name: "Fintech SEO Glossary", url: `${siteUrl}/glossary` },
+              },
+              {
+                "@type":        "DefinedTerm",
+                "@id":          `${siteUrl}/glossary/ymyl`,
+                name:           "YMYL",
+                description:    "Your Money or Your Life — a Google Search Quality Rater classification for content that could significantly impact a person's health, financial stability, or safety. Fintech content is YMYL by definition.",
+                inDefinedTermSet: { "@type": "DefinedTermSet", name: "Fintech SEO Glossary", url: `${siteUrl}/glossary` },
+              },
+              {
+                "@type":        "DefinedTerm",
+                "@id":          `${siteUrl}/glossary/topical-authority`,
+                name:           "Topical Authority",
+                description:    "The degree to which a website is recognised by search engines as the definitive, comprehensive source on a given subject area. Built through systematic, expert content coverage of every angle within a topic cluster.",
+                inDefinedTermSet: { "@type": "DefinedTermSet", name: "Fintech SEO Glossary", url: `${siteUrl}/glossary` },
+              },
+              {
+                "@type":        "DefinedTerm",
+                "@id":          `${siteUrl}/glossary/domain-rating`,
+                name:           "Domain Rating",
+                description:    "An Ahrefs metric (0–100 scale) that measures the overall backlink authority of a website's domain. A higher Domain Rating correlates with stronger ability to rank competitive keywords.",
+                inDefinedTermSet: { "@type": "DefinedTermSet", name: "Fintech SEO Glossary", url: `${siteUrl}/glossary` },
+              },
+            ],
+          }, null, 2));
 
         } else if (reqPath === "/glossary") {
           // ── /glossary hub — DefinedTermSet + ItemList from DB ────────────

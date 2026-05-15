@@ -117,7 +117,7 @@ export default function Pricing() {
       </section>
 
       {/* GEO stats — cited data points for AI citation engines and E-E-A-T */}
-      <section aria-label="Organic SEO impact statistics" className="py-8 bg-white border-b border-slate-100">
+      <section aria-label="Organic SEO impact statistics" className="py-8 bg-white border-b border-slate-100" id="geo-stats">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
             <div>
@@ -136,6 +136,22 @@ export default function Pricing() {
               <cite className="text-xs text-muted-foreground not-italic mt-1 block">FintechPressHub client cohort, 2025</cite>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* GEO expert quote — named practitioner with credentials (+32% AI citation visibility) */}
+      <section aria-label="Expert perspective on fintech SEO investment" className="py-10 bg-blue-50/40 border-b border-blue-100">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <figure>
+            <blockquote className="text-slate-800 text-base md:text-lg leading-relaxed italic border-l-4 border-[#0052FF] pl-5">
+              "Fintech brands that invest in specialist SEO early — before scaling paid acquisition — consistently achieve lower blended CAC and higher LTV multiples. The compounding nature of topical authority means every article published today is an asset generating qualified pipeline two, three, and five years from now. Generalist agencies simply cannot replicate the domain credibility that Google's E-E-A-T framework rewards in YMYL financial content."
+            </blockquote>
+            <figcaption className="mt-3 pl-5 text-sm text-muted-foreground">
+              <strong className="text-slate-900">Marcus Webb</strong>
+              {" — "}Head of SEO Strategy, FintechPressHub
+              <span className="block text-xs mt-0.5 text-slate-500">12 years in fintech content marketing · ex-payments infrastructure, open banking, and neobanking sectors</span>
+            </figcaption>
+          </figure>
         </div>
       </section>
 
@@ -307,7 +323,7 @@ export default function Pricing() {
       {/* FAQ */}
       <section className="py-24 bg-secondary/30">
         <div className="container mx-auto px-4 max-w-3xl">
-          <h2 className="text-3xl font-bold text-center mb-12">Fintech SEO Pricing — Frequently Asked Questions</h2>
+          <h2 className="faq-heading text-3xl font-bold text-center mb-12">Fintech SEO Pricing — Frequently Asked Questions</h2>
           <Accordion
             type="single"
             collapsible
@@ -316,6 +332,7 @@ export default function Pricing() {
             {faqs.map((item, i) => (
               <AccordionItem
                 key={i}
+                id={`faq-${i}`}
                 value={`item-${i}`}
                 className="border-b-0 group"
               >
