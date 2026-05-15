@@ -17,6 +17,8 @@ import {
   ChevronRight,
   Sparkles,
   Pencil,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -483,6 +485,38 @@ export default function BlogPost() {
     }
   };
 
+  /* ── Bookmarks (localStorage) ── */
+  const BOOKMARK_KEY = "fph-bookmarks";
+  type BookmarkEntry = { slug: string; title: string; date: string; readTime: string };
+
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  useEffect(() => {
+    if (!post) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem(BOOKMARK_KEY) ?? "[]") as BookmarkEntry[];
+      setIsBookmarked(stored.some((b) => b.slug === post.slug));
+    } catch {
+      setIsBookmarked(false);
+    }
+  }, [post?.slug]);
+
+  const handleBookmark = () => {
+    if (!post) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem(BOOKMARK_KEY) ?? "[]") as BookmarkEntry[];
+      const exists = stored.some((b) => b.slug === post.slug);
+      const next: BookmarkEntry[] = exists
+        ? stored.filter((b) => b.slug !== post.slug)
+        : [...stored, { slug: post.slug, title: post.title, date: post.date, readTime: post.readTime ?? "" }];
+      localStorage.setItem(BOOKMARK_KEY, JSON.stringify(next));
+      setIsBookmarked(!exists);
+      toast.success(exists ? "Removed from bookmarks" : "Bookmarked — saved to your reading list");
+    } catch {
+      toast.error("Could not save bookmark");
+    }
+  };
+
   useEffect(() => {
     if (!contentHtml || tocItems.length === 0) return;
     const elements = tocItems
@@ -753,6 +787,18 @@ export default function BlogPost() {
           data-testid="share-copy"
         >
           {copied ? <Check className="w-4 h-4 text-green-500" /> : <Link2 className="w-4 h-4" />}
+        </button>
+        <button
+          type="button"
+          onClick={handleBookmark}
+          className={shareBtnClass}
+          aria-label={isBookmarked ? "Remove bookmark" : "Bookmark this article"}
+          aria-pressed={isBookmarked}
+          data-testid="share-bookmark"
+        >
+          {isBookmarked
+            ? <BookmarkCheck className="w-4 h-4 text-[#0052FF]" />
+            : <Bookmark className="w-4 h-4" />}
         </button>
         {/* Reading time countdown — updates live as the reader scrolls */}
         {readingMinutes > 0 && (
