@@ -161,3 +161,9 @@ id = "1CITXYrKfNEHpGhjOFvvZ"
 uri = "file://.local/pseo-home-audit-report-2026-05-11-session3.md"
 type = "text"
 title = "pSEO Home Page Audit Report — Session 3 (2026-05-11)"
+
+[[outputs]]
+id = "x9liC5p7Dw-Hca0LcG3KT"
+uri = "file://docs/seo-audit-contact-2026-05-15.md"
+type = "text"
+title = "FintechPressHub /contact — SEO Audit Report (2026-05-15)"

@@ -3994,6 +3994,141 @@ async function handleSsrMeta(
             ],
           }, null, 2));
 
+          // ── /contact — FAQPage JSON-LD ────────────────────────────────────
+          // Emitted alongside the QAPage (client-side PageMeta) to cover both
+          // rendering paths. FAQPage is the schema.org type Google's rich-result
+          // spec recognises for SERP accordion expansion, enabling a second rich-
+          // result type alongside the ContactPage entity already injected above.
+          // Questions mirror contactFaqs in contact.tsx (11 entries, updated
+          // 2026-05-15) — keep in sync when FAQ content changes.
+          extraLds.push(JSON.stringify({
+            "@context":     "https://schema.org",
+            "@type":        "FAQPage",
+            "@id":          `${canonical}#faq`,
+            url:            canonical,
+            inLanguage:     "en",
+            datePublished:  "2021-01-01",
+            dateModified:   "2026-05-15",
+            publisher:      { "@id": `${siteUrl}#organization` },
+            isPartOf:       { "@id": `${siteUrl}#website` },
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h2", ".geo-answer-block"],
+            },
+            mainEntity: [
+              {
+                "@type":       "Question",
+                name:          "What is a fintech SEO agency?",
+                answerCount:   1,
+                acceptedAnswer: {
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text: "A fintech SEO agency is a specialist search-engine-optimisation firm that works exclusively — or primarily — with financial-technology companies: neobanks, payment platforms, regtech providers, wealthtech startups, and embedded-finance businesses. Unlike a generalist SEO agency, a fintech SEO specialist understands FCA/SEC regulatory constraints on financial content, the YMYL (Your Money or Your Life) quality bar Google applies to financial pages, and the high-authority link-building required to outrank established banks and legacy finance publishers. FintechPressHub was founded in 2021 to serve exactly this niche.",
+                },
+              },
+              {
+                "@type":       "Question",
+                name:          "How much does fintech SEO cost per month?",
+                answerCount:   1,
+                acceptedAnswer: {
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text: "Fintech SEO retainers typically range from $3,000 to $30,000 per month, depending on the scope of work and the competitiveness of your target keywords. At FintechPressHub, our minimum monthly retainer is $5,000, which covers a senior fintech SEO strategist, specialist content production, and a link-building allocation. One-time SEO audits start at a lower fixed fee. Pricing is scoped individually after a free 30-minute discovery call, where we assess your current search footprint and growth targets. We price in USD, GBP, SGD, and AUD.",
+                },
+              },
+              {
+                "@type":       "Question",
+                name:          "What happens after I submit the contact form?",
+                answerCount:   1,
+                acceptedAnswer: {
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text: "A senior strategist reviews your submission within one business day and emails you two or three time slots for a free 30-minute discovery call. There is no automated funnel and no junior SDR — you go straight to someone who will scope and price your engagement on the first call.",
+                },
+              },
+              {
+                "@type":       "Question",
+                name:          "Is the discovery call free, and is there any obligation to commit?",
+                answerCount:   1,
+                acceptedAnswer: {
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text: "The 30-minute discovery call is completely free and consultative. We will review your current search footprint, surface two or three quick wins you can act on regardless of whether we work together, and only propose an engagement if there is a clear strategic fit. There is no obligation and no aggressive follow-up.",
+                },
+              },
+              {
+                "@type":       "Question",
+                name:          "How quickly can we start after deciding to work together?",
+                answerCount:   1,
+                acceptedAnswer: {
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text: "Typical kickoff is 7 to 10 business days from the signed agreement. That covers contract execution, data-access provisioning (GA4, GSC, CMS), a kickoff workshop, and the first sprint plan. For standalone SEO audits we can sometimes start within 3 to 5 days if your data access is ready.",
+                },
+              },
+              {
+                "@type":       "Question",
+                name:          "What is the minimum engagement size for FintechPressHub?",
+                answerCount:   1,
+                acceptedAnswer: {
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text: "Our minimum is the one-time SEO audit, delivered within 30 days. For ongoing retainers our minimum is $5,000 per month, which allows us to resource a senior strategist alongside a specialist fintech writer or outreach lead — the combination needed to move the needle in this highly competitive vertical.",
+                },
+              },
+              {
+                "@type":       "Question",
+                name:          "Do you sign NDAs before the discovery call?",
+                answerCount:   1,
+                acceptedAnswer: {
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text: "Yes. If you need to discuss pre-launch products, regulatory positioning, or sensitive funnel data, send your NDA template with the form submission and we will have it countersigned before the call takes place.",
+                },
+              },
+              {
+                "@type":       "Question",
+                name:          "Can FintechPressHub work alongside our in-house SEO or content team?",
+                answerCount:   1,
+                acceptedAnswer: {
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text: "Absolutely — approximately 40% of our retainers run in parallel with an in-house team. We slot in as the fintech-specialist layer covering expert writers, link builders, and technical SEO, reporting to your head of growth or content lead. We work comfortably within shared GSC access, shared editorial calendars, and joint sprint reviews.",
+                },
+              },
+              {
+                "@type":       "Question",
+                name:          "What fintech verticals does FintechPressHub specialise in?",
+                answerCount:   1,
+                acceptedAnswer: {
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text: "FintechPressHub works across all major fintech sub-verticals: payments and payment orchestration, embedded finance and BaaS, open banking and PSD3, neobanking and digital banking, regtech and KYC/AML, wealthtech and robo-advisory, lending and credit underwriting, and insurtech. Our specialist writers and SEO strategists hold domain expertise in each vertical, which is why our content consistently meets Google's YMYL E-E-A-T quality bar — a standard that eliminates most generalist agencies from consideration.",
+                },
+              },
+              {
+                "@type":       "Question",
+                name:          "What makes FintechPressHub different from a generalist SEO agency?",
+                answerCount:   1,
+                acceptedAnswer: {
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text: "Three things: vertical depth, YMYL compliance, and link quality. Generalist agencies apply SaaS-template content to financial pages — content that Google's Quality Raters consistently flag as lacking expertise on YMYL topics. FintechPressHub writers hold fintech domain credentials, our editorial process follows E-E-A-T guidelines explicitly, and our link-building programme targets tier-1 finance and technology publishers rather than generic high-DR sites. We have operated exclusively in the fintech vertical since 2021.",
+                },
+              },
+              {
+                "@type":       "Question",
+                name:          "Does FintechPressHub offer fintech SEO outside the US and UK?",
+                answerCount:   1,
+                acceptedAnswer: {
+                  "@type":      "Answer",
+                  inLanguage:   "en",
+                  text: "Yes. We serve clients across five primary markets: the United States, United Kingdom, Singapore, Australia, and Canada. Retainers are priced in USD, GBP, SGD, and AUD on request. Our team spans multiple time zones, with UK clients receiving same-day replies before 11 am GMT. We also serve fintech companies in emerging markets — particularly in the UAE, Germany, and the Netherlands — on a project or retained basis.",
+                },
+              },
+            ],
+          }, null, 2));
+
         } else if (reqPath === "/write-for-us") {
           // ── /write-for-us — CollectionPage + WriteAction ──────────────────
           // SpeakableSpec targets both the H1 and the .geo-answer-block paragraph
@@ -4663,6 +4798,46 @@ async function handleSsrMeta(
             `  <meta name="DC.subject" content="Fintech Guest Posting, Fintech Content Marketing, Dofollow Guest Posts, Fintech SEO, Guest Blogging" />`,
             `  <meta name="DC.date" scheme="W3CDTF" content="2023-10-01" />`,
             `  <meta name="DC.identifier" content="${canonical}" />`,
+          ];
+        }
+
+        if (reqPath === "/contact" && patches) {
+          // ── /contact — per-route head enrichment ────────────────────────
+          //
+          // International SEO: per-market hreflang codes for the 5 primary markets.
+          // The generic patchHtml function already injects hreflang="en" and
+          // hreflang="x-default" for all pages; these five market-specific codes are
+          // additive and satisfy Google's requirement to list all locale variants
+          // (including the default) when using regional hreflang.
+          //
+          // Technical SEO (Local): geo.region + geo.placename + geo.position + ICBM
+          // are parsed by Bing, Yandex, Baidu, and legacy local-SEO crawlers as
+          // geo-targeting signals. US-NY matches BRAND_NAP and the contentLocation
+          // field on the ContactPage JSON-LD above (New York, United States).
+          //
+          // Dublin Core: extends the DC provenance pattern already established for
+          // /write-for-us and all blog posts — ensures /contact has full DC meta so
+          // academic crawlers (BASE) and financial research indexers can index it.
+          //
+          // Robots: extended directives beyond the HTML default — max-snippet:-1
+          // permits Google to display an unlimited SERP snippet; max-image-preview:large
+          // enables the large OG card; max-video-preview:-1 future-proofs for video.
+          patches.headLinks = [
+            `  <link rel="alternate" hreflang="en-US" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${canonical}" />`,
+            `  <meta name="geo.region" content="US-NY" />`,
+            `  <meta name="geo.placename" content="New York" />`,
+            `  <meta name="geo.position" content="40.7128;-74.0060" />`,
+            `  <meta name="ICBM" content="40.7128, -74.0060" />`,
+            `  <meta name="DC.title" content="${staticMeta.title}" />`,
+            `  <meta name="DC.creator" content="FintechPressHub" />`,
+            `  <meta name="DC.subject" content="Fintech SEO Agency, Contact Fintech SEO, Free SEO Audit, Fintech Content Marketing, Fintech Link Building" />`,
+            `  <meta name="DC.date" scheme="W3CDTF" content="2021-01-01" />`,
+            `  <meta name="DC.identifier" content="${canonical}" />`,
+            `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
           ];
         }
       }
