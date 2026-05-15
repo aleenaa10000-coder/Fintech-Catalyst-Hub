@@ -67,6 +67,16 @@ const FAQ = [
     answer:
       "Email community@fintechpresshub.com with the URL of the content in question and a brief description of the issue. We aim to respond within two business days.",
   },
+  {
+    question: "What are FintechPressHub's standards for citing data and statistics?",
+    answer:
+      "All data and statistics must be sourced from primary sources — regulatory filings, peer-reviewed research, official company disclosures, or authoritative industry reports such as those from McKinsey, CB Insights, or central banks. Secondary citations (citing a blog that cited the original) are not acceptable. Always link directly to the original source and state the publication date prominently when citing data older than two years.",
+  },
+  {
+    question: "Are there specific rules for disclosing conflicts of interest in contributions?",
+    answer:
+      "Yes. If you hold a financial position in a company you write about, if you are employed by or a consultant to a company whose competitor you critique, or if you received any compensation or benefit related to the subject matter, you must disclose this in your author bio and at the top of the article. FintechPressHub reserves the right to decline or add editorial disclosure notices to any piece where a conflict is identified after publication.",
+  },
 ];
 
 export default function CommunityGuidelines() {
@@ -74,8 +84,37 @@ export default function CommunityGuidelines() {
     <>
       <PageMeta
         page="communityGuidelines"
-        webPage={{ datePublished: "2026-04-28", dateModified: "2026-04-28" }}
+        webPage={{
+          datePublished: "2026-04-28",
+          dateModified: "2026-05-15",
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
+          accessibilityHazard: "none",
+          license: "https://www.fintechpresshub.com/terms",
+          usageInfo: "https://www.fintechpresshub.com/terms",
+          copyrightNotice: "© 2026 FintechPressHub. All rights reserved.",
+          about: [
+            "Community Guidelines",
+            "Content Standards",
+            "Guest Contributor Policy",
+            "Fintech Content Ethics",
+            "Editorial Conduct",
+          ],
+          keywords: [
+            "community guidelines",
+            "fintech content standards",
+            "guest contributor rules",
+            "content policy",
+            "FintechPressHub community",
+          ],
+        }}
         faq={FAQ}
+        faqDatePublished="2026-04-28"
+        faqDateModified="2026-05-15"
+        hreflang={[
+          { lang: "en", href: "https://www.fintechpresshub.com/community-guidelines" },
+          { lang: "x-default", href: "https://www.fintechpresshub.com/community-guidelines" },
+        ]}
+        speakableSelectors={["h1", ".geo-answer-block"]}
       />
       <LegalPageLayout
         title={<>Community Guidelines</>}
@@ -85,6 +124,14 @@ export default function CommunityGuidelines() {
         testIdPrefix="community-guidelines"
       >
         <h2 id="purpose">1. Purpose &amp; Scope</h2>
+        <p className="geo-answer-block">
+          FintechPressHub's Community Guidelines set the standards of professional conduct,
+          content accuracy, and intellectual property compliance expected of every guest
+          contributor, newsletter subscriber, and event participant on our platform. They apply
+          across all channels — published articles, email, events, and any other format through
+          which you engage with FintechPressHub. Violations may result in content removal,
+          warnings, or permanent exclusion.
+        </p>
         <p>
           FintechPressHub is a specialist fintech content platform read by operators,
           investors, compliance professionals, and fintech founders. Because the topics

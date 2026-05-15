@@ -277,6 +277,20 @@ export type AboutPageSchema = {
 export type WebPageSchema = {
   dateModified: string;
   datePublished?: string;
+  /** Machine-readable access model — use "https://schema.org/OnlineAccess" for free pages. */
+  conditionsOfAccess?: string;
+  /** White Hat E-E-A-T: "none" declares no hazard to AI citation engines (WCAG signal). */
+  accessibilityHazard?: string;
+  /** License URL (e.g. /terms) — machine-readable rights declaration for AI citation engines. */
+  license?: string;
+  /** Usage info URL so AI engines can verify syndication permissions before quoting content. */
+  usageInfo?: string;
+  /** Copyright attribution string emitted as copyrightNotice for AI citation engines. */
+  copyrightNotice?: string;
+  /** Topic entities the page is about — mapped to schema.org `about` Thing array. */
+  about?: string[];
+  /** Page-level keyword list joined into schema.org `keywords` string. */
+  keywords?: string[];
 };
 
 export type HowToStep = {
@@ -881,6 +895,41 @@ export function PageMeta(props: PageMetaProps) {
                 cssSelector: ["h1"],
               },
             }
+          : {}),
+        // conditionsOfAccess — machine-readable access model; "OnlineAccess" for freely
+        // available pages. AI citation engines (Google AIO, Perplexity) prefer pages that
+        // declare open access before quoting them in featured answers (White Hat W-6).
+        ...(props.webPage?.conditionsOfAccess
+          ? { conditionsOfAccess: props.webPage.conditionsOfAccess }
+          : {}),
+        // accessibilityHazard: "none" — explicit WCAG/E-E-A-T declaration.
+        // AI citation engines prefer content with declared hazard levels (White Hat W-7).
+        ...(props.webPage?.accessibilityHazard
+          ? { accessibilityHazard: props.webPage.accessibilityHazard }
+          : {}),
+        // license / usageInfo — machine-readable licensing links so AI engines can
+        // verify syndication permissions before quoting content (White Hat W-8/W-9).
+        ...(props.webPage?.license ? { license: props.webPage.license } : {}),
+        ...(props.webPage?.usageInfo ? { usageInfo: props.webPage.usageInfo } : {}),
+        // copyrightNotice — attribution requirement declaration for AI citation engines
+        // (White Hat W-10). Mirrors the field emitted on BlogPosting and Article schemas.
+        ...(props.webPage?.copyrightNotice
+          ? { copyrightNotice: props.webPage.copyrightNotice }
+          : {}),
+        // about — primary subject entities; enables AI citation engines to slot this
+        // page into the correct topic cluster regardless of page type (GEO G-11).
+        ...(props.webPage?.about && props.webPage.about.length > 0
+          ? {
+              about: props.webPage.about.map((a) => ({
+                "@type": "Thing",
+                name: a,
+              })),
+            }
+          : {}),
+        // keywords — page-level keyword string for Knowledge Graph entity association
+        // (On-Page O-7). Joined from the keywords array so callers supply clean arrays.
+        ...(props.webPage?.keywords && props.webPage.keywords.length > 0
+          ? { keywords: props.webPage.keywords.join(", ") }
           : {}),
       }
     : null;

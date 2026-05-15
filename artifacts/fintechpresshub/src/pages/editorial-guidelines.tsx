@@ -185,12 +185,36 @@ export default function EditorialGuidelines() {
     <div className="min-h-screen bg-background scroll-smooth">
       <PageMeta
         page="editorialGuidelines"
+        webPage={{
+          datePublished: "2023-10-01",
+          dateModified: "2026-05-15",
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
+          accessibilityHazard: "none",
+          license: "https://www.fintechpresshub.com/terms",
+          usageInfo: "https://www.fintechpresshub.com/terms",
+          copyrightNotice: "© 2026 FintechPressHub. All rights reserved.",
+          about: [
+            "Editorial Guidelines",
+            "Fintech Content Standards",
+            "Guest Post Policy",
+            "AI Content Policy",
+            "YMYL Editorial Standards",
+          ],
+          keywords: [
+            "editorial guidelines",
+            "fintech content standards",
+            "guest post guidelines",
+            "AI content policy",
+            "dofollow link policy",
+            "fintech SEO editorial policy",
+          ],
+        }}
         article={{
           title: "Editorial Guidelines | FintechPressHub",
           description:
             "The standards FintechPressHub holds internal writers, guest contributors, and client deliverables to — covering accuracy, sourcing, AI usage, tone, topical scope, outbound linking, and the contributor dofollow link policy.",
           datePublished: "2023-10-01",
-          dateModified: "2026-04-28",
+          dateModified: "2026-05-15",
           section: "Editorial Standards",
           tags: [
             "editorial guidelines",
@@ -242,6 +266,10 @@ export default function EditorialGuidelines() {
           ],
         }}
         faq={egFaqs}
+        hreflang={[
+          { lang: "en", href: "https://www.fintechpresshub.com/editorial-guidelines" },
+          { lang: "x-default", href: "https://www.fintechpresshub.com/editorial-guidelines" },
+        ]}
       />
       <PageHero
         eyebrow="Editorial"

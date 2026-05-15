@@ -213,22 +213,22 @@ export const PAGE_META = {
   privacyPolicy: {
     title: "Privacy Policy | FintechPressHub",
     description:
-      "How FintechPressHub collects, uses, and protects your personal information.",
+      "How FintechPressHub collects, uses, and protects your personal data — covering data types, legal basis, retention periods, and your GDPR and CCPA rights.",
   },
   refundPolicy: {
     title: "Refund Policy | FintechPressHub",
     description:
-      "Our approach to refunds, retainer cancellations, content revisions, and link replacement guarantees.",
+      "FintechPressHub's refund policy for fintech SEO retainers, content revisions, and link placements — including our 180-day link replacement guarantee and cancellation terms.",
   },
   cookiePolicy: {
     title: "Cookie Policy | FintechPressHub",
     description:
-      "How FintechPressHub uses cookies and similar technologies on this website.",
+      "How FintechPressHub uses strictly necessary, functional, analytics, and marketing cookies — your opt-out options and third-party cookie details explained.",
   },
   terms: {
     title: "Terms and Conditions | FintechPressHub",
     description:
-      "The terms governing use of the FintechPressHub website and services.",
+      "Terms governing FintechPressHub's fintech SEO services — client responsibilities, IP ownership, payment terms, limitation of liability, and New York governing law.",
   },
   editorialGuidelines: {
     title: "Editorial Guidelines | FintechPressHub",
