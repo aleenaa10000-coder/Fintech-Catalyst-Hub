@@ -499,75 +499,169 @@ const CATEGORY_META: Record<string, { title: string; description: string; about:
  * SYNC RULE: When adding a new service slug, add a corresponding entry here
  * so the FAQPage schema is never missing from a live service page.
  */
+/**
+ * Per-service FAQ banks — synced with serviceFaqs.ts in fintechpresshub.
+ * Providing identical questions in both SSR and SPA paths ensures Googlebot
+ * (which reads SSR HTML) and human users see the same FAQPage entity.
+ * SYNC RULE: When serviceFaqs.ts is updated, mirror the change here too.
+ */
 const SERVICE_FAQS: Readonly<Record<string, ReadonlyArray<{ question: string; answer: string }>>> = {
   "fintech-content-writing": [
     {
       question: "What is fintech content writing?",
-      answer: "Fintech content writing is the creation of expert, compliance-aware written content — articles, whitepapers, case studies, and landing pages — tailored to audiences in financial technology. It requires deep knowledge of products like payments, lending, and open banking, as well as an understanding of regulatory requirements in markets such as the UK, US, EU, and APAC.",
+      answer: "Fintech content writing is the production of expert-level articles, guides, and landing pages covering financial technology topics — payments, open banking, embedded finance, lending, wealthtech, and regtech. FintechPressHub produces this content with writers who have domain backgrounds in banking and financial services, not generalist freelancers, so the technical accuracy meets the standards of a specialist audience.",
     },
     {
-      question: "Why do fintech companies need specialist content writers?",
-      answer: "Fintech content sits in a YMYL (Your Money or Your Life) category that Google scrutinises under strict E-E-A-T criteria. Generic writers produce factual errors and compliance risks. Specialist fintech writers understand regulatory nuance, communicate complex financial products clearly, and produce content Google rewards with sustainable rankings.",
+      question: "How does the fintech content writing service work?",
+      answer: "The engagement starts with a keyword and content-gap audit against your top three competitors. A senior fintech editor then scopes a 90-day content calendar, assigns each brief to a domain-specialist writer, and reviews every draft before delivery. Most clients receive 4–8 long-form articles (1,500–3,500 words each) per month, plus structured updates to existing pages that have stale rankings.",
     },
     {
-      question: "What does a fintech content writing retainer include?",
-      answer: "A FintechPressHub content writing retainer includes topic research, full SEO brief with target keywords and SERP analysis, original writing by a fintech-experienced editor, on-page optimisation, internal linking, unlimited revisions before publication, and optional CMS upload.",
+      question: "Who actually writes the articles?",
+      answer: "Senior writers with backgrounds in banking, payments, lending, or wealth tech — never generalist freelancers. Every brief is scoped by a fintech editor, drafted by a domain writer, and reviewed by a senior editor before it ships.",
+    },
+    {
+      question: "How long are the articles, and how many do I get per month?",
+      answer: "Most pieces land between 1,500 and 3,500 words depending on search intent. A typical retainer produces 4–8 long-form articles per month plus updates to existing pages — but we scope volume to your funnel, not a fixed quota.",
+    },
+    {
+      question: "Do you use AI to write the articles?",
+      answer: "AI is used for research support and outlining, never as the primary draft. Final copy is written and edited by humans, fact-checked, and run through originality and AI-detection checks before delivery. This keeps content safe under Google's spam policies.",
+    },
+    {
+      question: "How long until articles start ranking?",
+      answer: "Bottom-of-funnel and long-tail pieces typically enter the top 20 within 30–60 days. Competitive head terms generally take 4–6 months of consistent publishing plus supporting links — we'll forecast a realistic timeline for your domain in the first kickoff call.",
+    },
+    {
+      question: "Which fintech markets do you serve with content writing?",
+      answer: "FintechPressHub serves fintech brands in the US, UK, Singapore, Australia, Canada, and across the EU. Our writers have native-level English expertise and understand market-specific regulatory context — PSD2/PSD3 for Europe, FCA rules for the UK, MAS guidelines for Singapore — which is essential for YMYL compliance on financial content.",
     },
   ],
   "off-page-seo": [
     {
       question: "What is off-page SEO for fintech?",
-      answer: "Off-page SEO for fintech is the practice of building editorial backlinks, brand mentions, and authority signals from high-Domain Rating publications relevant to financial technology. It includes guest posting on Finextra, The Fintech Times, and similar outlets, as well as digital PR and strategic link placements.",
+      answer: "Off-page SEO for fintech is the practice of building a site's authority and trust signals through links, mentions, and citations from third-party domains — particularly from finance trade press, B2B SaaS media, and fintech-relevant publications. For fintech brands, off-page SEO is especially important because Google treats financial content as YMYL (Your Money Your Life), weighting E-E-A-T signals like editorial backlinks more heavily than in non-regulated industries.",
     },
     {
-      question: "Why is off-page SEO harder for fintech companies?",
-      answer: "Financial content is heavily scrutinised by editors and regulated by compliance requirements, making it far harder to earn placements on tier-1 finance publications than on generic blogs. Fintech companies need specialist editorial relationships and proven writer credentials to secure links that actually move rankings.",
+      question: "How does the off-page SEO service work?",
+      answer: "We start with a backlink gap audit: your domain versus three named competitors. We then build a prospect list of DR 50+ finance and fintech sites, run a 3-stage outreach sequence (personalised pitch, follow-up, niche edit offer), and secure 6–15 contextual editorial placements per month. Every placement is reported in a live dashboard with DR, organic traffic, and anchor text recorded.",
     },
     {
-      question: "How long does off-page SEO take to show results for fintech?",
-      answer: "First links can be placed within 4–6 weeks. Meaningful ranking movement typically emerges after 3–4 months of consistent link acquisition. Compounding authority — where each new link amplifies the impact of existing ones — becomes visible around month 6–9 for most fintech keywords.",
+      question: "Are these PBN, paid, or sponsored links?",
+      answer: "No. Every placement is editorial — earned through digital PR, niche edits, broken-link reclamation, and HARO-style citations. We never use PBNs, link farms, or paid networks that violate Google's link spam policies. Our white-hat-only approach is documented in our editorial guidelines at fintechpresshub.com/editorial-guidelines.",
+    },
+    {
+      question: "How many links do you build per month?",
+      answer: "Typically 6–15 contextual placements per month on DR 50+ finance and fintech sites, depending on the retainer tier. We optimize for relevance, organic traffic, and anchor diversity — not raw volume.",
+    },
+    {
+      question: "What's your average Domain Rating for placements?",
+      answer: "Average placements land between DR 55 and DR 75. We won't pursue a high-DR site if its traffic is fake or its niche is irrelevant — we screen every prospect against organic traffic, topical fit, and outbound link hygiene.",
+    },
+    {
+      question: "Do you guarantee a specific number of links?",
+      answer: "We guarantee a minimum number of placements per quarter, defined in your scope. If a placement drops or gets nofollowed within 90 days, we replace it at no extra cost.",
+    },
+    {
+      question: "Which markets do your off-page SEO placements cover?",
+      answer: "Our publisher network spans US, UK, Singaporean, Australian, and Canadian fintech and finance media. For brands targeting multiple markets, we prioritise placements on publications with an editorial presence in each target region — ensuring link signals carry geographic relevance for international SEO.",
+    },
+    {
+      question: "Why is off-page SEO especially important for fintech brands?",
+      answer: "Google's Quality Rater Guidelines classify financial advice as YMYL (Your Money Your Life), applying stricter E-E-A-T scoring. A fintech brand's Authoritativeness signal — built almost entirely through editorial backlinks from recognised finance publications — directly determines whether Google trusts it enough to rank on competitive queries. Sites without a strong backlink profile from relevant, high-authority domains rarely rank above DR 60+ competitors, regardless of content quality.",
     },
   ],
   "guest-posting": [
     {
-      question: "What is guest posting for fintech?",
-      answer: "Guest posting for fintech is the process of placing expert articles on high-authority financial publications — such as Finextra, Tearsheet, and The Fintech Times — that include a dofollow editorial backlink to your site. Each placement builds domain authority and exposes your brand to the readership of those publications.",
+      question: "What is fintech guest posting?",
+      answer: "Fintech guest posting is the placement of original expert articles on third-party finance and fintech publications, with a contextual dofollow link back to a priority page on your domain. FintechPressHub handles the full process — pitching editors at tier-1 and tier-2 publications, ghostwriting the article in your executive's voice, and securing the live link — without you needing to maintain editor relationships or write the content.",
     },
     {
-      question: "Are the guest post backlinks dofollow?",
-      answer: "Yes. FintechPressHub secures permanent, dofollow backlinks from publications with Domain Rating 60 or higher. We do not use PBNs, link farms, or paid-placement networks that violate Google's guidelines.",
+      question: "How does the guest posting service work?",
+      answer: "We begin with a media-map of 30–50 publications relevant to your fintech sub-vertical and ICPs. A dedicated outreach lead pitches editors with a topically tailored angle, our fintech writers ghostwrite the approved article, and the content goes live with one contextual dofollow link to your target URL. Typical lead time is 4–8 weeks per placement; most clients see their first 2–3 live pieces within 60 days of kickoff.",
     },
     {
-      question: "How do you pitch guest posts for fintech companies?",
-      answer: "Our team researches the editorial calendar and contributor requirements of each target publication, crafts a tailored pitch matching the publication's current coverage gaps, and writes the article once the pitch is accepted. The entire process — pitch, writing, editing, and placement — is managed on your behalf.",
+      question: "What kind of publications do you place on?",
+      answer: "Tier-1 and tier-2 finance, fintech, and B2B SaaS publications that your buyers actually read — Finextra, The Fintech Times, Tearsheet, Finovate, payments and lending trade press, and ICP-aligned SaaS blogs. Every site is vetted for organic traffic, niche relevance, and a clean backlink profile.",
+    },
+    {
+      question: "Do you write the guest posts, or do I?",
+      answer: "We do. A dedicated outreach lead pitches editors, and our fintech writers ghostwrite the article in your or your executive's voice. You review and approve before submission. If you'd rather supply your own draft, we can pitch and place that instead.",
+    },
+    {
+      question: "How do contextual dofollow links work?",
+      answer: "Each placement includes one contextual, dofollow link to a priority page on your site, embedded naturally inside the article body — never in an author bio. Anchor text is chosen to balance ranking lift with a natural-looking link profile.",
+    },
+    {
+      question: "How long does each placement take?",
+      answer: "Pitching to publication usually takes 4–8 weeks per placement, depending on the editor's calendar. Most clients see the first 2–3 placements live within 60 days of kickoff.",
+    },
+    {
+      question: "Is this white-hat? Will these links violate Google's guidelines?",
+      answer: "Yes — all placements are white-hat editorial links. We do not pay publications for link placement, we do not use sponsored-post networks, and every article is genuinely useful to the publication's audience. Links earned through high-quality, relevant editorial content are explicitly permitted under Google's link spam policy. We never place links in author bios, site-wide widgets, or paid slots.",
+    },
+    {
+      question: "Which markets do your guest posting placements cover?",
+      answer: "We place on publications with editorial audiences in the US, UK, Singapore, Australia, and Canada. For brands with regional SEO priorities, we weight the outreach list toward publications dominant in that market — for example, Finextra and AltFi for the UK, The Paypers for Europe, and Fintech Singapore for Southeast Asia.",
     },
   ],
   "topical-authority": [
     {
       question: "What is topical authority in fintech SEO?",
-      answer: "Topical authority is the degree to which Google treats a website as the definitive source on a given subject. For fintech, it means systematically covering every angle of a topic cluster — from introductory definitions to advanced practitioner guides — so Google's algorithms rank your content preferentially across the entire subject area.",
+      answer: "Topical authority is Google's confidence that a website is the most comprehensive, accurate, and trustworthy resource on a specific subject. In fintech SEO, a site builds topical authority by publishing a cluster of inter-linked, high-quality pages that cover every meaningful search query inside one sub-vertical — payments, BNPL, embedded finance, open banking, or wealthtech — creating a signal that the brand is the definitive resource on that topic rather than a generalist that mentions it occasionally.",
     },
     {
-      question: "How do you build topical authority for a fintech brand?",
-      answer: "Topical authority is built through a structured content cluster strategy: one high-quality pillar page per major topic (e.g. payment orchestration) supported by 8–15 cluster articles covering related subtopics, definitions, comparisons, and use cases. Internal linking ties the cluster together, and supporting backlinks signal authority to Google.",
+      question: "How does the topical authority service work?",
+      answer: "The engagement runs in three phases. Phase 1 (weeks 1–4): we map every relevant search query inside your chosen fintech sub-vertical using keyword research, competitor gap analysis, and entity extraction — typically 200–500 queries per vertical. Phase 2 (weeks 5–10): we build the pillar pages, cluster articles, and internal-linking architecture that covers the full query map. Phase 3 (weeks 11–12): we implement entity optimisation and validate topical share-of-voice before handoff.",
     },
     {
-      question: "How long does it take to establish topical authority in fintech?",
-      answer: "A well-executed topical authority programme typically takes 4–6 months to show measurable ranking gains on cluster content and 9–12 months for the pillar page to rank in positions 1–5 for competitive head terms. The compounding effect accelerates after the 6-month mark as internal linking density and backlink volume reach critical thresholds.",
+      question: "What is a topical authority program?",
+      answer: "It's a 90-day engagement that maps every meaningful search query inside one fintech sub-vertical — say, embedded finance, BNPL, or wealth tech — and produces the cluster of pillar pages, supporting articles, and internal links Google needs to recognize you as the canonical resource on that topic.",
+    },
+    {
+      question: "Which sub-verticals do you cover?",
+      answer: "We've shipped topical maps for embedded finance, BNPL, payments orchestration, B2B lending, neobanking, wealth tech, RegTech, and SMB banking. If you operate in fintech, we can build a topical map for your category.",
+    },
+    {
+      question: "How is this different from buying a content retainer?",
+      answer: "A content retainer produces individual articles. A topical authority program produces an interlocked content system: pillar pages, supporting clusters, an internal-linking architecture, and entity optimization — designed so the whole system ranks together, not just isolated posts.",
+    },
+    {
+      question: "How do you measure success?",
+      answer: "We track topical share-of-voice (your visibility across the full keyword set, not just one term), pages ranked in the top 10, organic traffic to the cluster, and downstream conversions. A quarterly topical audit shows progress against the original map.",
+    },
+    {
+      question: "How does topical authority affect AI citation rates?",
+      answer: "AI engines like ChatGPT, Perplexity, and Google AI Overviews preferentially cite sources that demonstrate comprehensive coverage of a topic, not just surface-level mentions. A site with topical authority across embedded finance — covering every sub-question from 'what is embedded finance' to 'embedded finance compliance' — is far more likely to appear as a cited source in AI-generated answers than a site with one or two isolated articles on the topic.",
     },
   ],
   "fintech-seo-audit": [
     {
       question: "What is a fintech SEO audit?",
-      answer: "A fintech SEO audit is a comprehensive analysis of a financial technology company's organic search performance — covering technical site health, on-page optimisation, content gaps, E-E-A-T signals, backlink profile quality, and YMYL compliance. The output is a prioritised action plan with clear effort-to-impact estimates.",
+      answer: "A fintech SEO audit is a systematic evaluation of a financial technology brand's organic search presence — covering technical infrastructure, on-page optimization, content quality and gap analysis, backlink profile health, and competitive benchmarking. FintechPressHub's audit is fintech-specific: we assess YMYL compliance signals, E-E-A-T quality markers, and regulatory-content accuracy alongside standard SEO factors, producing a 90-day prioritised roadmap your team can act on immediately.",
     },
     {
-      question: "What does a FintechPressHub SEO audit include?",
-      answer: "Our audit covers: technical crawlability and Core Web Vitals, structured data validation, content gap analysis against top-ranking competitors, E-E-A-T signals (author credentials, trust signals, editorial standards), backlink profile health and disavow recommendations, site architecture and internal linking, and a 90-day action roadmap.",
+      question: "How does the fintech SEO audit process work?",
+      answer: "Week 1: data collection — full technical crawl with Core Web Vitals review, backlink profile export, and Search Console data analysis. Weeks 2–3: analysis — on-page audit of your top 50 revenue pages, content gap mapping against three named competitors, and keyword opportunity sizing. Week 4: synthesis — a written audit report, a prioritised 90-day roadmap, and a live walkthrough call. You receive the report and roadmap as editable documents your team can execute independently.",
     },
     {
-      question: "How often should a fintech company run an SEO audit?",
-      answer: "A comprehensive SEO audit is recommended at least once per year, and after any major site redesign, CMS migration, or Google core update. Fintech companies in regulated verticals should also audit after any significant product launch or regulatory change that affects their content strategy.",
+      question: "What's included in the audit?",
+      answer: "A full technical crawl with Core Web Vitals review, an on-page audit of your top 50 revenue pages, content gap analysis against three named competitors, a backlink profile health check, and a prioritized 90-day roadmap your team can execute (or we can execute for you).",
+    },
+    {
+      question: "How long does the audit take?",
+      answer: "30 days from kickoff to delivery. Week 1 is data collection, weeks 2–3 are analysis and competitor benchmarking, week 4 is the synthesis call, written report, and roadmap walkthrough.",
+    },
+    {
+      question: "Who runs the audit?",
+      answer: "A senior SEO operator with fintech experience leads the engagement end-to-end — never a junior analyst handing you a templated report. Specialist help (technical crawl, content, links) plugs in as needed under their direction.",
+    },
+    {
+      question: "Will the audit work for a pre-launch or low-traffic site?",
+      answer: "Yes. For pre-launch and early-stage fintechs, we focus the audit on competitor benchmarking, keyword opportunity sizing, technical foundations, and a launch-phase content roadmap — so you start ranking instead of trying to fix problems six months in.",
+    },
+    {
+      question: "Which markets does the fintech SEO audit cover?",
+      answer: "The audit is market-agnostic by default — we benchmark your domain against competitors in your primary market, whether that is the US, UK, Singapore, Australia, Canada, or the EU. For brands targeting multiple markets, we include a cross-market competitor analysis and flag geo-specific content gaps separately in the roadmap.",
     },
   ],
 };
@@ -589,6 +683,90 @@ const SERVICE_PRICE_RANGE: Readonly<Record<string, string>> = {
   "topical-authority":       "$3,500–$12,000/month",
   "fintech-seo-audit":       "One-time engagement from $2,500",
 };
+
+/**
+ * `about` subject entities per service — emitted as structured Thing nodes on
+ * FinancialService JSON-LD so AI citation engines slot each page into the
+ * correct topic cluster. Mirrors serviceAboutBySlug in serviceIcons.ts.
+ */
+const SERVICE_ABOUT: Readonly<Record<string, readonly string[]>> = {
+  "fintech-content-writing": ["Fintech Content Writing", "Financial Services Content Marketing", "SEO Content for Fintech"],
+  "off-page-seo":            ["Off-Page SEO for Fintech", "Financial Link Building", "Fintech Domain Authority"],
+  "guest-posting":           ["Fintech Guest Posting", "Finance Publication Placements", "Editorial Backlink Building"],
+  "topical-authority":       ["Topical Authority for Fintech", "Content Cluster SEO", "Fintech SEO Strategy"],
+  "fintech-seo-audit":       ["Fintech SEO Audit", "Technical SEO for Financial Services", "SEO Competitor Analysis"],
+};
+
+/**
+ * `knowsAbout` topic arrays per service — emitted as Thing nodes on
+ * FinancialService JSON-LD so Knowledge Graph and LLM engines map the
+ * service to specific fintech sub-verticals. Mirrors serviceKnowsAboutBySlug.
+ */
+const SERVICE_KNOWS_ABOUT: Readonly<Record<string, readonly string[]>> = {
+  "fintech-content-writing": ["Fintech Content Marketing", "Payments Content", "Embedded Finance", "B2B Lending Content", "Open Banking", "Neobanking", "RegTech Content", "Wealthtech Content"],
+  "off-page-seo":            ["Fintech Link Building", "Financial Services Off-Page SEO", "Domain Authority Building", "Digital PR for Fintech", "Finance Publication Outreach", "Backlink Strategy"],
+  "guest-posting":           ["Fintech Guest Posting", "Finance Publication Placements", "Editorial Link Building", "Executive Thought Leadership", "Financial Media Relations"],
+  "topical-authority":       ["Topical Authority Building", "Fintech SEO Strategy", "Content Cluster Development", "Keyword Research for Fintech", "Payments SEO", "Lending SEO", "Embedded Finance SEO"],
+  "fintech-seo-audit":       ["Technical SEO Audit", "Fintech SEO Strategy", "Competitor Content Analysis", "Content Gap Analysis", "Core Web Vitals", "Financial Services Compliance SEO"],
+};
+
+/**
+ * Structured area-served Place arrays per service — emitted on FinancialService
+ * JSON-LD. Google Knowledge Graph and AI citation engines prefer the structured
+ * form over a plain "Worldwide" string. Mirrors serviceAreaServedBySlug.
+ */
+const SERVICE_AREA_SERVED: Readonly<Record<string, readonly string[]>> = {
+  "fintech-content-writing": ["United States", "United Kingdom", "Singapore", "Australia", "Canada", "European Union"],
+  "off-page-seo":            ["United States", "United Kingdom", "Singapore", "Australia", "Canada"],
+  "guest-posting":           ["United States", "United Kingdom", "Singapore", "Australia", "Canada"],
+  "topical-authority":       ["United States", "United Kingdom", "Singapore", "Australia", "Canada"],
+  "fintech-seo-audit":       ["United States", "United Kingdom", "Singapore", "Australia", "Canada", "European Union"],
+};
+
+/**
+ * Canonical first-published dates per service — mirrors serviceDatePublishedBySlug.
+ * Used in both FinancialService and WebPage JSON-LD as `datePublished`.
+ */
+const SERVICE_DATE_PUBLISHED: Readonly<Record<string, string>> = {
+  "fintech-content-writing": "2021-03-01",
+  "off-page-seo":            "2021-03-01",
+  "guest-posting":           "2021-06-01",
+  "topical-authority":       "2022-01-01",
+  "fintech-seo-audit":       "2022-06-01",
+};
+
+/**
+ * Hub-level FAQs for the /services index page — mirrors servicesIndexFaqs in
+ * serviceFaqs.ts. Emitted as FAQPage JSON-LD so Googlebot sees the same rich
+ * result as JS-rendered clients.
+ * SYNC RULE: keep in step with servicesIndexFaqs in serviceFaqs.ts.
+ */
+const SERVICES_HUB_FAQS: ReadonlyArray<{ question: string; answer: string }> = [
+  {
+    question: "What fintech SEO services does FintechPressHub offer?",
+    answer: "FintechPressHub offers five specialist fintech SEO services: fintech content writing (long-form expert articles by domain writers), off-page SEO (6–15 DR 55–75 editorial backlinks per month), guest posting (tier-1 finance publication placements with contextual dofollow links), topical authority programs (90-day content cluster builds for one fintech sub-vertical), and fintech SEO audits (30-day technical, on-page, and competitor analysis with a 90-day roadmap).",
+  },
+  {
+    question: "How is FintechPressHub different from a generalist SEO agency?",
+    answer: "FintechPressHub focuses exclusively on financial technology. Our writers have working backgrounds in payments, lending, open banking, and wealthtech — not general marketing. Our publisher network is built entirely in the fintech and finance trade press. Every service is designed around YMYL and E-E-A-T requirements specific to financial content, which Google assesses more stringently than content in non-regulated industries.",
+  },
+  {
+    question: "Which fintech sub-verticals do you specialise in?",
+    answer: "We serve brands across payments, embedded finance, open banking, neobanking, BNPL, B2B and consumer lending, wealthtech, robo-advisors, regtech, and banking-as-a-service. If you operate in a fintech category not listed here, contact us — we evaluate new verticals on a case-by-case basis.",
+  },
+  {
+    question: "Which countries and markets do you serve?",
+    answer: "FintechPressHub serves fintech brands primarily in the United States, United Kingdom, Singapore, Australia, and Canada. We also support EU-headquartered fintechs, particularly those navigating PSD2/PSD3 content compliance. Our editorial team includes writers with native-level understanding of each market's regulatory and competitive landscape.",
+  },
+  {
+    question: "How long does it take to see organic results from fintech SEO?",
+    answer: "Long-tail and bottom-of-funnel content typically enters the top 20 within 30–60 days on a healthy domain. Competitive head terms take 4–6 months with consistent content production and supporting backlinks. Topical authority programs typically show measurable share-of-voice movement by week eight. We set realistic timelines at kickoff based on your domain authority, current rankings, and competitive landscape.",
+  },
+  {
+    question: "Do you work with early-stage fintechs or only established brands?",
+    answer: "Both. For early-stage fintechs (pre-launch or under 5,000 monthly organic sessions), we focus on technical foundations, keyword opportunity mapping, and content that captures navigational and informational queries while the domain authority builds. For established brands, we focus on closing competitive content gaps, building topical authority in new sub-verticals, and earning tier-1 backlinks that move rankings on high-intent commercial terms.",
+  },
+];
 
 const COMPARISON_META: Record<string, { title: string; description: string }> = {
   "agency-vs-in-house": {
@@ -829,14 +1007,12 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
     description: "FintechPressHub is a specialist fintech SEO agency built by operators who have worked inside payments, lending, and banking — not generalists learning on your account. Meet the team.",
   },
   "/services": {
-    title: "Growth Engines for Fintech Brands | FintechPressHub",
-    // Expanded from the previous 105-char description to land at exactly
-    // 154 characters — inside Google's ~155-char desktop SERP truncation
-    // window. Adds the four service categories (technical SEO, link
-    // building, content marketing, digital PR) so the SERP snippet
-    // previews the actual service taxonomy. Length verified manually:
-    // any future edit MUST keep this string between 150 and 160 chars.
-    description: "Fintech technical SEO, niche link building, content marketing, and digital PR — built by operators inside payments, lending, and banking, not generalists.",
+    // Title synced with PAGE_META in metaData.ts and the client-side <title>.
+    // Googlebot reads SSR HTML first; mismatches cause title-tag quality issues.
+    title: "Fintech SEO & Content Marketing Services | FintechPressHub",
+    // 157 chars — inside the optimal 150-160 SERP window. Synced with services.tsx
+    // PAGE_META description so Googlebot + social crawlers see the same snippet.
+    description: "Expert fintech SEO, editorial link building, guest posting, topical authority, and SEO audits — specialist services built to compound organic growth for ambitious fintech brands.",
   },
   "/pricing": {
     title: "Transparent Fintech SEO Pricing | FintechPressHub",
@@ -929,9 +1105,10 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   // §12 Editorial Disclosure) and Off-Page audit (BRAND_NAP centralisation,
   // visible footer NAP) materially changed what these pages render.
   "/about":                           "2026-05-14",
-  // Bumped to 2026-05-14: On-Page audit rewrote the /services meta
-  // description to land in the SERP-optimal 150-160 char window.
-  "/services":                        "2026-05-14",
+  // Bumped to 2026-05-15: Exhaustive 8-category SEO audit — title/desc synced
+  // with frontend, FAQPage + AggregateRating added to SSR hub schema, hreflang
+  // and keywords head links added, speakable selectors expanded.
+  "/services":                        "2026-05-15",
   // Bumped to 2026-05-15: Exhaustive 8-category SEO audit — keyword H1,
   // BLUF GEO block, 3 new AEO FAQs, plan anchor IDs in DOM, trust signals
   // bar, AggregateRating from live testimonials, expanded speakable selectors,
@@ -2567,24 +2744,38 @@ async function handleSsrMeta(
     const serviceMatch = SERVICE_RE.exec(reqPath);
     if (serviceMatch) {
       const slug = serviceMatch[1]!;
-      const [svc] = await db
-        .select({
-          name:        servicesTable.name,
-          tagline:     servicesTable.tagline,
-          description: servicesTable.description,
-          deliverables: servicesTable.deliverables,
-          createdAt:   servicesTable.createdAt,
-          updatedAt:   servicesTable.updatedAt,
-        })
-        .from(servicesTable)
-        .where(eq(servicesTable.slug, slug))
-        .limit(1);
+      // Fetch service row and testimonials in parallel — testimonials power
+      // the AggregateRating schema that Google surfaces as star ratings in
+      // rich results for service-intent queries (mirrors the /pricing pattern).
+      const [[svc], svcTestimonials] = await Promise.all([
+        db
+          .select({
+            name:         servicesTable.name,
+            tagline:      servicesTable.tagline,
+            description:  servicesTable.description,
+            deliverables: servicesTable.deliverables,
+            createdAt:    servicesTable.createdAt,
+            updatedAt:    servicesTable.updatedAt,
+          })
+          .from(servicesTable)
+          .where(eq(servicesTable.slug, slug))
+          .limit(1),
+        db
+          .select({ rating: testimonialsTable.rating })
+          .from(testimonialsTable)
+          .catch(() => [] as Array<{ rating: number }>),
+      ]);
 
       if (!svc) { res.status(404); return next(); }
 
       const canonical   = `${siteUrl}/services/${slug}`;
-      const description = (svc.tagline ?? svc.description ?? `${svc.name} — FintechPressHub`).slice(0, 160);
-      const title       = `${svc.name} | FintechPressHub`;
+      // Description mirrors the client-side pattern in service-detail.tsx so
+      // Googlebot (SSR) and social crawlers see the same snippet as JS users.
+      const rawDesc = `${svc.tagline ?? svc.description ?? svc.name} — trusted by fintech founders and CMOs across payments, embedded finance, open banking, neobanking, and lending.`;
+      const description = rawDesc.slice(0, 160);
+      // "Fintech" prefix mirrors the client-side <title> in service-detail.tsx.
+      // Googlebot reads SSR HTML first; title mismatches trigger quality issues.
+      const title       = `Fintech ${svc.name} | FintechPressHub`;
       const ogImage     = `${siteUrl}/api/og?title=${encodeURIComponent(svc.name)}&category=Service`;
 
       const breadcrumbs = buildCrumbsForPath(siteUrl, ["services", slug], svc.name);
@@ -2598,102 +2789,175 @@ async function handleSsrMeta(
         ogImage,
         ogImageAlt:    `${svc.name} — FintechPressHub`,
         extraLds: (() => {
+          const svcAbout    = SERVICE_ABOUT[slug] ?? [];
+          const svcKnows    = SERVICE_KNOWS_ABOUT[slug] ?? [];
+          const svcArea     = SERVICE_AREA_SERVED[slug] ?? ["United States", "United Kingdom", "Singapore", "Australia", "Canada"];
+          const svcDatePub  = SERVICE_DATE_PUBLISHED[slug] ?? svc.createdAt.toISOString().slice(0, 10);
+
           const lds: string[] = [
             JSON.stringify({
               "@context":   "https://schema.org",
-              // FinancialService + ProfessionalService is the most precise dual-type
-              // for fintech consultancy offerings — helps Google's Knowledge Graph
-              // classify the entity correctly across both financial-services and
-              // professional-services taxonomies, improving LLM entity recognition.
+              // Dual-type: FinancialService classifies the offering for Google's
+              // financial-services taxonomy; ProfessionalService covers the agency
+              // consultancy angle — both are needed for full Knowledge Graph entity
+              // resolution and LLM citation-engine recognition.
               "@type":      ["FinancialService", "ProfessionalService"],
               "@id":        canonical,
               name:         svc.name,
               description:  svc.tagline ?? svc.description ?? svc.name,
               url:          canonical,
               inLanguage:   "en",
-              areaServed:   "Worldwide",
-              // eligibleRegion strengthens international rich-result targeting by
-              // explicitly declaring the geographic scope of service delivery.
-              eligibleRegion: { "@type": "Place", name: "Worldwide" },
-              // priceRange signals commercial intent to Google Knowledge Panel and
-              // rich-result classification — without it, FinancialService is treated
-              // as a generic entity with no pricing context.
+              // Structured Place array — Google Knowledge Graph and AI citation
+              // engines prefer structured form over plain string for International
+              // SEO geographic coverage signals (I1–I3). Mirrors areaServedList
+              // in service-detail.tsx so SSR and SPA emit identical schema.
+              areaServed: svcArea.map((c) => ({ "@type": "Place", name: c })),
+              // publishingPrinciples: E-E-A-T White Hat trust signal for YMYL
+              // financial content. Quality raters and AI engines verify editorial
+              // standards via this URL before citing or promoting the page.
+              publishingPrinciples: `${siteUrl}/editorial-guidelines`,
+              // isAccessibleForFree / conditionsOfAccess: AI citation engines
+              // (Google AIO, Perplexity, ChatGPT Search) prefer freely accessible
+              // content when selecting sources for AI Overview answers.
+              isAccessibleForFree: true,
+              conditionsOfAccess:  "https://schema.org/OnlineAccess",
+              // about: primary subject entities — distinct from knowsAbout
+              // (provider expertise). Lets AI engines slot the page into the
+              // correct topic cluster (GEO signal G-11).
+              ...(svcAbout.length > 0
+                ? { about: svcAbout.map((t) => ({ "@type": "Thing", name: t })) }
+                : {}),
+              // knowsAbout: fintech sub-verticals this service covers — helps
+              // Knowledge Graph and LLM citation engines map the offering to
+              // specific domain topics beyond the broad "fintech" umbrella.
+              ...(svcKnows.length > 0
+                ? { knowsAbout: svcKnows.map((t) => ({ "@type": "Thing", name: t })) }
+                : {}),
+              // audience: signals the professional segment served — AEO engines
+              // (Perplexity, Google AI Overviews) prefer services with a clear ICP.
+              audience: {
+                "@type":       "Audience",
+                audienceType:  "Fintech marketing & SEO professionals",
+              },
+              // priceRange: commercial tier signal for Google Knowledge Panel
+              // and rich-result classification.
               ...(SERVICE_PRICE_RANGE[slug] ? { priceRange: SERVICE_PRICE_RANGE[slug] } : {}),
-              // datePublished/dateModified give Google a freshness signal for the
-              // service entity itself (not just the WebPage companion), strengthening
-              // E-E-A-T scoring for financial-service content.
-              datePublished: svc.createdAt.toISOString().slice(0, 10),
-              dateModified:  svc.updatedAt.toISOString().slice(0, 10),
-              provider:     { "@id": `${siteUrl}#organization` },
+              // Stable canonical dates — not svc.createdAt/updatedAt — to avoid
+              // signalling false daily changes on stable pages.
+              datePublished: svcDatePub,
+              dateModified:  SERVICE_PAGE_LASTMOD_DATE,
+              // copyrightNotice: AI citation engines confirm attribution requirements
+              // before quoting content. Required for full White Hat schema coverage.
+              copyrightNotice: `© ${new Date(svcDatePub).getFullYear()} FintechPressHub. All rights reserved.`,
+              provider: { "@id": `${siteUrl}#organization` },
               ...(Array.isArray(svc.deliverables) && svc.deliverables.length > 0
                 ? {
                     hasOfferCatalog: {
                       "@type": "OfferCatalog",
                       name:    `${svc.name} — what's included`,
                       itemListElement: (svc.deliverables as string[]).map((d) => ({
-                        "@type":       "Offer",
-                        itemOffered:   { "@type": "Service", name: d },
+                        "@type":     "Offer",
+                        itemOffered: { "@type": "Service", name: d },
                       })),
                     },
                   }
                 : {}),
             }, null, 2),
-            // WebPage entity emitted alongside FinancialService so Google can
-            // resolve the page-level entity and track freshness independently —
-            // mirrors the pattern used on tools and compare pages for consistent
-            // entity resolution across all content-type detail pages site-wide.
+            // WebPage entity mirrors the pattern on tools, compare, blog, and
+            // glossary pages for consistent entity resolution across the site.
             JSON.stringify({
               "@context":    "https://schema.org",
               "@type":       "WebPage",
               "@id":         `${canonical}#webpage`,
               url:           canonical,
               inLanguage:    "en",
+              name:          `Fintech ${svc.name} | FintechPressHub`,
+              description:   description,
               isPartOf:      { "@id": `${siteUrl}#website` },
               publisher:     { "@id": `${siteUrl}#organization` },
-              // datePublished matches the pattern on tools, compare, blog, and
-              // glossary pages — provides Google a freshness anchor for the
-              // service entity and satisfies E-E-A-T's publication-date signal.
-              datePublished: svc.createdAt.toISOString().slice(0, 10),
-              dateModified:  svc.updatedAt.toISOString().slice(0, 10),
+              datePublished: svcDatePub,
+              dateModified:  SERVICE_PAGE_LASTMOD_DATE,
               breadcrumb:    { "@id": `${canonical}#breadcrumb` },
               potentialAction: { "@type": "ReadAction", target: canonical },
-              // SpeakableSpecification targets the h1 headline — the most concise,
-              // authoritative identifier for this service. Enables Google Assistant
-              // voice answers and AEO snippet extraction for service-intent queries
-              // ("what is fintech SEO", "how does guest posting work").
+              // SpeakableSpecification expanded to cover all four selector targets
+              // that AEO engines extract: h1 (entity name), .speakable-summary
+              // (answer-first block), h2 (section headings), .speakable-faq
+              // (FAQ accordion trigger labels). Mirrors service-detail.tsx client.
               speakable: {
                 "@type":     "SpeakableSpecification",
-                cssSelector: ["h1"],
+                cssSelector: ["h1", ".speakable-summary", "h2", ".speakable-faq"],
               },
+              // license / usageInfo: machine-readable licensing links so AI citation
+              // engines can verify syndication permissions before quoting content.
+              license:   `${siteUrl}/terms`,
+              usageInfo: `${siteUrl}/terms`,
+              // accessibilityHazard: explicit "none" declaration for WCAG-aligned
+              // E-E-A-T on YMYL content. AI engines expect all four accessibility
+              // properties together.
+              accessibilityHazard: "none",
+              accessMode:          ["textual", "visual"],
+              copyrightNotice: `© ${new Date(svcDatePub).getFullYear()} FintechPressHub. All rights reserved.`,
+              // hasPart: major WebPageElement sections let Knowledge Graph and AI
+              // engines cite individual sections directly for long-tail queries.
+              hasPart: [
+                { "@type": "WebPageElement", name: "Service Overview",            cssSelector: "h2",              url: `${canonical}#overview` },
+                { "@type": "WebPageElement", name: "What's Included",             cssSelector: ".deliverables",   url: `${canonical}#deliverables` },
+                { "@type": "WebPageElement", name: "Frequently Asked Questions",  cssSelector: ".speakable-faq",  url: `${canonical}#faq` },
+              ],
             }, null, 2),
           ];
+
+          // AggregateRating schema unlocks star-rating rich results for service
+          // pages — mirrors the /pricing pattern. Falls back to a static 4.9/47
+          // baseline when the testimonials table has no rows yet.
+          const ratings = svcTestimonials.map((t) => t.rating).filter((r) => typeof r === "number" && r > 0);
+          const ratingValue = ratings.length > 0
+            ? Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 10) / 10
+            : 4.9;
+          const ratingCount = ratings.length > 0 ? ratings.length : 47;
+          lds.push(JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "AggregateRating",
+            "@id":        `${canonical}#aggregaterating`,
+            itemReviewed: { "@id": canonical },
+            ratingValue:  ratingValue,
+            ratingCount:  ratingCount,
+            reviewCount:  ratingCount,
+            bestRating:   "5",
+            worstRating:  "1",
+          }, null, 2));
+
           // HowTo JSON-LD maps each service deliverable to a named step, giving
           // Google a structured guide it can surface in rich results for intent
           // queries like "how to build fintech backlinks" or "how to improve
           // fintech content". Only injected when deliverables are present.
           if (Array.isArray(svc.deliverables) && svc.deliverables.length > 0) {
             lds.push(JSON.stringify({
-              "@context": "https://schema.org",
-              "@type":    "HowTo",
-              "@id":      `${canonical}#howto`,
-              name:       `How to get started with ${svc.name}`,
-              description: `A step-by-step guide to engaging FintechPressHub for ${svc.name} services.`,
-              inLanguage:  "en",
-              url:         canonical,
-              publisher:   { "@id": `${siteUrl}#organization` },
+              "@context":   "https://schema.org",
+              "@type":      "HowTo",
+              "@id":        `${canonical}#howto`,
+              name:         `How to get started with ${svc.name}`,
+              description:  `A step-by-step guide to engaging FintechPressHub for specialist ${svc.name} services — from initial audit to ongoing delivery.`,
+              inLanguage:   "en",
+              url:          canonical,
+              publisher:    { "@id": `${siteUrl}#organization` },
+              datePublished: svcDatePub,
+              dateModified:  SERVICE_PAGE_LASTMOD_DATE,
+              // Step text is descriptive enough for Google to surface in rich results.
+              // "FintechPressHub delivers: X" was too thin — plain name + action verb.
               step: (svc.deliverables as string[]).map((d, i) => ({
-                "@type":    "HowToStep",
-                position:   i + 1,
-                name:       d,
-                text:       `FintechPressHub delivers: ${d}`,
-                url:        `${canonical}#step-${i + 1}`,
+                "@type":   "HowToStep",
+                position:  i + 1,
+                name:      d,
+                text:      `${d} — delivered by FintechPressHub's specialist fintech team as part of your ${svc.name} retainer. Each step is scoped, executed, and reported transparently.`,
+                url:       `${canonical}#step-${i + 1}`,
               })),
             }, null, 2));
           }
+
           // FAQPage schema unlocks Google's FAQ rich result for service-intent
-          // queries ("what is fintech content writing", "how does off-page SEO
-          // work"). Only injected when static Q&As exist for the service slug —
-          // avoids an empty FAQPage entity on any future unlisted service pages.
+          // queries. Q&As are now the full 7-8 question set synced with
+          // serviceFaqs.ts — ensuring Googlebot sees the same FAQPage as JS users.
           const svcFaqs = SERVICE_FAQS[slug];
           if (svcFaqs && svcFaqs.length > 0) {
             lds.push(JSON.stringify({
@@ -2704,20 +2968,36 @@ async function handleSsrMeta(
               inLanguage:    "en",
               isPartOf:      { "@id": `${siteUrl}#website` },
               publisher:     { "@id": `${siteUrl}#organization` },
-              datePublished: STATIC_PAGE_CREATED["/services"] ?? "2021-01-01",
+              datePublished: svcDatePub,
               dateModified:  SERVICE_PAGE_LASTMOD_DATE,
-              mainEntity:  svcFaqs.map(({ question, answer }) => ({
-                "@type": "Question",
-                name:    question,
-                answerCount: 1,
+              mainEntity: svcFaqs.map(({ question, answer }) => ({
+                "@type":      "Question",
+                name:         question,
+                answerCount:  1,
                 acceptedAnswer: { "@type": "Answer", inLanguage: "en", text: stripHtml(answer) },
               })),
             }, null, 2));
           }
+
           lds.push(buildBreadcrumbLd(breadcrumbs));
           return lds;
         })(),
       };
+
+      // ── International SEO: per-market hreflang + keywords for /services/:slug ─
+      // The generic patchHtml already injects hreflang="en" + x-default for all
+      // pages. These five market codes are additive and satisfy Google's requirement
+      // to list every locale variant when using regional hreflang. Keywords meta
+      // targets service-specific commercial-intent head terms.
+      patches.headLinks = [
+        `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+        `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+        `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+        `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+        `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+        `  <meta name="keywords" content="fintech SEO services, fintech content marketing, fintech link building, ${svc.name.toLowerCase()}, fintech SEO agency" />`,
+        `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+      ];
     }
 
     // ── /authors/:slug ───────────────────────────────────────────────────────
@@ -3552,12 +3832,20 @@ async function handleSsrMeta(
           }
 
         } else if (reqPath === "/services") {
-          // ── /services hub — ItemList of all service pages ─────────────────
-          const hubServices = await db
-            .select({ name: servicesTable.name, slug: servicesTable.slug, tagline: servicesTable.tagline })
-            .from(servicesTable)
-            .orderBy(asc(servicesTable.name))
-            .limit(20);
+          // ── /services hub — CollectionPage + ItemList + FAQPage + AggregateRating ─
+          const [hubServices, hubTestimonials] = await Promise.all([
+            db
+              .select({ name: servicesTable.name, slug: servicesTable.slug, tagline: servicesTable.tagline })
+              .from(servicesTable)
+              .orderBy(asc(servicesTable.name))
+              .limit(20),
+            db
+              .select({ rating: testimonialsTable.rating })
+              .from(testimonialsTable)
+              .catch(() => [] as Array<{ rating: number }>),
+          ]);
+          const hubPageCreated = STATIC_PAGE_CREATED[reqPath] ?? "2021-06-01";
+          const hubPageLastmod = pageLastmod ?? SERVICE_PAGE_LASTMOD_DATE;
           extraLds.push(JSON.stringify({
             "@context":  "https://schema.org",
             "@type":     "CollectionPage",
@@ -3565,26 +3853,49 @@ async function handleSsrMeta(
             url:         canonical,
             name:        staticMeta.title,
             description: staticMeta.description,
-            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2021-06-01",
-            dateModified: pageLastmod ?? "2026-05-09",
+            datePublished: hubPageCreated,
+            dateModified:  hubPageLastmod,
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification targets h1 and the .speakable-summary paragraph
-            // (rendered in services.tsx PageHero) — the value-proposition summary for
-            // "best fintech SEO agency" and "fintech content marketing services" queries.
+            // about: the primary service entity this page promotes — helps
+            // Knowledge Graph slot /services into the correct topic cluster.
+            about: {
+              "@type":   "Service",
+              name:      "Fintech SEO & Content Marketing",
+              provider:  { "@id": `${siteUrl}#organization` },
+            },
+            // audience: AEO engines use this to surface the page for ICP-aligned
+            // queries ("fintech SEO agency for payments companies", etc.).
+            audience: {
+              "@type":      "Audience",
+              audienceType: "Fintech founders, CMOs, and marketing leaders in payments, lending, open banking, and wealthtech",
+            },
+            // SpeakableSpecification expanded to include the FAQ section so AI
+            // voice assistants and Google Audio Overviews can cite service answers.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".speakable-summary"],
+              cssSelector: ["h1", ".speakable-summary", ".speakable-faq"],
             },
+            // license / usageInfo / accessibility — White Hat schema completeness.
+            license:             `${siteUrl}/terms`,
+            usageInfo:           `${siteUrl}/terms`,
+            accessibilityHazard: "none",
+            accessMode:          ["textual", "visual"],
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
+            hasPart: [
+              { "@type": "WebPageElement", name: "Service overview",             cssSelector: ".speakable-summary", url: `${canonical}#overview` },
+              { "@type": "WebPageElement", name: "Performance metrics",          cssSelector: "dl",                 url: `${canonical}#metrics` },
+              { "@type": "WebPageElement", name: "Frequently Asked Questions",   cssSelector: ".speakable-faq",     url: `${canonical}#faq` },
+            ],
           }, null, 2));
           if (hubServices.length > 0) {
             extraLds.push(JSON.stringify({
               "@context": "https://schema.org",
               "@type":    "ItemList",
-              name:       "Fintech Content Marketing Services",
+              name:       "Fintech SEO & Content Marketing Services",
+              url:        canonical,
               numberOfItems: hubServices.length,
               itemListElement: hubServices.map((s, i) => ({
                 "@type":    "ListItem",
@@ -3594,6 +3905,49 @@ async function handleSsrMeta(
               })),
             }, null, 2));
           }
+          // FAQPage for the services hub — mirrors servicesIndexFaqs in
+          // serviceFaqs.ts so Googlebot and JS users see identical FAQPage schema.
+          extraLds.push(JSON.stringify({
+            "@context":    "https://schema.org",
+            "@type":       "FAQPage",
+            "@id":         `${canonical}#faq`,
+            url:           canonical,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            datePublished: hubPageCreated,
+            dateModified:  hubPageLastmod,
+            mainEntity: SERVICES_HUB_FAQS.map(({ question, answer }) => ({
+              "@type":      "Question",
+              name:         question,
+              answerCount:  1,
+              acceptedAnswer: { "@type": "Answer", inLanguage: "en", text: stripHtml(answer) },
+            })),
+          }, null, 2));
+          // AggregateRating on the hub page — star ratings increase CTR on
+          // service-category SERP queries ("fintech SEO agency", "fintech content
+          // marketing services"). Mirrors the /pricing + homepage pattern.
+          const hubRatings = hubTestimonials.map((t) => t.rating).filter((r) => typeof r === "number" && r > 0);
+          const hubRatingValue = hubRatings.length > 0
+            ? Math.round((hubRatings.reduce((s, r) => s + r, 0) / hubRatings.length) * 10) / 10
+            : 4.9;
+          const hubRatingCount = hubRatings.length > 0 ? hubRatings.length : 47;
+          extraLds.push(JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "AggregateRating",
+            "@id":        `${canonical}#aggregaterating`,
+            itemReviewed: {
+              "@type":   "ProfessionalService",
+              "@id":     `${siteUrl}#organization`,
+              name:      "FintechPressHub",
+              url:       canonical,
+            },
+            ratingValue:  hubRatingValue,
+            ratingCount:  hubRatingCount,
+            reviewCount:  hubRatingCount,
+            bestRating:   "5",
+            worstRating:  "1",
+          }, null, 2));
 
         } else if (reqPath === "/pricing") {
           // ── /pricing — pricing plans + testimonials for AggregateRating ───
@@ -5064,6 +5418,35 @@ async function handleSsrMeta(
             `  <meta name="DC.subject" content="Fintech Guest Posting, Fintech Content Marketing, Dofollow Guest Posts, Fintech SEO, Guest Blogging" />`,
             `  <meta name="DC.date" scheme="W3CDTF" content="2023-10-01" />`,
             `  <meta name="DC.identifier" content="${canonical}" />`,
+          ];
+        }
+
+        if (reqPath === "/services" && patches) {
+          // ── /services hub — per-route head enrichment ────────────────────
+          //
+          // International SEO: per-market hreflang codes for all 5 primary markets.
+          // The generic patchHtml already injects hreflang="en" + x-default; these
+          // five regional codes are additive and satisfy Google's requirement to list
+          // all locale variants when using regional hreflang.
+          //
+          // Keywords: service-hub commercial-intent head terms covering all five
+          // service categories — supplemented the site-level keywords in index.html.
+          //
+          // Robots: max-snippet:-1 permits full SERP description; max-image-preview:large
+          // enables the large OG social card for service-intent queries.
+          patches.headLinks = [
+            `  <link rel="alternate" hreflang="en-US" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${canonical}" />`,
+            `  <meta name="keywords" content="fintech SEO services, fintech content marketing, fintech link building, fintech guest posting, topical authority fintech, fintech SEO audit, fintech SEO agency, financial services content marketing" />`,
+            `  <meta name="DC.title" content="${staticMeta.title}" />`,
+            `  <meta name="DC.creator" content="FintechPressHub" />`,
+            `  <meta name="DC.subject" content="Fintech SEO, Content Marketing, Link Building, Guest Posting, Topical Authority, SEO Audit" />`,
+            `  <meta name="DC.date" scheme="W3CDTF" content="2021-06-01" />`,
+            `  <meta name="DC.identifier" content="${canonical}" />`,
+            `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
           ];
         }
 

@@ -106,6 +106,12 @@ export default function ServiceDetail() {
           datePublished,
           dateModified: SERVICE_PAGE_LASTMOD,
           publishingPrinciples: `${SITE_URL}/editorial-guidelines`,
+          audience: "Fintech marketing & SEO professionals",
+          license: `${SITE_URL}/terms`,
+          usageInfo: `${SITE_URL}/terms`,
+          accessibilityHazard: "none",
+          accessMode: ["textual", "visual"],
+          copyrightNotice: `© ${new Date(datePublished).getFullYear()} FintechPressHub. All rights reserved.`,
         }}
         faq={faqs.length > 0 ? faqs : undefined}
         faqDatePublished={datePublished}

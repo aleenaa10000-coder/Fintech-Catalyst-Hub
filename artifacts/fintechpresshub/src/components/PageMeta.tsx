@@ -218,6 +218,44 @@ export type ServiceSchema = {
    * White Hat SEO and E-E-A-T trust signal for YMYL financial content.
    */
   publishingPrinciples?: string;
+  /**
+   * Audience descriptor for this service — emitted as `audience.audienceType`
+   * on FinancialService JSON-LD. AEO engines (Perplexity, Google AI Overviews)
+   * use this to surface the page for ICP-aligned queries.
+   * Example: "Fintech marketing & SEO professionals"
+   */
+  audience?: string;
+  /**
+   * URL of the page licensing terms. Emitted as `license` on both the
+   * FinancialService and WebPage JSON-LD entities — closes the loop between
+   * structured data and the site-wide citation/training rules for AI engines.
+   * Example: `"https://www.fintechpresshub.com/terms"`
+   */
+  license?: string;
+  /**
+   * URL where content usage / licensing terms are explained.
+   * Emitted as `usageInfo` on the FinancialService WebPage entity so AI
+   * citation engines can verify syndication permissions without guessing.
+   * Example: `"https://www.fintechpresshub.com/terms"`
+   */
+  usageInfo?: string;
+  /**
+   * Accessibility hazard declaration. Use `"none"` to state no known hazards.
+   * Emitted on FinancialService JSON-LD for WCAG-aligned E-E-A-T on YMYL content.
+   */
+  accessibilityHazard?: string;
+  /**
+   * Array of access mode strings (e.g. `["textual", "visual"]`).
+   * Emitted as `accessMode` on FinancialService JSON-LD — AI citation engines
+   * expect all four accessibility properties together.
+   */
+  accessMode?: string[];
+  /**
+   * Plain-text copyright notice emitted on FinancialService JSON-LD.
+   * AI citation engines confirm attribution requirements before quoting content.
+   * Example: "© 2021 FintechPressHub. All rights reserved."
+   */
+  copyrightNotice?: string;
 };
 
 export type EmployeePerson = {
@@ -698,6 +736,27 @@ export function PageMeta(props: PageMetaProps) {
                 name: topic,
               })),
             }
+          : {}),
+        // audience: AEO signal — AI Overview engines filter for services with
+        // a clear ICP before promoting them in answers to "best X for fintech".
+        ...(props.service.audience
+          ? { audience: { "@type": "Audience", audienceType: props.service.audience } }
+          : {}),
+        // license / usageInfo: machine-readable licensing links so AI engines
+        // can verify syndication permissions before quoting content.
+        ...(props.service.license ? { license: props.service.license } : {}),
+        ...(props.service.usageInfo ? { usageInfo: props.service.usageInfo } : {}),
+        // accessibilityHazard / accessMode: White Hat schema completeness —
+        // AI citation engines expect all four accessibility props together.
+        ...(props.service.accessibilityHazard
+          ? { accessibilityHazard: props.service.accessibilityHazard }
+          : {}),
+        ...(props.service.accessMode && props.service.accessMode.length > 0
+          ? { accessMode: props.service.accessMode }
+          : {}),
+        // copyrightNotice: attribution requirement declaration for AI engines.
+        ...(props.service.copyrightNotice
+          ? { copyrightNotice: props.service.copyrightNotice }
           : {}),
         provider: {
           "@type": "Organization",

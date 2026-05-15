@@ -65,7 +65,7 @@ export default function Services() {
       <PageMeta
         page="services"
         webPage={{ datePublished: "2021-01-01", dateModified: __BUILD_TIME_ISO__ }}
-        speakableSelectors={["h1", ".speakable-summary"]}
+        speakableSelectors={["h1", ".speakable-summary", ".speakable-faq"]}
         faq={servicesIndexFaqs}
         faqDatePublished="2021-01-01"
         faqDateModified="2026-05-15"

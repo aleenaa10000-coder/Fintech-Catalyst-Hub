@@ -120,7 +120,7 @@ export const COMPARE_PAGE_LASTMOD: Readonly<Record<string, string>> = {
  * crawl budget by signalling a daily update. Update this date manually
  * whenever service content is revised.
  */
-export const SERVICE_PAGE_LASTMOD_DATE = "2026-05-09";
+export const SERVICE_PAGE_LASTMOD_DATE = "2026-05-15";
 
 /**
  * URL path segment → human-readable label.
