@@ -32,7 +32,7 @@ export const STATIC_ROUTES: Array<{
   // pages are served dynamically at /blog/tag/:slug and appear in
   // /sitemap-tags.xml.
   { path: "/authors", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-09" },
-  { path: "/write-for-us", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-15" },
+  { path: "/write-for-us", changefreq: "monthly", priority: "0.8", lastmod: "2026-05-15" },
   { path: "/editorial-guidelines", changefreq: "yearly", priority: "0.4", lastmod: "2026-04-28" },
   { path: "/tools", changefreq: "monthly", priority: "0.8", lastmod: "2026-05-09" },
   // Tool sub-pages intentionally omitted here — they are covered by the

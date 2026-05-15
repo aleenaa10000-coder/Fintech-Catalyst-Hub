@@ -689,6 +689,17 @@ export default function WriteForUs() {
           title: "Write For Us — Fintech Guest Post Guidelines | FintechPressHub",
           description:
             "Submit a fintech guest post to FintechPressHub. Read our editorial standards, topical scope, and dofollow link policy — then pitch your idea to our editors.",
+          // abstract — 160-320 char plain-text summary parsed by AI citation engines
+          // (Perplexity, ChatGPT Search, Google AIO) when generating answers to
+          // "fintech guest post" and "write for us fintech" queries. Should distil
+          // the page's core value proposition in a single extractable sentence.
+          abstract:
+            "FintechPressHub accepts expert fintech guest posts on payments, open banking, embedded finance, lending, regtech, and wealthtech. Approved articles earn up to 2 permanent dofollow backlinks and reach 50,000+ monthly fintech decision-makers.",
+          // alternativeHeadline — ≤110-char secondary title for AI citation display.
+          // Used by Perplexity and ChatGPT Search as a shorter display title when the
+          // full article title is truncated in generated answers. Mirrors the
+          // SSR BlogPosting alternativeHeadline pattern established site-wide.
+          alternativeHeadline: "Fintech Guest Post Guidelines & Write For Us Programme",
           datePublished: "2023-10-01",
           dateModified: "2026-05-15",
           section: "Contributor Guidelines",
@@ -698,6 +709,15 @@ export default function WriteForUs() {
           conditionsOfAccess: "https://schema.org/OnlineAccess",
           copyrightNotice: "© 2026 FintechPressHub. All rights reserved.",
           countryOfOrigin: "United Kingdom",
+          // usageInfo — URL of the page where content usage / licensing terms are
+          // explained. Lets AI citation engines verify syndication permissions
+          // without guessing; required for Google AIO attribution compliance.
+          usageInfo: `${SITE_URL}/terms`,
+          // speakableSelectors — overrides the default ["h1", ".speakable-summary"]
+          // to target the write-for-us-specific selectors: the GEO direct-answer
+          // block and the FAQ section. Mirrors the SpeakableSpecification declared
+          // in the SSR CollectionPage so client and server signals are identical.
+          speakableSelectors: ["h1", ".geo-answer-block", ".wfu-faq-section"],
           hasPart: [
             "Benefits of Guest Posting",
             "Fintech Topics We Publish",
@@ -796,7 +816,7 @@ export default function WriteForUs() {
       />
       <PageHero
         eyebrow="Write For Us"
-        title={<>Write for FintechPressHub</>}
+        title={<>Write a Fintech Guest Post for FintechPressHub</>}
         description="We accept high-quality guest contributions from established fintech operators, marketers, and founders. Read the editorial guidelines below, then send us your pitch."
       />
 
@@ -1112,7 +1132,7 @@ export default function WriteForUs() {
               Pitch us
             </p>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-              Send your guest post idea
+              Send Us Your Fintech Guest Post Pitch
             </h2>
             <p className="text-muted-foreground">
               Editors review every pitch within 2–3 business days.

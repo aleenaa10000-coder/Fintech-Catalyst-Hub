@@ -837,6 +837,11 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
   "/write-for-us": {
     title: "Fintech Guest Post | Write For Us | FintechPressHub",
     description: "Submit a fintech guest post to FintechPressHub. Expert-level payments, open banking, and lending content for 50,000+ monthly readers. Up to 2 dofollow links.",
+    // og:type override — this page carries Article + HowTo + FAQPage schemas so
+    // "article" is the most accurate OG type. Enables article:* meta tags (section,
+    // tags, published_time, modified_time) and correct social-card classification
+    // on LinkedIn and Facebook when the page is shared.
+    ogType: "article",
   },
   "/editorial-guidelines": {
     title: "Editorial Guidelines | FintechPressHub",
@@ -3882,6 +3887,22 @@ async function handleSsrMeta(
             publisher:   { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            // isAccessibleForFree — signals freely accessible content to AI citation
+            // engines (Google AIO, Perplexity, ChatGPT Search). Crawlers prefer
+            // open-access pages when selecting content to cite in generated answers.
+            isAccessibleForFree: true,
+            // accessMode — declares the human-sensory modes needed to consume this
+            // page (text and images). Required for WCAG-aligned E-E-A-T scoring on
+            // YMYL pages and parsed by accessibility auditors.
+            accessMode: ["textual", "visual"],
+            // accessibilityFeature — lists navigational and structural aids present
+            // on the page. Strengthens E-E-A-T by confirming the page is correctly
+            // structured for screen readers and cognitive-accessibility tooling.
+            accessibilityFeature: ["readingOrder", "structuralNavigation", "tableOfContents"],
+            // license — points crawlers to the usage terms for this page's content.
+            // AI citation engines parse this to verify syndication permissions before
+            // quoting content in generated answers.
+            license: `${siteUrl}/terms`,
             // areaServed — declares global reach for this guest post programme.
             // GEO optimization: AI ranking engines (Google AIO, Perplexity) use this
             // to associate the page with "fintech guest posting worldwide" in their
@@ -3903,6 +3924,33 @@ async function handleSsrMeta(
               { "@type": "Thing", name: "Guest post dofollow backlink" },
               { "@type": "Thing", name: "Fintech content marketing" },
               { "@type": "Thing", name: "Fintech SEO" },
+            ],
+            // mentions — rich entity list mirroring the client-side Article schema.
+            // Each Thing entry strengthens knowledge-graph association with the
+            // fintech verticals covered by this guest-post programme, improving
+            // ranking for long-tail queries like "fintech [topic] write for us".
+            mentions: [
+              { "@type": "Thing", name: "B2B Fintech Marketing" },
+              { "@type": "Thing", name: "Embedded Finance" },
+              { "@type": "Thing", name: "Open Banking" },
+              { "@type": "Thing", name: "PSD3" },
+              { "@type": "Thing", name: "Payments Infrastructure" },
+              { "@type": "Thing", name: "Payment Orchestration" },
+              { "@type": "Thing", name: "Card Issuing" },
+              { "@type": "Thing", name: "Buy Now Pay Later" },
+              { "@type": "Thing", name: "Neobanking" },
+              { "@type": "Thing", name: "Digital Banking" },
+              { "@type": "Thing", name: "Lending" },
+              { "@type": "Thing", name: "Credit Underwriting" },
+              { "@type": "Thing", name: "Wealthtech" },
+              { "@type": "Thing", name: "Robo-Advisors" },
+              { "@type": "Thing", name: "Regtech" },
+              { "@type": "Thing", name: "KYC" },
+              { "@type": "Thing", name: "AML" },
+              { "@type": "Thing", name: "Fintech SaaS" },
+              { "@type": "Thing", name: "Topical Authority" },
+              { "@type": "Thing", name: "Link Building" },
+              { "@type": "Thing", name: "AI in Financial Services" },
             ],
             keywords: "fintech write for us, fintech guest post, fintech guest blogging, dofollow guest post, submit fintech article",
             // SpeakableSpecification: extended to include .geo-answer-block (GEO Round 2)
@@ -3928,20 +3976,28 @@ async function handleSsrMeta(
               `${canonical}#faq`,
               `${siteUrl}/editorial-guidelines`,
               `${siteUrl}/blog`,
+              `${siteUrl}/services/guest-posting`,
             ],
             breadcrumb:   { "@id": `${canonical}#breadcrumb` },
-            potentialAction: {
-              "@type":  "WriteAction",
-              name:     "Submit a Guest Post Pitch",
-              // Target resolves to the exact pitch form element — required for
-              // Google Action cards and schema.org WriteAction spec compliance.
-              target:   `${canonical}#pitch-form`,
-              object: {
-                "@type":    "Article",
-                inLanguage: "en",
-                about:      { "@type": "Thing", name: "Fintech SEO and content marketing" },
+            // potentialAction array — WriteAction enables Google Action cards for
+            // "submit a fintech guest post" queries; ReadAction satisfies schema.org
+            // spec for CollectionPage and matches the pattern used on all other
+            // CollectionPage handlers (tools, compare, glossary, locations).
+            potentialAction: [
+              {
+                "@type":  "WriteAction",
+                name:     "Submit a Guest Post Pitch",
+                // Target resolves to the exact pitch form element — required for
+                // Google Action cards and schema.org WriteAction spec compliance.
+                target:   `${canonical}#pitch-form`,
+                object: {
+                  "@type":    "Article",
+                  inLanguage: "en",
+                  about:      { "@type": "Thing", name: "Fintech SEO and content marketing" },
+                },
               },
-            },
+              { "@type": "ReadAction", target: canonical },
+            ],
           }, null, 2));
 
           // HowTo — enables step-rich results for "how to write for FintechPressHub"
@@ -4448,6 +4504,43 @@ async function handleSsrMeta(
           ...(pageLastmod ? { dateModified: pageLastmod } : {}),
           extraLds,
         };
+
+        // ── Per-route OG article meta + Dublin Core enrichment ────────────
+        // Injected after the universal patches block so route-specific fields
+        // (article:published_time, article:section, DC.*) are added without
+        // modifying the shared patches assembly above.
+        if (reqPath === "/write-for-us" && patches) {
+          // OG article namespace — unlocks article:* meta tags in <head>.
+          // LinkedIn, Facebook, and Google's structured-snippets parser read
+          // these tags alongside og:type="article" (set in STATIC_META above)
+          // to populate social cards and establish the content's temporal context.
+          patches.articlePublishedTime = "2023-10-01";
+          patches.articleModifiedTime  = pageLastmod ?? "2026-05-15";
+          patches.articleSection       = "Contributor Guidelines";
+          patches.articleTags          = [
+            "fintech write for us",
+            "fintech guest post",
+            "dofollow guest post",
+            "fintech content marketing",
+            "fintech link building",
+          ];
+          patches.articleAuthor    = "FintechPressHub Editorial Team";
+          patches.articlePublisher = "https://twitter.com/fintechpresshub";
+          patches.author           = "FintechPressHub Editorial Team";
+          // Dublin Core meta — academic and research databases (BASE, EuroPubMed,
+          // JSTOR-adjacent crawlers, financial research indexers) parse DC meta
+          // as a secondary discovery channel alongside OG and structured data.
+          // The SSR blog-post handler already injects DC.title/creator/date/subject
+          // for every article; adding them here ensures the write-for-us page has
+          // full DC provenance, matching the standard set across the rest of the site.
+          patches.headLinks = [
+            `  <meta name="DC.title" content="Fintech Guest Post | Write For Us | FintechPressHub" />`,
+            `  <meta name="DC.creator" content="FintechPressHub Editorial Team" />`,
+            `  <meta name="DC.subject" content="Fintech Guest Posting, Fintech Content Marketing, Dofollow Guest Posts, Fintech SEO, Guest Blogging" />`,
+            `  <meta name="DC.date" scheme="W3CDTF" content="2023-10-01" />`,
+            `  <meta name="DC.identifier" content="${canonical}" />`,
+          ];
+        }
       }
     }
 
