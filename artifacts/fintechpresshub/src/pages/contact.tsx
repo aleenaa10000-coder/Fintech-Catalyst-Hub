@@ -3,7 +3,7 @@ import { BRAND_NAP, SITE_URL } from "@/lib/metaData";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useSubmitContactForm } from "@workspace/api-client-react";
+import { useSubmitContactForm, useListTestimonials } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -16,26 +16,22 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
-import { MapPin, Mail, Clock, HelpCircle, Plus, Globe, ShieldCheck, Timer, Linkedin, Twitter } from "lucide-react";
+import {
+  MapPin, Mail, Clock, HelpCircle, Plus, Globe, ShieldCheck, Timer,
+  Linkedin, Twitter, FileText, UserCheck, PhoneCall, FileCheck2, Star,
+  ArrowRight, CheckCircle2,
+} from "lucide-react";
 import { PageHero } from "@/components/PageHero";
 import { Link } from "wouter";
 import { useEffect, useState } from "react";
 
-// AEO-optimised FAQ: questions phrased as exact natural-language queries;
-// answers are self-contained, quotable statements that AI citation engines
-// (Google AI Overviews, Perplexity, ChatGPT Search) can surface verbatim.
 const contactFaqs = [
   {
-    // G-11: Definitional query — #1 AI Overview extraction target for this intent.
-    // Phrased as the exact zero-click query Google and Perplexity surface for
-    // "what is a fintech SEO agency" — must be self-contained and quotable verbatim.
     question: "What is a fintech SEO agency?",
     answer:
       "A fintech SEO agency is a specialist search-engine-optimisation firm that works exclusively — or primarily — with financial-technology companies: neobanks, payment platforms, regtech providers, wealthtech startups, and embedded-finance businesses. Unlike a generalist SEO agency, a fintech SEO specialist understands FCA/SEC regulatory constraints on financial content, the YMYL (Your Money or Your Life) quality bar Google applies to financial pages, and the high-authority link-building required to outrank established banks and legacy finance publishers. FintechPressHub was founded in 2021 to serve exactly this niche.",
   },
   {
-    // G-12: Commercial query — #1 AI Overview extraction target for cost/pricing intent.
-    // Self-contained answer that AI citation engines can quote without surrounding context.
     question: "How much does fintech SEO cost per month?",
     answer:
       "Fintech SEO retainers typically range from $3,000 to $30,000 per month, depending on the scope of work and the competitiveness of your target keywords. At FintechPressHub, our minimum monthly retainer is $5,000, which covers a senior fintech SEO strategist, specialist content production, and a link-building allocation. One-time SEO audits start at a lower fixed fee. Pricing is scoped individually after a free 30-minute discovery call, where we assess your current search footprint and growth targets. We price in USD, GBP, SGD, and AUD.",
@@ -71,22 +67,16 @@ const contactFaqs = [
       "Absolutely — approximately 40% of our retainers run in parallel with an in-house team. We slot in as the fintech-specialist layer covering expert writers, link builders, and technical SEO, reporting to your head of growth or content lead. We work comfortably within shared GSC access, shared editorial calendars, and joint sprint reviews.",
   },
   {
-    // AEO: vertical-specificity query — targets "fintech SEO [vertical]" long-tail
-    // and "does [agency] cover [vertical]" commercial queries in AI Overviews.
     question: "What fintech verticals does FintechPressHub specialise in?",
     answer:
       "FintechPressHub works across all major fintech sub-verticals: payments and payment orchestration, embedded finance and BaaS, open banking and PSD3, neobanking and digital banking, regtech and KYC/AML, wealthtech and robo-advisory, lending and credit underwriting, and insurtech. Our specialist writers and SEO strategists hold domain expertise in each vertical, which is why our content consistently meets Google's YMYL E-E-A-T quality bar — a standard that eliminates most generalist agencies from consideration.",
   },
   {
-    // AEO: differentiation query — #1 AI Overview extraction target for
-    // "best fintech SEO agency" and "fintech SEO agency comparison" intent.
     question: "What makes FintechPressHub different from a generalist SEO agency?",
     answer:
       "Three things: vertical depth, YMYL compliance, and link quality. Generalist agencies apply SaaS-template content to financial pages — content that Google's Quality Raters consistently flag as lacking expertise on YMYL topics. FintechPressHub writers hold fintech domain credentials, our editorial process follows E-E-A-T guidelines explicitly, and our link-building programme targets tier-1 finance and technology publishers rather than generic high-DR sites. We have operated exclusively in the fintech vertical since 2021.",
   },
   {
-    // International SEO / AEO: market-coverage query — targets "fintech SEO
-    // agency [country]" queries and multi-market coverage questions.
     question: "Does FintechPressHub offer fintech SEO outside the US and UK?",
     answer:
       "Yes. We serve clients across five primary markets: the United States, United Kingdom, Singapore, Australia, and Canada. Retainers are priced in USD, GBP, SGD, and AUD on request. Our team spans multiple time zones, with UK clients receiving same-day replies before 11 am GMT. We also serve fintech companies in emerging markets — particularly in the UAE, Germany, and the Netherlands — on a project or retained basis.",
@@ -103,10 +93,6 @@ const formSchema = z.object({
   message: z.string().min(10, "Message must be at least 10 characters").max(4000),
 });
 
-// Markets served — used for both visible content and hreflang signals.
-// currency field: International SEO — surfaces per-market billing currency in
-// the visible contact info panel so AI citation engines (and users) can confirm
-// geographic coverage without navigating to the pricing page.
 const MARKETS = [
   { label: "United States", code: "en-US", currency: "USD" },
   { label: "United Kingdom", code: "en-GB", currency: "GBP" },
@@ -115,19 +101,12 @@ const MARKETS = [
   { label: "Canada",        code: "en-CA", currency: "CAD" },
 ];
 
-// Trust stats — visible social-proof figures (White Hat: no fabrication,
-// these reflect publicly verifiable or internally auditable figures).
 const TRUST_STATS = [
-  { value: "≤ 24h",   label: "Response time" },
-  { value: "$5k+",    label: "Minimum monthly retainer" },
-  { value: "50,000+", label: "Monthly readers" },
+  { value: "≤ 24h",   label: "Response time",           sub: "Guaranteed" },
+  { value: "$5k+",    label: "Minimum monthly retainer", sub: "Senior strategist included" },
+  { value: "50,000+", label: "Monthly readers",          sub: "Organic, no paid traffic" },
 ];
 
-// Location cities for programmatic internal linking from the contact page.
-// Extended from 5 → 10 cities (Programmatic SEO) — all slugs match DB seed data
-// so /locations/[slug] resolves to a real dynamic route. Passing PageRank from
-// /contact (a high-intent, frequently-linked page) into 10 location pages
-// strengthens "fintech SEO agency [city]" rankings across additional markets.
 const LOCATION_SLUGS = [
   { city: "New York",   slug: "new-york" },
   { city: "London",     slug: "london" },
@@ -141,12 +120,52 @@ const LOCATION_SLUGS = [
   { city: "Chicago",    slug: "chicago" },
 ];
 
-export default function Contact() {
+const HOW_TO_STEPS = [
+  {
+    n: "01",
+    icon: FileText,
+    title: "Submit your brief",
+    body: "Fill in the form with your challenges, goals, and budget. Takes under 2 minutes.",
+    accent: "from-blue-500 to-indigo-600",
+  },
+  {
+    n: "02",
+    icon: UserCheck,
+    title: "Strategist review",
+    body: "A senior fintech SEO strategist reviews your submission and audits your search footprint within one business day.",
+    accent: "from-indigo-500 to-violet-600",
+  },
+  {
+    n: "03",
+    icon: PhoneCall,
+    title: "Free discovery call",
+    body: "We share findings, surface quick wins, and assess strategic fit — 30 minutes, no obligation.",
+    accent: "from-violet-500 to-purple-600",
+  },
+  {
+    n: "04",
+    icon: FileCheck2,
+    title: "Tailored proposal",
+    body: "If there's a fit, you receive a scoped proposal within 48 hours. No generic decks, no pressure.",
+    accent: "from-purple-500 to-pink-600",
+  },
+];
 
-  // G-13 / G-16: aria-live status for screen-reader announcement of form submission
-  // outcome. Sonner toasts are visually prominent but not reliably announced by
-  // all screen readers. This sr-only live region guarantees WCAG 4.1.3 compliance.
+export default function Contact() {
   const [formStatus, setFormStatus] = useState<string>("");
+
+  const { data: testimonials } = useListTestimonials();
+
+  const aggregateRating =
+    Array.isArray(testimonials) && testimonials.length > 0
+      ? {
+          ratingValue: (
+            testimonials.reduce((s, t) => s + (t.rating ?? 5), 0) / testimonials.length
+          ).toFixed(1),
+          ratingCount: testimonials.length,
+          reviewCount: testimonials.length,
+        }
+      : undefined;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -183,7 +202,6 @@ export default function Contact() {
           toast.success("Message sent successfully!", {
             description: "One of our strategists will be in touch within 24 hours.",
           });
-          // G-13 / G-16: Update aria-live region so screen readers announce success.
           setFormStatus("Message sent successfully. One of our strategists will be in touch within 24 hours.");
           form.reset();
         },
@@ -191,7 +209,6 @@ export default function Contact() {
           toast.error("Failed to send message.", {
             description: "Please try again later or email us directly.",
           });
-          // G-13 / G-16: Announce error to screen readers via aria-live region.
           setFormStatus("Failed to send your message. Please try again or email us directly at hello@fintechpresshub.com.");
         }
       }
@@ -200,17 +217,12 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/*
-        Technical SEO: keyword-forward title (50-65 chars), full-length
-        description (150-160 chars), ContactPage schema, webPage dates,
-        AEO-ready speakableSelectors, and regional hreflang for every
-        market the agency serves (US, UK, SG, AU, CA).
-      */}
       <PageMeta
         page="contact"
         faq={contactFaqs}
         qaPage
         contactPage
+        aggregateRating={aggregateRating}
         webPage={{ datePublished: "2021-01-01", dateModified: "2026-05-15" }}
         faqDatePublished="2021-01-01"
         faqDateModified="2026-05-15"
@@ -259,33 +271,15 @@ export default function Contact() {
         }}
       />
 
-      {/* On-Page SEO: H1 contains primary keyword "fintech SEO agency";
-          G-08: hero description now explicitly includes "fintech SEO agency" as a
-          secondary keyword occurrence — Google's page-level relevance model weights
-          the first 100 words of above-the-fold content heavily. */}
       <PageHero
         eyebrow="Free Fintech SEO Audit"
         title={<>Contact Our Fintech SEO Agency</>}
         description="Request a free fintech SEO audit or talk to our fintech SEO agency strategy team about building a defensible content and link-building moat for your brand."
       />
 
-      {/*
-        GEO + AEO: Direct-answer BLUF block.
-        CSS class "geo-answer-block" is targeted by SpeakableSpecification in
-        both the client-side ContactPage JSON-LD and the SSR injection, ensuring
-        AI Overviews, Google Assistant, and Perplexity can extract and voice this
-        summary for "how do I contact FintechPressHub?" and related queries.
-      */}
+      {/* GEO + AEO: Direct-answer BLUF block */}
       <section className="border-b bg-muted/30 py-5">
         <div className="container mx-auto max-w-6xl px-4">
-          {/*
-            GEO / AEO: .geo-answer-block is the SpeakableSpecification target for
-            both the SSR ContactPage JSON-LD and the client-side PageMeta schema.
-            Adding statistics to this block improves AI Overview citation probability
-            by 33–53% vs. non-data paragraphs (Princeton/IIT NLP research, 2024).
-            External citation link uses rel="nofollow noopener noreferrer" per
-            White Hat SEO best practice — passes trust signal without leaking PageRank.
-          */}
           <p className="geo-answer-block text-sm leading-relaxed text-muted-foreground md:text-base">
             <strong>FintechPressHub</strong> is a specialist fintech SEO agency headquartered in{" "}
             {BRAND_NAP.addressLocality}, {BRAND_NAP.addressRegion}. Submit the form below to request
@@ -321,93 +315,132 @@ export default function Contact() {
         </div>
       </section>
 
-      {/*
-        GEO + Programmatic SEO: visual HowTo process section.
-        The 4 numbered steps mirror the HowTo JSON-LD emitted by PageMeta,
-        making this content machine-readable AND human-readable. Google's
-        rich-result carousel can surface individual steps for queries like
-        "how to contact a fintech SEO agency" or "how does FintechPressHub work".
-      */}
-      <section className="border-b bg-muted/10 py-14">
-        <div className="container mx-auto max-w-6xl px-4">
-          {/* G-07: H2 now contains "fintech SEO agency" keyword — aligns with
-              HowTo JSON-LD name and strengthens on-page keyword relevance for
-              "how does a fintech SEO agency work" queries. */}
-          <div className="mb-10 text-center">
-            <h2 className="mb-2 text-xl font-bold md:text-2xl">
+      {/* ── HOW IT WORKS ── Redesigned with gradient step badges + icons */}
+      <section className="relative overflow-hidden border-b py-20">
+        {/* Subtle gradient wash behind the section */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-50/60 via-white to-violet-50/40"
+        />
+        <div className="container relative mx-auto max-w-6xl px-4">
+          <div className="mb-14 text-center">
+            <span className="mb-3 inline-block rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-primary">
+              The Process
+            </span>
+            <h2 className="mb-3 text-2xl font-bold md:text-3xl">
               How Our Fintech SEO Agency Works — Contact to Kickoff
             </h2>
             <p className="text-sm text-muted-foreground">
               A transparent, 4-step process with no automated funnels.
             </p>
           </div>
-          <ol className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                n: "01",
-                title: "Submit your brief",
-                body: "Fill in the form with your challenges, goals, and budget. Takes under 2 minutes.",
-              },
-              {
-                n: "02",
-                title: "Strategist review",
-                body: "A senior fintech SEO strategist reviews your submission and audits your search footprint within one business day.",
-              },
-              {
-                n: "03",
-                title: "Free discovery call",
-                body: "We share findings, surface quick wins, and assess strategic fit — 30 minutes, no obligation.",
-              },
-              {
-                n: "04",
-                title: "Tailored proposal",
-                body: "If there's a fit, you receive a scoped proposal within 48 hours. No generic decks, no pressure.",
-              },
-            ].map((step) => (
-              <li key={step.n} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-6 shadow-sm">
-                <span className="text-3xl font-black text-primary/20 leading-none">{step.n}</span>
-                <strong className="text-sm font-semibold text-foreground">{step.title}</strong>
-                <p className="text-sm text-muted-foreground leading-relaxed">{step.body}</p>
-              </li>
-            ))}
+
+          <ol className="relative grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Desktop connecting line */}
+            <div
+              aria-hidden
+              className="absolute left-0 right-0 top-10 hidden h-px bg-gradient-to-r from-blue-200 via-violet-200 to-pink-200 lg:block"
+              style={{ marginLeft: "12.5%", marginRight: "12.5%" }}
+            />
+
+            {HOW_TO_STEPS.map((step) => {
+              const Icon = step.icon;
+              return (
+                <li
+                  key={step.n}
+                  className="group relative flex flex-col gap-4 rounded-2xl border border-border/60 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-primary/30"
+                >
+                  {/* Gradient accent top bar */}
+                  <div className={`absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r ${step.accent}`} />
+
+                  {/* Step number badge + icon row */}
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${step.accent} text-sm font-black text-white shadow-md`}
+                    >
+                      {step.n}
+                    </span>
+                    <span className="rounded-lg bg-muted/60 p-2 text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                  </div>
+
+                  <strong className="text-base font-semibold text-foreground">{step.title}</strong>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{step.body}</p>
+                </li>
+              );
+            })}
           </ol>
         </div>
       </section>
 
-      {/* White Hat SEO: transparent trust stats — no fabricated figures */}
-      <section className="border-b bg-card py-8">
-        <div className="container mx-auto max-w-6xl px-4">
-          <dl className="grid grid-cols-3 divide-x divide-border">
+      {/* ── TRUST STATS ── Redesigned with dark gradient background */}
+      <section className="relative overflow-hidden py-14">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0a1628] via-[#0d2045] to-[#0a1628]"
+        />
+        {/* Subtle radial glow */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 80% at 50% 50%, rgba(0,82,255,0.12) 0%, transparent 70%)",
+          }}
+        />
+        <div className="container relative mx-auto max-w-6xl px-4">
+          <dl className="grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-white/10">
             {TRUST_STATS.map((s) => (
-              <div key={s.label} className="flex flex-col items-center gap-1 px-4 text-center">
-                <dt className="text-2xl font-bold text-primary md:text-3xl">{s.value}</dt>
-                <dd className="text-xs text-muted-foreground md:text-sm">{s.label}</dd>
+              <div key={s.label} className="flex flex-col items-center gap-1.5 px-6 text-center">
+                <dt className="text-4xl font-black tracking-tight text-white md:text-5xl">{s.value}</dt>
+                <dd className="text-sm font-semibold text-blue-200">{s.label}</dd>
+                <dd className="text-xs text-white/40">{s.sub}</dd>
               </div>
             ))}
           </dl>
         </div>
       </section>
 
-      {/*
-        Off-Page SEO + GEO: client testimonial surfaces social proof at the
-        highest-intent point of the contact page. Peer-review signals increase
-        AI Overview citation probability for "best fintech SEO agency" queries
-        per Google Quality Rater Guidelines §4.5.3 (E-E-A-T, 2024 edition).
-        Quote sourced from seed testimonials data — Marcus Whitfield, Northwind Payments.
-      */}
-      <section className="border-b bg-muted/10 py-10" aria-label="Client testimonial">
+      {/* ── TESTIMONIAL ── Redesigned with stars + decorative quote mark */}
+      <section className="border-b border-t bg-gradient-to-br from-slate-50 to-blue-50/40 py-14" aria-label="Client testimonial">
         <div className="container mx-auto max-w-6xl px-4">
-          <figure className="mx-auto max-w-2xl text-center">
-            <blockquote className="mb-4 text-base italic leading-relaxed text-foreground/90 md:text-lg">
-              "FintechPressHub turned our blog from a cost center into our top inbound channel.
-              We went from page four to page one for our core keyword within seven months."
-            </blockquote>
-            <figcaption className="text-sm text-muted-foreground">
-              <strong className="text-foreground">Marcus Whitfield</strong>
-              {" "}— Head of Growth,{" "}
-              <cite className="not-italic">Northwind Payments</cite>
-            </figcaption>
-          </figure>
+          <div className="mx-auto max-w-2xl">
+            {/* Star rating */}
+            <div className="mb-6 flex justify-center gap-1" aria-label="5 out of 5 stars">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />
+              ))}
+            </div>
+
+            <figure className="relative rounded-2xl border border-blue-100 bg-white px-8 py-10 shadow-md">
+              {/* Decorative oversized quote mark */}
+              <span
+                aria-hidden
+                className="absolute -top-4 left-8 select-none text-8xl font-black leading-none text-primary/10"
+              >
+                "
+              </span>
+
+              <blockquote className="relative mb-6 text-lg font-medium italic leading-relaxed text-slate-700 md:text-xl">
+                "FintechPressHub turned our blog from a cost center into our top inbound channel.
+                We went from page four to page one for our core keyword within seven months."
+              </blockquote>
+
+              <figcaption className="flex items-center gap-4">
+                {/* Avatar initial */}
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white shadow">
+                  MW
+                </span>
+                <div className="text-left">
+                  <strong className="block text-sm font-semibold text-slate-900">Marcus Whitfield</strong>
+                  <cite className="not-italic text-xs text-muted-foreground">
+                    Head of Growth · <span className="font-medium text-slate-700">Northwind Payments</span>
+                  </cite>
+                </div>
+              </figcaption>
+            </figure>
+          </div>
         </div>
       </section>
 
@@ -416,10 +449,9 @@ export default function Contact() {
         <div className="container mx-auto max-w-6xl px-4">
           <div className="grid grid-cols-1 gap-16 lg:grid-cols-12">
 
-            {/* Contact Info */}
+            {/* Contact Info sidebar */}
             <div className="space-y-8 lg:col-span-4">
               <div>
-                {/* On-Page SEO: keyword-rich H2 */}
                 <h2 className="mb-4 text-2xl font-bold">
                   Get in Touch with Our Fintech SEO Team
                 </h2>
@@ -432,12 +464,11 @@ export default function Contact() {
 
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="rounded-full bg-primary/10 p-3">
+                  <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-3">
                     <Mail className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Email</h3>
-                    {/* Off-Page SEO: NAP email from single source of truth */}
                     <a
                       href={`mailto:${BRAND_NAP.email}`}
                       className="text-muted-foreground hover:text-primary transition-colors"
@@ -448,16 +479,11 @@ export default function Contact() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="rounded-full bg-primary/10 p-3">
+                  <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-3">
                     <MapPin className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Headquarters</h3>
-                    {/*
-                      Off-Page SEO: NAP rendered from BRAND_NAP so the address
-                      on this page is byte-identical to Organisation JSON-LD and
-                      the footer — NAP consistency is a primary local-SEO signal.
-                    */}
                     <address className="not-italic text-muted-foreground">
                       {BRAND_NAP.streetAddress}<br />
                       {BRAND_NAP.addressLocality}, {BRAND_NAP.addressRegion} {BRAND_NAP.postalCode}<br />
@@ -467,17 +493,11 @@ export default function Contact() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="rounded-full bg-primary/10 p-3">
+                  <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-3">
                     <Clock className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Hours</h3>
-                    {/*
-                      Technical SEO / On-Page SEO: <time> datetime attribute is parsed
-                      by schema.org OpeningHoursSpecification consumers, Google's
-                      entity extractor, and accessibility tooling (WCAG 1.3.1 — Info
-                      and Relationships). ISO 8601 day abbreviations + 24h time range.
-                    */}
                     <p className="text-muted-foreground">
                       <time dateTime="Mo,Tu,We,Th,Fr 09:00-18:00">Mon – Fri, 9 am – 6 pm EST</time>
                     </p>
@@ -490,20 +510,15 @@ export default function Contact() {
 
                 {/* International SEO: visible markets served */}
                 <div className="flex items-start gap-4">
-                  <div className="rounded-full bg-primary/10 p-3">
+                  <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-3">
                     <Globe className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Markets Served</h3>
-                    {/*
-                      International SEO: per-market currency surfaced visually so
-                      AI citation engines (Google AI Overviews, Perplexity) can
-                      confirm geographic coverage and billing currency from the
-                      contact page alone, without navigating to /pricing.
-                    */}
                     <ul className="mt-1 space-y-0.5 text-muted-foreground text-sm">
                       {MARKETS.map((m) => (
-                        <li key={m.code}>
+                        <li key={m.code} className="flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3 w-3 text-primary/60" />
                           {m.label}{" "}
                           <span className="text-xs text-muted-foreground/60">({m.currency})</span>
                         </li>
@@ -516,16 +531,9 @@ export default function Contact() {
                 </div>
               </div>
 
-              {/*
-                Off-Page SEO: visible social profile links surface all 3 sameAs entities
-                declared in ORGANIZATION_SCHEMA on the page itself. rel="me" is the
-                IndieWeb / brand-verification signal used by AI knowledge-graph engines
-                (Google SGE, Perplexity) to confirm ownership of social profiles.
-                G-01: Crunchbase added — now all 3 ORGANIZATION_SCHEMA.sameAs URLs visible.
-                G-02: rel="me noopener noreferrer" on all social links.
-              */}
+              {/* Social links */}
               <div className="flex items-start gap-4">
-                <div className="rounded-full bg-primary/10 p-3">
+                <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-3">
                   <Linkedin className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -562,268 +570,259 @@ export default function Contact() {
                 </div>
               </div>
 
-              {/*
-                On-Page SEO + Programmatic SEO + White Hat SEO:
-                Internal links to key transactional and authority pages.
-                - /compare/agency-vs-in-house: targets "fintech SEO agency vs in-house" commercial query
-                - /glossary: topical authority anchor; links fintech SEO terminology to contact intent
-                - /editorial-guidelines: White Hat E-E-A-T signal; shows editorial rigour to quality raters
-                All links use descriptive anchor text containing target keywords.
-              */}
-              <div className="rounded-xl border border-border bg-muted/30 p-5">
-                <p className="mb-3 text-sm font-semibold text-foreground">
+              {/* Explore panel — improved styling */}
+              <div className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-blue-50/60 p-5">
+                <p className="mb-4 text-sm font-semibold text-foreground flex items-center gap-2">
+                  <ArrowRight className="h-4 w-4 text-primary" />
                   Explore before you reach out
                 </p>
-                <ul className="space-y-2 text-sm">
-                  <li>
-                    <Link href="/services" className="text-primary underline-offset-2 hover:underline">
-                      Our fintech SEO services →
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/pricing" className="text-primary underline-offset-2 hover:underline">
-                      Transparent pricing &amp; retainer tiers →
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/blog" className="text-primary underline-offset-2 hover:underline">
-                      Fintech SEO insights &amp; playbooks →
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/compare/agency-vs-in-house" className="text-primary underline-offset-2 hover:underline">
-                      Agency vs in-house fintech SEO →
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/glossary" className="text-primary underline-offset-2 hover:underline">
-                      Fintech SEO glossary →
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/editorial-guidelines" className="text-primary underline-offset-2 hover:underline">
-                      Our editorial guidelines →
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/write-for-us" className="text-primary underline-offset-2 hover:underline">
-                      Guest post on FintechPressHub →
-                    </Link>
-                  </li>
+                <ul className="space-y-2.5 text-sm">
+                  {[
+                    { label: "Our fintech SEO services", href: "/services" },
+                    { label: "Transparent pricing & retainer tiers", href: "/pricing" },
+                    { label: "Fintech SEO insights & playbooks", href: "/blog" },
+                    { label: "Agency vs in-house fintech SEO", href: "/compare/agency-vs-in-house" },
+                    { label: "Fintech SEO glossary", href: "/glossary" },
+                    { label: "Our editorial guidelines", href: "/editorial-guidelines" },
+                    { label: "Guest post on FintechPressHub", href: "/write-for-us" },
+                  ].map((l) => (
+                    <li key={l.href}>
+                      <Link
+                        href={l.href}
+                        className="group flex items-center gap-1.5 text-primary hover:underline underline-offset-2"
+                      >
+                        <ArrowRight className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5" />
+                        {l.label}
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
 
             {/* Form */}
             <div className="lg:col-span-8">
-              <div className="rounded-2xl border bg-card p-8 shadow-sm">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Full Name</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Jane Smith"
-                                autoComplete="name"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Work Email</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="email"
-                                placeholder="jane@company.com"
-                                autoComplete="email"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+              <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-lg">
+                {/* Gradient form header */}
+                <div className="relative overflow-hidden bg-gradient-to-r from-[#0a1628] via-[#0d2045] to-[#0a1628] px-8 py-6">
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background:
+                        "radial-gradient(ellipse 60% 120% at 30% 50%, rgba(0,82,255,0.18) 0%, transparent 70%)",
+                    }}
+                  />
+                  <h3 className="relative text-lg font-bold text-white">
+                    Request Your Free Fintech SEO Consultation
+                  </h3>
+                  <p className="relative mt-1 text-sm text-blue-200">
+                    A senior strategist reviews every submission — no automated sequences.
+                  </p>
+                </div>
 
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="company"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Company Name</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Acme Fintech"
-                                autoComplete="organization"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone Number (Optional)</FormLabel>
-                            <FormControl>
-                              {/* G-17/G-18: type="tel" activates numeric keypad on iOS/Android;
-                                  inputMode="tel" is the HTML5 secondary hint for the same behaviour.
-                                  Both are required for full cross-browser mobile UX compliance. */}
-                              <Input
-                                type="tel"
-                                inputMode="tel"
-                                placeholder="+1 (555) 000-0000"
-                                autoComplete="tel"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="service"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Primary Interest</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <div className="p-8">
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Full Name</FormLabel>
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a service" />
-                                </SelectTrigger>
+                                <Input
+                                  placeholder="Jane Smith"
+                                  autoComplete="name"
+                                  {...field}
+                                />
                               </FormControl>
-                              <SelectContent>
-                                <SelectItem value="seo-content">SEO Content Creation</SelectItem>
-                                <SelectItem value="link-building">High-DR Link Building</SelectItem>
-                                <SelectItem value="technical-seo">Technical SEO Audit</SelectItem>
-                                <SelectItem value="full-managed">Fully Managed Retainer</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Work Email</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="email"
+                                  placeholder="jane@company.com"
+                                  autoComplete="email"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="company"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Company Name</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Acme Fintech"
+                                  autoComplete="organization"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone (optional)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="tel"
+                                  placeholder="+1 212 555 0100"
+                                  autoComplete="tel"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="service"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Primary Interest</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a service" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="seo-audit">SEO Audit</SelectItem>
+                                  <SelectItem value="content-creation">Content Creation</SelectItem>
+                                  <SelectItem value="link-building">Link Building</SelectItem>
+                                  <SelectItem value="technical-seo">Technical SEO</SelectItem>
+                                  <SelectItem value="full-retainer">Fully Managed Retainer</SelectItem>
+                                  <SelectItem value="other">Other / Not Sure</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="budget"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Monthly Budget</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a range" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="under-5k">Under $5,000 / mo</SelectItem>
+                                  <SelectItem value="5k-10k">$5,000 – $10,000 / mo</SelectItem>
+                                  <SelectItem value="10k-20k">$10,000 – $20,000 / mo</SelectItem>
+                                  <SelectItem value="20k-plus">$20,000+ / mo</SelectItem>
+                                  <SelectItem value="one-time">One-time project</SelectItem>
+                                  <SelectItem value="not-sure">Not sure yet</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
                       <FormField
                         control={form.control}
-                        name="budget"
+                        name="message"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Monthly Budget</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select budget range" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="2k-5k">$2,000 – $5,000</SelectItem>
-                                <SelectItem value="5k-10k">$5,000 – $10,000</SelectItem>
-                                <SelectItem value="10k+">$10,000+</SelectItem>
-                                <SelectItem value="unsure">Not Sure Yet</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <FormLabel>Tell us about your SEO challenges</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Describe your current search footprint, target keywords, and growth goals…"
+                                className="min-h-[120px] resize-y"
+                                {...field}
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    </div>
 
-                    <FormField
-                      control={form.control}
-                      name="message"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>How can we help?</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Tell us about your current challenges, target keywords, and growth goals…"
-                              className="min-h-[120px] resize-y"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="w-full"
-                      disabled={submitContact.isPending}
-                    >
-                      {submitContact.isPending ? "Sending…" : "Request Free Fintech SEO Consultation"}
-                    </Button>
-
-                    {/*
-                      G-13 / G-16: Screen-reader-only aria-live region announces form
-                      submission outcomes. Sonner toasts are visually clear but not
-                      reliably picked up by all screen-reader + browser combinations.
-                      This region guarantees WCAG 4.1.3 (Status Messages) compliance.
-                    */}
-                    <div
-                      role="status"
-                      aria-live="polite"
-                      aria-atomic="true"
-                      className="sr-only"
-                    >
-                      {formStatus}
-                    </div>
-
-                    {/*
-                      White Hat SEO: transparent GDPR/privacy notice with explicit
-                      data-retention period. Google's QRG (2024) §4.5 flags missing
-                      retention disclosures as a trustworthiness negative signal on
-                      YMYL contact pages — stating it explicitly removes the ambiguity.
-                    */}
-                    <p className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary/70" />
-                      Your data is processed in accordance with our{" "}
-                      <Link href="/privacy-policy" className="underline underline-offset-2 hover:no-underline">
-                        Privacy Policy
-                      </Link>
-                      . Contact enquiry data is retained for 24 months, then securely deleted.
-                      We will never sell or share your information with third parties.
-                      You may request deletion at any time by emailing{" "}
-                      <a
-                        href={`mailto:${BRAND_NAP.email}`}
-                        className="underline underline-offset-2 hover:no-underline"
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:from-blue-700 hover:to-indigo-700"
+                        disabled={submitContact.isPending}
                       >
-                        {BRAND_NAP.email}
-                      </a>
-                      .
-                    </p>
+                        {submitContact.isPending ? "Sending…" : "Request Free Fintech SEO Consultation"}
+                      </Button>
 
-                    {/* AEO: response-time guarantee — machine-readable via speakable */}
-                    <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-                      <Timer className="h-4 w-4 shrink-0 text-primary" />
-                      <p className="text-xs text-muted-foreground">
-                        <strong className="text-foreground">Guaranteed response within one business day.</strong>{" "}
-                        Senior strategist review — no automated sequences, no junior SDRs.
+                      <div
+                        role="status"
+                        aria-live="polite"
+                        aria-atomic="true"
+                        className="sr-only"
+                      >
+                        {formStatus}
+                      </div>
+
+                      <p className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary/70" />
+                        Your data is processed in accordance with our{" "}
+                        <Link href="/privacy-policy" className="underline underline-offset-2 hover:no-underline">
+                          Privacy Policy
+                        </Link>
+                        . Contact enquiry data is retained for 24 months, then securely deleted.
+                        We will never sell or share your information with third parties.
+                        You may request deletion at any time by emailing{" "}
+                        <a
+                          href={`mailto:${BRAND_NAP.email}`}
+                          className="underline underline-offset-2 hover:no-underline"
+                        >
+                          {BRAND_NAP.email}
+                        </a>
+                        .
                       </p>
-                    </div>
-                  </form>
-                </Form>
+
+                      <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
+                        <Timer className="h-5 w-5 shrink-0 text-primary" />
+                        <p className="text-sm text-muted-foreground">
+                          <strong className="text-foreground">Guaranteed response within one business day.</strong>{" "}
+                          Senior strategist review — no automated sequences, no junior SDRs.
+                        </p>
+                      </div>
+                    </form>
+                  </Form>
+                </div>
               </div>
             </div>
 
@@ -831,12 +830,7 @@ export default function Contact() {
         </div>
       </section>
 
-      {/*
-        Programmatic SEO: systematic internal links to location-specific
-        fintech SEO service pages. Each city link carries PageRank from
-        /contact (a high-intent, frequently-linked page) into the location
-        hub, strengthening those pages' ranking for "fintech SEO agency [city]".
-      */}
+      {/* Programmatic SEO: location pills */}
       <section className="border-t border-b bg-muted/20 py-10">
         <div className="container mx-auto max-w-6xl px-4">
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
@@ -847,14 +841,14 @@ export default function Contact() {
               <Link
                 key={loc.slug}
                 href={`/locations/${loc.slug}`}
-                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-primary/10 hover:text-primary hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-sm"
               >
                 Fintech SEO — {loc.city}
               </Link>
             ))}
             <Link
               href="/locations"
-              className="rounded-full border border-primary/40 bg-primary/5 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/15"
+              className="rounded-full border border-primary/40 bg-primary/5 px-4 py-2 text-sm font-medium text-primary transition-all hover:bg-primary/15 hover:-translate-y-0.5"
             >
               View all locations →
             </Link>
@@ -862,19 +856,10 @@ export default function Contact() {
         </div>
       </section>
 
-      {/*
-        GEO: Named expert attribution quote — named-source attribution increases
-        AI Overview citation probability by ~32% vs. unattributed statements
-        (Princeton/IIT NLP citation-selection research, 2024).
-        Programmatic SEO: fintech vertical pills link to /blog/category/[slug] — all
-        slugs match STATIC_CATEGORY_SLUGS in seoConstants.ts (single source of truth).
-        Passing internal PageRank from high-intent /contact into 8 category hub pages.
-      */}
+      {/* GEO: expert quote + Programmatic SEO: vertical links */}
       <section className="border-t border-b bg-card py-14" aria-label="Agency insight and fintech verticals">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
-
-            {/* Expert attribution quote */}
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary/70">
                 Strategy Insight
@@ -894,7 +879,6 @@ export default function Contact() {
               </figure>
             </div>
 
-            {/* Fintech vertical category links — Programmatic SEO */}
             <div>
               <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Fintech Verticals We Cover
@@ -913,7 +897,7 @@ export default function Contact() {
                   <Link
                     key={v.slug}
                     href={`/blog/category/${v.slug}`}
-                    className="rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                    className="rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground transition-all hover:bg-primary/10 hover:text-primary hover:border-primary/30 hover:-translate-y-0.5"
                   >
                     {v.label}
                   </Link>
@@ -923,7 +907,6 @@ export default function Contact() {
                 Active since 2021 · 5 markets · 8 fintech verticals
               </p>
             </div>
-
           </div>
         </div>
       </section>
@@ -933,7 +916,6 @@ export default function Contact() {
         <div className="container mx-auto max-w-3xl px-4">
           <div className="mb-10 text-center">
             <HelpCircle className="mx-auto mb-4 h-8 w-8 text-primary" />
-            {/* On-Page SEO: descriptive, keyword-contextual H2 */}
             <h2 className="mb-3 text-2xl font-bold md:text-3xl">
               Frequently Asked Questions About Our Fintech SEO Agency
             </h2>
