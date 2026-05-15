@@ -3634,29 +3634,60 @@ async function handleSsrMeta(
             description:  staticMeta.description,
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification targets h1, the .speakable-summary hero paragraph,
-            // and #pricing-bluf (the GEO BLUF answer block added 2026-05-15) — enables
-            // voice assistants and AI overview engines to surface both the pricing value
-            // proposition and the direct factual answer for "how much does fintech SEO
-            // cost?" and "fintech SEO agency pricing" queries.
+            // about: the Service this page is selling — strengthens Knowledge Graph
+            // entity matching for "fintech SEO pricing" and related queries (Round 4).
+            about: {
+              "@type":    "Service",
+              name:       "Fintech SEO & Content Marketing",
+              provider:   { "@id": `${siteUrl}#organization` },
+              url:        `${siteUrl}/services`,
+            },
+            // mainEntity: FAQPage is the primary structured entity on this page —
+            // declares the relationship AI engines use to surface FAQ answers (Round 4).
+            mainEntity: { "@id": `${canonical}#faq` },
+            // citation: schema.org attribution for all data sources cited on the page —
+            // GEO + E-E-A-T: AI citation engines weight sourced content higher (Round 4).
+            citation: [
+              {
+                "@type":       "CreativeWork",
+                name:          "BrightEdge Research: Channel Share of Website Traffic",
+                description:   "53% of trackable web traffic originates from organic search — BrightEdge platform data, 2024.",
+              },
+              {
+                "@type":       "CreativeWork",
+                name:          "FintechPressHub Client Portfolio Analysis (2024–2025)",
+                description:   "CAC benchmarks across 40+ fintech brand engagements: organic vs paid channels.",
+                author:        { "@id": `${siteUrl}#organization` },
+              },
+              {
+                "@type":       "CreativeWork",
+                name:          "FintechPressHub Cohort Study (2025)",
+                description:   "Median 3–5× ROI measured as incremental organic traffic value vs equivalent paid search CPC over 12-month retainer engagements.",
+                author:        { "@id": `${siteUrl}#organization` },
+              },
+            ],
+            // SpeakableSpecification expanded to include new section headings added
+            // in Round 4: #seo-roi, #why-choose, #plan-comparison — enables voice
+            // assistants and AI overview engines to cite each major section directly.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".speakable-summary", "#pricing-bluf"],
+              cssSelector: ["h1", ".speakable-summary", "#pricing-bluf", "#seo-roi", "#why-choose", "#plan-comparison"],
             },
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
-            // hasPart: WebPageElement entities for each major pricing page section —
-            // enables Google Knowledge Graph and AI citation engines (Perplexity,
-            // ChatGPT Search) to cite individual sections directly and improves
-            // long-tail ranking for section-level queries like "fintech SEO plan comparison"
-            // and "how much does a fintech SEO retainer cost".
+            // hasPart: expanded to 7 WebPageElement entities covering all major sections
+            // including new Round 4 additions. FAQ cssSelector updated from .faq-heading
+            // to #faq (section element now carries the id — fixes broken fragment).
             hasPart: [
-              { "@type": "WebPageElement", name: "Pricing Summary",                   cssSelector: "#pricing-bluf",  url: `${canonical}#pricing-bluf`  },
-              { "@type": "WebPageElement", name: "SEO Impact Statistics",             cssSelector: "#geo-stats",     url: `${canonical}#geo-stats`     },
-              { "@type": "WebPageElement", name: "Fintech SEO Retainer Plans",        cssSelector: "#plans",         url: `${canonical}#plans`         },
-              { "@type": "WebPageElement", name: "Frequently Asked Questions",        cssSelector: ".faq-heading",   url: `${canonical}#faq`           },
+              { "@type": "WebPageElement", name: "Pricing Summary",            cssSelector: "#pricing-bluf",    url: `${canonical}#pricing-bluf`    },
+              { "@type": "WebPageElement", name: "SEO ROI Statistics",         cssSelector: "#geo-stats",       url: `${canonical}#geo-stats`       },
+              { "@type": "WebPageElement", name: "Expert Perspective",         cssSelector: "#expert-quote",    url: `${canonical}#expert-quote`    },
+              { "@type": "WebPageElement", name: "Fintech SEO Retainer Plans", cssSelector: "#plans",           url: `${canonical}#plans`           },
+              { "@type": "WebPageElement", name: "Why FintechPressHub",        cssSelector: "#why-choose",      url: `${canonical}#why-choose`      },
+              { "@type": "WebPageElement", name: "Plan Comparison Table",      cssSelector: "#plan-comparison", url: `${canonical}#plan-comparison` },
+              { "@type": "WebPageElement", name: "Frequently Asked Questions", cssSelector: "#faq",             url: `${canonical}#faq`             },
             ],
           }, null, 2));
           if (pricingList.length > 0) {

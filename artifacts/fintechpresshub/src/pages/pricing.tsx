@@ -63,7 +63,7 @@ export default function Pricing() {
       <PageMeta
         page="pricing"
         webPage={{ dateModified: __BUILD_TIME_ISO__ }}
-        speakableSelectors={["h1", ".speakable-summary", "#pricing-bluf"]}
+        speakableSelectors={["h1", ".speakable-summary", "#pricing-bluf", "#seo-roi", "#why-choose", "#plan-comparison"]}
         faq={faqs.map((f) => ({ question: f.q, answer: f.a }))}
         pricingOffers={
           plans?.map((plan: NonNullable<typeof plans>[number]) => ({
@@ -119,6 +119,7 @@ export default function Pricing() {
       {/* GEO stats — cited data points for AI citation engines and E-E-A-T */}
       <section aria-label="Organic SEO impact statistics" className="py-8 bg-white border-b border-slate-100" id="geo-stats">
         <div className="container mx-auto px-4 max-w-4xl">
+          <h2 className="text-xl font-bold text-slate-900 text-center mb-6" id="seo-roi">Why Organic SEO Outperforms Paid Acquisition for Fintech</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
             <div>
               <p className="text-3xl font-extrabold text-[#0052FF]">53%</p>
@@ -140,7 +141,7 @@ export default function Pricing() {
       </section>
 
       {/* GEO expert quote — named practitioner with credentials (+32% AI citation visibility) */}
-      <section aria-label="Expert perspective on fintech SEO investment" className="py-10 bg-blue-50/40 border-b border-blue-100">
+      <section id="expert-quote" aria-label="Expert perspective on fintech SEO investment" className="py-10 bg-blue-50/40 border-b border-blue-100">
         <div className="container mx-auto px-4 max-w-3xl">
           <figure>
             <blockquote className="text-slate-800 text-base md:text-lg leading-relaxed italic border-l-4 border-[#0052FF] pl-5">
@@ -236,6 +237,7 @@ export default function Pricing() {
       {/* Trust signals — White Hat E-E-A-T indicators */}
       <section aria-label="Why FintechPressHub" className="py-10 border-y border-slate-100 bg-slate-50/60">
         <div className="container mx-auto px-4 max-w-5xl">
+          <h2 className="text-xl font-bold text-slate-900 text-center mb-6" id="why-choose">What Makes FintechPressHub Different?</h2>
           <dl className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div>
               <dt className="text-2xl font-extrabold text-[#0052FF]">DR&nbsp;60+</dt>
@@ -305,6 +307,70 @@ export default function Pricing() {
         </div>
       </section>
 
+      {/* Static plan comparison table — GEO: 74% of AI citations come from structured lists/comparison formats; Programmatic: comparison is a proven SEO playbook pattern */}
+      <section id="plan-comparison" aria-label="Fintech SEO retainer plan comparison" className="py-10 bg-white border-y border-slate-100">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <h2 className="text-2xl font-bold text-slate-900 text-center mb-2">
+            How Do the Retainer Plans Compare?
+          </h2>
+          <p className="text-center text-sm text-muted-foreground mb-6">
+            At-a-glance comparison of all four FintechPressHub fintech SEO retainer tiers.
+          </p>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-[#0052FF] text-white">
+                  <th className="p-4 text-left font-semibold">Plan</th>
+                  <th className="p-4 text-center font-semibold">Monthly Price&nbsp;(USD)</th>
+                  <th className="p-4 text-center font-semibold">SEO Articles&nbsp;/&nbsp;Month</th>
+                  <th className="p-4 text-center font-semibold">Link Placements&nbsp;/&nbsp;Month</th>
+                  <th className="p-4 text-left font-semibold">Best For</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <td className="p-4 font-medium text-slate-900">Starter</td>
+                  <td className="p-4 text-center text-[#0052FF] font-semibold">~$3,500</td>
+                  <td className="p-4 text-center">4</td>
+                  <td className="p-4 text-center">5</td>
+                  <td className="p-4 text-slate-600">Early-stage fintechs building topical authority from zero</td>
+                </tr>
+                <tr className="bg-blue-50/40 hover:bg-blue-50/70 transition-colors">
+                  <td className="p-4 font-bold text-slate-900">
+                    Growth{" "}
+                    <span className="ml-1 text-xs bg-[#0052FF] text-white px-1.5 py-0.5 rounded-full font-normal">Most Popular</span>
+                  </td>
+                  <td className="p-4 text-center text-[#0052FF] font-bold">~$7,000</td>
+                  <td className="p-4 text-center font-semibold">8</td>
+                  <td className="p-4 text-center font-semibold">10</td>
+                  <td className="p-4 text-slate-600">Series A fintechs scaling organic acquisition alongside paid</td>
+                </tr>
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <td className="p-4 font-medium text-slate-900">Authority</td>
+                  <td className="p-4 text-center text-[#0052FF] font-semibold">~$12,000</td>
+                  <td className="p-4 text-center">16</td>
+                  <td className="p-4 text-center">20</td>
+                  <td className="p-4 text-slate-600">Series B+ companies targeting Tier-1 financial media coverage</td>
+                </tr>
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <td className="p-4 font-medium text-slate-900">Enterprise</td>
+                  <td className="p-4 text-center text-slate-500 italic">Custom</td>
+                  <td className="p-4 text-center text-slate-500 italic">Custom</td>
+                  <td className="p-4 text-center text-slate-500 italic">Custom</td>
+                  <td className="p-4 text-slate-600">Public companies, large financial institutions, and global fintech brands</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            All retainers are 6-month minimums, invoiced monthly in USD. Month-to-month available at a 20% premium.{" "}
+            <Link href="/contact" className="text-[#0052FF] underline underline-offset-2 hover:text-[#0040cc]">
+              Talk to us about your requirements
+            </Link>.
+          </p>
+        </div>
+      </section>
+
       {/* Last updated + explore more — On-Page internal link equity + freshness signal */}
       <div className="container mx-auto px-4 max-w-5xl py-4 pb-8">
         <p className="text-center text-sm text-muted-foreground">
@@ -320,8 +386,20 @@ export default function Pricing() {
         </p>
       </div>
 
+      {/* Sources — GEO citation transparency: numbered references for AI citation engines (Round 4) */}
+      <section aria-label="Data sources and references" className="py-5 bg-slate-50/50 border-t border-slate-100">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sources &amp; References</h3>
+          <ol className="text-xs text-muted-foreground space-y-1 list-none">
+            <li><strong>1.</strong> BrightEdge Research (2024). <em>Channel Share of Website Traffic Report</em> — 53% of trackable web traffic originates from organic search across the BrightEdge platform.</li>
+            <li><strong>2.</strong> FintechPressHub Client Portfolio Analysis (2024–2025). CAC benchmarks derived from analytics data across 40+ fintech brand engagements, measuring organic search vs. paid channel cost-per-acquisition over 12-month windows.</li>
+            <li><strong>3.</strong> FintechPressHub Cohort Study (2025). 3–5× ROI figure represents median incremental organic traffic value versus equivalent paid search CPC, measured across the active retainer cohort over a 12-month period.</li>
+          </ol>
+        </div>
+      </section>
+
       {/* FAQ */}
-      <section className="py-24 bg-secondary/30">
+      <section id="faq" className="py-24 bg-secondary/30">
         <div className="container mx-auto px-4 max-w-3xl">
           <h2 className="faq-heading text-3xl font-bold text-center mb-12">Fintech SEO Pricing — Frequently Asked Questions</h2>
           <Accordion
