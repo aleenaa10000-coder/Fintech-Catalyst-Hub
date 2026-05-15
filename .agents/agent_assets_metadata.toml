@@ -173,3 +173,9 @@ id = "MSkzkMte5nJ3rTRktFQR7"
 uri = "file://docs/glossary-seo-audit-report.md"
 type = "text"
 title = "Fintech Glossary SEO Audit Report"
+
+[[outputs]]
+id = "FJe6IDKL3u_T2hlMWli-T"
+uri = "file://docs/meet-the-team-seo-audit-report.md"
+type = "text"
+title = "Meet the Team — Full 8-Category SEO Audit Report"
