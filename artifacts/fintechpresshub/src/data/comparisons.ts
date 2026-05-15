@@ -26,12 +26,17 @@ export type Comparison = {
   eyebrow: string;
   heroTitle: string;
   heroDescription: string;
+  /** BLUF (Bottom-Line-Up-Front) speakable summary. Rendered with .speakable-summary CSS class
+   *  below the hero so voice assistants and AI crawlers can extract the verdict at a glance. */
+  bluf: string;
   colA: string;
   colB: string;
   colC: string;
   rows: ComparisonRow[];
   faqItems: FaqItem[];
   bottomLine: BottomLineCard[];
+  /** ISO 8601 first-publication date. Single source of truth for WebPage datePublished schema. */
+  datePublished: string;
   /** Canonical last-modification date (YYYY-MM-DD). Used in WebPage dateModified schema. */
   lastmod: string;
 };
@@ -46,6 +51,7 @@ export const COMPARISONS: Comparison[] = [
     heroTitle: "Fintech SEO agency vs generic agency vs in-house",
     heroDescription:
       "See exactly how a fintech-specialist SEO agency stacks up against a generic agency and an in-house team across the criteria that matter most for regulated financial companies.",
+    bluf: "FintechPressHub scores 10/10 vs a 5/10 generic agency and 6/10 in-house team across 10 decision criteria. The specialist advantage is clearest in regulatory content accuracy, fintech-niche link building, and AEO optimisation — all areas where generalists and in-house teams consistently score lower.",
     colA: "FintechPressHub",
     colB: "Generic agency",
     colC: "In-house team",
@@ -122,13 +128,19 @@ export const COMPARISONS: Comparison[] = [
         answer:
           "Our minimum is the one-time SEO audit (30-day delivery). Ongoing retainers start at the equivalent of a mid-level content manager's salary and cover strategy, content, and link building in one package.",
       },
+      {
+        question: "How quickly can FintechPressHub begin producing content after signing?",
+        answer:
+          "Onboarding takes 7–14 days from contract signing to first deliverables. During that window we complete a brand guide review, keyword mapping, internal link audit, and content brief preparation. Most clients receive their first piece of content in week three — faster than hiring and onboarding even a single in-house writer.",
+      },
     ],
     bottomLine: [
       { label: "FintechPressHub", score: "10 / 10", colorBorder: "border-[#0052FF]", colorScore: "text-[#0052FF]", summary: "The only option that combines fintech domain expertise, full-service SEO execution, and transparent results from day one.", cta: true },
       { label: "Generic SEO agency", score: "5 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Covers technical SEO and basic content but lacks fintech regulatory knowledge and the niche link-building relationships that move the needle.", cta: false },
       { label: "In-house team", score: "6 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Best long-term option for scale, but expensive to build and slow to ramp. Lacks fintech-specific link-building and AEO expertise in early stages.", cta: false },
     ],
-    lastmod: "2026-05-09",
+    datePublished: "2024-09-01",
+    lastmod: "2026-05-15",
   },
   {
     slug: "vs-freelancers",
@@ -139,6 +151,7 @@ export const COMPARISONS: Comparison[] = [
     heroTitle: "Fintech SEO agency vs freelancers vs consultants",
     heroDescription:
       "Freelancers offer flexibility; consultants offer senior expertise. But neither delivers the integrated content, link building, and technical SEO that compounds organic growth.",
+    bluf: "FintechPressHub scores 10/10 vs 5/10 for freelance writers and 7/10 for independent consultants across 9 integrated SEO criteria. The critical gap is integrated delivery: freelancers handle content but not links or schema; consultants advise but don't execute.",
     colA: "FintechPressHub",
     colB: "Freelance writers",
     colC: "Independent consultants",
@@ -205,13 +218,19 @@ export const COMPARISONS: Comparison[] = [
         answer:
           "Every piece is written against a client style guide and reviewed by a senior editor with fintech domain expertise. We use a shared brand voice document, regulatory reference sheet, and internal link matrix that every writer follows.",
       },
+      {
+        question: "What results can we expect in the first 90 days of a managed fintech SEO retainer?",
+        answer:
+          "Within 90 days clients typically see a fully mapped keyword strategy, 8–12 published pieces of content, 3–5 earned backlinks from DR 40+ fintech publications, and early ranking movement on long-tail target terms. Meaningful traffic growth and lead attribution typically begins in months 4–6 as Google indexes and ranks the published content.",
+      },
     ],
     bottomLine: [
       { label: "FintechPressHub", score: "10 / 10", colorBorder: "border-[#0052FF]", colorScore: "text-[#0052FF]", summary: "Integrated delivery at a predictable monthly cost — no coordination overhead, no coverage gaps, no rehiring when a freelancer churns.", cta: true },
       { label: "Freelance writers", score: "5 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Cost-effective for individual articles but require active management, provide no link building, and create delivery risk when they take on other clients.", cta: false },
       { label: "Independent consultants", score: "7 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "High strategic value but limited bandwidth for execution. Best paired with an agency that can implement their recommendations at scale.", cta: false },
     ],
-    lastmod: "2026-05-09",
+    datePublished: "2024-09-15",
+    lastmod: "2026-05-15",
   },
   {
     slug: "vs-seo-tools",
@@ -222,6 +241,7 @@ export const COMPARISONS: Comparison[] = [
     heroTitle: "Managed fintech SEO vs DIY tools vs self-managed",
     heroDescription:
       "SEO tools give you data. A managed retainer turns that data into rankings, links, and revenue — without pulling your engineering or marketing team away from product.",
+    bluf: "FintechPressHub scores 10/10 vs 4/10 for DIY tools and 6/10 for self-managed teams across 9 criteria. SEO tools provide data without execution; a managed retainer converts that data into published content, earned links, and technical fixes — the three things that actually move rankings.",
     colA: "FintechPressHub",
     colB: "DIY tools (Ahrefs/Semrush)",
     colC: "Self-managed in-house",
@@ -288,13 +308,19 @@ export const COMPARISONS: Comparison[] = [
         answer:
           "We use Ahrefs for keyword research and backlink analysis, Semrush for technical audits, Google Search Console for performance tracking, and our own internal tooling for schema validation and IndexNow pings. All data is shared with clients monthly.",
       },
+      {
+        question: "Do you offer a trial or pilot engagement before committing to a full retainer?",
+        answer:
+          "Yes. We offer a one-time fintech SEO audit as a low-commitment starting point. The audit covers technical SEO, keyword gap analysis, content quality, backlink profile review, and a 90-day action plan. Many clients use it to validate our approach before committing to a monthly retainer. Delivery is typically within 30 days of kick-off.",
+      },
     ],
     bottomLine: [
       { label: "FintechPressHub", score: "10 / 10", colorBorder: "border-[#0052FF]", colorScore: "text-[#0052FF]", summary: "Data plus execution plus fintech expertise — the complete package that converts keyword opportunity into organic revenue without internal headcount.", cta: true },
       { label: "DIY tools only", score: "4 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Excellent for research and auditing. Useless for publishing content, building links, or implementing schema changes — the things that actually move rankings.", cta: false },
       { label: "Self-managed in-house", score: "6 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Viable if you have the headcount and fintech content expertise. Most growth-stage fintechs don't — and the ramp-up time costs months of compounding ranking opportunity.", cta: false },
     ],
-    lastmod: "2026-05-09",
+    datePublished: "2024-09-15",
+    lastmod: "2026-05-15",
   },
   {
     slug: "vs-pr-agencies",
@@ -305,6 +331,7 @@ export const COMPARISONS: Comparison[] = [
     heroTitle: "Fintech SEO vs traditional PR vs digital communications",
     heroDescription:
       "PR earns brand awareness. SEO earns compounding organic traffic. The best fintech growth strategies combine both — but the mechanics and measurement are very different.",
+    bluf: "FintechPressHub scores 9/10 vs 7/10 for traditional PR and 6/10 for digital comms agencies across 9 criteria. PR excels at brand awareness; SEO builds a compounding organic traffic engine with measurable keyword-level ROI. The best fintech growth strategies combine both channels.",
     colA: "FintechPressHub",
     colB: "Traditional PR agency",
     colC: "Digital comms agency",
@@ -371,13 +398,19 @@ export const COMPARISONS: Comparison[] = [
         answer:
           "Our focus is content-led SEO and link building. We are not a PR or crisis comms agency. If you need integrated coverage, we recommend running us alongside a specialist fintech PR firm and we will coordinate on shared publisher relationships.",
       },
+      {
+        question: "What KPIs do you track to measure the success of a fintech SEO programme?",
+        answer:
+          "Our primary KPIs are organic sessions from Google Search Console, keyword position movement (tracked weekly for target terms), referring domain growth (new DR 40+ domains per month), and organic-attributed pipeline. We share a live GSC and Ahrefs dashboard with all clients monthly, with quarterly reviews covering attribution modelling and next-quarter keyword priorities.",
+      },
     ],
     bottomLine: [
       { label: "FintechPressHub", score: "9 / 10", colorBorder: "border-[#0052FF]", colorScore: "text-[#0052FF]", summary: "Best choice for building a compounding organic traffic engine with measurable keyword-level ROI. Pairs well with a PR agency for full-funnel coverage.", cta: true },
       { label: "Traditional PR agency", score: "7 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Excellent for brand credibility, investor narrative, and mainstream press. Weak on search attribution and evergreen content that ranks.", cta: false },
       { label: "Digital comms agency", score: "6 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Covers brand content and social distribution but rarely invests in the technical SEO and publisher relationships needed for ranking and link authority.", cta: false },
     ],
-    lastmod: "2026-05-09",
+    datePublished: "2024-10-01",
+    lastmod: "2026-05-15",
   },
   {
     slug: "content-led-vs-paid",
@@ -388,6 +421,7 @@ export const COMPARISONS: Comparison[] = [
     heroTitle: "Content-led SEO vs paid search vs hybrid for fintech",
     heroDescription:
       "Paid search delivers leads today. Content-led SEO builds an asset that compounds for years. The right mix depends on your growth stage — here is how to think about it.",
+    bluf: "Content SEO scores 9/10 for long-term ROI; Google Ads scores 7/10 for speed to pipeline; a hybrid approach scores 10/10 for most growth-stage fintechs. The optimal channel mix depends on growth stage — pre-Series A favours paid, post-Series A content SEO's compounding advantage begins to dominate.",
     colA: "Content SEO (us)",
     colB: "Google Ads (paid search)",
     colC: "Hybrid approach",
@@ -454,13 +488,19 @@ export const COMPARISONS: Comparison[] = [
         answer:
           "Fintech and financial services consistently rank among the highest CPC categories on Google — often $15–$80 per click for competitive terms. This is one reason content SEO has exceptional long-term ROI in fintech: organic clicks are effectively free once the content ranks, versus CPC costs that compound with inflation.",
       },
+      {
+        question: "At what growth stage should a fintech prioritise content SEO over paid search?",
+        answer:
+          "The crossover typically happens at Series B or when monthly paid search spend exceeds $15,000–$20,000. At that point, the compounding ROI of content SEO — which produces traffic without per-click costs — begins to outperform the marginal return on additional paid budget. Pre-Series A fintechs typically run a 70/30 split favouring paid; by Series B, many shift to 50/50 or 40/60 in favour of content.",
+      },
     ],
     bottomLine: [
       { label: "Content SEO (FintechPressHub)", score: "9 / 10", colorBorder: "border-[#0052FF]", colorScore: "text-[#0052FF]", summary: "Best long-term ROI in fintech. Takes 3–6 months to gain traction but delivers compounding traffic and leads with no per-click cost at scale.", cta: true },
       { label: "Google Ads (paid search)", score: "7 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Fastest path to leads from a standing start. High CPCs in fintech make scaling expensive, and all traffic stops the moment budget is paused.", cta: false },
       { label: "Hybrid approach", score: "10 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Optimal strategy for most growth-stage fintechs: paid search captures demand while content SEO builds a durable organic asset in parallel.", cta: false },
     ],
-    lastmod: "2026-05-09",
+    datePublished: "2024-10-15",
+    lastmod: "2026-05-15",
   },
   {
     slug: "specialist-vs-generalist",
@@ -471,6 +511,7 @@ export const COMPARISONS: Comparison[] = [
     heroTitle: "Fintech specialist vs B2B generalist vs consumer marketing",
     heroDescription:
       "Not all marketing agencies understand regulated financial products. Here is how specialist, generalist B2B, and consumer agencies stack up when the client is a fintech.",
+    bluf: "FintechPressHub scores 10/10 vs 6/10 for B2B generalists and 4/10 for consumer agencies across 9 fintech-specific criteria. Regulatory content accuracy, fintech publisher relationships, and AEO strategy are the three dimensions where the specialist advantage is most pronounced.",
     colA: "FintechPressHub",
     colB: "B2B generalist agency",
     colC: "Consumer marketing agency",
@@ -537,13 +578,19 @@ export const COMPARISONS: Comparison[] = [
         answer:
           "Yes. Our editorial team includes former consumer fintech operators. We adjust content tone, keyword strategy, and audience persona for consumer-facing products. The regulatory expertise is particularly valuable here — consumer financial product marketing has stricter FCA and CFPB rules than B2B.",
       },
+      {
+        question: "How do you measure and prove the ROI of specialist fintech SEO?",
+        answer:
+          "We track ROI via three attribution paths: direct (organic traffic that converts on the first visit), assisted (organic touchpoints in a multi-step journey), and brand search lift (growth in branded query volume driven by content). Most clients achieve a 3–5x return within 12 months measured against the equivalent cost of paid search traffic to the same keywords.",
+      },
     ],
     bottomLine: [
       { label: "FintechPressHub", score: "10 / 10", colorBorder: "border-[#0052FF]", colorScore: "text-[#0052FF]", summary: "Purpose-built for fintech. Domain expertise, regulatory awareness, and fintech publisher relationships that no generalist agency can replicate without years of investment.", cta: true },
       { label: "B2B generalist agency", score: "6 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Solid for non-regulated B2B SaaS. Falls short on fintech regulatory content, niche link building, and the credibility that fintech enterprise buyers expect.", cta: false },
       { label: "Consumer marketing agency", score: "4 / 10", colorBorder: "border-slate-200", colorScore: "text-slate-500", summary: "Strong on brand creativity and social. Fundamentally unsuited for compliance-sensitive financial content or B2B enterprise fintech marketing.", cta: false },
     ],
-    lastmod: "2026-05-09",
+    datePublished: "2024-11-01",
+    lastmod: "2026-05-15",
   },
 ];
 

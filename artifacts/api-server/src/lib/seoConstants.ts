@@ -106,12 +106,12 @@ export const COMPARE_PAGE_CREATED: Readonly<Record<string, string>> = {
  * Update a date here whenever a comparison page's content changes.
  */
 export const COMPARE_PAGE_LASTMOD: Readonly<Record<string, string>> = {
-  "agency-vs-in-house":       "2026-05-09",
-  "vs-freelancers":           "2026-05-09",
-  "vs-seo-tools":             "2026-05-09",
-  "vs-pr-agencies":           "2026-05-09",
-  "content-led-vs-paid":      "2026-05-09",
-  "specialist-vs-generalist": "2026-05-09",
+  "agency-vs-in-house":       "2026-05-15",
+  "vs-freelancers":           "2026-05-15",
+  "vs-seo-tools":             "2026-05-15",
+  "vs-pr-agencies":           "2026-05-15",
+  "content-led-vs-paid":      "2026-05-15",
+  "specialist-vs-generalist": "2026-05-15",
 };
 
 /**
