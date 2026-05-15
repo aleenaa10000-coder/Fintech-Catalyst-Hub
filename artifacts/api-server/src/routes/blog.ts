@@ -55,7 +55,21 @@ const seoTitleField = z
     const trimmed = v.trim();
     return trimmed === "" ? null : trimmed;
   });
-const seoDescriptionField = seoTitleField;
+const seoDescriptionField = z
+  .union([z.string(), z.null()])
+  .optional()
+  .transform((v) => {
+    if (v == null) return v;
+    const trimmed = v.trim();
+    return trimmed === "" ? null : trimmed;
+  })
+  .refine(
+    (v) => v == null || (v.length >= 50 && v.length <= 160),
+    {
+      message:
+        "seoDescription must be between 50 and 160 characters when provided",
+    },
+  );
 const seoOgImageField = z
   .union([z.string(), z.null()])
   .optional()
@@ -87,8 +101,8 @@ function htmlWordCount(html: string): number {
     .filter((w) => w.length > 0).length;
 }
 
-const CONTENT_MIN_WORDS = 1000;
-const CONTENT_MAX_WORDS = 1500;
+const CONTENT_MIN_WORDS = 1500;
+const CONTENT_MAX_WORDS = 3000;
 
 const contentField = z
   .string()
@@ -243,6 +257,7 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
       : null,
     aboutEntities: row.aboutEntities ?? null,
     mentionEntities: row.mentionEntities ?? null,
+    wordCount: row.wordCount ?? 0,
   };
 }
 

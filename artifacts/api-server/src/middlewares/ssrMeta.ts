@@ -1820,6 +1820,48 @@ async function handleSsrMeta(
           // organisations over anonymous posts when choosing citation candidates —
           // without this, citation engines cannot confirm who published the content.
           sourceOrganization: { "@id": `${siteUrl}#organization` },
+          // creativeWorkStatus: signals to Google and AI engines that this post
+          // is actively published (not a draft or archived). Required for Google's
+          // article rich-result eligibility check and Perplexity freshness ranking.
+          // Previously present only in the client-side PageMeta.tsx articleJsonLd
+          // (AEO-1 fix): now added to the SSR path so Googlebot's primary HTML crawl
+          // receives the same signal without needing to execute JavaScript.
+          creativeWorkStatus: "Published",
+          // copyrightNotice: machine-readable rights statement consumed by AI
+          // citation engines (Google AIO, Perplexity, ChatGPT Search) to confirm
+          // attribution requirements before quoting this content (OP-1 / WH-1 fix).
+          // copyrightYear + copyrightHolder are present but insufficient without
+          // the plain-text notice text Google's structured-data guidelines require.
+          copyrightNotice: `© ${post.publishedAt.getFullYear()} FintechPressHub. All rights reserved.`,
+          // countryOfOrigin: declares the editorial production jurisdiction (GEO-1 fix).
+          // AI ranking engines distinguish "content about UK fintech" (contentLocation)
+          // from "content produced by a UK editorial team" (countryOfOrigin). Both
+          // signals together give full YMYL geo-quality scores. FintechPressHub is a
+          // UK-registered agency; all content is UK-editorial-origin.
+          countryOfOrigin: { "@type": "Country", name: "United Kingdom" },
+          // maintainer: identifies the organisation editorially responsible for
+          // keeping this content accurate and up to date (OP-2 fix). Google uses
+          // maintainer — distinct from publisher (who hosts) — when assessing
+          // editorial responsibility for YMYL pages subject to regulatory change.
+          maintainer: { "@id": `${siteUrl}#organization` },
+          // hasPart: article section entities parsed from H2 headings (AEO-2 fix).
+          // Enables Google Knowledge Graph and Perplexity to cite individual sections
+          // directly (e.g. "according to the 'Open Banking' section of…") and
+          // improves topic cluster resolution for long-tail section-level queries.
+          ...(() => {
+            const h2s = Array.from(
+              (post.content ?? "").matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi),
+              (m: RegExpMatchArray) => stripHtml(m[1] ?? "").trim(),
+            ).filter((t: string) => t.length > 0).slice(0, 20);
+            return h2s.length > 0
+              ? { hasPart: h2s.map((name: string, i: number) => ({
+                  "@type": "WebPageElement",
+                  position: i + 1,
+                  name,
+                  isPartOf: { "@id": `${canonical}#article` },
+                })) }
+              : {};
+          })(),
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs, breadcrumbLdId),
       ];
@@ -2022,6 +2064,28 @@ async function handleSsrMeta(
             const lc = regionHreflang[name];
             return lc ? [`  <link rel="alternate" hreflang="${lc}" href="${esc(canonical)}" />`] : [];
           }),
+          // Dynamic og:locale override for single-market content (INT-2 fix).
+          // When contentLocation resolves to exactly one primary market, override
+          // the base HTML's static en_US locale so LinkedIn/Facebook/OG parsers
+          // display the correct regional locale for share cards. Injected at end
+          // of <head> so it wins over the static en_US declaration in the shell.
+          // Multi-market posts retain en_US — no single region dominates.
+          ...(() => {
+            if (contentLocations.length !== 1) return [] as string[];
+            const ogLocaleMap: Record<string, string> = {
+              "United Kingdom":  "en_GB",
+              "United States":   "en_US",
+              "Singapore":       "en_SG",
+              "Australia":       "en_AU",
+              "Canada":          "en_CA",
+              "India":           "en_IN",
+              "Hong Kong":       "en_HK",
+            };
+            const ogLocale = ogLocaleMap[contentLocations[0]!.name];
+            return ogLocale && ogLocale !== "en_US"
+              ? [`  <meta property="og:locale" content="${ogLocale}" />`]
+              : [] as string[];
+          })(),
         ],
         // SSR-inject the BLUF summary as a sr-only <p> immediately after <div id="root">
         // so the SpeakableSpecification cssSelector (".speakable-summary") resolves in

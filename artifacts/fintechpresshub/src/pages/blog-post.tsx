@@ -309,6 +309,17 @@ export default function BlogPost() {
     [headings],
   );
 
+  // AEO-2 fix: article section names from H2 headings emitted as hasPart
+  // WebPageElement entities on BlogPosting JSON-LD. Enables Google Knowledge
+  // Graph and Perplexity to cite individual sections directly and improves
+  // long-tail ranking for queries matching section topics rather than the
+  // full article title. Derived from the already-parsed headings array so
+  // there is zero extra parsing cost on the client.
+  const articleSections = useMemo(
+    () => headings.filter((h) => h.level === 2).map((h) => h.text),
+    [headings],
+  );
+
   // Fallback bullets derived from the post excerpt + tags, used when the
   // article body has no H2 headings. Guarantees every blog post renders the
   // same Key takeaways panel so presentation is consistent across the site.
@@ -600,6 +611,15 @@ export default function BlogPost() {
           })(),
           alternativeHeadline: post.excerpt?.trim().slice(0, 110) || undefined,
           citation: citations,
+          // OP-1 / WH-1 fix: machine-readable rights statement for AI citation engines.
+          copyrightNotice: `© ${new Date(post.date).getFullYear()} FintechPressHub. All rights reserved.`,
+          // GEO-1 fix: declare editorial production jurisdiction. All FintechPressHub
+          // content is produced by a UK-based editorial team — distinct from
+          // contentLocation (what the article is *about*).
+          countryOfOrigin: "United Kingdom",
+          // AEO-2 fix: H2 section names as hasPart WebPageElement entities, enabling
+          // Google and Perplexity to cite individual sections directly.
+          hasPart: articleSections.length > 0 ? articleSections : undefined,
         }}
         faq={
           post.faqItems && post.faqItems.length > 0

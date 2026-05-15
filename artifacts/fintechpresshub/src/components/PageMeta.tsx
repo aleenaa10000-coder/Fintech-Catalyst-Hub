@@ -79,6 +79,29 @@ export type ArticleSchema = {
    * behaviour to Google's quality raters. Pass page titles or full URLs.
    */
   citation?: string[];
+  /**
+   * Plain-text copyright notice emitted on BlogPosting JSON-LD.
+   * AI citation engines (Google AIO, Perplexity, ChatGPT Search) parse this
+   * to confirm attribution requirements before quoting content.
+   * Example: "© 2026 FintechPressHub. All rights reserved."
+   */
+  copyrightNotice?: string;
+  /**
+   * Country of editorial origin as a plain-text country name.
+   * Emitted as `countryOfOrigin: { "@type": "Country", name: "…" }` on
+   * BlogPosting JSON-LD. AI ranking engines use this alongside contentLocation
+   * to distinguish "content about UK fintech" from "content produced by a
+   * UK editorial team" — both signals are needed for full GEO/E-E-A-T scoring.
+   * Example: "United Kingdom"
+   */
+  countryOfOrigin?: string;
+  /**
+   * Article section names extracted from H2 headings.
+   * Emitted as `hasPart` `WebPageElement` entities on BlogPosting JSON-LD,
+   * enabling Google Knowledge Graph and Perplexity to cite individual sections
+   * directly and improving long-tail ranking for section-level queries.
+   */
+  hasPart?: string[];
 };
 
 export type FaqItem = { question: string; answer: string };
@@ -1110,6 +1133,30 @@ export function PageMeta(props: PageMetaProps) {
               citation: props.article.citation.map((src) => ({
                 "@type": src.startsWith("http") ? "WebPage" : "CreativeWork",
                 ...(src.startsWith("http") ? { url: src } : { name: src }),
+              })),
+            }
+          : {}),
+        // copyrightNotice: machine-readable rights statement consumed by AI
+        // citation engines (Google AIO, Perplexity, ChatGPT Search) to confirm
+        // attribution requirements before quoting this content (OP-1 / WH-1 fix).
+        ...(props.article.copyrightNotice
+          ? { copyrightNotice: props.article.copyrightNotice }
+          : {}),
+        // countryOfOrigin: editorial production jurisdiction (GEO-1 fix).
+        // Distinct from contentLocation (what the article is about) — AI rankers
+        // use both signals together for full geo-quality scoring on YMYL content.
+        ...(props.article.countryOfOrigin
+          ? { countryOfOrigin: { "@type": "Country", name: props.article.countryOfOrigin } }
+          : {}),
+        // hasPart: H2 section names as WebPageElement entities (AEO-2 fix).
+        // Enables Google Knowledge Graph and Perplexity to reference individual
+        // sections directly and improves long-tail section-query rankings.
+        ...(props.article.hasPart && props.article.hasPart.length > 0
+          ? {
+              hasPart: props.article.hasPart.map((name, i) => ({
+                "@type": "WebPageElement",
+                position: i + 1,
+                name,
               })),
             }
           : {}),
