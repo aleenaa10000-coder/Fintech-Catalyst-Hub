@@ -19,12 +19,27 @@ import { toast } from "sonner";
 import { MapPin, Mail, Clock, HelpCircle, Plus, Globe, ShieldCheck, Timer, Linkedin, Twitter } from "lucide-react";
 import { PageHero } from "@/components/PageHero";
 import { Link } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // AEO-optimised FAQ: questions phrased as exact natural-language queries;
 // answers are self-contained, quotable statements that AI citation engines
 // (Google AI Overviews, Perplexity, ChatGPT Search) can surface verbatim.
 const contactFaqs = [
+  {
+    // G-11: Definitional query — #1 AI Overview extraction target for this intent.
+    // Phrased as the exact zero-click query Google and Perplexity surface for
+    // "what is a fintech SEO agency" — must be self-contained and quotable verbatim.
+    question: "What is a fintech SEO agency?",
+    answer:
+      "A fintech SEO agency is a specialist search-engine-optimisation firm that works exclusively — or primarily — with financial-technology companies: neobanks, payment platforms, regtech providers, wealthtech startups, and embedded-finance businesses. Unlike a generalist SEO agency, a fintech SEO specialist understands FCA/SEC regulatory constraints on financial content, the YMYL (Your Money or Your Life) quality bar Google applies to financial pages, and the high-authority link-building required to outrank established banks and legacy finance publishers. FintechPressHub was founded in 2021 to serve exactly this niche.",
+  },
+  {
+    // G-12: Commercial query — #1 AI Overview extraction target for cost/pricing intent.
+    // Self-contained answer that AI citation engines can quote without surrounding context.
+    question: "How much does fintech SEO cost per month?",
+    answer:
+      "Fintech SEO retainers typically range from $3,000 to $30,000 per month, depending on the scope of work and the competitiveness of your target keywords. At FintechPressHub, our minimum monthly retainer is $5,000, which covers a senior fintech SEO strategist, specialist content production, and a link-building allocation. One-time SEO audits start at a lower fixed fee. Pricing is scoped individually after a free 30-minute discovery call, where we assess your current search footprint and growth targets. We price in USD, GBP, SGD, and AUD.",
+  },
   {
     question: "What happens after I submit the contact form?",
     answer:
@@ -95,6 +110,11 @@ const LOCATION_SLUGS = [
 
 export default function Contact() {
 
+  // G-13 / G-16: aria-live status for screen-reader announcement of form submission
+  // outcome. Sonner toasts are visually prominent but not reliably announced by
+  // all screen readers. This sr-only live region guarantees WCAG 4.1.3 compliance.
+  const [formStatus, setFormStatus] = useState<string>("");
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -130,12 +150,16 @@ export default function Contact() {
           toast.success("Message sent successfully!", {
             description: "One of our strategists will be in touch within 24 hours.",
           });
+          // G-13 / G-16: Update aria-live region so screen readers announce success.
+          setFormStatus("Message sent successfully. One of our strategists will be in touch within 24 hours.");
           form.reset();
         },
         onError: () => {
           toast.error("Failed to send message.", {
             description: "Please try again later or email us directly.",
           });
+          // G-13 / G-16: Announce error to screen readers via aria-live region.
+          setFormStatus("Failed to send your message. Please try again or email us directly at hello@fintechpresshub.com.");
         }
       }
     );
@@ -163,11 +187,24 @@ export default function Contact() {
           { lang: "en",        href: `${SITE_URL}/contact` },
           { lang: "x-default", href: `${SITE_URL}/contact` },
         ]}
+        ogImage={`${SITE_URL}/api/og?title=${encodeURIComponent("Contact FintechPressHub")}&category=${encodeURIComponent("Contact")}`}
+        itemList={{
+          name: "FintechPressHub Fintech SEO Services",
+          description: "Specialist SEO services for fintech companies — content, link building, technical SEO, and fully managed retainers.",
+          items: [
+            { name: "SEO Content Creation",   url: `${SITE_URL}/services`, description: "Expert fintech SEO content written by specialist fintech writers and optimised for YMYL quality standards." },
+            { name: "High-DR Link Building",   url: `${SITE_URL}/services`, description: "Authority link acquisition from tier-1 finance and technology publishers for fintech brands." },
+            { name: "Technical SEO Audit",     url: `${SITE_URL}/services`, description: "Comprehensive technical SEO audit covering Core Web Vitals, crawlability, schema, and site architecture." },
+            { name: "Fully Managed Retainer",  url: `${SITE_URL}/services`, description: "End-to-end fintech SEO management — strategy, content, links, and monthly reporting in a single retainer." },
+          ],
+        }}
         howTo={{
           name: "How to Get a Free Fintech SEO Audit from FintechPressHub",
           description:
             "Submit a brief, receive a senior strategist review within one business day, join a free discovery call, and get a tailored fintech SEO proposal — all within 3 business days.",
           totalTime: "PT30M",
+          datePublished: "2021-01-01",
+          dateModified: "2026-05-15",
           steps: [
             {
               name: "Submit your brief via the contact form",
@@ -189,11 +226,14 @@ export default function Contact() {
         }}
       />
 
-      {/* On-Page SEO: H1 contains primary keyword "fintech SEO agency" */}
+      {/* On-Page SEO: H1 contains primary keyword "fintech SEO agency";
+          G-08: hero description now explicitly includes "fintech SEO agency" as a
+          secondary keyword occurrence — Google's page-level relevance model weights
+          the first 100 words of above-the-fold content heavily. */}
       <PageHero
         eyebrow="Free Fintech SEO Audit"
         title={<>Contact Our Fintech SEO Agency</>}
-        description="Request a free SEO audit or talk to our strategy team about building a defensible content and link-building moat for your fintech brand."
+        description="Request a free fintech SEO audit or talk to our fintech SEO agency strategy team about building a defensible content and link-building moat for your brand."
       />
 
       {/*
@@ -238,9 +278,12 @@ export default function Contact() {
       */}
       <section className="border-b bg-muted/10 py-14">
         <div className="container mx-auto max-w-6xl px-4">
+          {/* G-07: H2 now contains "fintech SEO agency" keyword — aligns with
+              HowTo JSON-LD name and strengthens on-page keyword relevance for
+              "how does a fintech SEO agency work" queries. */}
           <div className="mb-10 text-center">
             <h2 className="mb-2 text-xl font-bold md:text-2xl">
-              How It Works — From First Contact to Kickoff
+              How Our Fintech SEO Agency Works — Contact to Kickoff
             </h2>
             <p className="text-sm text-muted-foreground">
               A transparent, 4-step process with no automated funnels.
@@ -380,9 +423,14 @@ export default function Contact() {
                 </div>
               </div>
 
-              {/* Off-Page SEO: visible social profile links with rel="noopener noreferrer"
-                  These surface the brand's sameAs entities on the page itself, reinforcing
-                  the knowledge-graph signals already declared in Organization JSON-LD. */}
+              {/*
+                Off-Page SEO: visible social profile links surface all 3 sameAs entities
+                declared in ORGANIZATION_SCHEMA on the page itself. rel="me" is the
+                IndieWeb / brand-verification signal used by AI knowledge-graph engines
+                (Google SGE, Perplexity) to confirm ownership of social profiles.
+                G-01: Crunchbase added — now all 3 ORGANIZATION_SCHEMA.sameAs URLs visible.
+                G-02: rel="me noopener noreferrer" on all social links.
+              */}
               <div className="flex items-start gap-4">
                 <div className="rounded-full bg-primary/10 p-3">
                   <Linkedin className="h-5 w-5 text-primary" />
@@ -393,7 +441,7 @@ export default function Contact() {
                     <a
                       href="https://www.linkedin.com/company/fintechpresshub"
                       target="_blank"
-                      rel="noopener noreferrer"
+                      rel="me noopener noreferrer"
                       className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
                     >
                       <Linkedin className="h-4 w-4" />
@@ -402,11 +450,20 @@ export default function Contact() {
                     <a
                       href="https://twitter.com/fintechpresshub"
                       target="_blank"
-                      rel="noopener noreferrer"
+                      rel="me noopener noreferrer"
                       className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
                     >
                       <Twitter className="h-4 w-4" />
                       Twitter / X
+                    </a>
+                    <a
+                      href="https://www.crunchbase.com/organization/fintechpresshub"
+                      target="_blank"
+                      rel="me noopener noreferrer"
+                      className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Globe className="h-4 w-4" />
+                      Crunchbase
                     </a>
                   </div>
                 </div>
@@ -510,7 +567,12 @@ export default function Contact() {
                           <FormItem>
                             <FormLabel>Phone Number (Optional)</FormLabel>
                             <FormControl>
+                              {/* G-17/G-18: type="tel" activates numeric keypad on iOS/Android;
+                                  inputMode="tel" is the HTML5 secondary hint for the same behaviour.
+                                  Both are required for full cross-browser mobile UX compliance. */}
                               <Input
+                                type="tel"
+                                inputMode="tel"
                                 placeholder="+1 (555) 000-0000"
                                 autoComplete="tel"
                                 {...field}
@@ -597,6 +659,21 @@ export default function Contact() {
                     >
                       {submitContact.isPending ? "Sending…" : "Request Free Fintech SEO Consultation"}
                     </Button>
+
+                    {/*
+                      G-13 / G-16: Screen-reader-only aria-live region announces form
+                      submission outcomes. Sonner toasts are visually clear but not
+                      reliably picked up by all screen-reader + browser combinations.
+                      This region guarantees WCAG 4.1.3 (Status Messages) compliance.
+                    */}
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      aria-atomic="true"
+                      className="sr-only"
+                    >
+                      {formStatus}
+                    </div>
 
                     {/* White Hat SEO: transparent GDPR/privacy notice */}
                     <p className="flex items-start gap-2 text-xs text-muted-foreground">

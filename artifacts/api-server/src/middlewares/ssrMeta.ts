@@ -3923,6 +3923,17 @@ async function handleSsrMeta(
                 target:  "mailto:hello@fintechpresshub.com",
               },
             ],
+            // G-10 / G-14: contentLocation — city-level Place entities linking ContactPage
+            // to the 5 markets the agency serves. International SEO engines and AI ranking
+            // systems use contentLocation to associate /contact with market-specific queries
+            // like "fintech SEO agency London" or "fintech SEO agency Singapore".
+            contentLocation: [
+              { "@type": "City", name: "New York",   containedInPlace: { "@type": "Country", name: "United States" } },
+              { "@type": "City", name: "London",     containedInPlace: { "@type": "Country", name: "United Kingdom" } },
+              { "@type": "City", name: "Singapore",  containedInPlace: { "@type": "Country", name: "Singapore" } },
+              { "@type": "City", name: "Sydney",     containedInPlace: { "@type": "Country", name: "Australia" } },
+              { "@type": "City", name: "Toronto",    containedInPlace: { "@type": "Country", name: "Canada" } },
+            ],
             mainEntity: {
               "@type":  "Organization",
               "@id":    `${siteUrl}#organization`,
@@ -3937,6 +3948,50 @@ async function handleSsrMeta(
                 availableLanguage: { "@type": "Language", name: "English", alternateName: "en" },
               },
             },
+          }, null, 2));
+
+          // G-05: HowTo JSON-LD emitted by SSR for /contact so search-engine bots that
+          // do not execute JavaScript (e.g. Googlebot light rendering, Bingbot, LLM crawlers)
+          // can parse the full HowTo schema without depending on React hydration.
+          // @id cross-references the client-side howToJsonLd (@id = `${canonical}#howto`)
+          // so both rendering paths resolve the same entity in the Knowledge Graph.
+          extraLds.push(JSON.stringify({
+            "@context":    "https://schema.org",
+            "@type":       "HowTo",
+            "@id":         `${canonical}#howto`,
+            name:          "How to Get a Free Fintech SEO Audit from FintechPressHub",
+            description:   "Submit a brief, receive a senior strategist review within one business day, join a free discovery call, and get a tailored fintech SEO proposal — all within 3 business days.",
+            totalTime:     "PT30M",
+            // G-09: datePublished/dateModified — freshness score for AI ranking engines.
+            datePublished: "2021-01-01",
+            dateModified:  "2026-05-15",
+            inLanguage:    "en",
+            step: [
+              {
+                "@type":   "HowToStep",
+                position:  1,
+                name:      "Submit your brief via the contact form",
+                text:      "Complete the form with your company name, primary interest, monthly budget, and a description of your current SEO challenges and growth goals. Takes under 2 minutes.",
+              },
+              {
+                "@type":   "HowToStep",
+                position:  2,
+                name:      "Senior strategist review within one business day",
+                text:      "A senior fintech SEO strategist reviews your submission and performs a preliminary audit of your organic search footprint, identifying your fastest opportunities.",
+              },
+              {
+                "@type":   "HowToStep",
+                position:  3,
+                name:      "Free 30-minute discovery call",
+                text:      "We walk through our initial findings, surface two or three quick wins you can act on immediately, and assess strategic fit. The call is free with no obligation.",
+              },
+              {
+                "@type":   "HowToStep",
+                position:  4,
+                name:      "Receive a tailored engagement proposal",
+                text:      "If there is a clear strategic fit, you receive a scoped proposal within 48 hours — specific to your fintech vertical, target keywords, and growth stage. No pressure.",
+              },
+            ],
           }, null, 2));
 
         } else if (reqPath === "/write-for-us") {

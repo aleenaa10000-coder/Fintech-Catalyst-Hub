@@ -213,6 +213,10 @@ export type HowToSchema = {
   description?: string;
   steps: HowToStep[];
   totalTime?: string;
+  /** ISO 8601 date the HowTo content was first published. Emitted as datePublished on HowTo JSON-LD. */
+  datePublished?: string;
+  /** ISO 8601 date the HowTo content was last materially updated. Emitted as dateModified. */
+  dateModified?: string;
 };
 
 export type SoftwareAppSchema = {
@@ -761,6 +765,15 @@ export function PageMeta(props: PageMetaProps) {
         ...(props.howTo.totalTime
           ? { totalTime: props.howTo.totalTime }
           : {}),
+        // datePublished/dateModified — freshness signals consumed by AI ranking
+        // engines (Google AIO, Perplexity) when selecting citation candidates.
+        // Missing dates lower the entity's freshness score in knowledge-graph ranking.
+        ...(props.howTo.datePublished
+          ? { datePublished: props.howTo.datePublished }
+          : {}),
+        ...(props.howTo.dateModified
+          ? { dateModified: props.howTo.dateModified }
+          : {}),
         step: props.howTo.steps.map((s, i) => ({
           "@type": "HowToStep",
           position: i + 1,
@@ -1136,6 +1149,16 @@ export function PageMeta(props: PageMetaProps) {
         // accessibilityHazard: "none" — explicit WCAG/E-E-A-T declaration.
         // AI citation engines prefer content with declared hazard levels.
         accessibilityHazard: "none",
+        // contentLocation — city-level Place entities (G-10/G-14).
+        // Links ContactPage to the 5 served markets so AI ranking engines associate
+        // /contact with market-specific queries like "fintech SEO agency Singapore".
+        contentLocation: [
+          { "@type": "City", name: "New York",   containedInPlace: { "@type": "Country", name: "United States" } },
+          { "@type": "City", name: "London",     containedInPlace: { "@type": "Country", name: "United Kingdom" } },
+          { "@type": "City", name: "Singapore",  containedInPlace: { "@type": "Country", name: "Singapore" } },
+          { "@type": "City", name: "Sydney",     containedInPlace: { "@type": "Country", name: "Australia" } },
+          { "@type": "City", name: "Toronto",    containedInPlace: { "@type": "Country", name: "Canada" } },
+        ],
         mainEntity: {
           "@type": "Organization",
           "@id": `${SITE_URL}#organization`,
@@ -1412,6 +1435,11 @@ export function PageMeta(props: PageMetaProps) {
       />
       {props.article?.author ? (
         <meta name="author" content={props.article.author} />
+      ) : props.contactPage ? (
+        // G-06: meta name="author" for non-article pages. ContactPage emits the
+        // organisation name as author — signals editorial ownership to AI citation
+        // engines that rank pages partly on author/publisher identity signals.
+        <meta name="author" content={SITE_NAME} />
       ) : null}
       {/* Article-specific OG tags help LinkedIn/Facebook show "Published by" + author byline. */}
       {props.article?.datePublished ? (
