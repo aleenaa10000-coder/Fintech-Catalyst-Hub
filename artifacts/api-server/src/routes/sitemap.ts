@@ -24,7 +24,7 @@ export const STATIC_ROUTES: Array<{
   { path: "/", changefreq: "weekly", priority: "1.0", lastmod: "2026-05-11" },
   { path: "/about", changefreq: "monthly", priority: "0.7", lastmod: "2026-05-14" },
   { path: "/services", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-14" },
-  { path: "/pricing", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-11" },
+  { path: "/pricing", changefreq: "monthly", priority: "0.9", lastmod: "2026-05-15" },
   { path: "/blog", changefreq: "daily", priority: "0.9" },
   // /blog/tag intentionally omitted — there is no page at /blog/tag; the only
   // routed path is /blog/tag/:slug. Listing a bare /blog/tag would submit a

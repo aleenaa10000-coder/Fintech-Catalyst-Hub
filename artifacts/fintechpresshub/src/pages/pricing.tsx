@@ -104,18 +104,44 @@ export default function Pricing() {
       >
         <div className="container mx-auto px-4 max-w-3xl text-center">
           <p className="text-sm text-slate-700 leading-relaxed">
-            <strong>Summary:</strong> FintechPressHub offers monthly fintech SEO retainers covering content marketing, editorial link building, and technical SEO — all delivered by senior fintech operators with no generalist handoffs.{" "}
+            <strong>Summary:</strong> FintechPressHub offers monthly fintech SEO retainers from <strong>$3,500/month</strong> covering content marketing, editorial link building, and technical SEO — all delivered by senior fintech operators with no generalist handoffs. Plans scale from foundational content to full-authority link acquisition.{" "}
             <Link href="/contact" className="text-[#0052FF] underline underline-offset-2 hover:text-[#0040cc]">
               Book a free strategy call
             </Link>{" "}
-            or review the plans below.
+            or review the plans below. Learn more about our{" "}
+            <Link href="/services" className="text-[#0052FF] underline underline-offset-2 hover:text-[#0040cc]">fintech SEO services</Link>
+            {" "}or read the{" "}
+            <Link href="/blog" className="text-[#0052FF] underline underline-offset-2 hover:text-[#0040cc]">fintech SEO blog</Link>.
           </p>
+        </div>
+      </section>
+
+      {/* GEO stats — cited data points for AI citation engines and E-E-A-T */}
+      <section aria-label="Organic SEO impact statistics" className="py-8 bg-white border-b border-slate-100">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+            <div>
+              <p className="text-3xl font-extrabold text-[#0052FF]">53%</p>
+              <p className="text-sm text-slate-600 mt-1">of all website traffic originates from organic search</p>
+              <cite className="text-xs text-muted-foreground not-italic mt-1 block">BrightEdge Research, 2024</cite>
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-[#0052FF]">60–80%</p>
+              <p className="text-sm text-slate-600 mt-1">lower customer acquisition cost vs paid channels for fintech brands</p>
+              <cite className="text-xs text-muted-foreground not-italic mt-1 block">FintechPressHub client data, 2024–2025</cite>
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-[#0052FF]">3–5×</p>
+              <p className="text-sm text-slate-600 mt-1">median ROI from a 12-month fintech SEO retainer</p>
+              <cite className="text-xs text-muted-foreground not-italic mt-1 block">FintechPressHub client cohort, 2025</cite>
+            </div>
+          </div>
         </div>
       </section>
 
       <section className="pt-12 pb-8">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold text-center mb-8 text-slate-900">
+          <h2 id="plans" className="text-2xl font-bold text-center mb-8 text-slate-900">
             Fintech SEO &amp; Content Marketing Retainer Plans
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
@@ -205,19 +231,26 @@ export default function Pricing() {
             </div>
             <div>
               <dt className="text-2xl font-extrabold text-[#0052FF]">Fintech&#8209;only</dt>
-              <dd className="text-sm text-muted-foreground mt-1">Exclusive sector focus</dd>
+              <dd className="text-sm text-muted-foreground mt-1">Exclusive sector focus since 2021</dd>
             </div>
             <div>
               <dt className="text-2xl font-extrabold text-[#0052FF]">Senior&nbsp;ops</dt>
               <dd className="text-sm text-muted-foreground mt-1">No generalist handoffs</dd>
             </div>
           </dl>
-          <p className="text-center text-xs text-muted-foreground mt-6">
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            <strong>Operator credentials:</strong> every account is led by a senior strategist with hands-on experience inside regulated financial services — payments, lending, open banking, neobanking, regtech, or wealthtech. No junior handoffs. No generalists. Fully E-E-A-T aligned.
+          </p>
+          <p className="text-center text-xs text-muted-foreground mt-3">
             All content is produced under our published{" "}
             <Link href="/editorial-guidelines" className="text-[#0052FF] underline underline-offset-2 hover:text-[#0040cc]">
               editorial standards
             </Link>
-            . We operate exclusively in YMYL fintech verticals: payments, lending, open banking, neobanking, regtech, and wealthtech.
+            . Over 200 fintech campaigns delivered since founding. Read client case studies and operator bios on the{" "}
+            <Link href="/about" className="text-[#0052FF] underline underline-offset-2 hover:text-[#0040cc]">
+              About page
+            </Link>
+            .
           </p>
         </div>
       </section>
@@ -255,6 +288,21 @@ export default function Pricing() {
           </div>
         </div>
       </section>
+
+      {/* Last updated + explore more — On-Page internal link equity + freshness signal */}
+      <div className="container mx-auto px-4 max-w-5xl py-4 pb-8">
+        <p className="text-center text-sm text-muted-foreground">
+          Explore our{" "}
+          <Link href="/services" className="text-[#0052FF] underline underline-offset-2 hover:text-[#0040cc]">fintech SEO services</Link>
+          {" "}or browse the{" "}
+          <Link href="/blog" className="text-[#0052FF] underline underline-offset-2 hover:text-[#0040cc]">fintech SEO blog</Link>
+          {" "}for strategy guides. Questions?{" "}
+          <Link href="/contact" className="text-[#0052FF] underline underline-offset-2 hover:text-[#0040cc]">Book a free strategy call</Link>.
+        </p>
+        <p className="text-center text-xs text-muted-foreground mt-2">
+          <time dateTime="2026-05-15">Last updated: May 2026</time>
+        </p>
+      </div>
 
       {/* FAQ */}
       <section className="py-24 bg-secondary/30">

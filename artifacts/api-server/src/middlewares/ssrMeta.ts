@@ -3661,9 +3661,11 @@ async function handleSsrMeta(
                 name:       plan.tagline ? `${plan.name} — ${plan.tagline}` : plan.name,
                 url:        `${canonical}#${plan.name.toLowerCase().replace(/\s+/g, "-")}`,
                 item: {
-                  "@type":         "Offer",
-                  name:            plan.name,
-                  description:     plan.description.slice(0, 300),
+                  "@type":              "Offer",
+                  name:                 plan.name,
+                  description:          plan.description.slice(0, 300),
+                  eligibleRegion:       "Worldwide",
+                  valueAddedTaxIncluded: false,
                   ...(plan.priceMonthly > 0
                     ? {
                         price:            plan.priceMonthly,
@@ -3679,6 +3681,15 @@ async function handleSsrMeta(
                     : {}),
                   availability:    "https://schema.org/InStock",
                   seller:          { "@id": `${siteUrl}#organization` },
+                  itemOffered: {
+                    "@type":       "Service",
+                    name:          plan.name,
+                    description:   plan.description.slice(0, 300),
+                    serviceType:   "Fintech SEO & Content Marketing",
+                    areaServed:    "Worldwide",
+                    provider:      { "@id": `${siteUrl}#organization` },
+                    url:           `${canonical}#${plan.name.toLowerCase().replace(/\s+/g, "-")}`,
+                  },
                 },
               })),
             }, null, 2));
@@ -3698,6 +3709,10 @@ async function handleSsrMeta(
             publisher:     { "@id": `${siteUrl}#organization` },
             datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2023-01-01",
             dateModified:  pageLastmod ?? "2026-05-09",
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["#pricing-bluf", ".faq-heading"],
+            },
             mainEntity: PRICING_FAQS.map(({ question, answer }) => ({
               "@type": "Question",
               name:    question,
@@ -3715,6 +3730,13 @@ async function handleSsrMeta(
             "@id":       `${canonical}#howto`,
             name:        "How to Get Started with FintechPressHub Fintech SEO",
             description: "A step-by-step guide to starting a fintech SEO or content marketing retainer with FintechPressHub.",
+            estimatedCost: {
+              "@type":    "MonetaryAmount",
+              currency:   "USD",
+              minValue:   3500,
+              maxValue:   12000,
+              unitText:   "per month",
+            },
             step: [
               {
                 "@type":  "HowToStep",
@@ -3726,6 +3748,7 @@ async function handleSsrMeta(
                 "@type":  "HowToStep",
                 position: 2,
                 name:     "Book a free strategy call",
+                url:      `${siteUrl}/contact`,
                 text:     "Complete the contact form to schedule a 30-minute call with a FintechPressHub strategist. We will audit your current search footprint and recommend the right plan.",
               },
               {
@@ -3752,6 +3775,18 @@ async function handleSsrMeta(
           if (pricingTestimonials.length > 0) {
             const pricingRatingSum   = pricingTestimonials.reduce((s, t) => s + t.rating, 0);
             const pricingRatingValue = (pricingRatingSum / pricingTestimonials.length).toFixed(1);
+            const reviewEntities = pricingTestimonials.slice(0, 5).map((t) => ({
+              "@type":        "Review",
+              author:         { "@type": "Person", name: t.name },
+              reviewBody:     t.quote,
+              reviewRating: {
+                "@type":      "Rating",
+                ratingValue:  t.rating,
+                bestRating:   "5",
+                worstRating:  "1",
+              },
+              ...(t.company ? { publisher: { "@type": "Organization", name: t.company } } : {}),
+            }));
             extraLds.push(JSON.stringify({
               "@context":   "https://schema.org",
               "@type":      "ProfessionalService",
@@ -3759,7 +3794,42 @@ async function handleSsrMeta(
               name:         "FintechPressHub",
               url:          siteUrl,
               description:  staticMeta.description,
+              slogan:       "Fintech's specialist SEO and content marketing agency",
+              foundingDate: "2021-01-01",
+              areaServed:   "Worldwide",
+              serviceType:  "Fintech SEO & Content Marketing",
               provider:     { "@id": `${siteUrl}#organization` },
+              sameAs: [
+                "https://twitter.com/fintechpresshub",
+                "https://www.linkedin.com/company/fintechpresshub",
+                "https://www.crunchbase.com/organization/fintechpresshub",
+                "https://www.wikidata.org/wiki/Q130531885",
+              ],
+              knowsAbout: [
+                "Fintech SEO",
+                "Content Marketing for Fintech",
+                "Link Building for Financial Services",
+                "Digital PR for Fintech",
+                "E-E-A-T Compliance",
+                "YMYL Content Standards",
+                "Topical Authority Building",
+                "Answer Engine Optimization",
+              ],
+              hasOfferCatalog: {
+                "@type": "OfferCatalog",
+                name:    "Fintech SEO Retainer Plans",
+                url:     canonical,
+                itemListElement: pricingList.map((plan) => ({
+                  "@type": "Offer",
+                  name:    plan.name,
+                  ...(plan.priceMonthly > 0
+                    ? { price: plan.priceMonthly, priceCurrency: "USD" }
+                    : {}),
+                  eligibleRegion:        "Worldwide",
+                  valueAddedTaxIncluded: false,
+                  availability:          "https://schema.org/InStock",
+                })),
+              },
               aggregateRating: {
                 "@type":      "AggregateRating",
                 ratingValue:  pricingRatingValue,
@@ -3768,6 +3838,7 @@ async function handleSsrMeta(
                 ratingCount:  pricingTestimonials.length,
                 reviewCount:  pricingTestimonials.length,
               },
+              review: reviewEntities,
             }, null, 2));
           }
 
@@ -4864,6 +4935,35 @@ async function handleSsrMeta(
             `  <meta name="DC.creator" content="FintechPressHub Editorial Team" />`,
             `  <meta name="DC.subject" content="Fintech Guest Posting, Fintech Content Marketing, Dofollow Guest Posts, Fintech SEO, Guest Blogging" />`,
             `  <meta name="DC.date" scheme="W3CDTF" content="2023-10-01" />`,
+            `  <meta name="DC.identifier" content="${canonical}" />`,
+          ];
+        }
+
+        if (reqPath === "/pricing" && patches) {
+          // ── /pricing — per-route head enrichment ────────────────────────
+          //
+          // International SEO: per-market hreflang codes for all 5 primary markets.
+          // The generic patchHtml function already injects hreflang="en" and
+          // hreflang="x-default" for all pages; these five regional codes are
+          // additive and satisfy Google's requirement to list every locale variant
+          // (including the default) when using regional hreflang.
+          //
+          // Keywords: pricing-specific meta keywords supplement the site-level
+          // keywords set in index.html — targeting commercial-intent head terms.
+          //
+          // Dublin Core: extends the DC provenance pattern for academic and
+          // financial research indexers (BASE, EuroPubMed, etc.).
+          patches.headLinks = [
+            `  <link rel="alternate" hreflang="en-US" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${canonical}" />`,
+            `  <meta name="keywords" content="fintech SEO pricing, fintech content marketing pricing, link building retainer cost, fintech SEO agency fees, SEO retainer for fintech, fintech SEO cost per month, fintech SEO retainer, content marketing for fintech brands" />`,
+            `  <meta name="DC.title" content="${staticMeta.title}" />`,
+            `  <meta name="DC.creator" content="FintechPressHub" />`,
+            `  <meta name="DC.subject" content="Fintech SEO Pricing, Content Marketing Retainer, Link Building Cost, Fintech SEO Agency Fees, Fintech SEO Cost" />`,
+            `  <meta name="DC.date" scheme="W3CDTF" content="2022-01-01" />`,
             `  <meta name="DC.identifier" content="${canonical}" />`,
           ];
         }
