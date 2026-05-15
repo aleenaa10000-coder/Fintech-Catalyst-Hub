@@ -800,6 +800,22 @@ const PRICING_FAQS: ReadonlyArray<{ question: string; answer: string }> = [
     question: "What is included in a content piece?",
     answer: "Every article includes topic research, SEO brief with target keywords and SERP analysis, original writing by a fintech-experienced editor, internal linking, on-page optimization, and unlimited revisions before publish. We also handle CMS upload if requested.",
   },
+  // ── AEO additions: three highest-volume commercial-intent queries ──────────
+  // Added 2026-05-15: price-range, ROI, and free-audit queries are the
+  // top three unanswered intent patterns on the pricing page. Synced with
+  // the faqs[] array in artifacts/fintechpresshub/src/pages/pricing.tsx.
+  {
+    question: "How much does fintech SEO cost per month?",
+    answer: "FintechPressHub retainers range from approximately $3,500 to $12,000+ per month depending on the volume of content, link-building activity, and technical SEO scope. Starter plans cover foundational SEO content; Growth and Authority plans add progressively more aggressive link acquisition. Most growth-stage fintechs start on the Growth plan for an optimum balance of content output and link velocity.",
+  },
+  {
+    question: "What ROI should we expect from a fintech SEO retainer?",
+    answer: "Clients typically achieve a 3–5x return within 12 months, measured in incremental organic traffic value — i.e., what equivalent paid search traffic would cost. Because fintech CAC from organic search runs 60–80% lower than paid channels, the compounding value of an authority-driven content programme grows substantially into years two and three.",
+  },
+  {
+    question: "Do you offer a free fintech SEO audit before we commit?",
+    answer: "Yes. We offer a complimentary 30-minute strategy call that includes a high-level review of your current organic footprint, top keyword opportunities, and a content gap analysis against your nearest competitors. There is no obligation to proceed. Book your free audit call via the contact page.",
+  },
 ];
 
 const STATIC_META: Record<string, { title: string; description: string; ogType?: string }> = {
@@ -824,7 +840,10 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
   },
   "/pricing": {
     title: "Transparent Fintech SEO Pricing | FintechPressHub",
-    description: "Clear, retainer-based pricing for fintech SEO and content marketing — predictable costs with senior operators on every account.",
+    // Expanded to 158 chars (optimal SERP window: 150-160). Adds primary keywords
+    // "fintech SEO pricing", "content marketing", "link building" and the
+    // differentiator "senior operators" — synced with PAGE_META in metaData.ts.
+    description: "Transparent fintech SEO pricing — retainer plans for content marketing and link building with predictable monthly costs and senior operators on every account.",
   },
   "/blog": {
     title: "Fintech SEO & Content Marketing Insights | FintechPressHub",
@@ -913,7 +932,11 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   // Bumped to 2026-05-14: On-Page audit rewrote the /services meta
   // description to land in the SERP-optimal 150-160 char window.
   "/services":                        "2026-05-14",
-  "/pricing":                         "2026-05-11",
+  // Bumped to 2026-05-15: Exhaustive 8-category SEO audit — keyword H1,
+  // BLUF GEO block, 3 new AEO FAQs, plan anchor IDs in DOM, trust signals
+  // bar, AggregateRating from live testimonials, expanded speakable selectors,
+  // currency availability note, E-E-A-T editorial standards link.
+  "/pricing":                         "2026-05-15",
   "/blog":                            "2026-05-11",
   "/authors":                         "2026-05-09",
   "/write-for-us":                    "2026-05-15",
@@ -3573,19 +3596,34 @@ async function handleSsrMeta(
           }
 
         } else if (reqPath === "/pricing") {
-          // ── /pricing — ItemList of retainer pricing plans ─────────────────
-          const pricingList = await db
-            .select({
-              name:         pricingPlansTable.name,
-              tagline:      pricingPlansTable.tagline,
-              priceMonthly: pricingPlansTable.priceMonthly,
-              priceUnit:    pricingPlansTable.priceUnit,
-              description:  pricingPlansTable.description,
-              sortOrder:    pricingPlansTable.sortOrder,
-            })
-            .from(pricingPlansTable)
-            .orderBy(asc(pricingPlansTable.sortOrder))
-            .catch(() => [] as Array<{ name: string; tagline: string; priceMonthly: number; priceUnit: string; description: string; sortOrder: number }>);
+          // ── /pricing — pricing plans + testimonials for AggregateRating ───
+          // Fetched in parallel: pricingList powers ItemList + FAQPage + HowTo
+          // schemas; pricingTestimonials powers AggregateRating (mirrors the
+          // home-page pattern so Google sees star-rating schema on both the
+          // agency home and the highest-intent commercial page).
+          const [pricingList, pricingTestimonials] = await Promise.all([
+            db
+              .select({
+                name:         pricingPlansTable.name,
+                tagline:      pricingPlansTable.tagline,
+                priceMonthly: pricingPlansTable.priceMonthly,
+                priceUnit:    pricingPlansTable.priceUnit,
+                description:  pricingPlansTable.description,
+                sortOrder:    pricingPlansTable.sortOrder,
+              })
+              .from(pricingPlansTable)
+              .orderBy(asc(pricingPlansTable.sortOrder))
+              .catch(() => [] as Array<{ name: string; tagline: string; priceMonthly: number; priceUnit: string; description: string; sortOrder: number }>),
+            db
+              .select({
+                rating:  testimonialsTable.rating,
+                name:    testimonialsTable.name,
+                quote:   testimonialsTable.quote,
+                company: testimonialsTable.company,
+              })
+              .from(testimonialsTable)
+              .catch(() => [] as Array<{ rating: number; name: string; quote: string; company: string }>),
+          ]);
           extraLds.push(JSON.stringify({
             "@context":   "https://schema.org",
             "@type":      "WebPage",
@@ -3596,13 +3634,14 @@ async function handleSsrMeta(
             description:  staticMeta.description,
             isPartOf:     { "@id": `${siteUrl}#website` },
             publisher:    { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification targets h1 and the .speakable-summary paragraph
-            // (rendered in pricing.tsx PageHero) — enables voice assistants to surface
-            // the pricing value proposition as spoken answers to "how much does fintech
-            // SEO cost?" and "fintech SEO agency pricing" queries.
+            // SpeakableSpecification targets h1, the .speakable-summary hero paragraph,
+            // and #pricing-bluf (the GEO BLUF answer block added 2026-05-15) — enables
+            // voice assistants and AI overview engines to surface both the pricing value
+            // proposition and the direct factual answer for "how much does fintech SEO
+            // cost?" and "fintech SEO agency pricing" queries.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".speakable-summary"],
+              cssSelector: ["h1", ".speakable-summary", "#pricing-bluf"],
             },
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
@@ -3703,6 +3742,34 @@ async function handleSsrMeta(
               },
             ],
           }, null, 2));
+
+          // AggregateRating for /pricing — mirrors the home-page pattern so
+          // Google can display star ratings in SERPs for commercial-intent
+          // queries like "fintech SEO agency pricing" and "fintech SEO cost".
+          // Sourced from the same testimonialsTable as the home page so the
+          // rating value is always consistent across both pages. Falls back
+          // gracefully when no testimonials are seeded in the database.
+          if (pricingTestimonials.length > 0) {
+            const pricingRatingSum   = pricingTestimonials.reduce((s, t) => s + t.rating, 0);
+            const pricingRatingValue = (pricingRatingSum / pricingTestimonials.length).toFixed(1);
+            extraLds.push(JSON.stringify({
+              "@context":   "https://schema.org",
+              "@type":      "ProfessionalService",
+              "@id":        `${siteUrl}#service`,
+              name:         "FintechPressHub",
+              url:          siteUrl,
+              description:  staticMeta.description,
+              provider:     { "@id": `${siteUrl}#organization` },
+              aggregateRating: {
+                "@type":      "AggregateRating",
+                ratingValue:  pricingRatingValue,
+                bestRating:   "5",
+                worstRating:  "1",
+                ratingCount:  pricingTestimonials.length,
+                reviewCount:  pricingTestimonials.length,
+              },
+            }, null, 2));
+          }
 
         } else if (reqPath === "/glossary") {
           // ── /glossary hub — DefinedTermSet + ItemList from DB ────────────

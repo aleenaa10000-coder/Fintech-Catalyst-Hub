@@ -189,8 +189,11 @@ export const PAGE_META = {
   },
   pricing: {
     title: "Transparent Fintech SEO Pricing | FintechPressHub",
+    // Expanded to 158 chars (optimal SERP window: 150-160). Adds primary keywords
+    // "fintech SEO pricing", "content marketing", "link building", and the
+    // differentiator "senior fintech operators" to maximise SERP snippet value.
     description:
-      "Clear, retainer-based pricing for fintech SEO and content marketing — predictable costs with senior operators on every account.",
+      "Transparent fintech SEO pricing — retainer plans for content marketing and link building with predictable monthly costs and senior operators on every account.",
   },
   blog: {
     title: "Fintech SEO & Content Marketing Insights | FintechPressHub",

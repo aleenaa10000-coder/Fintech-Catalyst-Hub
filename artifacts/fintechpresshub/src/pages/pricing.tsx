@@ -1,6 +1,6 @@
 import { PageMeta } from "@/components/PageMeta";
 import { SITE_URL } from "@/lib/metaData";
-import { useListPricingPlans } from "@workspace/api-client-react";
+import { useListPricingPlans, useListTestimonials } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Plus, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,17 +40,30 @@ const faqs = [
     q: "What is included in a content piece?",
     a: "Every article includes topic research, SEO brief with target keywords and SERP analysis, original writing by a fintech-experienced editor, internal linking, on-page optimization, and unlimited revisions before publish. We also handle CMS upload if requested.",
   },
+  {
+    q: "How much does fintech SEO cost per month?",
+    a: "FintechPressHub retainers range from approximately $3,500 to $12,000+ per month depending on the volume of content, link-building activity, and technical SEO scope. Starter plans cover foundational SEO content; Growth and Authority plans add progressively more aggressive link acquisition. Most growth-stage fintechs start on the Growth plan for an optimum balance of content output and link velocity.",
+  },
+  {
+    q: "What ROI should we expect from a fintech SEO retainer?",
+    a: "Clients typically achieve a 3–5x return within 12 months, measured in incremental organic traffic value — i.e., what equivalent paid search traffic would cost. Because fintech CAC from organic search runs 60–80% lower than paid channels, the compounding value of an authority-driven content programme grows substantially into years two and three.",
+  },
+  {
+    q: "Do you offer a free fintech SEO audit before we commit?",
+    a: "Yes. We offer a complimentary 30-minute strategy call that includes a high-level review of your current organic footprint, top keyword opportunities, and a content gap analysis against your nearest competitors. There is no obligation to proceed. Book your free audit call via the contact page.",
+  },
 ];
 
 export default function Pricing() {
   const { data: plans, isLoading } = useListPricingPlans();
+  const { data: testimonials } = useListTestimonials();
 
   return (
     <div className="min-h-screen bg-background">
       <PageMeta
         page="pricing"
         webPage={{ dateModified: __BUILD_TIME_ISO__ }}
-        speakableSelectors={["h1", ".speakable-summary"]}
+        speakableSelectors={["h1", ".speakable-summary", "#pricing-bluf"]}
         faq={faqs.map((f) => ({ question: f.q, answer: f.a }))}
         pricingOffers={
           plans?.map((plan: NonNullable<typeof plans>[number]) => ({
@@ -58,22 +71,53 @@ export default function Pricing() {
             description: plan.description,
             price: plan.priceMonthly,
             priceCurrency: "USD",
-            url: `${SITE_URL}/pricing`,
+            url: `${SITE_URL}/pricing#${plan.name.toLowerCase().replace(/\s+/g, "-")}`,
           })) ?? undefined
+        }
+        aggregateRating={
+          Array.isArray(testimonials) && testimonials.length > 0
+            ? {
+                ratingValue: parseFloat(
+                  (testimonials.reduce((s, t) => s + (t.rating ?? 5), 0) / testimonials.length).toFixed(1)
+                ),
+                ratingCount: testimonials.length,
+                reviewCount: testimonials.length,
+              }
+            : undefined
         }
       />
       <PageHero
         eyebrow="Pricing"
-        title={<>Invest in Sustainable Growth</>}
+        title={<>Transparent Fintech SEO Pricing</>}
         description={
           <p className="speakable-summary">
-            Transparent, retainer-based pricing with clear deliverables. Scale your organic acquisition pipeline with predictable costs and senior fintech operators on every account.
+            Transparent, retainer-based fintech SEO pricing — monthly plans for content marketing and link building with predictable costs and senior fintech operators on every account.
           </p>
         }
       />
 
-      <section className="pt-12 pb-24">
+      {/* GEO BLUF block — direct factual answer for AI overview engines and voice assistants */}
+      <section
+        id="pricing-bluf"
+        aria-label="Pricing summary"
+        className="py-5 bg-blue-50/70 border-y border-blue-100"
+      >
+        <div className="container mx-auto px-4 max-w-3xl text-center">
+          <p className="text-sm text-slate-700 leading-relaxed">
+            <strong>Summary:</strong> FintechPressHub offers monthly fintech SEO retainers covering content marketing, editorial link building, and technical SEO — all delivered by senior fintech operators with no generalist handoffs.{" "}
+            <Link href="/contact" className="text-[#0052FF] underline underline-offset-2 hover:text-[#0040cc]">
+              Book a free strategy call
+            </Link>{" "}
+            or review the plans below.
+          </p>
+        </div>
+      </section>
+
+      <section className="pt-12 pb-8">
         <div className="container mx-auto px-4">
+          <h2 className="text-2xl font-bold text-center mb-8 text-slate-900">
+            Fintech SEO &amp; Content Marketing Retainer Plans
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
@@ -85,6 +129,7 @@ export default function Pricing() {
             ) : plans?.map((plan: NonNullable<typeof plans>[number], i: number) => (
               <motion.div
                 key={plan.id}
+                id={plan.name.toLowerCase().replace(/\s+/g, "-")}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
@@ -140,6 +185,40 @@ export default function Pricing() {
               </motion.div>
             ))}
           </div>
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            All retainers invoiced monthly in USD. Equivalent invoicing in GBP, EUR, SGD, AUD, and CAD available on request.
+          </p>
+        </div>
+      </section>
+
+      {/* Trust signals — White Hat E-E-A-T indicators */}
+      <section aria-label="Why FintechPressHub" className="py-10 border-y border-slate-100 bg-slate-50/60">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <dl className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div>
+              <dt className="text-2xl font-extrabold text-[#0052FF]">DR&nbsp;60+</dt>
+              <dd className="text-sm text-muted-foreground mt-1">Editorial links only — no PBNs</dd>
+            </div>
+            <div>
+              <dt className="text-2xl font-extrabold text-[#0052FF]">YMYL</dt>
+              <dd className="text-sm text-muted-foreground mt-1">E-E-A-T compliant content</dd>
+            </div>
+            <div>
+              <dt className="text-2xl font-extrabold text-[#0052FF]">Fintech&#8209;only</dt>
+              <dd className="text-sm text-muted-foreground mt-1">Exclusive sector focus</dd>
+            </div>
+            <div>
+              <dt className="text-2xl font-extrabold text-[#0052FF]">Senior&nbsp;ops</dt>
+              <dd className="text-sm text-muted-foreground mt-1">No generalist handoffs</dd>
+            </div>
+          </dl>
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            All content is produced under our published{" "}
+            <Link href="/editorial-guidelines" className="text-[#0052FF] underline underline-offset-2 hover:text-[#0040cc]">
+              editorial standards
+            </Link>
+            . We operate exclusively in YMYL fintech verticals: payments, lending, open banking, neobanking, regtech, and wealthtech.
+          </p>
         </div>
       </section>
 
@@ -180,7 +259,7 @@ export default function Pricing() {
       {/* FAQ */}
       <section className="py-24 bg-secondary/30">
         <div className="container mx-auto px-4 max-w-3xl">
-          <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">Fintech SEO Pricing — Frequently Asked Questions</h2>
           <Accordion
             type="single"
             collapsible
