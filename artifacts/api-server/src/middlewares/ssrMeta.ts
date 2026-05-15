@@ -3897,8 +3897,32 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1", ".geo-answer-block"],
             },
+            // areaServed — declares the geographic markets served.
+            // International SEO: AI ranking engines associate /contact with
+            // "fintech SEO agency [market]" queries via this field.
+            areaServed: [
+              { "@type": "Country", name: "United States" },
+              { "@type": "Country", name: "United Kingdom" },
+              { "@type": "Country", name: "Singapore" },
+              { "@type": "Country", name: "Australia" },
+              { "@type": "Country", name: "Canada" },
+            ],
+            // accessibilityHazard: "none" — explicit WCAG/E-E-A-T declaration.
+            // AI citation engines (Google AIO, Perplexity) prefer content with
+            // declared hazard levels when ranking citation candidates.
+            accessibilityHazard: "none",
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
-            potentialAction: { "@type": "ReadAction", target: canonical },
+            // potentialAction as array: ReadAction + CommunicateAction.
+            // CommunicateAction enables voice assistants to surface the contact
+            // email for queries like "how do I email FintechPressHub?".
+            potentialAction: [
+              { "@type": "ReadAction", target: canonical },
+              {
+                "@type": "CommunicateAction",
+                name:    "Email FintechPressHub",
+                target:  "mailto:hello@fintechpresshub.com",
+              },
+            ],
             mainEntity: {
               "@type":  "Organization",
               "@id":    `${siteUrl}#organization`,

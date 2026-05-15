@@ -16,7 +16,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
-import { MapPin, Mail, Clock, HelpCircle, Plus, Globe, ShieldCheck, Timer } from "lucide-react";
+import { MapPin, Mail, Clock, HelpCircle, Plus, Globe, ShieldCheck, Timer, Linkedin, Twitter } from "lucide-react";
 import { PageHero } from "@/components/PageHero";
 import { Link } from "wouter";
 import { useEffect } from "react";
@@ -163,6 +163,30 @@ export default function Contact() {
           { lang: "en",        href: `${SITE_URL}/contact` },
           { lang: "x-default", href: `${SITE_URL}/contact` },
         ]}
+        howTo={{
+          name: "How to Get a Free Fintech SEO Audit from FintechPressHub",
+          description:
+            "Submit a brief, receive a senior strategist review within one business day, join a free discovery call, and get a tailored fintech SEO proposal — all within 3 business days.",
+          totalTime: "PT30M",
+          steps: [
+            {
+              name: "Submit your brief via the contact form",
+              text: "Complete the form with your company name, primary interest, monthly budget, and a description of your current SEO challenges and growth goals. Takes under 2 minutes.",
+            },
+            {
+              name: "Senior strategist review within one business day",
+              text: "A senior fintech SEO strategist reviews your submission and performs a preliminary audit of your organic search footprint, identifying your fastest opportunities.",
+            },
+            {
+              name: "Free 30-minute discovery call",
+              text: "We walk through our initial findings, surface two or three quick wins you can act on immediately, and assess strategic fit. The call is free with no obligation.",
+            },
+            {
+              name: "Receive a tailored engagement proposal",
+              text: "If there is a clear strategic fit, you receive a scoped proposal within 48 hours — specific to your fintech vertical, target keywords, and growth stage. No pressure.",
+            },
+          ],
+        }}
       />
 
       {/* On-Page SEO: H1 contains primary keyword "fintech SEO agency" */}
@@ -202,6 +226,56 @@ export default function Contact() {
             </Link>{" "}
             before reaching out.
           </p>
+        </div>
+      </section>
+
+      {/*
+        GEO + Programmatic SEO: visual HowTo process section.
+        The 4 numbered steps mirror the HowTo JSON-LD emitted by PageMeta,
+        making this content machine-readable AND human-readable. Google's
+        rich-result carousel can surface individual steps for queries like
+        "how to contact a fintech SEO agency" or "how does FintechPressHub work".
+      */}
+      <section className="border-b bg-muted/10 py-14">
+        <div className="container mx-auto max-w-6xl px-4">
+          <div className="mb-10 text-center">
+            <h2 className="mb-2 text-xl font-bold md:text-2xl">
+              How It Works — From First Contact to Kickoff
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              A transparent, 4-step process with no automated funnels.
+            </p>
+          </div>
+          <ol className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                n: "01",
+                title: "Submit your brief",
+                body: "Fill in the form with your challenges, goals, and budget. Takes under 2 minutes.",
+              },
+              {
+                n: "02",
+                title: "Strategist review",
+                body: "A senior fintech SEO strategist reviews your submission and audits your search footprint within one business day.",
+              },
+              {
+                n: "03",
+                title: "Free discovery call",
+                body: "We share findings, surface quick wins, and assess strategic fit — 30 minutes, no obligation.",
+              },
+              {
+                n: "04",
+                title: "Tailored proposal",
+                body: "If there's a fit, you receive a scoped proposal within 48 hours. No generic decks, no pressure.",
+              },
+            ].map((step) => (
+              <li key={step.n} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-6 shadow-sm">
+                <span className="text-3xl font-black text-primary/20 leading-none">{step.n}</span>
+                <strong className="text-sm font-semibold text-foreground">{step.title}</strong>
+                <p className="text-sm text-muted-foreground leading-relaxed">{step.body}</p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
@@ -302,6 +376,38 @@ export default function Contact() {
                     <p className="mt-2 text-xs text-muted-foreground">
                       Retainers priced in USD, GBP, SGD, and AUD on request.
                     </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Off-Page SEO: visible social profile links with rel="noopener noreferrer"
+                  These surface the brand's sameAs entities on the page itself, reinforcing
+                  the knowledge-graph signals already declared in Organization JSON-LD. */}
+              <div className="flex items-start gap-4">
+                <div className="rounded-full bg-primary/10 p-3">
+                  <Linkedin className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Follow Us</h3>
+                  <div className="mt-2 flex flex-col gap-1.5 text-sm">
+                    <a
+                      href="https://www.linkedin.com/company/fintechpresshub"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Linkedin className="h-4 w-4" />
+                      LinkedIn
+                    </a>
+                    <a
+                      href="https://twitter.com/fintechpresshub"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Twitter className="h-4 w-4" />
+                      Twitter / X
+                    </a>
                   </div>
                 </div>
               </div>

@@ -483,6 +483,15 @@ export function PageMeta(props: PageMetaProps) {
             "@id": `${canonical}#qa`,
             url: canonical,
             inLanguage: "en",
+            // datePublished/dateModified on QAPage — mirrors the FAQPage branch so
+            // freshness signals are consistent regardless of which schema type is used.
+            // faqDatePublished/faqDateModified take priority; falls back to webPage dates.
+            ...(props.faqDatePublished ?? props.webPage?.datePublished
+              ? { datePublished: props.faqDatePublished ?? props.webPage?.datePublished }
+              : {}),
+            ...(props.faqDateModified ?? props.webPage?.dateModified
+              ? { dateModified: props.faqDateModified ?? props.webPage?.dateModified }
+              : {}),
             publisher: { "@type": "Organization", "@id": `${SITE_URL}#organization`, name: SITE_NAME },
             mainEntity: props.faq.map((item) => ({
               "@type": "Question",
@@ -1113,7 +1122,20 @@ export function PageMeta(props: PageMetaProps) {
               : ["h1", ".geo-answer-block"],
         },
         breadcrumb: { "@id": `${canonical}#breadcrumb` },
-        potentialAction: { "@type": "ReadAction", target: canonical },
+        // potentialAction as array: ReadAction (crawl/index signal) + EmailAction
+        // (AEO signal — enables voice assistants to surface the contact email for
+        // queries like "how do I email FintechPressHub?").
+        potentialAction: [
+          { "@type": "ReadAction", target: canonical },
+          {
+            "@type": "CommunicateAction",
+            name: "Email FintechPressHub",
+            target: "mailto:hello@fintechpresshub.com",
+          },
+        ],
+        // accessibilityHazard: "none" — explicit WCAG/E-E-A-T declaration.
+        // AI citation engines prefer content with declared hazard levels.
+        accessibilityHazard: "none",
         mainEntity: {
           "@type": "Organization",
           "@id": `${SITE_URL}#organization`,
@@ -1303,7 +1325,14 @@ export function PageMeta(props: PageMetaProps) {
       {description ? <meta name="description" content={description} /> : null}
       {props.noindex ? (
         <meta name="robots" content="noindex,nofollow" />
-      ) : null}
+      ) : (
+        // max-snippet:-1 — lets Google + AI Overviews quote any length of the
+        // page's text (no character cap). max-image-preview:large unlocks full-size
+        // image thumbnails in SERPs. max-video-preview:-1 removes the video-clip
+        // cap. These directives apply to every indexable page including future
+        // blog posts — they are always beneficial for organic visibility.
+        <meta name="robots" content="max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+      )}
       <meta property="og:locale" content="en_US" />
       {/* Always declare alternate locales — this agency serves US, UK, SG, AU, CA fintech markets. */}
       <meta property="og:locale:alternate" content="en_GB" />
