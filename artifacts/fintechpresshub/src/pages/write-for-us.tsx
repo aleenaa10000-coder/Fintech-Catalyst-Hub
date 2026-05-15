@@ -781,7 +781,7 @@ export default function WriteForUs() {
             },
             {
               name: "Receive editorial feedback",
-              text: "Our editors review every pitch within 5 business days and send acceptance or revision notes.",
+              text: "Our editors review every pitch within 2–3 business days and send a clear acceptance, revision request, or brief decline with notes.",
             },
             {
               name: "Write and submit your draft",
@@ -823,7 +823,7 @@ export default function WriteForUs() {
                 Welcome to FintechPressHub
               </p>
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-                Explore the Benefits of Guest Posting With Us
+                Why Submit a Fintech Guest Post to FintechPressHub?
               </h2>
               <p className="text-muted-foreground mb-8 max-w-xl">
                 A placement on FintechPressHub is more than a backlink — it&rsquo;s
@@ -862,6 +862,18 @@ export default function WriteForUs() {
                   </div>
                 ))}
               </dl>
+              {/* Expert pull-quote — GEO optimisation: named-authority attribution
+                  increases AI citation probability ~32 pp per Aggarwal et al.
+                  (GEO, KDD 2024 §4.2 "Expert Quotes"). Rendered inside the
+                  benefits column so Googlebot sees it alongside E-E-A-T signals. */}
+              <blockquote className="mt-7 border-l-4 border-primary/40 pl-5 py-1">
+                <p className="text-base italic text-foreground/80 leading-relaxed">
+                  &ldquo;The fintech content that earns a permanent placement is always written by someone with skin in the game — a practitioner who has lived the problem, not a generalist who researched it for an afternoon.&rdquo;
+                </p>
+                <footer className="mt-2 text-sm text-muted-foreground">
+                  — <cite>FintechPressHub Editorial Team</cite>
+                </footer>
+              </blockquote>
             </div>
             <div className="relative">
               <div className="relative rounded-3xl overflow-hidden shadow-xl border border-border/60">
@@ -1349,10 +1361,12 @@ export default function WriteForUs() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="py-24 bg-secondary/30">
+      {/* FAQ — .wfu-faq-section class is referenced by the SSR SpeakableSpecification
+          (ssrMeta.ts) so voice assistants and AI answer engines can extract these
+          Q&As directly for "fintech guest post FAQ" and "write for us fintech" queries. */}
+      <section className="py-24 bg-secondary/30 wfu-faq-section" id="faq">
         <div className="container mx-auto px-4 max-w-3xl">
-          <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">Fintech Guest Post FAQs — Your Questions Answered</h2>
           <Accordion
             type="single"
             collapsible

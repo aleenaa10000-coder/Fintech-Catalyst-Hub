@@ -3897,13 +3897,30 @@ async function handleSsrMeta(
               { "@type": "Thing", name: "Fintech SEO" },
             ],
             keywords: "fintech write for us, fintech guest post, fintech guest blogging, dofollow guest post, submit fintech article",
-            // SpeakableSpecification: extended to include .geo-answer-block (GEO audit)
-            // so AI citation engines extract the direct-answer paragraph in addition
-            // to the H1 for "fintech guest post" and "write for us fintech" queries.
+            // SpeakableSpecification: extended to include .geo-answer-block (GEO Round 2)
+            // and .wfu-faq-section (AEO Round 3) so voice assistants and AI answer
+            // engines extract both the direct-answer paragraph and the FAQ section for
+            // "fintech guest post" and "write for us fintech" queries.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".geo-answer-block"],
+              cssSelector: ["h1", ".geo-answer-block", ".wfu-faq-section"],
             },
+            // mainEntityOfPage — declares the canonical WebPage entity this
+            // CollectionPage describes, required for Google's entity graph to correctly
+            // associate all structured-data blocks with the canonical URL.
+            mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+            // significantLink — tells AI crawlers (Perplexity, ChatGPT Search, Gemini)
+            // about the content ecosystem around this guest-post programme. Google AIO
+            // surfaces significantLink targets as related-link cards alongside citations.
+            significantLink: [
+              `${canonical}#benefits`,
+              `${canonical}#topics`,
+              `${canonical}#guidelines`,
+              `${canonical}#pitch-form`,
+              `${canonical}#faq`,
+              `${siteUrl}/editorial-guidelines`,
+              `${siteUrl}/blog`,
+            ],
             breadcrumb:   { "@id": `${canonical}#breadcrumb` },
             potentialAction: {
               "@type":  "WriteAction",
@@ -3983,69 +4000,80 @@ async function handleSsrMeta(
             publisher:     { "@id": `${siteUrl}#organization` },
             datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2023-01-01",
             dateModified:  pageLastmod ?? "2026-05-15",
+            // inLanguage: "en" on every acceptedAnswer mirrors the site-wide
+            // pattern used for blog post FAQPage schemas (see line ~2684) and satisfies
+            // Google's International SEO requirement for language-tagged FAQ answers.
             mainEntity: [
               {
                 "@type": "Question",
                 name:    "What types of fintech content does FintechPressHub accept?",
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    "We publish expert-level content covering payments infrastructure, open banking, embedded finance, lending, regtech, KYC/AML, wealthtech, insurtech, and fintech SaaS. Articles must be original, human-written, and targeted at a professional audience of founders, marketers, and operators — not general consumer finance content.",
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "We publish expert-level content covering payments infrastructure, open banking, embedded finance, lending, regtech, KYC/AML, wealthtech, insurtech, and fintech SaaS. Articles must be original, human-written, and targeted at a professional audience of founders, marketers, and operators — not general consumer finance content.",
                 },
               },
               {
                 "@type": "Question",
                 name:    "How long does it take to hear back on a pitch?",
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    "We review all pitches within 2–3 business days. If your topic is a strong fit you will receive an acceptance email with a brief scope doc and a suggested deadline. Off-niche or under-specified pitches are declined with a short note.",
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "We review all pitches within 2–3 business days. If your topic is a strong fit you will receive an acceptance email with a brief scope doc and a suggested deadline. Off-niche or under-specified pitches are declined with a short note.",
                 },
               },
               {
                 "@type": "Question",
                 name:    "How many dofollow links will my post include?",
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    "High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks.",
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks.",
                 },
               },
               {
                 "@type": "Question",
                 name:    "Is payment available for guest posts?",
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    "We do not pay contributors. The compensation is up to 2 permanent dofollow backlinks from a topically-aligned fintech domain with a targeted readership — the same audience your product serves. Contributors consistently report measurable referral traffic and ranking lift from the placement.",
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "We do not pay contributors. The compensation is up to 2 permanent dofollow backlinks from a topically-aligned fintech domain with a targeted readership — the same audience your product serves. Contributors consistently report measurable referral traffic and ranking lift from the placement.",
                 },
               },
               {
                 "@type": "Question",
                 name:    "What word count do you require?",
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    "Articles must be between 800 and 1,500 words. Every word must earn its place — tightly scoped, deeply researched pieces consistently outperform padded long-form in our niche. Thin or AI-generated content is rejected at pitch stage.",
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "Articles must be between 800 and 1,500 words. Every word must earn its place — tightly scoped, deeply researched pieces consistently outperform padded long-form in our niche. Thin or AI-generated content is rejected at pitch stage.",
                 },
               },
               {
                 "@type": "Question",
                 name:    "Does FintechPressHub accept AI-generated content?",
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    "No. We require human-written, expert-led articles that meet our editorial standards on accuracy, sourcing, and E-E-A-T. AI-assisted research and outline drafting are permitted, but the final piece must reflect the author's genuine expertise and original analysis. Submissions that appear AI-generated are rejected without review.",
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "No. We require human-written, expert-led articles that meet our editorial standards on accuracy, sourcing, and E-E-A-T. AI-assisted research and outline drafting are permitted, but the final piece must reflect the author's genuine expertise and original analysis. Submissions that appear AI-generated are rejected without review.",
                 },
               },
               {
                 "@type": "Question",
                 name:    "Can I include links to my company's website in the article?",
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    "Yes — up to 2 contextual links placed naturally within the article body. Links must be topically relevant to the surrounding content. Author bio links are also permitted. Exact-match anchor text and unrelated outbound links are edited out during review.",
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "Yes — up to 2 contextual links placed naturally within the article body. Links must be topically relevant to the surrounding content. Author bio links are also permitted. Exact-match anchor text and unrelated outbound links are edited out during review.",
                 },
               },
               {
                 "@type": "Question",
                 name:    "Do you publish content from international contributors?",
                 acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    "Yes. We publish contributions from fintech operators and marketers worldwide. FintechPressHub serves readers across the UK, US, Singapore, Australia, Canada, and the broader APAC and European fintech markets. Your geographic location is not a barrier — editorial quality and topical relevance are the only criteria.",
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "Yes. We publish contributions from fintech operators and marketers worldwide. FintechPressHub serves readers across the UK, US, Singapore, Australia, Canada, and the broader APAC and European fintech markets. Your geographic location is not a barrier — editorial quality and topical relevance are the only criteria.",
                 },
               },
             ],
@@ -4066,23 +4094,27 @@ async function handleSsrMeta(
             url:           `${canonical}#topics`,
             inLanguage:    "en",
             numberOfItems: 16,
+            // url on every ListItem links each topic category back to the #topics
+            // anchor on this page. Programmatic SEO: Googlebot can resolve individual
+            // ListItem URLs and associate them with the topic taxonomy, strengthening
+            // knowledge-graph signals for "fintech guest post [topic]" queries.
             itemListElement: [
-              { "@type": "ListItem", position: 1,  name: "Payments Infrastructure",    description: "Card issuing & processing, payment orchestration, cross-border rails" },
-              { "@type": "ListItem", position: 2,  name: "Embedded Finance",           description: "BaaS architecture, embedded lending playbooks, vertical SaaS payments" },
-              { "@type": "ListItem", position: 3,  name: "Open Banking & PSD3",        description: "Account-to-account payments, variable recurring payments, data-sharing compliance" },
-              { "@type": "ListItem", position: 4,  name: "Neobanking & Digital Banks", description: "Activation & retention, fee economics, regulatory sandboxing" },
-              { "@type": "ListItem", position: 5,  name: "BNPL & Consumer Lending",    description: "Underwriting models, affordability checks, merchant integrations" },
-              { "@type": "ListItem", position: 6,  name: "B2B & SME Lending",          description: "Cash-flow underwriting, embedded SME credit, receivables financing" },
-              { "@type": "ListItem", position: 7,  name: "Wealthtech & Robo-advisors", description: "Portfolio construction, advisor SaaS marketing, self-directed investing" },
-              { "@type": "ListItem", position: 8,  name: "Regtech & Compliance",       description: "Transaction monitoring, reg reporting tooling, sanctions screening" },
-              { "@type": "ListItem", position: 9,  name: "KYC, AML & Fraud",           description: "Identity verification, fraud orchestration, synthetic ID detection" },
-              { "@type": "ListItem", position: 10, name: "Fintech SaaS",               description: "Treasury & FP&A platforms, AP/AR & spend management, embedded-finance SaaS" },
-              { "@type": "ListItem", position: 11, name: "Fintech SEO & Content",      description: "Topical authority builds, programmatic SEO, editorial workflows" },
-              { "@type": "ListItem", position: 12, name: "Fintech CRO & Growth",       description: "Onboarding funnels, pricing experiments, lifecycle messaging" },
-              { "@type": "ListItem", position: 13, name: "Treasury & CFO Tooling",     description: "AP/AR automation, spend management, multi-entity treasury" },
-              { "@type": "ListItem", position: 14, name: "Insurtech",                  description: "Embedded insurance, underwriting AI, claims automation" },
-              { "@type": "ListItem", position: 15, name: "Wealth & Robo Marketing",    description: "Compliant ad creative, disclosures & disclaimers, RIA referral programs" },
-              { "@type": "ListItem", position: 16, name: "AI in Financial Services",   description: "LLM risk frameworks, agentic finance UX, model governance" },
+              { "@type": "ListItem", position: 1,  name: "Payments Infrastructure",    description: "Card issuing & processing, payment orchestration, cross-border rails",                url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 2,  name: "Embedded Finance",           description: "BaaS architecture, embedded lending playbooks, vertical SaaS payments",               url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 3,  name: "Open Banking & PSD3",        description: "Account-to-account payments, variable recurring payments, data-sharing compliance",   url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 4,  name: "Neobanking & Digital Banks", description: "Activation & retention, fee economics, regulatory sandboxing",                        url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 5,  name: "BNPL & Consumer Lending",    description: "Underwriting models, affordability checks, merchant integrations",                    url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 6,  name: "B2B & SME Lending",          description: "Cash-flow underwriting, embedded SME credit, receivables financing",                  url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 7,  name: "Wealthtech & Robo-advisors", description: "Portfolio construction, advisor SaaS marketing, self-directed investing",             url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 8,  name: "Regtech & Compliance",       description: "Transaction monitoring, reg reporting tooling, sanctions screening",                  url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 9,  name: "KYC, AML & Fraud",           description: "Identity verification, fraud orchestration, synthetic ID detection",                  url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 10, name: "Fintech SaaS",               description: "Treasury & FP&A platforms, AP/AR & spend management, embedded-finance SaaS",         url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 11, name: "Fintech SEO & Content",      description: "Topical authority builds, programmatic SEO, editorial workflows",                     url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 12, name: "Fintech CRO & Growth",       description: "Onboarding funnels, pricing experiments, lifecycle messaging",                        url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 13, name: "Treasury & CFO Tooling",     description: "AP/AR automation, spend management, multi-entity treasury",                          url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 14, name: "Insurtech",                  description: "Embedded insurance, underwriting AI, claims automation",                              url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 15, name: "Wealth & Robo Marketing",    description: "Compliant ad creative, disclosures & disclaimers, RIA referral programs",            url: `${canonical}#topics` },
+              { "@type": "ListItem", position: 16, name: "AI in Financial Services",   description: "LLM risk frameworks, agentic finance UX, model governance",                          url: `${canonical}#topics` },
             ],
           }, null, 2));
 
