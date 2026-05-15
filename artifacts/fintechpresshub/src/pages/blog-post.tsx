@@ -754,6 +754,23 @@ export default function BlogPost() {
         >
           {copied ? <Check className="w-4 h-4 text-green-500" /> : <Link2 className="w-4 h-4" />}
         </button>
+        {/* Reading time countdown — updates live as the reader scrolls */}
+        {readingMinutes > 0 && (
+          <div
+            className="mt-1 pt-1.5 border-t border-slate-100 w-full flex flex-col items-center"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <span className="text-[11px] font-bold tabular-nums text-slate-700 leading-tight">
+              {readProgress >= 95
+                ? "✓"
+                : Math.max(1, Math.round(readingMinutes * (1 - readProgress / 100)))}
+            </span>
+            <span className="text-[9px] text-slate-400 leading-tight">
+              {readProgress >= 95 ? "done" : "min left"}
+            </span>
+          </div>
+        )}
       </aside>,
       document.body
       )}
