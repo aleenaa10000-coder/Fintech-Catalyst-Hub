@@ -19,6 +19,8 @@ import {
   Pencil,
   Bookmark,
   BookmarkCheck,
+  Share2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -485,6 +487,7 @@ export default function BlogPost() {
 
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   useEffect(() => {
     if (typeof window !== "undefined") {
       setShareUrl(window.location.href);
@@ -850,6 +853,136 @@ export default function BlogPost() {
         )}
       </aside>,
       document.body
+      )}
+
+      {/* ── Mobile share button + bottom sheet (below 2xl) ────────────────────
+          A floating pill button appears after the user scrolls past the hero.
+          Tapping it opens a slide-up sheet with all share options.
+          Hidden at 2xl+ where the vertical sidebar handles sharing. */}
+      {createPortal(
+        <>
+          {/* Floating share pill */}
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            aria-label="Share this article"
+            className="2xl:hidden flex items-center gap-2 rounded-full bg-[#0052FF] text-white shadow-lg px-4 py-2.5 text-sm font-semibold transition-all duration-300"
+            style={{
+              position: "fixed",
+              bottom: "5rem",
+              left: "50%",
+              transform: `translateX(-50%) translateY(${shareBarVisible ? "0" : "120px"})`,
+              opacity: shareBarVisible ? 1 : 0,
+              pointerEvents: shareBarVisible ? "auto" : "none",
+              zIndex: 40,
+            }}
+          >
+            <Share2 className="w-4 h-4" />
+            Share
+            {readProgress > 0 && (
+              <span className="ml-1 text-blue-200 text-xs font-normal tabular-nums">
+                {Math.round(readProgress)}%
+              </span>
+            )}
+          </button>
+
+          {/* Backdrop */}
+          <div
+            onClick={() => setSheetOpen(false)}
+            className="2xl:hidden fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
+            style={{
+              zIndex: 50,
+              opacity: sheetOpen ? 1 : 0,
+              pointerEvents: sheetOpen ? "auto" : "none",
+            }}
+            aria-hidden="true"
+          />
+
+          {/* Bottom sheet */}
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Share this article"
+            className="2xl:hidden fixed left-0 right-0 bottom-0 bg-white rounded-t-2xl shadow-2xl px-6 pt-5 pb-8 transition-transform duration-300 ease-out"
+            style={{
+              zIndex: 51,
+              transform: sheetOpen ? "translateY(0)" : "translateY(100%)",
+            }}
+          >
+            {/* Handle bar */}
+            <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-5" aria-hidden="true" />
+
+            {/* Header row */}
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Share this article</p>
+                <p className="text-sm font-semibold text-slate-800 mt-0.5 line-clamp-1">{post?.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSheetOpen(false)}
+                aria-label="Close share sheet"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Reading progress bar */}
+            {readProgress > 0 && (
+              <div className="mb-5">
+                <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+                  <span>Reading progress</span>
+                  <span className="tabular-nums font-medium text-slate-600">{Math.round(readProgress)}%</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-full bg-[#0052FF] rounded-full transition-all duration-300"
+                    style={{ width: `${readProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Share options grid */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { href: linkedinShareUrl, label: "LinkedIn", icon: <Linkedin className="w-5 h-5" />, color: "bg-[#0077B5]/10 text-[#0077B5]" },
+                { href: xShareUrl, label: "X / Twitter", icon: <XIcon className="w-5 h-5" />, color: "bg-slate-100 text-slate-800" },
+                { href: whatsappShareUrl, label: "WhatsApp", icon: <WhatsAppIcon className="w-5 h-5" />, color: "bg-[#25D366]/10 text-[#25D366]" },
+                { href: facebookShareUrl, label: "Facebook", icon: <FacebookIcon className="w-5 h-5" />, color: "bg-[#1877F2]/10 text-[#1877F2]" },
+                { href: emailShareUrl, label: "Email", icon: <Mail className="w-5 h-5" />, color: "bg-orange-50 text-orange-500" },
+              ].map(({ href, label, icon, color }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target={href.startsWith("mailto") ? undefined : "_blank"}
+                  rel="noopener noreferrer"
+                  onClick={() => setSheetOpen(false)}
+                  className="flex flex-col items-center gap-2 rounded-xl p-3 hover:scale-105 active:scale-95 transition-transform"
+                >
+                  <span className={`flex items-center justify-center w-12 h-12 rounded-full ${color}`}>
+                    {icon}
+                  </span>
+                  <span className="text-xs text-slate-600 font-medium text-center leading-tight">{label}</span>
+                </a>
+              ))}
+              <button
+                type="button"
+                onClick={() => { handleCopyLink(); }}
+                className="flex flex-col items-center gap-2 rounded-xl p-3 hover:scale-105 active:scale-95 transition-transform"
+              >
+                <span className={`flex items-center justify-center w-12 h-12 rounded-full ${copied ? "bg-green-50 text-green-500" : "bg-slate-100 text-slate-600"}`}>
+                  {copied ? <Check className="w-5 h-5" /> : <Link2 className="w-5 h-5" />}
+                </span>
+                <span className="text-xs text-slate-600 font-medium text-center leading-tight">
+                  {copied ? "Copied!" : "Copy link"}
+                </span>
+              </button>
+            </div>
+          </div>
+        </>,
+        document.body
       )}
 
       {/* Hero — Moov-style image-first layout.
