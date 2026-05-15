@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Prevents iOS Safari from auto-linking phone numbers and email addresses,
+         which can cause unexpected CLS when the browser injects tap-target padding
+         around detected strings. Marking these off explicitly removes the risk. -->
+    <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
     <title>Fintech SEO &amp; Content Marketing Agency | FintechPressHub</title>
     <meta name="description" content="Specialist fintech SEO &amp; content marketing agency — expert writers, tier-1 link placements, and measurable organic rankings for ambitious fintech brands." />
     <meta name="author" content="FintechPressHub" />
@@ -153,6 +157,15 @@
           "correctionsPolicy": "https://www.fintechpresshub.com/editorial-guidelines",
           "noBylinesPolicy": "https://www.fintechpresshub.com/editorial-guidelines",
           "ethicsPolicy": "https://www.fintechpresshub.com/editorial-guidelines",
+          "availableLanguage": [
+            {
+              "@type": "Language",
+              "name": "English",
+              "alternateName": "en"
+            }
+          ],
+          "diversityPolicy": "https://www.fintechpresshub.com/editorial-guidelines",
+          "missionCoveragePrioritiesPolicy": "https://www.fintechpresshub.com/editorial-guidelines",
           "sameAs": [
             "https://twitter.com/fintechpresshub",
             "https://www.linkedin.com/company/fintechpresshub",

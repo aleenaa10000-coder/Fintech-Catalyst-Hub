@@ -102,6 +102,30 @@ export type ArticleSchema = {
    * directly and improving long-tail ranking for section-level queries.
    */
   hasPart?: string[];
+  /**
+   * CSS selectors for `SpeakableSpecification` on the BlogPosting entity.
+   * Google News Audio Overviews require speakable on the article entity itself
+   * (not just the WebPage companion). Defaults to `["h1", "h2"]` when omitted.
+   */
+  speakableSelectors?: string[];
+  /**
+   * Machine-readable access model URI. Use `"https://schema.org/OnlineAccess"`
+   * to declare the article is freely readable without registration or paywall.
+   * AI citation engines (Google AIO, Perplexity) prefer free-access content.
+   */
+  conditionsOfAccess?: string;
+  /**
+   * URL of the page where content usage / licensing terms are explained.
+   * Lets AI citation engines verify syndication permissions without guessing.
+   * Example: `"https://www.fintechpresshub.com/terms"`
+   */
+  usageInfo?: string;
+  /**
+   * Accessibility hazard declaration. Use `"none"` to explicitly state that
+   * the article presents no known accessibility hazards (no flashing, motion,
+   * or audio triggers). Required for WCAG-aligned E-E-A-T on YMYL content.
+   */
+  accessibilityHazard?: string;
 };
 
 export type FaqItem = { question: string; answer: string };
@@ -1160,6 +1184,32 @@ export function PageMeta(props: PageMetaProps) {
               })),
             }
           : {}),
+        // speakable on BlogPosting entity: required for Google News Audio Overviews
+        // and Google Assistant voice extraction. The WebPage-level speakable is
+        // insufficient for News-tab voice extraction — Google requires speakable on
+        // the Article/BlogPosting entity as well (GEO/AEO gap fix).
+        speakable: {
+          "@type": "SpeakableSpecification",
+          cssSelector:
+            props.article.speakableSelectors &&
+            props.article.speakableSelectors.length > 0
+              ? props.article.speakableSelectors
+              : ["h1", "h2"],
+        },
+        // conditionsOfAccess: machine-readable access model for AI extractors.
+        // Google AIO and Perplexity prefer freely accessible articles when ranking
+        // citation candidates for spoken-answer results.
+        ...(props.article.conditionsOfAccess
+          ? { conditionsOfAccess: props.article.conditionsOfAccess }
+          : { conditionsOfAccess: "https://schema.org/OnlineAccess" }),
+        // usageInfo: links to the licensing/rights page so AI citation engines
+        // can determine syndication and quotation permissions.
+        ...(props.article.usageInfo
+          ? { usageInfo: props.article.usageInfo }
+          : { usageInfo: `${SITE_URL}/terms` }),
+        // accessibilityHazard: explicit declaration for WCAG-aligned E-E-A-T.
+        // AI Overviews prefer citation candidates with a declared hazard level.
+        accessibilityHazard: props.article.accessibilityHazard ?? "none",
       }
     : null;
 

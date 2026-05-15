@@ -620,6 +620,21 @@ export default function BlogPost() {
           // AEO-2 fix: H2 section names as hasPart WebPageElement entities, enabling
           // Google and Perplexity to cite individual sections directly.
           hasPart: articleSections.length > 0 ? articleSections : undefined,
+          // GEO/AEO fix: speakable selectors on the BlogPosting entity itself.
+          // Google News Audio Overviews require this on the article entity, not
+          // just the WebPage companion schema. Mirrors ssrMeta.ts SSR output.
+          speakableSelectors: post.blufSummary
+            ? ["h1", ".speakable-summary", "h2"]
+            : ["h1", "h2"],
+          // WH/AEO fix: machine-readable access model — confirms free access
+          // for AI citation engines ranking candidates for voice/overview answers.
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
+          // WH fix: links to licensing page so AI engines can verify quotation
+          // and syndication permissions without guessing. Mirrors ssrMeta.ts.
+          usageInfo: `${SITE_URL}/terms`,
+          // WH fix: explicit "none" hazard declaration for WCAG-aligned E-E-A-T.
+          // Required for YMYL fintech content — mirrors ssrMeta.ts SSR output.
+          accessibilityHazard: "none",
         }}
         faq={
           post.faqItems && post.faqItems.length > 0

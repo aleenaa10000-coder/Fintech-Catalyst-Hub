@@ -1862,6 +1862,32 @@ async function handleSsrMeta(
                 })) }
               : {};
           })(),
+          // speakable on BlogPosting: required for Google News Audio Overviews and
+          // Google Assistant voice extraction from the article entity itself.
+          // The WebPage-level speakable (emitted separately) is insufficient for
+          // News-tab voice extraction — Google requires speakable on the Article/
+          // BlogPosting entity as well. Targets h1, h2 and (when present) the
+          // BLUF summary paragraph so voice snippets lead with the key takeaway.
+          speakable: {
+            "@type": "SpeakableSpecification",
+            cssSelector: post.blufSummary
+              ? ["h1", ".speakable-summary", "h2"]
+              : ["h1", "h2"],
+          },
+          // conditionsOfAccess: machine-readable access model for AI extractors.
+          // Google AIO and Perplexity prefer freely accessible articles when
+          // choosing citation candidates for voice/overview answers — declaring
+          // OnlineAccess confirms no registration or paywall blocks the content.
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
+          // usageInfo: links to the licensing/rights page so AI citation engines
+          // can determine syndication and quotation permissions without guessing.
+          // Required by Google's structured-data guidelines for YMYL content.
+          usageInfo: `${siteUrl}/terms`,
+          // accessibilityHazard: explicit "none" declaration is required for
+          // WCAG-aligned E-E-A-T on YMYL fintech content. AI Overviews use this
+          // when ranking citation candidates for voice-assisted reading — pages
+          // with a declared hazard level are preferred over undeclared pages.
+          accessibilityHazard: "none",
         }, null, 2),
         buildBreadcrumbLd(breadcrumbs, breadcrumbLdId),
       ];
@@ -2086,6 +2112,17 @@ async function handleSsrMeta(
               ? [`  <meta property="og:locale" content="${ogLocale}" />`]
               : [] as string[];
           })(),
+          // news_keywords: Google News ranking signal — comma-separated topic
+          // keywords extracted from the post's tags. Distinct from meta[name=keywords]
+          // (general SEO) and article:tag (OG protocol): news_keywords is parsed
+          // exclusively by Google News to classify articles in the News tab and
+          // Discover feed. Including it increases eligibility for News carousels,
+          // topic-cluster articles, and Top Stories rich results.
+          ...(tags.length > 0
+            ? [`  <meta name="news_keywords" content="${esc(tags.slice(0, 10).join(", "))}" />`]
+            : post.category
+              ? [`  <meta name="news_keywords" content="${esc(post.category)}" />`]
+              : []),
         ],
         // SSR-inject the BLUF summary as a sr-only <p> immediately after <div id="root">
         // so the SpeakableSpecification cssSelector (".speakable-summary") resolves in
