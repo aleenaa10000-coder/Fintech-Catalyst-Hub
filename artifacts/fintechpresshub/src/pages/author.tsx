@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { PageMeta } from "@/components/PageMeta";
 import { useParams, Link, Redirect } from "wouter";
 import { useMemo } from "react";
@@ -110,6 +111,33 @@ export default function AuthorPage() {
           ...(author.updatedAt ? { dateModified: author.updatedAt } : {}),
         }}
       />
+
+      {/* International + Technical + White Hat head elements injected
+          client-side to keep the SPA head consistent with SSR patchHtml. */}
+      <Helmet>
+        <link
+          rel="alternate"
+          hrefLang="en"
+          href={`${SITE_URL}/authors/${author.slug}`}
+        />
+        <link
+          rel="alternate"
+          hrefLang="x-default"
+          href={`${SITE_URL}/authors/${author.slug}`}
+        />
+        {/* max-snippet:-1 unlocks full SERP excerpt so Google can show the
+            complete author bio in search results — an E-E-A-T visibility signal. */}
+        <meta
+          name="robots"
+          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+        />
+        {/* meta author tags the page with the author's name for crawlers that
+            use it as a standalone authorship signal (e.g. Dublin Core consumers). */}
+        <meta name="author" content={author.name} />
+        {/* rel="author" cross-links this profile page back to the /about entity
+            that hosts the canonical Organisation → employee graph. */}
+        <link rel="author" href={`${SITE_URL}/about`} />
+      </Helmet>
 
       {/* Header */}
       <header className="relative overflow-hidden border-b border-border/60 bg-[hsl(var(--primary))] text-primary-foreground">

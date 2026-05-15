@@ -1026,8 +1026,8 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
     description: "Strategy, SEO, and content marketing playbooks for fintech operators. Covering payments, embedded finance, open banking, neobanking, lending, regtech, and wealthtech.",
   },
   "/authors": {
-    title: "Our Authors | Fintech SEO Specialists | FintechPressHub",
-    description: "Meet the fintech SEO specialists, analysts, and content strategists who write for FintechPressHub — all with hands-on experience inside regulated financial services.",
+    title: "FintechPressHub Authors — Senior Fintech SEO Specialists & Operators",
+    description: "Meet the senior fintech operators, analysts, and digital PR leads who produce FintechPressHub's content and link-building programs — all with hands-on experience inside regulated financial services, payments, and banking.",
   },
   "/write-for-us": {
     title: "Fintech Guest Post | Write For Us | FintechPressHub",
@@ -1101,10 +1101,11 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
  */
 const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/":                                "2026-05-11",
-  // Bumped to 2026-05-14: White-Hat audit (rel=me on author socials,
-  // §12 Editorial Disclosure) and Off-Page audit (BRAND_NAP centralisation,
-  // visible footer NAP) materially changed what these pages render.
-  "/about":                           "2026-05-14",
+  // Bumped to 2026-05-15: Exhaustive 8-category SEO audit — team H2 keyword,
+  // accessibilityHazard + conditionsOfAccess on AboutPage, keywords webPage prop,
+  // expanded speakableSelectors to include h2, meta robots + author headLinks,
+  // hrefLang client-side Helmet, sameAs on employee Person nodes.
+  "/about":                           "2026-05-15",
   // Bumped to 2026-05-15: Exhaustive 8-category SEO audit — title/desc synced
   // with frontend, FAQPage + AggregateRating added to SSR hub schema, hreflang
   // and keywords head links added, speakable selectors expanded.
@@ -1115,7 +1116,11 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   // currency availability note, E-E-A-T editorial standards link.
   "/pricing":                         "2026-05-15",
   "/blog":                            "2026-05-11",
-  "/authors":                         "2026-05-09",
+  // Bumped to 2026-05-15: Exhaustive 8-category SEO audit — title/desc synced
+  // with frontend, accessibilityHazard + conditionsOfAccess + keywords added to
+  // CollectionPage, expanded speakable selectors, FAQPage schema added, meta
+  // robots + author + news_keywords headLinks, sameAs on employee nodes.
+  "/authors":                         "2026-05-15",
   "/write-for-us":                    "2026-05-15",
   "/editorial-guidelines":            "2026-04-28",
   "/community-guidelines":            "2026-04-28",
@@ -3260,6 +3265,16 @@ async function handleSsrMeta(
         // AI crawlers that skip JavaScript can find the per-author feed.
         headLinks: [
           `  <link rel="alternate" type="application/rss+xml" title="${esc(`${author.name} — FintechPressHub`)}" href="${esc(`${siteUrl}/authors/${slug}/rss.xml`)}" />`,
+          // Technical: max-snippet:-1 lets Google show the full author bio
+          // as a SERP excerpt — an E-E-A-T discoverability signal.
+          `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+          // White Hat: meta author identifies the subject of this profile page
+          // for crawlers that use it as a standalone authorship signal.
+          `  <meta name="author" content="${esc(author.name)}" />`,
+          // Off-Page: rel="author" cross-links this profile to the /about entity
+          // which hosts the canonical Organisation → employee graph, reinforcing
+          // the authorship chain for E-E-A-T scoring.
+          `  <link rel="author" href="${esc(`${siteUrl}/about`)}" />`,
         ],
         extraLds: (() => {
           const lds: string[] = [
@@ -3281,10 +3296,17 @@ async function handleSsrMeta(
               // SpeakableSpecification enables voice-assistant extraction of the author
               // headline and bio for "who is [name]?" queries — an E-E-A-T discoverability
               // signal that mirrors speakable coverage applied to all other page types.
+              // h2 added so section headings ("About X", "Areas of Expertise",
+              // "Articles by X") are also extractable by AI overview engines.
               speakable: {
                 "@type":     "SpeakableSpecification",
-                cssSelector: ["h1", ".author-bio"],
+                cssSelector: ["h1", ".author-bio", "h2"],
               },
+              // White Hat: accessibility + access signals — complete schema.org
+              // WebPage metadata for content classifiers and accessibility auditors.
+              accessibilityHazard: "none",
+              accessMode:          ["textual", "visual"],
+              conditionsOfAccess:  "Free",
               breadcrumb:    { "@id": `${canonical}#breadcrumb` },
               potentialAction: { "@type": "ReadAction", target: canonical },
               mainEntity: {
@@ -3335,6 +3357,24 @@ async function handleSsrMeta(
                 author.location ? `. Based in ${author.location}` : "",
                 ".",
               ].join("").trim(),
+            },
+            // Three additional Q&As expand PAA coverage for location, publication,
+            // and credential queries — common fintech author discovery patterns.
+            {
+              question: `Where is ${author.name} based?`,
+              answer: author.location
+                ? `${author.name} is based in ${author.location} and works with FintechPressHub as a ${author.role ?? "contributor"}.`
+                : `${author.name} is a remote contributor at FintechPressHub.`,
+            },
+            {
+              question: `What has ${author.name} published on FintechPressHub?`,
+              answer: `${author.name} publishes fintech analysis, strategy guides, and editorial pieces on FintechPressHub${expertiseList ? `, focusing on ${expertiseList}` : ""}. All articles are available on the FintechPressHub blog.`,
+            },
+            {
+              question: `What credentials does ${author.name} hold?`,
+              answer: Array.isArray(author.credentials) && author.credentials.length > 0
+                ? `${author.name} holds the following credentials: ${(author.credentials as string[]).join("; ")}.`
+                : `${author.name} brings ${author.yearsExperience > 0 ? `${author.yearsExperience} years of` : "substantial"} hands-on experience in financial services and fintech${author.role ? ` as a ${author.role}` : ""}.`,
             },
           ];
           lds.push(JSON.stringify({
@@ -3878,7 +3918,7 @@ async function handleSsrMeta(
         if (reqPath === "/about") {
           // ── /about — rich AboutPage with employee list ──────────────────
           const aboutAuthors = await db
-            .select({ name: authorsTable.name, role: authorsTable.role, slug: authorsTable.slug })
+            .select({ name: authorsTable.name, role: authorsTable.role, slug: authorsTable.slug, social: authorsTable.social })
             .from(authorsTable)
             .orderBy(asc(authorsTable.name))
             .limit(20);
@@ -3902,16 +3942,30 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h1", ".speakable-summary"],
             },
+            // White Hat: accessibility + access signals for schema.org classifiers.
+            accessibilityHazard: "none",
+            accessMode:          ["textual", "visual"],
+            conditionsOfAccess:  "Free",
+            // On-Page: keywords help Knowledge Graph slot this page into the
+            // correct topic clusters for fintech agency queries.
+            keywords: "fintech SEO agency, fintech content marketing, fintech digital PR, FintechPressHub, fintech operators, payments SEO, open banking content, regtech content strategy",
             breadcrumb:   { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
             ...(aboutAuthors.length > 0
               ? {
-                  employee: aboutAuthors.map((a) => ({
-                    "@type":    "Person",
-                    name:       a.name,
-                    jobTitle:   a.role,
-                    url:        `${siteUrl}/authors/${a.slug}`,
-                  })),
+                  employee: aboutAuthors.map((a) => {
+                    const s = (a.social ?? {}) as { linkedin?: string; twitter?: string; website?: string };
+                    const sameAs = [s.linkedin, s.twitter, s.website].filter(Boolean) as string[];
+                    return {
+                      "@type":    "Person",
+                      name:       a.name,
+                      jobTitle:   a.role,
+                      url:        `${siteUrl}/authors/${a.slug}`,
+                      // Off-Page: sameAs connects each employee entity to their
+                      // verified social profiles — signals identity to Knowledge Graph.
+                      ...(sameAs.length > 0 ? { sameAs } : {}),
+                    };
+                  }),
                 }
               : {}),
           }, null, 2));
@@ -4003,17 +4057,24 @@ async function handleSsrMeta(
             name:        staticMeta.title,
             description: staticMeta.description,
             datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2021-06-01",
-            dateModified: pageLastmod ?? "2026-05-09",
+            dateModified: pageLastmod ?? "2026-05-15",
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification enables voice-assistant extraction of the authors hub
-            // headline for queries like "who writes for FintechPressHub?" — strengthens
-            // E-E-A-T discoverability for the author entity graph as a whole.
+            // SpeakableSpecification expanded to include the BLUF .speakable-summary
+            // paragraph and h2 section headings — enables AI overview engines and voice
+            // assistants to extract direct answers for "who writes for FintechPressHub?"
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1"],
+              cssSelector: ["h1", ".speakable-summary", "h2"],
             },
+            // White Hat: accessibility + access signals for schema.org classifiers.
+            accessibilityHazard: "none",
+            accessMode:          ["textual", "visual"],
+            conditionsOfAccess:  "Free",
+            // On-Page: keywords help Knowledge Graph slot the authors hub into
+            // the correct topic cluster for fintech-writer discovery queries.
+            keywords: "fintech content writers, fintech SEO specialists, fintech editors, payments content team, open banking writers, regtech content experts, fintech digital PR, FintechPressHub authors",
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
           }, null, 2));
@@ -4021,7 +4082,7 @@ async function handleSsrMeta(
             extraLds.push(JSON.stringify({
               "@context": "https://schema.org",
               "@type":    "ItemList",
-              name:       "Our Contributors & Expert Authors",
+              name:       "FintechPressHub Editorial Team",
               numberOfItems: hubAuthors.length,
               itemListElement: hubAuthors.map((a, i) => ({
                 "@type":    "ListItem",
@@ -4031,6 +4092,52 @@ async function handleSsrMeta(
               })),
             }, null, 2));
           }
+          // FAQPage for the authors hub — mirrors teamFAQs in authors.tsx so
+          // Googlebot and JS users see identical FAQPage schema. Surfaces for
+          // "who writes for FintechPressHub?" PAA and Google AI Overview queries.
+          extraLds.push(JSON.stringify({
+            "@context":    "https://schema.org",
+            "@type":       "FAQPage",
+            "@id":         `${canonical}#faq`,
+            url:           canonical,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2021-06-01",
+            dateModified:  pageLastmod ?? "2026-05-15",
+            mainEntity: [
+              {
+                "@type":      "Question",
+                name:         "Who writes for FintechPressHub?",
+                answerCount:  1,
+                acceptedAnswer: { "@type": "Answer", inLanguage: "en", text: "FintechPressHub articles are written by senior fintech operators — payments specialists, open banking analysts, regtech editors, and digital PR leads — all with hands-on industry experience inside regulated financial services." },
+              },
+              {
+                "@type":      "Question",
+                name:         "What fintech topics does the FintechPressHub team cover?",
+                answerCount:  1,
+                acceptedAnswer: { "@type": "Answer", inLanguage: "en", text: "The team covers payments infrastructure, embedded finance, open banking, neobanking, B2B lending, regtech and compliance, wealthtech, robo-advisors, and fintech SEO strategy. Each author specialises in one or two sub-verticals rather than writing across all of fintech." },
+              },
+              {
+                "@type":      "Question",
+                name:         "Are FintechPressHub authors industry practitioners or journalists?",
+                answerCount:  1,
+                acceptedAnswer: { "@type": "Answer", inLanguage: "en", text: "Every FintechPressHub author is a practitioner first: the team includes former payments product managers, compliance lawyers, banking infrastructure engineers, and fintech CFOs. Authors write from lived experience, not secondary research alone." },
+              },
+              {
+                "@type":      "Question",
+                name:         "How can I pitch a guest post to the FintechPressHub team?",
+                answerCount:  1,
+                acceptedAnswer: { "@type": "Answer", inLanguage: "en", text: "Guest contributors can apply via the Write for Us page. FintechPressHub accepts expert-level submissions on payments, open banking, lending, and regtech from practitioners with verifiable industry backgrounds. All pitches are reviewed by the editorial team." },
+              },
+              {
+                "@type":      "Question",
+                name:         "Does FintechPressHub work with external fintech brands?",
+                answerCount:  1,
+                acceptedAnswer: { "@type": "Answer", inLanguage: "en", text: "Yes. The same team that produces FintechPressHub's editorial content also delivers retained fintech SEO, content strategy, and digital PR programs for fintech and financial services brands. You can book a discovery call via the Contact page." },
+              },
+            ],
+          }, null, 2));
 
         } else if (reqPath === "/services") {
           // ── /services hub — CollectionPage + ItemList + FAQPage + AggregateRating ─
@@ -5846,10 +5953,35 @@ async function handleSsrMeta(
           extraLds,
         };
 
-        // ── Per-route OG article meta + Dublin Core enrichment ────────────
+        // ── Per-route head enrichment — headLinks, bodyPatch, DC meta ────────
         // Injected after the universal patches block so route-specific fields
-        // (article:published_time, article:section, DC.*) are added without
-        // modifying the shared patches assembly above.
+        // are added without modifying the shared patches assembly above.
+
+        if (reqPath === "/about" && patches) {
+          // Technical + White Hat: meta robots, meta author, and rel="author"
+          // for the About page — completes the head signal set for E-E-A-T.
+          // patchHtml already injects hreflang="en" + x-default; these are
+          // additive signals for Dublin Core consumers and Content classifiers.
+          patches.headLinks = [
+            `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+            `  <meta name="author" content="FintechPressHub Editorial Team" />`,
+            `  <link rel="author" href="${esc(`${siteUrl}/about`)}" />`,
+          ];
+        }
+
+        if (reqPath === "/authors" && patches) {
+          // Technical + White Hat + AEO: meta robots, meta author, news_keywords,
+          // and rel="author" for the authors hub page.
+          patches.headLinks = [
+            `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+            `  <meta name="author" content="FintechPressHub Editorial Team" />`,
+            `  <link rel="author" href="${esc(`${siteUrl}/about`)}" />`,
+            // AEO: news_keywords consumed by Google News and AI news crawlers
+            // to surface the team page for fintech-writer discovery queries.
+            `  <meta name="news_keywords" content="fintech writers, fintech SEO specialists, payments content, open banking editors, regtech analysts" />`,
+          ];
+        }
+
         if (reqPath === "/glossary" && patches) {
           // GEO direct-answer block — injected after patches is built so TypeScript
           // narrows patches to MetaPatches (not null). The hidden div appears in the

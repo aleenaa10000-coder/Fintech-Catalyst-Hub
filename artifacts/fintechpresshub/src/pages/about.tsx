@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { PageMeta } from "@/components/PageMeta";
 import { motion } from "framer-motion";
 import { Users, Target, ShieldCheck, ArrowRight, type LucideIcon } from "lucide-react";
@@ -82,7 +83,7 @@ export default function About() {
     <div className="min-h-screen bg-background">
       <PageMeta
         page="about"
-        speakableSelectors={["h1", ".speakable-summary"]}
+        speakableSelectors={["h1", ".speakable-summary", "h2"]}
         aboutPage={{
           description: aboutDescription,
           slogan: aboutSlogan,
@@ -91,9 +92,37 @@ export default function About() {
         }}
         webPage={{
           datePublished: "2021-06-01",
-          dateModified: "2025-04-01",
+          dateModified: "2026-05-15",
+          keywords: [
+            "fintech SEO agency",
+            "fintech content marketing",
+            "fintech digital PR",
+            "FintechPressHub team",
+            "fintech operators",
+            "payments SEO",
+            "open banking content",
+            "regtech content strategy",
+          ],
+          conditionsOfAccess: "Free",
+          accessibilityHazard: "none",
         }}
       />
+
+      {/* International + Technical + White Hat head elements.
+          patchHtml injects hreflang="en" + x-default server-side for all pages;
+          these client-side tags keep the SPA head consistent for JS-executing crawlers. */}
+      <Helmet>
+        <link rel="alternate" hrefLang="en" href={`${SITE_URL}/about`} />
+        <link rel="alternate" hrefLang="x-default" href={`${SITE_URL}/about`} />
+        <meta
+          name="robots"
+          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+        />
+        <meta name="author" content="FintechPressHub Editorial Team" />
+        {/* rel="author" is the standard HTML signal linking this page to the
+            organisation's authoritative entity. */}
+        <link rel="author" href={`${SITE_URL}/about`} />
+      </Helmet>
       <PageHero
         eyebrow="About FintechPressHub"
         title={<>Bridging Fintech Expertise & Search Visibility</>}
@@ -208,11 +237,11 @@ export default function About() {
       <section className="py-24 bg-secondary/30 border-t" data-testid="section-team">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold mb-4">The team behind the work</h2>
+            <h2 className="text-3xl font-bold mb-4">FintechPressHub Team — Senior Fintech Operators</h2>
             <p className="text-muted-foreground text-lg">
-              Senior fintech operators — not generalists ramping up on your
-              account. Every retainer is led end-to-end by one of the people
-              below.
+              Not generalists ramping up on your account — every retainer is
+              led end-to-end by a specialist who has worked inside payments,
+              lending, or banking infrastructure.
             </p>
           </div>
 
