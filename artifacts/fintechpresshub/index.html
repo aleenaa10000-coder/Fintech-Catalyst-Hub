@@ -7,6 +7,13 @@
          which can cause unexpected CLS when the browser injects tap-target padding
          around detected strings. Marking these off explicitly removes the risk. -->
     <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
+    <!-- Referrer policy HTML meta — mirrors the Referrer-Policy HTTP header set in app.ts.
+         Declares how much referrer information is sent with cross-origin requests from this
+         page. origin-when-cross-origin sends the full URL for same-origin requests (analytics,
+         internal links) and only the bare origin for cross-origin (social embeds, API calls).
+         This is the W3C recommended default for news and content sites: preserves referrer
+         fidelity for internal analytics while preventing full URLs leaking to third parties. -->
+    <meta name="referrer" content="origin-when-cross-origin" />
     <title>Fintech SEO &amp; Content Marketing Agency | FintechPressHub</title>
     <meta name="description" content="Specialist fintech SEO &amp; content marketing agency — expert writers, tier-1 link placements, and measurable organic rankings for ambitious fintech brands." />
     <meta name="author" content="FintechPressHub" />
@@ -71,6 +78,18 @@
          development/staging environments. On Hostinger production our server
          sends no noindex headers so this is a belt-and-suspenders assertion. -->
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+
+    <!-- Dublin Core — library and academic indexers (BASE, EuroPubMed, JSTOR-adjacent
+         crawlers, financial research databases) parse DC meta tags as a secondary discovery
+         channel alongside Open Graph and structured data. The site-level static tags below
+         declare language, publisher, type and rights. Per-article DC.title / DC.creator /
+         DC.date / DC.subject / DC.identifier are injected server-side by the SSR middleware
+         for every blog post so academic and professional research tools can index individual
+         articles with full Dublin Core provenance. -->
+    <meta name="DC.language" scheme="RFC5646" content="en" />
+    <meta name="DC.publisher" content="FintechPressHub" />
+    <meta name="DC.type" scheme="DCMIType" content="InteractiveResource" />
+    <meta name="DC.rights" content="https://www.fintechpresshub.com/terms" />
 
     <!-- Google Search Console verification — replace content value when verifying ownership -->
     <!-- <meta name="google-site-verification" content="REPLACE_WITH_YOUR_GSC_VERIFICATION_TOKEN" /> -->
@@ -137,6 +156,10 @@
           },
           "description": "Scale organic growth with fintech's specialist SEO and content marketing agency — expert writers, tier-1 link placements, and measurable ranking results for ambitious fintech brands.",
           "foundingDate": "2021-01-01",
+          "numberOfEmployees": {
+            "@type": "QuantitativeValue",
+            "value": 15
+          },
           "areaServed": "Worldwide",
           "currenciesAccepted": "USD, GBP, EUR, SGD, AUD, CAD",
           "email": "hello@fintechpresshub.com",

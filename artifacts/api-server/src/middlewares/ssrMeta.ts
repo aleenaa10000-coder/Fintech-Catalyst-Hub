@@ -1602,9 +1602,12 @@ async function handleSsrMeta(
       let authorTwitter: string | null = null;
       let authorSameAs: string[] = [];
       let authorPhoto: string | null = null;
+      // honorificSuffix extracted from credentials (CFA, PhD, MBA, etc.) — set
+      // inside the authorSlug block where authorRow is in scope.
+      let authorHonorificSuffix: string | null = null;
       if (authorSlug) {
         const [authorRow] = await db
-          .select({ social: authorsTable.social, photo: authorsTable.photo })
+          .select({ social: authorsTable.social, photo: authorsTable.photo, credentials: authorsTable.credentials })
           .from(authorsTable)
           .where(eq(authorsTable.slug, authorSlug))
           .limit(1);
@@ -1619,6 +1622,21 @@ async function handleSsrMeta(
         authorPhoto = rawPhoto
           ? rawPhoto.startsWith("http") ? rawPhoto : `${siteUrl}${rawPhoto}`
           : null;
+        // Extract professional credential suffixes (CFA, PhD, MBA, etc.) from the
+        // author's credentials array for the BlogPosting author entity honorificSuffix.
+        // Improves Off-Page E-E-A-T: Google uses honorificSuffix to disambiguate
+        // author entities across Knowledge Graph and strengthens YMYL trust scores
+        // for fintech financial content with credentialed authors.
+        const creds = authorRow?.credentials;
+        if (Array.isArray(creds) && creds.length > 0) {
+          const SUFFIX_RE = /\b(CFA|PhD|MSc|MBA|BSc|FCA|ACCA|CPA|CFP|CMT|CQF|ACA|FCCA|FRM|PRM|CAIA|JD|LLM|DBA)\b/;
+          const found: string[] = [];
+          for (const c of creds as string[]) {
+            const m = c.match(SUFFIX_RE);
+            if (m) found.push(m[1]);
+          }
+          if (found.length > 0) authorHonorificSuffix = found.join(", ");
+        }
       }
 
       // Compute effective wordCount and readingMinutes — fall back to deriving
@@ -1733,11 +1751,21 @@ async function handleSsrMeta(
                   // Author headshot gives Google a visual entity anchor to match
                   // the author against their Knowledge Panel — an E-E-A-T signal.
                   ...(authorPhoto ? { image: { "@type": "ImageObject", url: authorPhoto } } : {}),
+                  // honorificSuffix (e.g. CFA, PhD, MBA) extracted from the author's
+                  // credentials — disambiguates the author entity in Google's Knowledge
+                  // Graph and strengthens YMYL E-E-A-T for fintech financial content.
+                  ...(authorHonorificSuffix ? { honorificSuffix: authorHonorificSuffix } : {}),
                 },
               }
             : {}),
           ...(post.category ? { articleSection: post.category } : {}),
           ...(tags.length > 0 ? { keywords: tags.join(", ") } : {}),
+          // genre classifies the creative work by fintech topic for Google's content-type
+          // classifier and AI rankers. Derived from the post category so every article is
+          // automatically genre-tagged without per-post editorial overhead. Helps surface
+          // this article for "genre + fintech" queries and improves Knowledge Graph
+          // topic-cluster attribution alongside `articleSection` (same value, same source).
+          ...(post.category ? { genre: post.category.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) } : {}),
           ...(aboutEntities.length > 0
             ? { about: aboutEntities.map((e) => ({ "@type": "Thing", name: e })) }
             : {}),
@@ -2123,6 +2151,23 @@ async function handleSsrMeta(
             : post.category
               ? [`  <meta name="news_keywords" content="${esc(post.category)}" />`]
               : []),
+          // Dublin Core meta tags — library and academic indexers (BASE, EuroPubMed,
+          // financial research databases, JSTOR-adjacent crawlers) parse DC tags as
+          // a secondary discovery channel alongside Open Graph and structured data.
+          // Per-post DC.title / DC.creator / DC.date / DC.subject / DC.identifier
+          // improve discoverability in professional fintech research tools and
+          // academic databases that index financial-services publications.
+          `  <meta name="DC.title" content="${esc(pageTitle)}" />`,
+          `  <meta name="DC.creator" content="${esc(post.author ?? "FintechPressHub Editorial Team")}" />`,
+          `  <meta name="DC.subject" content="${esc(post.category ? post.category.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Fintech")}" />`,
+          `  <meta name="DC.description" content="${esc(description)}" />`,
+          `  <meta name="DC.publisher" content="FintechPressHub" />`,
+          `  <meta name="DC.date" scheme="W3CDTF" content="${esc(post.publishedAt.toISOString().slice(0, 10))}" />`,
+          `  <meta name="DC.type" scheme="DCMIType" content="Text" />`,
+          `  <meta name="DC.format" content="text/html" />`,
+          `  <meta name="DC.language" scheme="RFC5646" content="en" />`,
+          `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
+          `  <meta name="DC.rights" content="${esc(`${siteUrl}/terms`)}" />`,
         ],
         // SSR-inject the BLUF summary as a sr-only <p> immediately after <div id="root">
         // so the SpeakableSpecification cssSelector (".speakable-summary") resolves in
@@ -3111,6 +3156,12 @@ async function handleSsrMeta(
           "@type":              "SoftwareApplication",
           "@id":                canonical,
           name:                 leafLabel,
+          // softwareVersion marks each tool as a versioned, maintained application —
+          // Google Rich Results and AI rankers prefer versioned SoftwareApplication
+          // entities over unversioned ones when surfacing tools in "best fintech SEO
+          // tools" and "free fintech marketing tools" queries. Version string kept
+          // static at "1.0" and bumped manually when a tool undergoes major changes.
+          softwareVersion:      "1.0",
           description:          toolMeta.description,
           url:                  canonical,
           inLanguage:           "en",
