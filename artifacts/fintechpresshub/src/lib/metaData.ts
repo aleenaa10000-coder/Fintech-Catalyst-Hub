@@ -198,9 +198,9 @@ export const PAGE_META = {
       "Strategy, SEO, and content marketing playbooks for fintech operators. Covering payments, embedded finance, open banking, neobanking, lending, regtech, and wealthtech.",
   },
   writeForUs: {
-    title: "Write For Us | FintechPressHub",
+    title: "Fintech Guest Post | Write For Us | FintechPressHub",
     description:
-      "Pitch a guest article to FintechPressHub. We publish expert-level fintech, payments, and lending content for a 50,000+ monthly reader audience. Dofollow link included.",
+      "Submit a fintech guest post to FintechPressHub. Expert-level payments, open banking, and lending content for 50,000+ monthly readers. Up to 2 dofollow links.",
   },
   contact: {
     title: "Contact Us | FintechPressHub",

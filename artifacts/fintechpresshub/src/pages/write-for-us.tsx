@@ -675,7 +675,7 @@ export default function WriteForUs() {
           description:
             "Submit a fintech guest post to FintechPressHub. Read our editorial standards, topical scope, and dofollow link policy — then pitch your idea to our editors.",
           datePublished: "2023-10-01",
-          dateModified: "2026-04-25",
+          dateModified: "2026-05-15",
           section: "Contributor Guidelines",
           tags: [
             "fintech write for us",
@@ -766,6 +766,17 @@ export default function WriteForUs() {
         title={<>Write for FintechPressHub</>}
         description="We accept high-quality guest contributions from established fintech operators, marketers, and founders. Read the editorial guidelines below, then send us your pitch."
       />
+
+      {/* GEO direct-answer block — AI extraction target for fintech guest post queries.
+          Class geo-answer-block is referenced by the SSR SpeakableSpecification schema
+          so voice assistants and AI answer engines can extract this summary directly. */}
+      <div className="bg-muted/50 border-b border-border/50 py-5">
+        <div className="container mx-auto px-4 max-w-3xl text-center">
+          <p className="geo-answer-block text-sm sm:text-base text-muted-foreground leading-relaxed">
+            FintechPressHub accepts expert guest posts on payments infrastructure, open banking, embedded finance, lending, regtech, and wealthtech. Approved articles reach 50,000+ monthly fintech readers and earn up to two permanent dofollow backlinks. Pitch response within 2–3 business days.
+          </p>
+        </div>
+      </div>
 
       {/* Benefits */}
       <section className="py-24" id="benefits">
@@ -1016,6 +1027,17 @@ export default function WriteForUs() {
               Editors review every pitch within 2–3 business days.
             </p>
           </div>
+          {/* E-E-A-T transparency note — White Hat SEO: editorial disclosure and trust
+              signal for Google's YMYL/Trustworthiness criteria on a fintech YMYL page. */}
+          <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/40 px-5 py-4 mb-6 text-sm text-muted-foreground">
+            <Shield className="w-4 h-4 mt-0.5 shrink-0 text-primary" aria-hidden />
+            <span>
+              Every pitch is reviewed by our editorial team — fintech operators with direct experience inside payments, lending, and regulated finance. We respond within 2–3 business days with clear feedback at every stage.{" "}
+              <Link href="/editorial-guidelines" className="text-primary font-semibold hover:underline">
+                Read our editorial standards →
+              </Link>
+            </span>
+          </div>
           <div className="relative bg-card border rounded-2xl p-8 shadow-sm overflow-hidden">
                 <AnimatePresence mode="wait" initial={false}>
                 {submitted ? (
@@ -1144,11 +1166,22 @@ export default function WriteForUs() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="seo">SEO Strategy</SelectItem>
-                                <SelectItem value="content">Content Marketing</SelectItem>
-                                <SelectItem value="growth">Growth & Acquisition</SelectItem>
-                                <SelectItem value="technical">Technical Marketing</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
+                                <SelectItem value="payments-infrastructure">Payments Infrastructure</SelectItem>
+                                <SelectItem value="embedded-finance">Embedded Finance</SelectItem>
+                                <SelectItem value="open-banking">Open Banking &amp; PSD3</SelectItem>
+                                <SelectItem value="neobanking">Neobanking &amp; Digital Banks</SelectItem>
+                                <SelectItem value="bnpl-lending">BNPL &amp; Consumer Lending</SelectItem>
+                                <SelectItem value="b2b-sme-lending">B2B &amp; SME Lending</SelectItem>
+                                <SelectItem value="wealthtech">Wealthtech &amp; Robo-advisors</SelectItem>
+                                <SelectItem value="regtech">Regtech &amp; Compliance</SelectItem>
+                                <SelectItem value="kyc-aml-fraud">KYC, AML &amp; Fraud</SelectItem>
+                                <SelectItem value="fintech-saas">Fintech SaaS</SelectItem>
+                                <SelectItem value="fintech-seo-content">Fintech SEO &amp; Content</SelectItem>
+                                <SelectItem value="fintech-cro-growth">Fintech CRO &amp; Growth</SelectItem>
+                                <SelectItem value="treasury-cfo">Treasury &amp; CFO Tooling</SelectItem>
+                                <SelectItem value="insurtech">Insurtech</SelectItem>
+                                <SelectItem value="wealth-robo-marketing">Wealth &amp; Robo Marketing</SelectItem>
+                                <SelectItem value="ai-financial-services">AI in Financial Services</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />

@@ -835,8 +835,8 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
     description: "Meet the fintech SEO specialists, analysts, and content strategists who write for FintechPressHub — all with hands-on experience inside regulated financial services.",
   },
   "/write-for-us": {
-    title: "Write For Us | FintechPressHub",
-    description: "Pitch a guest article to FintechPressHub. We publish expert-level fintech, payments, and lending content for a 50,000+ monthly reader audience. Dofollow link included.",
+    title: "Fintech Guest Post | Write For Us | FintechPressHub",
+    description: "Submit a fintech guest post to FintechPressHub. Expert-level payments, open banking, and lending content for 50,000+ monthly readers. Up to 2 dofollow links.",
   },
   "/editorial-guidelines": {
     title: "Editorial Guidelines | FintechPressHub",
@@ -911,7 +911,7 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/pricing":                         "2026-05-11",
   "/blog":                            "2026-05-11",
   "/authors":                         "2026-05-09",
-  "/write-for-us":                    "2026-04-25",
+  "/write-for-us":                    "2026-05-15",
   "/editorial-guidelines":            "2026-04-28",
   "/community-guidelines":            "2026-04-28",
   "/tools":                           "2026-05-09",
@@ -977,7 +977,7 @@ const STATIC_OG_META: Readonly<Record<string, { category: string; ogTitle: strin
   "/pricing":                         { category: "Pricing",     ogTitle: "Transparent Fintech SEO Pricing" },
   "/blog":                            { category: "Blog",        ogTitle: "Fintech SEO & Content Marketing Insights" },
   "/authors":                         { category: "Authors",     ogTitle: "Our Expert Fintech Authors" },
-  "/write-for-us":                    { category: "Guest Posts", ogTitle: "Write For FintechPressHub" },
+  "/write-for-us":                    { category: "Guest Posts", ogTitle: "Fintech Guest Post | Write For FintechPressHub" },
   "/editorial-guidelines":            { category: "Editorial",   ogTitle: "Editorial Guidelines" },
   "/community-guidelines":            { category: "Guidelines",  ogTitle: "Community Guidelines" },
   "/tools":                           { category: "Tools",       ogTitle: "Free Fintech Marketing Tools" },
@@ -3867,6 +3867,9 @@ async function handleSsrMeta(
 
         } else if (reqPath === "/write-for-us") {
           // ── /write-for-us — CollectionPage + WriteAction ──────────────────
+          // SpeakableSpec targets both the H1 and the .geo-answer-block paragraph
+          // so voice assistants and AI answer engines extract the direct-answer
+          // summary in addition to the page headline.
           extraLds.push(JSON.stringify({
             "@context":  "https://schema.org",
             "@type":     "CollectionPage",
@@ -3879,12 +3882,12 @@ async function handleSsrMeta(
             publisher:   { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
-            // SpeakableSpecification enables voice-assistant extraction of the write-for-us
-            // headline for queries like "how to write for FintechPressHub?" — surfaces the
-            // guest-post opportunity to AI citation engines and voice-search results.
+            // SpeakableSpecification: extended to include .geo-answer-block (GEO audit)
+            // so AI citation engines extract the direct-answer paragraph in addition
+            // to the H1 for "fintech guest post" and "write for us fintech" queries.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1"],
+              cssSelector: ["h1", ".geo-answer-block"],
             },
             breadcrumb:   { "@id": `${canonical}#breadcrumb` },
             potentialAction: {
@@ -3899,9 +3902,59 @@ async function handleSsrMeta(
             },
           }, null, 2));
 
-          // FAQPage — write-for-us FAQ rich results target queries such as
-          // "how to write for FintechPressHub", "do you accept AI articles",
-          // "what fintech topics do you publish" and "is there a dofollow link".
+          // HowTo — enables step-rich results for "how to write for FintechPressHub"
+          // queries. Mirrors the HowTo emitted by PageMeta on the client but placed
+          // in SSR so Googlebot can index it without executing JavaScript (AEO audit).
+          extraLds.push(JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "HowTo",
+            "@id":        `${canonical}#howto`,
+            name:         "How to Submit a Fintech Guest Post to FintechPressHub",
+            description:  "Submit a high-quality fintech guest post and earn up to 2 permanent dofollow backlinks from our publication serving 50,000+ monthly readers.",
+            totalTime:    "PT3H",
+            inLanguage:   "en",
+            isPartOf:     { "@id": `${siteUrl}#website` },
+            publisher:    { "@id": `${siteUrl}#organization` },
+            step: [
+              {
+                "@type":   "HowToStep",
+                position:  1,
+                name:      "Read the contributor guidelines",
+                text:      "Review our editorial standards, topical scope, and link policy before pitching.",
+                url:       `${canonical}#guidelines`,
+              },
+              {
+                "@type":   "HowToStep",
+                position:  2,
+                name:      "Submit your pitch",
+                text:      "Fill in the pitch form with your proposed headline, a 2–3 sentence summary, and a short author bio.",
+                url:       `${canonical}#pitch-form`,
+              },
+              {
+                "@type":   "HowToStep",
+                position:  3,
+                name:      "Receive editorial feedback",
+                text:      "Our team reviews every pitch within 2–3 business days. You will get a clear accept, revise, or decline with notes.",
+              },
+              {
+                "@type":   "HowToStep",
+                position:  4,
+                name:      "Write and submit your article",
+                text:      "Once accepted, write your 800–1,500 word article to our style guide and submit as a Google Doc with comment access.",
+              },
+              {
+                "@type":   "HowToStep",
+                position:  5,
+                name:      "Publication and link placement",
+                text:      "After editorial sign-off, your article is published with your author bio and up to 2 permanent dofollow backlinks.",
+              },
+            ],
+          }, null, 2));
+
+          // FAQPage — expanded from 3 to 5 Q&As to match all visible FAQ accordion
+          // entries (AEO audit). Targets queries: "how to write for FintechPressHub",
+          // "do you accept AI articles", "what fintech topics do you publish",
+          // "is there a dofollow link", "how long to hear back", "word count".
           extraLds.push(JSON.stringify({
             "@context":    "https://schema.org",
             "@type":       "FAQPage",
@@ -3912,7 +3965,7 @@ async function handleSsrMeta(
             isPartOf:      { "@id": `${siteUrl}#website` },
             publisher:     { "@id": `${siteUrl}#organization` },
             datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2023-01-01",
-            dateModified:  pageLastmod ?? "2026-05-11",
+            dateModified:  pageLastmod ?? "2026-05-15",
             mainEntity: [
               {
                 "@type": "Question",
@@ -3927,7 +3980,7 @@ async function handleSsrMeta(
                 name:    "Do guest contributors receive a dofollow backlink?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text:    "Yes. Accepted guest posts include one permanent, dofollow editorial link to your company website or a relevant resource. The link must be contextually relevant and placed naturally within the article — not in the author bio. Sponsored-content link placements are handled separately under our content partnership programme.",
+                  text:    "Yes. High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks. Links must be contextually relevant and placed naturally within the article — not in the author bio. Sponsored-content link placements are handled separately under our content partnership programme.",
                 },
               },
               {
@@ -3936,6 +3989,22 @@ async function handleSsrMeta(
                 acceptedAnswer: {
                   "@type": "Answer",
                   text:    "No. We require human-written, expert-led content that meets our editorial guidelines on accuracy, sourcing, and E-E-A-T. AI-assisted research and outline drafting are permitted, but the final article must reflect the author's genuine expertise and original analysis. Submissions that appear AI-generated are rejected without review.",
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "How long does it take to hear back on a pitch?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    "We review all pitches within 2–3 business days. If your topic is a strong fit you will receive an acceptance email with a brief scope doc and a suggested deadline. Off-niche or under-specified pitches are declined with a short note.",
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "What word count does FintechPressHub require for guest posts?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    "Articles must be between 800 and 1,500 words. Every word must earn its place — tightly scoped, deeply researched pieces consistently outperform padded long-form. Thin or AI-generated content is rejected at pitch stage.",
                 },
               },
             ],
