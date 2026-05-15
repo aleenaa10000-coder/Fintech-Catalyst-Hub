@@ -15,6 +15,8 @@ import {
   Loader2,
   ClipboardList,
   Terminal,
+  Copy,
+  Check,
 } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
@@ -157,6 +159,13 @@ export default function StatusPage() {
 
   const tone = overallTone(data, isError);
   const colors = TONE_COLORS[tone];
+
+  const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
+  const handleCopyCmd = (cmd: string) => {
+    navigator.clipboard.writeText(cmd).catch(() => {});
+    setCopiedCmd(cmd);
+    setTimeout(() => setCopiedCmd(null), 2000);
+  };
 
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
@@ -380,9 +389,26 @@ export default function StatusPage() {
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Open the <strong>Shell</strong> tab and run:
                     </p>
-                    <pre className="mt-1 text-[11px] bg-muted rounded px-2 py-1.5 overflow-x-auto">
-                      <code>bash scripts/setup.sh</code>
-                    </pre>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <pre className="flex-1 text-[11px] bg-muted rounded px-2 py-1.5 overflow-x-auto">
+                        <code>bash scripts/setup.sh</code>
+                      </pre>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCmd("bash scripts/setup.sh")}
+                        className={cn(
+                          "shrink-0 flex items-center gap-1 text-[11px] font-medium rounded px-2 py-1.5 border transition-colors",
+                          copiedCmd === "bash scripts/setup.sh"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-slate-200 bg-muted hover:bg-slate-100 text-muted-foreground hover:text-foreground",
+                        )}
+                        aria-label="Copy setup command"
+                      >
+                        {copiedCmd === "bash scripts/setup.sh"
+                          ? <><Check className="h-3 w-3" /> Copied</>
+                          : <><Copy className="h-3 w-3" /> Copy</>}
+                      </button>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       This pushes the schema, seeds demo data, and runs a health check.
                     </p>
@@ -400,9 +426,26 @@ export default function StatusPage() {
                     <p className="text-xs text-muted-foreground mt-0.5">
                       The <strong>Demo content</strong> card above should show "Operational". If it shows "Degraded", re-run:
                     </p>
-                    <pre className="mt-1 text-[11px] bg-muted rounded px-2 py-1.5 overflow-x-auto">
-                      <code>pnpm --filter @workspace/scripts run seed:auto</code>
-                    </pre>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <pre className="flex-1 text-[11px] bg-muted rounded px-2 py-1.5 overflow-x-auto">
+                        <code>pnpm --filter @workspace/scripts run seed:auto</code>
+                      </pre>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCmd("pnpm --filter @workspace/scripts run seed:auto")}
+                        className={cn(
+                          "shrink-0 flex items-center gap-1 text-[11px] font-medium rounded px-2 py-1.5 border transition-colors",
+                          copiedCmd === "pnpm --filter @workspace/scripts run seed:auto"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-slate-200 bg-muted hover:bg-slate-100 text-muted-foreground hover:text-foreground",
+                        )}
+                        aria-label="Copy seed command"
+                      >
+                        {copiedCmd === "pnpm --filter @workspace/scripts run seed:auto"
+                          ? <><Check className="h-3 w-3" /> Copied</>
+                          : <><Copy className="h-3 w-3" /> Copy</>}
+                      </button>
+                    </div>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">

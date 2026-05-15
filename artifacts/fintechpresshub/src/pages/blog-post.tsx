@@ -434,9 +434,10 @@ export default function BlogPost() {
 
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
 
-  /* ── Reading progress bar ── */
+  /* ── Reading progress + share-bar visibility ── */
   const articleRef = useRef<HTMLElement>(null);
   const [readProgress, setReadProgress] = useState(0);
+  const [shareBarVisible, setShareBarVisible] = useState(false);
   useEffect(() => {
     const onScroll = () => {
       const el = articleRef.current;
@@ -448,6 +449,8 @@ export default function BlogPost() {
       const scrolled = Math.max(0, -top);
       const total = Math.max(1, height - viewH);
       setReadProgress(Math.min(100, (scrolled / total) * 100));
+      // Show share bar once the user has scrolled past the hero section
+      setShareBarVisible(window.scrollY > 280);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
@@ -658,16 +661,42 @@ export default function BlogPost() {
         }
       />
       {/* Floating vertical share bar (xl+) — rendered in a portal so it is a
-          direct child of <body> and is never affected by parent transforms,
-          filters, or stacking contexts that would break fixed positioning. */}
+          direct child of <body>, bypassing any parent transforms or stacking
+          contexts. Position is set via inline style (not Tailwind classes) to
+          guarantee position:fixed works even inside transformed iframe hosts.
+          The bar fades in once the user scrolls past the hero section. */}
       {createPortal(
       <aside
-        className="hidden xl:flex flex-col items-center gap-2 fixed left-4 top-1/2 -translate-y-1/2 z-30 bg-white/90 backdrop-blur border border-slate-200 rounded-2xl px-2 py-3 shadow-sm"
+        className="hidden xl:flex flex-col items-center gap-2 z-30 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-2xl px-2 py-3 shadow-md"
+        style={{
+          position: "fixed",
+          left: "1rem",
+          top: "50%",
+          transform: "translateY(-50%)",
+          opacity: shareBarVisible ? 1 : 0,
+          pointerEvents: shareBarVisible ? "auto" : "none",
+          transition: "opacity 0.25s ease",
+        }}
         aria-label="Share this article"
+        aria-hidden={!shareBarVisible}
       >
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 pb-1">
           Share
         </span>
+        {/* Reading progress mini-bar */}
+        <div
+          className="relative w-0.5 h-10 rounded-full bg-slate-100 overflow-hidden my-1"
+          aria-hidden="true"
+          title={`${Math.round(readProgress)}% read`}
+        >
+          <div
+            className="absolute inset-x-0 top-0 bg-[#0052FF] rounded-full"
+            style={{
+              height: `${readProgress}%`,
+              transition: "height 0.15s ease-out",
+            }}
+          />
+        </div>
         <a
           href={linkedinShareUrl}
           target="_blank"
