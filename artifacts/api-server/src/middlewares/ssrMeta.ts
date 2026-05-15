@@ -5533,11 +5533,16 @@ async function handleSsrMeta(
 
         } else if (reqPath === "/press") {
           // ── /press — CollectionPage with brand/media asset focus ──────────
-          // Exhaustive 8-category SEO audit (2026-05-15):
+          // Exhaustive 8-category SEO audit pass 1 (2026-05-15):
           //   - Keywords + about arrays for Knowledge Graph entity association (On-Page O-7, GEO G-11)
           //   - SpeakableSpec expanded to h1 + .speakable-summary + .press-faq-answer + h2 (AEO A-3)
           //   - conditionsOfAccess: OnlineAccess (White Hat W-6)
           //   - FAQPage schema with 10 journalist Q&As (AEO A-1)
+          // Exhaustive 8-category SEO audit pass 2 (2026-05-15):
+          //   - accessibilityHazard: "none" added (White Hat W-7 — explicit WCAG/E-E-A-T declaration)
+          //   - accessibilityFeature array added (White Hat W-7)
+          //   - creator: Organization @id cross-reference added (Off-Page O-9)
+          //   - license + copyrightNotice added to CollectionPage (White Hat W-8)
           const pressFaqItems = [
             {
               question: "What is FintechPressHub?",
@@ -5591,6 +5596,9 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            // creator cross-references the publisher entity — allows Google's Knowledge Graph
+            // to link this press resource back to the Organisation node (Off-Page O-9).
+            creator:     { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
             about: [
@@ -5602,6 +5610,13 @@ async function handleSsrMeta(
             ],
             keywords: "FintechPressHub press kit, fintech SEO agency press, fintech media kit, FintechPressHub brand assets, fintech press contact, FintechPressHub boilerplate, fintech content marketing agency",
             conditionsOfAccess: "https://schema.org/OnlineAccess",
+            license: `${siteUrl}/terms`,
+            copyrightNotice: "© 2026 FintechPressHub. All rights reserved.",
+            // accessibilityHazard: "none" — explicit WCAG/E-E-A-T declaration.
+            // AI citation engines (Google AIO, Perplexity) weight sourced content
+            // with declared hazard levels over pages that omit this signal.
+            accessibilityHazard: "none",
+            accessibilityFeature: ["readingOrder", "structuralNavigation"],
             // SpeakableSpecification enables voice-assistant and AI citation engine extraction
             // of the press hub headline, BLUF summary, FAQ answers, and section headings —
             // covering queries like "What is FintechPressHub?", "how to contact FintechPressHub press".
@@ -5633,7 +5648,7 @@ async function handleSsrMeta(
               name:           item.question,
               acceptedAnswer: {
                 "@type": "Answer",
-                text:    item.answer,
+                text:    stripHtml(item.answer),
               },
             })),
           }, null, 2));

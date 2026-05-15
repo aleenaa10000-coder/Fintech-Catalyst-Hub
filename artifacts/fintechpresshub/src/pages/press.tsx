@@ -136,7 +136,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function PressPage() {
   const [copied, setCopied] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  // First FAQ open by default — visible HTML content improves crawlability
+  // and ensures at least one answer is in the initial paint for AI citation engines.
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
   const { data: mentions = [] } = usePressMentions();
 
   const mentionsByYear = mentions.reduce<Record<string, PressMention[]>>((acc, m) => {
@@ -183,6 +185,10 @@ export default function PressPage() {
           conditionsOfAccess: "https://schema.org/OnlineAccess",
           license: `${SITE_URL}/terms`,
           copyrightNotice: "© 2026 FintechPressHub. All rights reserved.",
+          // accessibilityHazard: "none" — explicit WCAG/E-E-A-T declaration.
+          // AI citation engines (Google AIO, Perplexity) prefer content with
+          // declared hazard levels over pages that omit this signal.
+          accessibilityHazard: "none",
         }}
         faq={pressFAQs}
         faqDateModified="2026-05-15"
@@ -211,6 +217,27 @@ export default function PressPage() {
         <meta
           name="robots"
           content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+        />
+        {/* meta author — declares editorial ownership to AI citation engines
+            and Google's quality-rater systems for YMYL content assessment. */}
+        <meta name="author" content="FintechPressHub" />
+        {/* link rel="author" — cross-links press page to the About page entity
+            for Knowledge Graph author/publisher verification (Off-Page O-8). */}
+        <link rel="author" href={`${SITE_URL}/about`} />
+        {/* news_keywords — consumed by Google News and AI crawlers to slot this
+            page into the correct news/industry topic cluster (Technical T-8). */}
+        <meta
+          name="news_keywords"
+          content="fintech SEO, content marketing, press kit, media kit, FintechPressHub, fintech agency, brand assets"
+        />
+        {/* RSS feed alternate — signals to crawlers and AI citation engines that
+            fresh content is available; links to main blog feed as the closest
+            equivalent to a press mentions feed (Programmatic PR-8). */}
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="FintechPressHub Editorial Feed"
+          href={`${SITE_URL}/rss.xml`}
         />
       </Helmet>
 
@@ -251,6 +278,79 @@ export default function PressPage() {
               ))}
             </div>
             <p className="text-xs text-muted-foreground mt-3">All figures as of 2026.</p>
+          </div>
+
+          {/* Fintech Content Marketing Research — GEO citations block
+              Cited external statistics (+30.3% AI-citation visibility per Princeton/IIT KDD 2024).
+              All sources are authoritative third-party publications.  */}
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-2">
+              Fintech Content Marketing: What the Data Shows
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Independent industry research underpinning the case for fintech-specific SEO and content marketing.
+            </p>
+            <div className="space-y-4">
+              <div className="border border-border rounded-xl p-5">
+                <p className="text-sm leading-relaxed">
+                  <span className="font-semibold text-foreground">3× more leads at 62% lower cost.</span>{" "}
+                  Content marketing generates three times as many leads as traditional outbound marketing
+                  while costing 62% less — a ratio that is even more pronounced in high-trust, high-consideration
+                  categories like fintech, where organic credibility directly accelerates pipeline.
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Source:{" "}
+                  <a
+                    href="https://contentmarketinginstitute.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Content Marketing Institute / Demand Metric B2B Content Marketing Report
+                  </a>
+                </p>
+              </div>
+              <div className="border border-border rounded-xl p-5">
+                <p className="text-sm leading-relaxed">
+                  <span className="font-semibold text-foreground">68% of online experiences begin with search.</span>{" "}
+                  BrightEdge research consistently shows that organic search is the single largest
+                  digital traffic channel — outperforming paid search, social, and direct combined.
+                  For fintech brands targeting CFOs, compliance officers, and fintech founders,
+                  owning organic is non-negotiable.
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Source:{" "}
+                  <a
+                    href="https://brightedge.com/resources/research-reports/channel_share"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    BrightEdge Channel Share Research Report
+                  </a>
+                </p>
+              </div>
+              <div className="border border-border rounded-xl p-5">
+                <p className="text-sm leading-relaxed">
+                  <span className="font-semibold text-foreground">13× more likely to achieve positive ROI.</span>{" "}
+                  HubSpot's State of Inbound research found that companies prioritising inbound
+                  marketing — search-optimised content, thought leadership, and organic distribution —
+                  are 13 times more likely to achieve a positive return on marketing investment
+                  than those without an inbound strategy.
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Source:{" "}
+                  <a
+                    href="https://hubspot.com/state-of-marketing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    HubSpot State of Marketing Report
+                  </a>
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Approved Company Boilerplate */}
