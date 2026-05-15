@@ -868,8 +868,8 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
     description: "Press resources for FintechPressHub — brand assets, company boilerplate, key stats, recent coverage, and press contact details for journalists and editors.",
   },
   "/contact": {
-    title: "Contact Us | FintechPressHub",
-    description: "Get in touch for a free SEO audit and strategy consultation. Specialist fintech SEO expertise, no generalist fluff.",
+    title: "Contact Our Fintech SEO Agency — Free Audit | FintechPressHub",
+    description: "Talk to a specialist fintech SEO strategist. Request a free SEO audit, explore link-building retainers, or discuss content strategy for your fintech brand. Response within one business day.",
   },
   "/privacy-policy": {
     title: "Privacy Policy | FintechPressHub",
@@ -925,10 +925,11 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/glossary":                        "2026-05-09",
   "/resources/fintech-publications":  "2026-05-09",
   "/press":                           "2026-05-09",
-  // Bumped to 2026-05-14: Off-Page audit refactored the contact page to
-  // render NAP from BRAND_NAP, adding the country line — visible content
-  // change material enough to warrant a freshness signal to crawlers.
-  "/contact":                         "2026-05-14",
+  // Bumped to 2026-05-15: Comprehensive 8-category SEO audit — new BLUF
+  // geo-answer-block, trust stats bar, keyword-rich H1/H2/meta, regional
+  // hreflang, GDPR notice, location links, AEO FAQ rewrites, ContactPage
+  // client-side JSON-LD (C1), expanded speakable selectors.
+  "/contact":                         "2026-05-15",
   "/privacy-policy":                  "2026-04-28",
   "/refund-policy":                   "2026-04-28",
   "/cookie-policy":                   "2026-04-28",
@@ -3833,6 +3834,14 @@ async function handleSsrMeta(
 
         } else if (reqPath === "/contact") {
           // ── /contact — ContactPage + Organization contactPoint ────────────
+          // Expanded in 2026-05-15 8-category audit:
+          //   - speakable now targets ["h1", ".geo-answer-block"] so AI voice
+          //     extractors surface the direct-answer BLUF paragraph (GEO/AEO).
+          //   - isAccessibleForFree, accessMode, accessibilityFeature added for
+          //     WCAG E-E-A-T signalling (White Hat / Technical SEO).
+          //   - about[] + mentions[] provide topical entity signals for knowledge-
+          //     graph association with fintech SEO queries (GEO/AEO).
+          //   - audience + license fields complete the compliance surface (WH).
           extraLds.push(JSON.stringify({
             "@context":  "https://schema.org",
             "@type":     "ContactPage",
@@ -3845,12 +3854,48 @@ async function handleSsrMeta(
             publisher:   { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
-            // SpeakableSpecification enables voice-assistant extraction of the contact
-            // page headline for queries like "how do I contact FintechPressHub?" —
-            // ensures the CTA and contact method are surfaceable via AEO channels.
+            // isAccessibleForFree — signals freely accessible content to AI citation
+            // engines (Google AIO, Perplexity, ChatGPT Search). Crawlers prefer
+            // open-access pages when selecting citation candidates for generated answers.
+            isAccessibleForFree: true,
+            // accessMode — declares the human-sensory modes needed to consume this
+            // page. Required for WCAG-aligned E-E-A-T scoring on YMYL pages.
+            accessMode: ["textual", "visual"],
+            // accessibilityFeature — lists navigational and structural aids on the page.
+            accessibilityFeature: ["readingOrder", "structuralNavigation"],
+            // license — links crawlers to the usage terms so AI citation engines
+            // can verify syndication permissions before quoting content.
+            license: `${siteUrl}/terms`,
+            // audience — declares the intended professional readership.
+            audience: {
+              "@type":       "Audience",
+              audienceType:  "Fintech companies, founders, CMOs, and marketing leaders",
+            },
+            // about — topical entity declarations for knowledge-graph association
+            // with "fintech SEO agency contact" and related AEO queries.
+            about: [
+              { "@type": "Thing", name: "Fintech SEO" },
+              { "@type": "Thing", name: "Content Marketing for Fintech" },
+              { "@type": "Thing", name: "Link Building for Financial Services" },
+              { "@type": "Thing", name: "Digital PR for Fintech" },
+              { "@type": "Thing", name: "SEO Strategy Consultation" },
+            ],
+            // mentions — fintech verticals the agency covers, surfaced for long-tail
+            // queries combining a vertical with "SEO agency contact".
+            mentions: [
+              { "@type": "Thing", name: "Embedded Finance" },
+              { "@type": "Thing", name: "Open Banking" },
+              { "@type": "Thing", name: "Payments Infrastructure" },
+              { "@type": "Thing", name: "Neobanking" },
+              { "@type": "Thing", name: "Regtech" },
+              { "@type": "Thing", name: "Wealthtech" },
+            ],
+            // SpeakableSpecification now includes .geo-answer-block so AI voice
+            // extractors (Google Assistant, AI Overviews) surface the direct-answer
+            // BLUF paragraph for queries like "how do I contact FintechPressHub?".
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1"],
+              cssSelector: ["h1", ".geo-answer-block"],
             },
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },

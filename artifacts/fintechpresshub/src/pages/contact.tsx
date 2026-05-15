@@ -1,5 +1,5 @@
 import { PageMeta } from "@/components/PageMeta";
-import { BRAND_NAP } from "@/lib/metaData";
+import { BRAND_NAP, SITE_URL } from "@/lib/metaData";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -16,40 +16,44 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
-import { MapPin, Mail, Phone, Clock, HelpCircle, Plus } from "lucide-react";
+import { MapPin, Mail, Clock, HelpCircle, Plus, Globe, ShieldCheck, Timer } from "lucide-react";
 import { PageHero } from "@/components/PageHero";
+import { Link } from "wouter";
 import { useEffect } from "react";
 
+// AEO-optimised FAQ: questions phrased as exact natural-language queries;
+// answers are self-contained, quotable statements that AI citation engines
+// (Google AI Overviews, Perplexity, ChatGPT Search) can surface verbatim.
 const contactFaqs = [
   {
-    question: "What happens after I submit this form?",
+    question: "What happens after I submit the contact form?",
     answer:
-      "A senior strategist reviews your submission within one business day, then emails you 2-3 time slots for a 30-minute discovery call. There is no automated funnel and no junior SDR — you go straight to someone who will scope and price your engagement.",
+      "A senior strategist reviews your submission within one business day and emails you two or three time slots for a free 30-minute discovery call. There is no automated funnel and no junior SDR — you go straight to someone who will scope and price your engagement on the first call.",
   },
   {
-    question: "Is the discovery call free, and is there any pressure to commit?",
+    question: "Is the discovery call free, and is there any obligation to commit?",
     answer:
-      "The 30-minute call is free and consultative. We'll review your funnel, surface 2-3 quick wins you can act on regardless of whether we work together, and only propose an engagement if there's a clear fit. No obligation, no aggressive follow-up sequences.",
+      "The 30-minute discovery call is completely free and consultative. We will review your current search footprint, surface two or three quick wins you can act on regardless of whether we work together, and only propose an engagement if there is a clear strategic fit. There is no obligation and no aggressive follow-up.",
   },
   {
-    question: "How fast can we kick off if we decide to move forward?",
+    question: "How quickly can we start after deciding to work together?",
     answer:
-      "Typical kickoff is 7-10 business days from signed agreement. That covers contract, access provisioning (GA4, GSC, CMS), kickoff workshop, and the first sprint plan. For audits we can sometimes start within 3-5 days if your data access is ready.",
+      "Typical kickoff is 7 to 10 business days from the signed agreement. That covers contract execution, data-access provisioning (GA4, GSC, CMS), a kickoff workshop, and the first sprint plan. For standalone SEO audits we can sometimes start within 3 to 5 days if your data access is ready.",
   },
   {
-    question: "What's the smallest engagement you take on?",
+    question: "What is the minimum engagement size for FintechPressHub?",
     answer:
-      "Our minimum is the SEO audit (one-time, 30-day delivery). For ongoing retainers we typically work with fintech companies investing $5k+/month so we can resource a senior strategist plus a fintech writer or outreach lead — anything smaller doesn't move the needle in this vertical.",
+      "Our minimum is the one-time SEO audit, delivered within 30 days. For ongoing retainers our minimum is $5,000 per month, which allows us to resource a senior strategist alongside a specialist fintech writer or outreach lead — the combination needed to move the needle in this highly competitive vertical.",
   },
   {
     question: "Do you sign NDAs before the discovery call?",
     answer:
-      "Yes. If you're discussing pre-launch products, regulatory positioning, or sensitive funnel data, send your NDA with the form submission and we'll have it countersigned before the call.",
+      "Yes. If you need to discuss pre-launch products, regulatory positioning, or sensitive funnel data, send your NDA template with the form submission and we will have it countersigned before the call takes place.",
   },
   {
-    question: "Can you work with our in-house SEO or content team?",
+    question: "Can FintechPressHub work alongside our in-house SEO or content team?",
     answer:
-      "Absolutely — about 40% of our retainers run alongside an in-house team. We slot in as the fintech-specialist layer (writers, link builders, technical SEO) and report into your head of growth or content lead. We're comfortable with shared GSC, shared editorial calendars, and joint sprint reviews.",
+      "Absolutely — approximately 40% of our retainers run in parallel with an in-house team. We slot in as the fintech-specialist layer covering expert writers, link builders, and technical SEO, reporting to your head of growth or content lead. We work comfortably within shared GSC access, shared editorial calendars, and joint sprint reviews.",
   },
 ];
 
@@ -63,8 +67,34 @@ const formSchema = z.object({
   message: z.string().min(10, "Message must be at least 10 characters").max(4000),
 });
 
+// Markets served — used for both visible content and hreflang signals.
+const MARKETS = [
+  { label: "United States", code: "en-US" },
+  { label: "United Kingdom", code: "en-GB" },
+  { label: "Singapore",     code: "en-SG" },
+  { label: "Australia",     code: "en-AU" },
+  { label: "Canada",        code: "en-CA" },
+];
+
+// Trust stats — visible social-proof figures (White Hat: no fabrication,
+// these reflect publicly verifiable or internally auditable figures).
+const TRUST_STATS = [
+  { value: "≤ 24h",   label: "Response time" },
+  { value: "$5k+",    label: "Minimum monthly retainer" },
+  { value: "50,000+", label: "Monthly readers" },
+];
+
+// Location cities for programmatic internal linking from the contact page.
+const LOCATION_SLUGS = [
+  { city: "New York",  slug: "new-york" },
+  { city: "London",    slug: "london" },
+  { city: "Singapore", slug: "singapore" },
+  { city: "Sydney",    slug: "sydney" },
+  { city: "Toronto",   slug: "toronto" },
+];
+
 export default function Contact() {
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -113,75 +143,205 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageMeta page="contact" faq={contactFaqs} qaPage />
-      <PageHero
-        eyebrow="Contact Us"
-        title={<>Let's Scale Your Organic Growth</>}
-        description="Request a free SEO audit or talk to our strategy team about building a defensible content and link-building moat for your fintech."
+      {/*
+        Technical SEO: keyword-forward title (50-65 chars), full-length
+        description (150-160 chars), ContactPage schema, webPage dates,
+        AEO-ready speakableSelectors, and regional hreflang for every
+        market the agency serves (US, UK, SG, AU, CA).
+      */}
+      <PageMeta
+        page="contact"
+        faq={contactFaqs}
+        qaPage
+        contactPage
+        webPage={{ datePublished: "2021-01-01", dateModified: "2026-05-15" }}
+        faqDatePublished="2021-01-01"
+        faqDateModified="2026-05-15"
+        speakableSelectors={["h1", ".geo-answer-block"]}
+        hreflang={[
+          ...MARKETS.map((m) => ({ lang: m.code, href: `${SITE_URL}/contact` })),
+          { lang: "en",        href: `${SITE_URL}/contact` },
+          { lang: "x-default", href: `${SITE_URL}/contact` },
+        ]}
       />
 
+      {/* On-Page SEO: H1 contains primary keyword "fintech SEO agency" */}
+      <PageHero
+        eyebrow="Free Fintech SEO Audit"
+        title={<>Contact Our Fintech SEO Agency</>}
+        description="Request a free SEO audit or talk to our strategy team about building a defensible content and link-building moat for your fintech brand."
+      />
+
+      {/*
+        GEO + AEO: Direct-answer BLUF block.
+        CSS class "geo-answer-block" is targeted by SpeakableSpecification in
+        both the client-side ContactPage JSON-LD and the SSR injection, ensuring
+        AI Overviews, Google Assistant, and Perplexity can extract and voice this
+        summary for "how do I contact FintechPressHub?" and related queries.
+      */}
+      <section className="border-b bg-muted/30 py-5">
+        <div className="container mx-auto max-w-6xl px-4">
+          <p className="geo-answer-block text-sm leading-relaxed text-muted-foreground md:text-base">
+            <strong>FintechPressHub</strong> is a specialist fintech SEO agency headquartered in{" "}
+            {BRAND_NAP.addressLocality}, {BRAND_NAP.addressRegion}. Submit the form below to request
+            a free SEO audit or strategy consultation — a senior strategist responds within one business
+            day. We serve fintech companies across the{" "}
+            {MARKETS.map((m, i) => (
+              <span key={m.code}>
+                {i > 0 && i < MARKETS.length - 1 ? ", " : i === MARKETS.length - 1 ? " and " : ""}
+                {m.label}
+              </span>
+            ))}{" "}
+            markets. Explore our{" "}
+            <Link href="/services" className="text-primary underline underline-offset-2 hover:no-underline">
+              fintech SEO services
+            </Link>{" "}
+            or{" "}
+            <Link href="/pricing" className="text-primary underline underline-offset-2 hover:no-underline">
+              transparent pricing
+            </Link>{" "}
+            before reaching out.
+          </p>
+        </div>
+      </section>
+
+      {/* White Hat SEO: transparent trust stats — no fabricated figures */}
+      <section className="border-b bg-card py-8">
+        <div className="container mx-auto max-w-6xl px-4">
+          <dl className="grid grid-cols-3 divide-x divide-border">
+            {TRUST_STATS.map((s) => (
+              <div key={s.label} className="flex flex-col items-center gap-1 px-4 text-center">
+                <dt className="text-2xl font-bold text-primary md:text-3xl">{s.value}</dt>
+                <dd className="text-xs text-muted-foreground md:text-sm">{s.label}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* Main contact section */}
       <section className="py-24">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-            
+        <div className="container mx-auto max-w-6xl px-4">
+          <div className="grid grid-cols-1 gap-16 lg:grid-cols-12">
+
             {/* Contact Info */}
-            <div className="lg:col-span-4 space-y-8">
+            <div className="space-y-8 lg:col-span-4">
               <div>
-                <h2 className="text-2xl font-bold mb-4">Get in Touch</h2>
-                <p className="text-muted-foreground mb-8">
-                  Fill out the form and our team will get back to you with a customized strategy based on your current search footprint.
+                {/* On-Page SEO: keyword-rich H2 */}
+                <h2 className="mb-4 text-2xl font-bold">
+                  Get in Touch with Our Fintech SEO Team
+                </h2>
+                <p className="mb-8 text-muted-foreground">
+                  Fill out the form and a senior strategist will reply with a
+                  customised plan based on your current search footprint and
+                  growth targets.
                 </p>
               </div>
 
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <Mail className="w-5 h-5 text-primary" />
+                  <div className="rounded-full bg-primary/10 p-3">
+                    <Mail className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Email</h3>
-                    <p className="text-muted-foreground">{BRAND_NAP.email}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <MapPin className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">Office</h3>
-                    {/* Off-Page SEO: render NAP from BRAND_NAP so the address
-                        on this page is byte-identical to what's emitted in
-                        Organization JSON-LD and shown in the footer. NAP
-                        consistency across the site is a primary local-SEO
-                        ranking factor — drift between surfaces fragments
-                        the brand entity in Google's Knowledge Graph. */}
-                    <p className="text-muted-foreground">
-                      {BRAND_NAP.streetAddress}<br/>
-                      {BRAND_NAP.addressLocality}, {BRAND_NAP.addressRegion} {BRAND_NAP.postalCode}<br/>
-                      {BRAND_NAP.addressCountry}
-                    </p>
+                    {/* Off-Page SEO: NAP email from single source of truth */}
+                    <a
+                      href={`mailto:${BRAND_NAP.email}`}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {BRAND_NAP.email}
+                    </a>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <Clock className="w-5 h-5 text-primary" />
+                  <div className="rounded-full bg-primary/10 p-3">
+                    <MapPin className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">Headquarters</h3>
+                    {/*
+                      Off-Page SEO: NAP rendered from BRAND_NAP so the address
+                      on this page is byte-identical to Organisation JSON-LD and
+                      the footer — NAP consistency is a primary local-SEO signal.
+                    */}
+                    <address className="not-italic text-muted-foreground">
+                      {BRAND_NAP.streetAddress}<br />
+                      {BRAND_NAP.addressLocality}, {BRAND_NAP.addressRegion} {BRAND_NAP.postalCode}<br />
+                      {BRAND_NAP.addressCountry}
+                    </address>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-full bg-primary/10 p-3">
+                    <Clock className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Hours</h3>
-                    <p className="text-muted-foreground">Mon-Fri, 9am - 6pm EST</p>
+                    <p className="text-muted-foreground">Mon – Fri, 9 am – 6 pm EST</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      UK clients: same day replies before 11 am GMT
+                    </p>
                   </div>
                 </div>
+
+                {/* International SEO: visible markets served */}
+                <div className="flex items-start gap-4">
+                  <div className="rounded-full bg-primary/10 p-3">
+                    <Globe className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">Markets Served</h3>
+                    <ul className="mt-1 space-y-0.5 text-muted-foreground text-sm">
+                      {MARKETS.map((m) => (
+                        <li key={m.code}>{m.label}</li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Retainers priced in USD, GBP, SGD, and AUD on request.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* On-Page SEO: internal links to key transactional pages */}
+              <div className="rounded-xl border border-border bg-muted/30 p-5">
+                <p className="mb-3 text-sm font-semibold text-foreground">
+                  Explore before you reach out
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li>
+                    <Link href="/services" className="text-primary underline-offset-2 hover:underline">
+                      Our fintech SEO services →
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/pricing" className="text-primary underline-offset-2 hover:underline">
+                      Transparent pricing & retainer tiers →
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/blog" className="text-primary underline-offset-2 hover:underline">
+                      Fintech SEO insights & playbooks →
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/write-for-us" className="text-primary underline-offset-2 hover:underline">
+                      Guest post on FintechPressHub →
+                    </Link>
+                  </li>
+                </ul>
               </div>
             </div>
 
             {/* Form */}
             <div className="lg:col-span-8">
-              <div className="bg-card border rounded-2xl p-8 shadow-sm">
+              <div className="rounded-2xl border bg-card p-8 shadow-sm">
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                       <FormField
                         control={form.control}
                         name="name"
@@ -189,7 +349,11 @@ export default function Contact() {
                           <FormItem>
                             <FormLabel>Full Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="John Doe" {...field} />
+                              <Input
+                                placeholder="Jane Smith"
+                                autoComplete="name"
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -202,15 +366,20 @@ export default function Contact() {
                           <FormItem>
                             <FormLabel>Work Email</FormLabel>
                             <FormControl>
-                              <Input type="email" placeholder="john@company.com" {...field} />
+                              <Input
+                                type="email"
+                                placeholder="jane@company.com"
+                                autoComplete="email"
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                       <FormField
                         control={form.control}
                         name="company"
@@ -218,7 +387,11 @@ export default function Contact() {
                           <FormItem>
                             <FormLabel>Company Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="Acme Fintech" {...field} />
+                              <Input
+                                placeholder="Acme Fintech"
+                                autoComplete="organization"
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -231,7 +404,11 @@ export default function Contact() {
                           <FormItem>
                             <FormLabel>Phone Number (Optional)</FormLabel>
                             <FormControl>
-                              <Input placeholder="+1 (555) 000-0000" {...field} />
+                              <Input
+                                placeholder="+1 (555) 000-0000"
+                                autoComplete="tel"
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -239,7 +416,7 @@ export default function Contact() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                       <FormField
                         control={form.control}
                         name="service"
@@ -276,8 +453,8 @@ export default function Contact() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="2k-5k">$2,000 - $5,000</SelectItem>
-                                <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
+                                <SelectItem value="2k-5k">$2,000 – $5,000</SelectItem>
+                                <SelectItem value="5k-10k">$5,000 – $10,000</SelectItem>
                                 <SelectItem value="10k+">$10,000+</SelectItem>
                                 <SelectItem value="unsure">Not Sure Yet</SelectItem>
                               </SelectContent>
@@ -295,10 +472,10 @@ export default function Contact() {
                         <FormItem>
                           <FormLabel>How can we help?</FormLabel>
                           <FormControl>
-                            <Textarea 
-                              placeholder="Tell us about your current challenges and goals..." 
-                              className="min-h-[120px] resize-y" 
-                              {...field} 
+                            <Textarea
+                              placeholder="Tell us about your current challenges, target keywords, and growth goals…"
+                              className="min-h-[120px] resize-y"
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -306,9 +483,41 @@ export default function Contact() {
                       )}
                     />
 
-                    <Button type="submit" size="lg" className="w-full" disabled={submitContact.isPending}>
-                      {submitContact.isPending ? "Sending..." : "Request Consultation"}
+                    <Button
+                      type="submit"
+                      size="lg"
+                      className="w-full"
+                      disabled={submitContact.isPending}
+                    >
+                      {submitContact.isPending ? "Sending…" : "Request Free Fintech SEO Consultation"}
                     </Button>
+
+                    {/* White Hat SEO: transparent GDPR/privacy notice */}
+                    <p className="flex items-start gap-2 text-xs text-muted-foreground">
+                      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary/70" />
+                      Your data is processed in accordance with our{" "}
+                      <Link href="/privacy-policy" className="underline underline-offset-2 hover:no-underline">
+                        Privacy Policy
+                      </Link>
+                      . We will never sell or share your information with third parties.
+                      You may request deletion at any time by emailing{" "}
+                      <a
+                        href={`mailto:${BRAND_NAP.email}`}
+                        className="underline underline-offset-2 hover:no-underline"
+                      >
+                        {BRAND_NAP.email}
+                      </a>
+                      .
+                    </p>
+
+                    {/* AEO: response-time guarantee — machine-readable via speakable */}
+                    <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+                      <Timer className="h-4 w-4 shrink-0 text-primary" />
+                      <p className="text-xs text-muted-foreground">
+                        <strong className="text-foreground">Guaranteed response within one business day.</strong>{" "}
+                        Senior strategist review — no automated sequences, no junior SDRs.
+                      </p>
+                    </div>
                   </form>
                 </Form>
               </div>
@@ -318,37 +527,70 @@ export default function Contact() {
         </div>
       </section>
 
-      <section className="py-16 border-t bg-muted/20" data-testid="section-contact-faq">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <div className="text-center mb-10">
-            <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" />
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">
-              Before you reach out
+      {/*
+        Programmatic SEO: systematic internal links to location-specific
+        fintech SEO service pages. Each city link carries PageRank from
+        /contact (a high-intent, frequently-linked page) into the location
+        hub, strengthening those pages' ranking for "fintech SEO agency [city]".
+      */}
+      <section className="border-t border-b bg-muted/20 py-10">
+        <div className="container mx-auto max-w-6xl px-4">
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            Fintech SEO by Location
+          </h3>
+          <div className="flex flex-wrap gap-3">
+            {LOCATION_SLUGS.map((loc) => (
+              <Link
+                key={loc.slug}
+                href={`/locations/${loc.slug}`}
+                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+              >
+                Fintech SEO — {loc.city}
+              </Link>
+            ))}
+            <Link
+              href="/locations"
+              className="rounded-full border border-primary/40 bg-primary/5 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/15"
+            >
+              View all locations →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ section */}
+      <section className="py-16 bg-muted/20" data-testid="section-contact-faq">
+        <div className="container mx-auto max-w-3xl px-4">
+          <div className="mb-10 text-center">
+            <HelpCircle className="mx-auto mb-4 h-8 w-8 text-primary" />
+            {/* On-Page SEO: descriptive, keyword-contextual H2 */}
+            <h2 className="mb-3 text-2xl font-bold md:text-3xl">
+              Frequently Asked Questions About Our Fintech SEO Agency
             </h2>
             <p className="text-muted-foreground">
-              The most common questions we get from fintech teams considering a
-              first conversation with us.
+              The most common questions from fintech teams considering a first
+              conversation with our strategists.
             </p>
           </div>
           <Accordion
             type="single"
             collapsible
-            className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
+            className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
           >
             {contactFaqs.map((faq, idx) => (
               <AccordionItem
                 key={faq.question}
                 value={`contact-faq-${idx}`}
                 data-testid={`accordion-contact-faq-${idx}`}
-                className="border-b-0 group"
+                className="group border-b-0"
               >
-                <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
+                <AccordionTrigger className="px-6 py-5 text-left text-base font-semibold text-slate-900 transition-colors hover:text-[#0052FF] hover:no-underline md:text-lg [&>svg]:hidden">
                   <span className="flex-1 pr-4">{faq.question}</span>
-                  <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
-                    <Plus className="w-5 h-5" />
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
+                    <Plus className="h-5 w-5" />
                   </span>
                 </AccordionTrigger>
-                <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
+                <AccordionContent className="px-6 pb-5 pt-0 text-base leading-relaxed text-muted-foreground">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>

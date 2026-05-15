@@ -203,9 +203,9 @@ export const PAGE_META = {
       "Submit a fintech guest post to FintechPressHub. Expert-level payments, open banking, and lending content for 50,000+ monthly readers. Up to 2 dofollow links.",
   },
   contact: {
-    title: "Contact Us | FintechPressHub",
+    title: "Contact Our Fintech SEO Agency — Free Audit | FintechPressHub",
     description:
-      "Get in touch for a free SEO audit and strategy consultation. Specialist fintech SEO expertise, no generalist fluff.",
+      "Talk to a specialist fintech SEO strategist. Request a free SEO audit, explore link-building retainers, or discuss content strategy for your fintech brand. Response within one business day.",
   },
   privacyPolicy: {
     title: "Privacy Policy | FintechPressHub",

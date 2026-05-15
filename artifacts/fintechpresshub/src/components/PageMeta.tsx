@@ -431,6 +431,15 @@ type Common = {
    * in the page component — do not hardcode them.
    */
   aggregateRating?: AggregateRatingSchema;
+  /**
+   * ContactPage JSON-LD for the /contact page (C1).
+   * When true, emits a fully-specified ContactPage entity that mirrors the SSR
+   * injection in ssrMeta.ts — ensuring both rendering paths (Googlebot HTML-first
+   * and JS-rendered) expose an identical ContactPage entity in the knowledge graph.
+   * Pair with `webPage` to propagate datePublished/dateModified and with
+   * `speakableSelectors` to target the geo-answer-block for AI voice extraction.
+   */
+  contactPage?: boolean;
 };
 
 type PageMetaProps =
@@ -1051,6 +1060,81 @@ export function PageMeta(props: PageMetaProps) {
       }
     : null;
 
+  // ── ContactPage JSON-LD (C1) ─────────────────────────────────────────────
+  // Mirrors the SSR ContactPage schema in ssrMeta.ts so Google's knowledge
+  // graph resolves the same ContactPage entity regardless of rendering path
+  // (Googlebot HTML-first vs JS-rendered). speakable targets the geo-answer-block
+  // for AI voice extraction (AEO/GEO). about[] provides topical entity signals
+  // so AI citation engines associate /contact with fintech SEO queries.
+  const contactPageJsonLd = props.contactPage
+    ? {
+        "@context": "https://schema.org",
+        "@type": "ContactPage",
+        "@id": canonical,
+        url: canonical,
+        name: title,
+        description: description,
+        inLanguage: "en",
+        datePublished: props.webPage?.datePublished ?? "2021-01-01",
+        dateModified: props.webPage?.dateModified ?? "2026-05-15",
+        isPartOf: { "@id": `${SITE_URL}#website` },
+        publisher: { "@id": `${SITE_URL}#organization` },
+        isAccessibleForFree: true,
+        accessMode: ["textual", "visual"],
+        accessibilityFeature: ["readingOrder", "structuralNavigation"],
+        license: `${SITE_URL}/terms`,
+        audience: {
+          "@type": "Audience",
+          audienceType: "Fintech companies, founders, CMOs, and marketing leaders",
+        },
+        about: [
+          { "@type": "Thing", name: "Fintech SEO" },
+          { "@type": "Thing", name: "Content Marketing for Fintech" },
+          { "@type": "Thing", name: "Link Building for Financial Services" },
+          { "@type": "Thing", name: "Digital PR for Fintech" },
+          { "@type": "Thing", name: "SEO Strategy Consultation" },
+        ],
+        mentions: [
+          { "@type": "Thing", name: "Embedded Finance" },
+          { "@type": "Thing", name: "Open Banking" },
+          { "@type": "Thing", name: "Payments Infrastructure" },
+          { "@type": "Thing", name: "Neobanking" },
+          { "@type": "Thing", name: "Regtech" },
+          { "@type": "Thing", name: "Wealthtech" },
+        ],
+        // speakable targets h1 + the .geo-answer-block so AI voice extractors
+        // (Google Assistant, AI Overviews) surface the direct-answer summary
+        // as well as the page headline for "how do I contact FintechPressHub?".
+        speakable: {
+          "@type": "SpeakableSpecification",
+          cssSelector:
+            props.speakableSelectors && props.speakableSelectors.length > 0
+              ? props.speakableSelectors
+              : ["h1", ".geo-answer-block"],
+        },
+        breadcrumb: { "@id": `${canonical}#breadcrumb` },
+        potentialAction: { "@type": "ReadAction", target: canonical },
+        mainEntity: {
+          "@type": "Organization",
+          "@id": `${SITE_URL}#organization`,
+          name: SITE_NAME,
+          url: SITE_URL,
+          email: "hello@fintechpresshub.com",
+          contactPoint: {
+            "@type": "ContactPoint",
+            contactType: "customer service",
+            url: canonical,
+            email: "hello@fintechpresshub.com",
+            availableLanguage: {
+              "@type": "Language",
+              name: "English",
+              alternateName: "en",
+            },
+          },
+        },
+      }
+    : null;
+
   const articleJsonLd = props.article
     ? {
         "@context": "https://schema.org",
@@ -1433,6 +1517,11 @@ export function PageMeta(props: PageMetaProps) {
       {aggregateRatingJsonLd ? (
         <script type="application/ld+json">
           {JSON.stringify(aggregateRatingJsonLd)}
+        </script>
+      ) : null}
+      {contactPageJsonLd ? (
+        <script type="application/ld+json">
+          {JSON.stringify(contactPageJsonLd)}
         </script>
       ) : null}
     </Helmet>
