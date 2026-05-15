@@ -277,6 +277,11 @@ const guidelines = [
 
 const wfuFaqs = [
   {
+    question: "What types of fintech content does FintechPressHub accept?",
+    answer:
+      "We publish expert-level content covering payments infrastructure, open banking, embedded finance, lending, regtech, KYC/AML, wealthtech, insurtech, and fintech SaaS. Articles must be original, human-written, and targeted at a professional audience of founders, marketers, and operators — not general consumer finance content.",
+  },
+  {
     question: "How long does it take to hear back on a pitch?",
     answer:
       "We review all pitches within 2–3 business days. If your topic is a strong fit you'll receive an acceptance email with a brief scope doc and a suggested deadline. Off-niche or under-specified pitches are declined with a short note.",
@@ -297,9 +302,19 @@ const wfuFaqs = [
       "Articles must be between 800 and 1,500 words. Every word must earn its place — tightly scoped, deeply researched pieces consistently outperform padded long-form in our niche. Thin or AI-generated content is rejected at pitch stage.",
   },
   {
-    question: "How long does the editorial review process take?",
+    question: "Does FintechPressHub accept AI-generated content?",
     answer:
-      "We aim to review all pitches and full submissions within 2–3 days. You will receive clear feedback at each stage — whether that is a green light, a revision request, or a pass with notes.",
+      "No. We require human-written, expert-led articles that meet our editorial standards on accuracy, sourcing, and E-E-A-T. AI-assisted research and outline drafting are permitted, but the final piece must reflect the author's genuine expertise and original analysis. Submissions that appear AI-generated are rejected without review.",
+  },
+  {
+    question: "Can I include links to my company's website in the article?",
+    answer:
+      "Yes — up to 2 contextual links placed naturally within the article body. Links must be topically relevant to the surrounding content. Author bio links are also permitted. Exact-match anchor text and unrelated outbound links are edited out during review.",
+  },
+  {
+    question: "Do you publish content from international contributors?",
+    answer:
+      "Yes. We publish contributions from fintech operators and marketers worldwide. FintechPressHub serves readers across the UK, US, Singapore, Australia, Canada, and the broader APAC and European fintech markets. Your geographic location is not a barrier — editorial quality and topical relevance are the only criteria.",
   },
 ];
 
@@ -677,6 +692,24 @@ export default function WriteForUs() {
           datePublished: "2023-10-01",
           dateModified: "2026-05-15",
           section: "Contributor Guidelines",
+          wordCount: 1800,
+          timeRequired: "PT6M",
+          inLanguage: "en",
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
+          copyrightNotice: "© 2026 FintechPressHub. All rights reserved.",
+          countryOfOrigin: "United Kingdom",
+          hasPart: [
+            "Benefits of Guest Posting",
+            "Fintech Topics We Publish",
+            "Contributor Guidelines",
+            "Submit Your Pitch",
+            "Frequently Asked Questions",
+          ],
+          citation: [
+            "https://www.fca.org.uk",
+            "https://www.openbanking.org.uk",
+            "https://www.bis.org/publ/work1181.htm",
+          ],
           tags: [
             "fintech write for us",
             "fintech guest post",
@@ -775,6 +808,9 @@ export default function WriteForUs() {
           <p className="geo-answer-block text-sm sm:text-base text-muted-foreground leading-relaxed">
             FintechPressHub accepts expert guest posts on payments infrastructure, open banking, embedded finance, lending, regtech, and wealthtech. Approved articles reach 50,000+ monthly fintech readers and earn up to two permanent dofollow backlinks. Pitch response within 2–3 business days.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground/60">
+            <time dateTime="2026-05-15">Last updated: May 15, 2026</time>
+          </p>
         </div>
       </div>
 
@@ -811,13 +847,29 @@ export default function WriteForUs() {
                   </div>
                 ))}
               </div>
+              {/* Publication stats strip — inline data citations for GEO/AI extraction.
+                  Specific metrics signal credibility to Google quality raters (E-E-A-T)
+                  and give AI answer engines concrete facts to cite in summaries. */}
+              <dl className="mt-8 grid grid-cols-3 gap-4 border-t border-border/60 pt-6">
+                {[
+                  { value: "50k+", label: "Monthly readers" },
+                  { value: "16", label: "Topic categories" },
+                  { value: "2–3 days", label: "Pitch turnaround" },
+                ].map((stat) => (
+                  <div key={stat.label} className="text-center">
+                    <dd className="text-2xl font-bold text-foreground">{stat.value}</dd>
+                    <dt className="text-xs text-muted-foreground mt-0.5">{stat.label}</dt>
+                  </div>
+                ))}
+              </dl>
             </div>
             <div className="relative">
               <div className="relative rounded-3xl overflow-hidden shadow-xl border border-border/60">
                 <img
                   src={aboutOfficeImg}
                   alt="Editorial team reviewing a fintech guest pitch"
-                  loading="lazy"
+                  loading="eager"
+                  fetchPriority="high"
                   width={800}
                   height={533}
                   className="w-full h-auto object-cover"

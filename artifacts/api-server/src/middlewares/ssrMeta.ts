@@ -3882,6 +3882,21 @@ async function handleSsrMeta(
             publisher:   { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            // areaServed — declares global reach for this guest post programme.
+            // GEO optimization: AI ranking engines (Google AIO, Perplexity) use this
+            // to associate the page with "fintech guest posting worldwide" in their
+            // knowledge graphs, surfacing it for region-agnostic queries.
+            areaServed: { "@type": "Place", name: "Worldwide" },
+            // about — topical entity declarations for knowledge graph association.
+            // Each entry strengthens the page's signal for intent-matching on
+            // "fintech write for us", "fintech guest post", and "dofollow fintech".
+            about: [
+              { "@type": "Thing", name: "Fintech guest posting" },
+              { "@type": "Thing", name: "Guest post dofollow backlink" },
+              { "@type": "Thing", name: "Fintech content marketing" },
+              { "@type": "Thing", name: "Fintech SEO" },
+            ],
+            keywords: "fintech write for us, fintech guest post, fintech guest blogging, dofollow guest post, submit fintech article",
             // SpeakableSpecification: extended to include .geo-answer-block (GEO audit)
             // so AI citation engines extract the direct-answer paragraph in addition
             // to the H1 for "fintech guest post" and "write for us fintech" queries.
@@ -3893,7 +3908,9 @@ async function handleSsrMeta(
             potentialAction: {
               "@type":  "WriteAction",
               name:     "Submit a Guest Post Pitch",
-              target:   canonical,
+              // Target resolves to the exact pitch form element — required for
+              // Google Action cards and schema.org WriteAction spec compliance.
+              target:   `${canonical}#pitch-form`,
               object: {
                 "@type":    "Article",
                 inLanguage: "en",
@@ -3951,10 +3968,10 @@ async function handleSsrMeta(
             ],
           }, null, 2));
 
-          // FAQPage — expanded from 3 to 5 Q&As to match all visible FAQ accordion
-          // entries (AEO audit). Targets queries: "how to write for FintechPressHub",
-          // "do you accept AI articles", "what fintech topics do you publish",
-          // "is there a dofollow link", "how long to hear back", "word count".
+          // FAQPage — expanded to 8 Q&As, exactly mirroring the visible wfuFaqs accordion
+          // (AEO audit, Round 2). Google FAQ rich results require schema and visible text
+          // to match; divergence triggers suppression. All 8 items below are identical in
+          // content to the wfuFaqs array in write-for-us.tsx.
           extraLds.push(JSON.stringify({
             "@context":    "https://schema.org",
             "@type":       "FAQPage",
@@ -3972,23 +3989,7 @@ async function handleSsrMeta(
                 name:    "What types of fintech content does FintechPressHub accept?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text:    "We publish expert-level content covering fintech SEO, payments infrastructure, open banking, embedded finance, lending, regtech, and wealthtech. Articles must be original, human-written, and targeted at a professional audience of founders, marketers, and operators — not general consumer finance content.",
-                },
-              },
-              {
-                "@type": "Question",
-                name:    "Do guest contributors receive a dofollow backlink?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    "Yes. High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks. Links must be contextually relevant and placed naturally within the article — not in the author bio. Sponsored-content link placements are handled separately under our content partnership programme.",
-                },
-              },
-              {
-                "@type": "Question",
-                name:    "Does FintechPressHub accept AI-generated content?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text:    "No. We require human-written, expert-led content that meets our editorial guidelines on accuracy, sourcing, and E-E-A-T. AI-assisted research and outline drafting are permitted, but the final article must reflect the author's genuine expertise and original analysis. Submissions that appear AI-generated are rejected without review.",
+                  text:    "We publish expert-level content covering payments infrastructure, open banking, embedded finance, lending, regtech, KYC/AML, wealthtech, insurtech, and fintech SaaS. Articles must be original, human-written, and targeted at a professional audience of founders, marketers, and operators — not general consumer finance content.",
                 },
               },
               {
@@ -4001,12 +4002,87 @@ async function handleSsrMeta(
               },
               {
                 "@type": "Question",
-                name:    "What word count does FintechPressHub require for guest posts?",
+                name:    "How many dofollow links will my post include?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text:    "Articles must be between 800 and 1,500 words. Every word must earn its place — tightly scoped, deeply researched pieces consistently outperform padded long-form. Thin or AI-generated content is rejected at pitch stage.",
+                  text:    "High-quality submissions that meet our editorial standards receive up to 2 permanent dofollow backlinks.",
                 },
               },
+              {
+                "@type": "Question",
+                name:    "Is payment available for guest posts?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    "We do not pay contributors. The compensation is up to 2 permanent dofollow backlinks from a topically-aligned fintech domain with a targeted readership — the same audience your product serves. Contributors consistently report measurable referral traffic and ranking lift from the placement.",
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "What word count do you require?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    "Articles must be between 800 and 1,500 words. Every word must earn its place — tightly scoped, deeply researched pieces consistently outperform padded long-form in our niche. Thin or AI-generated content is rejected at pitch stage.",
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "Does FintechPressHub accept AI-generated content?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    "No. We require human-written, expert-led articles that meet our editorial standards on accuracy, sourcing, and E-E-A-T. AI-assisted research and outline drafting are permitted, but the final piece must reflect the author's genuine expertise and original analysis. Submissions that appear AI-generated are rejected without review.",
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "Can I include links to my company's website in the article?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    "Yes — up to 2 contextual links placed naturally within the article body. Links must be topically relevant to the surrounding content. Author bio links are also permitted. Exact-match anchor text and unrelated outbound links are edited out during review.",
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "Do you publish content from international contributors?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text:    "Yes. We publish contributions from fintech operators and marketers worldwide. FintechPressHub serves readers across the UK, US, Singapore, Australia, Canada, and the broader APAC and European fintech markets. Your geographic location is not a barrier — editorial quality and topical relevance are the only criteria.",
+                },
+              },
+            ],
+          }, null, 2));
+
+          // ItemList — machine-readable taxonomy of the 16 topic categories shown in the
+          // "Topics We Publish" grid. Programmatic SEO: Googlebot cannot execute the
+          // client-side React topicCategories array, so this SSR ItemList is the only
+          // crawlable representation. Enables Google topic-list rich snippets for queries
+          // like "what fintech topics does FintechPressHub publish" and "fintech guest
+          // post topics", and strengthens knowledge-graph association with each vertical.
+          extraLds.push(JSON.stringify({
+            "@context":    "https://schema.org",
+            "@type":       "ItemList",
+            "@id":         `${canonical}#topics`,
+            name:          "Fintech Guest Post Topic Categories — FintechPressHub",
+            description:   "The 16 fintech topic categories FintechPressHub commissions guest posts on.",
+            url:           `${canonical}#topics`,
+            inLanguage:    "en",
+            numberOfItems: 16,
+            itemListElement: [
+              { "@type": "ListItem", position: 1,  name: "Payments Infrastructure",    description: "Card issuing & processing, payment orchestration, cross-border rails" },
+              { "@type": "ListItem", position: 2,  name: "Embedded Finance",           description: "BaaS architecture, embedded lending playbooks, vertical SaaS payments" },
+              { "@type": "ListItem", position: 3,  name: "Open Banking & PSD3",        description: "Account-to-account payments, variable recurring payments, data-sharing compliance" },
+              { "@type": "ListItem", position: 4,  name: "Neobanking & Digital Banks", description: "Activation & retention, fee economics, regulatory sandboxing" },
+              { "@type": "ListItem", position: 5,  name: "BNPL & Consumer Lending",    description: "Underwriting models, affordability checks, merchant integrations" },
+              { "@type": "ListItem", position: 6,  name: "B2B & SME Lending",          description: "Cash-flow underwriting, embedded SME credit, receivables financing" },
+              { "@type": "ListItem", position: 7,  name: "Wealthtech & Robo-advisors", description: "Portfolio construction, advisor SaaS marketing, self-directed investing" },
+              { "@type": "ListItem", position: 8,  name: "Regtech & Compliance",       description: "Transaction monitoring, reg reporting tooling, sanctions screening" },
+              { "@type": "ListItem", position: 9,  name: "KYC, AML & Fraud",           description: "Identity verification, fraud orchestration, synthetic ID detection" },
+              { "@type": "ListItem", position: 10, name: "Fintech SaaS",               description: "Treasury & FP&A platforms, AP/AR & spend management, embedded-finance SaaS" },
+              { "@type": "ListItem", position: 11, name: "Fintech SEO & Content",      description: "Topical authority builds, programmatic SEO, editorial workflows" },
+              { "@type": "ListItem", position: 12, name: "Fintech CRO & Growth",       description: "Onboarding funnels, pricing experiments, lifecycle messaging" },
+              { "@type": "ListItem", position: 13, name: "Treasury & CFO Tooling",     description: "AP/AR automation, spend management, multi-entity treasury" },
+              { "@type": "ListItem", position: 14, name: "Insurtech",                  description: "Embedded insurance, underwriting AI, claims automation" },
+              { "@type": "ListItem", position: 15, name: "Wealth & Robo Marketing",    description: "Compliant ad creative, disclosures & disclaimers, RIA referral programs" },
+              { "@type": "ListItem", position: 16, name: "AI in Financial Services",   description: "LLM risk frameworks, agentic finance UX, model governance" },
             ],
           }, null, 2));
 
