@@ -1051,8 +1051,8 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
     description: "Free, browser-based tools for fintech marketers and SEO teams — calculators, generators, and checkers. No sign-up required.",
   },
   "/glossary": {
-    title: "Fintech Glossary | Definitions for 100+ Terms | FintechPressHub",
-    description: "Clear, jargon-free definitions for fintech terms — payments, lending, open banking, regtech, wealthtech, and more. Built for founders, marketers, and journalists.",
+    title: "Fintech Glossary | 100+ Terms & Definitions | FintechPressHub",
+    description: "Definitive fintech glossary: plain-English definitions for 100+ terms in payments, embedded finance, open banking, neobanking, regtech, and wealthtech.",
   },
   "/compare": {
     title: "Fintech SEO Agency Comparisons | FintechPressHub",
@@ -1122,7 +1122,7 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/tools":                           "2026-05-09",
   // Tool sub-page lastmod is sourced from TOOL_PAGE_LASTMOD in seoConstants.ts
   // (single source of truth). Do not add /tools/* entries here.
-  "/glossary":                        "2026-05-09",
+  "/glossary":                        "2026-05-15",
   "/resources/fintech-publications":  "2026-05-09",
   "/press":                           "2026-05-09",
   // Bumped to 2026-05-15: Comprehensive 8-category SEO audit — new BLUF
@@ -2632,14 +2632,26 @@ async function handleSsrMeta(
         ? [_abbrevParen[1].trim(), _abbrevParen[2].trim()].filter((n) => n !== term.term)
         : [];
 
+      const termDatePublished = term.publishedAt.toISOString().slice(0, 10);
+      const termDateModified  = term.updatedAt.toISOString().slice(0, 10);
+      const termCopyright     = `© ${term.publishedAt.getFullYear()} FintechPressHub. All rights reserved.`;
+      // GEO direct-answer block: injected into the raw HTML before React hydrates.
+      // Googlebot reads this before executing JS. The .geo-answer-block class is
+      // also referenced in the SpeakableSpecification cssSelector array so that
+      // Google's SpeakableSpecification parser can extract the direct-answer text
+      // for voice search and AI Overview citations (GEO Gap 4.1, AEO Gap 5.2).
+      const termBodyPatch = `<div class="geo-answer-block" style="display:none" aria-hidden="true"><p>${stripHtml(term.shortDef)}</p></div>`;
+
       patches = {
         title,
         description,
         canonical,
+        dateModified:  termDateModified,
         ogTitle:       term.term,
         ogDescription: description,
         ogImage,
         ogImageAlt:    `${term.term} definition — FintechPressHub Fintech Glossary`,
+        bodyPatch:     termBodyPatch,
         extraLds: [
           JSON.stringify({
             "@context":    "https://schema.org",
@@ -2654,8 +2666,8 @@ async function handleSsrMeta(
             // parenthetical — gives Knowledge Graph and voice assistants a second
             // anchor for entity resolution across both query forms.
             ...(termAlternateNames.length > 0 ? { alternateName: termAlternateNames } : {}),
-            datePublished: term.publishedAt.toISOString().slice(0, 10),
-            dateModified:  term.updatedAt.toISOString().slice(0, 10),
+            datePublished: termDatePublished,
+            dateModified:  termDateModified,
             inDefinedTermSet: {
               "@type": "DefinedTermSet",
               "@id":   `${siteUrl}/glossary`,
@@ -2667,29 +2679,82 @@ async function handleSsrMeta(
             // publisher on DefinedTerm mirrors the pattern on BlogPosting, FinancialService,
             // and SoftwareApplication — omitting it creates an inconsistency that weakens
             // E-E-A-T entity resolution across the Knowledge Graph.
-            publisher:       { "@id": `${siteUrl}#organization` },
-            potentialAction: { "@type": "ReadAction", target: canonical },
+            publisher:            { "@id": `${siteUrl}#organization` },
+            potentialAction:      { "@type": "ReadAction", target: canonical },
+            // White Hat E-E-A-T / AI citation eligibility signals ─────────────
+            // isAccessibleForFree + conditionsOfAccess: AI citation engines
+            // (Google AIO, Perplexity, ChatGPT Search) strongly prefer freely
+            // accessible content when selecting sources for AI Overview answers.
+            isAccessibleForFree:  true,
+            conditionsOfAccess:   "https://schema.org/OnlineAccess",
+            // publishingPrinciples: links editorial standards for Quality Raters
+            // and AI citation engines that verify YMYL content reliability.
+            publishingPrinciples: `${siteUrl}/editorial-guidelines`,
+            // copyrightNotice: AI citation engines confirm attribution before
+            // quoting content — required for full White Hat schema coverage.
+            copyrightNotice:      termCopyright,
+            // license + usageInfo: machine-readable syndication permissions so
+            // AI engines know the terms under which content can be quoted.
+            license:              `${siteUrl}/terms`,
+            usageInfo:            `${siteUrl}/terms`,
+            // audience: ICP signal — AI engines prefer content with a clear
+            // audience declaration for relevance ranking in AI Overviews.
+            audience: {
+              "@type":      "Audience",
+              audienceType: "Fintech founders, marketers, product managers, and journalists",
+            },
           }, null, 2),
           JSON.stringify({
             "@context":    "https://schema.org",
             "@type":       "WebPage",
             "@id":         `${canonical}#webpage`,
             url:           canonical,
+            name:          title,
+            description:   description,
             inLanguage:    "en",
             isPartOf:      { "@id": `${siteUrl}#website` },
-            // publisher missing from this WebPage was the only entity in ssrMeta where
-            // it was absent — now consistent with all other WebPage entities site-wide.
+            // publisher consistent with all other WebPage entities site-wide.
             publisher:     { "@id": `${siteUrl}#organization` },
-            datePublished: term.publishedAt.toISOString().slice(0, 10),
-            dateModified:  term.updatedAt.toISOString().slice(0, 10),
+            datePublished: termDatePublished,
+            dateModified:  termDateModified,
             breadcrumb:    { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
+            // White Hat access + E-E-A-T signals on WebPage ──────────────────
+            isAccessibleForFree:  true,
+            conditionsOfAccess:   "https://schema.org/OnlineAccess",
+            copyrightNotice:      termCopyright,
+            license:              `${siteUrl}/terms`,
+            usageInfo:            `${siteUrl}/terms`,
+            accessibilityHazard:  "none",
+            publishingPrinciples: `${siteUrl}/editorial-guidelines`,
+            // about: primary subject entities — AI engines slot the page into
+            // the correct topic cluster (GEO signal G-11).
+            about: [
+              { "@type": "Thing", name: term.term },
+              ...(term.category ? [{ "@type": "Thing", name: term.category }] : []),
+              { "@type": "Thing", name: "Financial Technology" },
+            ],
+            // keywords: page-level keyword signal for AI summary extraction.
+            keywords: [
+              term.term,
+              `${term.term} definition`,
+              `what is ${term.term}`,
+              "fintech glossary",
+              ...(term.category ? [term.category] : []),
+            ].join(", "),
+            // abstract: concise summary for AI extraction and Knowledge Graph.
+            abstract: `${term.term} is a financial technology term${term.category ? ` in the ${term.category} sector` : ""}. ${term.shortDef.slice(0, 200)}`,
+            // audience: ICP signal aligned with the DefinedTerm audience above.
+            audience: {
+              "@type":      "Audience",
+              audienceType: "Fintech founders, marketers, product managers, and journalists",
+            },
             speakable: {
               "@type":     "SpeakableSpecification",
-              // .glossary-short-def is rendered on the first <p> inside the
-              // prose area of glossary-term.tsx (when body === shortDef).
-              // Must stay in sync with the className on that element.
-              cssSelector: [".glossary-short-def"],
+              // .glossary-short-def targets the visible short definition paragraph
+              // in glossary-term.tsx. .geo-answer-block targets the SSR-injected
+              // bodyPatch direct-answer div — covers Googlebot path before JS.
+              cssSelector: [".glossary-short-def", ".geo-answer-block"],
             },
           }, null, 2),
           JSON.stringify({
@@ -2700,8 +2765,8 @@ async function handleSsrMeta(
             inLanguage:    "en",
             isPartOf:      { "@id": `${siteUrl}#website` },
             publisher:     { "@id": `${siteUrl}#organization` },
-            datePublished: term.publishedAt.toISOString().slice(0, 10),
-            dateModified:  term.updatedAt.toISOString().slice(0, 10),
+            datePublished: termDatePublished,
+            dateModified:  termDateModified,
             mainEntity: [
               {
                 "@type": "Question",
@@ -2731,6 +2796,26 @@ async function handleSsrMeta(
                   "@type":    "Answer",
                   inLanguage: "en",
                   text:       stripHtml(`Fintech companies encounter ${term.term} when building, scaling, or marketing products${term.category ? ` in the ${term.category} sector` : ""}. A clear grasp of ${term.term} supports better product decisions, regulatory compliance, and communication with investors, partners, and end users across digital finance.`),
+                },
+              },
+              {
+                "@type": "Question",
+                name:    `Is this ${term.term} definition free to read?`,
+                answerCount: 1,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       stripHtml(`Yes — this ${term.term} definition is part of the FintechPressHub Fintech Glossary, which is completely free to browse with no account or sign-up required. All definitions are written by fintech domain specialists.`),
+                },
+              },
+              {
+                "@type": "Question",
+                name:    `Where can I learn more about ${term.term}?`,
+                answerCount: 1,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       stripHtml(`For deeper context on ${term.term}${term.category ? ` and related ${term.category} topics` : ""}, explore the FintechPressHub blog for expert articles, case studies, and strategic guides written by practitioners with hands-on fintech experience.`),
                 },
               },
             ],
@@ -4325,7 +4410,7 @@ async function handleSsrMeta(
           }, null, 2));
 
         } else if (reqPath === "/glossary") {
-          // ── /glossary hub — DefinedTermSet + ItemList from DB ────────────
+          // ── /glossary hub — DefinedTermSet + ItemList + FAQPage from DB ──
           const hubTerms = await db
             .select({
               slug:     glossaryTermsTable.slug,
@@ -4334,8 +4419,9 @@ async function handleSsrMeta(
             })
             .from(glossaryTermsTable)
             .orderBy(asc(glossaryTermsTable.term))
-            .limit(30)
+            .limit(50)
             .catch(() => [] as Array<{ slug: string; term: string; shortDef: string }>);
+
           extraLds.push(JSON.stringify({
             "@context":   "https://schema.org",
             "@type":      "DefinedTermSet",
@@ -4348,12 +4434,48 @@ async function handleSsrMeta(
             publisher:    { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
-            // SpeakableSpecification enables voice-assistant extraction of the glossary hub
-            // headline for queries like "what is a fintech glossary?" — reinforces the
-            // DefinedTermSet entity for Google's Knowledge Graph vocabulary signals.
+            // White Hat E-E-A-T / AI citation eligibility signals ─────────────
+            isAccessibleForFree:  true,
+            conditionsOfAccess:   "https://schema.org/OnlineAccess",
+            publishingPrinciples: `${siteUrl}/editorial-guidelines`,
+            license:              `${siteUrl}/terms`,
+            usageInfo:            `${siteUrl}/terms`,
+            copyrightNotice:      "© 2024 FintechPressHub. All rights reserved.",
+            // audience: ICP signal for AI citation eligibility and topic-cluster mapping.
+            audience: {
+              "@type":      "Audience",
+              audienceType: "Fintech founders, product managers, marketers, journalists, and investors",
+            },
+            // about: primary subject topics for Knowledge Graph entity resolution.
+            about: [
+              { "@type": "Thing", name: "Financial Technology" },
+              { "@type": "Thing", name: "Payments Infrastructure" },
+              { "@type": "Thing", name: "Embedded Finance" },
+              { "@type": "Thing", name: "Open Banking" },
+              { "@type": "Thing", name: "Regtech" },
+              { "@type": "Thing", name: "Neobanking" },
+            ],
+            // keywords: page-level keyword signal for AI summary extraction.
+            keywords: "fintech glossary, fintech terms, payments terminology, embedded finance definitions, open banking glossary, regtech terms, neobanking glossary, wealthtech",
+            // hasDefinedTerm: explicit term-entity graph — preferred by
+            // Knowledge Graph over a separate ItemList for DefinedTermSet pages.
+            ...(hubTerms.length > 0
+              ? {
+                  hasDefinedTerm: hubTerms.slice(0, 20).map((t) => ({
+                    "@type":       "DefinedTerm",
+                    "@id":         `${siteUrl}/glossary/${t.slug}`,
+                    name:          t.term,
+                    description:   t.shortDef.slice(0, 120),
+                    url:           `${siteUrl}/glossary/${t.slug}`,
+                    inLanguage:    "en",
+                  })),
+                }
+              : {}),
+            // SpeakableSpecification: extended to cover tagline paragraph and
+            // the GEO direct-answer block (injected via bodyPatch above).
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1"],
+              cssSelector: ["h1", ".page-hero-description", ".geo-answer-block"],
             },
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
@@ -4373,6 +4495,79 @@ async function handleSsrMeta(
               })),
             }, null, 2));
           }
+
+          // ── Static FAQPage for /glossary hub ─────────────────────────────
+          // Googlebot only sees static SSR HTML — dynamic SPA FAQPage is
+          // invisible to crawlers. This block ensures the hub page has a rich
+          // FAQPage schema in the raw HTML (AEO Gap 5.1 fix).
+          extraLds.push(JSON.stringify({
+            "@context":    "https://schema.org",
+            "@type":       "FAQPage",
+            "@id":         `${canonical}#faq`,
+            url:           canonical,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2024-06-01",
+            dateModified:  pageLastmod ?? "2026-05-15",
+            mainEntity: [
+              {
+                "@type": "Question",
+                "@id":   `${canonical}#faq-q1`,
+                name:    "What is a fintech glossary?",
+                answerCount: 1,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "A fintech glossary is a curated reference of plain-English definitions for financial technology terms — covering payments, embedded finance, open banking, regtech, neobanking, wealthtech, and lending. The FintechPressHub Fintech Glossary provides 100+ definitions written by fintech domain specialists.",
+                },
+              },
+              {
+                "@type": "Question",
+                "@id":   `${canonical}#faq-q2`,
+                name:    "How many fintech terms are in this glossary?",
+                answerCount: 1,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "The FintechPressHub Fintech Glossary contains 100+ fintech terms and definitions spanning payments infrastructure, embedded finance, open banking, regtech, neobanking, wealthtech, and lending. New terms are added regularly.",
+                },
+              },
+              {
+                "@type": "Question",
+                "@id":   `${canonical}#faq-q3`,
+                name:    "Is the FintechPressHub Fintech Glossary free to use?",
+                answerCount: 1,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "Yes — the FintechPressHub Fintech Glossary is completely free to browse with no account or sign-up required. All definitions are written by fintech domain specialists and are freely accessible online.",
+                },
+              },
+              {
+                "@type": "Question",
+                "@id":   `${canonical}#faq-q4`,
+                name:    "Who is the fintech glossary written for?",
+                answerCount: 1,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "The glossary is written for fintech founders, product managers, marketers, journalists, and investors who need accurate, jargon-free explanations of technical financial technology terms.",
+                },
+              },
+              {
+                "@type": "Question",
+                "@id":   `${canonical}#faq-q5`,
+                name:    "How often is the fintech glossary updated?",
+                answerCount: 1,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "The FintechPressHub Fintech Glossary is updated continuously as new fintech terms emerge and existing definitions evolve. Each term page displays a last-updated date so readers can verify currency.",
+                },
+              },
+            ],
+          }, null, 2));
 
         } else if (reqPath === "/tools") {
           // ── /tools hub — CollectionPage + ItemList ────────────────────────
@@ -5388,6 +5583,15 @@ async function handleSsrMeta(
         // Injected after the universal patches block so route-specific fields
         // (article:published_time, article:section, DC.*) are added without
         // modifying the shared patches assembly above.
+        if (reqPath === "/glossary" && patches) {
+          // GEO direct-answer block — injected after patches is built so TypeScript
+          // narrows patches to MetaPatches (not null). The hidden div appears in the
+          // raw SSR HTML for Googlebot before JS executes; React reconciles it cleanly.
+          // The .geo-answer-block class is referenced in the SpeakableSpecification
+          // cssSelector in the DefinedTermSet schema above (GEO Gap 4.1 fix).
+          patches.bodyPatch = `<div class="geo-answer-block" style="display:none" aria-hidden="true"><p>The FintechPressHub Fintech Glossary is a free, continuously updated reference of 100+ plain-English fintech definitions — covering payments infrastructure, embedded finance, open banking, regtech, neobanking, wealthtech, and lending. Written by fintech domain specialists. No account required.</p></div>`;
+        }
+
         if (reqPath === "/write-for-us" && patches) {
           // OG article namespace — unlocks article:* meta tags in <head>.
           // LinkedIn, Facebook, and Google's structured-snippets parser read

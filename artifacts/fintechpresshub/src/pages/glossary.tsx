@@ -83,9 +83,37 @@ export default function GlossaryPage() {
     [terms],
   );
 
+  const STATIC_FAQS = [
+    {
+      question: "What is a fintech glossary?",
+      answer:
+        "A fintech glossary is a curated reference of plain-English definitions for financial technology terms — covering payments, embedded finance, open banking, regtech, neobanking, wealthtech, and lending. The FintechPressHub Fintech Glossary provides 100+ definitions written by fintech domain specialists.",
+    },
+    {
+      question: "How many fintech terms are in this glossary?",
+      answer:
+        "The FintechPressHub Fintech Glossary contains 100+ fintech terms and definitions spanning payments infrastructure, embedded finance, open banking, regtech, neobanking, wealthtech, and lending. New terms are added regularly.",
+    },
+    {
+      question: "Is the FintechPressHub Fintech Glossary free to use?",
+      answer:
+        "Yes — the FintechPressHub Fintech Glossary is completely free to browse with no account or sign-up required. All definitions are written by fintech domain specialists and are freely accessible online.",
+    },
+    {
+      question: "Who is the fintech glossary written for?",
+      answer:
+        "The glossary is written for fintech founders, product managers, marketers, journalists, and investors who need accurate, jargon-free explanations of technical financial technology terms.",
+    },
+    {
+      question: "How often is the fintech glossary updated?",
+      answer:
+        "The FintechPressHub Fintech Glossary is updated continuously as new fintech terms emerge. Each term page displays a 'Last updated' date so readers can verify currency.",
+    },
+  ];
+
   const faqItems = useMemo(
     () =>
-      filtered.slice(0, 8).map((t) => ({
+      filtered.slice(0, 5).map((t) => ({
         question: `What is ${t.term}?`,
         answer: t.shortDef,
       })),
@@ -95,10 +123,38 @@ export default function GlossaryPage() {
   return (
     <div className="min-h-screen bg-background">
       <PageMeta
-        title="Fintech Glossary — Key Terms & Definitions | FintechPressHub"
-        description="A definitive glossary of fintech, payments, and embedded-finance terms. Plain-English definitions for payments infrastructure, open banking, regtech, and more."
-        faq={faqItems.length > 0 ? faqItems : undefined}
-        webPage={{ dateModified: new Date().toISOString().slice(0, 10) }}
+        page="glossary"
+        faq={[...STATIC_FAQS, ...faqItems]}
+        webPage={{
+          dateModified: "2026-05-15",
+          datePublished: "2024-06-01",
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
+          accessibilityHazard: "none",
+          license: `${SITE_URL}/terms`,
+          usageInfo: `${SITE_URL}/terms`,
+          copyrightNotice: "© 2026 FintechPressHub. All rights reserved.",
+          about: [
+            "Fintech Glossary",
+            "Financial Technology Definitions",
+            "Payments Infrastructure",
+            "Embedded Finance",
+            "Open Banking",
+            "Regtech",
+          ],
+          keywords: [
+            "fintech glossary",
+            "fintech terms",
+            "payments terminology",
+            "embedded finance definitions",
+            "open banking glossary",
+            "regtech terms",
+          ],
+        }}
+        hreflang={[
+          { lang: "en", href: `${SITE_URL}/glossary` },
+          { lang: "x-default", href: `${SITE_URL}/glossary` },
+        ]}
+        speakableSelectors={["h1", ".page-hero-description", ".geo-answer-block"]}
         definedTermSet={
           terms.length > 0
             ? {
@@ -119,6 +175,14 @@ export default function GlossaryPage() {
         title={<>Key Terms &amp; Definitions</>}
         description="Plain-English definitions for payments, embedded finance, open banking, regtech, and every other corner of the fintech universe."
       />
+
+      <section className="py-6 bg-white border-b">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="geo-answer-block rounded-lg bg-blue-50 border border-blue-100 px-5 py-4 text-sm text-slate-700 leading-relaxed">
+            <strong className="text-slate-900">The FintechPressHub Fintech Glossary</strong> is a free, continuously updated reference of 100+ plain-English fintech definitions — covering payments infrastructure, embedded finance, open banking, regtech, neobanking, wealthtech, and lending. Written by fintech domain specialists with hands-on industry experience. No account required.
+          </div>
+        </div>
+      </section>
 
       <section className="py-12 bg-white border-b">
         <div className="container mx-auto px-4 max-w-4xl">

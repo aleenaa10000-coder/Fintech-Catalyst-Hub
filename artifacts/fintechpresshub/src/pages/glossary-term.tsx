@@ -14,6 +14,7 @@ type GlossaryTerm = {
   slug: string;
   term: string;
   shortDef: string;
+  seoDescription?: string | null;
   body: string;
   category: string | null;
   relatedTerms: string[];
@@ -64,7 +65,8 @@ export default function GlossaryTermPage() {
 
   const canonical = `${SITE_URL}/glossary/${term.slug}`;
   const pageTitle = `${term.term} — Fintech Glossary | FintechPressHub`;
-  const description = term.shortDef.slice(0, 160);
+  const description = (term.seoDescription ?? term.shortDef).slice(0, 160);
+  const publishedYear = term.publishedAt.slice(0, 4);
 
   return (
     <div className="min-h-screen bg-background">
@@ -75,7 +77,30 @@ export default function GlossaryTermPage() {
         webPage={{
           datePublished: term.publishedAt.slice(0, 10),
           dateModified: term.updatedAt.slice(0, 10),
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
+          accessibilityHazard: "none",
+          license: `${SITE_URL}/terms`,
+          usageInfo: `${SITE_URL}/terms`,
+          copyrightNotice: `© ${publishedYear} FintechPressHub. All rights reserved.`,
+          about: [
+            term.term,
+            ...(term.category ? [term.category] : []),
+            "Financial Technology",
+            "Fintech Glossary",
+          ],
+          keywords: [
+            term.term.toLowerCase(),
+            `${term.term.toLowerCase()} definition`,
+            `what is ${term.term.toLowerCase()}`,
+            "fintech glossary",
+            ...(term.category ? [term.category.toLowerCase()] : []),
+          ],
         }}
+        hreflang={[
+          { lang: "en", href: canonical },
+          { lang: "x-default", href: canonical },
+        ]}
+        speakableSelectors={[".glossary-short-def", ".geo-answer-block"]}
         definedTermSet={{
           name: "Fintech Glossary",
           description: "Definitions of key fintech, payments, lending, and banking terms.",
@@ -89,6 +114,18 @@ export default function GlossaryTermPage() {
           {
             question: `Why is ${term.term} important in fintech?`,
             answer: `${term.term} is a key concept in financial technology${term.category ? ` within the ${term.category} sector` : ""}. Understanding ${term.term} helps fintech founders, marketers, and product teams communicate clearly with investors, regulators, and customers operating in the digital finance space.`,
+          },
+          {
+            question: `How does ${term.term} apply to fintech companies?`,
+            answer: `Fintech companies encounter ${term.term} when building, scaling, or marketing products${term.category ? ` in the ${term.category} sector` : ""}. A clear grasp of ${term.term} supports better product decisions, regulatory compliance, and communication with investors, partners, and end users across digital finance.`,
+          },
+          {
+            question: `Is this ${term.term} definition free to read?`,
+            answer: `Yes — this ${term.term} definition is part of the FintechPressHub Fintech Glossary, which is completely free to browse with no account or sign-up required. All definitions are written by fintech domain specialists.`,
+          },
+          {
+            question: `Where can I learn more about ${term.term}?`,
+            answer: `For deeper context on ${term.term}${term.category ? ` and related ${term.category} topics` : ""}, explore the FintechPressHub blog for expert articles, case studies, and strategic guides written by practitioners with hands-on fintech experience.`,
           },
         ]}
       />

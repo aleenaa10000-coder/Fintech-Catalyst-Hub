@@ -245,6 +245,11 @@ export const PAGE_META = {
     description:
       "Free, browser-based tools for fintech marketers and SEO teams — calculators, generators, and checkers. No sign-up required.",
   },
+  glossary: {
+    title: "Fintech Glossary | 100+ Terms & Definitions | FintechPressHub",
+    description:
+      "Definitive fintech glossary: plain-English definitions for 100+ terms in payments, embedded finance, open banking, neobanking, regtech, and wealthtech.",
+  },
   financialHealthCalculator: {
     title: "Financial Health Score Calculator | FintechPressHub",
     description:
