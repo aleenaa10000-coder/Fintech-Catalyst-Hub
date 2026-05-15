@@ -47,7 +47,7 @@ export default function ReadingListPage() {
     setHydrated(true);
   }, []);
 
-  const { data: allPosts = [], isLoading } = usePublicPosts();
+  const { posts: allPosts = [], isLoading } = usePublicPosts();
 
   const enriched = bookmarks.map((b) => ({
     bookmark: b,
@@ -240,7 +240,7 @@ function ReadingCard({
   const title = post?.title ?? bookmark.title;
   const date = post?.date ?? bookmark.date;
   const readTime = post?.readTime ?? bookmark.readTime;
-  const coverImage = post?.coverImage;
+  const coverImage = post?.image;
   const category = post?.category;
   const author = post?.author;
 
