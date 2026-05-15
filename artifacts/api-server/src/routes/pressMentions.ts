@@ -24,6 +24,9 @@ const MentionBody = z.object({
     .string()
     .trim()
     .regex(/^\d{4}$/, "year must be a 4-digit string e.g. '2026'"),
+  excerpt: z.string().trim().max(500).nullish(),
+  logoUrl: z.string().trim().url().max(2000).nullish(),
+  category: z.enum(["trade-press", "national", "industry-blog", "podcast", "award"]).nullish(),
   sortOrder: z.number().int().default(0),
 });
 

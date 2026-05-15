@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
 import { Link } from "wouter";
@@ -18,6 +19,8 @@ import {
   Globe,
   Linkedin,
   Twitter,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/metaData";
 import { useState } from "react";
@@ -30,6 +33,9 @@ type PressMention = {
   publication: string;
   url: string;
   year: string;
+  excerpt?: string | null;
+  logoUrl?: string | null;
+  category?: string | null;
   sortOrder: number;
 };
 
@@ -54,7 +60,6 @@ const stats = [
 
 const boilerplate = `FintechPressHub is a specialist SEO and content marketing agency for fintech companies. Founded in 2021, the agency helps ambitious fintech brands — in payments, embedded finance, open banking, neobanking, lending, and regtech — scale organic growth through expert-led content, high-authority link building, and technical SEO. FintechPressHub publishes original editorial content for 50,000+ monthly readers across eight fintech verticals and accepts guest contributions from established operators and founders. The agency is headquartered online and serves clients worldwide.`;
 
-
 const brandColors = [
   { name: "Primary Blue", hex: "#0052FF", usage: "Primary CTA, links, highlights" },
   { name: "Dark Navy", hex: "#0a0f1e", usage: "Dark mode background, text" },
@@ -68,9 +73,77 @@ const logoAssets = [
   { label: "Apple Touch Icon", href: `${SITE_URL}/apple-touch-icon.png`, ext: "PNG" },
 ];
 
+const pressFAQs: Array<{ question: string; answer: string }> = [
+  {
+    question: "What is FintechPressHub?",
+    answer:
+      "FintechPressHub is a specialist fintech SEO and content marketing agency founded in 2021. FintechPressHub helps ambitious fintech brands in payments, embedded finance, open banking, neobanking, lending, regtech, and wealthtech scale organic growth through expert-led content, high-authority link building, and technical SEO. FintechPressHub publishes original editorial content for 50,000+ monthly readers across eight fintech verticals.",
+  },
+  {
+    question: "How can journalists and editors contact FintechPressHub?",
+    answer:
+      "Journalists and editors can reach the FintechPressHub press team at hello@fintechpresshub.com. The team typically responds to press enquiries within one business day. For urgent requests, include 'PRESS INQUIRY' in the subject line. FintechPressHub serves clients and media contacts worldwide.",
+  },
+  {
+    question: "Is FintechPressHub available for expert commentary on fintech topics?",
+    answer:
+      "Yes. FintechPressHub's editorial team provides expert commentary on fintech SEO, content marketing, open banking, payments technology, digital lending, regtech, and the broader fintech ecosystem. To request a quote or expert opinion, email hello@fintechpresshub.com with your publication name, deadline, and the topic requiring commentary.",
+  },
+  {
+    question: "What fintech topics does FintechPressHub cover?",
+    answer:
+      "FintechPressHub covers eight fintech verticals: payments and card processing, embedded finance, open banking and API banking, neobanking and challenger banks, consumer and SME lending (BNPL, personal loans, mortgages), regtech and compliance, wealthtech and investment platforms, and fintech SEO and content marketing strategy. The editorial team has direct working experience in these sectors — not general marketing.",
+  },
+  {
+    question: "What brand assets are available for media use?",
+    answer:
+      "The following FintechPressHub brand assets are freely available for editorial and media use: the SVG logo, PNG icons at 512×512 and 192×192 pixels, and the Apple Touch Icon. The primary brand colour is #0052FF (Primary Blue) on a dark navy (#0a0f1e) background. All assets can be downloaded directly from this press page at no cost.",
+  },
+  {
+    question: "Does FintechPressHub accept guest contributions?",
+    answer:
+      "Yes. FintechPressHub accepts guest contributions from established fintech operators, marketers, and founders. Approved posts earn up to two permanent dofollow links and reach 50,000+ targeted monthly readers. All submissions are editorially reviewed against FintechPressHub's editorial guidelines before publication. Visit the Write For Us page for contributor guidelines and the pitching form.",
+  },
+  {
+    question: "What is the editorial standard at FintechPressHub?",
+    answer:
+      "FintechPressHub follows strict editorial standards: all content must be original, written by individuals with verifiable fintech experience, and free from undisclosed paid promotions. Claims must be sourced. The editorial team independently verifies statistics and links before publication. FintechPressHub publishes corrections prominently when errors are identified. Full editorial guidelines are published at fintechpresshub.com/editorial-guidelines.",
+  },
+  {
+    question: "How many monthly readers does FintechPressHub reach?",
+    answer:
+      "FintechPressHub reaches 50,000+ monthly readers (as of 2026) across its editorial content. The readership is primarily comprised of fintech founders, product managers, marketers, compliance officers, and investors in payments, open banking, lending, and adjacent sectors.",
+  },
+  {
+    question: "When was FintechPressHub founded?",
+    answer:
+      "FintechPressHub was founded in 2021. Since founding, the agency has published over 200 original articles across eight fintech verticals and built an editorial network serving 50,000+ monthly readers. FintechPressHub serves fintech clients worldwide.",
+  },
+  {
+    question: "What is FintechPressHub's approved company boilerplate for press use?",
+    answer:
+      "Approved press boilerplate: 'FintechPressHub is a specialist SEO and content marketing agency for fintech companies. Founded in 2021, the agency helps ambitious fintech brands — in payments, embedded finance, open banking, neobanking, lending, and regtech — scale organic growth through expert-led content, high-authority link building, and technical SEO. FintechPressHub publishes original editorial content for 50,000+ monthly readers across eight fintech verticals and accepts guest contributions from established operators and founders. The agency is headquartered online and serves clients worldwide.'",
+  },
+];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  "trade-press": "Trade Press",
+  "national": "National Media",
+  "industry-blog": "Industry Blog",
+  "podcast": "Podcast",
+  "award": "Award",
+};
+
 export default function PressPage() {
   const [copied, setCopied] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
   const { data: mentions = [] } = usePressMentions();
+
+  const mentionsByYear = mentions.reduce<Record<string, PressMention[]>>((acc, m) => {
+    (acc[m.year] ??= []).push(m);
+    return acc;
+  }, {});
+  const sortedYears = Object.keys(mentionsByYear).sort((a, b) => Number(b) - Number(a));
 
   function copyBoilerplate() {
     navigator.clipboard
@@ -87,21 +160,85 @@ export default function PressPage() {
     <div className="min-h-screen bg-background pb-24">
       <PageMeta
         page="press"
-        webPage={{ dateModified: "2026-05-09", datePublished: "2026-05-09" }}
+        webPage={{
+          dateModified: "2026-05-15",
+          datePublished: "2023-06-01",
+          keywords: [
+            "FintechPressHub press kit",
+            "fintech SEO agency press",
+            "fintech media kit",
+            "FintechPressHub brand assets",
+            "fintech press contact",
+            "FintechPressHub boilerplate",
+            "fintech content marketing agency",
+          ],
+          about: [
+            "FintechPressHub",
+            "Fintech SEO Agency",
+            "Fintech Content Marketing",
+            "Press Kit",
+            "Media Kit",
+            "Brand Assets",
+          ],
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
+          license: `${SITE_URL}/terms`,
+          copyrightNotice: "© 2026 FintechPressHub. All rights reserved.",
+        }}
+        faq={pressFAQs}
+        faqDateModified="2026-05-15"
+        faqDatePublished="2023-06-01"
+        speakableSelectors={["h1", ".speakable-summary", ".press-faq-answer", "h2"]}
+        itemList={
+          mentions.length > 0
+            ? {
+                name: "FintechPressHub Press Mentions",
+                description:
+                  "Media coverage of FintechPressHub across fintech trade press, national media, and industry publications.",
+                items: mentions.map((m) => ({
+                  name: `${m.title} — ${m.publication}`,
+                  url: m.url,
+                  description: m.excerpt ?? `${m.publication}, ${m.year}`,
+                  image: m.logoUrl ?? undefined,
+                })),
+              }
+            : undefined
+        }
       />
+
+      <Helmet>
+        <link rel="alternate" hrefLang="en" href={`${SITE_URL}/press`} />
+        <link rel="alternate" hrefLang="x-default" href={`${SITE_URL}/press`} />
+        <meta
+          name="robots"
+          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+        />
+      </Helmet>
 
       <PageHero
         eyebrow="Press & Media"
-        title={<>Media Kit & Press Resources</>}
-        description="Everything journalists and editors need to cover FintechPressHub — company boilerplate, brand assets, key stats, and press contact details."
+        title={<>FintechPressHub Press & Media Kit</>}
+        description="Everything journalists and editors need to cover FintechPressHub — approved company boilerplate, brand assets, key statistics, and press contact details."
       />
 
-      <section className="py-16">
+      <main className="py-16">
         <div className="container mx-auto px-4 max-w-5xl space-y-16">
+
+          {/* BLUF / Direct Answer Block — speakable-summary */}
+          <p className="speakable-summary text-base leading-relaxed text-muted-foreground border-l-4 border-primary pl-5 py-2">
+            FintechPressHub is a specialist fintech SEO and content marketing agency founded in 2021,
+            reaching 50,000+ monthly readers across eight fintech verticals. For press enquiries, brand
+            assets, or expert commentary on fintech SEO, email{" "}
+            <a href="mailto:hello@fintechpresshub.com" className="text-primary hover:underline">
+              hello@fintechpresshub.com
+            </a>
+            . The press team responds within one business day.
+          </p>
 
           {/* Key Stats */}
           <div>
-            <h2 className="text-2xl font-bold tracking-tight mb-6">Key stats at a glance</h2>
+            <h2 className="text-2xl font-bold tracking-tight mb-6">
+              FintechPressHub at a Glance — Key Statistics (2026)
+            </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {stats.map((s) => (
                 <Card key={s.label} className="text-center">
@@ -113,12 +250,13 @@ export default function PressPage() {
                 </Card>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground mt-3">All figures as of 2026.</p>
           </div>
 
-          {/* Boilerplate */}
+          {/* Approved Company Boilerplate */}
           <div>
             <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
-              <h2 className="text-2xl font-bold tracking-tight">Company boilerplate</h2>
+              <h2 className="text-2xl font-bold tracking-tight">Approved Company Boilerplate</h2>
               <Button
                 variant="outline"
                 size="sm"
@@ -142,7 +280,9 @@ export default function PressPage() {
 
           {/* Brand Assets */}
           <div>
-            <h2 className="text-2xl font-bold tracking-tight mb-6">Brand assets</h2>
+            <h2 className="text-2xl font-bold tracking-tight mb-6">
+              Brand Assets — Logos & Icons
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {logoAssets.map((a) => (
                 <a
@@ -168,7 +308,9 @@ export default function PressPage() {
 
           {/* Brand Colours */}
           <div>
-            <h2 className="text-2xl font-bold tracking-tight mb-6">Brand colours</h2>
+            <h2 className="text-2xl font-bold tracking-tight mb-6">
+              Brand Colours — Official Palette
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {brandColors.map((c) => (
                 <Card key={c.hex}>
@@ -176,6 +318,8 @@ export default function PressPage() {
                     <div
                       className="w-full h-16 rounded-lg mb-4 border border-border"
                       style={{ backgroundColor: c.hex }}
+                      aria-label={`${c.name} — ${c.hex}`}
+                      role="img"
                     />
                     <p className="font-semibold text-sm">{c.name}</p>
                     <p className="text-xs font-mono text-muted-foreground mt-0.5">{c.hex}</p>
@@ -186,37 +330,90 @@ export default function PressPage() {
             </div>
           </div>
 
-          {/* Recent Coverage */}
+          {/* Recent Coverage — grouped by year */}
           {mentions.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight mb-6">Recent coverage</h2>
-              <div className="space-y-3">
-                {mentions.map((item) => (
-                  <a
-                    key={item.id}
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-start justify-between gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors group"
-                  >
-                    <span>
-                      <p className="text-sm font-medium group-hover:text-primary transition-colors">{item.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{item.publication} · {item.year}</p>
-                    </span>
-                    <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-primary transition-colors" />
-                  </a>
+            <div id="press-coverage">
+              <h2 className="text-2xl font-bold tracking-tight mb-6">
+                FintechPressHub Media Coverage
+              </h2>
+              <div className="space-y-8">
+                {sortedYears.map((year) => (
+                  <div key={year}>
+                    <h3 className="text-base font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-primary" />
+                      {year}
+                    </h3>
+                    <div className="space-y-3" id={`press-${year}`}>
+                      {mentionsByYear[year].map((item) => (
+                        <a
+                          key={item.id}
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-start justify-between gap-4 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors group"
+                        >
+                          <span className="min-w-0">
+                            <span className="flex items-center gap-2 mb-1 flex-wrap">
+                              <p className="text-sm font-medium group-hover:text-primary transition-colors">
+                                {item.title}
+                              </p>
+                              {item.category && CATEGORY_LABELS[item.category] && (
+                                <Badge variant="outline" className="text-xs shrink-0">
+                                  {CATEGORY_LABELS[item.category]}
+                                </Badge>
+                              )}
+                            </span>
+                            <p className="text-xs text-muted-foreground">{item.publication} · {item.year}</p>
+                            {item.excerpt && (
+                              <p className="text-xs text-muted-foreground mt-1 italic line-clamp-2">
+                                "{item.excerpt}"
+                              </p>
+                            )}
+                          </span>
+                          <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-primary transition-colors" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Editorial guidelines callout */}
+          {/* Editorial Standards */}
           <div>
-            <h2 className="text-2xl font-bold tracking-tight mb-4">For contributors</h2>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">Editorial Standards</h2>
             <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="pt-6 pb-5 space-y-3">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  All FintechPressHub editorial content is written by individuals with verifiable
+                  fintech experience, independently fact-checked, and free from undisclosed paid
+                  promotions. FintechPressHub publishes corrections prominently when errors are
+                  identified. External links to cited sources are always unsponsored.
+                </p>
+                <div className="flex flex-wrap gap-3 pt-1">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/editorial-guidelines">View editorial guidelines</Link>
+                  </Button>
+                  <Button asChild size="sm">
+                    <Link href="/services">Our fintech SEO services</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* For contributors */}
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">
+              Guest Contributions — Write For FintechPressHub
+            </h2>
+            <Card>
               <CardContent className="pt-6 pb-5">
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                  FintechPressHub accepts guest contributions from established fintech operators, marketers, and founders. Approved posts earn up to two permanent dofollow links and reach 50,000+ targeted monthly readers.
+                  FintechPressHub accepts guest contributions from established fintech operators,
+                  marketers, and founders. Approved posts earn up to two permanent dofollow links and
+                  reach 50,000+ targeted monthly readers across eight fintech verticals.
                 </p>
                 <Button asChild size="sm">
                   <Link href="/write-for-us">View contributor guidelines</Link>
@@ -225,9 +422,9 @@ export default function PressPage() {
             </Card>
           </div>
 
-          {/* Press contact */}
+          {/* Press Contact */}
           <div>
-            <h2 className="text-2xl font-bold tracking-tight mb-6">Press contact</h2>
+            <h2 className="text-2xl font-bold tracking-tight mb-6">Press Contact</h2>
             <Card>
               <CardContent className="pt-6 pb-5 space-y-4">
                 <div className="flex items-center gap-3">
@@ -240,6 +437,9 @@ export default function PressPage() {
                     >
                       hello@fintechpresshub.com
                     </a>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Response within one business day. Worldwide enquiries welcome.
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -258,7 +458,7 @@ export default function PressPage() {
                   <a
                     href="https://twitter.com/fintechpresshub"
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="me noopener noreferrer"
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                     aria-label="FintechPressHub on X / Twitter"
                   >
@@ -268,7 +468,7 @@ export default function PressPage() {
                   <a
                     href="https://www.linkedin.com/company/fintechpresshub"
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="me noopener noreferrer"
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                     aria-label="FintechPressHub on LinkedIn"
                   >
@@ -280,8 +480,58 @@ export default function PressPage() {
             </Card>
           </div>
 
+          {/* FAQ Section */}
+          <div id="press-faq">
+            <h2 className="text-2xl font-bold tracking-tight mb-2">
+              Press FAQ — Common Journalist Questions
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Answers to the most common questions from journalists, editors, and podcast hosts covering the fintech SEO space.
+            </p>
+            <div className="space-y-3">
+              {pressFAQs.map((faq, i) => (
+                <div key={i} className="border border-border rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left text-sm font-medium hover:bg-muted/40 transition-colors"
+                    aria-expanded={openFaq === i}
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  >
+                    <span>{faq.question}</span>
+                    {openFaq === i ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                  </button>
+                  {openFaq === i && (
+                    <div className="px-5 pb-5 pt-1 border-t border-border bg-muted/20">
+                      <p id={`press-faq-answer-${i}`} className="press-faq-answer text-sm leading-relaxed text-muted-foreground">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              Additional enquiries:{" "}
+              <a href="mailto:hello@fintechpresshub.com" className="text-primary hover:underline">
+                hello@fintechpresshub.com
+              </a>
+              {" · "}
+              <Link href="/editorial-guidelines" className="text-primary hover:underline">
+                Editorial guidelines
+              </Link>
+              {" · "}
+              <Link href="/write-for-us" className="text-primary hover:underline">
+                Write for us
+              </Link>
+            </p>
+          </div>
+
         </div>
-      </section>
+      </main>
     </div>
   );
 }

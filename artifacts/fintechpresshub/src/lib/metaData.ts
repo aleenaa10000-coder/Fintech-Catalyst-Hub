@@ -322,9 +322,9 @@ export const PAGE_META = {
     description: "Review guest post pitch submissions and contact enquiries.",
   },
   press: {
-    title: "Press & Media Kit | FintechPressHub",
+    title: "FintechPressHub Press & Media Kit — Fintech SEO Agency",
     description:
-      "Press resources for FintechPressHub — brand assets, company boilerplate, key stats, recent coverage, and press contact details for journalists and editors.",
+      "Official press resources for FintechPressHub — approved company boilerplate, brand assets, key statistics, recent media coverage, and press contact details for journalists and editors covering fintech SEO.",
   },
   notFound: {
     title: "Page Not Found | FintechPressHub",

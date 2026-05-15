@@ -1059,8 +1059,8 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
     description: "Detailed head-to-head comparisons of fintech SEO approaches — agency vs in-house, specialist vs generalist, content-led vs paid. Make an informed decision.",
   },
   "/press": {
-    title: "Press & Media Kit | FintechPressHub",
-    description: "Press resources for FintechPressHub — brand assets, company boilerplate, key stats, recent coverage, and press contact details for journalists and editors.",
+    title: "FintechPressHub Press & Media Kit — Fintech SEO Agency",
+    description: "Official press resources for FintechPressHub — approved company boilerplate, brand assets, key statistics, recent media coverage, and press contact details for journalists and editors covering fintech SEO.",
   },
   "/contact": {
     title: "Contact Our Fintech SEO Agency — Free Audit | FintechPressHub",
@@ -1124,7 +1124,12 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   // (single source of truth). Do not add /tools/* entries here.
   "/glossary":                        "2026-05-15",
   "/resources/fintech-publications":  "2026-05-09",
-  "/press":                           "2026-05-09",
+  // Bumped to 2026-05-15: Exhaustive 8-category SEO audit — keyword H1/H2/meta,
+  // BLUF speakable-summary block, FAQPage schema (10 journalist Q&As), expanded
+  // SpeakableSpec selectors, hreflang annotations, rel="me" on social links,
+  // year-grouped coverage, aria-labels, editorial standards section, DB fields
+  // excerpt/logoUrl/category, sitemap priority 0.6→0.7.
+  "/press":                           "2026-05-15",
   // Bumped to 2026-05-15: Comprehensive 8-category SEO audit — new BLUF
   // geo-answer-block, trust stats bar, keyword-rich H1/H2/meta, regional
   // hreflang, GDPR notice, location links, AEO FAQ rewrites, ContactPage
@@ -5528,6 +5533,54 @@ async function handleSsrMeta(
 
         } else if (reqPath === "/press") {
           // ── /press — CollectionPage with brand/media asset focus ──────────
+          // Exhaustive 8-category SEO audit (2026-05-15):
+          //   - Keywords + about arrays for Knowledge Graph entity association (On-Page O-7, GEO G-11)
+          //   - SpeakableSpec expanded to h1 + .speakable-summary + .press-faq-answer + h2 (AEO A-3)
+          //   - conditionsOfAccess: OnlineAccess (White Hat W-6)
+          //   - FAQPage schema with 10 journalist Q&As (AEO A-1)
+          const pressFaqItems = [
+            {
+              question: "What is FintechPressHub?",
+              answer: "FintechPressHub is a specialist fintech SEO and content marketing agency founded in 2021. FintechPressHub helps ambitious fintech brands in payments, embedded finance, open banking, neobanking, lending, regtech, and wealthtech scale organic growth through expert-led content, high-authority link building, and technical SEO. FintechPressHub publishes original editorial content for 50,000+ monthly readers across eight fintech verticals.",
+            },
+            {
+              question: "How can journalists and editors contact FintechPressHub?",
+              answer: "Journalists and editors can reach the FintechPressHub press team at hello@fintechpresshub.com. The team typically responds to press enquiries within one business day. For urgent requests, include 'PRESS INQUIRY' in the subject line.",
+            },
+            {
+              question: "Is FintechPressHub available for expert commentary on fintech topics?",
+              answer: "Yes. FintechPressHub's editorial team provides expert commentary on fintech SEO, content marketing, open banking, payments technology, digital lending, regtech, and the broader fintech ecosystem. To request a quote or expert opinion, email hello@fintechpresshub.com with your publication name, deadline, and the topic requiring commentary.",
+            },
+            {
+              question: "What fintech topics does FintechPressHub cover?",
+              answer: "FintechPressHub covers eight fintech verticals: payments and card processing, embedded finance, open banking and API banking, neobanking and challenger banks, consumer and SME lending (BNPL, personal loans, mortgages), regtech and compliance, wealthtech and investment platforms, and fintech SEO and content marketing strategy.",
+            },
+            {
+              question: "What brand assets are available for media use?",
+              answer: "The following FintechPressHub brand assets are freely available for editorial and media use: the SVG logo, PNG icons at 512×512 and 192×192 pixels, and the Apple Touch Icon. The primary brand colour is #0052FF (Primary Blue) on a dark navy (#0a0f1e) background.",
+            },
+            {
+              question: "Does FintechPressHub accept guest contributions?",
+              answer: "Yes. FintechPressHub accepts guest contributions from established fintech operators, marketers, and founders. Approved posts earn up to two permanent dofollow links and reach 50,000+ targeted monthly readers. All submissions are editorially reviewed against FintechPressHub's editorial guidelines before publication.",
+            },
+            {
+              question: "What is the editorial standard at FintechPressHub?",
+              answer: "FintechPressHub follows strict editorial standards: all content must be original, written by individuals with verifiable fintech experience, and free from undisclosed paid promotions. Claims must be sourced. The editorial team independently verifies statistics and links. FintechPressHub publishes corrections prominently when errors are identified.",
+            },
+            {
+              question: "How many monthly readers does FintechPressHub reach?",
+              answer: "FintechPressHub reaches 50,000+ monthly readers (as of 2026) across its editorial content. The readership is primarily comprised of fintech founders, product managers, marketers, compliance officers, and investors in payments, open banking, lending, and adjacent sectors.",
+            },
+            {
+              question: "When was FintechPressHub founded?",
+              answer: "FintechPressHub was founded in 2021. Since founding, the agency has published over 200 original articles across eight fintech verticals and built an editorial network serving 50,000+ monthly readers.",
+            },
+            {
+              question: "What is FintechPressHub's approved company boilerplate for press use?",
+              answer: "Approved press boilerplate: 'FintechPressHub is a specialist SEO and content marketing agency for fintech companies. Founded in 2021, the agency helps ambitious fintech brands — in payments, embedded finance, open banking, neobanking, lending, and regtech — scale organic growth through expert-led content, high-authority link building, and technical SEO. FintechPressHub publishes original editorial content for 50,000+ monthly readers across eight fintech verticals and accepts guest contributions from established operators and founders.'",
+            },
+          ];
+
           extraLds.push(JSON.stringify({
             "@context":  "https://schema.org",
             "@type":     "CollectionPage",
@@ -5540,16 +5593,49 @@ async function handleSsrMeta(
             publisher:   { "@id": `${siteUrl}#organization` },
             ...(STATIC_PAGE_CREATED[reqPath] ? { datePublished: STATIC_PAGE_CREATED[reqPath] } : {}),
             ...(pageLastmod ? { dateModified: pageLastmod } : {}),
-            about:       { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification enables voice-assistant extraction of the press hub
-            // headline for queries like "has FintechPressHub been featured in the press?" —
-            // surfaces the brand's media credibility to AI citation engines.
+            about: [
+              { "@id": `${siteUrl}#organization` },
+              { "@type": "Thing", name: "Press Kit" },
+              { "@type": "Thing", name: "Media Kit" },
+              { "@type": "Thing", name: "Fintech SEO Agency" },
+              { "@type": "Thing", name: "FintechPressHub" },
+            ],
+            keywords: "FintechPressHub press kit, fintech SEO agency press, fintech media kit, FintechPressHub brand assets, fintech press contact, FintechPressHub boilerplate, fintech content marketing agency",
+            conditionsOfAccess: "https://schema.org/OnlineAccess",
+            // SpeakableSpecification enables voice-assistant and AI citation engine extraction
+            // of the press hub headline, BLUF summary, FAQ answers, and section headings —
+            // covering queries like "What is FintechPressHub?", "how to contact FintechPressHub press".
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1"],
+              cssSelector: ["h1", ".speakable-summary", ".press-faq-answer", "h2"],
             },
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
+          }, null, 2));
+
+          // FAQPage schema — enables People Also Ask rich results for journalist queries.
+          // Synced with pressFAQs array in artifacts/fintechpresshub/src/pages/press.tsx.
+          // When FAQ content changes, update BOTH arrays to keep SSR (Googlebot) and
+          // client-side (browser) schemas consistent.
+          extraLds.push(JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "FAQPage",
+            "@id":        `${canonical}#faq`,
+            url:          canonical,
+            name:         staticMeta.title,
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2023-06-01",
+            dateModified: pageLastmod ?? "2026-05-15",
+            inLanguage:   "en",
+            isPartOf:     { "@id": `${siteUrl}#website` },
+            publisher:    { "@id": `${siteUrl}#organization` },
+            mainEntity:   pressFaqItems.map((item) => ({
+              "@type":        "Question",
+              name:           item.question,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text:    item.answer,
+              },
+            })),
           }, null, 2));
 
           // Inject real press mentions from DB as an ItemList of NewsArticle

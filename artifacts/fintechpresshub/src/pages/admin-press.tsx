@@ -4,6 +4,7 @@ import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -36,6 +37,9 @@ type PressMention = {
   publication: string;
   url: string;
   year: string;
+  excerpt?: string | null;
+  logoUrl?: string | null;
+  category?: string | null;
   sortOrder: number;
   createdAt: string;
 };
@@ -45,6 +49,9 @@ type MentionDraft = {
   publication: string;
   url: string;
   year: string;
+  excerpt: string;
+  logoUrl: string;
+  category: string;
   sortOrder: string;
 };
 
@@ -53,6 +60,9 @@ const EMPTY_DRAFT: MentionDraft = {
   publication: "",
   url: "",
   year: new Date().getFullYear().toString(),
+  excerpt: "",
+  logoUrl: "",
+  category: "",
   sortOrder: "0",
 };
 
@@ -157,6 +167,54 @@ function MentionForm({
           placeholder="https://finextra.com/article/..."
         />
       </div>
+      <div>
+        <Label htmlFor="pm-excerpt">
+          Excerpt{" "}
+          <span className="font-normal text-muted-foreground">(optional pull-quote, max 500 chars)</span>
+        </Label>
+        <Textarea
+          id="pm-excerpt"
+          value={draft.excerpt}
+          onChange={(e) => setDraft((d) => ({ ...d, excerpt: e.target.value }))}
+          placeholder="e.g. 'FintechPressHub is the go-to agency for fintech brands wanting to scale organically...'"
+          rows={2}
+          maxLength={500}
+        />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="pm-logo">
+            Publication logo URL{" "}
+            <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <Input
+            id="pm-logo"
+            type="url"
+            value={draft.logoUrl}
+            onChange={set("logoUrl")}
+            placeholder="https://cdn.example.com/logo.svg"
+          />
+        </div>
+        <div>
+          <Label htmlFor="pm-category">
+            Category{" "}
+            <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <select
+            id="pm-category"
+            value={draft.category}
+            onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <option value="">— select —</option>
+            <option value="trade-press">Trade Press</option>
+            <option value="national">National Media</option>
+            <option value="industry-blog">Industry Blog</option>
+            <option value="podcast">Podcast</option>
+            <option value="award">Award</option>
+          </select>
+        </div>
+      </div>
       <div className="flex gap-2 pt-1">
         <Button
           type="submit"
@@ -190,14 +248,24 @@ export default function AdminPress() {
     queryFn: () => apiFetch<PressMention[]>("/press-mentions"),
   });
 
+  function sanitizeDraft(draft: MentionDraft) {
+    return {
+      title:       draft.title,
+      publication: draft.publication,
+      url:         draft.url,
+      year:        draft.year,
+      sortOrder:   Number(draft.sortOrder) || 0,
+      excerpt:     draft.excerpt.trim() || null,
+      logoUrl:     draft.logoUrl.trim() || null,
+      category:    draft.category || null,
+    };
+  }
+
   const createMutation = useMutation({
     mutationFn: (draft: MentionDraft) =>
       apiFetch<PressMention>("/admin/press-mentions", {
         method: "POST",
-        body: JSON.stringify({
-          ...draft,
-          sortOrder: Number(draft.sortOrder) || 0,
-        }),
+        body: JSON.stringify(sanitizeDraft(draft)),
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["admin-press-mentions"] });
@@ -212,10 +280,7 @@ export default function AdminPress() {
     mutationFn: ({ id, draft }: { id: number; draft: MentionDraft }) =>
       apiFetch<PressMention>(`/admin/press-mentions/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          ...draft,
-          sortOrder: Number(draft.sortOrder) || 0,
-        }),
+        body: JSON.stringify(sanitizeDraft(draft)),
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["admin-press-mentions"] });
@@ -241,11 +306,14 @@ export default function AdminPress() {
   const editingMention = mentions.find((m) => m.id === editingId);
   const editingDraft: MentionDraft | null = editingMention
     ? {
-        title: editingMention.title,
+        title:       editingMention.title,
         publication: editingMention.publication,
-        url: editingMention.url,
-        year: editingMention.year,
-        sortOrder: String(editingMention.sortOrder),
+        url:         editingMention.url,
+        year:        editingMention.year,
+        sortOrder:   String(editingMention.sortOrder),
+        excerpt:     editingMention.excerpt ?? "",
+        logoUrl:     editingMention.logoUrl ?? "",
+        category:    editingMention.category ?? "",
       }
     : null;
 
