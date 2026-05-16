@@ -4379,6 +4379,23 @@ async function handleSsrMeta(
                 keywords:    TOOLS_FEATURE_LIST[slug]!.join(", "),
               }
             : {}),
+          // sameAs: links the tool entity to the publisher's known social
+          // profiles. AI citation engines (Perplexity, Google AI Overviews)
+          // use sameAs to disambiguate entities and surface the correct org
+          // when answering "who built [tool]?" queries — mirrors the sameAs
+          // already present on the org entity in the global @graph.
+          sameAs: [
+            "https://twitter.com/fintechpresshub",
+            "https://www.linkedin.com/company/fintechpresshub",
+          ],
+          // speakable: enables voice-assistant extraction of the tool name
+          // and description for "what does [tool] do?" audio queries —
+          // mirrors the SpeakableSpecification already present on the WebPage
+          // entity for the same cssSelector targets.
+          speakable: {
+            "@type":     "SpeakableSpecification",
+            cssSelector: ["h1", ".speakable-summary"],
+          },
         }, null, 2),
       ];
       const howTo = TOOLS_HOWTO[slug];
@@ -4458,8 +4475,20 @@ async function handleSsrMeta(
         isAccessibleForFree:  true,
         conditionsOfAccess:   "https://schema.org/OnlineAccess",
         usageInfo:            `${siteUrl}/terms`,
+        // license: machine-readable syndication rights — mirrors the
+        // SoftwareApplication.license property so both entities consistently
+        // point AI crawlers to the site's citation and usage policy.
+        license:              `${siteUrl}/editorial-guidelines#ai-citation-policy`,
+        // educationalLevel: signals the professional audience tier to AI
+        // rankers and Google's audience-matching layer — consistent with the
+        // SoftwareApplication.audience audienceType on the same page.
+        educationalLevel:     "Professional",
         // WCAG-aligned accessibility triad — required for full White Hat score.
         accessibilityFeature: ["alternativeText", "structuredNavigation"],
+        // accessibilityHazard: explicit "none" declaration completes the WCAG
+        // machine-readable accessibility metadata set (feature + hazard +
+        // conditions) required for a full White Hat structured-data score.
+        accessibilityHazard:  "none",
         // relatedLink: cross-tool links build topical entity graph edges that
         // AI rankers and Google's Knowledge Graph use for cluster scoring.
         ...(TOOLS_RELATED[slug]
@@ -4495,16 +4524,38 @@ async function handleSsrMeta(
         extraLds:      toolExtraLds,
         // Last-Modified header: signals freshness to crawlers without a full re-fetch.
         dateModified:  TOOL_PAGE_LASTMOD[slug] ?? undefined,
-        // meta keywords: secondary on-page relevance signal read by Bing/Copilot.
-        headLinks:     TOOLS_KEYWORDS[slug]
-          ? [`  <meta name="keywords" content="${TOOLS_KEYWORDS[slug]}" />`]
-          : undefined,
+        // headLinks: all per-page <head> injections for tool pages.
+        // Includes meta keywords, author, article:* OG timestamps for social
+        // crawlers, and the 5 regional hreflang variants that raise
+        // International SEO coverage from en+x-default to the full
+        // en-US/GB/AU/SG/CA set already used on service and glossary pages.
+        headLinks: (() => {
+          const toolPub = STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01";
+          const toolMod = TOOL_PAGE_LASTMOD[slug] ?? toolPub;
+          return [
+            ...(TOOLS_KEYWORDS[slug] ? [`  <meta name="keywords" content="${TOOLS_KEYWORDS[slug]}" />`] : []),
+            `  <meta name="author" content="FintechPressHub" />`,
+            `  <meta property="article:published_time" content="${toolPub}T00:00:00Z" />`,
+            `  <meta property="article:modified_time" content="${toolMod}T00:00:00Z" />`,
+            `  <meta property="article:author" content="${siteUrl}/authors/marcus-webb" />`,
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+          ];
+        })(),
         // bodyPatch: BLUF speakable-summary injected before JS executes so
         // Googlebot can satisfy the SpeakableSpecification cssSelector on all tools.
         bodyPatch:     TOOLS_BLUF[slug]
           ? `<p class="speakable-summary text-center text-sm leading-relaxed max-w-2xl mx-auto px-4 py-2 text-slate-500">${esc(TOOLS_BLUF[slug]!)}</p>`
           : undefined,
       };
+      // Cache-Control: tool pages are static content updated ~monthly.
+      // Hostinger Nginx and any CDN respect this header, allowing intermediate
+      // caches to serve tool pages without hitting Node.js — reducing server
+      // load under crawler pressure and improving TTFB for real users.
+      res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
     }
 
     // ── Static pages ─────────────────────────────────────────────────────────

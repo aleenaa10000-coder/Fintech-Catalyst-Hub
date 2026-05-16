@@ -555,6 +555,11 @@ async function buildToolsSitemapXml(): Promise<string> {
         `      <image:title>${escapeXml(u.ogTitle)}</image:title>\n` +
         `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-US" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-GB" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-AU" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-SG" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-CA" href="${escapeXml(u.loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n` +
         `  </url>`
       );
