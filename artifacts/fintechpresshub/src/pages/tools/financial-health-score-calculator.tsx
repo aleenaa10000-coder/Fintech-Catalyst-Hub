@@ -1225,6 +1225,12 @@ export default function FinancialHealthScoreCalculator() {
               { industry: "Neobanks & Digital Banks", role: "Engagement & Retention Teams", benefit: "Digital banks use it as an onboarding engagement tool — prompting users to enter their financial data surfaces personalised product recommendations for savings accounts and debt-consolidation products." },
               { industry: "WealthTech & Financial Advisers", role: "Client Acquisition Teams", benefit: "Financial advisers and robo-advisory platforms use it as a discovery tool — users who score below 60 are the highest-intent prospects for financial planning consultations." },
             ]}
+            faq={FAQS}
+            citationUrls={[
+              { label: "Debt-to-Income Ratio — Wikipedia", url: "https://en.wikipedia.org/wiki/Debt-to-income_ratio" },
+              { label: "Personal Finance — Wikipedia", url: "https://en.wikipedia.org/wiki/Personal_finance" },
+              { label: "CFPB Financial Well-Being Tool", url: "https://www.consumerfinance.gov/consumer-tools/financial-well-being/" },
+            ]}
           />
           <ToolShareEmbed slug="financial-health-score-calculator" state={inputs} />
         </div>

@@ -4740,6 +4740,17 @@ async function handleSsrMeta(
             `  <meta property="article:published_time" content="${toolPub}T00:00:00Z" />`,
             `  <meta property="article:modified_time" content="${toolMod}T00:00:00Z" />`,
             `  <meta property="article:author" content="${siteUrl}/authors/marcus-webb" />`,
+            // ── On-Page: article:section + article:tag ──────────────────────
+            // article:section maps to the tool's sub-category (e.g., "SEO Tool",
+            // "Financial Calculator") — the same taxonomy used in twitter:data1
+            // and applicationSubCategory. Aligns Open Graph, Twitter, and JSON-LD
+            // taxonomies so all three surfaces classify the tool consistently.
+            // article:tag signals primary topical entities to Facebook and LinkedIn
+            // crawlers — mirrors the meta name="keywords" already emitted above.
+            `  <meta property="article:section" content="${esc(subCat)}" />`,
+            `  <meta property="article:tag" content="fintech SEO" />`,
+            `  <meta property="article:tag" content="free fintech tool" />`,
+            `  <meta property="article:tag" content="${esc(subCat)}" />`,
             // ── International: 5 region-specific hreflang variants ──────────
             // Supplement the generic hreflang="en" + x-default injected
             // unconditionally by patchHtml to reach full en-US/GB/AU/SG/CA
@@ -4749,6 +4760,17 @@ async function handleSsrMeta(
             `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+            // ── International: og:locale:alternate ──────────────────────────
+            // og:locale:alternate tells Facebook, LinkedIn, and social-graph
+            // crawlers which locale variants of this tool page exist — matching
+            // the 5-region hreflang matrix already in sitemap-tools.xml.
+            // Without these tags, Facebook OG and LinkedIn share cards default
+            // to a single locale regardless of the hreflang configuration.
+            `  <meta property="og:locale:alternate" content="en_US" />`,
+            `  <meta property="og:locale:alternate" content="en_GB" />`,
+            `  <meta property="og:locale:alternate" content="en_AU" />`,
+            `  <meta property="og:locale:alternate" content="en_SG" />`,
+            `  <meta property="og:locale:alternate" content="en_CA" />`,
             // ── Twitter/X: rich card labels ─────────────────────────────────
             // twitter:label*/data* surface structured data in the Twitter/X
             // link preview (same pattern as blog posts which show reading-time

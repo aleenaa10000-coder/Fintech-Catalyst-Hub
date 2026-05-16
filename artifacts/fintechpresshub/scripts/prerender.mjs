@@ -41,7 +41,7 @@ import {
 import { PAGE_META, AUTHORS } from "./bot-og-data.mjs";
 // All blog category slugs — single source of truth is seo-constants.mjs.
 // Do NOT add slugs here directly; update seo-constants.mjs and seoConstants.ts.
-import { STATIC_CATEGORY_SLUGS as BLOG_CATEGORY_SLUGS } from "./seo-constants.mjs";
+import { STATIC_CATEGORY_SLUGS as BLOG_CATEGORY_SLUGS, TOOL_SLUGS } from "./seo-constants.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
@@ -129,6 +129,14 @@ async function prerender() {
     routes.add(`/blog/category/${slug}`);
   }
 
+  // Free tool pages — prerendered so crawlers receive SEO-enriched HTML
+  // (SoftwareApplication + HowTo + FAQPage JSON-LD, BLUF paragraph, hreflang)
+  // without waiting for JavaScript to execute. These are static content pages
+  // updated ~monthly, so prerendering is appropriate and stable.
+  for (const slug of TOOL_SLUGS) {
+    routes.add(`/tools/${slug}`);
+  }
+
   // Blog tag hub pages — pulled from API when available. Tags are dynamic
   // (derived from the blog_posts.tags JSONB column) so they cannot be
   // enumerated statically. Falls back to an empty list when the API is not
@@ -153,6 +161,7 @@ async function prerender() {
       locations: 0,
       categories: 0,
       tags: 0,
+      tools: 0,
       home: 0,
     },
   };
@@ -178,6 +187,7 @@ async function prerender() {
         else if (pathname.startsWith("/authors/")) summary.byType.authors += 1;
         else if (pathname.startsWith("/glossary/")) summary.byType.glossary += 1;
         else if (pathname.startsWith("/locations/")) summary.byType.locations += 1;
+        else if (pathname.startsWith("/tools/")) summary.byType.tools += 1;
         else summary.byType.static += 1;
       } catch (err) {
         summary.failed += 1;

@@ -5038,6 +5038,15 @@ export default function KeywordDifficultyEstimator() {
                 { industry: "Neobanks & Digital Banks", role: "Digital Marketing Teams", benefit: "Neobank marketing teams identify long-tail keyword variations for product feature pages — targeting lower-competition variants that capture bottom-of-funnel intent from users actively comparing account options." },
                 { industry: "Fintech SEO Agencies", role: "Client Strategists", benefit: "Fintech SEO agencies use it as a first-pass keyword prioritisation tool during client onboarding — quickly sorting large keyword lists into quick-win, achievable, and long-term buckets before building a content roadmap." },
               ]}
+              faq={[
+                { question: "Is the Keyword Difficulty Estimator free?", answer: "Yes — the FintechPressHub Keyword Difficulty Estimator is free with no account required." },
+                { question: "What does a keyword difficulty score of 0–100 mean?", answer: "0–30 = low competition (quick win). 31–60 = moderate (achievable with quality content and links). 61–100 = high competition (requires strong domain authority and sustained effort)." },
+                { question: "Does the estimator suggest alternative keywords?", answer: "Yes — it generates six long-tail keyword variations with lower difficulty scores so you can identify more targeted, quicker-win opportunities within the same topic cluster." },
+              ]}
+              citationUrls={[
+                { label: "Search Engine Optimisation — Wikipedia", url: "https://en.wikipedia.org/wiki/Search_engine_optimization" },
+                { label: "Keyword Research — Wikipedia", url: "https://en.wikipedia.org/wiki/Keyword_research" },
+              ]}
             />
             <ToolShareEmbed slug="keyword-difficulty-estimator" state={{ keyword }} />
           </div>

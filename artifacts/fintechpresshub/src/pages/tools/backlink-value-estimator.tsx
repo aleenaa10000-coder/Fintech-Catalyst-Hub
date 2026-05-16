@@ -2984,6 +2984,16 @@ export default function BacklinkValueEstimator() {
               { industry: "Embedded Finance Platforms", role: "Growth & Partnerships Teams", benefit: "Embedded finance platforms evaluate partner co-marketing opportunities — confirming whether a partner website provides enough DA, traffic, and relevance to justify a content collaboration with link exchange." },
               { industry: "Neobanks & Digital Banks", role: "Marketing Directors", benefit: "Neobank marketing teams score inbound link opportunities from media coverage — quickly assessing whether a journalist's publication domain is worth prioritising for future relationship building." },
             ]}
+            faq={[
+              { question: "Is the Backlink Value Estimator free?", answer: "Yes — the FintechPressHub Backlink Value Estimator is completely free with no sign-up needed." },
+              { question: "What factors determine the backlink value score?", answer: "The score weights Domain Authority (40%), estimated monthly organic traffic (35%), and topical relevance to fintech (25%) to produce a 0–100 value rating." },
+              { question: "What score indicates a high-value backlink opportunity?", answer: "A score above 70 indicates a premium backlink target. 50–69 is solid. Below 50 suggests the domain may not move the needle enough to justify outreach effort." },
+            ]}
+            citationUrls={[
+              { label: "Backlink — Wikipedia", url: "https://en.wikipedia.org/wiki/Backlink" },
+              { label: "Domain Authority — Wikipedia", url: "https://en.wikipedia.org/wiki/Domain_authority" },
+              { label: "PageRank — Wikipedia", url: "https://en.wikipedia.org/wiki/PageRank" },
+            ]}
           />
           <ToolShareEmbed slug="backlink-value-estimator" state={form} />
         </div>

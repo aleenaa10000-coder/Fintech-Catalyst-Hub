@@ -3483,6 +3483,15 @@ export default function ContentBriefGenerator() {
               { industry: "Neobanks", role: "Content Marketing Managers", benefit: "Neobank content marketing managers systematise their editorial calendar with it — each week's content is briefed using the generator, ensuring consistent heading structure, intent alignment, and FAQ coverage across all published articles." },
               { industry: "Fintech SEO Agencies", role: "Client-Side SEO Managers", benefit: "SEO managers at fintech agencies produce the first 10 article briefs during client onboarding — demonstrating the content strategy before production begins and aligning client expectations on structure, tone, and keyword targeting." },
             ]}
+            faq={[
+              { question: "Is the Content Brief Generator free?", answer: "Yes — the FintechPressHub Content Brief Generator is free with no account or payment required." },
+              { question: "What does the Content Brief Generator produce?", answer: "It outputs a structured brief with suggested headings, questions to answer, key points to cover, and recommended tone — tailored to your target keyword and audience." },
+              { question: "Who should use the Content Brief Generator?", answer: "Content strategists, fintech marketing managers, and freelance writers who want a consistent, SEO-optimised brief framework for each article assignment." },
+            ]}
+            citationUrls={[
+              { label: "Content Strategy — Wikipedia", url: "https://en.wikipedia.org/wiki/Content_strategy" },
+              { label: "Search Engine Optimisation — Wikipedia", url: "https://en.wikipedia.org/wiki/Search_engine_optimization" },
+            ]}
           />
           <ToolShareEmbed slug="content-brief-generator" state={form} />
         </div>

@@ -582,6 +582,15 @@ export default function MetaDescriptionGenerator() {
               { industry: "Fintech Startups", role: "Founding Marketing Teams", benefit: "Early-stage fintech startups create professional meta descriptions for every product page without hiring a specialist — dramatically reducing time-to-launch for new feature pages." },
               { industry: "RegTech & Compliance", role: "Content Writers", benefit: "RegTech writers craft SERP-preview text that accurately represents regulatory content — a YMYL requirement ensuring no misleading previews on financial-services pages." },
             ]}
+            faq={[
+              { question: "Is the Meta Description Generator free?", answer: "Yes — the FintechPressHub Meta Description Generator is free with no account needed." },
+              { question: "How long should a meta description be?", answer: "Google typically displays 150–160 characters. The generator targets this range and includes your target keyword naturally for maximum CTR." },
+              { question: "Will the generated meta descriptions include my keyword?", answer: "Yes — the generator weaves your target keyword into all three description variants to strengthen on-page relevance signals for Google." },
+            ]}
+            citationUrls={[
+              { label: "Meta Element — Wikipedia", url: "https://en.wikipedia.org/wiki/Meta_element" },
+              { label: "Google Search — Snippet Appearance", url: "https://developers.google.com/search/docs/appearance/snippet" },
+            ]}
           />
           <ToolShareEmbed slug="meta-description-generator" state={form} />
         </div>

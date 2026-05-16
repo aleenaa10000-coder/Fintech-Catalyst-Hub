@@ -2687,6 +2687,15 @@ Looking forward to hearing from you,
               { industry: "Embedded Finance", role: "Partnership & BD Teams", benefit: "Embedded finance partnership teams evaluate potential co-marketing domains — scoring partner websites before agreeing to content collaborations or joint case studies that include backlinks." },
               { industry: "WealthTech & Robo-Advisory", role: "Content Marketing Teams", benefit: "WealthTech content teams evaluate financial influencer and blogger domains before pitching guest content — confirming each prospect's authority and relevance justify the content creation effort." },
             ]}
+            faq={[
+              { question: "Is the Link Prospector free?", answer: "Yes — the FintechPressHub Link Prospector is free to use with no account required." },
+              { question: "How many domains can I score with the Link Prospector?", answer: "You can paste and score a list of domains in one batch. It is designed for bulk evaluation so you can prioritise an entire outreach list in a single session." },
+              { question: "Can I export my scored prospect list?", answer: "Yes — once scored, you can copy the prioritised list and paste it into any spreadsheet or outreach CRM to begin your link-building campaign." },
+            ]}
+            citationUrls={[
+              { label: "Link Building — Wikipedia", url: "https://en.wikipedia.org/wiki/Link_building" },
+              { label: "Domain Authority — Wikipedia", url: "https://en.wikipedia.org/wiki/Domain_authority" },
+            ]}
           />
           <ToolShareEmbed slug="link-prospector" state={{ textarea }} />
         </div>

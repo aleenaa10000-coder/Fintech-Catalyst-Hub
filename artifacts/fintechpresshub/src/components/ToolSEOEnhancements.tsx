@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Code, Copy, Check, Shield, Clock, Info } from "lucide-react";
+import { Code, Copy, Check, Shield, Clock, Info, HelpCircle, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 export interface ToolUseCase {
   industry: string;
   role: string;
   benefit: string;
+}
+
+export interface ToolFaqItem {
+  question: string;
+  answer: string;
 }
 
 export interface ToolSEOEnhancementsProps {
@@ -18,16 +23,20 @@ export interface ToolSEOEnhancementsProps {
   lastUpdated: string;
   processingNote: string;
   useCases: ToolUseCase[];
+  faq?: ToolFaqItem[];
+  citationUrls?: Array<{ label: string; url: string }>;
 }
 
 /**
  * Shared section rendered at the bottom of every free tool page.
  *
- * Covers four SEO categories in a single composable component:
+ * Covers six SEO categories in a single composable component:
  *  - Programmatic SEO   → "Who Uses This Tool?" industry use-case cards
- *  - White Hat SEO      → Methodology & Transparency section + last-updated + privacy notice
- *  - Off-Page SEO       → Embed Widget (iframe code) enabling external sites to link back
+ *  - White Hat SEO      → Methodology & Transparency section + last-updated + privacy notice + citation links
+ *  - Off-Page SEO       → Embed Widget (iframe code) enabling external sites to link back with attribution
  *  - On-Page SEO        → Visible crawlable HTML headings and content for Googlebot
+ *  - GEO                → Visible FAQ section for Generative Engine Optimization (AI citation)
+ *  - AEO                → Visible FAQ Q&A content matching FAQPage JSON-LD schema
  */
 export function ToolSEOEnhancements({
   toolSlug,
@@ -38,9 +47,13 @@ export function ToolSEOEnhancements({
   lastUpdated,
   processingNote,
   useCases,
+  faq,
+  citationUrls,
 }: ToolSEOEnhancementsProps) {
   const [copied, setCopied] = useState(false);
-  const toolUrl = `https://fintechpresshub.com/tools/${toolSlug}`;
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
+  const toolUrl = `https://www.fintechpresshub.com/tools/${toolSlug}`;
   const iframeCode =
     `<iframe\n` +
     `  src="${toolUrl}"\n` +
@@ -50,13 +63,20 @@ export function ToolSEOEnhancements({
     `  title="${toolName} — FintechPressHub"\n` +
     `  loading="lazy"\n` +
     `  allow="clipboard-write"\n` +
-    `></iframe>`;
+    `  referrerpolicy="no-referrer-when-downgrade"\n` +
+    `></iframe>\n` +
+    `<p><a href="${toolUrl}" rel="noopener">` +
+    `${toolName} by FintechPressHub</a></p>`;
 
   function copyEmbed() {
     navigator.clipboard.writeText(iframeCode).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     });
+  }
+
+  function toggleFaq(index: number) {
+    setOpenFaqIndex((prev) => (prev === index ? null : index));
   }
 
   return (
@@ -131,8 +151,80 @@ export function ToolSEOEnhancements({
               <span>{processingNote}</span>
             </div>
           </div>
+          {citationUrls && citationUrls.length > 0 && (
+            <div className="mt-5 pt-4 border-t border-slate-200">
+              <p className="text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wider">
+                Methodology Sources
+              </p>
+              <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
+                {citationUrls.map(({ label, url }) => (
+                  <li key={url}>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-[#0052FF] hover:underline"
+                    >
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                      {label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </section>
+
+      {/* ── FAQ — GEO & AEO ─────────────────────────────────────────────────── */}
+      {faq && faq.length > 0 && (
+        <section
+          aria-labelledby={`faq-${toolSlug}`}
+          className="container mx-auto px-4 max-w-3xl"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <HelpCircle className="w-5 h-5 text-[#0052FF] shrink-0" />
+            <h2
+              id={`faq-${toolSlug}`}
+              className="text-xl font-bold text-slate-900"
+            >
+              Frequently Asked Questions
+            </h2>
+          </div>
+          <dl className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
+            {faq.map((item, index) => {
+              const isOpen = openFaqIndex === index;
+              return (
+                <div key={index} className="bg-white">
+                  <dt>
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-controls={`faq-answer-${toolSlug}-${index}`}
+                      onClick={() => toggleFaq(index)}
+                      className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50 transition-colors gap-3"
+                    >
+                      <span>{item.question}</span>
+                      {isOpen ? (
+                        <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                      )}
+                    </button>
+                  </dt>
+                  <dd
+                    id={`faq-answer-${toolSlug}-${index}`}
+                    hidden={!isOpen}
+                    className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed"
+                  >
+                    {item.answer}
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+        </section>
+      )}
 
       {/* ── Embed Widget — Off-Page SEO ──────────────────────────────────────── */}
       <section
@@ -150,7 +242,9 @@ export function ToolSEOEnhancements({
         </div>
         <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
           Add the {toolName} to your own fintech blog or resource hub for free.
-          Copy the code below and paste it into your page HTML.
+          Copy the code below and paste it into your page HTML. An attribution
+          link is included in the snippet — this earns you a dofollow backlink
+          from FintechPressHub in exchange.
         </p>
         <div className="relative bg-slate-900 rounded-xl p-4 mb-3">
           <pre className="text-xs text-slate-300 font-mono whitespace-pre-wrap break-all pr-20">
@@ -177,16 +271,23 @@ export function ToolSEOEnhancements({
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-400" />
           <p>
-            Free to embed on any site. No attribution required, though a link
+            Free to embed on any site. The attribution link in the snippet points
             to{" "}
+            <a
+              href={toolUrl}
+              className="underline underline-offset-2 hover:text-slate-900"
+            >
+              {toolName} on FintechPressHub
+            </a>
+            . All calculations happen client-side — no user data is transmitted
+            to our servers. View the full tool at{" "}
             <Link
               href="/tools"
               className="underline underline-offset-2 hover:text-slate-900"
             >
-              FintechPressHub Tools
-            </Link>{" "}
-            is appreciated. All calculations happen client-side — no user data
-            is transmitted to our servers.
+              FintechPressHub Free Tools
+            </Link>
+            .
           </p>
         </div>
       </section>

@@ -2312,6 +2312,15 @@ export default function GuestPostPitchGenerator() {
               { industry: "Payments Infrastructure", role: "Developer Relations Teams", benefit: "Developer relations and content teams at payments companies pitch technical articles to developer publications and API-focused blogs — acquiring links from highly relevant but hard-to-reach technical communities." },
               { industry: "RegTech & Compliance", role: "Thought Leadership Teams", benefit: "RegTech thought leadership teams pitch regulatory commentary to legal and compliance publications — building E-E-A-T authority signals for YMYL content on KYC, AML, and financial regulation topics." },
             ]}
+            faq={[
+              { question: "Is the Guest Post Pitch Generator free?", answer: "Yes — the FintechPressHub Guest Post Pitch Generator is completely free with no sign-up required." },
+              { question: "What information do I need to generate a pitch?", answer: "You need your name, company, fintech expertise area, the target publication name, the editor's name, and your proposed article title." },
+              { question: "Can I use the generated pitch for any fintech publication?", answer: "Yes — the pitch is fully customisable and works for any fintech, finance, or B2B publication. Personalise it further with a reference to a recent article before sending." },
+            ]}
+            citationUrls={[
+              { label: "Guest Post — Wikipedia", url: "https://en.wikipedia.org/wiki/Guest_post" },
+              { label: "Link Building — Wikipedia", url: "https://en.wikipedia.org/wiki/Link_building" },
+            ]}
           />
           <ToolShareEmbed slug="guest-post-pitch-generator" state={form} />
         </div>

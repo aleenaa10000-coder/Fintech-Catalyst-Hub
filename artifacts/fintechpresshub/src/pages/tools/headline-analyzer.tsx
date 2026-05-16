@@ -2688,6 +2688,14 @@ export default function HeadlineAnalyzer() {
               { industry: "RegTech & Compliance", role: "Policy & Editorial Teams", benefit: "RegTech editorial teams calibrate headline authority — scoring regulatory guides for clarity and SEO power, ensuring they rank for compliance queries without overpromising in SERP previews." },
               { industry: "WealthTech & Investing", role: "Content Strategists", benefit: "WealthTech companies ensure investor-education headlines hit optimal length (6–12 words), include the primary keyword, and contain at least one specificity signal such as a percentage or year." },
             ]}
+            faq={[
+              { question: "Is the Headline Analyzer free?", answer: "Yes — the FintechPressHub Headline Analyzer is completely free with no login required." },
+              { question: "What does the Headline Analyzer score?", answer: "It scores your headline across four dimensions: SEO power, emotional impact, readability, and clarity. You receive an overall score out of 100 with actionable suggestions." },
+              { question: "What makes a high-scoring fintech headline?", answer: "High-scoring headlines include a power word, the primary keyword, a specific number or data point, and are 6–12 words long. Avoid jargon that only insiders understand." },
+            ]}
+            citationUrls={[
+              { label: "Headlines — Wikipedia", url: "https://en.wikipedia.org/wiki/Headlines" },
+            ]}
           />
           <ToolShareEmbed slug="headline-analyzer" state={{ headline }} />
         </div>

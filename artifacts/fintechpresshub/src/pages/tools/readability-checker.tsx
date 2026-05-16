@@ -2474,6 +2474,15 @@ export default function ReadabilityChecker() {
               { industry: "WealthTech & Robo-Advisory", role: "Investor Communications Teams", benefit: "WealthTech companies assess investor-facing content with it — Grade 10–12 is appropriate for high-net-worth client communications that must be sophisticated yet comprehensible." },
               { industry: "B2B Payments SaaS", role: "Technical Writers", benefit: "B2B payments companies benchmark API documentation with it, targeting Flesch 40–55 — technical enough for developers, clear enough for procurement decision-makers." },
             ]}
+            faq={[
+              { question: "Is the Readability Checker free?", answer: "Yes — the FintechPressHub Readability Checker is completely free to use with no account or sign-up required." },
+              { question: "What does the Readability Checker measure?", answer: "It calculates the Flesch Reading Ease score (0–100), reading grade level, average sentence length, and syllable count for any pasted text." },
+              { question: "What readability score should fintech content target?", answer: "Aim for a Flesch score of 50–70 (plain English). Complex B2B fintech content often scores 40–55; below 40 risks high bounce rates from non-specialist readers." },
+            ]}
+            citationUrls={[
+              { label: "Flesch–Kincaid Readability Tests — Wikipedia", url: "https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests" },
+              { label: "Flesch Reading Ease Formula — Wikipedia", url: "https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests#Flesch_reading_ease" },
+            ]}
           />
           <ToolShareEmbed slug="readability-checker" state={{ text }} />
         </div>

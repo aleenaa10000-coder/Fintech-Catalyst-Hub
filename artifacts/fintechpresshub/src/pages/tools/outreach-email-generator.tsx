@@ -2659,6 +2659,15 @@ export default function OutreachEmailGenerator() {
               { industry: "B2B Payments & Fintech SaaS", role: "Growth Teams", benefit: "B2B fintech growth teams use it for digital PR outreach — generating journalist-targeted emails when a product launch, funding announcement, or data release presents a newsworthy link-earning opportunity." },
               { industry: "Open Banking & Embedded Finance", role: "Content Partnerships Teams", benefit: "Content partnerships teams initiate co-marketing relationships with it — the professional tone variant produces the right first impression for reaching out to established financial publications." },
             ]}
+            faq={[
+              { question: "Is the Outreach Email Generator free?", answer: "Yes — the FintechPressHub Outreach Email Generator is completely free with no account required." },
+              { question: "What types of outreach emails can it generate?", answer: "It generates personalised link-building outreach emails in three tones — professional, friendly, or direct — with three alternative subject lines per email." },
+              { question: "Can I use the generated emails for guest-post pitches too?", answer: "The generator is optimised for link-building outreach, but the template structure works well for guest-post pitches too. Use the Guest Post Pitch Generator for a more targeted pitch format." },
+            ]}
+            citationUrls={[
+              { label: "Email Marketing — Wikipedia", url: "https://en.wikipedia.org/wiki/Email_marketing" },
+              { label: "Link Building — Wikipedia", url: "https://en.wikipedia.org/wiki/Link_building" },
+            ]}
           />
           <ToolShareEmbed slug="outreach-email-generator" state={form} />
         </div>
