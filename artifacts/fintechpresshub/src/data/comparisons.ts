@@ -592,6 +592,7 @@ export const COMPARISONS: Comparison[] = [
     datePublished: "2024-11-01",
     lastmod: "2026-05-15",
   },
+  // ─── SEO DISCIPLINE COMPARISONS (8 pages) ────────────────────────────────
   {
     slug: "off-page-seo-vs-on-page-seo",
     title: "Off-Page, On-Page & Technical SEO for Fintech | FintechPressHub",
@@ -629,6 +630,14 @@ export const COMPARISONS: Comparison[] = [
       {
         question: "Can off-page SEO help with Google AI Overviews?",
         answer: "Yes. Google AI Overviews draw on the same authority signals as organic rankings — pages with strong backlink profiles and well-structured content are cited more frequently. We include BLUF paragraphs, speakable markup, and FAQ schema in all content specifically to maximise AI Overview inclusion.",
+      },
+      {
+        question: "How many referring domains does a fintech site need to rank on page one?",
+        answer: "Ahrefs data consistently shows that page-one rankings for competitive fintech keywords (e.g. 'best payment gateway UK', 'open banking API') require 40–150 referring domains with Domain Rating 40+ linking to the target page. However, referring domain count matters less than referring domain relevance — a single DR 70 link from Finextra or The Paypers outweighs 20 links from generic DR 50 sites with no fintech editorial history. For most fintech pages competing in the 10,000–50,000 monthly search volume bracket, 30–60 high-relevance referring domains is the practical page-one threshold.",
+      },
+      {
+        question: "What types of links matter most for fintech domain authority?",
+        answer: "For fintech domain authority, editorial links from specialist publications (Finextra, The Paypers, Fintech Futures, Sifted, AltFi) carry the highest topical relevance signals. These are followed by links from financial services journalists at FT, Bloomberg, and Reuters, then by links from academic and government sources (.gov, .edu) when covering regulatory content. Paid placements and directory links carry minimal signal and risk manual penalty review — FCA and CFPB-regulated entities found to have purchased links face reputational risk beyond the SEO penalty itself.",
       },
     ],
     bottomLine: [
@@ -677,6 +686,14 @@ export const COMPARISONS: Comparison[] = [
         question: "How does FintechPressHub handle technical SEO audits?",
         answer: "We use Semrush and Screaming Frog for crawl analysis, Google Search Console for indexation signals, and PageSpeed Insights for Core Web Vitals measurement. Every new client receives a full technical audit in the first 30 days. We prioritise fixes by impact — critical issues that block indexation are resolved before optimisation-level improvements.",
       },
+      {
+        question: "What technical SEO issues are most common for fintech websites?",
+        answer: "The most common technical SEO issues on fintech websites are: (1) slow server response times on financial data pages, often caused by real-time API calls blocking page rendering; (2) JavaScript-rendered content that Googlebot cannot reliably crawl, including product comparison tables and pricing pages; (3) duplicate content across geo-targeted pages without canonical or hreflang tags; (4) thin content on regulatory disclosure pages that triggers Helpful Content system suppression across the domain; and (5) missing structured data on product and service pages that prevents rich results for 'best X fintech' and 'compare X fintech' queries.",
+      },
+      {
+        question: "How does Core Web Vitals affect fintech website rankings?",
+        answer: "Google's Core Web Vitals (Largest Contentful Paint, Cumulative Layout Shift, Interaction to Next Paint) are a confirmed ranking signal affecting fintech sites in two ways. First, failing pages receive a direct ranking demotion when page experience signals are applied. Second, slow-loading financial comparison pages have 40–60% higher bounce rates than pages meeting the 'Good' threshold — reducing dwell time signals that indirectly affect ranking. Fintech sites with financial data widgets, real-time pricing tables, or third-party compliance banners are particularly prone to LCP failures and should prioritise server-side rendering or static pre-generation for high-traffic landing pages.",
+      },
     ],
     bottomLine: [
       { label: "FintechPressHub — technical first", score: "10 / 10", colorBorder: "border-[#0052FF]", colorScore: "text-[#0052FF]", summary: "We resolve technical foundations before investing in content or links — ensuring every piece of content and every backlink delivers its full ranking impact. No wasted spend on a leaky foundation.", cta: true },
@@ -723,6 +740,14 @@ export const COMPARISONS: Comparison[] = [
       {
         question: "What makes fintech on-page SEO different from general B2B?",
         answer: "Three factors: regulatory precision, YMYL scoring, and domain-specific keyword intent. Fintech content must accurately represent regulated activities (payment processing, lending, open banking) without creating compliance risk. Generic B2B writers lack the domain knowledge to self-correct — meaning your compliance team must review every piece, creating costly bottlenecks.",
+      },
+      {
+        question: "What is E-E-A-T and how does it apply to fintech content?",
+        answer: "E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) is Google's quality framework for evaluating content, applied with particular intensity to YMYL content — which includes all financial services. For fintech, E-E-A-T requires: author credentials visible on every article (job title, linked profile, verifiable publication history); editorial standards published at a crawlable URL; factual claims linked to authoritative sources (regulatory bodies, academic research, recognised industry publications); and clear separation between editorial content and commercial promotion. Missing any of these signals reduces ranking eligibility for high-value fintech queries.",
+      },
+      {
+        question: "How many words should a fintech blog post be to rank well?",
+        answer: "Word count alone does not determine ranking. However, analysis of page-one fintech content shows that high-intent informational queries ('what is open banking', 'how does a neobank work') are typically served by 1,500–2,500 word articles with clear structure (H2/H3 hierarchy, definition blocks, FAQ sections). Commercial query pages ('best fintech SEO agency', 'fintech PR firm London') rank with 800–1,500 words when supported by strong off-page authority. The critical variables are information density and schema completeness (FAQPage, HowTo, BreadcrumbList), not raw word count.",
       },
     ],
     bottomLine: [
@@ -771,6 +796,14 @@ export const COMPARISONS: Comparison[] = [
         question: "How does FintechPressHub implement GEO for fintech clients?",
         answer: "Every piece of content we produce includes a BLUF summary targeting the primary query, FAQ sections with direct short answers under 60 words each, SpeakableSpecification schema, and sourced statistics from credible industry reports. We also ensure full FAQPage and WebPage JSON-LD is present on every page so AI crawlers can parse content structure without executing JavaScript.",
       },
+      {
+        question: "How can fintech companies get cited in Google AI Overviews?",
+        answer: "Google AI Overviews draw from pages that meet three criteria simultaneously: topical authority (the domain must have strong E-E-A-T signals for the query's subject matter), structured data completeness (FAQPage, Article, BreadcrumbList, and Speakable schema), and content format suitability (answers written in concise, direct prose that can be extracted without losing meaning). For fintech companies, this means creating dedicated explainer pages ('What is embedded finance?', 'How does a payment gateway work?') with BLUF summaries, FAQ sections, and citations from FCA or CFPB regulatory sources — combined with off-page authority from recognised fintech publishers.",
+      },
+      {
+        question: "What percentage of Google searches trigger AI Overviews in 2026?",
+        answer: "As of early 2026, Google AI Overviews appear on approximately 15–25% of informational queries across all verticals, with higher rates (30–40%) for financial services definition and comparison queries. SparkToro data suggests AI Overview impressions are growing month-on-month but click-through rates on AI Overview results remain 20–40% lower than traditional blue-link organic results. For fintech brands, AI Overview citation is the priority growth vector — being named as the source still drives brand awareness and research-phase authority even when direct clicks are reduced.",
+      },
     ],
     bottomLine: [
       { label: "GEO-optimised (FintechPressHub)", score: "10 / 10", colorBorder: "border-[#0052FF]", colorScore: "text-[#0052FF]", summary: "Every deliverable includes BLUF paragraphs, FAQ schema, SpeakableSpecification, and AI-readable structure — positioning content for citation in Google AI Overviews and LLM-based answer engines.", cta: true },
@@ -817,6 +850,14 @@ export const COMPARISONS: Comparison[] = [
       {
         question: "What schema does FintechPressHub use for AEO?",
         answer: "Every piece of content we produce includes FAQPage schema (with question and acceptedAnswer entities), SpeakableSpecification targeting the BLUF summary and FAQ section, BreadcrumbList for entity graph clarity, and WebPage with author, publisher, and dateModified for freshness signals. On informational pages, we also add HowTo and DefinedTerm schema where appropriate to expand rich-result eligibility.",
+      },
+      {
+        question: "How do you write content that gets extracted as a featured snippet?",
+        answer: "Featured snippets are extracted from content that directly answers a specific question in a format Google can isolate without context: a short paragraph (40–60 words) for definition queries, a numbered list for process queries, or a table for comparison queries. For fintech content, the most reliable approach is the 'question-then-answer' structure: include the exact question as an H2 heading, follow it immediately with a concise direct answer in the first sentence, then expand with supporting detail. Pages should also include FAQPage schema marking up the Q&A so Google can extract both the featured snippet and follow-up questions simultaneously.",
+      },
+      {
+        question: "What schema markup is most important for fintech AEO?",
+        answer: "For fintech Answer Engine Optimization, the priority schema types are: (1) FAQPage — marks up Q&A pairs so AI engines can extract structured answers to voice and text queries; (2) HowTo — enables step-by-step rich results for process queries ('how to switch banks', 'how to apply for a fintech licence'); (3) DefinedTerm — declares definitions of technical fintech terms so AI rankers can use your content for 'what is X' queries; (4) SpeakableSpecification — identifies which CSS selectors contain voice-extractable content; and (5) Article with Author — provides E-E-A-T signals that AI citation engines use to verify content credibility before promoting answers.",
       },
     ],
     bottomLine: [
@@ -865,6 +906,14 @@ export const COMPARISONS: Comparison[] = [
         question: "How does FintechPressHub approach international fintech SEO?",
         answer: "We implement full hreflang configurations (en-US, en-GB, en-AU, en-SG, en-CA) on all client pages, build market-specific content reflecting local regulatory frameworks, and run dedicated link outreach to fintech publications in each target market. Our internal team includes operators with experience in UK FCA, US CFPB, EU EBA, Singapore MAS, and Australia ASIC regulated environments.",
       },
+      {
+        question: "How do you implement hreflang for a fintech website correctly?",
+        answer: "Correct hreflang implementation for fintech sites requires four elements: (1) a self-referencing hreflang tag on every page (e.g. hreflang='en-GB' pointing to the page itself); (2) reciprocal hreflang tags — every locale variation must tag every other locale version, or Google ignores the entire hreflang set; (3) an x-default tag pointing to the default locale URL for users in markets not covered by specific tags; and (4) consistent implementation across link tags in the HTML head, HTTP headers, and the XML sitemap. Inconsistencies between these delivery methods cause Google to discard the hreflang signal entirely — the most common error on fintech sites expanding from a single-market domain.",
+      },
+      {
+        question: "Which fintech markets have the highest search volume for SEO keywords?",
+        answer: "Based on Ahrefs and Semrush data, the highest-volume fintech search markets are: (1) United States — dominated by payments, neobanking, and personal finance queries with CPCs exceeding $15–$40 for commercial terms; (2) United Kingdom — strong regulatory-content demand with high commercial intent in B2B fintech; (3) India — high-volume but lower-CPC queries in payments and UPI verticals; (4) Australia — strong demand for buy-now-pay-later and open banking content following CDR regulatory rollout; and (5) Singapore — high-value MAS regulatory and fintech licensing queries. For international fintech SEO investment, UK and US typically offer the highest ROI per published page.",
+      },
     ],
     bottomLine: [
       { label: "International SEO (FintechPressHub)", score: "10 / 10", colorBorder: "border-[#0052FF]", colorScore: "text-[#0052FF]", summary: "Full hreflang implementation, market-specific regulatory content, and international link building across UK, US, AU, SG, and CA markets — unlocking the global fintech search audience.", cta: true },
@@ -912,6 +961,14 @@ export const COMPARISONS: Comparison[] = [
         question: "How does FintechPressHub approach programmatic SEO?",
         answer: "We build programmatic pages on proprietary client data — product comparison matrices, pricing tables, jurisdiction-specific regulatory guides — ensuring every generated page delivers information that cannot be found in the same form elsewhere. Each template is reviewed by a fintech-specialist editor before deployment, and we implement canonical, hreflang, and indexation controls to prevent thin-content signals from spreading across the domain.",
       },
+      {
+        question: "What makes a good programmatic SEO data source for fintech?",
+        answer: "A viable programmatic SEO data source for fintech must provide genuinely unique data per generated URL — not data available verbatim on competitor or government websites. The best sources are: proprietary product comparison data (fee tables, feature matrices, rate comparisons not available in aggregated form elsewhere); jurisdiction-specific regulatory information structured by market; and proprietary research data (client aggregate statistics, industry survey results). Data scraped from public sources without transformation, or generic product descriptions, fails Google's information-gain test and suppresses generated pages regardless of technical SEO quality.",
+      },
+      {
+        question: "How do you prevent Google from penalising programmatic SEO pages?",
+        answer: "To protect programmatic SEO pages from Helpful Content system suppression: (1) ensure every generated URL provides unique information not available in the same structured form elsewhere; (2) implement an information-gain review process where each template is evaluated before deployment; (3) use robots.txt or noindex on variant URLs with insufficient content; (4) add FAQPage and Article schema with author attribution to every generated page; (5) link generated pages from a relevant hub page with contextual anchor text to pass indexation signals; and (6) monitor crawl rate and indexation ratio in Google Search Console — a falling indexation rate is the earliest signal that Google is suppressing generated content.",
+      },
     ],
     bottomLine: [
       { label: "Programmatic SEO (FintechPressHub)", score: "10 / 10", colorBorder: "border-[#0052FF]", colorScore: "text-[#0052FF]", summary: "Data-driven, information-gain-first programmatic pages with compliance review on every template — scalable URL coverage without thin-content risk or regulatory exposure.", cta: true },
@@ -958,6 +1015,14 @@ export const COMPARISONS: Comparison[] = [
       {
         question: "How does FintechPressHub ensure its link building is white hat?",
         answer: "Every link we build is editorial — placed within genuinely relevant fintech content on DR 50+ publications that commission articles on their standard editorial standards. We do not purchase links, participate in link exchanges, or use private blog networks. Every placement is documented with the publication name, article URL, anchor text, and live date — providing a full audit trail that withstands Google manual review and regulatory scrutiny.",
+      },
+      {
+        question: "What makes a backlink 'white hat' for fintech companies?",
+        answer: "A white-hat backlink for fintech companies must meet four criteria: (1) it was placed editorially — the linking publication decided to include it based on the relevance and quality of the linked content, not in exchange for payment or any other incentive; (2) the anchor text describes the linked content accurately without keyword-stuffing manipulation; (3) the linking page is relevant to the linked topic and published on a domain with genuine editorial standards, not a private blog network or article farm; and (4) the link is permanent — not placed under a sponsorship arrangement or link-for-review deal that will eventually be removed. Every link should withstand review by both Google's quality team and FCA/CFPB compliance teams.",
+      },
+      {
+        question: "How long does it take to see results from white hat SEO for fintech?",
+        answer: "White hat SEO for fintech follows a consistent timeline: months 1–3 see technical optimisation gains (crawl efficiency improvements, site speed, structured data), which typically produce ranking lifts on long-tail queries; months 4–6 see content-led gains as new pages are crawled, indexed, and begin accumulating click signals; months 7–12 see the compounding effect of link acquisition, with domain rating improving and previously flat pages entering the top 10 for target keywords. The industry benchmark for fintech SEO is a 40–70% increase in organic sessions by month 12 for sites starting from a strong technical baseline, and 2–5x growth by month 24 when link building is added to content production.",
       },
     ],
     bottomLine: [

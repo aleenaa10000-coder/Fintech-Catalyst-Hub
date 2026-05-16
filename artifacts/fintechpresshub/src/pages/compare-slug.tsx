@@ -48,60 +48,6 @@ export default function CompareSlug() {
         <link rel="alternate" hrefLang="en-SG" href={canonical} />
         <link rel="alternate" hrefLang="en-CA" href={canonical} />
         <link rel="alternate" hrefLang="x-default" href={canonical} />
-        {/* AEO: DefinedTerm schema for each compared entity — enables "What is X?" rich
-            results and gives voice assistants and AI rankers structured definitions for
-            the three options being evaluated. Uses bottomLine summaries as definitions. */}
-        <script type="application/ld+json">
-          {JSON.stringify([
-            {
-              "@context": "https://schema.org",
-              "@type": "DefinedTerm",
-              "@id": `${canonical}#term-a`,
-              name: comparison.colA,
-              description: comparison.bottomLine[0]?.summary ?? "",
-              inDefinedTermSet: `${SITE_URL}/compare#glossary`,
-              url: canonical,
-            },
-            {
-              "@context": "https://schema.org",
-              "@type": "DefinedTerm",
-              "@id": `${canonical}#term-b`,
-              name: comparison.colB,
-              description: comparison.bottomLine[1]?.summary ?? "",
-              inDefinedTermSet: `${SITE_URL}/compare#glossary`,
-              url: canonical,
-            },
-            {
-              "@context": "https://schema.org",
-              "@type": "DefinedTerm",
-              "@id": `${canonical}#term-c`,
-              name: comparison.colC,
-              description: comparison.bottomLine[2]?.summary ?? "",
-              inDefinedTermSet: `${SITE_URL}/compare#glossary`,
-              url: canonical,
-            },
-          ])}
-        </script>
-        {/* Off-Page / GEO: citation + isBasedOn extend the SSR Article entity (by @id)
-            with source references from COMPARISON_SOURCES. Schema.org allows multiple
-            JSON-LD blocks describing the same entity via @id — search engines and AI
-            rankers merge them. This makes every comparison page's Article explicitly
-            cite its authoritative external sources in structured data, not just in DOM. */}
-        {(COMPARISON_SOURCES[comparison.slug] ?? []).length > 0 && (
-          <script type="application/ld+json">
-            {JSON.stringify({
-              "@context": "https://schema.org",
-              "@type":    "Article",
-              "@id":      `${canonical}#article`,
-              citation: (COMPARISON_SOURCES[comparison.slug] ?? []).map((src) => ({
-                "@type": "CreativeWork",
-                name:    src.text,
-                url:     src.url,
-              })),
-              isBasedOn: (COMPARISON_SOURCES[comparison.slug] ?? []).map((src) => src.url),
-            })}
-          </script>
-        )}
       </Helmet>
       <PageMeta
         title={comparison.title}
@@ -132,6 +78,65 @@ export default function CompareSlug() {
           usageInfo: "https://fintechpresshub.com/terms",
           copyrightNotice: `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
           publishingPrinciples: "https://fintechpresshub.com/editorial-guidelines",
+          audience: "Fintech founders, CMOs, and marketing leaders evaluating fintech SEO and content strategies",
+          availableLanguage: ["en-US", "en-GB", "en-AU", "en-SG", "en-CA"],
+          isAccessibleForFree: true,
+          accessibilityFeature: ["readingOrder", "structuralNavigation"],
+          accessMode: ["textual", "visual"],
+          mentions: ["FCA", "CFPB", "MAS", "EBA", "ASIC", "Google Search Central", "Ahrefs", "Moz"],
+        }}
+        howTo={{
+          name: `How to choose between ${comparison.colA}, ${comparison.colB}, and ${comparison.colC} for fintech`,
+          description: "A structured five-step framework for evaluating fintech SEO approaches and selecting the right strategy for your growth stage, regulatory environment, and budget.",
+          totalTime: "PT15M",
+          datePublished: comparison.datePublished,
+          dateModified: comparison.lastmod,
+          steps: [
+            {
+              name: "Audit your current organic footprint",
+              text: "Use Google Search Console and Ahrefs to benchmark your current keyword rankings, organic traffic, and domain rating. Identify gaps between your current position and your 12-month growth target before evaluating any new approach.",
+            },
+            {
+              name: "Define your growth stage and budget constraints",
+              text: "Determine whether you are pre-Series A, Series A, or Series B+. Budget constraints and time-to-value requirements differ significantly at each stage and should determine your channel prioritisation and agency vs in-house decision.",
+            },
+            {
+              name: "Evaluate each option against your compliance requirements",
+              text: "For regulated fintech companies, ensure your chosen SEO approach meets FCA financial promotion rules, CFPB disclosure requirements, MAS advertising guidelines, or EBA standards applicable to your markets. Non-compliant content creates regulatory risk independent of SEO performance.",
+            },
+            {
+              name: "Score each option across the criteria in this comparison",
+              text: "Use the comparison table above to score each option against your specific requirements. Weight the criteria that directly affect your primary KPIs — typically organic sessions, keyword rankings in target markets, and referring domain growth from relevant publishers.",
+            },
+            {
+              name: "Select an approach and define success metrics before launch",
+              text: "Commit to a 90-day trial period with clearly defined success metrics: keyword rank movement (target terms entering the top 10), referring domain growth (DR 40+ domains per month), and organic session growth (week-over-week trend). Review at day 90 before committing to a 12-month programme.",
+            },
+          ],
+        }}
+        article={{
+          title: comparison.heroTitle,
+          description: comparison.heroDescription,
+          datePublished: comparison.datePublished,
+          dateModified: comparison.lastmod,
+          author: "FintechPressHub Editorial Team",
+          authorUrl: `${SITE_URL}/about`,
+          image: `${SITE_URL}/opengraph.jpg`,
+          citation: (COMPARISON_SOURCES[comparison.slug] ?? []).map((src) => src.text),
+          isBasedOn: (COMPARISON_SOURCES[comparison.slug] ?? []).map((src) => src.url),
+          copyrightNotice: `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
+          accessibilityHazard: "none",
+          about: ["Fintech SEO Comparison", comparison.colA, comparison.colB, comparison.colC],
+          mentions: [comparison.colA, comparison.colB, comparison.colC],
+        }}
+        definedTermSet={{
+          name: `${comparison.colA} vs ${comparison.colB} vs ${comparison.colC} — Glossary`,
+          terms: [
+            { name: comparison.colA, description: comparison.bottomLine[0]?.summary ?? "", url: `${canonical}#term-a` },
+            { name: comparison.colB, description: comparison.bottomLine[1]?.summary ?? "", url: `${canonical}#term-b` },
+            { name: comparison.colC, description: comparison.bottomLine[2]?.summary ?? "", url: `${canonical}#term-c` },
+          ],
         }}
       />
 

@@ -80,6 +80,13 @@ export type ArticleSchema = {
    */
   citation?: string[];
   /**
+   * Source URLs this article is based on — emitted as `isBasedOn` array on
+   * BlogPosting JSON-LD. Complements `citation` by providing machine-readable
+   * URL references for AI citation engines and Google's Knowledge Graph to
+   * trace the article's factual provenance (Off-Page / GEO signal).
+   */
+  isBasedOn?: string[];
+  /**
    * Plain-text copyright notice emitted on BlogPosting JSON-LD.
    * AI citation engines (Google AIO, Perplexity, ChatGPT Search) parse this
    * to confirm attribution requirements before quoting content.
@@ -293,6 +300,48 @@ export type WebPageSchema = {
   about?: string[];
   /** Page-level keyword list joined into schema.org `keywords` string. */
   keywords?: string[];
+  /**
+   * Audience descriptor — emitted as `audience.audienceType` on WebPage JSON-LD.
+   * AEO/GEO signal: AI Overview engines surface pages with clear ICP audience for
+   * queries targeting specific buyer personas (e.g. "fintech CMO SEO guide").
+   * Example: "Fintech founders, CMOs, and marketing leaders"
+   */
+  audience?: string;
+  /**
+   * Available language variants — emitted as Language objects on WebPage JSON-LD.
+   * International SEO signal: declares which locale editions exist so Google's
+   * international targeting resolves the correct content per region without hreflang alone.
+   * Example: ["en-US", "en-GB", "en-AU", "en-SG", "en-CA"]
+   */
+  availableLanguage?: string[];
+  /**
+   * Whether the page is freely accessible without registration or paywall.
+   * Emitted as `isAccessibleForFree` on WebPage JSON-LD.
+   * White Hat / AI citation signal: AI engines (Google AIO, Perplexity) strongly
+   * prefer citing freely accessible content over paywalled sources.
+   */
+  isAccessibleForFree?: boolean;
+  /**
+   * Accessibility feature declarations — emitted as `accessibilityFeature` array.
+   * WCAG-aligned White Hat signal completing the four-field accessibility triad
+   * (accessMode, accessibilityFeature, accessibilityHazard, conditionsOfAccess).
+   * Example: ["readingOrder", "structuralNavigation"]
+   */
+  accessibilityFeature?: string[];
+  /**
+   * Access mode declarations — emitted as `accessMode` array on WebPage JSON-LD.
+   * Completes the WCAG accessibility triad alongside accessibilityFeature.
+   * Example: ["textual", "visual"]
+   */
+  accessMode?: string[];
+  /**
+   * Named entities mentioned (but not the primary subject) of this page.
+   * Emitted as `mentions` Thing array on WebPage JSON-LD — off-page and GEO
+   * signal that creates knowledge-graph edges between the page and regulatory
+   * or industry org entities (FCA, CFPB, MAS, EBA, ASIC).
+   * Example: ["FCA", "CFPB", "MAS", "EBA", "ASIC"]
+   */
+  mentions?: string[];
 };
 
 export type HowToStep = {
@@ -618,6 +667,27 @@ export function PageMeta(props: PageMetaProps) {
             ...(props.faqDateModified ?? props.webPage?.dateModified
               ? { dateModified: props.faqDateModified ?? props.webPage?.dateModified }
               : {}),
+            // copyrightNotice — propagated from webPage to FAQPage so AI citation
+            // engines can attribute the answer source back to FintechPressHub.
+            ...(props.webPage?.copyrightNotice
+              ? { copyrightNotice: props.webPage.copyrightNotice }
+              : {}),
+            // publishingPrinciples — propagated to FAQPage so YMYL E-E-A-T raters
+            // can verify editorial standards on answer content (AEO A-10).
+            ...(props.webPage?.publishingPrinciples
+              ? { publishingPrinciples: props.webPage.publishingPrinciples }
+              : {}),
+            // mentions — creates KG edges from FAQPage to regulatory and industry
+            // entities cited within the answer text; boosts AEO citation eligibility
+            // and GEO clustering for AI Overview extraction (G-13).
+            ...(props.webPage?.mentions && props.webPage.mentions.length > 0
+              ? {
+                  mentions: props.webPage.mentions.map((m) => ({
+                    "@type": "Thing",
+                    name: m,
+                  })),
+                }
+              : {}),
             mainEntity: props.faq.map((item) => ({
               "@type": "Question",
               name: item.question,
@@ -938,6 +1008,50 @@ export function PageMeta(props: PageMetaProps) {
         ...(props.webPage?.keywords && props.webPage.keywords.length > 0
           ? { keywords: props.webPage.keywords.join(", ") }
           : {}),
+        // audience — AEO/GEO signal: AI Overview engines surface pages whose audience
+        // matches the ICP of the query (e.g. "fintech CMO", "Series B fintech founder").
+        // Mirrors the audience field on ContactPage and Service schemas above.
+        ...(props.webPage?.audience
+          ? { audience: { "@type": "Audience", audienceType: props.webPage.audience } }
+          : {}),
+        // availableLanguage — International SEO signal: Language objects allow Google's
+        // international targeting to resolve locale editions beyond hreflang alone (I-5).
+        ...(props.webPage?.availableLanguage && props.webPage.availableLanguage.length > 0
+          ? {
+              availableLanguage: props.webPage.availableLanguage.map((l) => ({
+                "@type": "Language",
+                name: l,
+              })),
+            }
+          : {}),
+        // isAccessibleForFree — White Hat / AI citation engine preference signal.
+        // AI extractors (Google AIO, Perplexity) strongly prefer freely accessible pages
+        // when selecting citation candidates (White Hat W-11).
+        ...(props.webPage?.isAccessibleForFree !== undefined
+          ? { isAccessibleForFree: props.webPage.isAccessibleForFree }
+          : {}),
+        // accessibilityFeature — WCAG-aligned White Hat declaration completing the
+        // four-field accessibility triad expected by AI quality-rater systems (W-12).
+        ...(props.webPage?.accessibilityFeature && props.webPage.accessibilityFeature.length > 0
+          ? { accessibilityFeature: props.webPage.accessibilityFeature }
+          : {}),
+        // accessMode — paired with accessibilityFeature and accessibilityHazard to
+        // satisfy the full WCAG accessibility triad in WebPage schema (W-13).
+        ...(props.webPage?.accessMode && props.webPage.accessMode.length > 0
+          ? { accessMode: props.webPage.accessMode }
+          : {}),
+        // mentions — named entities referenced but not the primary subject of this page.
+        // Creates Knowledge Graph edges to regulatory orgs (FCA, CFPB, MAS, EBA, ASIC)
+        // and industry publishers — amplifying off-page authority signals (Off-Page O-9)
+        // and GEO citation-engine clustering (G-12).
+        ...(props.webPage?.mentions && props.webPage.mentions.length > 0
+          ? {
+              mentions: props.webPage.mentions.map((m) => ({
+                "@type": "Thing",
+                name: m,
+              })),
+            }
+          : {}),
       }
     : null;
 
@@ -1122,6 +1236,11 @@ export function PageMeta(props: PageMetaProps) {
       ? {
           "@context": "https://schema.org",
           "@type": "ItemList",
+          // @id allows the parent CollectionPage (or WebPage) to reference this
+          // ItemList entity via mainEntity { "@id": "#itemlist" }, creating an
+          // explicit KG edge between the hub WebPage and its child listing —
+          // matching the SSR ItemList @id emitted by ssrMeta.ts (Programmatic P-4).
+          "@id": `${canonical}#itemlist`,
           name: props.itemList.name,
           ...(props.itemList.description
             ? { description: props.itemList.description }
@@ -1478,6 +1597,12 @@ export function PageMeta(props: PageMetaProps) {
                 ...(src.startsWith("http") ? { url: src } : { name: src }),
               })),
             }
+          : {}),
+        // isBasedOn — URL references to primary sources; complements `citation`
+        // by providing machine-readable provenance links for AI citation engines
+        // and Google's Knowledge Graph (Off-Page / GEO factual sourcing signal).
+        ...(props.article.isBasedOn && props.article.isBasedOn.length > 0
+          ? { isBasedOn: props.article.isBasedOn }
           : {}),
         // copyrightNotice: machine-readable rights statement consumed by AI
         // citation engines (Google AIO, Perplexity, ChatGPT Search) to confirm

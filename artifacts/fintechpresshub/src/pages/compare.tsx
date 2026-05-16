@@ -106,6 +106,23 @@ export default function Compare() {
           usageInfo: "https://fintechpresshub.com/terms",
           copyrightNotice: `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
           publishingPrinciples: "https://fintechpresshub.com/editorial-guidelines",
+          audience: "Fintech founders, CMOs, and marketing leaders evaluating SEO and content marketing strategies",
+          availableLanguage: ["en-US", "en-GB", "en-AU", "en-SG", "en-CA"],
+          isAccessibleForFree: true,
+          accessibilityFeature: ["readingOrder", "structuralNavigation"],
+          accessMode: ["textual", "visual"],
+          mentions: [
+            "FCA",
+            "CFPB",
+            "MAS",
+            "EBA",
+            "ASIC",
+            "Google Search Central",
+            "Ahrefs",
+            "Moz",
+            "Finextra",
+            "The Paypers",
+          ],
         }}
         faq={faqItems}
         itemList={{
