@@ -3841,6 +3841,11 @@ async function handleSsrMeta(
         ogDescription: cmpMeta.description,
         ogImage:       `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Compare`,
         ogImageAlt:    leafLabel,
+        // Off-Page / On-Page SEO: og:type="article" is the correct OG type for pages
+        // that carry Article schema — blog posts already use this. Compare pages now
+        // have Article LD (added 2026-05-15) so the OG type must match for consistent
+        // social-crawler interpretation and LinkedIn/Facebook rich unfurling.
+        ogType:        "article",
         // International SEO: 5 regional English hreflang codes for the primary fintech
         // markets — US, UK, Australia, Singapore, Canada. patchHtml already injects
         // hreflang="en" and "x-default" unconditionally; these are additive and align
@@ -3851,6 +3856,15 @@ async function handleSsrMeta(
           // consistent with en-US hreflang. og:locale:alternate for GB/AU/SG/CA are injected
           // globally by patchHtml. Together they cover all five primary fintech markets.
           `  <meta property="og:locale" content="en_US" />`,
+          // Off-Page / On-Page SEO: article:* Open Graph meta tags are required when
+          // og:type="article" — Facebook, LinkedIn, and Slack unfurling reads these to
+          // display publication date, modification date, author, and section in link
+          // previews. Freshness signals also feed Google Discover eligibility for article
+          // content in financial services verticals.
+          `  <meta property="article:published_time" content="${COMPARE_PAGE_CREATED[slug] ?? STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01"}" />`,
+          ...(COMPARE_PAGE_LASTMOD[slug] ? [`  <meta property="article:modified_time" content="${COMPARE_PAGE_LASTMOD[slug]}" />`] : []),
+          `  <meta property="article:author" content="FintechPressHub" />`,
+          `  <meta property="article:section" content="Fintech SEO" />`,
           `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
           `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
           `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,

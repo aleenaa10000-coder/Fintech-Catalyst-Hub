@@ -82,6 +82,26 @@ export default function CompareSlug() {
             },
           ])}
         </script>
+        {/* Off-Page / GEO: citation + isBasedOn extend the SSR Article entity (by @id)
+            with source references from COMPARISON_SOURCES. Schema.org allows multiple
+            JSON-LD blocks describing the same entity via @id — search engines and AI
+            rankers merge them. This makes every comparison page's Article explicitly
+            cite its authoritative external sources in structured data, not just in DOM. */}
+        {(COMPARISON_SOURCES[comparison.slug] ?? []).length > 0 && (
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org",
+              "@type":    "Article",
+              "@id":      `${canonical}#article`,
+              citation: (COMPARISON_SOURCES[comparison.slug] ?? []).map((src) => ({
+                "@type": "CreativeWork",
+                name:    src.text,
+                url:     src.url,
+              })),
+              isBasedOn: (COMPARISON_SOURCES[comparison.slug] ?? []).map((src) => src.url),
+            })}
+          </script>
+        )}
       </Helmet>
       <PageMeta
         title={comparison.title}
