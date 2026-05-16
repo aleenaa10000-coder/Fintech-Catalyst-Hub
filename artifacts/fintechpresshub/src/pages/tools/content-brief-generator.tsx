@@ -2494,16 +2494,43 @@ export default function ContentBriefGenerator() {
     <div className="min-h-screen bg-background">
       <PageMeta
         page="contentBriefGenerator"
+        faq={[
+          { question: "Is the Content Brief Generator free?", answer: "Yes — the FintechPressHub Content Brief Generator is free with no account or payment required." },
+          { question: "What does the Content Brief Generator produce?", answer: "It outputs a structured brief with suggested headings, questions to answer, key points to cover, and recommended tone — tailored to your target keyword and audience." },
+          { question: "Who should use the Content Brief Generator?", answer: "Content strategists, fintech marketing managers, and freelance writers who want a consistent, SEO-optimised brief framework for each article assignment." },
+        ]}
+        webPage={{
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          conditionsOfAccess:  "https://schema.org/OnlineAccess",
+          usageInfo:           "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree: true,
+          accessibilityFeature: ["alternativeText", "structuredNavigation"],
+        }}
+        speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{
-          name: "Content Brief Generator for Fintech",
+          name:                "Content Brief Generator for Fintech",
           applicationCategory: "BusinessApplication",
-          operatingSystem: "Web",
-          url: "https://www.fintechpresshub.com/tools/content-brief-generator",
-          description: "Generate a structured fintech article brief in seconds — with H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities.",
-          offers: { price: "0", priceCurrency: "USD" },
+          operatingSystem:     "Web",
+          url:                 "https://www.fintechpresshub.com/tools/content-brief-generator",
+          description:         "Generate a structured fintech article brief in seconds — with H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities.",
+          offers:              { price: "0", priceCurrency: "USD" },
+          isAccessibleForFree: true,
+          inLanguage:          "en",
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          provider:            { "@id": "https://www.fintechpresshub.com#organization" },
+          potentialAction:     { "@type": "UseAction", target: "https://www.fintechpresshub.com/tools/content-brief-generator" },
+          featureList: [
+            "Structured brief with suggested H2/H3 headings",
+            "Key questions to answer and points to cover",
+            "Recommended tone and target audience definition",
+            "Fintech-specific angle suggestions for competitive SERP differentiation",
+            "Export-ready plain-text format for any CMS or doc tool",
+          ],
         }}
         howTo={{
-          name: "How to Generate a Fintech Content Brief",
+          name:        "How to Generate a Fintech Content Brief",
           description: "Use the free Content Brief Generator to create structured article briefs for your fintech writers.",
           steps: [
             { name: "Enter your topic and keyword", text: "Type your target keyword and article topic into the input fields." },
@@ -2519,6 +2546,12 @@ export default function ContentBriefGenerator() {
         title="Content Brief Generator"
         description="Enter a keyword and target audience to get a structured professional article brief — with H2s, meta copy, tone guidelines, FAQ suggestions, and internal link opportunities."
       />
+
+      <div className="container mx-auto px-4 pb-2">
+        <p className="speakable-summary text-center text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Create a structured article brief with H2 headings, key questions, tone guidelines, and FAQ suggestions for any fintech topic — free, no account needed.
+        </p>
+      </div>
 
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-3xl">

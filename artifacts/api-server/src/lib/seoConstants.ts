@@ -82,16 +82,16 @@ export type CompareSlug = (typeof COMPARE_SLUGS)[number];
  * Update a date here whenever a tool's content or functionality changes.
  */
 export const TOOL_PAGE_LASTMOD: Readonly<Record<string, string>> = {
-  "financial-health-score-calculator": "2026-05-11",
-  "meta-description-generator":        "2026-04-25",
-  "guest-post-pitch-generator":        "2026-04-25",
-  "readability-checker":               "2026-04-25",
-  "keyword-difficulty-estimator":      "2026-04-25",
-  "backlink-value-estimator":          "2026-04-25",
-  "content-brief-generator":           "2026-04-25",
-  "headline-analyzer":                 "2026-04-25",
-  "link-prospector":                   "2026-05-09",
-  "outreach-email-generator":          "2026-05-09",
+  "financial-health-score-calculator": "2026-05-16",
+  "meta-description-generator":        "2026-05-16",
+  "guest-post-pitch-generator":        "2026-05-16",
+  "readability-checker":               "2026-05-16",
+  "keyword-difficulty-estimator":      "2026-05-16",
+  "backlink-value-estimator":          "2026-05-16",
+  "content-brief-generator":           "2026-05-16",
+  "headline-analyzer":                 "2026-05-16",
+  "link-prospector":                   "2026-05-16",
+  "outreach-email-generator":          "2026-05-16",
 };
 
 /**

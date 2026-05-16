@@ -899,16 +899,43 @@ export default function GuestPostPitchGenerator() {
     <div className="min-h-screen bg-background">
       <PageMeta
         page="guestPostPitchGenerator"
+        faq={[
+          { question: "Is the Guest Post Pitch Generator free?", answer: "Yes — the FintechPressHub Guest Post Pitch Generator is completely free with no sign-up required." },
+          { question: "What information do I need to generate a pitch?", answer: "You need your name, company, fintech expertise area, the target publication name, the editor's name, and your proposed article title." },
+          { question: "Can I use the generated pitch for any fintech publication?", answer: "Yes — the pitch is fully customisable and works for any fintech, finance, or B2B publication. Personalise it further with a reference to a recent article before sending." },
+        ]}
+        webPage={{
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          conditionsOfAccess:  "https://schema.org/OnlineAccess",
+          usageInfo:           "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree: true,
+          accessibilityFeature: ["alternativeText", "structuredNavigation"],
+        }}
+        speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{
-          name: "Guest Post Pitch Generator for Fintech",
+          name:                "Guest Post Pitch Generator for Fintech",
           applicationCategory: "BusinessApplication",
-          operatingSystem: "Web",
-          url: "https://www.fintechpresshub.com/tools/guest-post-pitch-generator",
-          description: "Create a personalised guest post pitch email in seconds. Fill in your details and get a ready-to-copy pitch for any fintech publication.",
-          offers: { price: "0", priceCurrency: "USD" },
+          operatingSystem:     "Web",
+          url:                 "https://www.fintechpresshub.com/tools/guest-post-pitch-generator",
+          description:         "Create a personalised guest post pitch email in seconds. Fill in your details and get a ready-to-copy pitch for any fintech publication.",
+          offers:              { price: "0", priceCurrency: "USD" },
+          isAccessibleForFree: true,
+          inLanguage:          "en",
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          provider:            { "@id": "https://www.fintechpresshub.com#organization" },
+          potentialAction:     { "@type": "UseAction", target: "https://www.fintechpresshub.com/tools/guest-post-pitch-generator" },
+          featureList: [
+            "Produces a personalised outreach email for any target publication",
+            "Incorporates your company name, niche, and proposed article angle",
+            "Addresses the editor by name for higher open rates",
+            "Formatted for fintech and financial-services editorial teams",
+            "No account required — instant generation",
+          ],
         }}
         howTo={{
-          name: "How to Generate a Guest Post Pitch for Fintech Publications",
+          name:        "How to Generate a Guest Post Pitch for Fintech Publications",
           description: "Use the free Guest Post Pitch Generator to craft personalised outreach emails for fintech link building.",
           steps: [
             { name: "Fill in your details", text: "Enter your name, target publication, article topic idea, and brief author bio." },
@@ -924,6 +951,12 @@ export default function GuestPostPitchGenerator() {
         title="Guest Post Pitch Generator"
         description="Create a compelling, personalised pitch email for any professional publication in seconds. Fill in a few details and get a ready-to-send draft you can refine and copy."
       />
+
+      <div className="container mx-auto px-4 pb-2">
+        <p className="speakable-summary text-center text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Create a personalised guest post pitch email for any fintech publication in seconds — free, no sign-up required.
+        </p>
+      </div>
 
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-3xl">

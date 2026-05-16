@@ -1821,6 +1821,52 @@ const TOOLS_FEATURE_LIST: Readonly<Record<string, string[]>> = {
   ],
 };
 
+// ---------- per-tool BLUF summaries (bodyPatch crawler-visible summaries) ────
+//
+// Each string is injected as <p class="speakable-summary"> immediately after
+// <div id="root"> so Googlebot reads the BLUF before JavaScript executes.
+// Sync with the .speakable-summary paragraph in each tool's TSX component.
+const TOOLS_BLUF: Readonly<Record<string, string>> = {
+  "financial-health-score-calculator": "The FintechPressHub Financial Health Score Calculator scores your personal finances 0–100 across debt-to-income ratio, savings rate, emergency fund coverage, and expense ratio — free, no sign-up required.",
+  "meta-description-generator":        "The FintechPressHub Meta Description Generator produces three 150–160 character SEO meta descriptions from your page title and keyword — free, no account needed.",
+  "guest-post-pitch-generator":        "The FintechPressHub Guest Post Pitch Generator creates a personalised outreach pitch email for any fintech publication in seconds — free, no sign-up required.",
+  "readability-checker":               "The FintechPressHub Readability Checker calculates your Flesch Reading Ease score (0–100), grade level, and average sentence length instantly — free, no sign-up required.",
+  "keyword-difficulty-estimator":      "The FintechPressHub Keyword Difficulty Estimator scores any fintech keyword 0–100, classifies search intent, estimates monthly volume, and suggests six long-tail variations — free, no account needed.",
+  "backlink-value-estimator":          "The FintechPressHub Backlink Value Estimator scores any referring domain 0–100 using Domain Authority (40%), organic traffic (35%), and topical relevance (25%) — free, no sign-up.",
+  "content-brief-generator":           "The FintechPressHub Content Brief Generator creates a structured article brief with H2 headings, key questions, tone guidelines, and FAQ suggestions for any fintech topic — free, no account needed.",
+  "headline-analyzer":                 "The FintechPressHub Headline Analyzer scores any article headline 0–100 across SEO power, emotional impact, readability, and clarity with instant rewrite suggestions — free, no sign-up required.",
+  "link-prospector":                   "The FintechPressHub Link Prospector bulk-scores backlink prospects from a pasted domain list, ranking each by SEO value and acquisition effort — free, no account needed.",
+  "outreach-email-generator":          "The FintechPressHub Outreach Email Generator produces a personalised link-building email in three tone variants with subject lines scored on open-rate factors — free, no sign-up required.",
+};
+
+// ---------- per-tool meta keywords (<meta name="keywords"> headLink) ─────────
+const TOOLS_KEYWORDS: Readonly<Record<string, string>> = {
+  "financial-health-score-calculator": "financial health score, debt-to-income ratio calculator, savings rate, emergency fund coverage, personal finance score",
+  "meta-description-generator":        "meta description generator, SEO meta description, fintech SEO tool, meta tag generator, page description writer",
+  "guest-post-pitch-generator":        "guest post pitch generator, fintech guest posting, outreach pitch email, link building pitch, editorial outreach tool",
+  "readability-checker":               "readability checker, Flesch score calculator, fintech content readability, reading grade level, content clarity tool",
+  "keyword-difficulty-estimator":      "keyword difficulty estimator, fintech keyword research, SEO keyword score, long-tail keyword suggestions, keyword competition tool",
+  "backlink-value-estimator":          "backlink value estimator, backlink score calculator, domain authority, fintech link building, SEO value calculator",
+  "content-brief-generator":           "content brief generator, fintech content brief, article brief template, content strategy tool, SEO content brief",
+  "headline-analyzer":                 "headline analyzer, article headline score, fintech headline optimizer, SEO headline tool, headline scorer",
+  "link-prospector":                   "link prospector, backlink prospecting tool, fintech link building, domain scoring, outreach prioritisation",
+  "outreach-email-generator":          "outreach email generator, link building email template, fintech outreach tool, cold outreach email, link request email",
+};
+
+// ---------- per-tool cross-links (relatedLink on WebPage schema) ─────────────
+const TOOLS_RELATED: Readonly<Record<string, string[]>> = {
+  "financial-health-score-calculator": ["meta-description-generator", "keyword-difficulty-estimator"],
+  "meta-description-generator":        ["keyword-difficulty-estimator", "headline-analyzer", "readability-checker"],
+  "guest-post-pitch-generator":        ["outreach-email-generator", "link-prospector", "backlink-value-estimator"],
+  "readability-checker":               ["content-brief-generator", "headline-analyzer", "meta-description-generator"],
+  "keyword-difficulty-estimator":      ["meta-description-generator", "content-brief-generator", "headline-analyzer"],
+  "backlink-value-estimator":          ["link-prospector", "outreach-email-generator", "guest-post-pitch-generator"],
+  "content-brief-generator":           ["keyword-difficulty-estimator", "headline-analyzer", "readability-checker"],
+  "headline-analyzer":                 ["readability-checker", "content-brief-generator", "meta-description-generator"],
+  "link-prospector":                   ["backlink-value-estimator", "outreach-email-generator", "guest-post-pitch-generator"],
+  "outreach-email-generator":          ["link-prospector", "guest-post-pitch-generator", "backlink-value-estimator"],
+};
+
 // ---------- per-request SSR-meta patch cache (B1) ────────────────────────────
 //
 // DB-driven route handlers run at least two SELECT queries per SSR hit
@@ -4408,6 +4454,22 @@ async function handleSsrMeta(
         inLanguage:   "en",
         isPartOf:     { "@id": `${siteUrl}#website` },
         publisher:    { "@id": `${siteUrl}#organization` },
+        // White Hat: free-access and usage rights signals for AI citation engines.
+        isAccessibleForFree:  true,
+        conditionsOfAccess:   "https://schema.org/OnlineAccess",
+        usageInfo:            `${siteUrl}/terms`,
+        // WCAG-aligned accessibility triad — required for full White Hat score.
+        accessibilityFeature: ["alternativeText", "structuredNavigation"],
+        // relatedLink: cross-tool links build topical entity graph edges that
+        // AI rankers and Google's Knowledge Graph use for cluster scoring.
+        ...(TOOLS_RELATED[slug]
+          ? { relatedLink: TOOLS_RELATED[slug]!.map((s) => `${siteUrl}/tools/${s}`) }
+          : {}),
+        // isBasedOn: machine-readable methodology citation for AI extractors.
+        // Readability checker explicitly uses the Flesch-Kincaid formula.
+        ...(slug === "readability-checker"
+          ? { isBasedOn: ["https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests"] }
+          : {}),
         datePublished: STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
         ...(TOOL_PAGE_LASTMOD[slug] ? { dateModified: TOOL_PAGE_LASTMOD[slug] } : {}),
         // SpeakableSpecification enables voice-assistant extraction of the tool description
@@ -4431,6 +4493,17 @@ async function handleSsrMeta(
         ogImage:       `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Tools`,
         ogImageAlt:    leafLabel,
         extraLds:      toolExtraLds,
+        // Last-Modified header: signals freshness to crawlers without a full re-fetch.
+        dateModified:  TOOL_PAGE_LASTMOD[slug] ?? undefined,
+        // meta keywords: secondary on-page relevance signal read by Bing/Copilot.
+        headLinks:     TOOLS_KEYWORDS[slug]
+          ? [`  <meta name="keywords" content="${TOOLS_KEYWORDS[slug]}" />`]
+          : undefined,
+        // bodyPatch: BLUF speakable-summary injected before JS executes so
+        // Googlebot can satisfy the SpeakableSpecification cssSelector on all tools.
+        bodyPatch:     TOOLS_BLUF[slug]
+          ? `<p class="speakable-summary text-center text-sm leading-relaxed max-w-2xl mx-auto px-4 py-2 text-slate-500">${esc(TOOLS_BLUF[slug]!)}</p>`
+          : undefined,
       };
     }
 

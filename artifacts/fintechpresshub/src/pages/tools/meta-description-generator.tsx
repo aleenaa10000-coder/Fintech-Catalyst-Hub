@@ -304,16 +304,43 @@ export default function MetaDescriptionGenerator() {
     <div className="min-h-screen bg-background">
       <PageMeta
         page="metaDescriptionGenerator"
+        faq={[
+          { question: "Is the Meta Description Generator free?", answer: "Yes — the FintechPressHub Meta Description Generator is free with no account needed." },
+          { question: "How long should a meta description be?", answer: "Google typically displays 150–160 characters. The generator targets this range and includes your target keyword naturally for maximum CTR." },
+          { question: "Will the generated meta descriptions include my keyword?", answer: "Yes — the generator weaves your target keyword into all three description variants to strengthen on-page relevance signals for Google." },
+        ]}
+        webPage={{
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          conditionsOfAccess:  "https://schema.org/OnlineAccess",
+          usageInfo:           "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree: true,
+          accessibilityFeature: ["alternativeText", "structuredNavigation"],
+        }}
+        speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{
-          name: "Meta Description Generator for Fintech",
+          name:                "Meta Description Generator for Fintech",
           applicationCategory: "BusinessApplication",
-          operatingSystem: "Web",
-          url: "https://www.fintechpresshub.com/tools/meta-description-generator",
-          description: "Generate 3 ready-to-use SEO meta descriptions for any fintech page. Enter your title and keyword — no sign-up needed.",
-          offers: { price: "0", priceCurrency: "USD" },
+          operatingSystem:     "Web",
+          url:                 "https://www.fintechpresshub.com/tools/meta-description-generator",
+          description:         "Generate 3 ready-to-use SEO meta descriptions for any fintech page. Enter your title and keyword — no sign-up needed.",
+          offers:              { price: "0", priceCurrency: "USD" },
+          isAccessibleForFree: true,
+          inLanguage:          "en",
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          provider:            { "@id": "https://www.fintechpresshub.com#organization" },
+          potentialAction:     { "@type": "UseAction", target: "https://www.fintechpresshub.com/tools/meta-description-generator" },
+          featureList: [
+            "Generates 3 unique meta description variants per request",
+            "Targets your specified primary keyword naturally",
+            "Enforces 155-character limit for full SERP display",
+            "Optimised for fintech, payments, and financial services pages",
+            "No sign-up required — fully client-side",
+          ],
         }}
         howTo={{
-          name: "How to Generate Fintech Meta Descriptions",
+          name:        "How to Generate Fintech Meta Descriptions",
           description: "Use the free Meta Description Generator to create SEO-optimised descriptions for fintech pages.",
           steps: [
             { name: "Enter page title and keyword", text: "Type your fintech page title and primary target keyword into the fields." },
@@ -329,6 +356,12 @@ export default function MetaDescriptionGenerator() {
         title="Meta Description Generator"
         description="Generate 3 SEO-ready meta descriptions for any professional page. Enter your page title and target keyword to get started — then copy, tweak, and publish."
       />
+
+      <div className="container mx-auto px-4 pb-2">
+        <p className="speakable-summary text-center text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Generate three 150–160 character SEO meta descriptions from your page title and target keyword — free, no sign-up required.
+        </p>
+      </div>
 
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-3xl">

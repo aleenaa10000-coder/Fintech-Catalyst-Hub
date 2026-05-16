@@ -407,8 +407,12 @@ export default function FinancialHealthScoreCalculator() {
         ogImage={`${SITE_URL}/api/og?title=${encodeURIComponent("Financial Health Score Calculator")}&category=Tools`}
         faq={FAQS}
         webPage={{
-          datePublished: "2024-01-01",
-          dateModified:  "2026-05-11",
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          conditionsOfAccess:  "https://schema.org/OnlineAccess",
+          usageInfo:           `${SITE_URL}/terms`,
+          isAccessibleForFree: true,
+          accessibilityFeature: ["alternativeText", "structuredNavigation"],
         }}
         speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{
@@ -421,7 +425,7 @@ export default function FinancialHealthScoreCalculator() {
           offers:              { price: "0", priceCurrency: "USD" },
           inLanguage:          "en",
           datePublished:       "2024-01-01",
-          dateModified:        "2026-05-11",
+          dateModified:        "2026-05-16",
           provider:            { "@id": `${SITE_URL}#organization` },
           potentialAction:     { "@type": "UseAction", target: `${SITE_URL}/tools/financial-health-score-calculator` },
           featureList: [

@@ -1372,16 +1372,43 @@ export default function HeadlineAnalyzer() {
     <div className="min-h-screen bg-background">
       <PageMeta
         page="headlineAnalyzer"
+        faq={[
+          { question: "Is the Headline Analyzer free?", answer: "Yes — the FintechPressHub Headline Analyzer is completely free with no login required." },
+          { question: "What does the Headline Analyzer score?", answer: "It scores your headline across four dimensions: SEO power, emotional impact, readability, and clarity. You receive an overall score out of 100 with actionable suggestions." },
+          { question: "What makes a high-scoring fintech headline?", answer: "High-scoring headlines include a power word, the primary keyword, a specific number or data point, and are 6–12 words long. Avoid jargon that only insiders understand." },
+        ]}
+        webPage={{
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          conditionsOfAccess:  "https://schema.org/OnlineAccess",
+          usageInfo:           "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree: true,
+          accessibilityFeature: ["alternativeText", "structuredNavigation"],
+        }}
+        speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{
-          name: "Headline Analyzer for Fintech Content",
+          name:                "Headline Analyzer for Fintech Content",
           applicationCategory: "BusinessApplication",
-          operatingSystem: "Web",
-          url: "https://www.fintechpresshub.com/tools/headline-analyzer",
-          description: "Score any fintech article headline out of 100 across clarity, keyword presence, emotional pull, and character count — with instant rewrite suggestions.",
-          offers: { price: "0", priceCurrency: "USD" },
+          operatingSystem:     "Web",
+          url:                 "https://www.fintechpresshub.com/tools/headline-analyzer",
+          description:         "Score any fintech article headline out of 100 across clarity, keyword presence, emotional pull, and character count — with instant rewrite suggestions.",
+          offers:              { price: "0", priceCurrency: "USD" },
+          isAccessibleForFree: true,
+          inLanguage:          "en",
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          provider:            { "@id": "https://www.fintechpresshub.com#organization" },
+          potentialAction:     { "@type": "UseAction", target: "https://www.fintechpresshub.com/tools/headline-analyzer" },
+          featureList: [
+            "Overall headline score out of 100",
+            "Sub-scores for SEO power, emotional impact, readability, and clarity",
+            "Power-word and sentiment detection",
+            "Optimal headline length guidance (6–12 words)",
+            "Actionable rewrite suggestions for low-scoring dimensions",
+          ],
         }}
         howTo={{
-          name: "How to Analyse and Improve a Fintech Headline",
+          name:        "How to Analyse and Improve a Fintech Headline",
           description: "Use the free Headline Analyzer to score and strengthen fintech article titles before publishing.",
           steps: [
             { name: "Enter your headline", text: "Type or paste your fintech article headline into the input field." },
@@ -1397,6 +1424,12 @@ export default function HeadlineAnalyzer() {
         title="Headline Analyzer"
         description="Paste any article headline to get a score across clarity, keyword presence, emotional pull, and character count — with rewrite suggestions tailored to professional audiences."
       />
+
+      <div className="container mx-auto px-4 pb-2">
+        <p className="speakable-summary text-center text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Score any article headline 0–100 across SEO power, emotional impact, readability, and clarity with instant rewrite suggestions — free, no sign-up required.
+        </p>
+      </div>
 
       <section className="py-12 md:py-16 bg-gradient-to-b from-white via-blue-50/50 to-indigo-50/40">
         <div className="container mx-auto px-4 max-w-3xl">

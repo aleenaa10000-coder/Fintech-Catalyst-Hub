@@ -1490,16 +1490,43 @@ export default function OutreachEmailGenerator() {
     <div className="min-h-screen bg-background">
       <PageMeta
         page="outreachEmailGenerator"
+        faq={[
+          { question: "Is the Outreach Email Generator free?", answer: "Yes — the FintechPressHub Outreach Email Generator is completely free with no account required." },
+          { question: "What types of outreach emails can it generate?", answer: "It generates personalised link-building outreach emails in three tones — professional, friendly, or direct — with three alternative subject lines per email." },
+          { question: "Can I use the generated emails for guest-post pitches too?", answer: "The generator is optimised for link-building outreach, but the template structure works well for guest-post pitches too. Use the Guest Post Pitch Generator for a more targeted pitch format." },
+        ]}
+        webPage={{
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          conditionsOfAccess:  "https://schema.org/OnlineAccess",
+          usageInfo:           "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree: true,
+          accessibilityFeature: ["alternativeText", "structuredNavigation"],
+        }}
+        speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{
-          name: "Outreach Email Generator for Fintech",
+          name:                "Outreach Email Generator for Fintech",
           applicationCategory: "BusinessApplication",
-          operatingSystem: "Web",
-          url: "https://www.fintechpresshub.com/tools/outreach-email-generator",
-          description: "Generate a personalised link-building outreach email in seconds. Choose your tone, fill in the details, and compare subject line variants scored on open-rate factors.",
-          offers: { price: "0", priceCurrency: "USD" },
+          operatingSystem:     "Web",
+          url:                 "https://www.fintechpresshub.com/tools/outreach-email-generator",
+          description:         "Generate a personalised link-building outreach email in seconds. Choose your tone, fill in the details, and compare subject line variants scored on open-rate factors.",
+          offers:              { price: "0", priceCurrency: "USD" },
+          isAccessibleForFree: true,
+          inLanguage:          "en",
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          provider:            { "@id": "https://www.fintechpresshub.com#organization" },
+          potentialAction:     { "@type": "UseAction", target: "https://www.fintechpresshub.com/tools/outreach-email-generator" },
+          featureList: [
+            "Personalised link-building email in three tone variants (professional, friendly, direct)",
+            "Three alternative subject line options per email",
+            "Customisable anchor text, target URL, and publication fields",
+            "Formatted for cold outreach to editorial and webmaster contacts",
+            "No account required — instant generation",
+          ],
         }}
         howTo={{
-          name: "How to Generate a Fintech Link Building Outreach Email",
+          name:        "How to Generate a Fintech Link Building Outreach Email",
           description: "Use the free Outreach Email Generator to write personalised link-building emails for fintech publications.",
           steps: [
             { name: "Enter target and topic details", text: "Fill in the target publication, contact name, your article URL, and the link placement you are requesting." },
@@ -1515,6 +1542,12 @@ export default function OutreachEmailGenerator() {
         title="Outreach Email Generator"
         description="Generate a personalised link-building outreach email in seconds. Choose your tone, fill in the details, and compare two subject line variants — scored on open-rate factors — before you hit send."
       />
+
+      <div className="container mx-auto px-4 pb-2">
+        <p className="speakable-summary text-center text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Generate a personalised link-building email in three tone variants with subject lines scored on open-rate factors — free, no sign-up required.
+        </p>
+      </div>
 
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-5xl">

@@ -1155,16 +1155,43 @@ Looking forward to hearing from you,
     <div className="min-h-screen bg-background">
       <PageMeta
         page="linkProspector"
+        faq={[
+          { question: "Is the Link Prospector free?", answer: "Yes — the FintechPressHub Link Prospector is free to use with no account required." },
+          { question: "How many domains can I score with the Link Prospector?", answer: "You can paste and score a list of domains in one batch. It is designed for bulk evaluation so you can prioritise an entire outreach list in a single session." },
+          { question: "Can I export my scored prospect list?", answer: "Yes — once scored, you can copy the prioritised list and paste it into any spreadsheet or outreach CRM to begin your link-building campaign." },
+        ]}
+        webPage={{
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          conditionsOfAccess:  "https://schema.org/OnlineAccess",
+          usageInfo:           "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree: true,
+          accessibilityFeature: ["alternativeText", "structuredNavigation"],
+        }}
+        speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{
-          name: "Link Prospector for Fintech",
+          name:                "Link Prospector for Fintech",
           applicationCategory: "BusinessApplication",
-          operatingSystem: "Web",
-          url: "https://www.fintechpresshub.com/tools/link-prospector",
-          description: "Paste a list of domains to bulk-score your backlink prospects — then rank them by highest value or easiest win for your outreach plan.",
-          offers: { price: "0", priceCurrency: "USD" },
+          operatingSystem:     "Web",
+          url:                 "https://www.fintechpresshub.com/tools/link-prospector",
+          description:         "Paste a list of domains to bulk-score your backlink prospects — then rank them by highest value or easiest win for your outreach plan.",
+          offers:              { price: "0", priceCurrency: "USD" },
+          isAccessibleForFree: true,
+          inLanguage:          "en",
+          datePublished:       "2024-01-01",
+          dateModified:        "2026-05-16",
+          provider:            { "@id": "https://www.fintechpresshub.com#organization" },
+          potentialAction:     { "@type": "UseAction", target: "https://www.fintechpresshub.com/tools/link-prospector" },
+          featureList: [
+            "Bulk domain scoring — paste an entire outreach list at once",
+            "Value and ease-of-acquisition scores for each prospect",
+            "Sort by highest value or easiest win",
+            "Copyable prioritised output for import into any outreach CRM",
+            "No sign-up required",
+          ],
         }}
         howTo={{
-          name: "How to Prospect and Score Fintech Backlink Opportunities",
+          name:        "How to Prospect and Score Fintech Backlink Opportunities",
           description: "Use the free Link Prospector to bulk-score and prioritise your fintech link building pipeline.",
           steps: [
             { name: "Paste your domain list", text: "Enter a list of referring domains you are considering for outreach, one per line." },
@@ -1180,6 +1207,12 @@ Looking forward to hearing from you,
         title="Link Prospector"
         description="Paste a list of domains (with optional DA and traffic) to bulk-score your backlink prospects — then rank them by highest value or easiest win for your outreach plan."
       />
+
+      <div className="container mx-auto px-4 pb-2">
+        <p className="speakable-summary text-center text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Bulk-score backlink prospects from a pasted domain list and rank each by SEO value or acquisition effort — free, no account needed.
+        </p>
+      </div>
 
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-5xl">
