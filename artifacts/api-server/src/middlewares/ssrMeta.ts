@@ -1320,7 +1320,7 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/refund-policy":                   "2026-04-28",
   "/cookie-policy":                   "2026-04-28",
   "/terms":                           "2026-04-28",
-  "/compare":                         "2026-05-09",
+  "/compare":                         "2026-05-16",
   // Compare sub-page lastmod is sourced from COMPARE_PAGE_LASTMOD in seoConstants.ts
   // (single source of truth). Do not add /compare/* entries here.
   "/locations":                        "2026-05-10",
@@ -3870,6 +3870,21 @@ async function handleSsrMeta(
           `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
           `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
           `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+          // GEO / Off-Page: Dublin Core meta tags signal editorial metadata to AI
+          // crawlers (GPTBot, Perplexity, ClaudeBot) and Dublin Core harvesters.
+          // DC.title, DC.creator, DC.date, DC.identifier, DC.subject, DC.rights,
+          // DC.publisher all feed into citation-attribution scoring. Mirrors the
+          // treatment on blog posts for consistent E-E-A-T signals site-wide.
+          `  <meta name="DC.title" content="${esc(leafLabel)}" />`,
+          `  <meta name="DC.creator" content="FintechPressHub Editorial Team" />`,
+          `  <meta name="DC.date" content="${COMPARE_PAGE_CREATED[slug] ?? STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01"}" />`,
+          `  <meta name="DC.type" content="Text" />`,
+          `  <meta name="DC.format" content="text/html" />`,
+          `  <meta name="DC.language" content="en" />`,
+          `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
+          `  <meta name="DC.subject" content="${esc(`${leafLabel}, fintech SEO comparison, digital marketing`)}" />`,
+          `  <meta name="DC.rights" content="Copyright ${new Date().getFullYear()} FintechPressHub. All rights reserved." />`,
+          `  <meta name="DC.publisher" content="FintechPressHub" />`,
         ],
         extraLds: [
           JSON.stringify({

@@ -274,7 +274,7 @@ export default function Compare() {
             >
               {faqItems.map((faq, i) => (
                 <AccordionItem key={faq.question} value={`compare-faq-${i}`} className="border-b-0 group">
-                  <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
+                  <AccordionTrigger className="faq-question px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
                     <span className="flex-1 pr-4">{faq.question}</span>
                     <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
                       <Plus className="w-5 h-5" />

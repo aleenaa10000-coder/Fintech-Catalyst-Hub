@@ -32,27 +32,21 @@ export default function CompareSlug() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-        <meta name="author" content="FintechPressHub Editorial Team" />
-        <link rel="author" href={`${SITE_URL}/about`} />
-        <meta property="og:locale" content="en_US" />
-        <meta property="og:locale:alternate" content="en_GB" />
-        <meta property="og:locale:alternate" content="en_AU" />
-        <meta property="og:locale:alternate" content="en_SG" />
-        <meta property="og:locale:alternate" content="en_CA" />
         <meta name="news_keywords" content={`${comparison.colA}, ${comparison.colB}, ${comparison.colC}, fintech SEO comparison, fintech marketing`} />
-        <link rel="alternate" hrefLang="en" href={canonical} />
-        <link rel="alternate" hrefLang="en-US" href={canonical} />
-        <link rel="alternate" hrefLang="en-GB" href={canonical} />
-        <link rel="alternate" hrefLang="en-AU" href={canonical} />
-        <link rel="alternate" hrefLang="en-SG" href={canonical} />
-        <link rel="alternate" hrefLang="en-CA" href={canonical} />
-        <link rel="alternate" hrefLang="x-default" href={canonical} />
       </Helmet>
       <PageMeta
         title={comparison.title}
         description={comparison.description}
         canonical={canonical}
+        hreflang={[
+          { lang: "en",        href: canonical },
+          { lang: "en-US",     href: canonical },
+          { lang: "en-GB",     href: canonical },
+          { lang: "en-AU",     href: canonical },
+          { lang: "en-SG",     href: canonical },
+          { lang: "en-CA",     href: canonical },
+          { lang: "x-default", href: canonical },
+        ]}
         speakableSelectors={["h1", ".speakable-summary", "h2"]}
         faq={comparison.faqItems}
         webPage={{
@@ -138,14 +132,25 @@ export default function CompareSlug() {
           dateModified: comparison.lastmod,
           author: "FintechPressHub Editorial Team",
           authorUrl: `${SITE_URL}/about`,
-          image: `${SITE_URL}/opengraph.jpg`,
+          image: `${SITE_URL}/api/og?title=${encodeURIComponent(comparison.heroTitle)}&category=Compare`,
           citation: (COMPARISON_SOURCES[comparison.slug] ?? []).map((src) => src.text),
           isBasedOn: (COMPARISON_SOURCES[comparison.slug] ?? []).map((src) => src.url),
           copyrightNotice: `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
           conditionsOfAccess: "https://schema.org/OnlineAccess",
           accessibilityHazard: "none",
           about: ["Fintech SEO Comparison", comparison.colA, comparison.colB, comparison.colC],
-          mentions: [comparison.colA, comparison.colB, comparison.colC],
+          mentions: [
+            comparison.colA, comparison.colB, comparison.colC,
+            "Financial Conduct Authority",
+            "Consumer Financial Protection Bureau",
+            "Monetary Authority of Singapore",
+            "Australian Securities and Investments Commission",
+          ],
+          isPartOf: {
+            id:   `${SITE_URL}/compare#collection`,
+            name: "FintechPressHub Comparisons",
+            url:  `${SITE_URL}/compare`,
+          },
         }}
         definedTermSet={{
           name: `${comparison.colA} vs ${comparison.colB} vs ${comparison.colC} — Glossary`,
@@ -311,7 +316,7 @@ export default function CompareSlug() {
               >
                 {comparison.faqItems.map((faq, i) => (
                   <AccordionItem key={faq.question} value={`slug-faq-${i}`} className="border-b-0 group">
-                    <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
+                    <AccordionTrigger className="faq-question px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
                       <span className="flex-1 pr-4">{faq.question}</span>
                       <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
                         <Plus className="w-5 h-5" />

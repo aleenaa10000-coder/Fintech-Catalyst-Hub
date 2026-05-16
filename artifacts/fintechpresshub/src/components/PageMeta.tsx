@@ -133,6 +133,13 @@ export type ArticleSchema = {
    * or audio triggers). Required for WCAG-aligned E-E-A-T on YMYL content.
    */
   accessibilityHazard?: string;
+  /**
+   * Override the article's `isPartOf` relationship.
+   * Defaults to the FintechPressHub Blog collection when omitted.
+   * Pass this for non-blog content (e.g. compare pages pointing to
+   * the Comparisons CollectionPage instead of the Blog).
+   */
+  isPartOf?: { id: string; type?: string; name: string; url: string };
 };
 
 export type FaqItem = { question: string; answer: string };
@@ -1538,12 +1545,19 @@ export function PageMeta(props: PageMetaProps) {
           "@type": "WebPage",
           "@id": canonical,
         },
-        isPartOf: {
-          "@type": "Blog",
-          "@id": `${SITE_URL}/blog#blog`,
-          name: `${SITE_NAME} Blog`,
-          url: `${SITE_URL}/blog`,
-        },
+        isPartOf: props.article.isPartOf
+          ? {
+              "@type": props.article.isPartOf.type ?? "CollectionPage",
+              "@id":   props.article.isPartOf.id,
+              name:    props.article.isPartOf.name,
+              url:     props.article.isPartOf.url,
+            }
+          : {
+              "@type": "Blog",
+              "@id":   `${SITE_URL}/blog#blog`,
+              name:    `${SITE_NAME} Blog`,
+              url:     `${SITE_URL}/blog`,
+            },
         creativeWorkStatus: "Published",
         // alternativeHeadline — concise secondary title used by AI citation engines
         // as a shorter display label. Mirrors the SSR BlogPosting field so both
