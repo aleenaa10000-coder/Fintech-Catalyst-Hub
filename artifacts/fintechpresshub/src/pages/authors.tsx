@@ -232,7 +232,8 @@ export default function AuthorsIndex() {
                                 <img
                                   src={photo}
                                   alt={`${author.name}, ${author.role} at FintechPressHub`}
-                                  loading="lazy"
+                                  loading={i < 4 ? "eager" : "lazy"}
+                                  fetchPriority={i < 2 ? "high" : "auto"}
                                   width={128}
                                   height={128}
                                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"

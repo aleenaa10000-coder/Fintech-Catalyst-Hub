@@ -485,7 +485,9 @@ export default function Blog() {
               alt={post.title}
               width={800}
               height={450}
-              loading="lazy"
+              loading={i < 3 ? "eager" : "lazy"}
+              fetchPriority={i === 0 ? "high" : "auto"}
+              decoding="async"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </div>
@@ -568,7 +570,7 @@ export default function Blog() {
                         <img
                           src={a.photo}
                           alt={`${a.name} headshot`}
-                          loading="lazy"
+                          loading="eager"
                           width={36}
                           height={36}
                           className="absolute inset-0 w-full h-full object-cover"

@@ -10,7 +10,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { useAuth } from "@workspace/replit-auth-web";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { prefetchAdminBundle } from "@/lib/route-prefetch";
+import { prefetchAdminBundle, prefetchPublicBundle } from "@/lib/route-prefetch";
 import { trackPageview } from "@/lib/analytics";
 import { useWebVitals } from "@/hooks/useWebVitals";
 import { TopProgressBar } from "@/components/TopProgressBar";
@@ -152,6 +152,13 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      // Cache data for 5 minutes so navigating back to a page that was
+      // already loaded doesn't fire a fresh network request. The backend
+      // content changes infrequently, so stale-while-revalidate is fine.
+      staleTime: 5 * 60 * 1000,
+      // Keep unused cache entries in memory for 10 minutes so a user who
+      // goes Home → Blog → Home doesn't have to re-fetch the home data.
+      gcTime: 10 * 60 * 1000,
     },
   },
 });
@@ -179,6 +186,18 @@ function AdminBundlePrefetch() {
       prefetchAdminBundle();
     }
   }, [isAuthenticated, user?.isAdmin]);
+  return null;
+}
+
+/**
+ * After the first paint, silently warm every public page chunk during
+ * browser idle time so that any subsequent in-app navigation resolves
+ * instantly from cache and the Suspense skeleton never flashes.
+ */
+function PublicBundlePrefetch() {
+  useEffect(() => {
+    prefetchPublicBundle();
+  }, []);
   return null;
 }
 
@@ -280,6 +299,7 @@ function Router() {
     <div className="flex flex-col min-h-screen">
       <ScrollToTop />
       <AdminBundlePrefetch />
+      <PublicBundlePrefetch />
       <Header />
       <main className="flex-grow pt-16">
         <AdminHealthBanner />
