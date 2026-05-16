@@ -1457,7 +1457,11 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/write-for-us":                    "2026-05-15",
   "/editorial-guidelines":            "2026-04-28",
   "/community-guidelines":            "2026-04-28",
-  "/tools":                           "2026-05-09",
+  // Bumped to 2026-05-16: Upgraded /tools hub CollectionPage — added author,
+  // license, copyrightNotice, isAccessibleForFree, accessMode, accessibilityFeature,
+  // audience, mainEntity, hasPart, expanded speakable, ItemList @id, FAQPage schema.
+  // Also added .speakable-summary paragraph and faq/speakableSelectors to tools/index.tsx.
+  "/tools":                           "2026-05-16",
   // Tool sub-page lastmod is sourced from TOOL_PAGE_LASTMOD in seoConstants.ts
   // (single source of truth). Do not add /tools/* entries here.
   "/glossary":                        "2026-05-15",
@@ -4600,6 +4604,30 @@ async function handleSsrMeta(
                 },
               }
             : {}),
+          // maintainer: active-maintenance signal — AI citation engines (Perplexity,
+          // Google AI Overviews) prefer actively maintained tools when answering
+          // "best free fintech SEO tools" queries; stronger provenance than creator alone.
+          maintainer: { "@id": `${siteUrl}#organization` },
+          // about: links the SoftwareApplication entity to the publishing org in
+          // the Knowledge Graph — mirrors the WebPage.about property on the same
+          // page and gives crawlers a second entity-graph edge between tool and org.
+          about: { "@id": `${siteUrl}#organization` },
+          // conditionsOfAccess: machine-readable free-access declaration consumed
+          // by schema.org parsers and AI rankers — mirrors the identical WebPage
+          // property on the same page for cross-entity consistency.
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
+          // educationalLevel: surfaces the tool in "professional-level" and
+          // "advanced" filter contexts on AI rankers and search engines —
+          // consistent with WebPage.educationalLevel on the same page.
+          educationalLevel: "Professional",
+          // accessibilityFeature: WCAG-aligned signal completing the accessibility
+          // triad (feature + hazard + conditions) on the SoftwareApplication entity.
+          // Mirrors the WebPage.accessibilityFeature already emitted for the same page.
+          accessibilityFeature: ["alternativeText", "structuredNavigation"],
+          // copyrightNotice: machine-readable attribution consumed by AI content
+          // crawlers and academic indexers — prevents copyright ambiguity and
+          // mirrors the compare/service page copyrightNotice pattern site-wide.
+          copyrightNotice: `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
         }, null, 2),
       ];
       const howTo = TOOLS_HOWTO[slug];
@@ -5839,7 +5867,11 @@ async function handleSsrMeta(
           }, null, 2));
 
         } else if (reqPath === "/tools") {
-          // ── /tools hub — CollectionPage + ItemList ────────────────────────
+          // ── /tools hub — CollectionPage + ItemList + FAQPage ─────────────
+          // Upgraded 2026-05-16: matched /compare hub richness — added author,
+          // license, copyrightNotice, isAccessibleForFree, accessMode,
+          // accessibilityFeature, audience, mainEntity → ItemList, hasPart →
+          // FAQPage, expanded speakable selectors, ItemList @id, FAQPage schema.
           extraLds.push(JSON.stringify({
             "@context":  "https://schema.org",
             "@type":     "CollectionPage",
@@ -5850,12 +5882,35 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification targets h1 — the clearest spoken answer for
-            // "what free fintech marketing tools are available?" queries. No tagline
-            // paragraph exists on the tools hub, so h1-only is the correct selector.
+            // White Hat: explicit org attribution mirrors /compare hub pattern.
+            author:      { "@id": `${siteUrl}#organization` },
+            // White Hat: license + copyrightNotice — align hub with per-tool WebPage
+            // and SoftwareApplication entities for consistent rights signalling.
+            license:         `${siteUrl}/terms`,
+            copyrightNotice: `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
+            // Technical / White Hat: free-access + WCAG accessibility triad.
+            isAccessibleForFree:  true,
+            accessMode:           ["textual", "visual"],
+            accessibilityFeature: ["readingOrder", "structuralNavigation"],
+            // On-Page / GEO: audience signals professional readership to AI rankers.
+            audience: {
+              "@type":      "Audience",
+              audienceType: "Fintech marketing professionals, SEO managers, content strategists, and link-building specialists",
+            },
+            // Programmatic SEO: mainEntity links the CollectionPage to its ItemList
+            // entity — enables Google and AI rankers to traverse the entity graph
+            // from the hub to all 10 individual tool pages in a single hop.
+            mainEntity: { "@id": `${canonical}#itemlist` },
+            // AEO: hasPart cross-references the FAQPage entity — mirrors the
+            // /compare hub pattern and tells Rich Results extractors the FAQ
+            // is integral to this hub page.
+            hasPart: { "@id": `${canonical}#faq` },
+            // SpeakableSpecification expanded to h1 + .speakable-summary + h2
+            // (matching tools/index.tsx speakableSelectors) — enables AI voice
+            // assistants and AEO engines to enumerate all tools from the hub.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1"],
+              cssSelector: ["h1", ".speakable-summary", "h2"],
             },
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
@@ -5865,6 +5920,10 @@ async function handleSsrMeta(
           extraLds.push(JSON.stringify({
             "@context": "https://schema.org",
             "@type":    "ItemList",
+            // Programmatic SEO: @id makes the ItemList addressable from the
+            // CollectionPage.mainEntity reference above — closes the entity-graph
+            // loop between hub and individual tool pages.
+            "@id":      `${canonical}#itemlist`,
             name:       "Free Fintech Marketing Tools",
             url:        canonical,
             numberOfItems: Object.keys(TOOLS_META).length,
@@ -5872,9 +5931,101 @@ async function handleSsrMeta(
               "@type":     "ListItem",
               position:    i + 1,
               name:        meta.title.split("|")[0]!.trim(),
-              description: meta.description.slice(0, 120),
+              description: meta.description.slice(0, 155),
               url:         `${siteUrl}/tools/${toolSlug}`,
             })),
+          }, null, 2));
+          // AEO: FAQPage — 5 Q&As covering the most common "free fintech tools"
+          // queries. Eligible for Google FAQ rich results and "People Also Ask"
+          // box expansion. @id matches the CollectionPage.hasPart reference above.
+          extraLds.push(JSON.stringify({
+            "@context":    "https://schema.org",
+            "@type":       "FAQPage",
+            "@id":         `${canonical}#faq`,
+            name:          "Free Fintech Marketing Tools — Frequently Asked Questions",
+            url:           canonical,
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2024-01-01",
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            mainEntity: [
+              {
+                "@type":      "Question",
+                name:         "What free fintech marketing tools does FintechPressHub offer?",
+                answerCount:  1,
+                dateCreated:  pageLastmod ?? "2026-05-16",
+                inLanguage:   "en",
+                author:       { "@id": `${siteUrl}#organization` },
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  text:        "FintechPressHub offers 10 free browser-based tools: Financial Health Score Calculator, Meta Description Generator, Guest Post Pitch Generator, Readability Checker, Keyword Difficulty Estimator, Backlink Value Estimator, Content Brief Generator, Headline Analyzer, Link Prospector, and Outreach Email Generator — all free, no sign-up required.",
+                  dateCreated: pageLastmod ?? "2026-05-16",
+                  inLanguage:  "en",
+                  author:      { "@id": `${siteUrl}#organization` },
+                },
+              },
+              {
+                "@type":      "Question",
+                name:         "Are the FintechPressHub tools free to use?",
+                answerCount:  1,
+                dateCreated:  pageLastmod ?? "2026-05-16",
+                inLanguage:   "en",
+                author:       { "@id": `${siteUrl}#organization` },
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  text:        "Yes. All 10 tools are completely free with no account, sign-up, or payment required. All calculations run client-side in your browser — no data is transmitted to FintechPressHub servers.",
+                  dateCreated: pageLastmod ?? "2026-05-16",
+                  inLanguage:  "en",
+                  author:      { "@id": `${siteUrl}#organization` },
+                },
+              },
+              {
+                "@type":      "Question",
+                name:         "Who are the FintechPressHub free tools designed for?",
+                answerCount:  1,
+                dateCreated:  pageLastmod ?? "2026-05-16",
+                inLanguage:   "en",
+                author:       { "@id": `${siteUrl}#organization` },
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  text:        "The tools are designed for fintech marketing professionals, SEO managers, content strategists, link-building specialists, and in-house marketing teams at fintech, payments, lending, and banking-infrastructure companies.",
+                  dateCreated: pageLastmod ?? "2026-05-16",
+                  inLanguage:  "en",
+                  author:      { "@id": `${siteUrl}#organization` },
+                },
+              },
+              {
+                "@type":      "Question",
+                name:         "Can I embed FintechPressHub tools on my own website?",
+                answerCount:  1,
+                dateCreated:  pageLastmod ?? "2026-05-16",
+                inLanguage:   "en",
+                author:       { "@id": `${siteUrl}#organization` },
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  text:        "Yes. Every tool includes an embed widget with a copy-ready iframe snippet. Embed any tool on your fintech blog or resource hub for free — an attribution backlink to FintechPressHub is included in the snippet.",
+                  dateCreated: pageLastmod ?? "2026-05-16",
+                  inLanguage:  "en",
+                  author:      { "@id": `${siteUrl}#organization` },
+                },
+              },
+              {
+                "@type":      "Question",
+                name:         "Do the FintechPressHub tools require JavaScript?",
+                answerCount:  1,
+                dateCreated:  pageLastmod ?? "2026-05-16",
+                inLanguage:   "en",
+                author:       { "@id": `${siteUrl}#organization` },
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  text:        "Yes. All tools require JavaScript and a modern browser (Chrome, Firefox, Safari, Edge). No installation or plugin is required — the tools run entirely in the browser with no server-side data processing.",
+                  dateCreated: pageLastmod ?? "2026-05-16",
+                  inLanguage:  "en",
+                  author:      { "@id": `${siteUrl}#organization` },
+                },
+              },
+            ],
           }, null, 2));
 
         } else if (reqPath === "/compare") {

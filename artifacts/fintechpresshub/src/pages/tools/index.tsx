@@ -138,6 +138,37 @@ export default function ToolsIndex() {
             description: t.description,
           })),
         }}
+        speakableSelectors={["h1", ".speakable-summary", "h2"]}
+        webPage={{
+          datePublished:        "2024-01-01",
+          dateModified:         "2026-05-16",
+          conditionsOfAccess:   "https://schema.org/OnlineAccess",
+          usageInfo:            `${SITE_URL}/terms`,
+          isAccessibleForFree:  true,
+          accessibilityFeature: ["alternativeText", "structuredNavigation"],
+        }}
+        faq={[
+          {
+            question: "What free fintech marketing tools does FintechPressHub offer?",
+            answer:   "FintechPressHub offers 10 free browser-based tools: Financial Health Score Calculator, Meta Description Generator, Guest Post Pitch Generator, Readability Checker, Keyword Difficulty Estimator, Backlink Value Estimator, Content Brief Generator, Headline Analyzer, Link Prospector, and Outreach Email Generator — all free, no sign-up required.",
+          },
+          {
+            question: "Are the FintechPressHub tools free to use?",
+            answer:   "Yes. All 10 tools are completely free with no account, sign-up, or payment required. All calculations run client-side in your browser — no data is transmitted to FintechPressHub servers.",
+          },
+          {
+            question: "Who are the FintechPressHub free tools designed for?",
+            answer:   "The tools are designed for fintech marketing professionals, SEO managers, content strategists, link-building specialists, and in-house marketing teams at fintech, payments, lending, and banking-infrastructure companies.",
+          },
+          {
+            question: "Can I embed FintechPressHub tools on my own website?",
+            answer:   "Yes. Every tool includes an embed widget with a copy-ready iframe snippet. Embed any tool on your fintech blog or resource hub for free — an attribution backlink to FintechPressHub is included in the snippet.",
+          },
+          {
+            question: "Do the FintechPressHub tools require JavaScript?",
+            answer:   "Yes. All tools require JavaScript and a modern browser. No installation or plugin is needed — the tools run entirely in your browser with no server-side data processing.",
+          },
+        ]}
       />
 
       <PageHero
@@ -145,6 +176,12 @@ export default function ToolsIndex() {
         title="Fintech Marketing Toolkit"
         description="Free, client-side tools built for digital marketers and SEO teams. No sign-up required — your data never leaves your browser."
       />
+
+      <div className="container mx-auto px-4 pb-2">
+        <p className="speakable-summary text-center text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Ten free, browser-based tools for fintech marketers and SEO teams — covering financial health scoring, meta description generation, readability checking, keyword difficulty estimation, backlink valuation, content briefs, headline analysis, link prospecting, and outreach email generation. No sign-up required. All calculations run client-side.
+        </p>
+      </div>
 
       <section className="py-14 md:py-20">
         <div className="container mx-auto px-4 max-w-5xl">
