@@ -148,6 +148,22 @@ const PublishBlogPostBody = z.object({
   lastMaterialUpdateAt: z.string().datetime().nullable().optional(),
   aboutEntities: z.array(z.string()).nullable().optional(),
   mentionEntities: z.array(z.string()).nullable().optional(),
+  inlineImage1: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => {
+      if (v == null) return null;
+      const t = v.trim();
+      return t === "" ? null : t;
+    }),
+  inlineImage2: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => {
+      if (v == null) return null;
+      const t = v.trim();
+      return t === "" ? null : t;
+    }),
 });
 
 const BulkNoIndexBody = z.object({
@@ -203,6 +219,22 @@ const UpdateBlogPostBody = z
     lastMaterialUpdateAt: z.string().datetime().nullable().optional(),
     aboutEntities: z.array(z.string()).nullable().optional(),
     mentionEntities: z.array(z.string()).nullable().optional(),
+    inlineImage1: z
+      .union([z.string(), z.null()])
+      .optional()
+      .transform((v) => {
+        if (v == null) return null;
+        const t = v.trim();
+        return t === "" ? null : t;
+      }),
+    inlineImage2: z
+      .union([z.string(), z.null()])
+      .optional()
+      .transform((v) => {
+        if (v == null) return null;
+        const t = v.trim();
+        return t === "" ? null : t;
+      }),
   })
   .refine((obj) => Object.keys(obj).length > 0, {
     message: "At least one field is required",
@@ -258,6 +290,8 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
     aboutEntities: row.aboutEntities ?? null,
     mentionEntities: row.mentionEntities ?? null,
     wordCount: row.wordCount ?? 0,
+    inlineImage1: row.inlineImage1 ?? null,
+    inlineImage2: row.inlineImage2 ?? null,
   };
 }
 
@@ -519,6 +553,12 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
           : {}),
         ...(body.mentionEntities !== undefined
           ? { mentionEntities: body.mentionEntities }
+          : {}),
+        ...(body.inlineImage1 !== undefined
+          ? { inlineImage1: body.inlineImage1 }
+          : {}),
+        ...(body.inlineImage2 !== undefined
+          ? { inlineImage2: body.inlineImage2 }
           : {}),
       })
       .returning();

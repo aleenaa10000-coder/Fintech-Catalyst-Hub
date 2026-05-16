@@ -60,6 +60,10 @@ export type PublicPost = {
   aboutEntities?: string[] | null;
   /** Entities mentioned in the article — populates BlogPosting `mentions`. */
   mentionEntities?: string[] | null;
+  /** Optional inline body image shown after the first content section. */
+  inlineImage1?: string | null;
+  /** Optional inline body image shown in the second half of the article. */
+  inlineImage2?: string | null;
 };
 
 /**
@@ -95,6 +99,8 @@ function fromApi(post: ApiBlogPost): PublicPost {
     lastMaterialUpdateAt: post.lastMaterialUpdateAt ?? null,
     aboutEntities: post.aboutEntities ?? null,
     mentionEntities: post.mentionEntities ?? null,
+    inlineImage1: post.inlineImage1 ?? null,
+    inlineImage2: post.inlineImage2 ?? null,
   };
 }
 

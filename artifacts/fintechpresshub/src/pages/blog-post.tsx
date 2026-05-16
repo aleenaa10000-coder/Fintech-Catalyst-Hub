@@ -86,6 +86,20 @@ const shareBtnClass =
 
 type Heading = { id: string; text: string; level: number };
 
+/** Return the index of the nth occurrence of `target` in `str`, or -1. */
+function nthIndexOf(str: string, target: string, n: number): number {
+  let count = 0;
+  let pos = 0;
+  while (pos < str.length) {
+    const found = str.indexOf(target, pos);
+    if (found === -1) return -1;
+    count++;
+    if (count === n) return found;
+    pos = found + target.length;
+  }
+  return -1;
+}
+
 function slugify(input: string): string {
   return input
     .toLowerCase()
@@ -378,11 +392,34 @@ export default function BlogPost() {
     if (splitAt === -1)
       return { firstHalfHtml: contentHtml, secondHalfHtml: "" };
     const cut = splitAt + 4;
-    return {
-      firstHalfHtml: contentHtml.slice(0, cut),
-      secondHalfHtml: contentHtml.slice(cut),
-    };
-  }, [contentHtml]);
+    let half1 = contentHtml.slice(0, cut);
+    let half2 = contentHtml.slice(cut);
+
+    // Inject optional inline images. Image 1 goes after the 2nd </p> in the
+    // first half; image 2 after the 1st </p> in the second half. This places
+    // them naturally mid-section rather than immediately after a heading.
+    const makeFigure = (src: string) =>
+      `<figure class="not-prose my-8 overflow-hidden rounded-xl shadow-md"><img src="${src}" alt="" loading="lazy" decoding="async" width="1200" height="630" style="width:100%;height:auto;object-fit:cover;" /></figure>`;
+
+    if (post?.inlineImage1) {
+      const idx = nthIndexOf(half1, "</p>", 2);
+      if (idx !== -1) {
+        half1 = half1.slice(0, idx + 4) + makeFigure(post.inlineImage1) + half1.slice(idx + 4);
+      } else {
+        half1 += makeFigure(post.inlineImage1);
+      }
+    }
+    if (post?.inlineImage2) {
+      const idx = nthIndexOf(half2, "</p>", 1);
+      if (idx !== -1) {
+        half2 = half2.slice(0, idx + 4) + makeFigure(post.inlineImage2) + half2.slice(idx + 4);
+      } else {
+        half2 += makeFigure(post.inlineImage2);
+      }
+    }
+
+    return { firstHalfHtml: half1, secondHalfHtml: half2 };
+  }, [contentHtml, post?.inlineImage1, post?.inlineImage2]);
 
   /**
    * Related-posts recommendation engine.

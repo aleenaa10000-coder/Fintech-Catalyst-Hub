@@ -1458,6 +1458,8 @@ const emptyForm = {
   lastMaterialUpdateAt: "",
   aboutEntities: "",
   mentionEntities: "",
+  inlineImage1: "",
+  inlineImage2: "",
 };
 
 /**
@@ -1624,6 +1626,8 @@ function PostEditor({
       : "",
     aboutEntities: (post.aboutEntities ?? []).join(", "),
     mentionEntities: (post.mentionEntities ?? []).join(", "),
+    inlineImage1: post.inlineImage1 ?? "",
+    inlineImage2: post.inlineImage2 ?? "",
   });
   const updateMut = useUpdateBlogPost();
 
@@ -1700,6 +1704,8 @@ function PostEditor({
                 .map((s: string) => s.trim())
                 .filter(Boolean)
             : null,
+          inlineImage1: draft.inlineImage1.trim() || null,
+          inlineImage2: draft.inlineImage2.trim() || null,
         },
       });
       const description = describeSeoNotification(updated.seoNotification);
@@ -1882,6 +1888,102 @@ function PostEditor({
             }
             required
           />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor={`inlineImage1-${post.id}`}>Inline image 1 (URL)</Label>
+          <div className="flex gap-2">
+            <Input
+              id={`inlineImage1-${post.id}`}
+              type="url"
+              placeholder="https://…"
+              value={draft.inlineImage1}
+              onChange={(e) =>
+                setDraft({ ...draft, inlineImage1: e.target.value })
+              }
+            />
+            <ObjectUploader
+              maxNumberOfFiles={1}
+              maxFileSize={10 * 1024 * 1024}
+              onValidationWarning={(msg) => toast.warning(msg)}
+              onGetUploadParameters={async (file) => {
+                const { uploadURL } = await presignAndUpload({
+                  name: file.name ?? "upload",
+                  size: file.size ?? 0,
+                  type: file.type ?? "application/octet-stream",
+                });
+                return {
+                  method: "PUT",
+                  url: uploadURL,
+                  headers: { "Content-Type": file.type ?? "application/octet-stream" },
+                };
+              }}
+              onComplete={async (result) => {
+                const uploaded = result.successful?.[0];
+                const uploadURL = uploaded?.uploadURL;
+                if (!uploadURL) { toast.error("Upload did not return a URL"); return; }
+                try {
+                  const { objectPath } = await finalizeUpload(uploadURL);
+                  setDraft((d) => ({ ...d, inlineImage1: objectPath }));
+                  toast.success("Inline image 1 uploaded");
+                } catch { toast.error("Could not finalize upload"); }
+              }}
+              buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
+            >
+              <Upload className="w-4 h-4" />
+            </ObjectUploader>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Optional. Shown after the first content section. Leave blank to omit.
+          </p>
+        </div>
+        <div>
+          <Label htmlFor={`inlineImage2-${post.id}`}>Inline image 2 (URL)</Label>
+          <div className="flex gap-2">
+            <Input
+              id={`inlineImage2-${post.id}`}
+              type="url"
+              placeholder="https://…"
+              value={draft.inlineImage2}
+              onChange={(e) =>
+                setDraft({ ...draft, inlineImage2: e.target.value })
+              }
+            />
+            <ObjectUploader
+              maxNumberOfFiles={1}
+              maxFileSize={10 * 1024 * 1024}
+              onValidationWarning={(msg) => toast.warning(msg)}
+              onGetUploadParameters={async (file) => {
+                const { uploadURL } = await presignAndUpload({
+                  name: file.name ?? "upload",
+                  size: file.size ?? 0,
+                  type: file.type ?? "application/octet-stream",
+                });
+                return {
+                  method: "PUT",
+                  url: uploadURL,
+                  headers: { "Content-Type": file.type ?? "application/octet-stream" },
+                };
+              }}
+              onComplete={async (result) => {
+                const uploaded = result.successful?.[0];
+                const uploadURL = uploaded?.uploadURL;
+                if (!uploadURL) { toast.error("Upload did not return a URL"); return; }
+                try {
+                  const { objectPath } = await finalizeUpload(uploadURL);
+                  setDraft((d) => ({ ...d, inlineImage2: objectPath }));
+                  toast.success("Inline image 2 uploaded");
+                } catch { toast.error("Could not finalize upload"); }
+              }}
+              buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
+            >
+              <Upload className="w-4 h-4" />
+            </ObjectUploader>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Optional. Shown in the second half of the article. Leave blank to omit.
+          </p>
         </div>
       </div>
       <div>
@@ -3893,6 +3995,8 @@ export default function AdminBlog() {
                   .map((s: string) => s.trim())
                   .filter(Boolean)
               : null,
+          inlineImage1: form.inlineImage1.trim() || null,
+          inlineImage2: form.inlineImage2.trim() || null,
         },
       });
       const isScheduled = publishedAtIso

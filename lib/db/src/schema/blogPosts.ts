@@ -77,6 +77,12 @@ export const blogPostsTable = pgTable("blog_posts", {
   // Stored so the SSR middleware can emit `wordCount` on BlogPosting JSON-LD
   // without re-parsing the full content on every Googlebot request.
   wordCount: integer("word_count"),
+  // Optional inline body images (1–2) set by the admin. Rendered inside the
+  // article body — inlineImage1 after the first content section, inlineImage2
+  // in the second half — so each post can showcase contextual visuals beyond
+  // the hero cover image.
+  inlineImage1: text("inline_image_1"),
+  inlineImage2: text("inline_image_2"),
 });
 
 export type BlogPostRow = typeof blogPostsTable.$inferSelect;

@@ -183,6 +183,10 @@ export interface BlogPost {
   aboutEntities?: string[] | null;
   /** Entities mentioned in the article (BlogPosting `mentions`). */
   mentionEntities?: string[] | null;
+  /** Optional inline body image URL shown after the first article section. */
+  inlineImage1?: string | null;
+  /** Optional inline body image URL shown in the second half of the article. */
+  inlineImage2?: string | null;
 }
 
 export interface BlogCategory {
@@ -245,6 +249,10 @@ export interface UpdateBlogPostInput {
   lastMaterialUpdateAt?: string | null;
   aboutEntities?: string[] | null;
   mentionEntities?: string[] | null;
+  /** Optional inline body image URL shown after the first article section. */
+  inlineImage1?: string | null;
+  /** Optional inline body image URL shown in the second half of the article. */
+  inlineImage2?: string | null;
 }
 
 export type SeoNotificationIndexNowStatus = typeof SeoNotificationIndexNowStatus[keyof typeof SeoNotificationIndexNowStatus];
@@ -352,6 +360,10 @@ export interface PublishBlogPostInput {
   lastMaterialUpdateAt?: string | null;
   aboutEntities?: string[] | null;
   mentionEntities?: string[] | null;
+  /** Optional inline body image URL shown after the first article section. */
+  inlineImage1?: string | null;
+  /** Optional inline body image URL shown in the second half of the article. */
+  inlineImage2?: string | null;
 }
 
 /**
