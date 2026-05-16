@@ -2834,25 +2834,38 @@ async function handleSsrMeta(
           // href should resolve to a page that describes the author — our
           // /authors/:slug profile pages satisfy this requirement.
           ...(authorUrl ? [`  <link rel="author" href="${esc(authorUrl)}" />`] : []),
-          // Region-specific hreflang from auto-detected contentLocations (IN-1 partial fix).
-          // When a post's tags/category indicate geographic relevance (UK, US, AU, SG, etc.)
-          // Google receives explicit per-region hreflang signals so it can correctly surface
-          // the article in region-specific SERPs (e.g. google.co.uk, google.com.sg).
-          // These supplement the generic hreflang="en" + x-default injected unconditionally
-          // in patchHtml — together they satisfy Google's full hreflang spec for a single-
-          // language, multi-region site without requiring separate region URLs.
+          // International SEO (IN-1 complete fix): always emit all 5 core-market
+          // regional hreflang codes regardless of content geography. FintechPressHub
+          // serves US, UK, AU, SG, and CA — every blog post is relevant to all 5.
+          // Previously these were geo-conditional, meaning posts without geographic
+          // keywords received no regional codes at all (only the base en + x-default
+          // from patchHtml). Now every post gets the full 5-market set unconditionally,
+          // matching the coverage on /tools, /compare, /services, /pricing, /contact.
+          `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+          // Extra content-location hreflang for non-core markets only (avoids
+          // duplicating the 5 core codes already emitted above). Covers secondary
+          // fintech hubs (IN, HK, EU, AE, etc.) when post tags signal relevance.
           ...contentLocations.flatMap(({ name }) => {
-            const regionHreflang: Record<string, string> = {
-              "United Kingdom":  "en-GB",
-              "United States":   "en-US",
-              "European Union":  "en-EU",
-              "Singapore":       "en-SG",
-              "Australia":       "en-AU",
-              "Canada":          "en-CA",
-              "India":           "en-IN",
-              "Hong Kong":       "en-HK",
+            const extraHreflang: Record<string, string> = {
+              "European Union": "en-EU",
+              "India":          "en-IN",
+              "Hong Kong":      "en-HK",
+              "United Arab Emirates": "en-AE",
+              "Brazil":         "en-BR",
+              "Israel":         "en-IL",
+              "Kenya":          "en-KE",
+              "Netherlands":    "en-NL",
+              "Norway":         "en-NO",
+              "Sweden":         "en-SE",
+              "Switzerland":    "en-CH",
+              "Germany":        "en-DE",
+              "France":         "en-FR",
             };
-            const lc = regionHreflang[name];
+            const lc = extraHreflang[name];
             return lc ? [`  <link rel="alternate" hreflang="${lc}" href="${esc(canonical)}" />`] : [];
           }),
           // Dynamic og:locale override for single-market content (INT-2 fix).
@@ -3771,6 +3784,29 @@ async function handleSsrMeta(
           // which hosts the canonical Organisation → employee graph, reinforcing
           // the authorship chain for E-E-A-T scoring.
           `  <link rel="author" href="${esc(`${siteUrl}/about`)}" />`,
+          // International SEO: 5 core-market regional hreflang codes — matches
+          // the coverage on /services, /pricing, /contact, /compare, and all blog
+          // posts. Author profile pages are globally relevant (the same specialist
+          // serves clients in US, UK, AU, SG, and CA) so all five codes apply.
+          `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+          // Dublin Core: academic and library indexers (BASE, EuroPubMed, Semantic
+          // Scholar) parse DC tags as a secondary E-E-A-T signal — important for
+          // author profile pages that establish editorial credentials for YMYL content.
+          `  <meta name="DC.title" content="${esc(title)}" />`,
+          `  <meta name="DC.creator" content="${esc(author.name)}" />`,
+          `  <meta name="DC.subject" content="${esc(`${author.role ?? "Fintech SEO specialist"}, fintech content, fintech marketing${author.expertise && Array.isArray(author.expertise) ? `, ${(author.expertise as string[]).slice(0, 3).join(", ")}` : ""}`)}" />`,
+          `  <meta name="DC.description" content="${esc(description)}" />`,
+          `  <meta name="DC.publisher" content="FintechPressHub" />`,
+          `  <meta name="DC.date" scheme="W3CDTF" content="${author.createdAt.toISOString().slice(0, 10)}" />`,
+          `  <meta name="DC.type" scheme="DCMIType" content="Text" />`,
+          `  <meta name="DC.format" content="text/html" />`,
+          `  <meta name="DC.language" scheme="RFC5646" content="en" />`,
+          `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
+          `  <meta name="DC.rights" content="${esc(`${siteUrl}/terms`)}" />`,
         ],
         extraLds: (() => {
           const lds: string[] = [
@@ -4002,7 +4038,17 @@ async function handleSsrMeta(
           `  <link rel="alternate" type="application/rss+xml" title="${esc(`${leafLabel} — FintechPressHub`)}" href="${esc(`${siteUrl}/blog/category/${slug}/rss.xml`)}" />`,
           ...(categoryThinFacet
             ? [`  <meta name="robots" content="noindex, follow" />`]
-            : []),
+            // International SEO: 5 core-market regional hreflang codes for indexed
+            // category hubs. Not emitted on thin/noindex facets to avoid wasting
+            // crawl budget on low-quality pages. Matches the coverage on all blog
+            // posts, /tools, /compare, /services, /pricing, and /contact.
+            : [
+                `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+                `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+                `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+                `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+                `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+              ]),
         ],
       };
     }
@@ -4120,7 +4166,16 @@ async function handleSsrMeta(
           `  <link rel="alternate" type="application/rss+xml" title="${esc(`${tagLabel} Articles — FintechPressHub`)}" href="${esc(`${siteUrl}/blog/tag/${rawTag}/rss.xml`)}" />`,
           ...(tagThinFacet
             ? [`  <meta name="robots" content="noindex, follow" />`]
-            : []),
+            // International SEO: 5 core-market regional hreflang codes for indexed
+            // tag hubs. Omitted on thin/noindex tags to avoid crawl-budget waste —
+            // mirrors the identical logic on /blog/category/:slug.
+            : [
+                `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+                `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+                `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+                `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+                `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+              ]),
         ],
       };
     }
@@ -7072,20 +7127,26 @@ async function handleSsrMeta(
         // are added without modifying the shared patches assembly above.
 
         if (reqPath === "/about" && patches) {
-          // Technical + White Hat: meta robots, meta author, and rel="author"
-          // for the About page — completes the head signal set for E-E-A-T.
-          // patchHtml already injects hreflang="en" + x-default; these are
-          // additive signals for Dublin Core consumers and Content classifiers.
+          // Technical + White Hat + International: meta robots, meta author,
+          // rel="author", and 5 core-market regional hreflang for the About page.
+          // The About page establishes organisational E-E-A-T and is relevant to
+          // all five primary markets FintechPressHub serves (US, UK, AU, SG, CA).
           patches.headLinks = [
             `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
             `  <meta name="author" content="FintechPressHub Editorial Team" />`,
             `  <link rel="author" href="${esc(`${siteUrl}/about`)}" />`,
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
           ];
         }
 
         if (reqPath === "/authors" && patches) {
-          // Technical + White Hat + AEO: meta robots, meta author, news_keywords,
-          // and rel="author" for the authors hub page.
+          // Technical + White Hat + International + AEO: meta robots, meta author,
+          // rel="author", news_keywords, and 5 core-market regional hreflang for
+          // the authors hub page. The team serves all 5 primary fintech markets.
           patches.headLinks = [
             `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
             `  <meta name="author" content="FintechPressHub Editorial Team" />`,
@@ -7093,6 +7154,11 @@ async function handleSsrMeta(
             // AEO: news_keywords consumed by Google News and AI news crawlers
             // to surface the team page for fintech-writer discovery queries.
             `  <meta name="news_keywords" content="fintech writers, fintech SEO specialists, payments content, open banking editors, regtech analysts" />`,
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
           ];
         }
 
@@ -7181,18 +7247,99 @@ async function handleSsrMeta(
           patches.articleAuthor    = "FintechPressHub Editorial Team";
           patches.articlePublisher = "https://twitter.com/fintechpresshub";
           patches.author           = "FintechPressHub Editorial Team";
-          // Dublin Core meta — academic and research databases (BASE, EuroPubMed,
-          // JSTOR-adjacent crawlers, financial research indexers) parse DC meta
-          // as a secondary discovery channel alongside OG and structured data.
-          // The SSR blog-post handler already injects DC.title/creator/date/subject
-          // for every article; adding them here ensures the write-for-us page has
-          // full DC provenance, matching the standard set across the rest of the site.
+          // Dublin Core meta + International SEO: DC provenance for academic
+          // indexers + 5 core-market regional hreflang so Write For Us pages
+          // rank in US/UK/AU/SG/CA SERPs for "fintech write for us" queries.
           patches.headLinks = [
             `  <meta name="DC.title" content="Fintech Guest Post | Write For Us | FintechPressHub" />`,
             `  <meta name="DC.creator" content="FintechPressHub Editorial Team" />`,
             `  <meta name="DC.subject" content="Fintech Guest Posting, Fintech Content Marketing, Dofollow Guest Posts, Fintech SEO, Guest Blogging" />`,
             `  <meta name="DC.date" scheme="W3CDTF" content="2023-10-01" />`,
             `  <meta name="DC.identifier" content="${canonical}" />`,
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+          ];
+        }
+
+        if (reqPath === "/blog" && patches) {
+          // International SEO + Technical + AEO: 5 core-market regional hreflang,
+          // RSS autodiscovery, news_keywords, and extended robots directives for
+          // the blog index — the highest-traffic hub page outside the homepage.
+          // Regional hreflang closes the same gap fixed on all blog post pages.
+          patches.headLinks = [
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" type="application/rss+xml" title="FintechPressHub Blog" href="${siteUrl}/blog/rss.xml" />`,
+            `  <meta name="news_keywords" content="fintech SEO, fintech content marketing, fintech link building, open banking, embedded finance, regtech, neobanking, payments infrastructure" />`,
+            `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+          ];
+        }
+
+        if (reqPath === "/press" && patches) {
+          // International SEO + Technical: 5 core-market regional hreflang for
+          // the press/media coverage hub. Journalists and researchers in all 5
+          // fintech markets may discover FintechPressHub through this page.
+          patches.headLinks = [
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+            `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+            `  <meta name="author" content="FintechPressHub Editorial Team" />`,
+          ];
+        }
+
+        if (reqPath === "/locations" && patches) {
+          // International SEO + Technical: 5 core-market regional hreflang for
+          // the locations hub — the parent page that links to all market-specific
+          // location pages. Consistent with the per-location hreflang on child pages.
+          patches.headLinks = [
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+            `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+            `  <meta name="keywords" content="fintech SEO by location, fintech SEO London, fintech SEO New York, fintech SEO Singapore, fintech SEO Sydney, fintech SEO Toronto, fintech marketing agency by city" />`,
+          ];
+        }
+
+        if (reqPath === "/tools" && patches) {
+          // International SEO + Technical: 5 core-market regional hreflang for
+          // the tools hub — consistent with the identical hreflang emitted on every
+          // individual tool page (/tools/:slug). Completes the hreflang triangle
+          // (sitemap-tools.xml → /tools hub → /tools/:slug) required by Google's
+          // international targeting specification.
+          patches.headLinks = [
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+            `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+            `  <meta name="keywords" content="free fintech tools, fintech SEO tools, fintech calculator, fintech ROI calculator, keyword density tool, fintech marketing tools, free SEO tools" />`,
+          ];
+        }
+
+        if (reqPath === "/resources/fintech-publications" && patches) {
+          // International SEO + Off-Page: 5 core-market regional hreflang for
+          // the fintech publications resource hub — a citation and link-building
+          // reference page consumed by fintech marketers across all 5 markets.
+          patches.headLinks = [
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+            `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+            `  <meta name="keywords" content="fintech publications, fintech media, fintech news sites, fintech press list, financial technology publications, fintech link building targets" />`,
           ];
         }
 
