@@ -54,6 +54,10 @@ export const STATIC_ROUTES: Array<{
   // Compare sub-pages intentionally omitted here — covered by /sitemap-compare.xml
   // (built from COMPARE_SLUGS in seoConstants.ts). Same deduplication rationale
   // as tool sub-pages above.
+  // /reading-list is a client-side bookmark manager (localStorage) — it is
+  // indexable because it contains a curated blog-post listing useful to readers.
+  // priority 0.4 and monthly changefreq reflect its utility/support role.
+  { path: "/reading-list", changefreq: "monthly", priority: "0.4", lastmod: "2026-05-16" },
 ];
 
 

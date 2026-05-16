@@ -21,6 +21,13 @@
     <meta name="keywords" content="fintech SEO, fintech content marketing, fintech link building, fintech SEO agency, financial services SEO, fintech digital PR, payments SEO, neobanking SEO, embedded finance SEO, regtech SEO, wealthtech content" />
     <link rel="alternate" type="application/rss+xml" title="FintechPressHub Blog" href="https://www.fintechpresshub.com/rss.xml" />
     <link rel="sitemap" type="application/xml" title="Sitemap Index" href="https://www.fintechpresshub.com/sitemap_index.xml" />
+    <!-- LLM-readable content index autodiscovery link — follows the llmstxt.org
+         convention so AI agents (Perplexity, ChatGPT Search, Gemini) can locate
+         the Markdown content index without guessing the path. Supplements the
+         Link: HTTP header and robots.txt LLM-Content hints for belt-and-suspenders
+         discoverability across all four LLM discovery channels. -->
+    <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM content index" />
+    <link rel="alternate" type="text/plain" href="/llms-full.txt" title="LLM full content index" />
     <!-- Canonical URL for the homepage — MUST be present in the HTML shell so
          the SSR middleware's regex replacement can inject the correct per-page
          canonical on all server-rendered routes (blog posts, locations, etc.).
@@ -79,6 +86,11 @@
          development/staging environments. On Hostinger production our server
          sends no noindex headers so this is a belt-and-suspenders assertion. -->
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <!-- Content safety rating — signals to filtering proxies, parental controls,
+         and brand-safety classifiers that all content on this site is suitable
+         for a general professional audience. Complements the white-hat trust
+         signals emitted in the Organization JSON-LD and robots.txt. -->
+    <meta name="rating" content="general" />
 
     <!-- Dublin Core — library and academic indexers (BASE, EuroPubMed, JSTOR-adjacent
          crawlers, financial research databases) parse DC meta tags as a secondary discovery

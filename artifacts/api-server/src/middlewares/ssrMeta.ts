@@ -91,6 +91,13 @@ function getBaseHtml(): string | null {
       `<meta name="google-site-verification" content="${gscToken}" />`,
     );
   }
+  const bingToken = process.env.BING_SITE_VERIFICATION?.trim();
+  if (bingToken) {
+    html = html.replace(
+      /<!--\s*<meta name="msvalidate\.01"[^>]*>\s*-->/,
+      `<meta name="msvalidate.01" content="${bingToken}" />`,
+    );
+  }
   _cachedHtml = html;
   return _cachedHtml;
 }
@@ -1415,6 +1422,10 @@ const STATIC_META: Record<string, { title: string; description: string; ogType?:
     title: "Fintech SEO by Location | FintechPressHub",
     description: "Specialist fintech SEO, content marketing, and link-building services tailored to your city. Browse all locations we serve globally.",
   },
+  "/reading-list": {
+    title: "Your Fintech Reading List | Save & Track Articles | FintechPressHub",
+    description: "Save and track fintech articles from FintechPressHub. Bookmark posts, monitor your reading progress, and build a personal library of fintech SEO, payments, and open banking insights.",
+  },
 };
 
 // ── Module-level SEO maps (computed once at startup, never rebuilt per-request) ──
@@ -1473,6 +1484,7 @@ const STATIC_PAGE_LASTMOD: Readonly<Record<string, string>> = {
   // Compare sub-page lastmod is sourced from COMPARE_PAGE_LASTMOD in seoConstants.ts
   // (single source of truth). Do not add /compare/* entries here.
   "/locations":                        "2026-05-10",
+  "/reading-list":                     "2026-05-16",
 };
 
 /**
@@ -1498,6 +1510,7 @@ const STATIC_PAGE_CREATED: Readonly<Record<string, string>> = {
   "/contact":                         "2021-01-01",
   "/locations":                       "2025-01-01",
   "/resources/fintech-publications":  "2024-01-01",
+  "/reading-list":                    "2024-06-01",
   "/privacy-policy":                  "2021-01-01",
   "/refund-policy":                   "2021-01-01",
   "/cookie-policy":                   "2021-01-01",
@@ -1532,6 +1545,7 @@ const STATIC_OG_META: Readonly<Record<string, { category: string; ogTitle: strin
   "/terms":                           { category: "Legal",       ogTitle: "Terms & Conditions" },
   "/resources/fintech-publications":  { category: "Resources",   ogTitle: "Top Fintech Publications" },
   "/locations":                       { category: "Locations",   ogTitle: "Fintech SEO by Location" },
+  "/reading-list":                    { category: "Reading",     ogTitle: "Your Fintech Reading List" },
 };
 
 /**

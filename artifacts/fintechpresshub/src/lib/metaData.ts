@@ -71,6 +71,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   "headline-analyzer": "Headline Analyzer",
   "link-prospector": "Link Prospector",
   "outreach-email-generator": "Outreach Email Generator",
+  "reading-list": "Reading List",
   "write-for-us": "Write For Us",
   contact: "Contact",
   "privacy-policy": "Privacy Policy",
@@ -299,6 +300,11 @@ export const PAGE_META = {
     title: "Outreach Email Generator | Free Fintech Link Building Tool",
     description:
       "Generate a personalised link-building outreach email in seconds. Choose your tone, fill in the details, and compare subject line variants scored on open-rate factors.",
+  },
+  readingList: {
+    title: "Your Fintech Reading List | Save & Track Articles | FintechPressHub",
+    description:
+      "Save and track fintech articles from FintechPressHub. Bookmark posts, monitor your reading progress, and build a personal library of fintech SEO, payments, and open banking insights.",
   },
   adminServices: {
     title: "Admin · Services | FintechPressHub",

@@ -187,6 +187,7 @@ export const BREADCRUMB_LABELS: Readonly<Record<string, string>> = {
   "headline-analyzer":                 "Headline Analyzer",
   "link-prospector":                   "Link Prospector",
   "outreach-email-generator":          "Outreach Email Generator",
+  "reading-list":                      "Reading List",
   tag:                                 "Tag",
 };
 
