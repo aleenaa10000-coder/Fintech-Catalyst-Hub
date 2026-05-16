@@ -62,6 +62,7 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 import {
   Chart as ChartJS,
   LinearScale,
@@ -2672,6 +2673,21 @@ Looking forward to hearing from you,
             )}
           </AnimatePresence>
 
+          <ToolSEOEnhancements
+            toolSlug="link-prospector"
+            toolName="Link Prospector"
+            methodologyTitle="How the Link Prospector Scores Domains"
+            methodologyText="The Link Prospector bulk-scores each domain in your list using the same three-factor weighted formula as the Backlink Value Estimator — Domain Authority (40%), estimated organic traffic (35%), and topical relevance to fintech (25%) — applied in batch mode. Domains are auto-detected from common paste formats (one-per-line, comma-separated, or URL-formatted). The scored list is then sorted by highest value or easiest acquisition to help you prioritise your outreach campaign."
+            accuracyNote="The prospector scores domains based on your input data. DA figures should be sourced from Moz Link Explorer or Ahrefs. Organic traffic estimates can be sourced from Semrush or SimilarWeb. Score dedicated fintech publications at 8–10 relevance, general business media at 5–7, and unrelated domains at 1–4. The tool processes up to 50 domains per batch."
+            lastUpdated="May 2026"
+            processingNote="All scoring runs client-side — your domain lists never leave your browser."
+            useCases={[
+              { industry: "Fintech SEO Agencies", role: "Link Building Teams", benefit: "Link building teams at fintech agencies score full outreach lists in one session — prioritising the top 20% of high-value prospects before a campaign begins and filtering out low-DA noise automatically." },
+              { industry: "Digital PR & Comms Teams", role: "PR Managers", benefit: "Fintech PR managers score journalists' publication domains after receiving media coverage — determining whether to invest in cultivating the journalist relationship based on the domain's long-term backlink value." },
+              { industry: "Embedded Finance", role: "Partnership & BD Teams", benefit: "Embedded finance partnership teams evaluate potential co-marketing domains — scoring partner websites before agreeing to content collaborations or joint case studies that include backlinks." },
+              { industry: "WealthTech & Robo-Advisory", role: "Content Marketing Teams", benefit: "WealthTech content teams evaluate financial influencer and blogger domains before pitching guest content — confirming each prospect's authority and relevance justify the content creation effort." },
+            ]}
+          />
           <ToolShareEmbed slug="link-prospector" state={{ textarea }} />
         </div>
       </section>

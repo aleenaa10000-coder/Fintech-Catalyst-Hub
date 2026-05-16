@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
 import { PageMeta } from "@/components/PageMeta";
@@ -2969,6 +2970,21 @@ export default function BacklinkValueEstimator() {
 
       <section className="pb-16">
         <div className="container mx-auto px-4 max-w-3xl">
+          <ToolSEOEnhancements
+            toolSlug="backlink-value-estimator"
+            toolName="Backlink Value Estimator"
+            methodologyTitle="How the Backlink Value Score Is Calculated"
+            methodologyText="The estimator uses a three-factor weighted formula: Domain Authority score (40% weight) — normalised from the 0–100 Moz DA scale; estimated monthly organic traffic (35% weight) — scored on a logarithmic scale calibrated to fintech-sector traffic distributions; and topical relevance to fintech (25% weight) — scored on a 1–10 input scale. The three factor scores are multiplied by their weights and summed to produce the 0–100 composite backlink value score."
+            accuracyNote="DA and organic traffic figures used in this tool are self-reported inputs. For accurate DA, check Moz Link Explorer or Ahrefs. Organic traffic estimates can be sourced from Semrush or SimilarWeb. Score fintech-specialist publications at 8–10 relevance, general business and technology publications at 5–7, and unrelated domains at 1–4."
+            lastUpdated="May 2026"
+            processingNote="All calculations run client-side — no domain data is sent to our servers."
+            useCases={[
+              { industry: "Fintech SEO Agencies", role: "Link Building Specialists", benefit: "Link building specialists score prospect lists before committing outreach time — filtering out low-value domains and prioritising the prospects most likely to move rankings for their fintech clients." },
+              { industry: "B2B Payments SaaS", role: "In-House SEO Teams", benefit: "Payments SaaS in-house SEO teams evaluate PR opportunities — scoring news sites and industry blogs to confirm that a press placement will deliver SEO value before the PR team invests time." },
+              { industry: "Embedded Finance Platforms", role: "Growth & Partnerships Teams", benefit: "Embedded finance platforms evaluate partner co-marketing opportunities — confirming whether a partner website provides enough DA, traffic, and relevance to justify a content collaboration with link exchange." },
+              { industry: "Neobanks & Digital Banks", role: "Marketing Directors", benefit: "Neobank marketing teams score inbound link opportunities from media coverage — quickly assessing whether a journalist's publication domain is worth prioritising for future relationship building." },
+            ]}
+          />
           <ToolShareEmbed slug="backlink-value-estimator" state={form} />
         </div>
       </section>

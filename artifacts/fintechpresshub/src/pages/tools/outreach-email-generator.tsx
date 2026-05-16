@@ -48,6 +48,7 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2644,6 +2645,21 @@ export default function OutreachEmailGenerator() {
             </DialogContent>
           </Dialog>
 
+          <ToolSEOEnhancements
+            toolSlug="outreach-email-generator"
+            toolName="Outreach Email Generator"
+            methodologyTitle="How the Outreach Email Generator Works"
+            methodologyText="The generator combines your campaign inputs — name, company, target domain, target URL, and value proposition — into a personalised outreach email using three tone variants: Professional (formal, evidence-led, appropriate for institutional and regulatory publications), Friendly (conversational, relationship-led, effective for blogs and niche communities), and Direct (concise, CTA-first, effective for webmaster and SEO-savvy contacts). Three subject line alternatives are generated per email, each following a different pattern — question, benefit-statement, or mutual-reference — for testing in your outreach CRM."
+            accuracyNote="The generated email is a high-quality starting template. Personalise it with a specific reference to the recipient's recent content before sending — this is the highest-impact variable in outreach response rate. Avoid sending the unmodified template to large lists; each email should include at least one publication-specific personalisation detail."
+            lastUpdated="May 2026"
+            processingNote="All generation runs in your browser — your outreach data never leaves your device."
+            useCases={[
+              { industry: "Fintech SEO Agencies", role: "Outreach Specialists", benefit: "Outreach specialists at fintech agencies produce high-quality first-draft emails for 30–50 prospects per week — personalising the generated framework with publication-specific details before sending." },
+              { industry: "Fintech Startups", role: "Founding SEO Teams", benefit: "Fintech startup SEO teams launch their first link-building campaigns without hiring a specialist — the generator produces professional outreach copy that performs at comparable response rates to agency-written templates." },
+              { industry: "B2B Payments & Fintech SaaS", role: "Growth Teams", benefit: "B2B fintech growth teams use it for digital PR outreach — generating journalist-targeted emails when a product launch, funding announcement, or data release presents a newsworthy link-earning opportunity." },
+              { industry: "Open Banking & Embedded Finance", role: "Content Partnerships Teams", benefit: "Content partnerships teams initiate co-marketing relationships with it — the professional tone variant produces the right first impression for reaching out to established financial publications." },
+            ]}
+          />
           <ToolShareEmbed slug="outreach-email-generator" state={form} />
         </div>
       </section>

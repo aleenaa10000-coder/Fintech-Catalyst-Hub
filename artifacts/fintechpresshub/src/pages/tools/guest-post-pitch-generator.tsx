@@ -53,6 +53,7 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 
 const MINOR_WORDS = new Set([
   "a","an","the","and","but","or","nor","for","so","yet",
@@ -2297,6 +2298,21 @@ export default function GuestPostPitchGenerator() {
             </DialogContent>
           </Dialog>
 
+          <ToolSEOEnhancements
+            toolSlug="guest-post-pitch-generator"
+            toolName="Guest Post Pitch Generator"
+            methodologyTitle="How the Guest Post Pitch Is Generated"
+            methodologyText="The generator combines your input — name, company, expertise area, target publication, editor name, and proposed title — into a personalised pitch email using four structural patterns: expertise-led, data-led, gap-led (identifying missing content), and value-led (leading with reader benefit). The pattern most likely to resonate with the specific publication type is selected automatically based on the publication name you enter."
+            accuracyNote="The generated pitch is a high-quality starting template, not a finished email. Before sending, personalise it with a specific reference to a recent article the editor published — this single step typically doubles response rates. Also verify the editor's current name and title on the publication's website; editorial contacts change frequently."
+            lastUpdated="May 2026"
+            processingNote="All generation runs in your browser — your personal and company information never leaves your device."
+            useCases={[
+              { industry: "Fintech SEO Agencies", role: "Content Outreach Managers", benefit: "Outreach managers at fintech agencies scale personalised guest post pitches across 20–30 target publications per month — maintaining pitch quality while meeting link-building volume targets." },
+              { industry: "Fintech Startups", role: "Founding Marketing Teams", benefit: "Early-stage fintech founders pitch their first bylines in publications like The Fintech Times, AltFi, and Finextra — establishing E-E-A-T credibility and earning the domain's first high-authority editorial links." },
+              { industry: "Payments Infrastructure", role: "Developer Relations Teams", benefit: "Developer relations and content teams at payments companies pitch technical articles to developer publications and API-focused blogs — acquiring links from highly relevant but hard-to-reach technical communities." },
+              { industry: "RegTech & Compliance", role: "Thought Leadership Teams", benefit: "RegTech thought leadership teams pitch regulatory commentary to legal and compliance publications — building E-E-A-T authority signals for YMYL content on KYC, AML, and financial regulation topics." },
+            ]}
+          />
           <ToolShareEmbed slug="guest-post-pitch-generator" state={form} />
         </div>
       </section>

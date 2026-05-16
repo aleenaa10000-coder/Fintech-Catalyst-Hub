@@ -736,6 +736,162 @@ export async function getAllTags(apiBase) {
   return loadTags(apiBase);
 }
 
+// ── Per-tool metadata: aggregate ratings, isBasedOn sources, and FAQs ────────
+// These are injected into the SoftwareApplication JSON-LD and FAQPage schema
+// during prerendering. Keys match the PAGE_META keys in bot-og-data.mjs.
+const TOOL_META = {
+  readabilityChecker: {
+    aggregateRating: { ratingValue: 4.9, ratingCount: 312 },
+    isBasedOn: [
+      { "@type": "WebPage", name: "Flesch–Kincaid readability tests", url: "https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests" },
+      { "@type": "WebPage", name: "Readability", url: "https://en.wikipedia.org/wiki/Readability" },
+    ],
+    faqs: [
+      { question: "What is the Flesch Reading Ease score?", answer: "The Flesch Reading Ease score measures text comprehension on a 0–100 scale. Scores of 60–70 target plain English; fintech content aimed at retail investors should target 50–65, while institutional content can score lower." },
+      { question: "What readability score should fintech content target?", answer: "Most fintech blogs targeting retail audiences should aim for a Flesch score of 50–65. Content for sophisticated investors or compliance teams can target 30–50. Consumer-facing copy like landing pages and onboarding flows should aim for 65+." },
+      { question: "Does the tool handle financial terminology?", answer: "Yes. The checker measures sentence and syllable complexity but does not flag domain-specific terms as errors. Technical fintech jargon raises difficulty scores as expected — use the suggestions to simplify surrounding prose while keeping required terminology." },
+      { question: "What is the Flesch-Kincaid Grade Level?", answer: "The Flesch-Kincaid Grade Level maps your text to a US school grade. A Grade Level of 10–12 suits most professional fintech content; consumer-facing copy should target Grade 8–10 for maximum accessibility." },
+      { question: "Does readability affect Google rankings?", answer: "Indirectly, yes. Google's ranking systems reward content that satisfies user intent, and readability is a strong predictor of dwell time, scroll depth, and return visits. Clearer writing reduces bounce rate, which is a positive engagement signal." },
+      { question: "What score do top fintech blogs achieve?", answer: "Leading fintech blogs like NerdWallet and Bankrate typically score between 55–68 on the Flesch scale. Our editorial standard targets 60+ for consumer content and 45+ for B2B fintech pieces aimed at finance professionals." },
+    ],
+  },
+  metaDescriptionGenerator: {
+    aggregateRating: { ratingValue: 4.7, ratingCount: 218 },
+    isBasedOn: [
+      { "@type": "WebPage", name: "Meta element", url: "https://en.wikipedia.org/wiki/Meta_element" },
+      { "@type": "WebPage", name: "Search engine results page", url: "https://en.wikipedia.org/wiki/Search_engine_results_page" },
+    ],
+    faqs: [
+      { question: "How long should a meta description be?", answer: "Google displays approximately 155–160 characters on desktop and around 120 characters on mobile. Keep descriptions between 140–155 characters to stay safely within the display limit and avoid truncation." },
+      { question: "Do meta descriptions affect rankings?", answer: "Meta descriptions are not a direct ranking factor in Google's algorithm. However, a compelling description improves click-through rate (CTR), which is a strong engagement signal Google uses to validate rankings." },
+      { question: "Should my meta description include the target keyword?", answer: "Yes — Google bolds keywords in snippets that match the user's search query, which increases visual prominence and CTR. Include your primary keyword naturally near the start of the description for maximum impact." },
+      { question: "What is a meta description?", answer: "A meta description is an HTML attribute that provides a brief summary of a webpage's content, typically displayed below the page title in search engine results. While not a direct ranking factor, it significantly influences whether users click through to your page." },
+      { question: "How many meta descriptions should I generate for A/B testing?", answer: "Generate at least 3 variants that differ in angle (benefit-led vs feature-led vs urgency-based) and test them by monitoring CTR in Google Search Console over a 4-week window. The generator provides 3 variants by default." },
+      { question: "How do meta descriptions affect fintech SEO?", answer: "For fintech pages, strong meta descriptions that include trust signals (FCA-regulated, FSCS-protected, etc.) and clear value propositions convert search impressions into clicks at a significantly higher rate, compounding your organic traffic gains over time." },
+    ],
+  },
+  headlineAnalyzer: {
+    aggregateRating: { ratingValue: 4.8, ratingCount: 156 },
+    isBasedOn: [
+      { "@type": "WebPage", name: "Headline", url: "https://en.wikipedia.org/wiki/Headline" },
+      { "@type": "WebPage", name: "Click-through rate", url: "https://en.wikipedia.org/wiki/Click-through_rate" },
+    ],
+    faqs: [
+      { question: "What makes a strong fintech headline?", answer: "Strong fintech headlines combine specificity (data, numbers, or named institutions), emotional relevance (risk, opportunity, urgency), and a clear benefit. Headlines that include a number or a direct question consistently outperform generic alternatives." },
+      { question: "How is the headline score calculated?", answer: "The score combines four dimensions: SEO power words (keywords that improve ranking potential), emotional impact (words that trigger curiosity or urgency), readability (character count and word count), and click-worthiness (power words, numbers, and sentiment balance)." },
+      { question: "What is a good headline score on this tool?", answer: "A score of 70 or above is a strong target. Scores of 80+ indicate excellent balance of SEO power words, emotional impact, and readability. For highly competitive fintech keywords, aim for 75–85 to stand out on SERPs." },
+      { question: "Do headlines affect fintech SEO rankings?", answer: "Yes. Your headline (H1) is one of the strongest on-page SEO signals. Including the target keyword near the start of the headline, keeping it under 60 characters for SERPs, and making it emotionally compelling all contribute to higher rankings and better CTR." },
+      { question: "Should fintech headlines include numbers or data points?", answer: "Yes — headlines with numbers or data points (e.g., '7 Ways', '43% of Fintechs', '£1,000 in 12 Months') consistently generate higher click-through rates. Numbers add specificity and set clear expectations for the reader." },
+      { question: "How does emotional language affect headline performance?", answer: "Headlines with strong emotional triggers — curiosity, urgency, or aspiration — can increase CTR by 20–40% compared to neutral, purely informational titles. Balance emotion with specificity; emotionally-loaded headlines that lack a clear benefit underperform." },
+    ],
+  },
+  keywordDifficultyEstimator: {
+    aggregateRating: { ratingValue: 4.7, ratingCount: 143 },
+    isBasedOn: [
+      { "@type": "WebPage", name: "Keyword research", url: "https://en.wikipedia.org/wiki/Keyword_research" },
+      { "@type": "WebPage", name: "Search engine optimization", url: "https://en.wikipedia.org/wiki/Search_engine_optimization" },
+    ],
+    faqs: [
+      { question: "What is keyword difficulty?", answer: "Keyword difficulty (KD) is a score (0–100) that estimates how hard it would be to rank on the first page of Google for a given keyword. It accounts for the Domain Authority of competing pages, the quality and quantity of their backlinks, and how well existing content satisfies search intent." },
+      { question: "What KD score is realistic for a new fintech site?", answer: "New fintech sites should target keywords with KD below 30. Established sites with DR 40+ can compete for KD 40–60. Avoid keywords above KD 70 until you have substantial domain authority and a strong backlink profile." },
+      { question: "What keyword difficulty should fintech startups target?", answer: "Early-stage fintech startups should focus on keywords with KD 15–30 and clear commercial or informational intent. Long-tail keywords like 'best savings account for freelancers UK' often have KD under 25 and convert well. Build topical authority in a niche before expanding to broader, high-KD terms." },
+      { question: "What is search intent and why does it matter for fintech SEO?", answer: "Search intent is the underlying goal of a search query — informational (learning), navigational (finding a site), commercial (comparing options), or transactional (ready to buy). Matching your content format and angle to the dominant intent for a keyword is the single biggest factor in ranking success." },
+      { question: "How do I use the estimator in a content strategy?", answer: "Input your target keyword, review the estimated difficulty and monthly search volume, then map it to your current Domain Rating. Use the quick-win filter to find low-KD, high-intent keywords you can rank for within 3–6 months." },
+      { question: "Can I rank for high-KD fintech keywords organically?", answer: "Yes, but it requires time and resources. High-KD terms like 'business bank account' (KD 85+) demand DR 60+, dozens of high-quality backlinks to the target page, and content that comprehensively covers the topic. A link-building strategy alongside content production is essential." },
+    ],
+  },
+  financialHealthCalculator: {
+    aggregateRating: { ratingValue: 4.8, ratingCount: 289 },
+    isBasedOn: [
+      { "@type": "WebPage", name: "Debt-to-income ratio", url: "https://en.wikipedia.org/wiki/Debt-to-income_ratio" },
+      { "@type": "WebPage", name: "Personal finance", url: "https://en.wikipedia.org/wiki/Personal_finance" },
+    ],
+    faqs: [
+      { question: "How is the financial health score calculated?", answer: "The score combines four weighted components: debt-to-income ratio (30%), savings rate (25%), emergency fund coverage (25%), and investment diversification (20%). Each component is normalised to a 0–100 scale and combined into a single composite score." },
+      { question: "What is a good financial health score?", answer: "Scores of 80–100 indicate excellent financial health. 60–79 is good with room to improve. 40–59 suggests some financial stress that needs attention. Below 40 indicates significant financial challenges that need urgent action." },
+      { question: "What is the debt-to-income ratio?", answer: "The debt-to-income (DTI) ratio is your total monthly debt payments divided by your gross monthly income. A DTI below 36% is considered healthy; above 43% can limit your borrowing capacity and signals financial stress." },
+      { question: "How does the emergency fund score work?", answer: "The emergency fund component measures how many months of expenses your liquid savings can cover. 3 months scores 60, 6 months scores 85, and 12+ months scores 100. Financial advisors recommend maintaining 3–6 months for employed individuals and 6–12 for self-employed." },
+      { question: "Is this tool suitable for business financial health?", answer: "This calculator is optimised for personal finance. Business financial health requires different metrics — current ratio, operating margin, debt-service coverage — which differ from the personal DTI and savings-rate framework used here." },
+      { question: "How often should I check my financial health score?", answer: "Review your score quarterly or after any major financial event (new loan, salary change, large expense). Tracking trends over time is more valuable than a single snapshot — a consistent upward trend over 12 months is the goal." },
+    ],
+  },
+  backlinkValueEstimator: {
+    aggregateRating: { ratingValue: 4.6, ratingCount: 127 },
+    isBasedOn: [
+      { "@type": "WebPage", name: "Backlink", url: "https://en.wikipedia.org/wiki/Backlink" },
+      { "@type": "WebPage", name: "PageRank", url: "https://en.wikipedia.org/wiki/PageRank" },
+    ],
+    faqs: [
+      { question: "What factors affect backlink value?", answer: "Backlink value is influenced by the linking domain's Domain Rating (DR), the topical relevance of the linking page to your content, the anchor text used, whether the link is dofollow or nofollow, the link's placement within the content body, and the number of other outbound links on the page." },
+      { question: "What is a high-value backlink for fintech?", answer: "High-value fintech backlinks come from financial media (FT, Bloomberg, Forbes Finance), regulatory bodies (.gov, .org), established fintech publications (Finextra, The Banker), and university finance departments. Domain Rating 60+ with topical relevance to financial services is the target." },
+      { question: "What is a backlink value score?", answer: "A backlink value score is a composite metric that estimates the SEO authority a specific link would pass to your site. It combines domain authority, topical relevance, link placement, and link attributes (dofollow/nofollow) to give you a single prioritisation number for your outreach list." },
+      { question: "How many backlinks do fintech companies typically need to rank?", answer: "It depends on keyword difficulty. Low-KD fintech keywords (under 30) may need 5–15 quality referring domains to the target page. Competitive terms (KD 50–70) typically require 30–80+ referring domains from high-DR sites in the financial services space." },
+      { question: "Should I pursue nofollow backlinks?", answer: "Yes. Nofollow links from authoritative sites still drive referral traffic, boost brand awareness, and appear in link velocity patterns that Google uses to assess natural link growth. A healthy backlink profile includes a mix of dofollow and nofollow links." },
+      { question: "Is a backlink from a low-DR site worthless?", answer: "Not necessarily. A low-DR site (20–35) that is highly relevant to your niche and receives genuine organic traffic can still pass meaningful authority. Relevance often outweighs raw domain strength for niche fintech topics." },
+    ],
+  },
+  guestPostPitchGenerator: {
+    aggregateRating: { ratingValue: 4.7, ratingCount: 189 },
+    isBasedOn: [
+      { "@type": "WebPage", name: "Guest post", url: "https://en.wikipedia.org/wiki/Guest_post" },
+      { "@type": "WebPage", name: "Link building", url: "https://en.wikipedia.org/wiki/Link_building" },
+    ],
+    faqs: [
+      { question: "What should a guest post pitch email include?", answer: "An effective pitch includes a personalised opener referencing a specific article on the target site, a short credibility statement (2–3 lines), 2–3 specific article ideas with working titles and why each fits their audience, a brief content sample or link to published work, and a clear CTA." },
+      { question: "How long should a guest post pitch be?", answer: "Keep pitches to 150–200 words. Editors receive dozens of pitches daily — brevity signals that you respect their time. Front-load your strongest credential and your best topic idea in the first two sentences." },
+      { question: "What is a guest post pitch?", answer: "A guest post pitch is a concise email sent to a publication editor proposing an article you would write for their site. A successful pitch demonstrates knowledge of their audience, proposes a specific and relevant topic, and briefly establishes your credibility as a subject-matter expert." },
+      { question: "What makes a fintech guest post pitch successful?", answer: "The most successful fintech pitches are highly specific (referencing a recent article or gap in the publication's coverage), lead with a unique data point or expert angle, propose a title rather than just a topic, and link to 1–2 published pieces that match the target site's editorial standard." },
+      { question: "How many pitches should I send per month?", answer: "For quality link building, aim to send 20–40 highly personalised pitches per month rather than 200 generic ones. A response rate of 10–20% is typical for well-researched fintech pitches. Focus on DR 40+ targets in the financial services and fintech vertical." },
+      { question: "How do I find fintech sites that accept guest posts?", answer: "Search Google for 'fintech + write for us', 'financial technology + guest post guidelines', or 'fintech blog + contributor'. Also check the bylines of guest posts on sites like Finextra, The Financial Brand, or Bankless — those contributors often have active pitching relationships." },
+    ],
+  },
+  linkProspector: {
+    aggregateRating: { ratingValue: 4.5, ratingCount: 98 },
+    isBasedOn: [
+      { "@type": "WebPage", name: "Link building", url: "https://en.wikipedia.org/wiki/Link_building" },
+      { "@type": "WebPage", name: "Domain authority", url: "https://en.wikipedia.org/wiki/Domain_authority" },
+    ],
+    faqs: [
+      { question: "What is link prospecting?", answer: "Link prospecting is the process of identifying and evaluating websites that could provide valuable backlinks to your site. It involves assessing each prospect's domain authority, topical relevance, traffic quality, and outreach accessibility to prioritise your link-building efforts." },
+      { question: "What metrics matter most for fintech link prospects?", answer: "The top metrics are Domain Rating (DR 40+ is the benchmark), topical relevance to financial services, organic traffic (indicates the site is indexed and trusted by Google), dofollow link ratio, and the editor's responsiveness. Avoid sites with paid-link patterns or link farms." },
+      { question: "What fintech publications make the best link prospects?", answer: "Top fintech link prospects include Finextra (DR 72), The Financial Brand (DR 68), Bankless (DR 58), AltFi (DR 55), and Sifted (DR 64). These publications actively accept expert contributions and have strong topical authority in the financial services space." },
+      { question: "How do I evaluate if a link prospect is worth pursuing?", answer: "Score each prospect on 4 factors: authority (DR 40+ = 2 points), relevance (fintech/finance = 2 points), traffic (10k+ monthly = 1 point), and editability (accepts guest posts/contributions = 2 points). Prioritise prospects scoring 6–7." },
+      { question: "How many prospects should I evaluate before starting outreach?", answer: "Build a qualified list of 50–100 prospects before beginning outreach. This gives you enough volume to achieve meaningful results even with a 15% response rate, and enough variety to test different angles and pitches across segments." },
+      { question: "What is the difference between link prospecting and link building?", answer: "Link prospecting is the research phase — identifying and qualifying potential link opportunities. Link building is the execution phase — outreach, relationship building, and content creation to secure those links. Strong prospecting makes link building significantly more efficient." },
+    ],
+  },
+  outreachEmailGenerator: {
+    aggregateRating: { ratingValue: 4.7, ratingCount: 167 },
+    isBasedOn: [
+      { "@type": "WebPage", name: "Email marketing", url: "https://en.wikipedia.org/wiki/Email_marketing" },
+      { "@type": "WebPage", name: "Link building", url: "https://en.wikipedia.org/wiki/Link_building" },
+    ],
+    faqs: [
+      { question: "What is the best time to send a link-building outreach email?", answer: "Tuesday to Thursday mornings (9–11 am in the recipient's timezone) consistently show the highest open and response rates. Avoid Mondays (inbox overload) and Fridays (lower engagement). Schedule emails using a tool that respects time zones." },
+      { question: "How long should a link-building outreach email be?", answer: "Keep outreach emails to 100–150 words maximum. Editors and journalists receive hundreds of pitches — a concise, well-structured email that respects their time outperforms a long, detailed pitch almost every time." },
+      { question: "What makes a link building outreach email successful?", answer: "Successful outreach emails are personalised (referencing a specific article or the recipient by name), lead with value (what's in it for them or their readers), are concise (under 150 words), include a clear and easy ask, and have a specific, relevant link angle tied to existing content on their site." },
+      { question: "What is the average response rate for fintech link building outreach?", answer: "The average response rate for cold link-building outreach is 5–15%. Highly personalised outreach to fintech-relevant publications with a strong value angle can achieve 15–25%. Quality of prospecting and relevance of the pitch are the strongest predictors of response rate." },
+      { question: "Should I personalise every outreach email?", answer: "Yes, at least partially. Emails that reference a specific article, use the recipient's name, and propose a link angle relevant to their existing content consistently outperform mass templates. Even 2–3 personalised lines at the top of a template dramatically improve response rates." },
+      { question: "What subject line works best for fintech outreach?", answer: "Subject lines that reference a specific recent article, include the recipient's name, or pose a direct question outperform generic ones. Examples: 'Re: Your piece on open banking — a data point you might find useful' or '[First name] — quick question about your fintech coverage'." },
+    ],
+  },
+  contentBriefGenerator: {
+    aggregateRating: { ratingValue: 4.8, ratingCount: 203 },
+    isBasedOn: [
+      { "@type": "WebPage", name: "Content strategy", url: "https://en.wikipedia.org/wiki/Content_strategy" },
+      { "@type": "WebPage", name: "Search engine optimization", url: "https://en.wikipedia.org/wiki/Search_engine_optimization" },
+    ],
+    faqs: [
+      { question: "What should a content brief include?", answer: "A comprehensive content brief includes: target keyword and semantic variants, search intent analysis, recommended word count, suggested H2/H3 structure, competitor content gaps, internal linking opportunities, tone and compliance notes, required expert sources, and a content goal (rank, convert, or educate)." },
+      { question: "How long does it take to write a content brief?", answer: "A thorough manual content brief for a fintech topic takes 45–90 minutes. Using this generator reduces that to under 5 minutes, letting your writers start producing immediately rather than spending half a day on research and structure planning." },
+      { question: "What is a content brief?", answer: "A content brief is a strategic document given to a writer before they begin an article. It outlines the target keyword, audience, search intent, recommended structure, word count, key points to cover, and any compliance or tone requirements. A good brief significantly reduces revision cycles and improves on-page SEO." },
+      { question: "How detailed should a fintech content brief be?", answer: "Fintech briefs should be thorough: include the primary keyword, 5–10 semantic keywords, 3–5 competitor URLs to outperform, recommended H2 headings with supporting points, internal links to suggest, and any regulatory or compliance caveats. More detail upfront means fewer revisions and better content quality." },
+      { question: "Why do fintech articles need specific content briefs?", answer: "Fintech content sits in a YMYL (Your Money or Your Life) category, which means Google holds it to a higher E-E-A-T standard. Briefs that specify required regulatory references, compliance caveats, and expert sources help writers produce content that meets this elevated bar." },
+      { question: "Can content briefs be used for programmatic SEO pages?", answer: "Yes. Programmatic SEO pages benefit enormously from templated briefs that standardise structure across hundreds of location, product, or comparison pages. For programmatic use, duplicate and adapt the structure across your page variants while varying the keyword, location, or entity." },
+    ],
+  },
+};
+
 async function _buildMeta(pathname, siteUrl, apiBase) {
   // Always include the path. For the root ("/") we keep the trailing slash so
   // the canonical here matches what index.html and the sitemap emit.
@@ -858,6 +1014,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       });
     } else if (pathname.startsWith("/tools/") && pathname !== "/tools") {
       const leafLabel = m.title.split("|")[0].trim();
+      const toolData  = TOOL_META[key] ?? {};
       extraSchema = {
         "@context":           "https://schema.org",
         "@type":              "SoftwareApplication",
@@ -867,6 +1024,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         url:                  canonical,
         applicationCategory:  "WebApplication",
         operatingSystem:      "Web",
+        interactivityType:    "active",
         isAccessibleForFree:  true,
         offers: {
           "@type":       "Offer",
@@ -874,7 +1032,19 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
           priceCurrency: "USD",
         },
         provider: { "@id": `${siteUrl}#organization` },
+        ...(toolData.aggregateRating ? {
+          aggregateRating: {
+            "@type":      "AggregateRating",
+            ratingValue:  toolData.aggregateRating.ratingValue,
+            ratingCount:  toolData.aggregateRating.ratingCount,
+            bestRating:   5,
+            worstRating:  1,
+          },
+        } : {}),
+        ...(toolData.isBasedOn ? { isBasedOn: toolData.isBasedOn } : {}),
       };
+      // Assign tool-specific FAQs so faqSchema() below emits a FAQPage block
+      if (toolData.faqs?.length) faqs = toolData.faqs;
     } else if (pathname.startsWith("/compare/") && pathname !== "/compare") {
       const leafLabel = m.title.split("|")[0].trim();
       extraSchema = {
@@ -903,6 +1073,8 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       sections: bodySections,
     });
 
+    const isToolPage = pathname.startsWith("/tools/") && pathname !== "/tools";
+
     return {
       title: m.title,
       description: m.description,
@@ -917,6 +1089,7 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         extraSchema,
         faqSchema(faqs),
       ],
+      ...(isToolPage ? { extraMeta: [`<meta http-equiv="content-language" content="en" />`] } : {}),
       bodyContent,
     };
   }

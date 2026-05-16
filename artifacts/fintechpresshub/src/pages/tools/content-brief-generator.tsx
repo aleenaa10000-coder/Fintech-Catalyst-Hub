@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
 import { PageMeta } from "@/components/PageMeta";
@@ -3468,6 +3469,21 @@ export default function ContentBriefGenerator() {
             )}
           </AnimatePresence>
 
+          <ToolSEOEnhancements
+            toolSlug="content-brief-generator"
+            toolName="Content Brief Generator"
+            methodologyTitle="How the Content Brief Generator Works"
+            methodologyText="The generator analyses your target keyword, audience description, and tone preference to produce a structured brief following the FintechPressHub editorial template — the same format used for client content briefs in managed SEO retainers. It generates suggested H2/H3 headings based on topic-cluster analysis, questions to answer sourced from People Also Ask pattern recognition, key statistics to include for E-E-A-T signalling, and a recommended CTA matched to the searcher intent classification of your keyword."
+            accuracyNote="The brief is a starting template calibrated for fintech and financial-services content. Review the generated heading structure against your top 3 ranking competitors for the target keyword before briefing your writer — the tool generates based on patterns, not live SERP data. Word count targets are directional estimates; for competitive keywords, analyse the top-10 results to determine the exact word count required to outperform."
+            lastUpdated="May 2026"
+            processingNote="All generation runs in your browser — your keywords and content data never leave your device."
+            useCases={[
+              { industry: "Fintech Content Agencies", role: "Editorial Directors & Strategists", benefit: "Fintech content agencies produce structured, SEO-aligned briefs that reduce writer revision cycles — every article targets the correct keyword and intent without requiring writers to also conduct SEO research." },
+              { industry: "Payments & Open Banking", role: "In-House Content Teams", benefit: "In-house content teams at payments companies brief freelance fintech writers with it — providing enough structure for regulatory accuracy and keyword inclusion without requiring the writer to conduct independent SEO research." },
+              { industry: "Neobanks", role: "Content Marketing Managers", benefit: "Neobank content marketing managers systematise their editorial calendar with it — each week's content is briefed using the generator, ensuring consistent heading structure, intent alignment, and FAQ coverage across all published articles." },
+              { industry: "Fintech SEO Agencies", role: "Client-Side SEO Managers", benefit: "SEO managers at fintech agencies produce the first 10 article briefs during client onboarding — demonstrating the content strategy before production begins and aligning client expectations on structure, tone, and keyword targeting." },
+            ]}
+          />
           <ToolShareEmbed slug="content-brief-generator" state={form} />
         </div>
       </section>

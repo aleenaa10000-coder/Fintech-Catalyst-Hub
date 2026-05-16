@@ -21,6 +21,7 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 
 type FormState = {
   pageTitle: string;
@@ -567,6 +568,21 @@ export default function MetaDescriptionGenerator() {
             )}
           </AnimatePresence>
 
+          <ToolSEOEnhancements
+            toolSlug="meta-description-generator"
+            toolName="Meta Description Generator"
+            methodologyTitle="How the Meta Description Generator Works"
+            methodologyText="The generator uses a template engine with four structural patterns — question-led, benefit-led, keyword-anchored, and action-led — selecting the three variants most likely to drive clicks for your input. It enforces a 155-character target range (below the 160-character SERP cutoff), normalises verb conjugation for natural benefit phrases, and detects B2B vs local-service contexts to apply the most effective call-to-action language."
+            accuracyNote="Generated descriptions include your target keyword in a natural position — not keyword-stuffed as a prefix. A CTA padding algorithm appends a tested phrase when the initial draft falls under 145 characters, pushing the total into the optimal 155–160 character window."
+            lastUpdated="May 2026"
+            processingNote="All generation runs in your browser — no text is sent to our servers."
+            useCases={[
+              { industry: "Payments & Checkout", role: "SEO Managers", benefit: "Payments SEO teams craft keyword-rich meta descriptions for high-competition queries like \"payment gateway API\" and \"embedded payments\", testing multiple variants before A/B testing in Search Console." },
+              { industry: "Digital Banking", role: "Content Strategists", benefit: "Neobank content teams generate localised meta descriptions for region-specific landing pages — ensuring each description hits the 155-character sweet spot for full SERP display." },
+              { industry: "Fintech Startups", role: "Founding Marketing Teams", benefit: "Early-stage fintech startups create professional meta descriptions for every product page without hiring a specialist — dramatically reducing time-to-launch for new feature pages." },
+              { industry: "RegTech & Compliance", role: "Content Writers", benefit: "RegTech writers craft SERP-preview text that accurately represents regulatory content — a YMYL requirement ensuring no misleading previews on financial-services pages." },
+            ]}
+          />
           <ToolShareEmbed slug="meta-description-generator" state={form} />
         </div>
       </section>

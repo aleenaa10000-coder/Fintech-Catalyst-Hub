@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -2673,6 +2674,21 @@ export default function HeadlineAnalyzer() {
             )}
           </AnimatePresence>
 
+          <ToolSEOEnhancements
+            toolSlug="headline-analyzer"
+            toolName="Headline Analyzer"
+            methodologyTitle="How the Headline Analyzer Scores Your Title"
+            methodologyText="The analyzer scores headlines across four weighted dimensions: SEO Power (30%) — keyword presence, length against the 6–12 word optimum, and search-engine resonance signals; Emotional Impact (30%) — power words, positive/negative sentiment, and emotional triggers from a dictionary of 200+ classified words; Readability (20%) — Flesch-Kincaid Grade Level and complexity signals; Clarity (20%) — passive voice detection, jargon scoring against a fintech-specific lexicon, and specificity signals."
+            accuracyNote="The analyzer is calibrated for fintech and financial-services content. Headlines for highly technical B2B audiences (API documentation, regulatory guidance) may score lower on Emotional Impact than on SEO Power — this is expected. Focus on the overall score trend across iterations rather than individual dimension scores in isolation."
+            lastUpdated="May 2026"
+            processingNote="All headline analysis runs client-side — your content never leaves your browser."
+            useCases={[
+              { industry: "Fintech Startups", role: "Content Marketing Teams", benefit: "Early-stage fintech teams A/B test multiple title variants before publishing — ensuring the highest-scoring headline is used to maximise CTR from limited organic traffic." },
+              { industry: "Payments & Checkout", role: "SEO Content Writers", benefit: "Payments content writers score headlines for high-competition queries — a score above 70 correlates with higher click-through rates on SERPs where the top 5 results compete for the same intent." },
+              { industry: "RegTech & Compliance", role: "Policy & Editorial Teams", benefit: "RegTech editorial teams calibrate headline authority — scoring regulatory guides for clarity and SEO power, ensuring they rank for compliance queries without overpromising in SERP previews." },
+              { industry: "WealthTech & Investing", role: "Content Strategists", benefit: "WealthTech companies ensure investor-education headlines hit optimal length (6–12 words), include the primary keyword, and contain at least one specificity signal such as a percentage or year." },
+            ]}
+          />
           <ToolShareEmbed slug="headline-analyzer" state={{ headline }} />
         </div>
       </section>

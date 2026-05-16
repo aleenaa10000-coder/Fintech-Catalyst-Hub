@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart,
@@ -5023,6 +5024,21 @@ export default function KeywordDifficultyEstimator() {
             </div>{/* /main content */}
           </div>{/* /flex layout */}
           <div className="mt-8 max-w-3xl mx-auto">
+            <ToolSEOEnhancements
+              toolSlug="keyword-difficulty-estimator"
+              toolName="Keyword Difficulty Estimator"
+              methodologyTitle="How the Keyword Difficulty Score Is Calculated"
+              methodologyText="The estimator analyses keyword signals across three dimensions: Competitive Signals (40% weight) — presence of high-competition indicator words ('best', 'top', 'review', 'compare', 'software', 'platform') that correlate with strong commercial intent; Keyword Complexity (35% weight) — word count, specific fintech terminology, and phrase specificity signals; Intent Classification (25% weight) — Informational, Commercial, Transactional, or Navigational classification based on keyword structure. The composite score is mapped to a 0–100 difficulty scale calibrated against fintech-sector competition patterns."
+              accuracyNote="The estimator provides a directional difficulty signal calibrated for fintech and financial-services keywords — scores within ±10 points of each other should be treated as equivalent. For precise competitive data (exact search volume, live SERP analysis), cross-reference with Ahrefs, Semrush, or Moz after shortlisting candidates using this tool."
+              lastUpdated="May 2026"
+              processingNote="All analysis runs client-side — your keywords never leave your browser."
+              useCases={[
+                { industry: "Fintech Startups", role: "Content Strategists", benefit: "Early-stage fintech content strategists build their initial content calendar with it — targeting keywords below 40 difficulty to generate early organic traffic before their domain authority is established." },
+                { industry: "Open Banking & PSD3", role: "SEO Managers", benefit: "Open banking SEO managers evaluate emerging keyword opportunities around PSD3, variable recurring payments, and embedded finance — scoring new terms before competitors establish dominance." },
+                { industry: "Neobanks & Digital Banks", role: "Digital Marketing Teams", benefit: "Neobank marketing teams identify long-tail keyword variations for product feature pages — targeting lower-competition variants that capture bottom-of-funnel intent from users actively comparing account options." },
+                { industry: "Fintech SEO Agencies", role: "Client Strategists", benefit: "Fintech SEO agencies use it as a first-pass keyword prioritisation tool during client onboarding — quickly sorting large keyword lists into quick-win, achievable, and long-term buckets before building a content roadmap." },
+              ]}
+            />
             <ToolShareEmbed slug="keyword-difficulty-estimator" state={{ keyword }} />
           </div>
         </div>{/* /container */}

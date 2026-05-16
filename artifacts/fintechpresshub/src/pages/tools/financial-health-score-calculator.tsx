@@ -37,6 +37,7 @@ import { SITE_URL } from "@/lib/metaData";
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 import { useEmailFinancialHealthScoreReport } from "@workspace/api-client-react";
 
 type Inputs = {
@@ -1210,6 +1211,21 @@ export default function FinancialHealthScoreCalculator() {
 
       <section className="pb-16">
         <div className="container mx-auto px-4 max-w-3xl">
+          <ToolSEOEnhancements
+            toolSlug="financial-health-score-calculator"
+            toolName="Financial Health Score Calculator"
+            methodologyTitle="How the Financial Health Score Is Calculated"
+            methodologyText="The calculator produces a composite 0–100 score across four weighted dimensions: Debt-to-Income ratio (35% weight), Savings Rate (30% weight), Emergency Fund Coverage in months (25% weight), and Expense Ratio (10% weight). Each dimension is scored 0–100 against evidence-based benchmarks — a DTI below 28% scores 100 points; 28–35% scores 75; 35–43% scores 50; above 43% scores 0–25. The four subscores are multiplied by their weights and summed."
+            accuracyNote="This is a directional financial health indicator — not a credit score, FICO calculation, or regulatory assessment. It does not access real account data; all figures are self-reported. Benchmarks are drawn from CFPB guidance, the UK Money and Pensions Service, and academic personal-finance research."
+            lastUpdated="May 2026"
+            processingNote="All calculations run in your browser — your financial data is never transmitted to our servers."
+            useCases={[
+              { industry: "Consumer Fintech", role: "Content Marketing Teams", benefit: "Consumer fintech companies embed the calculator in financial-wellness posts and email campaigns — it provides a lead-generation hook that delivers measurable value before a product sign-up." },
+              { industry: "BNPL & Lending Platforms", role: "Financial Education Teams", benefit: "BNPL and consumer lending platforms use it in pre-application content to help prospective borrowers self-assess affordability — reducing default risk through pre-qualification education." },
+              { industry: "Neobanks & Digital Banks", role: "Engagement & Retention Teams", benefit: "Digital banks use it as an onboarding engagement tool — prompting users to enter their financial data surfaces personalised product recommendations for savings accounts and debt-consolidation products." },
+              { industry: "WealthTech & Financial Advisers", role: "Client Acquisition Teams", benefit: "Financial advisers and robo-advisory platforms use it as a discovery tool — users who score below 60 are the highest-intent prospects for financial planning consultations." },
+            ]}
+          />
           <ToolShareEmbed slug="financial-health-score-calculator" state={inputs} />
         </div>
       </section>
