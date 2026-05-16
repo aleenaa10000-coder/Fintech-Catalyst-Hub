@@ -119,6 +119,20 @@ export default function Compare() {
         }}
       />
 
+      <nav aria-label="Breadcrumb" className="container mx-auto px-4 max-w-5xl pt-4 pb-2">
+        <ol className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap" itemScope itemType="https://schema.org/BreadcrumbList">
+          <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+            <Link href="/" className="hover:text-foreground transition-colors" itemProp="item"><span itemProp="name">Home</span></Link>
+            <meta itemProp="position" content="1" />
+          </li>
+          <li className="select-none" aria-hidden="true">/</li>
+          <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" aria-current="page">
+            <span className="text-foreground font-medium" itemProp="name">Compare</span>
+            <meta itemProp="position" content="2" />
+          </li>
+        </ol>
+      </nav>
+
       <PageHero
         eyebrow="Honest comparisons"
         title={<>How does fintech SEO stack up?</>}

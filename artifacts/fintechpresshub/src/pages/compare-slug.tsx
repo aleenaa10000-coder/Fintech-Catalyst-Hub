@@ -48,6 +48,40 @@ export default function CompareSlug() {
         <link rel="alternate" hrefLang="en-SG" href={canonical} />
         <link rel="alternate" hrefLang="en-CA" href={canonical} />
         <link rel="alternate" hrefLang="x-default" href={canonical} />
+        {/* AEO: DefinedTerm schema for each compared entity — enables "What is X?" rich
+            results and gives voice assistants and AI rankers structured definitions for
+            the three options being evaluated. Uses bottomLine summaries as definitions. */}
+        <script type="application/ld+json">
+          {JSON.stringify([
+            {
+              "@context": "https://schema.org",
+              "@type": "DefinedTerm",
+              "@id": `${canonical}#term-a`,
+              name: comparison.colA,
+              description: comparison.bottomLine[0]?.summary ?? "",
+              inDefinedTermSet: `${SITE_URL}/compare#glossary`,
+              url: canonical,
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "DefinedTerm",
+              "@id": `${canonical}#term-b`,
+              name: comparison.colB,
+              description: comparison.bottomLine[1]?.summary ?? "",
+              inDefinedTermSet: `${SITE_URL}/compare#glossary`,
+              url: canonical,
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "DefinedTerm",
+              "@id": `${canonical}#term-c`,
+              name: comparison.colC,
+              description: comparison.bottomLine[2]?.summary ?? "",
+              inDefinedTermSet: `${SITE_URL}/compare#glossary`,
+              url: canonical,
+            },
+          ])}
+        </script>
       </Helmet>
       <PageMeta
         title={comparison.title}
@@ -295,12 +329,20 @@ export default function CompareSlug() {
               We'll review your current organic footprint, benchmark you against 3 competitors, and show
               you exactly what a fintech-specialist approach would change. No commitment required.
             </p>
-            <Link href="/contact">
-              <Button size="lg" className="bg-[#0052FF] hover:bg-[#0040cc]">
-                Book a free strategy call
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/contact">
+                <Button size="lg" className="bg-[#0052FF] hover:bg-[#0040cc] w-full sm:w-auto">
+                  Book a free strategy call
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+              <Link href="/services">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                  Explore our SEO services
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </section>
       </main>

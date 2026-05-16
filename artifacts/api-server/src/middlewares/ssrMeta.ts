@@ -3880,6 +3880,15 @@ async function handleSsrMeta(
               "@type":     "SpeakableSpecification",
               cssSelector: ["h2", ".faq-question"],
             },
+            // Off-Page / GEO: mentions on FAQPage creates knowledge-graph edges between
+            // the FAQ entity and the regulatory bodies cited in Q&A answers — matching
+            // the WebPage mentions array and increasing entity-graph density per page.
+            mentions: [
+              { "@type": "Organization", name: "FintechPressHub",                               url: siteUrl },
+              { "@type": "Organization", name: "Financial Conduct Authority",                   url: "https://www.fca.org.uk" },
+              { "@type": "Organization", name: "Consumer Financial Protection Bureau",          url: "https://www.consumerfinance.gov" },
+              { "@type": "Organization", name: "Monetary Authority of Singapore",               url: "https://www.mas.gov.sg" },
+            ],
             mainEntity: faqMainEntity,
           }, null, 2),
           // WebPage entity: expanded with all White Hat / Off-Page / Technical / GEO /
@@ -3908,6 +3917,18 @@ async function handleSsrMeta(
             conditionsOfAccess:  "https://schema.org/OnlineAccess",
             accessibilityHazard: "none",
             accessMode:          ["textual", "visual"],
+            // Technical SEO: accessibilityFeature completes the WCAG-aligned accessibility
+            // triad (accessMode + accessibilityHazard + accessibilityFeature). Every other
+            // page type on this site (contact, blog, glossary, pricing, tools, services)
+            // already declares this field — adding it to compare pages closes the gap.
+            accessibilityFeature: ["readingOrder", "structuralNavigation"],
+            // On-Page / GEO: audience declares the intended professional readership so
+            // AI engines (Google AIO, Perplexity) surface comparison content specifically
+            // to fintech founders, CMOs, and growth marketers evaluating SEO strategies.
+            audience: {
+              "@type":      "Audience",
+              audienceType: "Fintech companies, founders, CMOs, and marketing leaders evaluating SEO strategies",
+            },
             // White Hat SEO: license, usageInfo, copyrightNotice, publishingPrinciples
             // demonstrate editorial accountability — satisfying Google's YMYL trust
             // signals and enabling AI rankers to attribute the source correctly.
@@ -3972,6 +3993,15 @@ async function handleSsrMeta(
             ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
             author:              { "@id": `${siteUrl}#organization` },
             publisher:           { "@id": `${siteUrl}#organization` },
+            // Technical / Off-Page: image makes the Article entity eligible for image-rich
+            // snippets and gives AI rankers a visual representation to associate with the
+            // citation. Reuses the dynamic OG image URL for consistency across all layers.
+            image: {
+              "@type":  "ImageObject",
+              url:      `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Compare`,
+              width:    1200,
+              height:   630,
+            },
             isPartOf:            { "@id": `${canonical}#webpage` },
             mainEntityOfPage:    { "@id": `${canonical}#webpage` },
             about: [
@@ -5206,6 +5236,12 @@ async function handleSsrMeta(
 
         } else if (reqPath === "/compare") {
           // ── /compare hub — CollectionPage + ItemList ──────────────────────
+          // Expanded in 2026-05-16 exhaustive 8-category SEO audit:
+          //   - author, license, copyrightNotice, isAccessibleForFree added (White Hat)
+          //   - accessMode + accessibilityFeature added (Technical / White Hat)
+          //   - audience added (On-Page / GEO)
+          //   - mainEntity links CollectionPage to ItemList @id (Programmatic SEO)
+          //   - ItemList gains @id for entity-graph traversal (Programmatic SEO)
           extraLds.push(JSON.stringify({
             "@context":  "https://schema.org",
             "@type":     "CollectionPage",
@@ -5216,6 +5252,27 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
+            author:      { "@id": `${siteUrl}#organization` },
+            // White Hat SEO: license + copyrightNotice on the CollectionPage align the hub
+            // with the editorial accountability signals on each compare-slug WebPage/Article.
+            license:             `${siteUrl}/terms`,
+            copyrightNotice:     `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
+            // Technical SEO: isAccessibleForFree + accessMode + accessibilityFeature
+            // complete the WCAG-aligned accessibility surface for the hub page — consistent
+            // with all other CollectionPage and WebPage instances across the site.
+            isAccessibleForFree: true,
+            accessMode:          ["textual", "visual"],
+            accessibilityFeature: ["readingOrder", "structuralNavigation"],
+            // On-Page / GEO: audience signals the professional readership to AI rankers
+            // so the comparison hub surfaces in fintech decision-maker query contexts.
+            audience: {
+              "@type":      "Audience",
+              audienceType: "Fintech companies, founders, CMOs, and marketing leaders evaluating SEO strategies",
+            },
+            // Programmatic SEO: mainEntity creates a typed link from the CollectionPage to
+            // its ItemList entity — enabling Google and AI rankers to traverse the entity
+            // graph from the hub to all 14 individual comparison pages in a single hop.
+            mainEntity: { "@id": `${canonical}#itemlist` },
             // SpeakableSpecification now targets both h1 and .speakable-summary — the BLUF
             // paragraph in compare.tsx enumerates all fourteen comparison categories and is
             // the richest spoken summary for "what comparisons does FintechPressHub publish?"
@@ -5232,6 +5289,9 @@ async function handleSsrMeta(
           extraLds.push(JSON.stringify({
             "@context": "https://schema.org",
             "@type":    "ItemList",
+            // Programmatic SEO: @id makes the ItemList addressable from the CollectionPage
+            // mainEntity reference above — closing the entity-graph loop between hub and list.
+            "@id":      `${canonical}#itemlist`,
             name:       "Fintech SEO Agency Comparisons",
             url:        canonical,
             numberOfItems: Object.keys(COMPARISON_META).length,
