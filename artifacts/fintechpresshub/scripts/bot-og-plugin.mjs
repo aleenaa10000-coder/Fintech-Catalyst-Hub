@@ -429,8 +429,9 @@ function _shellInject(html, meta) {
 
 // ---------- body builders (visible H1 + intro for non-JS crawlers) ----------
 
-function buildBodyHtml({ heading, lede, sections = [] }) {
+function buildBodyHtml({ heading, lede, sections = [], speakableSummary = "" }) {
   const parts = [`<h1>${escapeHtml(heading)}</h1>`];
+  if (speakableSummary) parts.push(`<p class="speakable-summary">${escapeHtml(speakableSummary)}</p>`);
   if (lede) parts.push(`<p>${escapeHtml(lede)}</p>`);
   for (const section of sections) {
     if (!section) continue;
@@ -892,6 +893,23 @@ const TOOL_META = {
   },
 };
 
+// ---------- per-tool applicationSubCategory ───────────────────────────────────
+// Used in SoftwareApplication.applicationSubCategory (Google Rich Results) and
+// twitter:label1 / twitter:data1 (X/Twitter rich card preview). Mirrors the
+// TOOLS_SUBCATEGORY constant in ssrMeta.ts so both rendering paths are aligned.
+const TOOL_SUBCATEGORY = {
+  "financial-health-score-calculator": "Financial Calculator",
+  "meta-description-generator":        "SEO Tool",
+  "guest-post-pitch-generator":        "Content Marketing Tool",
+  "readability-checker":               "Content Analysis Tool",
+  "keyword-difficulty-estimator":      "SEO Research Tool",
+  "backlink-value-estimator":          "Link Building Tool",
+  "content-brief-generator":           "Content Planning Tool",
+  "headline-analyzer":                 "Content Analysis Tool",
+  "link-prospector":                   "Link Building Tool",
+  "outreach-email-generator":          "Link Building Tool",
+};
+
 // ---------- per-tool extra metadata (howtoSteps, BLUF, related tools, dates) ─
 const TOOL_PAGE_EXTRA = {
   readabilityChecker: {
@@ -1197,27 +1215,45 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       const toolData  = TOOL_META[key] ?? {};
       const toolExtra = TOOL_PAGE_EXTRA[key] ?? {};
       const thumbUrl  = `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Free+Tool`;
+      const toolSlug  = pathname.replace("/tools/", "").replace(/\/$/, "");
+      const subCat    = TOOL_SUBCATEGORY[toolSlug] ?? "Free Tool";
       extraSchema = {
-        "@context":           "https://schema.org",
-        "@type":              "SoftwareApplication",
-        "@id":                canonical,
-        name:                 leafLabel,
-        description:          m.description,
-        url:                  canonical,
-        applicationCategory:  "WebApplication",
-        operatingSystem:      "Web",
-        interactivityType:    "active",
-        isAccessibleForFree:  true,
+        "@context":              "https://schema.org",
+        "@type":                 "SoftwareApplication",
+        "@id":                   canonical,
+        name:                    leafLabel,
+        description:             m.description,
+        url:                     canonical,
+        applicationCategory:     "FinanceApplication",
+        applicationSubCategory:  subCat,
+        operatingSystem:         "Web",
+        softwareVersion:         "1.0",
+        browserRequirements:     "Requires JavaScript. Requires HTML5.",
+        interactivityType:       "active",
+        isAccessibleForFree:     true,
         ...(toolExtra.dateModified ? { dateModified: `${toolExtra.dateModified}T00:00:00.000Z` } : {}),
         ...(toolExtra.dateCreated  ? { dateCreated:  `${toolExtra.dateCreated}T00:00:00.000Z`  } : {}),
         thumbnailUrl: thumbUrl,
         screenshot:   { "@type": "ImageObject", url: thumbUrl, description: leafLabel },
         offers: {
-          "@type":       "Offer",
-          price:         "0",
-          priceCurrency: "USD",
+          "@type":        "Offer",
+          price:          "0",
+          priceCurrency:  "USD",
+          availability:   "https://schema.org/InStock",
         },
-        provider: { "@id": `${siteUrl}#organization` },
+        creator:   { "@id": `${siteUrl}#organization` },
+        publisher: { "@id": `${siteUrl}#organization` },
+        provider:  { "@id": `${siteUrl}#organization` },
+        audience: {
+          "@type":       "Audience",
+          audienceType:  "Fintech marketing & SEO professionals",
+        },
+        license: `${siteUrl}/editorial-guidelines#ai-citation-policy`,
+        sameAs: [
+          "https://twitter.com/fintechpresshub",
+          "https://www.linkedin.com/company/fintechpresshub",
+        ],
+        potentialAction: { "@type": "UseAction", target: canonical },
         ...(toolData.aggregateRating ? {
           aggregateRating: {
             "@type":      "AggregateRating",
@@ -1267,6 +1303,12 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       heading,
       lede: m.description,
       sections: bodySections,
+      // G9: inject BLUF as .speakable-summary for AEO/GEO — targets the
+      // SpeakableSpecification cssSelector and provides BLUF text for non-JS
+      // crawlers in the prerendered static HTML (the Hostinger production truth).
+      speakableSummary: (pathname.startsWith("/tools/") && pathname !== "/tools")
+        ? ((TOOL_PAGE_EXTRA[key] ?? {}).bluf ?? "")
+        : "",
     });
 
     const isToolPage = pathname.startsWith("/tools/") && pathname !== "/tools";
@@ -1297,28 +1339,58 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         });
       }
 
-      // WebPage schema with SpeakableSpecification + E-E-A-T signals
+      // WebPage schema with SpeakableSpecification + full E-E-A-T / White Hat signals
+      const toolSlugWP  = pathname.replace("/tools/", "").replace(/\/$/, "");
+      const subCatWP    = TOOL_SUBCATEGORY[toolSlugWP] ?? "Free Tool";
+      const hasFaqsWP   = !!(TOOL_META[key] ?? {}).faqs?.length;
       toolSchemas.push({
-        "@context":          "https://schema.org",
-        "@type":             "WebPage",
-        "@id":               `${canonical}#webpage`,
-        url:                 canonical,
-        name:                leafLabel,
-        description:         toolExtra.bluf ?? m.description,
+        "@context":           "https://schema.org",
+        "@type":              "WebPage",
+        "@id":                `${canonical}#webpage`,
+        url:                  canonical,
+        name:                 leafLabel,
+        description:          toolExtra.bluf ?? m.description,
         ...(toolExtra.dateModified ? { dateModified: `${toolExtra.dateModified}T00:00:00.000Z` } : {}),
         ...(toolExtra.dateCreated  ? { dateCreated:  `${toolExtra.dateCreated}T00:00:00.000Z`  } : {}),
-        isAccessibleForFree: true,
-        inLanguage:          "en",
-        author:              { "@id": `${siteUrl}#organization` },
-        publisher:           { "@id": `${siteUrl}#organization` },
-        thumbnailUrl:        thumbUrl,
+        isAccessibleForFree:  true,
+        inLanguage:           "en",
+        author:               { "@id": `${siteUrl}#organization` },
+        publisher:            { "@id": `${siteUrl}#organization` },
+        thumbnailUrl:         thumbUrl,
+        // White Hat / E-E-A-T: entity relationships
+        isPartOf:             { "@id": `${siteUrl}#website` },
+        about:                { "@id": `${siteUrl}#organization` },
+        mainEntity:           { "@id": canonical },
+        breadcrumb:           { "@id": `${canonical}#breadcrumb` },
+        ...(hasFaqsWP ? { hasPart: { "@id": `${canonical}#faq` } } : {}),
+        // White Hat: access + legal context
+        conditionsOfAccess:   "https://schema.org/OnlineAccess",
+        usageInfo:            `${siteUrl}/terms`,
+        license:              `${siteUrl}/editorial-guidelines#ai-citation-policy`,
+        // White Hat: audience + accessibility
+        educationalLevel:     "Professional",
+        accessibilityFeature: ["alternativeText", "structuredNavigation"],
+        accessibilityHazard:  "none",
+        // White Hat: primary image of page (OG card)
+        primaryImageOfPage: {
+          "@type":      "ImageObject",
+          url:          thumbUrl,
+          contentUrl:   thumbUrl,
+          width:        1200,
+          height:       630,
+          caption:      `${leafLabel} — FintechPressHub Free Tool`,
+        },
+        // White Hat: potential action + significant link
+        potentialAction: { "@type": "ReadAction", target: canonical },
+        ...(toolExtra.relatedTools?.length ? {
+          significantLink: toolExtra.relatedTools.map((t) => `${siteUrl}/tools/${t.slug}`),
+          relatedLink:     toolExtra.relatedTools.map((t) => `${siteUrl}/tools/${t.slug}`),
+        } : {}),
+        // GEO / AEO: SpeakableSpecification targets the BLUF summary injected in body
         speakable: {
           "@type":     "SpeakableSpecification",
           cssSelector: [".speakable-summary", "h1", ".tool-bluf"],
         },
-        ...(toolExtra.relatedTools?.length ? {
-          relatedLink: toolExtra.relatedTools.map((t) => `${siteUrl}/tools/${t.slug}`),
-        } : {}),
       });
 
       // hreflang — International SEO (5 region + en + x-default)
@@ -1326,7 +1398,17 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       // index.html and is NOT injected here to avoid 2× duplicates in the
       // prerendered HTML. The hreflang links below are the canonical
       // per-page regional signal; og:locale is provided by index.html.
+      const toolSlugEM   = pathname.replace("/tools/", "").replace(/\/$/, "");
+      const subCatEM     = TOOL_SUBCATEGORY[toolSlugEM] ?? "Free Tool";
+      const authorUrl    = canonical.replace(/\/tools\/.*/, "/authors/marcus-webb");
+      const publishedISO = toolExtra.dateCreated
+        ? `${toolExtra.dateCreated}T00:00:00Z`
+        : "2024-01-15T00:00:00Z";
+      const modifiedISO  = toolExtra.dateModified
+        ? `${toolExtra.dateModified}T00:00:00Z`
+        : publishedISO;
       toolExtraMeta.push(
+        // International SEO: hreflang matrix (5 region + en + x-default)
         `<link rel="alternate" hreflang="en"        href="${escapeHtml(canonical)}" />`,
         `<link rel="alternate" hreflang="en-US"     href="${escapeHtml(canonical)}" />`,
         `<link rel="alternate" hreflang="en-GB"     href="${escapeHtml(canonical)}" />`,
@@ -1335,17 +1417,26 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         `<link rel="alternate" hreflang="en-CA"     href="${escapeHtml(canonical)}" />`,
         `<link rel="alternate" hreflang="x-default" href="${escapeHtml(canonical)}" />`,
         `<meta http-equiv="content-language" content="en" />`,
-        // Off-Page: rel="author" — crawlable author attribution link; mirrors
-        // article:author OG and the Person JSON-LD on /authors/marcus-webb.
-        // Provides an explicit machine-readable edge for Google's E-E-A-T graph.
-        `<link rel="author" href="${escapeHtml(canonical.replace(/\/tools\/.*/, "/authors/marcus-webb"))}" />`,
+        // Off-Page: rel="author" — crawlable author attribution; mirrors
+        // article:author OG and Person JSON-LD on /authors/marcus-webb.
+        `<link rel="author" href="${escapeHtml(authorUrl)}" />`,
         // GEO / International: DC.coverage + DC.audience
-        // DC.coverage signals worldwide tool applicability to academic indexers
-        // and AI citation engines — consistent with the 5-region hreflang matrix.
         `<meta name="DC.coverage" content="Worldwide" />`,
-        // DC.audience signals the professional target audience to academic
-        // indexers and AI rankers — consistent with WebPage educationalLevel.
         `<meta name="DC.audience" content="Professional" />`,
+        // On-Page / AEO: Open Graph article timestamps + author
+        `<meta property="article:published_time" content="${publishedISO}" />`,
+        `<meta property="article:modified_time"  content="${modifiedISO}" />`,
+        `<meta property="article:author"         content="${escapeHtml(authorUrl)}" />`,
+        // On-Page: Open Graph article taxonomy
+        `<meta property="article:section"        content="${escapeHtml(subCatEM)}" />`,
+        `<meta property="article:tag"            content="fintech SEO" />`,
+        `<meta property="article:tag"            content="free fintech tool" />`,
+        `<meta property="article:tag"            content="${escapeHtml(subCatEM)}" />`,
+        // Off-Page: Twitter/X rich-card data labels (Tool Type + Availability)
+        `<meta name="twitter:label1" content="Tool Type" />`,
+        `<meta name="twitter:data1"  content="${escapeHtml(subCatEM)}" />`,
+        `<meta name="twitter:label2" content="Availability" />`,
+        `<meta name="twitter:data2"  content="Free, no sign-up" />`,
       );
     }
 
@@ -1354,8 +1445,15 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       description: m.description,
       canonical,
       ogType: "website",
-      ogImage: `${siteUrl}/opengraph.jpg`,
-      ogImageAlt: "FintechPressHub - Fintech SEO Agency",
+      // G1/G2: tool pages use a dynamic branded OG card; all other pages use
+      // the global opengraph.jpg. The /api/og endpoint renders per-tool cards
+      // so social shares show the tool name — mirrors ssrMeta.ts runtime path.
+      ogImage: isToolPage
+        ? `${siteUrl}/api/og?title=${encodeURIComponent(m.title.split("|")[0].trim())}&category=Tools`
+        : `${siteUrl}/opengraph.jpg`,
+      ogImageAlt: isToolPage
+        ? m.title.split("|")[0].trim()
+        : "FintechPressHub - Fintech SEO Agency",
       schemas: [
         organizationSchema(siteUrl),
         websiteSchema(siteUrl),
