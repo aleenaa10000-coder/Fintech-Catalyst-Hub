@@ -51,6 +51,11 @@ export default function Compare() {
         <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
         <meta name="author" content="FintechPressHub Editorial Team" />
         <link rel="author" href={`${SITE_URL}/about`} />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:locale:alternate" content="en_GB" />
+        <meta property="og:locale:alternate" content="en_AU" />
+        <meta property="og:locale:alternate" content="en_SG" />
+        <meta property="og:locale:alternate" content="en_CA" />
         <link rel="alternate" hrefLang="en" href={canonical} />
         <link rel="alternate" hrefLang="en-US" href={canonical} />
         <link rel="alternate" hrefLang="en-GB" href={canonical} />
@@ -129,29 +134,61 @@ export default function Compare() {
       <main>
         <section className="py-14">
           <div className="container mx-auto px-4 max-w-5xl">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {COMPARISONS.map((comparison) => (
-                <Link key={comparison.slug} href={`/compare/${comparison.slug}`}>
-                  <div className="group rounded-xl border border-slate-200 bg-white p-6 hover:border-[#0052FF] hover:shadow-md transition-all duration-200 cursor-pointer h-full flex flex-col">
-                    <Badge
-                      variant="outline"
-                      className="self-start mb-3 text-xs font-medium text-[#0052FF] border-[#0052FF]/30 bg-[#0052FF]/5"
-                    >
-                      {comparison.eyebrow}
-                    </Badge>
-                    <h2 className="text-base font-semibold text-slate-900 mb-2 group-hover:text-[#0052FF] transition-colors leading-snug">
-                      {comparison.heroTitle}
-                    </h2>
-                    <p className="text-sm text-muted-foreground flex-1 leading-relaxed">
-                      {comparison.heroDescription}
-                    </p>
-                    <div className="mt-4 flex items-center gap-1.5 text-sm font-medium text-[#0052FF]">
-                      View comparison
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                    </div>
-                  </div>
-                </Link>
-              ))}
+            <div className="space-y-12">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800 mb-6 border-b pb-3">Agency &amp; strategy comparisons</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {COMPARISONS.slice(0, 6).map((comparison) => (
+                    <Link key={comparison.slug} href={`/compare/${comparison.slug}`}>
+                      <div className="group rounded-xl border border-slate-200 bg-white p-6 hover:border-[#0052FF] hover:shadow-md transition-all duration-200 cursor-pointer h-full flex flex-col">
+                        <Badge
+                          variant="outline"
+                          className="self-start mb-3 text-xs font-medium text-[#0052FF] border-[#0052FF]/30 bg-[#0052FF]/5"
+                        >
+                          {comparison.eyebrow}
+                        </Badge>
+                        <h3 className="text-base font-semibold text-slate-900 mb-2 group-hover:text-[#0052FF] transition-colors leading-snug">
+                          {comparison.heroTitle}
+                        </h3>
+                        <p className="text-sm text-muted-foreground flex-1 leading-relaxed">
+                          {comparison.heroDescription}
+                        </p>
+                        <div className="mt-4 flex items-center gap-1.5 text-sm font-medium text-[#0052FF]">
+                          View comparison
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800 mb-6 border-b pb-3">SEO discipline comparisons</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {COMPARISONS.slice(6).map((comparison) => (
+                    <Link key={comparison.slug} href={`/compare/${comparison.slug}`}>
+                      <div className="group rounded-xl border border-slate-200 bg-white p-6 hover:border-[#0052FF] hover:shadow-md transition-all duration-200 cursor-pointer h-full flex flex-col">
+                        <Badge
+                          variant="outline"
+                          className="self-start mb-3 text-xs font-medium text-[#0052FF] border-[#0052FF]/30 bg-[#0052FF]/5"
+                        >
+                          {comparison.eyebrow}
+                        </Badge>
+                        <h3 className="text-base font-semibold text-slate-900 mb-2 group-hover:text-[#0052FF] transition-colors leading-snug">
+                          {comparison.heroTitle}
+                        </h3>
+                        <p className="text-sm text-muted-foreground flex-1 leading-relaxed">
+                          {comparison.heroDescription}
+                        </p>
+                        <div className="mt-4 flex items-center gap-1.5 text-sm font-medium text-[#0052FF]">
+                          View comparison
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </section>

@@ -179,3 +179,9 @@ id = "FJe6IDKL3u_T2hlMWli-T"
 uri = "file://docs/meet-the-team-seo-audit-report.md"
 type = "text"
 title = "Meet the Team — Full 8-Category SEO Audit Report"
+
+[[outputs]]
+id = "QF9mGT3ncomfk-NPtLjfP"
+uri = "file://docs/compare-section-seo-audit-report.md"
+type = "text"
+title = "Compare Section — Exhaustive SEO Audit Report (8 Categories, Before/After Scores)"

@@ -3846,6 +3846,11 @@ async function handleSsrMeta(
         // hreflang="en" and "x-default" unconditionally; these are additive and align
         // with compare sitemap hreflang entries for consistent international signals.
         headLinks: [
+          // International SEO: og:locale primary signals to OG crawlers (LinkedIn, Slack,
+          // Facebook unfurling) that this page targets US English as its canonical locale —
+          // consistent with en-US hreflang. og:locale:alternate for GB/AU/SG/CA are injected
+          // globally by patchHtml. Together they cover all five primary fintech markets.
+          `  <meta property="og:locale" content="en_US" />`,
           `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
           `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
           `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
@@ -3911,25 +3916,118 @@ async function handleSsrMeta(
             copyrightNotice:     `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
             publishingPrinciples: `${siteUrl}/editorial-guidelines`,
             // GEO: about entities provide topical context for AI rankers and entity
-            // graphs — enabling correct topical clustering of comparison pages.
+            // graphs — enabling correct topical clustering of comparison pages across
+            // fintech SEO, regulatory compliance, and digital marketing query spaces.
             about: [
               { "@type": "Thing", name: "Fintech SEO" },
               { "@type": "Thing", name: "SEO Agency Comparison" },
               { "@type": "Thing", name: "Fintech Content Marketing" },
+              { "@type": "Thing", name: "Digital Marketing for Financial Services" },
+              { "@type": "Thing", name: "Regulated Financial Content" },
             ],
             // On-Page SEO: keywords field supplements title/meta for entity resolution.
             keywords:            `${leafLabel}, fintech SEO comparison, fintech digital marketing`,
-            // AEO + GEO: SpeakableSpecification expanded to include .speakable-summary
-            // (the BLUF paragraph) in addition to h1 — maximising voice-search extraction
-            // and AI Overview citation potential for comparison pages.
+            // AEO + GEO: SpeakableSpecification now targets h1, .speakable-summary (BLUF),
+            // and h2 section headings — maximising voice-search extraction and AI Overview
+            // citation potential across all structured sections of comparison pages.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".speakable-summary"],
+              cssSelector: ["h1", ".speakable-summary", "h2"],
             },
+            // International SEO: availableLanguage lists the five regional English locales
+            // served — aligning with the 7 hreflang variants in headLinks and the compare
+            // sitemap. Provides explicit multi-market signal per schema.org guidance.
+            availableLanguage:   ["en-US", "en-GB", "en-AU", "en-SG", "en-CA"],
+            // Technical / White Hat: isAccessibleForFree signals freely readable content
+            // to AI citation engines (Google AIO, Perplexity, ChatGPT Search) — a positive
+            // preference signal when AI rankers select sources for generated answers.
+            isAccessibleForFree: true,
+            // Off-Page / GEO: mentions lists key entities discussed on the page — enabling
+            // knowledge-graph resolution and AI citation attribution for the regulatory
+            // bodies central to fintech content strategy decisions.
+            mentions: [
+              { "@type": "Organization", name: "FintechPressHub",                               url: siteUrl },
+              { "@type": "Organization", name: "Financial Conduct Authority",                   url: "https://www.fca.org.uk" },
+              { "@type": "Organization", name: "Consumer Financial Protection Bureau",          url: "https://www.consumerfinance.gov" },
+              { "@type": "Organization", name: "Monetary Authority of Singapore",               url: "https://www.mas.gov.sg" },
+              { "@type": "Organization", name: "Australian Securities and Investments Commission", url: "https://www.asic.gov.au" },
+            ],
             breadcrumb:          { "@id": `${canonical}#breadcrumb` },
             potentialAction:     { "@type": "ReadAction", target: canonical },
           }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
+          // Off-Page / GEO: Article schema classifies comparison pages as citable content.
+          // AI rankers (Perplexity, ChatGPT Search, Google AIO) preferentially cite Article
+          // entities over bare WebPage nodes because Article carries explicit authorship,
+          // publication, and freshness signals — required for YMYL financial content.
+          JSON.stringify({
+            "@context":          "https://schema.org",
+            "@type":             "Article",
+            "@id":               `${canonical}#article`,
+            headline:            leafLabel,
+            description:         cmpMeta.description,
+            url:                 canonical,
+            inLanguage:          "en",
+            datePublished:       COMPARE_PAGE_CREATED[slug] ?? STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
+            ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
+            author:              { "@id": `${siteUrl}#organization` },
+            publisher:           { "@id": `${siteUrl}#organization` },
+            isPartOf:            { "@id": `${canonical}#webpage` },
+            mainEntityOfPage:    { "@id": `${canonical}#webpage` },
+            about: [
+              { "@type": "Thing", name: "Fintech SEO" },
+              { "@type": "Thing", name: "SEO Agency Comparison" },
+              { "@type": "Thing", name: "Digital Marketing for Financial Services" },
+            ],
+            keywords:            `${leafLabel}, fintech SEO comparison, fintech digital marketing`,
+            license:             `${siteUrl}/terms`,
+            copyrightNotice:     `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
+            publishingPrinciples: `${siteUrl}/editorial-guidelines`,
+            isAccessibleForFree: true,
+            hasPart:             { "@id": `${canonical}#faq` },
+          }, null, 2),
+          // AEO: HowTo schema provides a structured 5-step decision framework for fintech
+          // buyers — directly eligible for HowTo rich results and preferred by AI Overviews
+          // when answering "how to choose between X and Y" fintech SEO strategy queries.
+          JSON.stringify({
+            "@context":  "https://schema.org",
+            "@type":     "HowTo",
+            "@id":       `${canonical}#howto`,
+            name:        "How to choose the right fintech SEO approach — 5-step framework",
+            description: "A 5-step decision framework for fintech founders and CMOs evaluating competing SEO and marketing strategies.",
+            totalTime:   "PT10M",
+            inLanguage:  "en",
+            publisher:   { "@id": `${siteUrl}#organization` },
+            step: [
+              {
+                "@type": "HowToStep", position: 1,
+                name:    "Define your growth horizon",
+                text:    "Determine whether you need results within 90 days (paid channels), 6–12 months (content SEO), or are optimising for compounding organic growth over 2+ years. Each horizon maps to a fundamentally different optimal strategy.",
+              },
+              {
+                "@type": "HowToStep", position: 2,
+                name:    "Audit internal capability gaps",
+                text:    "Assess your team's fintech content expertise, technical SEO knowledge, and publisher relationships. Gaps in any of these three areas typically require external specialist support to close without significant timeline slippage.",
+              },
+              {
+                "@type": "HowToStep", position: 3,
+                name:    "Evaluate regulatory compliance requirements",
+                text:    "Regulated fintech content — payments, lending, insurance, crypto — must comply with FCA, CFPB, MAS, or ASIC guidance. Verify that any candidate agency or approach has documented compliance review processes for financial promotions.",
+              },
+              {
+                "@type": "HowToStep", position: 4,
+                name:    "Score each option against the comparison table criteria",
+                text:    "Use the comparison table on this page to score each option against the criteria most important to your company's stage and target market. Weight the criteria by your specific growth objectives.",
+              },
+              {
+                "@type": "HowToStep", position: 5,
+                name:    "Validate your shortlist with a free strategy call",
+                text:    "Request a free SEO audit from FintechPressHub to benchmark your current organic footprint against your top three competitors and receive a bespoke recommendation with no commitment required.",
+              },
+            ],
+            tool:   [{ "@type": "HowToTool",   name: "This comparison page" }],
+            supply: [{ "@type": "HowToSupply", name: "Your fintech growth goals and current organic search metrics" }],
+          }, null, 2),
         ],
       };
     }
@@ -5118,12 +5216,13 @@ async function handleSsrMeta(
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
             publisher:   { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification targets h1 — the clearest spoken answer for
-            // "FintechPressHub vs X" queries. No tagline paragraph exists on the
-            // compare hub, so h1-only is the correct selector.
+            // SpeakableSpecification now targets both h1 and .speakable-summary — the BLUF
+            // paragraph in compare.tsx enumerates all fourteen comparison categories and is
+            // the richest spoken summary for "what comparisons does FintechPressHub publish?"
+            // voice queries and AI Overview extraction. Mirrors compare-slug speakable spec.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1"],
+              cssSelector: ["h1", ".speakable-summary"],
             },
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },

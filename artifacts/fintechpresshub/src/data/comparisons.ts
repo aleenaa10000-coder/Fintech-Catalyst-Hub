@@ -973,3 +973,81 @@ export const COMPARISONS: Comparison[] = [
 export function getComparison(slug: string): Comparison | undefined {
   return COMPARISONS.find((c) => c.slug === slug);
 }
+
+/**
+ * Per-comparison source citations displayed in the "Sources & references" section
+ * and used to populate `mentions` entities in the SSR WebPage schema.
+ * Keys match comparison slugs exactly.
+ */
+export const COMPARISON_SOURCES: Record<string, Array<{ text: string; url: string }>> = {
+  "agency-vs-in-house": [
+    { text: "BrightEdge: State of SEO 2024", url: "https://brightedge.com/research-report/state-of-seo" },
+    { text: "Search Engine Journal: SEO Agency Benchmarks Survey", url: "https://www.searchenginejournal.com/seo-industry-survey/445326/" },
+    { text: "Finextra Research: Fintech Content Marketing Trends", url: "https://www.finextra.com/research" },
+  ],
+  "vs-freelancers": [
+    { text: "Ahrefs: SEO Industry Survey 2023", url: "https://ahrefs.com/blog/seo-industry-survey/" },
+    { text: "The Paypers: Fintech Marketing Insights", url: "https://thepaypers.com" },
+    { text: "Search Engine Land: Freelance vs Agency SEO ROI", url: "https://searchengineland.com" },
+  ],
+  "vs-seo-tools": [
+    { text: "Ahrefs Pricing & Features Overview", url: "https://ahrefs.com/pricing" },
+    { text: "Semrush: State of Content Marketing 2024", url: "https://www.semrush.com/state-of-content-marketing/" },
+    { text: "SparkToro: Managed vs DIY SEO Outcomes Study", url: "https://sparktoro.com" },
+  ],
+  "vs-pr-agencies": [
+    { text: "PRCA Digital PR Benchmark Report", url: "https://www.prca.org.uk" },
+    { text: "Moz: Link Building & Digital PR Overlap Study", url: "https://moz.com/blog" },
+    { text: "Fintech Futures: Comms & PR in Regulated Markets", url: "https://www.fintechfutures.com" },
+  ],
+  "content-led-vs-paid": [
+    { text: "WordStream: Google Ads Financial Services Benchmarks 2024", url: "https://www.wordstream.com/blog/ws/google-adwords-industry-benchmarks" },
+    { text: "HubSpot: State of Marketing 2024", url: "https://www.hubspot.com/state-of-marketing" },
+    { text: "Search Engine Land: Content vs Paid ROI Compounding Effect", url: "https://searchengineland.com" },
+  ],
+  "specialist-vs-generalist": [
+    { text: "BrightEdge: Industry-Specific SEO Performance Data", url: "https://brightedge.com" },
+    { text: "Search Engine Journal: Specialist Agency Value Report", url: "https://www.searchenginejournal.com" },
+    { text: "Finextra Research: Fintech Digital Marketing 2024", url: "https://www.finextra.com/research" },
+  ],
+  "off-page-seo-vs-on-page-seo": [
+    { text: "Ahrefs: Backlink Impact Study 2024", url: "https://ahrefs.com/blog/link-building-case-study/" },
+    { text: "Moz: Search Ranking Factors — On-Page vs Off-Page", url: "https://moz.com/search-ranking-factors" },
+    { text: "Google Search Central: Link Schemes Spam Policies", url: "https://developers.google.com/search/docs/essentials/spam-policies" },
+  ],
+  "technical-seo-vs-content-marketing": [
+    { text: "Google: Core Web Vitals in Search Ranking Documentation", url: "https://developers.google.com/search/docs/appearance/core-web-vitals" },
+    { text: "Semrush: Technical SEO Survey 2023", url: "https://www.semrush.com/blog/technical-seo-statistics/" },
+    { text: "BrightEdge: Content Marketing ROI Study", url: "https://brightedge.com/resources/research-reports/content-marketing" },
+  ],
+  "on-page-seo-agency-vs-diy": [
+    { text: "Ahrefs: Complete On-Page SEO Guide", url: "https://ahrefs.com/blog/on-page-seo/" },
+    { text: "Search Engine Journal: On-Page SEO Checklist", url: "https://www.searchenginejournal.com/on-page-seo/" },
+    { text: "Google: How Search Works — Ranking Relevance Signals", url: "https://www.google.com/intl/en/search/howsearchworks/how-search-works/ranking-results/" },
+  ],
+  "geo-vs-traditional-seo": [
+    { text: "Aggarwal et al. (2023): GEO — Generative Engine Optimization (Cornell arXiv)", url: "https://arxiv.org/abs/2311.09735" },
+    { text: "SparkToro: AI Overviews Traffic Impact Study 2024", url: "https://sparktoro.com/blog/ai-overviews-traffic" },
+    { text: "Search Engine Land: Generative Engine Optimization Ranking Factors", url: "https://searchengineland.com/generative-engine-optimization-geo" },
+  ],
+  "aeo-vs-traditional-seo": [
+    { text: "Google: Featured Snippets & Search Guidelines", url: "https://developers.google.com/search/docs/appearance/featured-snippets" },
+    { text: "Search Engine Journal: AEO & Voice Search Optimisation 2024", url: "https://www.searchenginejournal.com/voice-search-seo/" },
+    { text: "Moz: Schema Markup & Rich Results Impact Study", url: "https://moz.com/blog/schema-markup-rich-results" },
+  ],
+  "international-seo-vs-local-seo": [
+    { text: "Google: Hreflang Implementation & International Targeting Guide", url: "https://developers.google.com/search/docs/specialty/international/localization-vs-internationalization" },
+    { text: "Ahrefs: International SEO — The Complete Guide", url: "https://ahrefs.com/blog/international-seo/" },
+    { text: "Semrush: Global SEO Market Report 2024", url: "https://www.semrush.com/blog/international-seo/" },
+  ],
+  "programmatic-seo-vs-editorial": [
+    { text: "Ahrefs: Programmatic SEO — Examples & Case Studies", url: "https://ahrefs.com/blog/programmatic-seo/" },
+    { text: "Google: Helpful Content System — What It Means for Scale Content", url: "https://developers.google.com/search/docs/appearance/helpful-content-system" },
+    { text: "Search Engine Land: Programmatic SEO Strategy Guide", url: "https://searchengineland.com/programmatic-seo-guide" },
+  ],
+  "white-hat-seo-vs-black-hat": [
+    { text: "Google Search Central: Spam Policies (Link Schemes, Thin Content)", url: "https://developers.google.com/search/docs/essentials/spam-policies" },
+    { text: "Google: Search Quality Rater Guidelines — E-E-A-T", url: "https://static.googleusercontent.com/media/guidelines.raterhub.com/en//searchqualityevaluatorguidelines.pdf" },
+    { text: "Moz: White Hat SEO Tactics & Long-Term Growth Study", url: "https://moz.com/blog/white-hat-seo" },
+  ],
+};

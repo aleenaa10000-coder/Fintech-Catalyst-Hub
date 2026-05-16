@@ -1,5 +1,5 @@
 import { useParams, Link } from "wouter";
-import { Check, X, ArrowRight, Minus, Plus } from "lucide-react";
+import { Check, X, ArrowRight, Minus, Plus, ExternalLink } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
@@ -12,7 +12,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { SITE_URL } from "@/lib/metaData";
-import { getComparison, COMPARISONS, type Verdict } from "@/data/comparisons";
+import { getComparison, COMPARISONS, COMPARISON_SOURCES, type Verdict } from "@/data/comparisons";
 import NotFound from "@/pages/not-found";
 
 function VerdictIcon({ v }: { v: Verdict }) {
@@ -35,6 +35,12 @@ export default function CompareSlug() {
         <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
         <meta name="author" content="FintechPressHub Editorial Team" />
         <link rel="author" href={`${SITE_URL}/about`} />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:locale:alternate" content="en_GB" />
+        <meta property="og:locale:alternate" content="en_AU" />
+        <meta property="og:locale:alternate" content="en_SG" />
+        <meta property="og:locale:alternate" content="en_CA" />
+        <meta name="news_keywords" content={`${comparison.colA}, ${comparison.colB}, ${comparison.colC}, fintech SEO comparison, fintech marketing`} />
         <link rel="alternate" hrefLang="en" href={canonical} />
         <link rel="alternate" hrefLang="en-US" href={canonical} />
         <link rel="alternate" hrefLang="en-GB" href={canonical} />
@@ -75,6 +81,25 @@ export default function CompareSlug() {
         }}
       />
 
+      <nav aria-label="Breadcrumb" className="container mx-auto px-4 max-w-5xl pt-4 pb-2">
+        <ol className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap" itemScope itemType="https://schema.org/BreadcrumbList">
+          <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+            <Link href="/" className="hover:text-foreground transition-colors" itemProp="item"><span itemProp="name">Home</span></Link>
+            <meta itemProp="position" content="1" />
+          </li>
+          <li className="select-none" aria-hidden="true">/</li>
+          <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+            <Link href="/compare" className="hover:text-foreground transition-colors" itemProp="item"><span itemProp="name">Compare</span></Link>
+            <meta itemProp="position" content="2" />
+          </li>
+          <li className="select-none" aria-hidden="true">/</li>
+          <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" aria-current="page">
+            <span className="text-foreground font-medium truncate" itemProp="name">{comparison.heroTitle}</span>
+            <meta itemProp="position" content="3" />
+          </li>
+        </ol>
+      </nav>
+
       <PageHero
         eyebrow={comparison.eyebrow}
         title={<>{comparison.heroTitle}</>}
@@ -84,6 +109,13 @@ export default function CompareSlug() {
       <div className="container mx-auto px-4 max-w-3xl pt-6 pb-2">
         <p className="speakable-summary text-base text-muted-foreground text-center leading-relaxed">
           {comparison.bluf}
+        </p>
+      </div>
+
+      <div className="container mx-auto px-4 max-w-3xl pt-1 pb-0 text-center">
+        <p className="text-xs text-muted-foreground">
+          By{" "}
+          <a href="/about" className="underline hover:text-foreground font-medium" rel="author">FintechPressHub Editorial Team</a>
         </p>
       </div>
 
@@ -209,6 +241,26 @@ export default function CompareSlug() {
                   </AccordionItem>
                 ))}
               </Accordion>
+            </div>
+          </section>
+        )}
+
+        {(COMPARISON_SOURCES[comparison.slug] ?? []).length > 0 && (
+          <section className="py-8 border-t bg-slate-50/50">
+            <div className="container mx-auto px-4 max-w-5xl">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Sources &amp; references</h2>
+              <ul className="flex flex-wrap gap-x-8 gap-y-2">
+                {(COMPARISON_SOURCES[comparison.slug] ?? []).map((src, i) => (
+                  <li key={i} className="text-xs text-muted-foreground flex items-center gap-1">
+                    <cite className="not-italic">
+                      <a href={src.url} rel="noopener noreferrer" target="_blank" className="underline hover:text-foreground inline-flex items-center gap-1">
+                        {src.text}
+                        <ExternalLink className="w-3 h-3 opacity-50 flex-shrink-0" />
+                      </a>
+                    </cite>
+                  </li>
+                ))}
+              </ul>
             </div>
           </section>
         )}
