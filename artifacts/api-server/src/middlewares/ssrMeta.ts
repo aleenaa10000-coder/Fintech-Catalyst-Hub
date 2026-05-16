@@ -4815,6 +4815,36 @@ async function handleSsrMeta(
           // crawlers and academic indexers — prevents copyright ambiguity and
           // mirrors the compare/service page copyrightNotice pattern site-wide.
           copyrightNotice: `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
+          // GEO / AEO: abstract provides a machine-readable BLUF summary for AI
+          // citation engines (Perplexity, Google AIO, ChatGPT Browse) — mirrors
+          // the abstract pattern already on BlogPosting and DefinedTerm entities.
+          // Sliced to 250 chars: the practical extraction window used by Perplexity.
+          abstract:             toolMeta.description.slice(0, 250),
+          // On-Page / AEO: alternativeHeadline gives AI engines a second title
+          // candidate when the primary name is ambiguous — mirrors the identical
+          // property on BlogPosting entities where description is used as fallback.
+          alternativeHeadline:  toolMeta.description,
+          // Technical SEO: releaseNotes links the SoftwareApplication to its
+          // methodology/changelog anchor — satisfies schema.org SoftwareApplication
+          // releaseNotes recommendation and signals active maintenance to rankers.
+          releaseNotes:         `${siteUrl}/tools/${slug}#methodology`,
+          // White Hat: contentRating declares the audience maturity classification
+          // ("General") — required for complete SoftwareApplication White Hat schema
+          // parity with the WebPage entity on the same page.
+          contentRating:        "General",
+          // White Hat: termsOfService provides a direct URL to usage rights from
+          // the SoftwareApplication entity — mirrors the usageInfo property on the
+          // WebPage entity and closes the rights-declaration gap on the app entity.
+          termsOfService:       `${siteUrl}/terms`,
+          // White Hat / E-E-A-T: publishingPrinciples on SoftwareApplication closes
+          // the entity-level gap — the WebPage entity already emits this; adding it
+          // to SoftwareApplication ensures cross-entity consistency for AI validators.
+          publishingPrinciples: `${siteUrl}/editorial-guidelines`,
+          // Programmatic SEO: isPartOf links each tool SoftwareApplication back to
+          // the hub CollectionPage entity — enables one-hop entity-graph traversal
+          // from hub → tool → hub used by AI rankers for cluster scoring and by
+          // Google Knowledge Graph for topical authority attribution.
+          isPartOf:             { "@id": `${siteUrl}/tools` },
         }, null, 2),
       ];
       const howTo = TOOLS_HOWTO[slug];
@@ -4916,6 +4946,17 @@ async function handleSsrMeta(
         // accuracy for the tool's primary label when crawlers parse the WebPage
         // entity directly (mirrors the headline property on BlogPosting entities).
         headline:     leafLabel,
+        // GEO / AEO: abstract provides a machine-readable BLUF for AI citation
+        // engines — Perplexity and Google AIO extract abstract before body text
+        // when synthesising tool-recommendation answers. Mirrors BlogPosting pattern.
+        abstract:             toolMeta.description.slice(0, 250),
+        // On-Page / AEO: alternativeHeadline gives AI engines a second title
+        // candidate for SERP and answer generation — mirrors BlogPosting pattern.
+        alternativeHeadline:  toolMeta.description,
+        // White Hat / E-E-A-T: publishingPrinciples on WebPage completes the SSR
+        // schema parity with the client-side PageMeta webPage prop (added in the
+        // 2026-05-16 audit) and with the hub CollectionPage entity.
+        publishingPrinciples: `${siteUrl}/editorial-guidelines`,
         description:  toolMeta.description,
         inLanguage:   "en",
         isPartOf:     { "@id": `${siteUrl}#website` },
@@ -6092,6 +6133,13 @@ async function handleSsrMeta(
             "@id":       canonical,
             url:         canonical,
             name:        staticMeta.title,
+            // GEO / AEO: abstract — machine-readable BLUF for the hub page so AI
+            // citation engines can synthesise answers to "what tools does
+            // FintechPressHub offer?" without reading the full CollectionPage body.
+            abstract:             staticMeta.description.slice(0, 250),
+            // On-Page: alternativeHeadline gives AI rankers and social crawlers a
+            // keyword-rich secondary title — mirrors the BlogPosting pattern.
+            alternativeHeadline:  "Free Fintech SEO & Marketing Tools — No Sign-up Required",
             description: staticMeta.description,
             inLanguage:  "en",
             isPartOf:    { "@id": `${siteUrl}#website` },
@@ -6142,10 +6190,20 @@ async function handleSsrMeta(
             // entity — enables Google and AI rankers to traverse the entity graph
             // from the hub to all 10 individual tool pages in a single hop.
             mainEntity: { "@id": `${canonical}#itemlist` },
-            // AEO: hasPart cross-references the FAQPage entity — mirrors the
-            // /compare hub pattern and tells Rich Results extractors the FAQ
-            // is integral to this hub page.
-            hasPart: { "@id": `${canonical}#faq` },
+            // AEO / Programmatic SEO: hasPart is expanded from a single FAQPage
+            // reference to an array that includes both the FAQPage entity and all
+            // 10 SoftwareApplication entities. This creates direct entity-graph
+            // edges from the hub CollectionPage to each tool — enabling AI rankers
+            // (Perplexity, Google AIO) to traverse from hub → tool in one hop,
+            // which is the standard pattern for topical cluster scoring in 2026.
+            // The FAQPage reference is kept first so Rich Results extractors
+            // still resolve it correctly.
+            hasPart: [
+              { "@id": `${canonical}#faq` },
+              ...Object.keys(TOOLS_META).map((toolSlug) => ({
+                "@id": `${siteUrl}/tools/${toolSlug}#software`,
+              })),
+            ],
             // SpeakableSpecification expanded to h1 + .speakable-summary + h2
             // (matching tools/index.tsx speakableSelectors) — enables AI voice
             // assistants and AEO engines to enumerate all tools from the hub.
