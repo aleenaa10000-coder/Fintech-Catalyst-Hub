@@ -433,6 +433,13 @@ app.get("/ai.txt", (_req: Request, res: Response) =>
   res.redirect(301, "/.well-known/ai.txt"),
 );
 
+// /sitemap-index.xml — hyphenated alias used by some crawlers and SEO tools.
+// 301-redirects to the canonical underscore form (/sitemap_index.xml) so
+// both URL variants resolve correctly without duplicate-sitemap warnings.
+app.get("/sitemap-index.xml", (_req: Request, res: Response) =>
+  res.redirect(301, "/sitemap_index.xml"),
+);
+
 // ── /.well-known/ai.txt — AI governance declaration ──────────────────────────
 // Declares AI content usage policy in a machine-readable format.
 // Follows the emerging ai.txt standard for AI governance transparency.

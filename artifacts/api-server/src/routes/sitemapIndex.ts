@@ -272,6 +272,7 @@ async function buildBlogSitemapXml(): Promise<string> {
             `    </image:image>\n`
           : "") +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-US" href="${escapeXml(loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(loc)}"/>\n` +
         `  </url>`
       );

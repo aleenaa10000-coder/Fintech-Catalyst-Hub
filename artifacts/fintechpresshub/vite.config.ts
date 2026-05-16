@@ -200,6 +200,10 @@ export default defineConfig(({ command }) => {
         target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
         changeOrigin: true,
       },
+      "/sitemap-index.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
       "/sitemap-pages.xml": {
         target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
         changeOrigin: true,
@@ -307,6 +311,14 @@ export default defineConfig(({ command }) => {
         changeOrigin: true,
       },
       "/robots.txt": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/sitemap_index.xml": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+      "/sitemap-index.xml": {
         target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
         changeOrigin: true,
       },
