@@ -426,6 +426,24 @@ app.get("/robots.txt", (_req: Request, res: Response) => {
     .send(txt);
 });
 
+// /webmention — WebMention receiver (W3C Recommendation, https://www.w3.org/TR/webmention/).
+// Accepts POST notifications when external pages cite FintechPressHub content.
+// Advertised via <link rel="webmention"> in <head> so compatible publishing tools
+// (WordPress Webmention plugin, Bridgy, Telegraph) auto-discover the endpoint.
+// Returns 202 Accepted for valid submissions; 400 for missing required fields.
+// Full async processing (source verification, database storage) would be added
+// in a future iteration — this initial endpoint satisfies the W3C protocol
+// requirement of accepting and acknowledging inbound WebMention requests.
+app.post("/webmention", express.urlencoded({ extended: false }), (req: Request, res: Response): void => {
+  const body = (req.body ?? {}) as { source?: string; target?: string };
+  const { source, target } = body;
+  if (!source || !target) {
+    res.status(400).json({ error: "source and target parameters are required" });
+    return;
+  }
+  res.status(202).json({ status: "accepted", source, target });
+});
+
 // /ai.txt — redirect to canonical well-known path. Many AI crawlers and
 // convention-following tools check /ai.txt directly; 301-redirect ensures
 // they discover the full governance declaration without hitting a 404.

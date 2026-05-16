@@ -2922,6 +2922,15 @@ async function handleSsrMeta(
           `  <meta name="DC.language" scheme="RFC5646" content="en" />`,
           `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
           `  <meta name="DC.rights" content="${esc(`${siteUrl}/terms`)}" />`,
+          // On-Page: meta keywords extracted from post tags — Yandex, Baidu, and
+          // some legacy crawlers parse this tag as a content classification signal.
+          // Matches the keywords meta pattern already present on all other page types
+          // (services, glossary, tools, compare, locations, pricing, contact).
+          ...(tags.length > 0
+            ? [`  <meta name="keywords" content="${esc(tags.slice(0, 10).join(", "))}" />`]
+            : post.category
+              ? [`  <meta name="keywords" content="${esc(post.category)}" />`]
+              : []),
         ],
         // SSR-inject the BLUF summary as a sr-only <p> immediately after <div id="root">
         // so the SpeakableSpecification cssSelector (".speakable-summary") resolves in
@@ -8109,6 +8118,28 @@ async function handleSsrMeta(
             `  <meta name="DC.date" scheme="W3CDTF" content="2021-01-01" />`,
             `  <meta name="DC.identifier" content="${canonical}" />`,
             `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+          ];
+        }
+
+        // ── Catch-all: pages not covered by a per-route headLinks block above ──
+        // The homepage, legal pages, and utility pages are all relevant to every
+        // English-speaking fintech market. Without regional hreflang in the HTML
+        // <head>, Google may de-prioritise these pages for non-US markets even
+        // though the sitemap already declares the correct international targeting.
+        // The check `!patches.headLinks` ensures we never overwrite a more
+        // detailed per-route headLinks block set above.
+        const STATIC_NEEDS_HREFLANG = new Set([
+          "/", "/editorial-guidelines", "/community-guidelines",
+          "/privacy-policy", "/refund-policy", "/cookie-policy",
+          "/terms", "/reading-list",
+        ]);
+        if (STATIC_NEEDS_HREFLANG.has(reqPath) && patches && !patches.headLinks) {
+          patches.headLinks = [
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
           ];
         }
       }
