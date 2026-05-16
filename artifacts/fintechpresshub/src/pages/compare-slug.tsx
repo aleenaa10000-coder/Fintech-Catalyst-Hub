@@ -117,6 +117,23 @@ export default function CompareSlug() {
         article={{
           title: comparison.heroTitle,
           description: comparison.heroDescription,
+          abstract: comparison.bluf,
+          alternativeHeadline: comparison.heroDescription.slice(0, 110),
+          section: "Fintech SEO",
+          tags: [comparison.colA, comparison.colB, comparison.colC, "fintech SEO comparison", "fintech marketing"],
+          inLanguage: "en",
+          countryOfOrigin: "United Kingdom",
+          authorJobTitle: "Senior Fintech SEO Editor",
+          timeRequired: "PT5M",
+          wordCount: comparison.rows.length * 35 + comparison.faqItems.length * 85 + 350,
+          hasPart: [
+            `Comparison: ${comparison.colA} vs ${comparison.colB} vs ${comparison.colC}`,
+            "Bottom Line Verdict",
+            "Frequently Asked Questions",
+            "Sources & References",
+          ],
+          speakableSelectors: ["h1", ".speakable-summary", "h2"],
+          usageInfo: `${SITE_URL}/terms`,
           datePublished: comparison.datePublished,
           dateModified: comparison.lastmod,
           author: "FintechPressHub Editorial Team",
@@ -195,22 +212,28 @@ export default function CompareSlug() {
       </div>
 
       <main>
-        <section className="py-14">
+        <section id="comparison-table" className="py-14">
           <div className="container mx-auto px-4 max-w-5xl">
             <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
-              <table className="w-full text-sm">
+              <table
+                className="w-full text-sm"
+                aria-label={`${comparison.colA} vs ${comparison.colB} vs ${comparison.colC} — criterion-by-criterion comparison`}
+              >
+                <caption className="sr-only">
+                  {comparison.heroTitle} — scored across {comparison.rows.length} criteria
+                </caption>
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left px-6 py-4 font-semibold text-slate-700 w-1/2">
+                    <th scope="col" className="text-left px-6 py-4 font-semibold text-slate-700 w-1/2">
                       Criterion
                     </th>
-                    <th className="text-center px-4 py-4 font-semibold text-[#0052FF] w-[16.66%]">
+                    <th scope="col" className="text-center px-4 py-4 font-semibold text-[#0052FF] w-[16.66%]">
                       {comparison.colA}
                     </th>
-                    <th className="text-center px-4 py-4 font-semibold text-slate-600 w-[16.66%]">
+                    <th scope="col" className="text-center px-4 py-4 font-semibold text-slate-600 w-[16.66%]">
                       {comparison.colB}
                     </th>
-                    <th className="text-center px-4 py-4 font-semibold text-slate-600 w-[16.66%]">
+                    <th scope="col" className="text-center px-4 py-4 font-semibold text-slate-600 w-[16.66%]">
                       {comparison.colC}
                     </th>
                   </tr>
@@ -218,10 +241,10 @@ export default function CompareSlug() {
                 <tbody className="divide-y divide-slate-100">
                   {comparison.rows.map((row) => (
                     <tr key={row.criterion} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4">
+                      <th scope="row" className="px-6 py-4 font-normal text-left">
                         <div className="font-medium text-slate-900">{row.criterion}</div>
                         <div className="text-xs text-muted-foreground mt-0.5">{row.description}</div>
-                      </td>
+                      </th>
                       <td className="px-4 py-4 text-center"><VerdictIcon v={row.a} /></td>
                       <td className="px-4 py-4 text-center"><VerdictIcon v={row.b} /></td>
                       <td className="px-4 py-4 text-center"><VerdictIcon v={row.c} /></td>
@@ -280,7 +303,7 @@ export default function CompareSlug() {
         {comparison.faqItems.length > 0 && (
           <section className="py-16" id="slug-faq">
             <div className="container mx-auto px-4 max-w-3xl">
-              <h2 className="text-2xl font-bold text-center mb-8">Frequently asked questions about {comparison.colA} for fintech</h2>
+              <h2 className="text-2xl font-bold text-center mb-8">Frequently asked questions about {comparison.colA}, {comparison.colB} and {comparison.colC}</h2>
               <Accordion
                 type="single"
                 collapsible

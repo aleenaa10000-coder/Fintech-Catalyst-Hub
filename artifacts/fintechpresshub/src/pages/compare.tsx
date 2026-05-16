@@ -40,6 +40,21 @@ const faqItems = [
     answer:
       "We review and refresh all comparison pages quarterly, or immediately when a significant market development occurs — such as a change in Google Ads CPC benchmarks for financial services or a new compliance framework affecting content marketing rules. Each page carries a schema dateModified so you can verify freshness.",
   },
+  {
+    question: "What are the eight SEO discipline comparisons on FintechPressHub?",
+    answer:
+      "The eight discipline comparisons cover: (1) Off-Page SEO vs On-Page SEO vs Technical SEO — which pillar drives authority fastest; (2) Technical SEO vs Content Marketing vs Link Building — the correct investment sequence; (3) On-Page SEO: agency vs DIY vs AI tools — E-E-A-T and YMYL compliance; (4) GEO vs Traditional SEO vs PPC — capturing AI Overview and LLM citations; (5) AEO vs Standard SEO vs Social — featured snippets, FAQ rich results, and PAA boxes; (6) International SEO vs Local SEO vs Single-market — hreflang and global fintech reach; (7) Programmatic vs Editorial vs AI-generated — information-gain requirements and thin-content risk; and (8) White Hat vs Grey Hat vs Black Hat SEO — compliance and reputational risk for regulated fintech.",
+  },
+  {
+    question: "How do I choose the most relevant fintech SEO comparison for my situation?",
+    answer:
+      "Start with the agency and strategy comparisons if you are evaluating whether to hire an agency, work with freelancers, or build in-house. Move to the SEO discipline comparisons if you already have an SEO programme and want to understand which specific investment — off-page authority, technical health, on-page quality, AI visibility (GEO/AEO), international reach, or content scale — will deliver the highest ROI for your current growth stage. For fintech companies expanding internationally, the International SEO comparison addresses hreflang implementation across UK, US, AU, SG, and CA markets specifically.",
+  },
+  {
+    question: "Are FintechPressHub comparison pages updated after Google algorithm changes?",
+    answer:
+      "Yes. Each comparison carries a schema dateModified timestamp visible on the page. We update comparisons after significant algorithm changes — including Core Updates, Helpful Content System rollouts, and AI Overviews expansions — and when regulatory frameworks affecting fintech content marketing are revised. The most recent batch incorporated Google's 2026 AI Overviews expansion and updated E-E-A-T guidance for YMYL financial services content.",
+  },
 ];
 
 export default function Compare() {
@@ -133,6 +148,31 @@ export default function Compare() {
             url: `${SITE_URL}/compare/${c.slug}`,
             description: c.description,
           })),
+        }}
+        howTo={{
+          name: "How to choose the right fintech SEO approach using FintechPressHub's comparison hub",
+          description: "A four-step process for fintech founders and CMOs using our comparison hub to select the right SEO strategy for their growth stage, budget, and regulatory environment.",
+          totalTime: "PT10M",
+          datePublished: "2024-09-01",
+          dateModified: "2026-05-16",
+          steps: [
+            {
+              name: "Identify your primary growth challenge",
+              text: "Determine whether your challenge is supplier selection (which agency, freelancer, or in-house model), channel strategy (organic vs paid vs hybrid), or SEO discipline prioritisation (which of the eight SEO pillars — off-page, technical, on-page, GEO, AEO, international, programmatic, white hat — to invest in first). This determines which comparison category is most relevant.",
+            },
+            {
+              name: "Select the comparison matching your decision",
+              text: "Navigate to the relevant comparison — agency and strategy comparisons for supplier decisions, SEO discipline comparisons for investment prioritisation. Each comparison scores two or three options across 8–10 criteria so you can evaluate trade-offs specific to your growth stage and market.",
+            },
+            {
+              name: "Apply the criteria to your specific context",
+              text: "Weight the criteria by your priorities — regulatory compliance, time-to-value, budget, and internal capability. Every comparison includes a BLUF summary with the key verdict and a bottom-line scorecard for rapid decision-making without reading the full analysis.",
+            },
+            {
+              name: "Book a free audit to validate your shortlist",
+              text: "Once you have identified one or two preferred approaches from the comparisons, book a free fintech SEO audit to validate the fit against your specific domain, keyword landscape, and competitor benchmark before committing to a programme.",
+            },
+          ],
         }}
       />
 
