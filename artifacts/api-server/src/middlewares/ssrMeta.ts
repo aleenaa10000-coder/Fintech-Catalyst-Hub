@@ -5302,13 +5302,17 @@ async function handleSsrMeta(
             // its ItemList entity — enabling Google and AI rankers to traverse the entity
             // graph from the hub to all 14 individual comparison pages in a single hop.
             mainEntity: { "@id": `${canonical}#itemlist` },
-            // SpeakableSpecification now targets both h1 and .speakable-summary — the BLUF
-            // paragraph in compare.tsx enumerates all fourteen comparison categories and is
-            // the richest spoken summary for "what comparisons does FintechPressHub publish?"
-            // voice queries and AI Overview extraction. Mirrors compare-slug speakable spec.
+            // AEO: hasPart cross-references the FAQPage entity so Google's Rich Results
+            // parser can resolve the FAQ block from the CollectionPage in a single graph
+            // hop — matching the pattern on compare-slug Article pages (hasPart → #faq).
+            hasPart: { "@id": `${canonical}#faq` },
+            // SpeakableSpecification targets h1 + .speakable-summary + h2 — matching
+            // compare.tsx speakableSelectors exactly. h2 selectors surface the two
+            // section headings ("Agency & strategy comparisons", "SEO discipline
+            // comparisons") so AI voice assistants enumerate all comparison categories.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".speakable-summary"],
+              cssSelector: ["h1", ".speakable-summary", "h2"],
             },
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
@@ -5331,6 +5335,149 @@ async function handleSsrMeta(
               description: meta.description.slice(0, 120),
               url:         `${siteUrl}/compare/${cmpSlug}`,
             })),
+          }, null, 2));
+          // AEO: FAQPage — 8 Q&As mirrored from compare.tsx faqItems so Googlebot
+          // and AI citation engines see the full FAQ schema on the SSR first-pass HTML
+          // without depending on React hydration. Eligible for Google FAQ rich results
+          // and "People Also Ask" box expansion for fintech SEO decision queries.
+          // @id matches the hasPart reference on the CollectionPage above.
+          extraLds.push(JSON.stringify({
+            "@context":   "https://schema.org",
+            "@type":      "FAQPage",
+            "@id":        `${canonical}#faq`,
+            url:          canonical,
+            inLanguage:   "en",
+            isPartOf:     { "@id": `${siteUrl}#website` },
+            publisher:    { "@id": `${siteUrl}#organization` },
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2024-09-01",
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            mainEntity: [
+              {
+                "@type":      "Question",
+                name:         "Why does FintechPressHub publish comparison pages?",
+                answerCount:  1,
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  inLanguage:  "en",
+                  text:        "Fintech buyers evaluate multiple agencies, tools, and strategies before committing. Our comparison pages help those buyers make informed decisions with transparent, criterion-by-criterion analysis — not marketing fluff.",
+                },
+              },
+              {
+                "@type":      "Question",
+                name:         "Are these comparisons objective?",
+                answerCount:  1,
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  inLanguage:  "en",
+                  text:        "We are honest about where alternatives have advantages. For example, we clearly note that Google Ads generates leads faster than content SEO, and that in-house teams offer the best long-term control at scale. Our goal is to help buyers find the right fit, even if that means recommending a hybrid approach.",
+                },
+              },
+              {
+                "@type":      "Question",
+                name:         "What is the best option for an early-stage fintech?",
+                answerCount:  1,
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  inLanguage:  "en",
+                  text:        "Most Series A fintechs benefit most from a hybrid of paid search (for immediate pipeline) and content-led SEO (for compounding organic growth). Our /compare/content-led-vs-paid page covers this trade-off in detail.",
+                },
+              },
+              {
+                "@type":      "Question",
+                name:         "Do you work with fintechs that already have an in-house team?",
+                answerCount:  1,
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  inLanguage:  "en",
+                  text:        "Yes. About 40% of our clients have an in-house marketer who manages strategy while we handle specialist content creation, link building, and technical SEO execution — the parts that require fintech domain expertise and existing publisher relationships.",
+                },
+              },
+              {
+                "@type":      "Question",
+                name:         "How often does FintechPressHub update its comparison pages?",
+                answerCount:  1,
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  inLanguage:  "en",
+                  text:        "We review and refresh all comparison pages quarterly, or immediately when a significant market development occurs — such as a change in Google Ads CPC benchmarks for financial services or a new compliance framework affecting content marketing rules. Each page carries a schema dateModified so you can verify freshness.",
+                },
+              },
+              {
+                "@type":      "Question",
+                name:         "What are the eight SEO discipline comparisons on FintechPressHub?",
+                answerCount:  1,
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  inLanguage:  "en",
+                  text:        "The eight discipline comparisons cover: (1) Off-Page SEO vs On-Page SEO vs Technical SEO — which pillar drives authority fastest; (2) Technical SEO vs Content Marketing vs Link Building — the correct investment sequence; (3) On-Page SEO: agency vs DIY vs AI tools — E-E-A-T and YMYL compliance; (4) GEO vs Traditional SEO vs PPC — capturing AI Overview and LLM citations; (5) AEO vs Standard SEO vs Social — featured snippets, FAQ rich results, and PAA boxes; (6) International SEO vs Local SEO vs Single-market — hreflang and global fintech reach; (7) Programmatic vs Editorial vs AI-generated — information-gain requirements and thin-content risk; and (8) White Hat vs Grey Hat vs Black Hat SEO — compliance and reputational risk for regulated fintech.",
+                },
+              },
+              {
+                "@type":      "Question",
+                name:         "How do I choose the most relevant fintech SEO comparison for my situation?",
+                answerCount:  1,
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  inLanguage:  "en",
+                  text:        "Start with the agency and strategy comparisons if you are evaluating whether to hire an agency, work with freelancers, or build in-house. Move to the SEO discipline comparisons if you already have an SEO programme and want to understand which specific investment — off-page authority, technical health, on-page quality, AI visibility (GEO/AEO), international reach, or content scale — will deliver the highest ROI for your current growth stage.",
+                },
+              },
+              {
+                "@type":      "Question",
+                name:         "Are FintechPressHub comparison pages updated after Google algorithm changes?",
+                answerCount:  1,
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  inLanguage:  "en",
+                  text:        "Yes. Each comparison carries a schema dateModified timestamp visible on the page. We update comparisons after significant algorithm changes — including Core Updates, Helpful Content System rollouts, and AI Overviews expansions — and when regulatory frameworks affecting fintech content marketing are revised. The most recent batch incorporated Google's 2026 AI Overviews expansion and updated E-E-A-T guidance for YMYL financial services content.",
+                },
+              },
+            ],
+          }, null, 2));
+          // AEO: HowTo — 4-step framework mirrored from compare.tsx howTo prop so
+          // Googlebot sees the full HowTo schema server-side without JS hydration.
+          // Eligible for Google HowTo rich results and AI Overview step-list extraction
+          // for "how to choose fintech SEO" decision queries. @id is stable for
+          // cross-page entity-graph references.
+          extraLds.push(JSON.stringify({
+            "@context":    "https://schema.org",
+            "@type":       "HowTo",
+            "@id":         `${canonical}#howto`,
+            name:          "How to choose the right fintech SEO approach using FintechPressHub's comparison hub",
+            description:   "A four-step process for fintech founders and CMOs using our comparison hub to select the right SEO strategy for their growth stage, budget, and regulatory environment.",
+            totalTime:     "PT10M",
+            inLanguage:    "en",
+            publisher:     { "@id": `${siteUrl}#organization` },
+            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2024-09-01",
+            ...(pageLastmod ? { dateModified: pageLastmod } : {}),
+            step: [
+              {
+                "@type":   "HowToStep",
+                position:  1,
+                name:      "Identify your primary growth challenge",
+                text:      "Determine whether your challenge is supplier selection (which agency, freelancer, or in-house model), channel strategy (organic vs paid vs hybrid), or SEO discipline prioritisation (which of the eight SEO pillars — off-page, technical, on-page, GEO, AEO, international, programmatic, white hat — to invest in first). This determines which comparison category is most relevant.",
+              },
+              {
+                "@type":   "HowToStep",
+                position:  2,
+                name:      "Select the comparison matching your decision",
+                text:      "Navigate to the relevant comparison — agency and strategy comparisons for supplier decisions, SEO discipline comparisons for investment prioritisation. Each comparison scores two or three options across 8–10 criteria so you can evaluate trade-offs specific to your growth stage and market.",
+              },
+              {
+                "@type":   "HowToStep",
+                position:  3,
+                name:      "Apply the criteria to your specific context",
+                text:      "Weight the criteria by your priorities — regulatory compliance, time-to-value, budget, and internal capability. Every comparison includes a BLUF summary with the key verdict and a bottom-line scorecard for rapid decision-making without reading the full analysis.",
+              },
+              {
+                "@type":   "HowToStep",
+                position:  4,
+                name:      "Book a free audit to validate your shortlist",
+                text:      "Once you have identified one or two preferred approaches from the comparisons, book a free fintech SEO audit to validate the fit against your specific domain, keyword landscape, and competitor benchmark before committing to a programme.",
+              },
+            ],
+            tool:   [{ "@type": "HowToTool",   name: "FintechPressHub Comparison Hub" }],
+            supply: [{ "@type": "HowToSupply", name: "Your fintech growth goals, current organic metrics, and regulatory constraints" }],
           }, null, 2));
 
         } else if (reqPath === "/contact") {
@@ -6488,6 +6635,81 @@ async function handleSsrMeta(
             `  <meta name="DC.date" scheme="W3CDTF" content="2023-10-01" />`,
             `  <meta name="DC.identifier" content="${canonical}" />`,
           ];
+        }
+
+        if (reqPath === "/compare" && patches) {
+          // ── /compare hub — per-route head enrichment ─────────────────────
+          //
+          // International SEO: per-market hreflang regional codes for the 5
+          // primary fintech markets. The generic patchHtml already injects
+          // hreflang="en" + x-default; these five regional codes are additive
+          // and satisfy Google's requirement to list all locale variants. Mirrors
+          // the client-side Helmet hreflang tags in compare.tsx exactly.
+          //
+          // AEO: news_keywords consumed by Google News and AI news crawlers to
+          // surface the comparison hub for fintech-buyer discovery queries.
+          // Mirrors the Helmet <meta name="news_keywords"> in compare.tsx.
+          //
+          // On-Page: meta keywords for commercial-intent comparison head terms
+          // covering all eight SEO disciplines and agency/strategy comparisons.
+          //
+          // White Hat: meta robots with max-snippet:-1 + max-image-preview:large
+          // permits full SERP snippets and large OG social cards — matching the
+          // extended robots directives on /services and /glossary.
+          //
+          // White Hat + E-E-A-T: meta author + rel="author" establish editorial
+          // provenance for the hub — matching /about, /authors, and all service pages.
+          //
+          // Dublin Core: extends the DC provenance pattern established on /services,
+          // /pricing, /write-for-us, and /glossary so the compare hub is indexed
+          // with full DC metadata by library and financial research indexers.
+          patches.headLinks = [
+            `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+            `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+            `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+            `  <meta name="author" content="FintechPressHub Editorial Team" />`,
+            `  <link rel="author" href="${esc(`${siteUrl}/about`)}" />`,
+            `  <meta name="keywords" content="fintech SEO comparison, agency vs in-house SEO, fintech SEO vs freelancers, content SEO vs paid search, specialist vs generalist SEO, off-page SEO vs on-page SEO, GEO vs traditional SEO, AEO vs SEO, programmatic SEO fintech, white hat SEO fintech" />`,
+            `  <meta name="news_keywords" content="fintech SEO comparison, agency vs in-house SEO, content SEO vs paid search, fintech marketing agency" />`,
+            `  <meta name="DC.title" content="${esc(staticMeta.title)}" />`,
+            `  <meta name="DC.creator" content="FintechPressHub Editorial Team" />`,
+            `  <meta name="DC.subject" content="Fintech SEO Comparison, Agency vs In-House SEO, Content Marketing vs Paid Search, Off-Page SEO, Technical SEO, GEO, AEO, International SEO, Programmatic SEO, White Hat SEO" />`,
+            `  <meta name="DC.description" content="${esc(staticMeta.description)}" />`,
+            `  <meta name="DC.publisher" content="FintechPressHub" />`,
+            `  <meta name="DC.date" scheme="W3CDTF" content="${STATIC_PAGE_CREATED[reqPath] ?? "2024-09-01"}" />`,
+            `  <meta name="DC.type" scheme="DCMIType" content="Text" />`,
+            `  <meta name="DC.format" content="text/html" />`,
+            `  <meta name="DC.language" scheme="RFC5646" content="en" />`,
+            `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
+            `  <meta name="DC.rights" content="${esc(`${siteUrl}/terms`)}" />`,
+          ];
+          // On-Page: article:* OG meta — treats the comparison hub as an editorial
+          // reference publication (written by FintechPressHub Editorial Team,
+          // first published 2024-09-01). Unlocks article-namespace social cards on
+          // LinkedIn and Facebook and signals editorial provenance to Google's
+          // content classifier — matching the pattern on /write-for-us and /glossary.
+          patches.ogType               = "article";
+          patches.articlePublishedTime = STATIC_PAGE_CREATED[reqPath] ?? "2024-09-01";
+          patches.articleModifiedTime  = pageLastmod ?? "2026-05-16";
+          patches.articleSection       = "Fintech SEO Comparisons";
+          patches.articleTags          = [
+            "fintech SEO comparison",
+            "agency vs in-house SEO",
+            "content SEO vs paid search",
+            "off-page SEO",
+            "technical SEO",
+            "GEO",
+            "AEO",
+            "international SEO",
+            "programmatic SEO",
+            "white hat SEO",
+          ];
+          patches.articleAuthor    = "FintechPressHub Editorial Team";
+          patches.articlePublisher = "https://twitter.com/fintechpresshub";
+          patches.author           = "FintechPressHub Editorial Team";
         }
 
         if (reqPath === "/services" && patches) {
