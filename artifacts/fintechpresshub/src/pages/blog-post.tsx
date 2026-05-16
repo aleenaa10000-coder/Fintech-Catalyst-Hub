@@ -554,31 +554,30 @@ export default function BlogPost() {
 
   useEffect(() => {
     if (!contentHtml || tocItems.length === 0) return;
-    const elements = tocItems
-      .map((h) => document.getElementById(h.id))
-      .filter((el): el is HTMLElement => !!el);
-    if (elements.length === 0) return;
 
-    const visible = new Map<string, number>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            visible.set(entry.target.id, entry.intersectionRatio);
-          } else {
-            visible.delete(entry.target.id);
-          }
-        }
-        if (visible.size > 0) {
-          const topId = tocItems.find((h) => visible.has(h.id))?.id;
-          if (topId) setActiveHeadingId(topId);
-        }
-      },
-      { rootMargin: "-96px 0px -65% 0px", threshold: [0, 1] },
-    );
+    // Threshold below which a heading is considered "passed" — matches the
+    // sticky navbar height so the active item updates exactly when a heading
+    // disappears under the nav rather than while it is still visible.
+    const OFFSET = 120;
 
-    elements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    const onScroll = () => {
+      let activeId: string | null = null;
+      for (const item of tocItems) {
+        const el = document.getElementById(item.id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top <= OFFSET) {
+          activeId = item.id;
+        }
+      }
+      setActiveHeadingId((prev) => (prev === activeId ? prev : activeId));
+    };
+
+    // Set initial active heading immediately (handles page loads where the
+    // user arrives mid-article via a direct anchor link or browser back/fwd).
+    onScroll();
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, [contentHtml, tocItems]);
 
   // Don't redirect to /404 while the API list is still loading — otherwise
