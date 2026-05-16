@@ -21,9 +21,8 @@ import {
   BookmarkCheck,
   Share2,
   X,
-  Plus,
-  HelpCircle,
 } from "lucide-react";
+import { FaqSection } from "@/components/FaqSection";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -45,12 +44,6 @@ import { BlogPostToc } from "@/components/BlogPostToc";
 import { BlogPostNewsletterCta } from "@/components/BlogPostNewsletterCta";
 import { optimizeImageUrl, buildSrcSet } from "@/lib/imageUtils";
 import { COMPARISONS } from "@/data/comparisons";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 
 function getRelatedComparisons(category: string, tags: string[] = []) {
   const text = [category, ...tags].join(" ").toLowerCase();
@@ -1394,43 +1387,14 @@ export default function BlogPost() {
                 );
               })()}
 
-              {/* FAQ accordion — rendered when the post has faqItems.
-                  Emits the same visual pattern as compare-slug.tsx and
-                  mirrors the FAQPage JSON-LD emitted by PageMeta above. */}
+              {/* FAQ section — matches homepage FAQ UI exactly */}
               {post.faqItems && post.faqItems.length > 0 && (
-                <div className="mt-14 pt-10 border-t border-slate-200" id="post-faq">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="shrink-0 w-9 h-9 rounded-xl bg-[#0052FF] text-white flex items-center justify-center shadow-md">
-                      <HelpCircle className="w-4.5 h-4.5" />
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-                      Frequently asked questions
-                    </h2>
-                  </div>
-                  <Accordion
-                    type="single"
-                    collapsible
-                    className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
-                  >
-                    {post.faqItems.map((faq: { question: string; answer: string }, i: number) => (
-                      <AccordionItem
-                        key={faq.question}
-                        value={`post-faq-${i}`}
-                        className="border-b-0 group"
-                      >
-                        <AccordionTrigger className="faq-question px-6 py-5 text-base font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
-                          <span className="flex-1 pr-4">{faq.question}</span>
-                          <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
-                            <Plus className="w-5 h-5" />
-                          </span>
-                        </AccordionTrigger>
-                        <AccordionContent className="px-6 pb-5 pt-0 text-slate-600 text-base leading-relaxed">
-                          {faq.answer}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </div>
+                <FaqSection
+                  items={post.faqItems}
+                  heading="Frequently asked questions"
+                  valuePrefix="post-faq"
+                  id="post-faq"
+                />
               )}
 
               {/* Tags — each chip deep-links into /blog?tag=<name> so the

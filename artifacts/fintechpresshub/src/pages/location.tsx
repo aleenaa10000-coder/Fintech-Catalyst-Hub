@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, ArrowRight, Globe, ChevronRight } from "lucide-react";
+import { FaqSection } from "@/components/FaqSection";
 import { Link } from "wouter";
 import { SITE_URL } from "@/lib/metaData";
 import NotFound from "@/pages/not-found";
@@ -257,26 +258,11 @@ export default function LocationPage() {
       </section>
 
       {/* Visible FAQ section — AEO: rendered in HTML for AI extraction AND in JSON-LD */}
-      <section className="py-16" aria-labelledby="faq-heading">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <h2 id="faq-heading" className="text-2xl font-bold mb-8">
-            Frequently asked questions — fintech SEO in {location.city}
-          </h2>
-          <div className="space-y-6">
-            {faqItems.map((item) => (
-              <details key={item.question} className="group border border-border rounded-lg">
-                <summary className="faq-question flex items-center justify-between gap-4 cursor-pointer list-none px-5 py-4 font-semibold text-sm hover:bg-secondary/30 rounded-lg transition-colors">
-                  {item.question}
-                  <ChevronRight className="w-4 h-4 flex-shrink-0 transition-transform group-open:rotate-90" />
-                </summary>
-                <p className="px-5 pb-4 pt-2 text-sm text-muted-foreground leading-relaxed">
-                  {item.answer}
-                </p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FaqSection
+        items={faqItems}
+        heading={`Frequently asked questions — fintech SEO in ${location.city}`}
+        valuePrefix="location-faq"
+      />
 
       {otherLocations.length > 0 && (
         <section className="py-12 bg-secondary/20" aria-labelledby="other-markets-heading">

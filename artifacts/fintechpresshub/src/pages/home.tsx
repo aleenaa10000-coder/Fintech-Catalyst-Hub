@@ -10,15 +10,10 @@ import {
   useListBlogPosts,
   getListBlogPostsQueryKey,
 } from "@workspace/api-client-react";
-import { ArrowRight, FileText, Link2, Cog, HelpCircle, Plus, Clock } from "lucide-react";
+import { ArrowRight, FileText, Link2, Cog, Clock } from "lucide-react";
+import { FaqSection } from "@/components/FaqSection";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { CountUp } from "@/components/CountUp";
 import { ParticleNetwork } from "@/components/ParticleNetwork";
 import { TrustedBy } from "@/components/TrustedBy";
@@ -534,44 +529,13 @@ export default function Home() {
       ) : null}
 
       {/* FAQ */}
-      <section className="py-20 border-t bg-muted/20" data-testid="section-home-faq" aria-label="Frequently asked questions about fintech SEO">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <FadeInView className="text-center mb-12">
-            <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" />
-            <h2 className="text-3xl md:text-4xl font-bold mb-3">
-              Fintech SEO Questions, Answered
-            </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              The questions fintech founders, CMOs, and growth leads ask us
-              before they pick up the phone.
-            </p>
-          </FadeInView>
-          <Accordion
-            type="single"
-            collapsible
-            className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
-          >
-            {homeFaqs.map((faq, idx) => (
-              <AccordionItem
-                key={faq.question}
-                value={`home-faq-${idx}`}
-                data-testid={`accordion-home-faq-${idx}`}
-                className="border-b-0 group"
-              >
-                <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
-                  <span className="flex-1 pr-4">{faq.question}</span>
-                  <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
-                    <Plus className="w-5 h-5" />
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
-      </section>
+      <FaqSection
+        items={homeFaqs}
+        heading="Fintech SEO Questions, Answered"
+        subtitle="The questions fintech founders, CMOs, and growth leads ask us before they pick up the phone."
+        valuePrefix="home-faq"
+        testId="section-home-faq"
+      />
 
       {isAdmin ? (
         <Suspense fallback={null}>

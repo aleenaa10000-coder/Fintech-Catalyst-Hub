@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ExternalLink, Search } from "lucide-react";
+import { FaqSection } from "@/components/FaqSection";
 import { useState, useMemo } from "react";
 import { SITE_URL } from "@/lib/metaData";
 
@@ -211,21 +212,11 @@ export default function FintechPublications() {
         </div>
       </section>
 
-      <section className="py-16 bg-secondary/30">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <h2 className="text-2xl font-bold text-center mb-8">Frequently asked questions</h2>
-          <div className="space-y-4">
-            {faqItems.map((faq) => (
-              <Card key={faq.question}>
-                <CardContent className="pt-5">
-                  <h3 className="font-semibold mb-2">{faq.question}</h3>
-                  <p className="text-sm text-muted-foreground">{faq.answer}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FaqSection
+        items={faqItems}
+        heading="Frequently asked questions"
+        valuePrefix="publications-faq"
+      />
     </div>
   );
 }

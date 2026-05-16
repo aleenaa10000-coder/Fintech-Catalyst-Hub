@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Code, Copy, Check, Shield, Clock, Info, HelpCircle, ChevronDown, ChevronUp, ExternalLink, TrendingUp, Quote } from "lucide-react";
+import { Code, Copy, Check, Shield, Clock, Info, ExternalLink, TrendingUp, Quote } from "lucide-react";
+import { FaqSection } from "@/components/FaqSection";
 import { Card, CardContent } from "@/components/ui/card";
 
 export interface ToolUseCase {
@@ -259,8 +260,6 @@ export function ToolSEOEnhancements({
   citationUrls,
 }: ToolSEOEnhancementsProps) {
   const [copied, setCopied] = useState(false);
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
-
   const toolUrl = `https://www.fintechpresshub.com/tools/${toolSlug}`;
   const iframeCode =
     `<iframe\n` +
@@ -284,10 +283,6 @@ export function ToolSEOEnhancements({
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     });
-  }
-
-  function toggleFaq(index: number) {
-    setOpenFaqIndex((prev) => (prev === index ? null : index));
   }
 
   return (
@@ -463,52 +458,11 @@ export function ToolSEOEnhancements({
 
       {/* ── FAQ — GEO & AEO ─────────────────────────────────────────────────── */}
       {faq && faq.length > 0 && (
-        <section
-          aria-labelledby={`faq-${toolSlug}`}
-          className="container mx-auto px-4 max-w-3xl"
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <HelpCircle className="w-5 h-5 text-[#0052FF] shrink-0" />
-            <h2
-              id={`faq-${toolSlug}`}
-              className="text-xl font-bold text-slate-900"
-            >
-              Frequently Asked Questions
-            </h2>
-          </div>
-          <dl className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
-            {faq.map((item, index) => {
-              const isOpen = openFaqIndex === index;
-              return (
-                <div key={index} className="bg-white">
-                  <dt>
-                    <button
-                      type="button"
-                      aria-expanded={isOpen}
-                      aria-controls={`faq-answer-${toolSlug}-${index}`}
-                      onClick={() => toggleFaq(index)}
-                      className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50 transition-colors gap-3"
-                    >
-                      <span>{item.question}</span>
-                      {isOpen ? (
-                        <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
-                      )}
-                    </button>
-                  </dt>
-                  <dd
-                    id={`faq-answer-${toolSlug}-${index}`}
-                    hidden={!isOpen}
-                    className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed"
-                  >
-                    {item.answer}
-                  </dd>
-                </div>
-              );
-            })}
-          </dl>
-        </section>
+        <FaqSection
+          items={faq}
+          heading="Frequently Asked Questions"
+          valuePrefix={`tool-faq-${toolSlug}`}
+        />
       )}
 
       {/* ── Embed Widget — Off-Page SEO ──────────────────────────────────────── */}

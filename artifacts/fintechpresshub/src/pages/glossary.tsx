@@ -7,6 +7,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Search, BookOpen } from "lucide-react";
+import { FaqSection } from "@/components/FaqSection";
 
 type GlossaryTerm = {
   id: number;
@@ -337,19 +338,11 @@ export default function GlossaryPage() {
         </div>
       </section>
 
-      <section className="py-16 bg-slate-50 border-t" aria-label="Frequently Asked Questions">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <h2 className="text-2xl font-bold mb-8 text-slate-900">Fintech Glossary — Frequently Asked Questions</h2>
-          <dl className="space-y-6">
-            {STATIC_FAQS.map((faq, i) => (
-              <div key={i} className="rounded-lg bg-white border border-slate-100 px-6 py-5 shadow-sm">
-                <dt className="font-semibold text-slate-900 mb-2">{faq.question}</dt>
-                <dd className="text-slate-600 leading-relaxed text-sm">{faq.answer}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
+      <FaqSection
+        items={STATIC_FAQS}
+        heading="Fintech Glossary — Frequently Asked Questions"
+        valuePrefix="glossary-faq"
+      />
 
       <section className="py-16 bg-secondary/30 border-t">
         <div className="container mx-auto px-4 max-w-2xl text-center">

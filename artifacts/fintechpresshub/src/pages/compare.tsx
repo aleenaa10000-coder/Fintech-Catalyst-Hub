@@ -1,16 +1,11 @@
 import { Link } from "wouter";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { FaqSection } from "@/components/FaqSection";
 import { Helmet } from "react-helmet-async";
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { SITE_URL } from "@/lib/metaData";
 import { COMPARISONS } from "@/data/comparisons";
 
@@ -264,30 +259,12 @@ export default function Compare() {
           </div>
         </section>
 
-        <section className="py-16 bg-secondary/30" id="compare-faq">
-          <div className="container mx-auto px-4 max-w-3xl">
-            <h2 className="text-2xl font-bold text-center mb-8">Fintech SEO comparison — frequently asked questions</h2>
-            <Accordion
-              type="single"
-              collapsible
-              className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
-            >
-              {faqItems.map((faq, i) => (
-                <AccordionItem key={faq.question} value={`compare-faq-${i}`} className="border-b-0 group">
-                  <AccordionTrigger className="faq-question px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
-                    <span className="flex-1 pr-4">{faq.question}</span>
-                    <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
-                      <Plus className="w-5 h-5" />
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-        </section>
+        <FaqSection
+          items={faqItems}
+          heading="Fintech SEO comparison — frequently asked questions"
+          valuePrefix="compare-faq"
+          id="compare-faq"
+        />
 
         <section className="py-20 bg-[#0052FF]/5">
           <div className="container mx-auto px-4 max-w-2xl text-center">
