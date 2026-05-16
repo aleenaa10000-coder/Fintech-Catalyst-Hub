@@ -1867,6 +1867,23 @@ const TOOLS_RELATED: Readonly<Record<string, string[]>> = {
   "outreach-email-generator":          ["link-prospector", "guest-post-pitch-generator", "backlink-value-estimator"],
 };
 
+// ---------- per-tool applicationSubCategory (SoftwareApplication + Twitter card) ──
+// Maps each tool slug to its human-readable sub-category.  Used in two places:
+//   1. SoftwareApplication.applicationSubCategory — Google Rich Results
+//   2. twitter:label1 / twitter:data1 — X/Twitter rich card preview
+const TOOLS_SUBCATEGORY: Readonly<Record<string, string>> = {
+  "financial-health-score-calculator": "Financial Calculator",
+  "meta-description-generator":        "SEO Tool",
+  "guest-post-pitch-generator":        "Content Marketing Tool",
+  "readability-checker":               "Content Analysis Tool",
+  "keyword-difficulty-estimator":      "SEO Research Tool",
+  "backlink-value-estimator":          "Link Building Tool",
+  "content-brief-generator":           "Content Planning Tool",
+  "headline-analyzer":                 "Content Analysis Tool",
+  "link-prospector":                   "Link Building Tool",
+  "outreach-email-generator":          "Link Building Tool",
+};
+
 // ---------- per-request SSR-meta patch cache (B1) ────────────────────────────
 //
 // DB-driven route handlers run at least two SELECT queries per SSR hit
@@ -4396,6 +4413,26 @@ async function handleSsrMeta(
             "@type":     "SpeakableSpecification",
             cssSelector: ["h1", ".speakable-summary"],
           },
+          // applicationSubCategory: finer-grained categorisation below
+          // applicationCategory:"FinanceApplication" so Google Rich Results
+          // and AI engines can distinguish calculators from SEO tools from
+          // content tools in the same fintech toolset.
+          ...(TOOLS_SUBCATEGORY[slug] ? { applicationSubCategory: TOOLS_SUBCATEGORY[slug] } : {}),
+          // image: machine-readable branded card for the tool — satisfies the
+          // schema.org/SoftwareApplication image requirement and gives Google
+          // Image Search and AI vision models a canonical visual for the tool.
+          image: {
+            "@type":      "ImageObject",
+            url:          `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Free+Tool`,
+            contentUrl:   `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Free+Tool`,
+            width:        1200,
+            height:       630,
+            caption:      `${leafLabel} — FintechPressHub`,
+          },
+          // screenshot: equivalent visual that satisfies both Google Rich
+          // Results validator requirements and Bing's SoftwareApplication
+          // screenshot recommendation.
+          screenshot:    `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Free+Tool`,
         }, null, 2),
       ];
       const howTo = TOOLS_HOWTO[slug];
@@ -4406,6 +4443,18 @@ async function handleSsrMeta(
           "@id":       `${canonical}#howto`,
           name:        howTo.name,
           description: howTo.description,
+          // inLanguage: provenance signal — AI citation engines (Perplexity,
+          // Google AI Overviews) use inLanguage to validate that a HowTo step
+          // sequence is in the correct language before including it in an
+          // answer. Without it, the language is treated as unknown.
+          inLanguage:  "en",
+          // author: attributes the procedure to the publishing org — mirrors
+          // the FAQPage.mainEntity[*].author pattern used site-wide and is
+          // required for the AEO "attributed, dated procedure" ranking signal.
+          author:      { "@id": `${siteUrl}#organization` },
+          // publisher: belt-and-suspenders org attribution read by Bing/Copilot
+          // alongside author when ranking HowTo candidates for step extraction.
+          publisher:   { "@id": `${siteUrl}#organization` },
           ...(howTo.totalTime ? { totalTime: howTo.totalTime } : {}),
           tool: { "@type": "HowToTool", name: leafLabel },
           step: howTo.steps.map((s, i) => ({
@@ -4508,6 +4557,40 @@ async function handleSsrMeta(
           "@type":     "SpeakableSpecification",
           cssSelector: ["h1", ".speakable-summary"],
         },
+        // primaryImageOfPage: enables Google's visual carousels, AIO image
+        // features, and AI vision model indexing — mirrors the identical
+        // property on blog post and service page WebPage entities site-wide.
+        primaryImageOfPage: {
+          "@type":      "ImageObject",
+          "@id":        `${canonical}#primary-image`,
+          url:          `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Free+Tool`,
+          contentUrl:   `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Free+Tool`,
+          width:        1200,
+          height:       630,
+          caption:      `${leafLabel} — FintechPressHub Free Tool`,
+        },
+        // thumbnailUrl: machine-readable thumbnail for Knowledge Panel and
+        // Bing site-links previews; references the same branded OG card.
+        thumbnailUrl: `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Free+Tool`,
+        // about: links the WebPage entity to the publishing organisation node
+        // in the Knowledge Graph — mirrors the identical property on blog post
+        // and compare-page WebPage entities to keep graph topology consistent.
+        about: { "@id": `${siteUrl}#organization` },
+        // mainEntity: declares the SoftwareApplication as the primary entity
+        // described by this WebPage — satisfies the schema.org/WebPage
+        // mainEntity recommendation and lets Google resolve the tool as the
+        // canonical subject of the page independently of the JSON-LD block order.
+        mainEntity: { "@id": `${canonical}#software` },
+        // hasPart: links the WebPage to its embedded FAQPage entity — mirrors
+        // the hasPart pattern used on blog post WebPage entities site-wide and
+        // tells structured-data extractors that the FAQ is integral to this page.
+        ...(TOOLS_FAQ[slug] ? { hasPart: { "@id": `${canonical}#faq` } } : {}),
+        // significantLink: complements relatedLink with the WebPage-specific
+        // property for cross-tool navigation — blog pages emit both to maximise
+        // entity graph edge coverage; tools now follow the same pattern.
+        ...(TOOLS_RELATED[slug]
+          ? { significantLink: TOOLS_RELATED[slug]!.map((s) => `${siteUrl}/tools/${s}`) }
+          : {}),
         breadcrumb:    { "@id": `${canonical}#breadcrumb` },
         potentialAction: { "@type": "ReadAction", target: canonical },
       }, null, 2));
@@ -4530,19 +4613,58 @@ async function handleSsrMeta(
         // International SEO coverage from en+x-default to the full
         // en-US/GB/AU/SG/CA set already used on service and glossary pages.
         headLinks: (() => {
-          const toolPub = STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01";
-          const toolMod = TOOL_PAGE_LASTMOD[slug] ?? toolPub;
+          const toolPub  = STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01";
+          const toolMod  = TOOL_PAGE_LASTMOD[slug] ?? toolPub;
+          const subCat   = TOOLS_SUBCATEGORY[slug] ?? "Free Tool";
+          const keywords = TOOLS_KEYWORDS[slug] ?? "";
           return [
-            ...(TOOLS_KEYWORDS[slug] ? [`  <meta name="keywords" content="${TOOLS_KEYWORDS[slug]}" />`] : []),
+            // ── On-Page: keywords + author ──────────────────────────────────
+            ...(keywords ? [`  <meta name="keywords" content="${keywords}" />`] : []),
             `  <meta name="author" content="FintechPressHub" />`,
+            // ── On-Page: article:* OG timestamps + author ───────────────────
             `  <meta property="article:published_time" content="${toolPub}T00:00:00Z" />`,
             `  <meta property="article:modified_time" content="${toolMod}T00:00:00Z" />`,
             `  <meta property="article:author" content="${siteUrl}/authors/marcus-webb" />`,
+            // ── International: 5 region-specific hreflang variants ──────────
+            // Supplement the generic hreflang="en" + x-default injected
+            // unconditionally by patchHtml to reach full en-US/GB/AU/SG/CA
+            // coverage matching the sitemap-tools.xml hreflang matrix.
             `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+            // ── Twitter/X: rich card labels ─────────────────────────────────
+            // twitter:label*/data* surface structured data in the Twitter/X
+            // link preview (same pattern as blog posts which show reading-time
+            // and category). Tools surface their sub-category and free status.
+            `  <meta name="twitter:label1" content="Tool Type" />`,
+            `  <meta name="twitter:data1" content="${esc(subCat)}" />`,
+            `  <meta name="twitter:label2" content="Availability" />`,
+            `  <meta name="twitter:data2" content="Free, no sign-up" />`,
+            // ── Twitter/X: twitter:creator ──────────────────────────────────
+            // Attributes the tool to the FintechPressHub account — matches
+            // the twitter:site already in index.html; adding twitter:creator
+            // triggers X's "by @fintechpresshub" publisher badge on the card.
+            `  <meta name="twitter:creator" content="@fintechpresshub" />`,
+            // ── Off-Page / Academic: Dublin Core 11-field set ───────────────
+            // DC.* tags are indexed by Google Scholar, ResearchGate, Semantic
+            // Scholar, and institutional repository crawlers. Blog posts,
+            // compare pages, and the glossary already emit them; tool pages
+            // now match to close the Off-Page citation coverage gap.
+            `  <meta name="DC.title" content="${esc(leafLabel)}" />`,
+            `  <meta name="DC.creator" content="FintechPressHub" />`,
+            `  <meta name="DC.subject" content="${esc(`${subCat}, fintech SEO, free fintech tool, ${keywords.split(",").slice(0, 3).join(",")}`)}" />`,
+            `  <meta name="DC.description" content="${esc(toolMeta.description)}" />`,
+            `  <meta name="DC.publisher" content="FintechPressHub" />`,
+            `  <meta name="DC.date" scheme="W3CDTF" content="${toolMod}" />`,
+            // DC.type "InteractiveResource" is the correct DCMI vocabulary term
+            // for client-side tools (distinct from "Text" used for articles).
+            `  <meta name="DC.type" scheme="DCMIType" content="InteractiveResource" />`,
+            `  <meta name="DC.format" content="text/html" />`,
+            `  <meta name="DC.language" scheme="RFC5646" content="en" />`,
+            `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
+            `  <meta name="DC.rights" content="Copyright ${new Date().getFullYear()} FintechPressHub. All rights reserved." />`,
           ];
         })(),
         // bodyPatch: BLUF speakable-summary injected before JS executes so
@@ -4556,6 +4678,13 @@ async function handleSsrMeta(
       // caches to serve tool pages without hitting Node.js — reducing server
       // load under crawler pressure and improving TTFB for real users.
       res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+      // Content-Language: declares the language of the served document to
+      // proxy servers, CDNs, and international crawlers (Googlebot, Bingbot)
+      // so they route the page correctly in multi-language cache layers.
+      // Required by the W3C Internationalisation Best Practices and Bing's
+      // International SEO guidelines; currently missing on tool pages while
+      // present on service and compare pages via global middleware.
+      res.setHeader("Content-Language", "en");
     }
 
     // ── Static pages ─────────────────────────────────────────────────────────
