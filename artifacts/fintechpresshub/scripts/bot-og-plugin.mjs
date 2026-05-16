@@ -1321,7 +1321,11 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         } : {}),
       });
 
-      // hreflang + og:locale:alternate — International SEO
+      // hreflang — International SEO (5 region + en + x-default)
+      // Note: og:locale:alternate (en_GB/AU/SG/CA) is already present in
+      // index.html and is NOT injected here to avoid 2× duplicates in the
+      // prerendered HTML. The hreflang links below are the canonical
+      // per-page regional signal; og:locale is provided by index.html.
       toolExtraMeta.push(
         `<link rel="alternate" hreflang="en"        href="${escapeHtml(canonical)}" />`,
         `<link rel="alternate" hreflang="en-US"     href="${escapeHtml(canonical)}" />`,
@@ -1331,10 +1335,17 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         `<link rel="alternate" hreflang="en-CA"     href="${escapeHtml(canonical)}" />`,
         `<link rel="alternate" hreflang="x-default" href="${escapeHtml(canonical)}" />`,
         `<meta http-equiv="content-language" content="en" />`,
-        `<meta property="og:locale:alternate" content="en_GB" />`,
-        `<meta property="og:locale:alternate" content="en_AU" />`,
-        `<meta property="og:locale:alternate" content="en_SG" />`,
-        `<meta property="og:locale:alternate" content="en_CA" />`,
+        // Off-Page: rel="author" — crawlable author attribution link; mirrors
+        // article:author OG and the Person JSON-LD on /authors/marcus-webb.
+        // Provides an explicit machine-readable edge for Google's E-E-A-T graph.
+        `<link rel="author" href="${escapeHtml(canonical.replace(/\/tools\/.*/, "/authors/marcus-webb"))}" />`,
+        // GEO / International: DC.coverage + DC.audience
+        // DC.coverage signals worldwide tool applicability to academic indexers
+        // and AI citation engines — consistent with the 5-region hreflang matrix.
+        `<meta name="DC.coverage" content="Worldwide" />`,
+        // DC.audience signals the professional target audience to academic
+        // indexers and AI rankers — consistent with WebPage educationalLevel.
+        `<meta name="DC.audience" content="Professional" />`,
       );
     }
 

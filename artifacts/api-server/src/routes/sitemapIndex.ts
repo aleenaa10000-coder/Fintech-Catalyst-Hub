@@ -553,6 +553,7 @@ async function buildToolsSitemapXml(): Promise<string> {
         `    <image:image>\n` +
         `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
         `      <image:title>${escapeXml(u.ogTitle)}</image:title>\n` +
+        `      <image:caption>${escapeXml(`${u.ogTitle} — FintechPressHub ${u.category}`)}</image:caption>\n` +
         `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="en-US" href="${escapeXml(u.loc)}"/>\n` +
@@ -609,6 +610,7 @@ async function buildCompareSitemapXml(): Promise<string> {
         `    <image:image>\n` +
         `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
         `      <image:title>${escapeXml(u.ogTitle)}</image:title>\n` +
+        `      <image:caption>${escapeXml(`${u.ogTitle} — FintechPressHub ${u.category}`)}</image:caption>\n` +
         `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="en-US" href="${escapeXml(u.loc)}"/>\n` +

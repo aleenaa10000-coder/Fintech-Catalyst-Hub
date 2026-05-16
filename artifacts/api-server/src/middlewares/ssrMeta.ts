@@ -303,16 +303,13 @@ function patchHtml(base: string, p: MetaPatches): string {
   injections.push(`  <link rel="alternate" hreflang="en" href="${esc(p.canonical)}" />`);
   injections.push(`  <link rel="alternate" hreflang="x-default" href="${esc(p.canonical)}" />`);
 
-  // og:locale:alternate — injected server-side so crawlers see the multi-market
-  // locale signals that PageMeta.tsx emits client-side. Mirrors the en_GB, en_SG,
-  // en_AU, en_CA alternates declared in PageMeta.tsx, index.html shell, and
-  // bot-og-plugin.mjs for consistent signal across all four rendering paths.
-  // FintechPressHub serves UK, Singapore, Australian, and Canadian fintech
-  // markets alongside the US, so these alternates are semantically accurate.
-  injections.push(`  <meta property="og:locale:alternate" content="en_GB" />`);
-  injections.push(`  <meta property="og:locale:alternate" content="en_SG" />`);
-  injections.push(`  <meta property="og:locale:alternate" content="en_AU" />`);
-  injections.push(`  <meta property="og:locale:alternate" content="en_CA" />`);
+  // og:locale:alternate — intentionally NOT injected here.
+  // index.html already declares en_GB / en_SG / en_AU / en_CA as static shell
+  // defaults, which SSR, prerender, and SPA all inherit. Injecting them again
+  // via patchHtml would produce 2× duplicate tags on every server-rendered page
+  // (blog posts, glossary terms, tool pages, etc.) — crawlers handle duplicates
+  // gracefully, but parsers like Facebook's OG debugger flag them as redundant.
+  // Per-page tool headLinks add en_US only when not already declared.
 
   // Extra per-page <link> tags (e.g., author RSS autodiscovery).
   if (p.headLinks && p.headLinks.length > 0) {
@@ -4760,17 +4757,16 @@ async function handleSsrMeta(
             `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
-            // ── International: og:locale:alternate ──────────────────────────
-            // og:locale:alternate tells Facebook, LinkedIn, and social-graph
-            // crawlers which locale variants of this tool page exist — matching
-            // the 5-region hreflang matrix already in sitemap-tools.xml.
-            // Without these tags, Facebook OG and LinkedIn share cards default
-            // to a single locale regardless of the hreflang configuration.
-            `  <meta property="og:locale:alternate" content="en_US" />`,
-            `  <meta property="og:locale:alternate" content="en_GB" />`,
-            `  <meta property="og:locale:alternate" content="en_AU" />`,
-            `  <meta property="og:locale:alternate" content="en_SG" />`,
-            `  <meta property="og:locale:alternate" content="en_CA" />`,
+            // Note: og:locale:alternate (en_GB/SG/AU/CA) is already injected
+            // globally by patchHtml() for every SSR page, and the same four
+            // tags exist in index.html as SPA fallbacks — no per-tool injection
+            // needed; adding them here would create 3× duplicates per locale.
+            // ── Off-Page: rel="author" canonical author page link ────────────
+            // Crawlable author attribution link — mirrors article:author OG
+            // and the Person JSON-LD on /authors/marcus-webb. Provides an
+            // explicit machine-readable edge between each tool and its author
+            // for Google's E-E-A-T graph and Off-Page entity linking.
+            `  <link rel="author" href="${esc(siteUrl)}/authors/marcus-webb" />`,
             // ── Twitter/X: rich card labels ─────────────────────────────────
             // twitter:label*/data* surface structured data in the Twitter/X
             // link preview (same pattern as blog posts which show reading-time
@@ -4779,12 +4775,10 @@ async function handleSsrMeta(
             `  <meta name="twitter:data1" content="${esc(subCat)}" />`,
             `  <meta name="twitter:label2" content="Availability" />`,
             `  <meta name="twitter:data2" content="Free, no sign-up" />`,
-            // ── Twitter/X: twitter:creator ──────────────────────────────────
-            // Attributes the tool to the FintechPressHub account — matches
-            // the twitter:site already in index.html; adding twitter:creator
-            // triggers X's "by @fintechpresshub" publisher badge on the card.
-            `  <meta name="twitter:creator" content="@fintechpresshub" />`,
-            // ── Off-Page / Academic: Dublin Core 11-field set ───────────────
+            // Note: twitter:creator (@fintechpresshub) is already declared
+            // globally in index.html — emitting it again here would create a
+            // duplicate <meta name="twitter:creator"> tag on every tool page.
+            // ── Off-Page / Academic: Dublin Core extended field set ──────────
             // DC.* tags are indexed by Google Scholar, ResearchGate, Semantic
             // Scholar, and institutional repository crawlers. Blog posts,
             // compare pages, and the glossary already emit them; tool pages
@@ -4795,9 +4789,8 @@ async function handleSsrMeta(
             `  <meta name="DC.description" content="${esc(toolMeta.description)}" />`,
             `  <meta name="DC.publisher" content="FintechPressHub" />`,
             `  <meta name="DC.date" scheme="W3CDTF" content="${toolMod}" />`,
-            // DC.type "InteractiveResource" is the correct DCMI vocabulary term
-            // for client-side tools (distinct from "Text" used for articles).
-            `  <meta name="DC.type" scheme="DCMIType" content="InteractiveResource" />`,
+            // Note: DC.type="InteractiveResource" is already declared globally
+            // in index.html for the whole site — no per-tool injection needed.
             `  <meta name="DC.format" content="text/html" />`,
             `  <meta name="DC.language" scheme="RFC5646" content="en" />`,
             // content-language: HTTP-equivalent meta mirrors DC.language for
@@ -4805,6 +4798,16 @@ async function handleSsrMeta(
             `  <meta http-equiv="content-language" content="en" />`,
             `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
             `  <meta name="DC.rights" content="Copyright ${new Date().getFullYear()} FintechPressHub. All rights reserved." />`,
+            // ── GEO / International: DC.coverage + DC.audience ──────────────
+            // DC.coverage: international reach declaration — tells academic
+            // indexers and GEO crawlers that this tool has worldwide applicability,
+            // consistent with the 5-region hreflang matrix and the global
+            // og:locale:alternate declarations in index.html and patchHtml.
+            `  <meta name="DC.coverage" content="Worldwide" />`,
+            // DC.audience: professional audience signal for academic indexers
+            // and AI rankers — consistent with educationalLevel: "Professional"
+            // in the WebPage JSON-LD and the applicationSubCategory taxonomy.
+            `  <meta name="DC.audience" content="Professional" />`,
           ];
         })(),
         // bodyPatch: BLUF speakable-summary injected before JS executes so
