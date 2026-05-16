@@ -533,7 +533,7 @@ async function buildToolsSitemapXml(): Promise<string> {
       loc:        `${siteUrl}/tools/${slug}`,
       lastmod:    TOOL_PAGE_LASTMOD[slug] ?? SERVICE_PAGE_LASTMOD_DATE,
       changefreq: "monthly",
-      priority:   "0.7",
+      priority:   "0.8",
       ogTitle:    humanizeSlug(slug),
       category:   "Free Tool",
     })),

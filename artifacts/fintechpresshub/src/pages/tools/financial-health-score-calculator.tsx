@@ -408,12 +408,20 @@ export default function FinancialHealthScoreCalculator() {
         ogImage={`${SITE_URL}/api/og?title=${encodeURIComponent("Financial Health Score Calculator")}&category=Tools`}
         faq={FAQS}
         webPage={{
-          datePublished:       "2024-01-01",
-          dateModified:        "2026-05-16",
-          conditionsOfAccess:  "https://schema.org/OnlineAccess",
-          usageInfo:           `${SITE_URL}/terms`,
-          isAccessibleForFree: true,
+          datePublished:        "2024-01-01",
+          dateModified:         "2026-05-16",
+          conditionsOfAccess:   "https://schema.org/OnlineAccess",
+          usageInfo:            `${SITE_URL}/terms`,
+          isAccessibleForFree:  true,
           accessibilityFeature: ["alternativeText", "structuredNavigation"],
+          accessibilityHazard:  "none",
+          accessMode:           ["textual", "visual"],
+          publishingPrinciples: `${SITE_URL}/editorial-guidelines`,
+          copyrightNotice:      "© 2026 FintechPressHub. All rights reserved.",
+          license:              `${SITE_URL}/editorial-guidelines#ai-citation-policy`,
+          audience:             "Fintech consumers, personal finance professionals, and financial advisors",
+          keywords:             ["financial health score", "debt-to-income ratio calculator", "savings rate", "emergency fund coverage", "personal finance score"],
+          mentions:             ["Debt-to-Income Ratio", "Personal Finance", "Financial Health", "Emergency Fund", "Savings Rate"],
         }}
         speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{

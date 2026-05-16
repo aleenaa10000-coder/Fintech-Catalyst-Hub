@@ -146,7 +146,24 @@ export default function ToolsIndex() {
           usageInfo:            `${SITE_URL}/terms`,
           isAccessibleForFree:  true,
           accessibilityFeature: ["alternativeText", "structuredNavigation"],
+          accessibilityHazard:  "none",
+          accessMode:           ["textual", "visual"],
+          publishingPrinciples: `${SITE_URL}/editorial-guidelines`,
+          copyrightNotice:      "© 2026 FintechPressHub. All rights reserved.",
+          license:              `${SITE_URL}/editorial-guidelines#ai-citation-policy`,
+          audience:             "Fintech marketing professionals, SEO managers, content strategists, and link-building specialists",
+          keywords:             ["free fintech tools", "fintech SEO tools", "fintech marketing tools", "financial health calculator", "keyword difficulty tool", "backlink estimator", "content brief generator", "headline analyzer", "link prospector"],
+          mentions:             ["Financial Technology", "Search Engine Optimization", "Link Building", "Content Marketing", "Fintech SEO", "Domain Authority"],
         }}
+        hreflang={[
+          { lang: "en",        href: `${SITE_URL}/tools` },
+          { lang: "en-US",     href: `${SITE_URL}/tools` },
+          { lang: "en-GB",     href: `${SITE_URL}/tools` },
+          { lang: "en-AU",     href: `${SITE_URL}/tools` },
+          { lang: "en-SG",     href: `${SITE_URL}/tools` },
+          { lang: "en-CA",     href: `${SITE_URL}/tools` },
+          { lang: "x-default", href: `${SITE_URL}/tools` },
+        ]}
         faq={[
           {
             question: "What free fintech marketing tools does FintechPressHub offer?",

@@ -1397,12 +1397,20 @@ export default function BacklinkValueEstimator() {
           { question: "What score indicates a high-value backlink opportunity?", answer: "A score above 70 indicates a premium backlink target. 50–69 is solid. Below 50 suggests the domain may not move the needle enough to justify outreach effort." },
         ]}
         webPage={{
-          datePublished:       "2024-01-01",
-          dateModified:        "2026-05-16",
-          conditionsOfAccess:  "https://schema.org/OnlineAccess",
-          usageInfo:           "https://www.fintechpresshub.com/terms",
-          isAccessibleForFree: true,
+          datePublished:        "2024-01-01",
+          dateModified:         "2026-05-16",
+          conditionsOfAccess:   "https://schema.org/OnlineAccess",
+          usageInfo:            "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree:  true,
           accessibilityFeature: ["alternativeText", "structuredNavigation"],
+          accessibilityHazard:  "none",
+          accessMode:           ["textual", "visual"],
+          publishingPrinciples: "https://www.fintechpresshub.com/editorial-guidelines",
+          copyrightNotice:      "© 2026 FintechPressHub. All rights reserved.",
+          license:              "https://www.fintechpresshub.com/editorial-guidelines#ai-citation-policy",
+          audience:             "Fintech link-building specialists, SEO managers, and digital PR professionals",
+          keywords:             ["backlink value estimator", "backlink score calculator", "domain authority", "fintech link building", "SEO value calculator"],
+          mentions:             ["Backlinks", "Domain Authority", "PageRank", "Link Building", "Referring Domains"],
         }}
         speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{

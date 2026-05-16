@@ -311,12 +311,20 @@ export default function MetaDescriptionGenerator() {
           { question: "Will the generated meta descriptions include my keyword?", answer: "Yes — the generator weaves your target keyword into all three description variants to strengthen on-page relevance signals for Google." },
         ]}
         webPage={{
-          datePublished:       "2024-01-01",
-          dateModified:        "2026-05-16",
-          conditionsOfAccess:  "https://schema.org/OnlineAccess",
-          usageInfo:           "https://www.fintechpresshub.com/terms",
-          isAccessibleForFree: true,
+          datePublished:        "2024-01-01",
+          dateModified:         "2026-05-16",
+          conditionsOfAccess:   "https://schema.org/OnlineAccess",
+          usageInfo:            "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree:  true,
           accessibilityFeature: ["alternativeText", "structuredNavigation"],
+          accessibilityHazard:  "none",
+          accessMode:           ["textual", "visual"],
+          publishingPrinciples: "https://www.fintechpresshub.com/editorial-guidelines",
+          copyrightNotice:      "© 2026 FintechPressHub. All rights reserved.",
+          license:              "https://www.fintechpresshub.com/editorial-guidelines#ai-citation-policy",
+          audience:             "Fintech SEO professionals, content marketers, and digital marketing managers",
+          keywords:             ["meta description generator", "SEO meta description", "fintech SEO tool", "meta tag generator", "page description writer"],
+          mentions:             ["Meta Description", "Search Engine Optimization", "Click-Through Rate", "SERP", "Google Search"],
         }}
         speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{

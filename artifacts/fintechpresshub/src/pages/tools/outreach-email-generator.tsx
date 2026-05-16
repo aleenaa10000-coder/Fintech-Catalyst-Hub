@@ -1497,12 +1497,20 @@ export default function OutreachEmailGenerator() {
           { question: "Can I use the generated emails for guest-post pitches too?", answer: "The generator is optimised for link-building outreach, but the template structure works well for guest-post pitches too. Use the Guest Post Pitch Generator for a more targeted pitch format." },
         ]}
         webPage={{
-          datePublished:       "2024-01-01",
-          dateModified:        "2026-05-16",
-          conditionsOfAccess:  "https://schema.org/OnlineAccess",
-          usageInfo:           "https://www.fintechpresshub.com/terms",
-          isAccessibleForFree: true,
+          datePublished:        "2024-01-01",
+          dateModified:         "2026-05-16",
+          conditionsOfAccess:   "https://schema.org/OnlineAccess",
+          usageInfo:            "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree:  true,
           accessibilityFeature: ["alternativeText", "structuredNavigation"],
+          accessibilityHazard:  "none",
+          accessMode:           ["textual", "visual"],
+          publishingPrinciples: "https://www.fintechpresshub.com/editorial-guidelines",
+          copyrightNotice:      "© 2026 FintechPressHub. All rights reserved.",
+          license:              "https://www.fintechpresshub.com/editorial-guidelines#ai-citation-policy",
+          audience:             "Fintech link-building specialists, SEO managers, and outreach professionals",
+          keywords:             ["outreach email generator", "link building email template", "fintech outreach tool", "cold outreach email", "link request email"],
+          mentions:             ["Link Building", "Email Marketing", "Fintech SEO", "Outreach", "Cold Outreach"],
         }}
         speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{

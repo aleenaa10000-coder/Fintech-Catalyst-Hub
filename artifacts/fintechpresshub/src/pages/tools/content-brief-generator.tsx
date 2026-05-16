@@ -2501,12 +2501,20 @@ export default function ContentBriefGenerator() {
           { question: "Who should use the Content Brief Generator?", answer: "Content strategists, fintech marketing managers, and freelance writers who want a consistent, SEO-optimised brief framework for each article assignment." },
         ]}
         webPage={{
-          datePublished:       "2024-01-01",
-          dateModified:        "2026-05-16",
-          conditionsOfAccess:  "https://schema.org/OnlineAccess",
-          usageInfo:           "https://www.fintechpresshub.com/terms",
-          isAccessibleForFree: true,
+          datePublished:        "2024-01-01",
+          dateModified:         "2026-05-16",
+          conditionsOfAccess:   "https://schema.org/OnlineAccess",
+          usageInfo:            "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree:  true,
           accessibilityFeature: ["alternativeText", "structuredNavigation"],
+          accessibilityHazard:  "none",
+          accessMode:           ["textual", "visual"],
+          publishingPrinciples: "https://www.fintechpresshub.com/editorial-guidelines",
+          copyrightNotice:      "© 2026 FintechPressHub. All rights reserved.",
+          license:              "https://www.fintechpresshub.com/editorial-guidelines#ai-citation-policy",
+          audience:             "Fintech content strategists, marketing managers, and SEO professionals",
+          keywords:             ["content brief generator", "fintech content brief", "article brief template", "content strategy tool", "SEO content brief"],
+          mentions:             ["Content Strategy", "Search Engine Optimization", "Content Marketing", "SEO Brief", "Keyword Research"],
         }}
         speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{

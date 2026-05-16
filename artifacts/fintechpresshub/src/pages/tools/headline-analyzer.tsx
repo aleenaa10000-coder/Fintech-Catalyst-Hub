@@ -1379,12 +1379,20 @@ export default function HeadlineAnalyzer() {
           { question: "What makes a high-scoring fintech headline?", answer: "High-scoring headlines include a power word, the primary keyword, a specific number or data point, and are 6–12 words long. Avoid jargon that only insiders understand." },
         ]}
         webPage={{
-          datePublished:       "2024-01-01",
-          dateModified:        "2026-05-16",
-          conditionsOfAccess:  "https://schema.org/OnlineAccess",
-          usageInfo:           "https://www.fintechpresshub.com/terms",
-          isAccessibleForFree: true,
+          datePublished:        "2024-01-01",
+          dateModified:         "2026-05-16",
+          conditionsOfAccess:   "https://schema.org/OnlineAccess",
+          usageInfo:            "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree:  true,
           accessibilityFeature: ["alternativeText", "structuredNavigation"],
+          accessibilityHazard:  "none",
+          accessMode:           ["textual", "visual"],
+          publishingPrinciples: "https://www.fintechpresshub.com/editorial-guidelines",
+          copyrightNotice:      "© 2026 FintechPressHub. All rights reserved.",
+          license:              "https://www.fintechpresshub.com/editorial-guidelines#ai-citation-policy",
+          audience:             "Fintech content writers, editors, and SEO managers",
+          keywords:             ["headline analyzer", "article headline score", "fintech headline optimizer", "SEO headline tool", "headline scorer"],
+          mentions:             ["Headline Analysis", "Search Engine Optimization", "Click-Through Rate", "Content Marketing", "SEO Copywriting"],
         }}
         speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{

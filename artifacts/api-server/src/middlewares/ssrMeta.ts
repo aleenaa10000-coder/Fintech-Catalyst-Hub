@@ -6106,6 +6106,33 @@ async function handleSsrMeta(
             isAccessibleForFree:  true,
             accessMode:           ["textual", "visual"],
             accessibilityFeature: ["readingOrder", "structuralNavigation"],
+            // White Hat: explicit "none" hazard declaration completes the WCAG
+            // machine-readable accessibility metadata set (feature + hazard +
+            // conditions) required for a full White Hat structured-data score.
+            accessibilityHazard:  "none",
+            // White Hat: usageInfo points to canonical terms page — mirrors the
+            // identical property on every tool WebPage entity and the /compare hub.
+            usageInfo:            `${siteUrl}/terms`,
+            // White Hat / E-E-A-T: educationalLevel signals the professional audience
+            // tier — consistent with SoftwareApplication.educationalLevel on tool
+            // detail pages and ensures hub + detail entities form a coherent graph.
+            educationalLevel:     "Professional",
+            // White Hat / E-E-A-T: publishingPrinciples surfaces the editorial
+            // standards page for AI citation engines and YMYL quality raters —
+            // mirrors the identical property on blog post and service page WebPages.
+            publishingPrinciples: `${siteUrl}/editorial-guidelines`,
+            // GEO / Off-Page: mentions links the hub to the primary topical entities
+            // it covers — AI citation engines (Perplexity, Google AIO) use mentions
+            // to classify the hub's subject cluster and surface it for broad
+            // "fintech SEO tools" and "fintech marketing tools" answer queries.
+            mentions: [
+              { "@type": "Thing", name: "Search Engine Optimization" },
+              { "@type": "Thing", name: "Financial Technology" },
+              { "@type": "Thing", name: "Content Marketing" },
+              { "@type": "Thing", name: "Link Building" },
+              { "@type": "Thing", name: "Domain Authority" },
+              { "@type": "Thing", name: "Keyword Research" },
+            ],
             // On-Page / GEO: audience signals professional readership to AI rankers.
             audience: {
               "@type":      "Audience",
@@ -6235,6 +6262,40 @@ async function handleSsrMeta(
                 acceptedAnswer: {
                   "@type":     "Answer",
                   text:        "Yes. All tools require JavaScript and a modern browser (Chrome, Firefox, Safari, Edge). No installation or plugin is required — the tools run entirely in the browser with no server-side data processing.",
+                  dateCreated: pageLastmod ?? "2026-05-16",
+                  inLanguage:  "en",
+                  author:      { "@id": `${siteUrl}#organization` },
+                },
+              },
+              // AEO Q6: how-do-tools-help-fintech-SEO — covers a top informational
+              // intent query surfaced in "People Also Ask" for fintech tool pages.
+              {
+                "@type":      "Question",
+                name:         "How do the FintechPressHub free tools improve fintech SEO?",
+                answerCount:  1,
+                dateCreated:  pageLastmod ?? "2026-05-16",
+                inLanguage:   "en",
+                author:       { "@id": `${siteUrl}#organization` },
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  text:        "The tools help fintech companies improve SEO across five disciplines: the Keyword Difficulty Estimator and Content Brief Generator accelerate on-page optimisation; the Readability Checker and Headline Analyzer improve content quality signals; the Backlink Value Estimator and Link Prospector prioritise off-page link-building; the Guest Post Pitch Generator and Outreach Email Generator systematise link acquisition; and the Meta Description Generator lifts organic click-through rates. Used together, they provide a full-cycle fintech content and link-building workflow at zero cost.",
+                  dateCreated: pageLastmod ?? "2026-05-16",
+                  inLanguage:  "en",
+                  author:      { "@id": `${siteUrl}#organization` },
+                },
+              },
+              // AEO Q7: professional-accuracy — addresses the highest-volume
+              // commercial hesitation query for free-tool adoption in fintech.
+              {
+                "@type":      "Question",
+                name:         "Are the FintechPressHub tools accurate enough for professional fintech marketing?",
+                answerCount:  1,
+                dateCreated:  pageLastmod ?? "2026-05-16",
+                inLanguage:   "en",
+                author:       { "@id": `${siteUrl}#organization` },
+                acceptedAnswer: {
+                  "@type":     "Answer",
+                  text:        "Yes. Each tool is built on industry-standard methodologies: the Readability Checker uses the established Flesch-Kincaid formula; the Financial Health Score Calculator applies standard DTI and savings-rate benchmarks from the CFPB; the Keyword Difficulty Estimator is calibrated against fintech YMYL vertical signals. All tools are designed as directional prioritisation aids, not replacements for Ahrefs or Semrush — but they provide sufficient precision for planning, triage, and first-draft briefing in a professional fintech marketing workflow.",
                   dateCreated: pageLastmod ?? "2026-05-16",
                   inLanguage:  "en",
                   author:      { "@id": `${siteUrl}#organization` },
@@ -7795,6 +7856,13 @@ async function handleSsrMeta(
             `  <meta name="DC.rights" content="Copyright ${new Date().getFullYear()} FintechPressHub. All rights reserved." />`,
             `  <meta name="DC.coverage" content="Worldwide" />`,
             `  <meta name="DC.audience" content="Professional" />`,
+            // DC.format + DC.language + DC.type — close the Dublin Core gap between
+            // the /tools hub and all tool detail pages which already emit these three
+            // fields. Indexed by Google Scholar, Semantic Scholar, and institutional
+            // repository crawlers as part of the full DC provenance set.
+            `  <meta name="DC.format" content="text/html" />`,
+            `  <meta name="DC.language" scheme="RFC5646" content="en" />`,
+            `  <meta name="DC.type" content="InteractiveResource" />`,
           ];
         }
 

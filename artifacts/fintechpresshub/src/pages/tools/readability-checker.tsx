@@ -1435,12 +1435,20 @@ export default function ReadabilityChecker() {
           { question: "What readability score should fintech content target?", answer: "Aim for a Flesch score of 50–70 (plain English). Complex B2B fintech content often scores 40–55; below 40 risks high bounce rates from non-specialist readers." },
         ]}
         webPage={{
-          datePublished:       "2024-01-01",
-          dateModified:        "2026-05-16",
-          conditionsOfAccess:  "https://schema.org/OnlineAccess",
-          usageInfo:           "https://www.fintechpresshub.com/terms",
-          isAccessibleForFree: true,
+          datePublished:        "2024-01-01",
+          dateModified:         "2026-05-16",
+          conditionsOfAccess:   "https://schema.org/OnlineAccess",
+          usageInfo:            "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree:  true,
           accessibilityFeature: ["alternativeText", "structuredNavigation"],
+          accessibilityHazard:  "none",
+          accessMode:           ["textual", "visual"],
+          publishingPrinciples: "https://www.fintechpresshub.com/editorial-guidelines",
+          copyrightNotice:      "© 2026 FintechPressHub. All rights reserved.",
+          license:              "https://www.fintechpresshub.com/editorial-guidelines#ai-citation-policy",
+          audience:             "Fintech marketing professionals, content strategists, and SEO managers",
+          keywords:             ["readability checker", "Flesch score calculator", "fintech content readability", "reading grade level", "content clarity tool"],
+          mentions:             ["Flesch Reading Ease", "Flesch-Kincaid Grade Level", "Content Marketing", "Search Engine Optimization"],
         }}
         speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{

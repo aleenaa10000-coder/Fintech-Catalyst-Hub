@@ -3784,12 +3784,20 @@ export default function KeywordDifficultyEstimator() {
           { question: "Does the estimator suggest alternative keywords?", answer: "Yes — it generates six long-tail keyword variations with lower difficulty scores so you can identify more targeted, quicker-win opportunities within the same topic cluster." },
         ]}
         webPage={{
-          datePublished:       "2024-01-01",
-          dateModified:        "2026-05-16",
-          conditionsOfAccess:  "https://schema.org/OnlineAccess",
-          usageInfo:           "https://www.fintechpresshub.com/terms",
-          isAccessibleForFree: true,
+          datePublished:        "2024-01-01",
+          dateModified:         "2026-05-16",
+          conditionsOfAccess:   "https://schema.org/OnlineAccess",
+          usageInfo:            "https://www.fintechpresshub.com/terms",
+          isAccessibleForFree:  true,
           accessibilityFeature: ["alternativeText", "structuredNavigation"],
+          accessibilityHazard:  "none",
+          accessMode:           ["textual", "visual"],
+          publishingPrinciples: "https://www.fintechpresshub.com/editorial-guidelines",
+          copyrightNotice:      "© 2026 FintechPressHub. All rights reserved.",
+          license:              "https://www.fintechpresshub.com/editorial-guidelines#ai-citation-policy",
+          audience:             "Fintech SEO managers, content strategists, and digital marketing professionals",
+          keywords:             ["keyword difficulty estimator", "fintech keyword research", "SEO keyword score", "long-tail keyword suggestions", "keyword competition tool"],
+          mentions:             ["Keyword Research", "Search Engine Optimization", "Domain Authority", "Long-Tail Keywords", "YMYL"],
         }}
         speakableSelectors={["h1", ".speakable-summary"]}
         softwareApp={{
