@@ -148,4 +148,17 @@ router.get("/rss.xml", async (_req, res) => {
   res.send(xml);
 });
 
+router.get("/blog/rss.xml", async (_req, res) => {
+  const siteUrl = getSiteUrl();
+  const items = await collectAllPosts();
+  const xml = buildRss({ siteUrl, items });
+
+  res.setHeader("Content-Type", "application/rss+xml; charset=utf-8");
+  res.setHeader(
+    "Cache-Control",
+    "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+  );
+  res.send(xml);
+});
+
 export default router;

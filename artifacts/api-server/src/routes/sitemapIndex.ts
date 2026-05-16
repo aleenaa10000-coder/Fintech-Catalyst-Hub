@@ -213,6 +213,11 @@ async function buildPagesSitemapXml(): Promise<string> {
             `    </image:image>\n`
           : "") +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-US" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-GB" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-AU" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-SG" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-CA" href="${escapeXml(u.loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n` +
         `  </url>`,
     )
@@ -339,6 +344,11 @@ async function buildAuthorsSitemapXml(): Promise<string> {
             `    </image:image>\n`
           : "") +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-US" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-GB" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-AU" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-SG" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-CA" href="${escapeXml(loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(loc)}"/>\n` +
         `  </url>`
       );
@@ -674,6 +684,11 @@ async function buildServicesSitemapXml(): Promise<string> {
         `      <image:title>${escapeXml(u.name)}</image:title>\n` +
         `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-US" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-GB" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-AU" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-SG" href="${escapeXml(u.loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-CA" href="${escapeXml(u.loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(u.loc)}"/>\n` +
         `  </url>`
       );
@@ -772,6 +787,11 @@ async function buildTagsSitemapXml(): Promise<string> {
         `      <image:title>${escapeXml(label)}</image:title>\n` +
         `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-US" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-GB" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-AU" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-SG" href="${escapeXml(loc)}"/>\n` +
+        `    <xhtml:link rel="alternate" hreflang="en-CA" href="${escapeXml(loc)}"/>\n` +
         `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(loc)}"/>\n` +
         `    <xhtml:link rel="alternate" type="application/rss+xml" title="${escapeXml(label)} — FintechPressHub" href="${escapeXml(rssUrl)}"/>\n` +
         `  </url>`
