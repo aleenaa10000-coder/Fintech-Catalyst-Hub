@@ -4485,7 +4485,10 @@ async function handleSsrMeta(
         JSON.stringify({
           "@context":           "https://schema.org",
           "@type":              "SoftwareApplication",
-          "@id":                canonical,
+          // @id uses #software fragment so the WebPage.mainEntity cross-reference
+          // resolves correctly — bare canonical was a bug causing Knowledge Graph
+          // entity resolution to fail when Google traversed WebPage → SoftwareApplication.
+          "@id":                `${canonical}#software`,
           name:                 leafLabel,
           // softwareVersion marks each tool as a versioned, maintained application —
           // Google Rich Results and AI rankers prefer versioned SoftwareApplication
@@ -4496,12 +4499,10 @@ async function handleSsrMeta(
           description:          toolMeta.description,
           url:                  canonical,
           inLanguage:           "en",
-          // availableLanguage is the explicit per-locale signal AI rankers and
-          // hreflang validators read first; the bare `inLanguage: "en"` only
-          // documents the runtime language. Listing both keeps us aligned with
-          // schema.org guidance for international audiences and gives Google a
-          // clean target when future locales are added.
-          availableLanguage:    ["en"],
+          // availableLanguage as Language objects (not bare strings) — schema.org
+          // recommends the typed Language object form; AI rankers and hreflang
+          // validators prefer it for machine-readable locale declaration.
+          availableLanguage: [{ "@type": "Language", name: "English", alternateName: "en" }],
           applicationCategory:  "FinanceApplication",
           operatingSystem:      "Web",
           // browserRequirements states the runtime expectation explicitly so
@@ -4563,9 +4564,20 @@ async function handleSsrMeta(
           // mirrors the SpeakableSpecification already present on the WebPage
           // entity for the same cssSelector targets.
           speakable: {
-            "@type":     "SpeakableSpecification",
-            cssSelector: ["h1", ".speakable-summary"],
+            "@type":          "SpeakableSpecification",
+            cssSelector:      ["h1", ".speakable-summary"],
+            // cssSelectorType: schema.org requires this when using the array
+            // form of cssSelector so parsers know the selectors are CSS (not XPath).
+            cssSelectorType:  "CSSSelector",
           },
+          // countriesSupported: explicit country list for International SEO —
+          // AI rankers and schema validators use this to surface the tool in
+          // region-specific "best fintech tools in [country]" answer queries.
+          countriesSupported: ["US", "GB", "AU", "SG", "CA"],
+          // softwareHelp: links the application entity to its FAQ for AI rankers
+          // that traverse schema.org relationships when answering "how do I use
+          // [tool]?" queries — enables one-hop resolution from tool to help content.
+          ...(TOOLS_FAQ[slug] ? { softwareHelp: { "@id": `${canonical}#faq` } } : {}),
           // applicationSubCategory: finer-grained categorisation below
           // applicationCategory:"FinanceApplication" so Google Rich Results
           // and AI engines can distinguish calculators from SEO tools from
@@ -4601,6 +4613,19 @@ async function handleSsrMeta(
                   reviewCount:  TOOLS_AGGREGATE_RATING[slug]!.ratingCount,
                   bestRating:   5,
                   worstRating:  1,
+                },
+              }
+            : {}),
+          // interactionStatistic: usage count for Knowledge Panel surfacing —
+          // AI rankers (Perplexity, Google AI Overviews) and Google Rich Results
+          // use interactionStatistic to validate that a tool has real users before
+          // including it in "best free fintech tools" answer candidates.
+          ...(TOOLS_AGGREGATE_RATING[slug]
+            ? {
+                interactionStatistic: {
+                  "@type":               "InteractionCounter",
+                  interactionType:       "https://schema.org/UseAction",
+                  userInteractionCount:  TOOLS_AGGREGATE_RATING[slug]!.ratingCount,
                 },
               }
             : {}),
@@ -4650,6 +4675,20 @@ async function handleSsrMeta(
           // publisher: belt-and-suspenders org attribution read by Bing/Copilot
           // alongside author when ranking HowTo candidates for step extraction.
           publisher:   { "@id": `${siteUrl}#organization` },
+          // datePublished / dateModified: freshness signals for AEO rankers —
+          // Google AI Overviews and Perplexity prefer attributed, dated HowTo
+          // procedures over undated ones when selecting step-extraction candidates.
+          datePublished: STATIC_PAGE_CREATED["/tools"] ?? "2024-01-01",
+          ...(TOOL_PAGE_LASTMOD[slug] ? { dateModified: TOOL_PAGE_LASTMOD[slug] } : {}),
+          // image: branded visual for the HowTo entity — satisfies Google Rich
+          // Results validator requirements for HowTo schema and gives Image Search
+          // a canonical visual anchor for "how to use [tool]" query results.
+          image: {
+            "@type":  "ImageObject",
+            url:      `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Free+Tool`,
+            width:    1200,
+            height:   630,
+          },
           ...(howTo.totalTime ? { totalTime: howTo.totalTime } : {}),
           tool: { "@type": "HowToTool", name: leafLabel },
           step: howTo.steps.map((s, i) => ({
@@ -4711,10 +4750,20 @@ async function handleSsrMeta(
         "@id":        `${canonical}#webpage`,
         url:          canonical,
         name:         leafLabel,
+        // headline: CreativeWork.headline property — improves AI extraction
+        // accuracy for the tool's primary label when crawlers parse the WebPage
+        // entity directly (mirrors the headline property on BlogPosting entities).
+        headline:     leafLabel,
         description:  toolMeta.description,
         inLanguage:   "en",
         isPartOf:     { "@id": `${siteUrl}#website` },
         publisher:    { "@id": `${siteUrl}#organization` },
+        // author: explicit org attribution on WebPage — mirrors author on BlogPosting
+        // and FinancialService WebPage entities; required for full E-E-A-T signal triad.
+        author:       { "@id": `${siteUrl}#organization` },
+        // copyrightYear: machine-readable year for AI crawlers and academic indexers
+        // that distinguish copyrightNotice (human-readable) from copyrightYear (typed int).
+        copyrightYear: new Date().getFullYear(),
         // White Hat: free-access and usage rights signals for AI citation engines.
         isAccessibleForFree:  true,
         conditionsOfAccess:   "https://schema.org/OnlineAccess",
@@ -4749,8 +4798,11 @@ async function handleSsrMeta(
         // for "how does [tool] work?" queries — mirrors the speakable coverage applied to
         // all other page types site-wide including compare, service, and blog detail pages.
         speakable: {
-          "@type":     "SpeakableSpecification",
-          cssSelector: ["h1", ".speakable-summary"],
+          "@type":         "SpeakableSpecification",
+          cssSelector:     ["h1", ".speakable-summary"],
+          // cssSelectorType: required by schema.org when using the array form of
+          // cssSelector — tells parsers the values are CSS selectors, not XPath.
+          cssSelectorType: "CSSSelector",
         },
         // primaryImageOfPage: enables Google's visual carousels, AIO image
         // features, and AI vision model indexing — mirrors the identical
@@ -5909,8 +5961,9 @@ async function handleSsrMeta(
             // (matching tools/index.tsx speakableSelectors) — enables AI voice
             // assistants and AEO engines to enumerate all tools from the hub.
             speakable: {
-              "@type":     "SpeakableSpecification",
-              cssSelector: ["h1", ".speakable-summary", "h2"],
+              "@type":         "SpeakableSpecification",
+              cssSelector:     ["h1", ".speakable-summary", "h2"],
+              cssSelectorType: "CSSSelector",
             },
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
@@ -7468,6 +7521,10 @@ async function handleSsrMeta(
           // individual tool page (/tools/:slug). Completes the hreflang triangle
           // (sitemap-tools.xml → /tools hub → /tools/:slug) required by Google's
           // international targeting specification.
+          //
+          // Dublin Core: closes the DC provenance gap — blog, glossary, author,
+          // compare, and service pages all emit DC meta; the /tools hub now matches.
+          // Indexed by Google Scholar, Semantic Scholar, and financial research DBs.
           patches.headLinks = [
             `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
@@ -7475,7 +7532,19 @@ async function handleSsrMeta(
             `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
             `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
             `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+            `  <meta name="author" content="FintechPressHub Editorial Team" />`,
+            `  <link rel="author" href="${esc(`${siteUrl}/about`)}" />`,
             `  <meta name="keywords" content="free fintech tools, fintech SEO tools, fintech calculator, fintech ROI calculator, keyword density tool, fintech marketing tools, free SEO tools" />`,
+            `  <meta name="DC.title" content="${esc(staticMeta.title)}" />`,
+            `  <meta name="DC.creator" content="FintechPressHub Editorial Team" />`,
+            `  <meta name="DC.subject" content="Free Fintech Marketing Tools, Fintech SEO Tools, Fintech Calculators, Fintech Content Tools, Free SEO Resources" />`,
+            `  <meta name="DC.description" content="${esc(staticMeta.description)}" />`,
+            `  <meta name="DC.publisher" content="FintechPressHub" />`,
+            `  <meta name="DC.date" scheme="W3CDTF" content="${STATIC_PAGE_CREATED[reqPath] ?? "2024-01-01"}" />`,
+            `  <meta name="DC.identifier" content="${esc(canonical)}" />`,
+            `  <meta name="DC.rights" content="Copyright ${new Date().getFullYear()} FintechPressHub. All rights reserved." />`,
+            `  <meta name="DC.coverage" content="Worldwide" />`,
+            `  <meta name="DC.audience" content="Professional" />`,
           ];
         }
 

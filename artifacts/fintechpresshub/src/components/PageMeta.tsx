@@ -972,6 +972,7 @@ export function PageMeta(props: PageMetaProps) {
               speakable: {
                 "@type": "SpeakableSpecification",
                 cssSelector: ["h1"],
+                cssSelectorType: "CSSSelector",
               },
             }
           : {}),
@@ -1171,6 +1172,7 @@ export function PageMeta(props: PageMetaProps) {
           speakable: {
             "@type": "SpeakableSpecification",
             cssSelector: speakableSelectors,
+            cssSelectorType: "CSSSelector",
           },
         }
       : null;
@@ -1449,6 +1451,7 @@ export function PageMeta(props: PageMetaProps) {
             props.speakableSelectors && props.speakableSelectors.length > 0
               ? props.speakableSelectors
               : ["h1", ".geo-answer-block"],
+          cssSelectorType: "CSSSelector",
         },
         breadcrumb: { "@id": `${canonical}#breadcrumb` },
         // potentialAction as array: ReadAction (crawl/index signal) + EmailAction
@@ -1653,6 +1656,7 @@ export function PageMeta(props: PageMetaProps) {
             props.article.speakableSelectors.length > 0
               ? props.article.speakableSelectors
               : ["h1", "h2"],
+          cssSelectorType: "CSSSelector",
         },
         // conditionsOfAccess: machine-readable access model for AI extractors.
         // Google AIO and Perplexity prefer freely accessible articles when ranking
