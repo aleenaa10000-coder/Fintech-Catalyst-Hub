@@ -768,62 +768,211 @@ const SERVICES_HUB_FAQS: ReadonlyArray<{ question: string; answer: string }> = [
   },
 ];
 
-const COMPARISON_META: Record<string, { title: string; description: string }> = {
+const COMPARISON_META: Record<string, {
+  title: string;
+  description: string;
+  bluf: string;
+  heroDescription: string;
+  colA: string;
+  colB: string;
+  colC: string;
+  bottomLineSummaries: [string, string, string];
+}> = {
   "agency-vs-in-house": {
     title: "Fintech SEO Agency vs Generic Agency vs In-House | FintechPressHub",
     description: "Compare a fintech SEO specialist, a generic digital agency, and an in-house team across 10 criteria that matter most for regulated financial companies.",
+    bluf: "FintechPressHub scores 10/10 vs a 5/10 generic agency and 6/10 in-house team across 10 decision criteria. The specialist advantage is clearest in regulatory content accuracy, fintech-niche link building, and AEO optimisation — all areas where generalists and in-house teams consistently score lower.",
+    heroDescription: "See exactly how a fintech-specialist SEO agency stacks up against a generic agency and an in-house team across the criteria that matter most for regulated financial companies.",
+    colA: "FintechPressHub",
+    colB: "Generic agency",
+    colC: "In-house team",
+    bottomLineSummaries: [
+      "The only option that combines fintech domain expertise, full-service SEO execution, and transparent results from day one.",
+      "Covers technical SEO and basic content but lacks fintech regulatory knowledge and the niche link-building relationships that move the needle.",
+      "Best long-term option for scale, but expensive to build and slow to ramp. Lacks fintech-specific link-building and AEO expertise in early stages.",
+    ],
   },
   "vs-freelancers": {
     title: "Fintech SEO Agency vs Freelance Writers vs Consultants | FintechPressHub",
     description: "Compare FintechPressHub with freelance fintech writers and independent SEO consultants. See which model delivers better ROI, consistency, and compliance coverage.",
+    bluf: "FintechPressHub scores 10/10 vs 5/10 for freelance writers and 7/10 for independent consultants across 9 integrated SEO criteria. The critical gap is integrated delivery: freelancers handle content but not links or schema; consultants advise but don't execute.",
+    heroDescription: "Freelancers offer flexibility; consultants offer senior expertise. But neither delivers the integrated content, link building, and technical SEO that compounds organic growth.",
+    colA: "FintechPressHub",
+    colB: "Freelance writers",
+    colC: "Independent consultants",
+    bottomLineSummaries: [
+      "Integrated delivery at a predictable monthly cost — no coordination overhead, no coverage gaps, no rehiring when a freelancer churns.",
+      "Cost-effective for individual articles but require active management, provide no link building, and create delivery risk when they take on other clients.",
+      "High strategic value but limited bandwidth for execution. Best paired with an agency that can implement their recommendations at scale.",
+    ],
   },
   "vs-seo-tools": {
     title: "Managed Fintech SEO vs DIY SEO Tools vs Self-Managed | FintechPressHub",
     description: "Compare a managed fintech SEO retainer with a DIY approach using Ahrefs, Semrush, or Moz, plus an internal team to execute. See what each model actually delivers.",
+    bluf: "FintechPressHub scores 10/10 vs 4/10 for DIY tools and 6/10 for self-managed teams across 9 criteria. SEO tools provide data without execution; a managed retainer converts that data into published content, earned links, and technical fixes — the three things that actually move rankings.",
+    heroDescription: "SEO tools give you data. A managed retainer turns that data into rankings, links, and revenue — without pulling your engineering or marketing team away from product.",
+    colA: "FintechPressHub",
+    colB: "DIY tools (Ahrefs/Semrush)",
+    colC: "Self-managed in-house",
+    bottomLineSummaries: [
+      "Data plus execution plus fintech expertise — the complete package that converts keyword opportunity into organic revenue without internal headcount.",
+      "Excellent for research and auditing. Useless for publishing content, building links, or implementing schema changes — the things that actually move rankings.",
+      "Viable if you have the headcount and fintech content expertise. Most growth-stage fintechs don't — and the ramp-up time costs months of compounding ranking opportunity.",
+    ],
   },
   "vs-pr-agencies": {
     title: "Fintech SEO vs Traditional PR vs Digital Communications | FintechPressHub",
     description: "Compare fintech SEO with traditional PR and digital comms agencies. Understand which channel drives sustainable organic traffic versus short-term brand mentions.",
+    bluf: "FintechPressHub scores 9/10 vs 7/10 for traditional PR and 6/10 for digital comms agencies across 9 criteria. PR excels at brand awareness; SEO builds a compounding organic traffic engine with measurable keyword-level ROI. The best fintech growth strategies combine both channels.",
+    heroDescription: "PR earns brand awareness. SEO earns compounding organic traffic. The best fintech growth strategies combine both — but the mechanics and measurement are very different.",
+    colA: "FintechPressHub",
+    colB: "Traditional PR agency",
+    colC: "Digital comms agency",
+    bottomLineSummaries: [
+      "Best choice for building a compounding organic traffic engine with measurable keyword-level ROI. Pairs well with a PR agency for full-funnel coverage.",
+      "Excellent for brand credibility, investor narrative, and mainstream press. Weak on search attribution and evergreen content that ranks.",
+      "Covers brand content and social distribution but rarely invests in the technical SEO and publisher relationships needed for ranking and link authority.",
+    ],
   },
   "content-led-vs-paid": {
     title: "Content-Led SEO vs Google Ads vs Hybrid for Fintech | FintechPressHub",
     description: "Compare organic content SEO, paid search (Google Ads), and a hybrid approach for fintech companies. Understand cost per lead, time to value, and long-term ROI.",
+    bluf: "Content SEO scores 9/10 for long-term ROI; Google Ads scores 7/10 for speed to pipeline; a hybrid approach scores 10/10 for most growth-stage fintechs. The optimal channel mix depends on growth stage — pre-Series A favours paid, post-Series A content SEO's compounding advantage begins to dominate.",
+    heroDescription: "Paid search delivers leads today. Content-led SEO builds an asset that compounds for years. The right mix depends on your growth stage — here is how to think about it.",
+    colA: "Content SEO (us)",
+    colB: "Google Ads (paid search)",
+    colC: "Hybrid approach",
+    bottomLineSummaries: [
+      "Best long-term ROI in fintech. Takes 3–6 months to gain traction but delivers compounding traffic and leads with no per-click cost at scale.",
+      "Fastest path to leads from a standing start. High CPCs in fintech make scaling expensive, and all traffic stops the moment budget is paused.",
+      "Optimal strategy for most growth-stage fintechs: paid search captures demand while content SEO builds a durable organic asset in parallel.",
+    ],
   },
   "specialist-vs-generalist": {
     title: "Fintech Specialist SEO vs B2B Generalist vs Consumer Marketing Agency | FintechPressHub",
     description: "Compare a fintech-specialist SEO agency against a B2B generalist and a consumer marketing agency. Understand which agency type fits a regulated financial services company.",
+    bluf: "FintechPressHub scores 10/10 vs 6/10 for B2B generalists and 4/10 for consumer agencies across 9 fintech-specific criteria. Regulatory content accuracy, fintech publisher relationships, and AEO strategy are the three dimensions where the specialist advantage is most pronounced.",
+    heroDescription: "Not all marketing agencies understand regulated financial products. Here is how specialist, generalist B2B, and consumer agencies stack up when the client is a fintech.",
+    colA: "FintechPressHub",
+    colB: "B2B generalist agency",
+    colC: "Consumer marketing agency",
+    bottomLineSummaries: [
+      "Purpose-built for fintech. Domain expertise, regulatory awareness, and fintech publisher relationships that no generalist agency can replicate without years of investment.",
+      "Solid for non-regulated B2B SaaS. Falls short on fintech regulatory content, niche link building, and the credibility that fintech enterprise buyers expect.",
+      "Strong on brand creativity and social. Fundamentally unsuited for compliance-sensitive financial content or B2B enterprise fintech marketing.",
+    ],
   },
   "off-page-seo-vs-on-page-seo": {
     title: "Off-Page, On-Page & Technical SEO for Fintech | FintechPressHub",
     description: "Discover which fintech SEO pillar — off-page, on-page, or technical — drives the fastest organic growth. FintechPressHub explains the trade-offs with data.",
+    bluf: "Off-page SEO (editorial backlinks from DR 50+ fintech publishers) is the primary driver of competitive ranking for fintech companies. A Backlinko study found position-one Google results carry 3.8x more backlinks than positions two through ten. On-page and technical SEO are prerequisites — but authority earned off-site determines which pages reach position one.",
+    heroDescription: "The three SEO pillars are not equal — and not all deliver the same return in competitive fintech verticals. We explain how off-page, on-page, and technical SEO differ, what each requires, and which lever moves domain authority and revenue fastest.",
+    colA: "Off-Page SEO",
+    colB: "On-Page SEO only",
+    colC: "Technical SEO only",
+    bottomLineSummaries: [
+      "Integrates all three pillars from day one. The off-page programme is purpose-built for fintech publishers, driving DA growth that accelerates every piece of content published.",
+      "Necessary but insufficient without external authority. Well-written on-page content stalls at positions 10–20 in competitive fintech verticals without a supporting backlink programme.",
+      "Critical foundation, but zero content or authority means zero ranking. Essential to resolve first — then build on-page and off-page on top for compounding returns.",
+    ],
   },
   "technical-seo-vs-content-marketing": {
     title: "Technical SEO vs Content Marketing for Fintech | FintechPressHub",
     description: "Compare technical-SEO-first, content-marketing-first, and link-building-first strategies for fintech companies. Understand which lever compounds organic growth fastest.",
+    bluf: "Technical SEO is the prerequisite — without correct crawlability, indexation, and Core Web Vitals, content and links deliver fraction of their potential. Google's Page Experience signals act as a tiebreaker between content of equal quality, meaning technical health is the floor on which everything else competes.",
+    heroDescription: "Technical SEO, content marketing, and link building each move different ranking levers — and sequencing them incorrectly wastes months of investment. We break down what each approach delivers, when to deploy it, and how to combine them for maximum compounding effect.",
+    colA: "Technical SEO first",
+    colB: "Content marketing first",
+    colC: "Link building first",
+    bottomLineSummaries: [
+      "We resolve technical foundations before investing in content or links — ensuring every piece of content and every backlink delivers its full ranking impact. No wasted spend on a leaky foundation.",
+      "High-quality fintech content is essential but produces minimal ranking impact when published onto a technically compromised site. Sequence matters — content first is an avoidable inefficiency.",
+      "Backlinks raise domain authority but cannot overcome crawlability errors or thin content. Most effective when layered on top of a technical and content foundation, not deployed in isolation.",
+    ],
   },
   "on-page-seo-agency-vs-diy": {
     title: "On-Page SEO: Fintech Agency vs DIY vs AI Tools | FintechPressHub",
     description: "Agency on-page SEO vs DIY optimisation vs AI writing tools for fintech — which delivers compliant, rankable content at scale without regulatory risk?",
+    bluf: "Google classifies financial content as YMYL (Your Money or Your Life) — applying stricter E-E-A-T quality standards than for non-regulated industries. Fintech on-page SEO requires regulatory accuracy, named expert authorship, and full schema implementation. AI tools and generalist DIY approaches frequently fail these standards, creating both ranking and compliance risk.",
+    heroDescription: "On-page SEO for fintech is not generic copywriting — it requires regulatory accuracy, YMYL E-E-A-T compliance, and structured data implementation that most in-house teams and AI tools cannot consistently deliver. We compare agency-managed on-page SEO against DIY and AI approaches.",
+    colA: "FintechPressHub on-page SEO",
+    colB: "DIY self-managed",
+    colC: "AI writing tools",
+    bottomLineSummaries: [
+      "Every page optimised to YMYL E-E-A-T standards — regulatory accuracy, expert authorship, and full schema implementation included in every deliverable as standard.",
+      "Achievable with deep fintech knowledge and sustained time investment. Most fintech marketing teams lack capacity to maintain consistent publishing cadence alongside their other responsibilities.",
+      "Efficient for ideation and draft outlines, not for compliant, rankable fintech content. Requires expert human review on every output — negating most efficiency gains for regulated industries.",
+    ],
   },
   "geo-vs-traditional-seo": {
     title: "GEO vs SEO vs PPC for Fintech AI Visibility | FintechPressHub",
     description: "Compare Generative Engine Optimization (GEO), traditional SEO, and paid search for fintech AI visibility in ChatGPT, Perplexity, and Google AI Overviews.",
+    bluf: "AI-powered search engines are projected to handle 40% of informational queries by 2027. Fintech companies that structure content for GEO — BLUF paragraphs, FAQ schema, SpeakableSpecification, and authoritative sourcing — earn citations in AI Overviews and LLM responses with zero per-click cost, unlike PPC where competitive fintech terms cost $15–$80 per click.",
+    heroDescription: "Generative Engine Optimization (GEO) is the practice of structuring content so AI-powered search engines cite it when answering user queries. As Google AI Overviews, ChatGPT, and Perplexity expand, GEO has become a distinct discipline from traditional SEO — and one paid search cannot replicate.",
+    colA: "GEO-optimised content",
+    colB: "Traditional SEO",
+    colC: "Paid search / PPC",
+    bottomLineSummaries: [
+      "Every deliverable includes BLUF paragraphs, FAQ schema, SpeakableSpecification, and AI-readable structure — positioning content for citation in Google AI Overviews and LLM-based answer engines.",
+      "Strong technical and on-page foundation, but AI engines increasingly overlook content that isn't structured for extraction. GEO-ready content performs in both traditional and AI search.",
+      "Immediate paid traffic, but zero AI citation potential. PPC placement in traditional search is declining in share as AI Overviews expand above the paid results fold.",
+    ],
   },
   "aeo-vs-traditional-seo": {
     title: "AEO vs SEO vs Social for Fintech Companies | FintechPressHub",
     description: "Compare AEO, traditional SEO, and social content for fintech brands seeking citation in AI-powered answer engines and rich-result features like featured snippets.",
+    bluf: "Featured snippets, FAQ rich results, and People Also Ask boxes now appear on over 60% of Google SERPs for informational fintech queries. AEO-optimised content with FAQPage schema, answer-first paragraphs, and SpeakableSpecification captures these zero-click positions — earning branded impressions that compound without per-click cost, unlike paid search or social advertising.",
+    heroDescription: "Answer Engine Optimization (AEO) goes beyond traditional keyword rankings to capture featured snippets, FAQ rich results, People Also Ask boxes, and AI Overview citations. For fintech companies with definitional and educational content, AEO delivers branded authority that social media cannot replicate.",
+    colA: "AEO strategy",
+    colB: "Standard SEO",
+    colC: "Social content",
+    bottomLineSummaries: [
+      "Full AEO implementation on every deliverable — FAQPage schema, speakable markup, BLUF paragraphs, and PAA-mapped content structure — maximising zero-click and AI Overview visibility.",
+      "Essential foundation — technical health and keyword targeting — but missing the answer-structured layer that modern AI and voice search engines require for content extraction and citation.",
+      "Strong for brand awareness and community building. Zero contribution to search engine citation, rich results, or AI Overview inclusion — not a substitute for AEO.",
+    ],
   },
   "international-seo-vs-local-seo": {
     title: "Fintech International SEO vs Local SEO | FintechPressHub",
     description: "Compare international SEO, local SEO, and a single-market domestic strategy for fintech companies operating across multiple regulatory jurisdictions.",
+    bluf: "The global fintech market search volume across US, UK, EU, APAC, and Canada is estimated at 4.2x the UK-only addressable volume. Fintech companies with cross-border payment products, multi-currency wallets, or international licensing require hreflang-configured international SEO — without it, Google may serve the wrong regulatory content to users in each jurisdiction.",
+    heroDescription: "Fintech companies serving multiple markets — UK, US, Singapore, Australia, Canada — require international SEO strategies that account for regulatory differences, hreflang implementation, and market-specific link building. We compare international SEO, local SEO, and single-market strategies.",
+    colA: "International SEO",
+    colB: "Local SEO",
+    colC: "Single-market (no localisation)",
+    bottomLineSummaries: [
+      "Full hreflang implementation, market-specific regulatory content, and international link building across UK, US, AU, SG, and CA markets — unlocking the global fintech search audience.",
+      "Valuable for consumer fintech brands with physical branches or city-specific services. Too narrow for fintech companies with cross-border payment, multi-market licensing, or global infrastructure products.",
+      "Leaves 75%+ of the global fintech search audience unreachable. An avoidable traffic ceiling for any fintech with cross-border ambitions — and a compliance risk when wrong regulatory content reaches users in other jurisdictions.",
+    ],
   },
   "programmatic-seo-vs-editorial": {
     title: "Programmatic vs Manual SEO Content for Fintech | FintechPressHub",
     description: "Programmatic SEO vs manual editorial content vs AI-generated pages for fintech — understand thin-content risk and information-gain requirements for regulated financial sites.",
+    bluf: "Google's Helpful Content system demotes sites producing scaled content without genuine information gain. For fintech programmatic SEO to succeed, every generated page must provide unique proprietary data — jurisdiction-specific regulations, product comparison matrices, or fee benchmarks — that users cannot find in the same form elsewhere. Pages without this signal face indexation rates below 40%.",
+    heroDescription: "Programmatic SEO can generate hundreds of high-value fintech comparison pages, fee tables, and regulatory guides from structured data. But without genuine information gain per URL, Google's Helpful Content system will suppress them. We compare programmatic, manual editorial, and AI-generated content approaches.",
+    colA: "Programmatic SEO",
+    colB: "Manual editorial content",
+    colC: "AI-generated pages at scale",
+    bottomLineSummaries: [
+      "Data-driven, information-gain-first programmatic pages with compliance review on every template — scalable URL coverage without thin-content risk or regulatory exposure.",
+      "Highest quality ceiling and lowest compliance risk. Cannot scale beyond 8–12 pieces per month without team expansion — the right complement to programmatic, not a replacement.",
+      "High volume, high risk. Without expert review, AI content creates both regulatory compliance exposure and Helpful Content system demotion risk — particularly dangerous in YMYL fintech verticals.",
+    ],
   },
   "white-hat-seo-vs-black-hat": {
     title: "White Hat vs Black Hat SEO for Regulated Fintech | FintechPressHub",
     description: "White hat vs grey hat vs black hat SEO for regulated fintech — understand the compliance, reputational, and algorithm-update risks of each approach before committing.",
+    bluf: "Google issues manual penalties to thousands of sites per year for unnatural link schemes and scaled content abuse. For fintech companies holding FCA, CFPB, or MAS authorisation, a Google deindexation creates an immediate reputational signal to regulators — compounding the business risk beyond organic traffic loss. White hat SEO is the only approach that is fully auditable, indefinitely sustainable, and compliant with both search engine guidelines and financial advertising regulations.",
+    heroDescription: "For regulated fintech companies, the choice between white hat, grey hat, and black hat SEO is not just an SEO decision — it's a compliance and reputational risk decision. FCA and CFPB-regulated entities face consequences that extend well beyond Google penalties.",
+    colA: "White Hat SEO",
+    colB: "Grey Hat SEO",
+    colC: "Black Hat SEO",
+    bottomLineSummaries: [
+      "100% Google and FCA/CFPB compliant. Every link editorial, every piece of content human-reviewed, every tactic auditable. The only approach that compounds without deindex or regulatory risk.",
+      "Faster short-term results, but requires constant monitoring and link cleanup before each major algorithm update. Fundamentally incompatible with the risk standards of regulated fintech.",
+      "Unacceptable for regulated fintech. Manual penalty risk, FCA/CFPB scrutiny exposure, and permanent reputational damage with investors and regulators outweigh any short-term traffic gains.",
+    ],
   },
 };
 
