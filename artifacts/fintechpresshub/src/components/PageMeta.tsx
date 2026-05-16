@@ -287,6 +287,8 @@ export type WebPageSchema = {
   usageInfo?: string;
   /** Copyright attribution string emitted as copyrightNotice for AI citation engines. */
   copyrightNotice?: string;
+  /** URL of editorial standards page — emitted as publishingPrinciples for YMYL E-E-A-T. */
+  publishingPrinciples?: string;
   /** Topic entities the page is about — mapped to schema.org `about` Thing array. */
   about?: string[];
   /** Page-level keyword list joined into schema.org `keywords` string. */
@@ -915,6 +917,11 @@ export function PageMeta(props: PageMetaProps) {
         // (White Hat W-10). Mirrors the field emitted on BlogPosting and Article schemas.
         ...(props.webPage?.copyrightNotice
           ? { copyrightNotice: props.webPage.copyrightNotice }
+          : {}),
+        // publishingPrinciples — URL of editorial standards page; YMYL E-E-A-T trust
+        // signal satisfying Google quality rater guidelines for financial services content.
+        ...(props.webPage?.publishingPrinciples
+          ? { publishingPrinciples: props.webPage.publishingPrinciples }
           : {}),
         // about — primary subject entities; enables AI citation engines to slot this
         // page into the correct topic cluster regardless of page type (GEO G-11).

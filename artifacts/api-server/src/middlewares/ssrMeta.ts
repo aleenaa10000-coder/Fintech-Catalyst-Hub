@@ -793,6 +793,38 @@ const COMPARISON_META: Record<string, { title: string; description: string }> = 
     title: "Fintech Specialist SEO vs B2B Generalist vs Consumer Marketing Agency | FintechPressHub",
     description: "Compare a fintech-specialist SEO agency against a B2B generalist and a consumer marketing agency. Understand which agency type fits a regulated financial services company.",
   },
+  "off-page-seo-vs-on-page-seo": {
+    title: "Off-Page, On-Page & Technical SEO for Fintech | FintechPressHub",
+    description: "Discover which fintech SEO pillar — off-page, on-page, or technical — drives the fastest organic growth. FintechPressHub explains the trade-offs with data.",
+  },
+  "technical-seo-vs-content-marketing": {
+    title: "Technical SEO vs Content Marketing for Fintech | FintechPressHub",
+    description: "Compare technical-SEO-first, content-marketing-first, and link-building-first strategies for fintech companies. Understand which lever compounds organic growth fastest.",
+  },
+  "on-page-seo-agency-vs-diy": {
+    title: "On-Page SEO: Fintech Agency vs DIY vs AI Tools | FintechPressHub",
+    description: "Agency on-page SEO vs DIY optimisation vs AI writing tools for fintech — which delivers compliant, rankable content at scale without regulatory risk?",
+  },
+  "geo-vs-traditional-seo": {
+    title: "GEO vs SEO vs PPC for Fintech AI Visibility | FintechPressHub",
+    description: "Compare Generative Engine Optimization (GEO), traditional SEO, and paid search for fintech AI visibility in ChatGPT, Perplexity, and Google AI Overviews.",
+  },
+  "aeo-vs-traditional-seo": {
+    title: "AEO vs SEO vs Social for Fintech Companies | FintechPressHub",
+    description: "Compare AEO, traditional SEO, and social content for fintech brands seeking citation in AI-powered answer engines and rich-result features like featured snippets.",
+  },
+  "international-seo-vs-local-seo": {
+    title: "Fintech International SEO vs Local SEO | FintechPressHub",
+    description: "Compare international SEO, local SEO, and a single-market domestic strategy for fintech companies operating across multiple regulatory jurisdictions.",
+  },
+  "programmatic-seo-vs-editorial": {
+    title: "Programmatic vs Manual SEO Content for Fintech | FintechPressHub",
+    description: "Programmatic SEO vs manual editorial content vs AI-generated pages for fintech — understand thin-content risk and information-gain requirements for regulated financial sites.",
+  },
+  "white-hat-seo-vs-black-hat": {
+    title: "White Hat vs Black Hat SEO for Regulated Fintech | FintechPressHub",
+    description: "White hat vs grey hat vs black hat SEO for regulated fintech — understand the compliance, reputational, and algorithm-update risks of each approach before committing.",
+  },
 };
 
 /**
@@ -892,6 +924,150 @@ const COMPARE_FAQS: Record<string, Array<{ question: string; answer: string }>> 
     {
       question: "We are a B2C fintech (neobank, BNPL). Do you work with consumer brands?",
       answer: "Yes. Our editorial team includes former consumer fintech operators. We adjust content tone, keyword strategy, and audience persona for consumer-facing products. The regulatory expertise is particularly valuable here — consumer financial product marketing has stricter FCA and CFPB rules than B2B.",
+    },
+  ],
+  "off-page-seo-vs-on-page-seo": [
+    {
+      question: "Which SEO pillar matters most for fintech domain authority?",
+      answer: "Off-page SEO — specifically editorial backlinks from DR 50+ fintech publishers — is the primary driver of domain authority for financial services companies. A Backlinko study found that the number-one Google result has 3.8× more backlinks than positions two through ten. Without strong off-page signals, technically perfect on-page content cannot rank for competitive fintech terms.",
+    },
+    {
+      question: "Should I prioritise on-page or technical SEO first?",
+      answer: "Technical SEO should be resolved first because on-page content gains are meaningless if Googlebot cannot crawl or index your pages correctly. Run a Core Web Vitals audit before investing in content production. Once technical health is confirmed, on-page and off-page programmes can run in parallel.",
+    },
+    {
+      question: "How does FintechPressHub balance all three SEO pillars?",
+      answer: "We begin every engagement with a 30-day technical audit to close crawlability and indexability gaps. Month two onwards, we run content production (on-page) and link outreach (off-page) simultaneously. Most clients see the strongest ranking movement at month four when all three pillars are compounding together.",
+    },
+    {
+      question: "Can off-page SEO help with Google AI Overviews?",
+      answer: "Yes. Google AI Overviews draw on the same authority signals as organic rankings — pages with strong backlink profiles and well-structured content are cited more frequently. We include BLUF paragraphs, speakable markup, and FAQ schema in all content specifically to maximise AI Overview inclusion.",
+    },
+  ],
+  "technical-seo-vs-content-marketing": [
+    {
+      question: "What is technical SEO and why does it matter for fintech?",
+      answer: "Technical SEO covers everything that affects how search engines crawl, render, and index a website — Core Web Vitals, XML sitemaps, canonical tags, structured data, and mobile performance. For fintech companies with complex product pages, regulatory disclaimers, and frequent CMS changes, technical errors are common and can suppress rankings across the entire domain despite strong content.",
+    },
+    {
+      question: "Which should we invest in first — technical SEO or content?",
+      answer: "Technical SEO first, always. Publishing high-quality content onto a site with indexation errors, duplicate pages, or failing Core Web Vitals is wasted investment — Google cannot rank what it cannot properly crawl. Resolve technical foundations in the first 30 days, then run content and link programmes simultaneously from month two.",
+    },
+    {
+      question: "Does technical SEO directly improve Google rankings?",
+      answer: "Yes, but indirectly. Technical health is a threshold condition: without it, content and links cannot perform to their potential. With it, every piece of content and every backlink delivers more ranking impact. Google has stated that page experience (Core Web Vitals) is a tiebreaker signal when content quality is equal between competitors.",
+    },
+    {
+      question: "How does FintechPressHub handle technical SEO audits?",
+      answer: "We use Semrush and Screaming Frog for crawl analysis, Google Search Console for indexation signals, and PageSpeed Insights for Core Web Vitals measurement. Every new client receives a full technical audit in the first 30 days. We prioritise fixes by impact — critical issues that block indexation are resolved before optimisation-level improvements.",
+    },
+  ],
+  "on-page-seo-agency-vs-diy": [
+    {
+      question: "What is on-page SEO and why does it matter for fintech?",
+      answer: "On-page SEO covers everything done within a web page to improve search rankings — title tags, meta descriptions, heading structure, internal links, schema markup, and content quality. For fintech companies, on-page SEO is particularly high-stakes because Google classifies financial content as YMYL, applying stricter E-E-A-T quality standards than for non-regulated industries.",
+    },
+    {
+      question: "Can AI tools produce compliant fintech content?",
+      answer: "AI writing tools cannot reliably verify regulatory accuracy. Large language models produce plausible-sounding content that may misrepresent FCA authorisation requirements, CFPB disclosure rules, or MAS licensing obligations. For regulated fintech companies, expert human review of every AI-generated piece is mandatory — which largely negates the time savings AI tools promise.",
+    },
+    {
+      question: "How long does it take to see on-page SEO results?",
+      answer: "Google's systems process on-page changes within 2–6 weeks for most pages. Significant ranking movements from on-page improvements typically appear in month two or three. The compounding effect — where updated content attracts more links, which raises authority, which boosts related pages — builds over 6–12 months.",
+    },
+    {
+      question: "What makes fintech on-page SEO different from general B2B?",
+      answer: "Three factors: regulatory precision, YMYL scoring, and domain-specific keyword intent. Fintech content must accurately represent regulated activities (payment processing, lending, open banking) without creating compliance risk. Generic B2B writers lack the domain knowledge to self-correct — meaning your compliance team must review every piece, creating costly bottlenecks.",
+    },
+  ],
+  "geo-vs-traditional-seo": [
+    {
+      question: "What is Generative Engine Optimization (GEO)?",
+      answer: "Generative Engine Optimization (GEO) is the practice of structuring content so that AI-powered search engines — including Google AI Overviews, ChatGPT, Perplexity, and Bing Copilot — preferentially cite it when answering user queries. GEO applies BLUF writing, FAQ schema, SpeakableSpecification markup, and authoritative sourcing to signal citation-worthiness to AI rankers.",
+    },
+    {
+      question: "Does GEO replace traditional SEO?",
+      answer: "No — GEO extends traditional SEO rather than replacing it. Strong backlinks, technical health, and on-page optimisation remain the foundation. GEO adds an answer-engine layer on top: answer-first content structure, speakable schema, and verifiable sourcing. Fintech companies that invest in both see compounding benefits as AI search expands its share of information retrieval.",
+    },
+    {
+      question: "How does paid search compare to GEO for fintech AI visibility?",
+      answer: "Paid search cannot buy placement in AI Overviews or ChatGPT citations — those are editorial decisions made by AI systems based on content quality and authority. PPC delivers immediate paid traffic but costs $15–$80 per click for competitive fintech terms. GEO-optimised organic content earns AI citations with no per-click cost — making it structurally more efficient at scale.",
+    },
+    {
+      question: "How does FintechPressHub implement GEO for fintech clients?",
+      answer: "Every piece of content we produce includes a BLUF summary targeting the primary query, FAQ sections with direct short answers under 60 words each, SpeakableSpecification schema, and sourced statistics from credible industry reports. We also ensure full FAQPage and WebPage JSON-LD is present on every page so AI crawlers can parse content structure without executing JavaScript.",
+    },
+  ],
+  "aeo-vs-traditional-seo": [
+    {
+      question: "What is Answer Engine Optimization (AEO)?",
+      answer: "Answer Engine Optimization (AEO) is the practice of structuring content so that search engines directly extract and display your answer in SERPs — through featured snippets, FAQ rich results, People Also Ask boxes, and AI Overviews. For fintech companies, AEO is high-value because definitional queries ('What is open banking?', 'How does embedded finance work?') drive high-intent traffic rarely served by paid search.",
+    },
+    {
+      question: "How does AEO differ from traditional SEO?",
+      answer: "Traditional SEO optimises for click-through rate — getting users to click your blue link. AEO optimises for zero-click visibility — having your answer displayed directly in the SERP. Both matter: AEO captures the impression even when users don't click, builds brand authority, and feeds signals into AI Overview algorithms. Combined, AEO and traditional SEO cover both click and no-click outcomes.",
+    },
+    {
+      question: "Does social content provide the same benefits as AEO?",
+      answer: "No. Social content generates engagement and brand awareness but provides zero structured data for search engines to extract. Social content rarely ranks in Google for commercial queries and cannot be injected into featured snippets or AI Overviews. AEO and social are complementary, not interchangeable — social builds reach, AEO builds query capture.",
+    },
+    {
+      question: "What schema does FintechPressHub use for AEO?",
+      answer: "Every piece of content we produce includes FAQPage schema (with question and acceptedAnswer entities), SpeakableSpecification targeting the BLUF summary and FAQ section, BreadcrumbList for entity graph clarity, and WebPage with author, publisher, and dateModified for freshness signals. On informational pages, we also add HowTo and DefinedTerm schema where appropriate to expand rich-result eligibility.",
+    },
+  ],
+  "international-seo-vs-local-seo": [
+    {
+      question: "What is international SEO for fintech companies?",
+      answer: "International SEO is the practice of optimising a fintech website to rank across multiple countries and language regions. This includes hreflang attributes for language and region targeting, market-specific content addressing local regulations (FCA, CFPB, MAS, EBA), backlinks from region-specific financial publications, and XML sitemaps with per-locale hreflang annotations.",
+    },
+    {
+      question: "What is the difference between international SEO and local SEO?",
+      answer: "International SEO targets multiple country markets simultaneously — optimising one domain to rank in the UK, US, Australia, Singapore, and Canada. Local SEO focuses on geographic hyper-localisation within a single market — Google Maps, local pack results, and city-specific queries. Most scaling fintech companies need international SEO; consumer-facing fintechs with physical branches may also need local SEO.",
+    },
+    {
+      question: "Why does hreflang matter for fintech SEO?",
+      answer: "Hreflang tells Google which version of a page to serve to users in each country or language market. Without it, Google may show UK users a US-specific page referencing CFPB rules instead of FCA rules — creating a poor user experience and a compliance risk. For fintech companies with regulatory content that differs by jurisdiction, hreflang implementation is mandatory.",
+    },
+    {
+      question: "How does FintechPressHub approach international fintech SEO?",
+      answer: "We implement full hreflang configurations (en-US, en-GB, en-AU, en-SG, en-CA) on all client pages, build market-specific content reflecting local regulatory frameworks, and run dedicated link outreach to fintech publications in each target market. Our internal team includes operators with experience in UK FCA, US CFPB, EU EBA, Singapore MAS, and Australia ASIC regulated environments.",
+    },
+  ],
+  "programmatic-seo-vs-editorial": [
+    {
+      question: "What is programmatic SEO for fintech?",
+      answer: "Programmatic SEO is the practice of generating large numbers of web pages from structured data templates — each targeting a specific keyword variation — while maintaining unique information value per page. For fintech companies, this might mean generating comparison pages for 50 payment processors, fee tables for 30 currency corridors, or regulatory guides for 20 jurisdictions, each with proprietary data that justifies the page's existence.",
+    },
+    {
+      question: "Does Google penalise programmatic SEO?",
+      answer: "Google penalises scaled content abuse — pages generated at scale with no unique information value per URL. Programmatic SEO built on proprietary data, genuine user research, or structured regulatory information is not penalised and often outranks manually produced content because it covers long-tail queries at a scale human editorial cannot match. The test is always information gain.",
+    },
+    {
+      question: "Why is AI-generated content risky for regulated fintech companies?",
+      answer: "AI-generated content for fintech faces two risks: Google's Helpful Content system (targeting pages with no unique information gain) and regulatory compliance (requiring accurate representations of financial products and services). AI models produce plausible-sounding but often inaccurate regulatory content — potentially misrepresenting FCA authorisation requirements, CFPB disclosure obligations, or MAS licensing conditions.",
+    },
+    {
+      question: "How does FintechPressHub approach programmatic SEO?",
+      answer: "We build programmatic pages on proprietary client data — product comparison matrices, pricing tables, jurisdiction-specific regulatory guides — ensuring every generated page delivers information that cannot be found in the same form elsewhere. Each template is reviewed by a fintech-specialist editor before deployment, and we implement canonical, hreflang, and indexation controls to prevent thin-content signals from spreading across the domain.",
+    },
+  ],
+  "white-hat-seo-vs-black-hat": [
+    {
+      question: "What is white hat SEO?",
+      answer: "White hat SEO refers to SEO practices that comply with Google's Webmaster Guidelines and applicable advertising regulations — quality content creation, editorial link building, technical optimisation, and structured data implementation. For regulated fintech companies, white hat SEO also means compliance with FCA financial promotion rules, CFPB disclosure requirements, and MAS advertising guidelines.",
+    },
+    {
+      question: "What is grey hat SEO and why is it risky for fintech?",
+      answer: "Grey hat SEO refers to tactics that push ethical and algorithmic boundaries — including content syndication without canonical tags, undisclosed link exchanges, or scaled content with borderline information gain. For regulated fintech companies, grey hat tactics create dual risk: Google algorithm exposure and potential regulatory scrutiny if promotional content misrepresents financial services or fails financial promotion tests.",
+    },
+    {
+      question: "Can a fintech company recover from a Google manual penalty?",
+      answer: "Yes, but recovery is slow and costly. A manual penalty for unnatural links requires disavowing all offending backlinks, requesting reconsideration, and waiting 3–12 months for Google's quality team to review. During this period, organic traffic can drop 50–90%. For fintech companies with investor-facing metrics tied to organic growth, a manual penalty is a material business risk — not just an SEO problem.",
+    },
+    {
+      question: "How does FintechPressHub ensure its link building is white hat?",
+      answer: "Every link we build is editorial — placed within genuinely relevant fintech content on DR 50+ publications that commission articles on their standard editorial standards. We do not purchase links, participate in link exchanges, or use private blog networks. Every placement is documented with the publication name, article URL, anchor text, and live date — providing a full audit trail that withstands Google manual review and regulatory scrutiny.",
     },
   ],
 };
@@ -3665,49 +3841,93 @@ async function handleSsrMeta(
         ogDescription: cmpMeta.description,
         ogImage:       `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Compare`,
         ogImageAlt:    leafLabel,
+        // International SEO: 5 regional English hreflang codes for the primary fintech
+        // markets — US, UK, Australia, Singapore, Canada. patchHtml already injects
+        // hreflang="en" and "x-default" unconditionally; these are additive and align
+        // with compare sitemap hreflang entries for consistent international signals.
+        headLinks: [
+          `  <link rel="alternate" hreflang="en-US" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-GB" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-AU" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-SG" href="${esc(canonical)}" />`,
+          `  <link rel="alternate" hreflang="en-CA" href="${esc(canonical)}" />`,
+        ],
         extraLds: [
           JSON.stringify({
-            "@context":  "https://schema.org",
-            "@type":     "FAQPage",
-            // #faq fragment is consistent with every other FAQPage entity on
-            // the site (blog, author, glossary, service, pricing, tools,
-            // location all use canonical#faq). The bare canonical URL is
-            // reserved for the primary WebPage entity's @id.
-            "@id":       `${canonical}#faq`,
-            name:        cmpMeta.title,
-            url:         canonical,
-            inLanguage:  "en",
-            // isPartOf mirrors the pattern on all 7 other FAQPage entities.
-            // Without it Google cannot resolve this entity within the site
-            // entity graph and may discount the FAQ accordion rich-result.
-            isPartOf:    { "@id": `${siteUrl}#website` },
-            publisher:   { "@id": `${siteUrl}#organization` },
+            "@context":          "https://schema.org",
+            "@type":             "FAQPage",
+            "@id":               `${canonical}#faq`,
+            name:                cmpMeta.title,
+            url:                 canonical,
+            inLanguage:          "en",
+            isPartOf:            { "@id": `${siteUrl}#website` },
+            publisher:           { "@id": `${siteUrl}#organization` },
+            // White Hat SEO + Off-Page E-E-A-T: copyrightNotice and publishingPrinciples
+            // on FAQPage signal editorial accountability to Google quality raters and AI
+            // rankers that preferentially cite attributed, accountable sources (GEO).
+            copyrightNotice:     `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
+            publishingPrinciples: `${siteUrl}/editorial-guidelines`,
             datePublished: COMPARE_PAGE_CREATED[slug] ?? STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
             ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
-            mainEntity: faqMainEntity,
-          }, null, 2),
-          // WebPage entity emitted alongside FAQPage so Google can resolve the
-          // page-level entity and track freshness — matches the pattern used on
-          // blog posts and glossary terms for consistent entity resolution.
-          JSON.stringify({
-            "@context":   "https://schema.org",
-            "@type":      "WebPage",
-            "@id":        `${canonical}#webpage`,
-            url:          canonical,
-            inLanguage:   "en",
-            isPartOf:     { "@id": `${siteUrl}#website` },
-            publisher:    { "@id": `${siteUrl}#organization` },
-            datePublished: COMPARE_PAGE_CREATED[slug] ?? STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
-            ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
-            // SpeakableSpecification enables voice-assistant extraction of the comparison
-            // headline for queries like "agency vs in-house SEO" — mirrors the speakable
-            // coverage on service detail pages and other decision-intent pages.
+            // AEO: speakable on FAQPage enables voice-assistant extraction of Q&As —
+            // mirrors the pattern on blog posts, glossary, services, and pricing FAQPages.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1"],
+              cssSelector: ["h2", ".faq-question"],
             },
-            breadcrumb:    { "@id": `${canonical}#breadcrumb` },
-            potentialAction: { "@type": "ReadAction", target: canonical },
+            mainEntity: faqMainEntity,
+          }, null, 2),
+          // WebPage entity: expanded with all White Hat / Off-Page / Technical / GEO /
+          // AEO / International signals — matching full schema coverage on blog posts,
+          // glossary terms, and service pages for consistent entity graph resolution.
+          JSON.stringify({
+            "@context":          "https://schema.org",
+            "@type":             "WebPage",
+            "@id":               `${canonical}#webpage`,
+            url:                 canonical,
+            inLanguage:          "en",
+            // On-Page SEO: name and description in WebPage help Google extract the
+            // page's primary topic without relying solely on title/meta tags.
+            name:                leafLabel,
+            description:         cmpMeta.description,
+            isPartOf:            { "@id": `${siteUrl}#website` },
+            publisher:           { "@id": `${siteUrl}#organization` },
+            // Off-Page SEO: author entity links comparison pages to the organisation —
+            // satisfying YMYL E-E-A-T requirements for financial services content.
+            author:              { "@id": `${siteUrl}#organization` },
+            datePublished:       COMPARE_PAGE_CREATED[slug] ?? STATIC_PAGE_CREATED["/compare"] ?? "2024-09-01",
+            ...(COMPARE_PAGE_LASTMOD[slug] ? { dateModified: COMPARE_PAGE_LASTMOD[slug] } : {}),
+            // Technical SEO: conditionsOfAccess, accessibilityHazard, accessMode are
+            // recommended WebPage fields per schema.org — signalling content type to
+            // accessibility validators and AI crawlers.
+            conditionsOfAccess:  "https://schema.org/OnlineAccess",
+            accessibilityHazard: "none",
+            accessMode:          ["textual", "visual"],
+            // White Hat SEO: license, usageInfo, copyrightNotice, publishingPrinciples
+            // demonstrate editorial accountability — satisfying Google's YMYL trust
+            // signals and enabling AI rankers to attribute the source correctly.
+            license:             `${siteUrl}/terms`,
+            usageInfo:           `${siteUrl}/terms`,
+            copyrightNotice:     `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
+            publishingPrinciples: `${siteUrl}/editorial-guidelines`,
+            // GEO: about entities provide topical context for AI rankers and entity
+            // graphs — enabling correct topical clustering of comparison pages.
+            about: [
+              { "@type": "Thing", name: "Fintech SEO" },
+              { "@type": "Thing", name: "SEO Agency Comparison" },
+              { "@type": "Thing", name: "Fintech Content Marketing" },
+            ],
+            // On-Page SEO: keywords field supplements title/meta for entity resolution.
+            keywords:            `${leafLabel}, fintech SEO comparison, fintech digital marketing`,
+            // AEO + GEO: SpeakableSpecification expanded to include .speakable-summary
+            // (the BLUF paragraph) in addition to h1 — maximising voice-search extraction
+            // and AI Overview citation potential for comparison pages.
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h1", ".speakable-summary"],
+            },
+            breadcrumb:          { "@id": `${canonical}#breadcrumb` },
+            potentialAction:     { "@type": "ReadAction", target: canonical },
           }, null, 2),
           buildBreadcrumbLd(breadcrumbs),
         ],

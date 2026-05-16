@@ -52,6 +52,11 @@ export default function Compare() {
         <meta name="author" content="FintechPressHub Editorial Team" />
         <link rel="author" href={`${SITE_URL}/about`} />
         <link rel="alternate" hrefLang="en" href={canonical} />
+        <link rel="alternate" hrefLang="en-US" href={canonical} />
+        <link rel="alternate" hrefLang="en-GB" href={canonical} />
+        <link rel="alternate" hrefLang="en-AU" href={canonical} />
+        <link rel="alternate" hrefLang="en-SG" href={canonical} />
+        <link rel="alternate" hrefLang="en-CA" href={canonical} />
         <link rel="alternate" hrefLang="x-default" href={canonical} />
         <meta name="news_keywords" content="fintech SEO comparison, agency vs in-house SEO, content SEO vs paid search, fintech marketing agency" />
       </Helmet>
@@ -62,10 +67,40 @@ export default function Compare() {
         speakableSelectors={["h1", ".speakable-summary", "h2"]}
         webPage={{
           datePublished: "2024-09-01",
-          dateModified: "2026-05-15",
-          keywords: "fintech SEO agency comparison, agency vs in-house SEO, fintech SEO vs freelancers, content SEO vs paid search, fintech marketing comparison, specialist vs generalist SEO",
-          conditionsOfAccess: "Free",
+          dateModified: "2026-05-16",
+          keywords: [
+            "fintech SEO agency comparison",
+            "agency vs in-house SEO",
+            "fintech SEO vs freelancers",
+            "content SEO vs paid search",
+            "fintech marketing comparison",
+            "specialist vs generalist SEO",
+            "off-page SEO vs on-page SEO",
+            "technical SEO vs content marketing",
+            "GEO vs traditional SEO",
+            "AEO vs SEO",
+            "international fintech SEO",
+            "programmatic SEO fintech",
+            "white hat SEO fintech",
+          ],
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
           accessibilityHazard: "none",
+          about: [
+            "Fintech SEO Agency Comparison",
+            "Fintech Digital Marketing",
+            "SEO Strategy for Fintech",
+            "Off-Page SEO",
+            "Technical SEO",
+            "Generative Engine Optimization",
+            "Answer Engine Optimization",
+            "International SEO",
+            "Programmatic SEO",
+            "White Hat SEO",
+          ],
+          license: "https://fintechpresshub.com/terms",
+          usageInfo: "https://fintechpresshub.com/terms",
+          copyrightNotice: `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
+          publishingPrinciples: "https://fintechpresshub.com/editorial-guidelines",
         }}
         faq={faqItems}
         itemList={{
@@ -87,7 +122,7 @@ export default function Compare() {
 
       <div className="container mx-auto px-4 max-w-3xl pt-10 pb-2">
         <p className="speakable-summary text-base text-muted-foreground text-center leading-relaxed">
-          FintechPressHub publishes six head-to-head comparisons — fintech specialist vs generic agency, freelancers, SEO tools, PR firms, paid search, and B2B generalists — each scored across 8–10 decision criteria so fintech buyers can choose the right growth channel without guesswork.
+          FintechPressHub publishes fourteen head-to-head comparisons — covering agency vs in-house, freelancers, SEO tools, PR firms, content vs paid, and specialist vs generalist, plus eight SEO discipline comparisons (off-page, technical, on-page, GEO, AEO, international, programmatic, and white hat SEO) — each scored across 8–10 decision criteria so fintech buyers can choose the right growth channel without guesswork.
         </p>
       </div>
 

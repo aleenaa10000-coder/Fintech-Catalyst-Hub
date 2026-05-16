@@ -36,6 +36,11 @@ export default function CompareSlug() {
         <meta name="author" content="FintechPressHub Editorial Team" />
         <link rel="author" href={`${SITE_URL}/about`} />
         <link rel="alternate" hrefLang="en" href={canonical} />
+        <link rel="alternate" hrefLang="en-US" href={canonical} />
+        <link rel="alternate" hrefLang="en-GB" href={canonical} />
+        <link rel="alternate" hrefLang="en-AU" href={canonical} />
+        <link rel="alternate" hrefLang="en-SG" href={canonical} />
+        <link rel="alternate" hrefLang="en-CA" href={canonical} />
         <link rel="alternate" hrefLang="x-default" href={canonical} />
       </Helmet>
       <PageMeta
@@ -47,8 +52,26 @@ export default function CompareSlug() {
         webPage={{
           datePublished: comparison.datePublished,
           dateModified: comparison.lastmod,
-          conditionsOfAccess: "Free",
+          conditionsOfAccess: "https://schema.org/OnlineAccess",
           accessibilityHazard: "none",
+          about: [
+            "Fintech SEO Comparison",
+            comparison.colA,
+            comparison.colB,
+            comparison.colC,
+            "Fintech Digital Marketing",
+          ],
+          keywords: [
+            comparison.colA,
+            comparison.colB,
+            comparison.colC,
+            "fintech SEO comparison",
+            "fintech marketing",
+          ],
+          license: "https://fintechpresshub.com/terms",
+          usageInfo: "https://fintechpresshub.com/terms",
+          copyrightNotice: `© ${new Date().getFullYear()} FintechPressHub. All rights reserved.`,
+          publishingPrinciples: "https://fintechpresshub.com/editorial-guidelines",
         }}
       />
 
@@ -61,6 +84,22 @@ export default function CompareSlug() {
       <div className="container mx-auto px-4 max-w-3xl pt-6 pb-2">
         <p className="speakable-summary text-base text-muted-foreground text-center leading-relaxed">
           {comparison.bluf}
+        </p>
+      </div>
+
+      <div className="container mx-auto px-4 max-w-3xl pt-2 pb-2 text-center">
+        <p className="text-xs text-muted-foreground">
+          Last reviewed:{" "}
+          <time dateTime={comparison.lastmod}>
+            {new Date(comparison.lastmod).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+          </time>
+          {" · "}
+          Published:{" "}
+          <time dateTime={comparison.datePublished}>
+            {new Date(comparison.datePublished).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+          </time>
+          {" · "}
+          Editorial standards: <a href="/editorial-guidelines" className="underline hover:text-foreground">FintechPressHub Editorial Policy</a>
         </p>
       </div>
 
@@ -117,7 +156,7 @@ export default function CompareSlug() {
 
         <section className="py-16 bg-secondary/30">
           <div className="container mx-auto px-4 max-w-4xl">
-            <h2 className="text-2xl font-bold text-center mb-10">The bottom line — which option fits your fintech?</h2>
+            <h2 className="text-2xl font-bold text-center mb-10">{comparison.colA} vs {comparison.colB} vs {comparison.colC} — which fits your fintech?</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {comparison.bottomLine.map((item) => (
                 <div
@@ -150,7 +189,7 @@ export default function CompareSlug() {
         {comparison.faqItems.length > 0 && (
           <section className="py-16" id="slug-faq">
             <div className="container mx-auto px-4 max-w-3xl">
-              <h2 className="text-2xl font-bold text-center mb-8">Frequently asked questions</h2>
+              <h2 className="text-2xl font-bold text-center mb-8">Frequently asked questions about {comparison.colA} for fintech</h2>
               <Accordion
                 type="single"
                 collapsible

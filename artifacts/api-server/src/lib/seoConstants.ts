@@ -63,6 +63,14 @@ export const COMPARE_SLUGS = [
   "vs-pr-agencies",
   "content-led-vs-paid",
   "specialist-vs-generalist",
+  "off-page-seo-vs-on-page-seo",
+  "technical-seo-vs-content-marketing",
+  "on-page-seo-agency-vs-diy",
+  "geo-vs-traditional-seo",
+  "aeo-vs-traditional-seo",
+  "international-seo-vs-local-seo",
+  "programmatic-seo-vs-editorial",
+  "white-hat-seo-vs-black-hat",
 ] as const;
 
 export type CompareSlug = (typeof COMPARE_SLUGS)[number];
@@ -92,12 +100,20 @@ export const TOOL_PAGE_LASTMOD: Readonly<Record<string, string>> = {
  * Update when a new comparison page is first published.
  */
 export const COMPARE_PAGE_CREATED: Readonly<Record<string, string>> = {
-  "agency-vs-in-house":       "2024-09-01",
-  "vs-freelancers":           "2024-09-15",
-  "vs-seo-tools":             "2024-09-15",
-  "vs-pr-agencies":           "2024-10-01",
-  "content-led-vs-paid":      "2024-10-15",
-  "specialist-vs-generalist": "2024-11-01",
+  "agency-vs-in-house":                "2024-09-01",
+  "vs-freelancers":                    "2024-09-15",
+  "vs-seo-tools":                      "2024-09-15",
+  "vs-pr-agencies":                    "2024-10-01",
+  "content-led-vs-paid":               "2024-10-15",
+  "specialist-vs-generalist":          "2024-11-01",
+  "off-page-seo-vs-on-page-seo":       "2025-01-10",
+  "technical-seo-vs-content-marketing":"2025-01-15",
+  "on-page-seo-agency-vs-diy":         "2025-02-01",
+  "geo-vs-traditional-seo":            "2025-02-15",
+  "aeo-vs-traditional-seo":            "2025-03-01",
+  "international-seo-vs-local-seo":    "2025-03-15",
+  "programmatic-seo-vs-editorial":     "2025-04-01",
+  "white-hat-seo-vs-black-hat":        "2025-04-15",
 };
 
 /**
@@ -106,12 +122,20 @@ export const COMPARE_PAGE_CREATED: Readonly<Record<string, string>> = {
  * Update a date here whenever a comparison page's content changes.
  */
 export const COMPARE_PAGE_LASTMOD: Readonly<Record<string, string>> = {
-  "agency-vs-in-house":       "2026-05-15",
-  "vs-freelancers":           "2026-05-15",
-  "vs-seo-tools":             "2026-05-15",
-  "vs-pr-agencies":           "2026-05-15",
-  "content-led-vs-paid":      "2026-05-15",
-  "specialist-vs-generalist": "2026-05-15",
+  "agency-vs-in-house":                "2026-05-15",
+  "vs-freelancers":                    "2026-05-15",
+  "vs-seo-tools":                      "2026-05-15",
+  "vs-pr-agencies":                    "2026-05-15",
+  "content-led-vs-paid":               "2026-05-15",
+  "specialist-vs-generalist":          "2026-05-15",
+  "off-page-seo-vs-on-page-seo":       "2026-05-16",
+  "technical-seo-vs-content-marketing":"2026-05-16",
+  "on-page-seo-agency-vs-diy":         "2026-05-16",
+  "geo-vs-traditional-seo":            "2026-05-16",
+  "aeo-vs-traditional-seo":            "2026-05-16",
+  "international-seo-vs-local-seo":    "2026-05-16",
+  "programmatic-seo-vs-editorial":     "2026-05-16",
+  "white-hat-seo-vs-black-hat":        "2026-05-16",
 };
 
 /**
