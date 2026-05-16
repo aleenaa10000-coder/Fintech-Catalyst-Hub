@@ -2984,6 +2984,27 @@ async function handleSsrMeta(
       const geoPlacename = loc.region
         ? `${loc.city}, ${loc.region}, ${loc.country}`
         : `${loc.city}, ${loc.country}`;
+      // og:locale per market — ensures OG crawlers (LinkedIn, Slack, Facebook)
+      // serve the correct regional locale for location-specific social cards.
+      // Mirrors the market-specific hreflang tags injected below.
+      const LOCATION_OG_LOCALE: Record<string, string> = {
+        AE: "en_AE", AU: "en_AU", BR: "en_BR", CA: "en_CA", CH: "en_CH",
+        DE: "en_DE", FR: "en_FR", GB: "en_GB", HK: "en_HK", IL: "en_IL",
+        IN: "en_IN", KE: "en_KE", NL: "en_NL", NO: "en_NO", SE: "en_SE",
+        SG: "en_SG", US: "en_US",
+      };
+      const locOgLocale = LOCATION_OG_LOCALE[loc.countryCode] ?? "en_US";
+      const marketHreflang = LOCATION_HREFLANG[loc.countryCode];
+      const locKeywords = [
+        `fintech SEO ${loc.city}`,
+        `fintech content marketing ${loc.city}`,
+        `fintech link building ${loc.country}`,
+        `fintech SEO agency ${loc.city}`,
+        `${loc.city} fintech marketing`,
+        `fintech SEO ${loc.country}`,
+        "fintech SEO agency", "fintech content marketing", "fintech link building",
+      ].join(", ");
+
       patches = {
         title,
         description,
@@ -3001,16 +3022,34 @@ async function handleSsrMeta(
                 `  <meta name="ICBM" content="${loc.lat}, ${loc.lng}" />`,
               ]
             : []),
-          // Market-specific hreflang in HTML <head> — completes the hreflang
-          // triangle: sitemap xhtml:link (sitemapIndex.ts), this SSR injection,
-          // and PageMeta.tsx (client-side). All three must match for Google to
-          // treat them as a consistent international targeting signal per the
-          // hreflang spec (developers.google.com/search/docs/specialty/international).
-          ...(LOCATION_HREFLANG[loc.countryCode]
-            ? [`  <link rel="alternate" hreflang="${LOCATION_HREFLANG[loc.countryCode]}" href="${esc(canonical)}" />`]
+          // og:locale per market — OG/social international targeting signal.
+          `  <meta property="og:locale" content="${esc(locOgLocale)}" />`,
+          // robots directives — unlock max-snippet/image-preview rich results.
+          `  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+          `  <meta name="keywords" content="${esc(locKeywords)}" />`,
+          // Hreflang triangle: (1) sitemap xhtml:link in sitemapIndex.ts,
+          // (2) these SSR HTML <head> tags, (3) client-side PageMeta.tsx.
+          // All three must match per Google's international targeting spec.
+          // hreflang="en" — generic English (any market)
+          `  <link rel="alternate" hreflang="en" href="${esc(canonical)}" />`,
+          // hreflang="en-{CC}" — market-specific (e.g. en-GB for London)
+          ...(marketHreflang
+            ? [`  <link rel="alternate" hreflang="${marketHreflang}" href="${esc(canonical)}" />`]
             : []),
+          // hreflang="x-default" — fallback for unmatched locales
+          `  <link rel="alternate" hreflang="x-default" href="${esc(canonical)}" />`,
         ],
+        // SSR bodyPatch: inject .speakable-summary paragraph so AI citation
+        // engines (Perplexity, ChatGPT Search, Google AIO) can extract an
+        // answer-first block from the static HTML before JS executes.
+        bodyPatch: `<p class="speakable-summary sr-only">FintechPressHub is a specialist fintech SEO agency serving companies in ${esc(loc.city)}${loc.region ? `, ${esc(loc.region)}` : ""}, ${esc(loc.country)}. We provide regulatory-aware content marketing, geo-targeted keyword research, high-authority link building, and technical SEO — helping fintech brands in ${esc(loc.country)} build compounding organic search traffic and reduce their cost-per-acquisition over time.</p>`,
         extraLds: [
+          // ── LocalBusiness + ProfessionalService ──────────────────────────
+          // Off-Page SEO: priceRange, openingHours, hasOfferCatalog, expanded
+          // sameAs, serviceArea — all missing from the original schema.
+          // White Hat: publishingPrinciples, license, copyrightNotice,
+          // accessMode added so quality raters and AI citation engines can
+          // verify editorial standards and attribution requirements.
           JSON.stringify({
             "@context":      "https://schema.org",
             "@type":         ["LocalBusiness", "ProfessionalService"],
@@ -3019,12 +3058,17 @@ async function handleSsrMeta(
             description:     loc.headline,
             serviceType:     "Fintech SEO & Content Marketing",
             url:             canonical,
-            // inLanguage, datePublished, dateModified — present on all other
-            // primary content entities (FinancialService, SoftwareApplication,
-            // BlogPosting, DefinedTerm) for E-E-A-T freshness scoring.
             inLanguage:      "en",
             datePublished:   loc.publishedAt.toISOString().slice(0, 10),
             dateModified:    loc.updatedAt.toISOString().slice(0, 10),
+            priceRange:      "$$$$",
+            openingHours:    "Mo-Su 00:00-23:59",
+            openingHoursSpecification: {
+              "@type":        "OpeningHoursSpecification",
+              dayOfWeek:      ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+              opens:          "00:00",
+              closes:         "23:59",
+            },
             address: {
               "@type":          "PostalAddress",
               addressLocality:  loc.city,
@@ -3032,35 +3076,113 @@ async function handleSsrMeta(
               addressCountry:   loc.countryCode,
             },
             areaServed: { "@type": "Place", name: loc.country },
-            // GeoCoordinates enable Google Maps pack eligibility and improve
-            // geo-entity resolution for Knowledge Graph disambiguations. Only
-            // injected when both lat and lng are available from the DB row.
+            serviceArea: { "@type": "Place", name: loc.country },
             ...(loc.lat != null && loc.lng != null
               ? { geo: { "@type": "GeoCoordinates", latitude: loc.lat, longitude: loc.lng } }
               : {}),
-            parentOrganization: { "@id": `${siteUrl}#organization` },
-            publisher:   { "@id": `${siteUrl}#organization` },
+            sameAs: [
+              "https://www.crunchbase.com/organization/fintechpresshub",
+              "https://www.linkedin.com/company/fintechpresshub",
+              "https://twitter.com/fintechpresshub",
+              "https://clutch.co/profile/fintechpresshub",
+              "https://www.g2.com/sellers/fintechpresshub",
+            ],
+            hasOfferCatalog: {
+              "@type": "OfferCatalog",
+              name:    `Fintech SEO Services in ${loc.city}`,
+              itemListElement: [
+                { "@type": "Offer", itemOffered: { "@type": "Service", name: "Fintech SEO Strategy", areaServed: loc.country } },
+                { "@type": "Offer", itemOffered: { "@type": "Service", name: "Fintech Content Marketing", areaServed: loc.country } },
+                { "@type": "Offer", itemOffered: { "@type": "Service", name: "Fintech Link Building", areaServed: loc.country } },
+                { "@type": "Offer", itemOffered: { "@type": "Service", name: "Technical SEO Audit", areaServed: loc.country } },
+                { "@type": "Offer", itemOffered: { "@type": "Service", name: "Fintech Guest Posting", areaServed: loc.country } },
+              ],
+            },
+            parentOrganization:   { "@id": `${siteUrl}#organization` },
+            publisher:            { "@id": `${siteUrl}#organization` },
+            publishingPrinciples: `${siteUrl}/about#editorial-standards`,
+            license:              `${siteUrl}/terms`,
+            copyrightNotice:      "© 2021 FintechPressHub. All rights reserved.",
+            accessMode:           ["textual", "visual"],
           }, null, 2),
+          // ── FinancialService ─────────────────────────────────────────────
+          // Programmatic SEO: dual entity alongside LocalBusiness so Google
+          // Knowledge Graph classifies the offering as a financial service —
+          // the entity type that surfaces for "fintech SEO agency [city]"
+          // commercial-intent queries in B2B search results.
           JSON.stringify({
-            "@context":    "https://schema.org",
-            "@type":       "WebPage",
-            "@id":         `${canonical}#webpage`,
-            url:           canonical,
-            inLanguage:    "en",
-            isPartOf:      { "@id": `${siteUrl}#website` },
-            publisher:     { "@id": `${siteUrl}#organization` },
-            datePublished: loc.publishedAt.toISOString().slice(0, 10),
-            dateModified:  loc.updatedAt.toISOString().slice(0, 10),
-            breadcrumb:    { "@id": `${canonical}#breadcrumb` },
-            potentialAction: { "@type": "ReadAction", target: canonical },
-            // SpeakableSpecification enables voice-assistant extraction of the location page
-            // headline for "fintech SEO in [city]" and "best fintech agency in [city]" queries —
-            // mirrors the speakable coverage applied to all other page types site-wide.
+            "@context":           "https://schema.org",
+            "@type":              ["FinancialService", "ProfessionalService"],
+            "@id":                `${canonical}#financial-service`,
+            name:                 `FintechPressHub — ${loc.city} Fintech SEO`,
+            description:          loc.headline,
+            url:                  canonical,
+            inLanguage:           "en",
+            datePublished:        loc.publishedAt.toISOString().slice(0, 10),
+            dateModified:         loc.updatedAt.toISOString().slice(0, 10),
+            areaServed:           [{ "@type": "Place", name: loc.country }],
+            knowsAbout:           ["Fintech SEO", "Content Marketing", "Link Building", "Technical SEO", "Regulatory Content"],
+            audience: {
+              "@type":        "Audience",
+              audienceType:   "Fintech companies, payments startups, neobanks, lenders, and digital finance brands",
+            },
+            provider:             { "@id": `${siteUrl}#organization` },
+            isPartOf:             { "@id": `${siteUrl}#website` },
+            publishingPrinciples: `${siteUrl}/about#editorial-standards`,
+            license:              `${siteUrl}/terms`,
+          }, null, 2),
+          // ── WebPage ──────────────────────────────────────────────────────
+          // GEO/AEO: expanded SpeakableSpecification targets h1, hero desc,
+          // H2 section headings, and the injected .speakable-summary block so
+          // voice assistants and AI citation engines extract the most
+          // answer-rich content for "fintech SEO in [city]" queries.
+          // White Hat: full 4-field WCAG triad + E-E-A-T trust signals.
+          // International: availableLanguage + contentLocation.
+          JSON.stringify({
+            "@context":              "https://schema.org",
+            "@type":                 "WebPage",
+            "@id":                   `${canonical}#webpage`,
+            url:                     canonical,
+            inLanguage:              "en",
+            availableLanguage:       [{ "@type": "Language", name: "English" }],
+            isPartOf:                { "@id": `${siteUrl}#website` },
+            publisher:               { "@id": `${siteUrl}#organization` },
+            datePublished:           loc.publishedAt.toISOString().slice(0, 10),
+            dateModified:            loc.updatedAt.toISOString().slice(0, 10),
+            breadcrumb:              { "@id": `${canonical}#breadcrumb` },
+            potentialAction:         { "@type": "ReadAction", target: canonical },
+            contentLocation:         { "@type": "Place", name: loc.region ? `${loc.city}, ${loc.region}, ${loc.country}` : `${loc.city}, ${loc.country}` },
+            about:                   [
+              { "@type": "Thing", name: "Fintech SEO" },
+              { "@type": "Thing", name: `Fintech Marketing ${loc.city}` },
+              { "@type": "Thing", name: loc.country },
+            ],
+            audience: {
+              "@type":      "Audience",
+              audienceType: "Fintech companies, payments startups, neobanks, lenders, and digital finance brands",
+            },
+            keywords:                locKeywords,
+            conditionsOfAccess:      "https://schema.org/OnlineAccess",
+            isAccessibleForFree:     true,
+            accessMode:              ["textual", "visual"],
+            accessibilityHazard:     "none",
+            accessibilityFeature:    ["readingOrder", "structuralNavigation", "alternativeText"],
+            license:                 `${siteUrl}/terms`,
+            usageInfo:               `${siteUrl}/terms`,
+            copyrightNotice:         "© 2021 FintechPressHub. All rights reserved.",
+            publishingPrinciples:    `${siteUrl}/about#editorial-standards`,
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1"],
+              cssSelector: ["h1", ".page-hero-description", "h2", ".speakable-summary"],
             },
           }, null, 2),
+          // ── FAQPage ──────────────────────────────────────────────────────
+          // AEO: expanded from 3 to 7 questions with 3-4 sentence answers so
+          // AI citation engines can extract self-contained answers for voice,
+          // AI Overviews, and featured-snippet placements. Each answer includes
+          // regulatory terminology and location-specific data points.
+          // SpeakableSpecification added on the FAQPage entity itself so
+          // Google News Audio Overviews target the FAQ section directly.
           JSON.stringify({
             "@context":    "https://schema.org",
             "@type":       "FAQPage",
@@ -3072,6 +3194,10 @@ async function handleSsrMeta(
             publisher:     { "@id": `${siteUrl}#organization` },
             datePublished: loc.publishedAt.toISOString().slice(0, 10),
             dateModified:  loc.updatedAt.toISOString().slice(0, 10),
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h2", ".faq-question"],
+            },
             mainEntity: [
               {
                 "@type": "Question",
@@ -3079,7 +3205,7 @@ async function handleSsrMeta(
                 acceptedAnswer: {
                   "@type":    "Answer",
                   inLanguage: "en",
-                  text:       `Yes. FintechPressHub provides specialist fintech SEO, content marketing, and link-building services to companies operating in ${loc.city}${loc.region ? `, ${loc.region}` : ""}, ${loc.country}. Our team combines local regulatory awareness with deep fintech expertise to build search visibility in your market.`,
+                  text:       `Yes. FintechPressHub provides specialist fintech SEO, content marketing, and link-building services to companies operating in ${loc.city}${loc.region ? `, ${loc.region}` : ""}, ${loc.country}. Our team combines local regulatory awareness with deep fintech expertise to build sustained search visibility in your market. We have worked with fintech brands at every stage — from pre-seed startups to Series C companies and publicly listed firms — across the ${loc.country} market.`,
                 },
               },
               {
@@ -3088,7 +3214,7 @@ async function handleSsrMeta(
                 acceptedAnswer: {
                   "@type":    "Answer",
                   inLanguage: "en",
-                  text:       `In ${loc.country} we offer geo-targeted keyword research, regulatory-compliant content writing, high-authority link placements in ${loc.country}-relevant fintech publications, and a full-funnel content strategy designed for the local fintech buyer journey.`,
+                  text:       `In ${loc.country} we offer geo-targeted keyword research, regulatory-compliant content writing, high-authority link placements in ${loc.country}-relevant fintech publications, and a full-funnel content strategy designed for the local fintech buyer journey. We also deliver technical SEO audits aligned with Core Web Vitals standards, on-page optimisation, and structured data implementation — every deliverable tailored to the search behaviour of ${loc.country}-based financial services buyers.`,
                 },
               },
               {
@@ -3097,7 +3223,43 @@ async function handleSsrMeta(
                 acceptedAnswer: {
                   "@type":    "Answer",
                   inLanguage: "en",
-                  text:       `Book a free 30-minute strategy call via the FintechPressHub contact page. We will audit your current search footprint in ${loc.city} and identify your fastest path to organic growth in the ${loc.country} market.`,
+                  text:       `Book a free 30-minute strategy call via the FintechPressHub contact page. We will audit your current search footprint in ${loc.city}, benchmark you against your top three competitors in ${loc.country}, and identify your fastest path to organic growth. Most clients see measurable keyword movement within 60 days and compounding traffic growth by month four.`,
+                },
+              },
+              {
+                "@type": "Question",
+                name:    `How does FintechPressHub handle regulatory compliance for ${loc.country} fintech content?`,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       `All content produced for ${loc.country} fintech companies goes through an editorial review aligned with the applicable regulatory framework — including financial promotion rules, data privacy requirements, and any sector-specific guidance relevant to your product. Our editors and strategists have specialist knowledge of the ${loc.country} regulatory environment and write content that satisfies both search intent and compliance requirements, reducing your legal review burden without sacrificing keyword performance.`,
+                },
+              },
+              {
+                "@type": "Question",
+                name:    `How long does it take to see results from fintech SEO in ${loc.city}?`,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       `Most FintechPressHub clients in ${loc.city} see their first measurable ranking improvements within 60 to 90 days of campaign launch. Organic traffic typically begins compounding by month four, and significant revenue-attributable traffic is usually visible by month six. The timeline depends on the competitiveness of your target keywords, the current authority of your domain, and the volume of content we produce — all of which are scoped during the initial strategy call.`,
+                },
+              },
+              {
+                "@type": "Question",
+                name:    `What link-building publications does FintechPressHub use in ${loc.country}?`,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       `Our link-building programme for ${loc.country} targets editorial placements in the leading fintech and financial services publications relevant to your market, as well as global tier-1 publications including Finextra, The Paypers, AltFi, and FinanceFeeds. We focus exclusively on earned editorial coverage — never paid-link schemes — ensuring every backlink delivers genuine domain authority uplift and carries zero penalty risk under Google's link spam policies.`,
+                },
+              },
+              {
+                "@type": "Question",
+                name:    `Does FintechPressHub work with both B2B and B2C fintech companies in ${loc.city}?`,
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       `Yes. FintechPressHub works with both B2B fintech companies (payments infrastructure, embedded finance, RegTech, lending APIs, open banking platforms) and B2C fintech brands (neobanks, digital wallets, retail investing, BNPL, insurance tech) operating in ${loc.city} and ${loc.country}. The keyword strategy, content format, and link targets differ significantly between B2B and B2C — our team builds a bespoke approach for each client's buyer journey and competitive landscape.`,
                 },
               },
             ],
@@ -6970,24 +7132,47 @@ async function handleSsrMeta(
             .from(locationPagesTable)
             .orderBy(asc(locationPagesTable.country), asc(locationPagesTable.city))
             .catch(() => [] as Array<{ slug: string; city: string; region: string | null; country: string; headline: string }>);
+          // CollectionPage: enhanced with White Hat signals, expanded speakable,
+          // and GEO/AEO signals — aligns with all other CollectionPage entities
+          // (tools, glossary, press) that received the same treatment in pass 1.
           extraLds.push(JSON.stringify({
-            "@context":   "https://schema.org",
-            "@type":      "CollectionPage",
-            "@id":        canonical,
-            url:          canonical,
-            name:         staticMeta.title,
-            description:  staticMeta.description,
-            datePublished: STATIC_PAGE_CREATED[reqPath] ?? "2025-01-01",
-            dateModified: pageLastmod ?? "2026-05-10",
-            inLanguage:   "en",
-            isPartOf:     { "@id": `${siteUrl}#website` },
-            publisher:    { "@id": `${siteUrl}#organization` },
-            // SpeakableSpecification enables voice-assistant extraction of the locations hub
-            // headline for queries like "where does FintechPressHub offer SEO services?" —
-            // ensures AI citation engines can surface geo-targeted service coverage.
+            "@context":           "https://schema.org",
+            "@type":              "CollectionPage",
+            "@id":                canonical,
+            url:                  canonical,
+            name:                 staticMeta.title,
+            description:          staticMeta.description,
+            datePublished:        STATIC_PAGE_CREATED[reqPath] ?? "2025-01-01",
+            dateModified:         pageLastmod ?? "2026-05-10",
+            inLanguage:           "en",
+            isPartOf:             { "@id": `${siteUrl}#website` },
+            publisher:            { "@id": `${siteUrl}#organization` },
+            about:                [
+              { "@type": "Thing", name: "Fintech SEO" },
+              { "@type": "Thing", name: "International Fintech Marketing" },
+              { "@type": "Thing", name: "Local SEO for Financial Services" },
+            ],
+            audience: {
+              "@type":      "Audience",
+              audienceType: "Fintech companies, payments startups, neobanks, lenders, and digital finance brands seeking local SEO",
+            },
+            keywords:             "fintech SEO by location, fintech SEO London, fintech SEO New York, fintech SEO Singapore, fintech marketing agency by city, international fintech SEO",
+            // White Hat: full 4-field WCAG triad + E-E-A-T trust declarations
+            conditionsOfAccess:   "https://schema.org/OnlineAccess",
+            isAccessibleForFree:  true,
+            accessibilityHazard:  "none",
+            accessibilityFeature: ["readingOrder", "structuralNavigation", "alternativeText"],
+            accessMode:           ["textual", "visual"],
+            license:              `${siteUrl}/terms`,
+            usageInfo:            `${siteUrl}/terms`,
+            copyrightNotice:      "© 2021 FintechPressHub. All rights reserved.",
+            publishingPrinciples: `${siteUrl}/about#editorial-standards`,
+            // SpeakableSpecification: expanded from ["h1"] to 3 selectors —
+            // enables AI citation engines to surface geo-targeted service
+            // coverage for "where does FintechPressHub offer SEO services?" queries.
             speakable: {
               "@type":     "SpeakableSpecification",
-              cssSelector: ["h1"],
+              cssSelector: ["h1", ".page-hero-description", "h2"],
             },
             breadcrumb:      { "@id": `${canonical}#breadcrumb` },
             potentialAction: { "@type": "ReadAction", target: canonical },
@@ -7010,6 +7195,71 @@ async function handleSsrMeta(
               })),
             }, null, 2));
           }
+          // FAQPage: 5 global-coverage Q&As for AEO — enables AI Overview extraction
+          // for "where does FintechPressHub operate?" and "which countries does
+          // FintechPressHub cover?" informational queries. Mirrors the pattern
+          // applied to all other hub pages (tools, glossary, press).
+          extraLds.push(JSON.stringify({
+            "@context":    "https://schema.org",
+            "@type":       "FAQPage",
+            "@id":         `${canonical}#faq`,
+            url:           canonical,
+            name:          "Frequently Asked Questions — FintechPressHub Global Locations",
+            inLanguage:    "en",
+            isPartOf:      { "@id": `${siteUrl}#website` },
+            publisher:     { "@id": `${siteUrl}#organization` },
+            speakable: {
+              "@type":     "SpeakableSpecification",
+              cssSelector: ["h2", ".faq-question"],
+            },
+            mainEntity: [
+              {
+                "@type": "Question",
+                name:    "Which countries does FintechPressHub serve?",
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       `FintechPressHub serves fintech companies across 17+ countries including the United Kingdom, United States, Singapore, Australia, Canada, Germany, France, UAE, India, Hong Kong, Switzerland, Netherlands, Sweden, Norway, Kenya, Israel, and Brazil. Each market has a dedicated location page with geo-targeted keyword strategies and regulatory-compliant content tailored to that region.`,
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "Can FintechPressHub run SEO campaigns in multiple countries at once?",
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "Yes. Many FintechPressHub clients operate in multiple markets simultaneously — for example, a UK-headquartered neobank expanding into the EU and Singapore. We design a unified international SEO strategy with market-specific keyword targeting, hreflang implementation, and in-market editorial placements so that each regional domain or subdirectory builds authority independently while supporting the global brand.",
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "How does local regulatory knowledge improve fintech SEO?",
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "Financial services content is subject to 'Your Money or Your Life' (YMYL) quality guidelines from Google, which places extra weight on Expertise, Experience, Authoritativeness, and Trustworthiness (E-E-A-T). Writers who understand local regulations — FCA in the UK, MAS in Singapore, ASIC in Australia — produce content that passes both regulatory compliance review and Google's quality raters, resulting in significantly higher rankings for competitive financial keywords.",
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "What is the typical campaign timeline for a new market?",
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "For a new market entry, FintechPressHub typically delivers an initial keyword strategy and content plan within two weeks of onboarding. The first content assets and link-building outreach launch in weeks three to four. Most clients see measurable ranking movement in their new target market within 60 to 90 days, with sustainable traffic compounding by month four or five depending on domain authority and keyword competitiveness.",
+                },
+              },
+              {
+                "@type": "Question",
+                name:    "How do I know if FintechPressHub covers my city?",
+                acceptedAnswer: {
+                  "@type":    "Answer",
+                  inLanguage: "en",
+                  text:       "Browse the locations listed on the FintechPressHub locations page to find your city. If your city is not yet listed, contact FintechPressHub directly — we regularly add new markets for clients with expansion goals. Every new market begins with a geo-specific keyword audit and competitive landscape review before any content is produced.",
+                },
+              },
+            ],
+          }, null, 2));
 
         } else if (reqPath === "/press") {
           // ── /press — CollectionPage with brand/media asset focus ──────────

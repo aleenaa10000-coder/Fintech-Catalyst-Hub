@@ -413,10 +413,11 @@ async function buildLocationsSitemapXml(): Promise<string> {
         `    <loc>${escapeXml(url)}</loc>\n` +
         `    <lastmod>${lastmod}</lastmod>\n` +
         `    <changefreq>monthly</changefreq>\n` +
-        `    <priority>0.7</priority>\n` +
+        `    <priority>0.8</priority>\n` +
         `    <image:image>\n` +
         `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
         `      <image:title>${escapeXml(loc.city)}</image:title>\n` +
+        `      <image:caption>${escapeXml(`Fintech SEO services in ${loc.city} — FintechPressHub`)}</image:caption>\n` +
         `    </image:image>\n` +
         `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(url)}"/>\n` +
         (marketHreflang ? `    <xhtml:link rel="alternate" hreflang="${marketHreflang}" href="${escapeXml(url)}"/>\n` : "") +

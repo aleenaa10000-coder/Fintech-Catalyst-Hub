@@ -61,6 +61,7 @@ router.get("/locations", async (_req, res, next) => {
       .select()
       .from(locationPagesTable)
       .orderBy(asc(locationPagesTable.country), asc(locationPagesTable.city));
+    res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
     res.json(rows);
   } catch (err) {
     next(err);
@@ -79,6 +80,7 @@ router.get("/locations/:slug", async (req, res, next) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
+    res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
     res.json(row);
   } catch (err) {
     next(err);
