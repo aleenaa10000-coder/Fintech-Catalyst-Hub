@@ -95,6 +95,7 @@ type BlogPostRow = {
   reading_minutes: number;
   featured: boolean;
   published_at: string;
+  faq_items?: Array<{ question: string; answer: string }>;
 };
 
 type ReferringDomainSeedRow = {
@@ -215,6 +216,7 @@ export async function runSeed(db: AnyDb): Promise<SeedReport> {
       readingMinutes: r.reading_minutes,
       featured: r.featured,
       publishedAt: new Date(r.published_at),
+      ...(r.faq_items ? { faqItems: r.faq_items } : {}),
     }));
     await db.insert(blogPostsTable).values(rows);
     report.blogPosts = rows.length;
