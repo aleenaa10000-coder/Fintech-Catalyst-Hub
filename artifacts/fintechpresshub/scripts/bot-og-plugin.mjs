@@ -892,6 +892,171 @@ const TOOL_META = {
   },
 };
 
+// ---------- per-tool extra metadata (howtoSteps, BLUF, related tools, dates) ─
+const TOOL_PAGE_EXTRA = {
+  readabilityChecker: {
+    dateModified: "2026-05-16",
+    dateCreated:  "2024-01-15",
+    bluf: "Free browser-based readability checker. Scores text on the Flesch Reading Ease scale (0–100) and Flesch-Kincaid Grade Level. Used by 312+ fintech marketers. No text is sent to any server.",
+    howtoSteps: [
+      { name: "Paste your content",   text: "Copy your fintech article, landing page copy, or email into the text area." },
+      { name: "Click Analyse",        text: "Click Analyse to run the Flesch Reading Ease and Flesch-Kincaid Grade Level calculations." },
+      { name: "Review your score",    text: "Check your score — aim for 55–65 for retail fintech content, 65+ for consumer-facing pages." },
+      { name: "Apply suggestions",    text: "Use the highlighted long sentences and complex-word flags to rewrite problem areas." },
+    ],
+    relatedTools: [
+      { slug: "headline-analyzer",          name: "Headline Analyzer" },
+      { slug: "meta-description-generator", name: "Meta Description Generator" },
+      { slug: "content-brief-generator",    name: "Content Brief Generator" },
+    ],
+  },
+  metaDescriptionGenerator: {
+    dateModified: "2026-05-16",
+    dateCreated:  "2024-01-15",
+    bluf: "Free meta description generator for fintech pages. Input your topic, keyword, and tone to receive an SEO-optimised meta description under 155 characters instantly. Used by 218+ fintech SEO teams.",
+    howtoSteps: [
+      { name: "Enter your page topic",   text: "Type the main topic of your fintech page, e.g. 'open banking API platform'." },
+      { name: "Add your target keyword", text: "Enter the primary keyword to include in the meta description." },
+      { name: "Select tone",             text: "Choose professional, conversational, or urgency-driven tone." },
+      { name: "Generate and review",     text: "Click Generate. Review the output against the 155-character limit and edit for brand voice." },
+    ],
+    relatedTools: [
+      { slug: "headline-analyzer",       name: "Headline Analyzer" },
+      { slug: "readability-checker",     name: "Readability Checker" },
+      { slug: "content-brief-generator", name: "Content Brief Generator" },
+    ],
+  },
+  headlineAnalyzer: {
+    dateModified: "2026-05-16",
+    dateCreated:  "2024-01-15",
+    bluf: "Free headline analyser for fintech content. Scores headlines on word balance, emotional impact, power words, and character count. Targeting 70+ improves CTR for fintech articles. Used by 274+ fintech writers.",
+    howtoSteps: [
+      { name: "Type your headline",      text: "Enter your proposed article headline or blog post title." },
+      { name: "Click Analyse Headline",  text: "Click the button to run word balance, emotional word, power word, and character-count analysis." },
+      { name: "Review the score",        text: "Check your overall score (aim for 70+) and the breakdown by word type." },
+      { name: "Rewrite and re-test",     text: "Adjust your headline — add power words, improve emotional balance — and re-run until you hit 70+." },
+    ],
+    relatedTools: [
+      { slug: "readability-checker",         name: "Readability Checker" },
+      { slug: "meta-description-generator",  name: "Meta Description Generator" },
+      { slug: "content-brief-generator",     name: "Content Brief Generator" },
+    ],
+  },
+  keywordDifficultyEstimator: {
+    dateModified: "2026-05-16",
+    dateCreated:  "2024-01-15",
+    bluf: "Free keyword difficulty estimator for fintech SEO. Estimates KD score (0–100) for any fintech keyword based on SERP competition proxies. Helps fintech teams prioritise winnable keywords. Used by 156+ SEO teams.",
+    howtoSteps: [
+      { name: "Enter your keyword",          text: "Type the fintech keyword you are evaluating, e.g. 'embedded finance platform'." },
+      { name: "Click Estimate Difficulty",   text: "Click the button to calculate the estimated KD score and ranking feasibility." },
+      { name: "Review the difficulty tier",  text: "Check if the keyword falls in easy (0–30), medium (31–60), hard (61–80), or very hard (81–100) range." },
+      { name: "Compare to your DR",          text: "Assess whether your current Domain Rating can realistically compete for this keyword tier." },
+    ],
+    relatedTools: [
+      { slug: "content-brief-generator",   name: "Content Brief Generator" },
+      { slug: "backlink-value-estimator",  name: "Backlink Value Estimator" },
+      { slug: "readability-checker",       name: "Readability Checker" },
+    ],
+  },
+  financialHealthCalculator: {
+    dateModified: "2026-05-16",
+    dateCreated:  "2024-01-15",
+    bluf: "Free financial health score calculator. Enter income, debts, savings, and emergency fund to get a composite score (0–100) based on DTI, savings rate, and emergency fund benchmarks. Used by 289+ fintech users.",
+    howtoSteps: [
+      { name: "Enter your income",                   text: "Input your gross monthly income." },
+      { name: "Add your monthly debts",              text: "Enter total monthly debt repayments — loans, credit cards, and mortgages." },
+      { name: "Fill in savings and emergency fund",  text: "Enter your monthly savings amount and current emergency fund balance." },
+      { name: "Calculate your score",                text: "Click Calculate to get your composite financial health score and component breakdown." },
+      { name: "Review improvement tips",             text: "Read the personalised suggestions for savings rate, DTI, and emergency fund coverage." },
+    ],
+    relatedTools: [
+      { slug: "readability-checker",          name: "Readability Checker" },
+      { slug: "keyword-difficulty-estimator", name: "Keyword Difficulty Estimator" },
+      { slug: "content-brief-generator",      name: "Content Brief Generator" },
+    ],
+  },
+  backlinkValueEstimator: {
+    dateModified: "2026-05-16",
+    dateCreated:  "2024-01-15",
+    bluf: "Free backlink value estimator for fintech link building. Input domain rating, relevance, link type, and placement to get a value score. Helps fintech teams prioritise outreach lists. Used by 127+ link builders.",
+    howtoSteps: [
+      { name: "Enter the domain's DR",   text: "Input the Domain Rating of the website that would provide the backlink." },
+      { name: "Rate topical relevance",  text: "Score the site's relevance to fintech or financial services." },
+      { name: "Select link type",        text: "Choose dofollow or nofollow and the placement (editorial body vs. footer vs. sidebar)." },
+      { name: "Get your value score",    text: "Click Estimate Value to see the backlink value score and priority recommendation." },
+    ],
+    relatedTools: [
+      { slug: "link-prospector",           name: "Link Prospector" },
+      { slug: "guest-post-pitch-generator", name: "Guest Post Pitch Generator" },
+      { slug: "outreach-email-generator",  name: "Outreach Email Generator" },
+    ],
+  },
+  guestPostPitchGenerator: {
+    dateModified: "2026-05-16",
+    dateCreated:  "2024-01-15",
+    bluf: "Free guest post pitch generator for fintech link building. Input the target publication, your niche, topic, and credentials to generate a personalised pitch email in seconds. Used by 189+ fintech PR teams.",
+    howtoSteps: [
+      { name: "Enter the target publication", text: "Type the name of the fintech publication you are pitching, e.g. 'Finextra' or 'The Financial Brand'." },
+      { name: "Add your topic and niche",     text: "Enter your proposed article topic and fintech sub-niche." },
+      { name: "Fill in your credentials",     text: "Add a brief credibility statement — your title, company, and a relevant published piece." },
+      { name: "Generate and personalise",     text: "Click Generate Pitch to get your draft email. Edit the opener to reference a specific recent article on the target site." },
+    ],
+    relatedTools: [
+      { slug: "outreach-email-generator",  name: "Outreach Email Generator" },
+      { slug: "backlink-value-estimator",  name: "Backlink Value Estimator" },
+      { slug: "link-prospector",           name: "Link Prospector" },
+    ],
+  },
+  linkProspector: {
+    dateModified: "2026-05-16",
+    dateCreated:  "2024-01-15",
+    bluf: "Free link prospecting tool for fintech SEO. Score potential link prospects on domain authority, topical relevance, traffic quality, and outreach accessibility. Prioritise outreach lists in minutes. Used by 98+ fintech link builders.",
+    howtoSteps: [
+      { name: "Enter the prospect domain", text: "Type the website URL you are evaluating as a potential backlink source." },
+      { name: "Score domain authority",    text: "Enter the Domain Rating or authority metric for the prospect." },
+      { name: "Rate topical relevance",    text: "Assess how closely the site covers fintech or financial services." },
+      { name: "Calculate priority score",  text: "Click Evaluate Prospect to get a composite score and outreach priority recommendation." },
+    ],
+    relatedTools: [
+      { slug: "backlink-value-estimator",   name: "Backlink Value Estimator" },
+      { slug: "outreach-email-generator",   name: "Outreach Email Generator" },
+      { slug: "guest-post-pitch-generator", name: "Guest Post Pitch Generator" },
+    ],
+  },
+  outreachEmailGenerator: {
+    dateModified: "2026-05-16",
+    dateCreated:  "2024-01-15",
+    bluf: "Free outreach email generator for fintech link building. Input the prospect, context, and goal to generate personalised outreach emails. Achieves 10–20% response rates for fintech teams. Used by 167+ SEO teams.",
+    howtoSteps: [
+      { name: "Enter recipient details",  text: "Add the editor's or webmaster's name and their publication URL." },
+      { name: "Choose outreach type",     text: "Select your goal — guest post pitch, link reclamation, broken link, or resource addition." },
+      { name: "Add context",              text: "Enter a brief personalisation hook — a recent article or shared connection." },
+      { name: "Generate your email",      text: "Click Generate Email to get a personalised draft. Edit the first line to make it specific to the recipient." },
+    ],
+    relatedTools: [
+      { slug: "guest-post-pitch-generator", name: "Guest Post Pitch Generator" },
+      { slug: "link-prospector",            name: "Link Prospector" },
+      { slug: "backlink-value-estimator",   name: "Backlink Value Estimator" },
+    ],
+  },
+  contentBriefGenerator: {
+    dateModified: "2026-05-16",
+    dateCreated:  "2024-01-15",
+    bluf: "Free content brief generator for fintech SEO. Input your target keyword, audience, and intent to generate a structured content brief with H2 headings, word count, semantic keywords, and internal link suggestions. Used by 203+ fintech content teams.",
+    howtoSteps: [
+      { name: "Enter your target keyword",   text: "Type the primary fintech keyword the article should target." },
+      { name: "Define audience and intent",  text: "Select the target audience and search intent (informational or commercial)." },
+      { name: "Add competitor URLs",         text: "Optionally enter 2–3 competitor article URLs for content gap analysis." },
+      { name: "Generate the brief",          text: "Click Generate Brief to receive a structured outline with H2s, word count, semantic keywords, and internal links." },
+    ],
+    relatedTools: [
+      { slug: "readability-checker",          name: "Readability Checker" },
+      { slug: "headline-analyzer",            name: "Headline Analyzer" },
+      { slug: "keyword-difficulty-estimator", name: "Keyword Difficulty Estimator" },
+    ],
+  },
+};
+
 async function _buildMeta(pathname, siteUrl, apiBase) {
   // Always include the path. For the root ("/") we keep the trailing slash so
   // the canonical here matches what index.html and the sitemap emit.
@@ -1012,9 +1177,26 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
           url: `${canonical}#faq`,
         })),
       });
+    } else if (key === "toolsIndex") {
+      const toolPagesList = Object.entries(PAGE_META)
+        .filter(([, pm]) => pm.path !== "/tools" && pm.path.startsWith("/tools"))
+        .map(([, pm]) => ({
+          name: pm.title.split("|")[0].trim(),
+          url:  `${siteUrl}${pm.path}`,
+        }));
+      extraSchema = itemListSchema({
+        name:  "Free Fintech Marketing Tools",
+        items: toolPagesList,
+      });
+      bodySections.push({
+        heading: "Free Fintech SEO Tools",
+        list: toolPagesList,
+      });
     } else if (pathname.startsWith("/tools/") && pathname !== "/tools") {
       const leafLabel = m.title.split("|")[0].trim();
       const toolData  = TOOL_META[key] ?? {};
+      const toolExtra = TOOL_PAGE_EXTRA[key] ?? {};
+      const thumbUrl  = `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Free+Tool`;
       extraSchema = {
         "@context":           "https://schema.org",
         "@type":              "SoftwareApplication",
@@ -1026,6 +1208,10 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         operatingSystem:      "Web",
         interactivityType:    "active",
         isAccessibleForFree:  true,
+        ...(toolExtra.dateModified ? { dateModified: `${toolExtra.dateModified}T00:00:00.000Z` } : {}),
+        ...(toolExtra.dateCreated  ? { dateCreated:  `${toolExtra.dateCreated}T00:00:00.000Z`  } : {}),
+        thumbnailUrl: thumbUrl,
+        screenshot:   { "@type": "ImageObject", url: thumbUrl, description: leafLabel },
         offers: {
           "@type":       "Offer",
           price:         "0",
@@ -1045,6 +1231,16 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
       };
       // Assign tool-specific FAQs so faqSchema() below emits a FAQPage block
       if (toolData.faqs?.length) faqs = toolData.faqs;
+      // Related tools cross-links in body
+      if (toolExtra.relatedTools?.length) {
+        bodySections.push({
+          heading: "Related Free Tools",
+          list: toolExtra.relatedTools.map((t) => ({
+            name: t.name,
+            url:  `${siteUrl}/tools/${t.slug}`,
+          })),
+        });
+      }
     } else if (pathname.startsWith("/compare/") && pathname !== "/compare") {
       const leafLabel = m.title.split("|")[0].trim();
       extraSchema = {
@@ -1075,6 +1271,73 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
 
     const isToolPage = pathname.startsWith("/tools/") && pathname !== "/tools";
 
+    // Build per-tool extra schemas (HowTo, WebPage+Speakable) and hreflang meta
+    const toolSchemas   = [];
+    const toolExtraMeta = [];
+    if (isToolPage) {
+      const toolExtra = TOOL_PAGE_EXTRA[key] ?? {};
+      const leafLabel = m.title.split("|")[0].trim();
+      const thumbUrl  = `${siteUrl}/api/og?title=${encodeURIComponent(leafLabel)}&category=Free+Tool`;
+
+      // HowTo schema — AEO + On-Page SEO
+      if (toolExtra.howtoSteps?.length) {
+        toolSchemas.push({
+          "@context":  "https://schema.org",
+          "@type":     "HowTo",
+          "@id":       `${canonical}#howto`,
+          name:        `How to use the ${leafLabel}`,
+          description: toolExtra.bluf ?? m.description,
+          tool:        { "@type": "HowToTool", name: leafLabel },
+          step: toolExtra.howtoSteps.map((s, i) => ({
+            "@type":   "HowToStep",
+            position:  i + 1,
+            name:      s.name,
+            text:      s.text,
+          })),
+        });
+      }
+
+      // WebPage schema with SpeakableSpecification + E-E-A-T signals
+      toolSchemas.push({
+        "@context":          "https://schema.org",
+        "@type":             "WebPage",
+        "@id":               `${canonical}#webpage`,
+        url:                 canonical,
+        name:                leafLabel,
+        description:         toolExtra.bluf ?? m.description,
+        ...(toolExtra.dateModified ? { dateModified: `${toolExtra.dateModified}T00:00:00.000Z` } : {}),
+        ...(toolExtra.dateCreated  ? { dateCreated:  `${toolExtra.dateCreated}T00:00:00.000Z`  } : {}),
+        isAccessibleForFree: true,
+        inLanguage:          "en",
+        author:              { "@id": `${siteUrl}#organization` },
+        publisher:           { "@id": `${siteUrl}#organization` },
+        thumbnailUrl:        thumbUrl,
+        speakable: {
+          "@type":     "SpeakableSpecification",
+          cssSelector: [".speakable-summary", "h1", ".tool-bluf"],
+        },
+        ...(toolExtra.relatedTools?.length ? {
+          relatedLink: toolExtra.relatedTools.map((t) => `${siteUrl}/tools/${t.slug}`),
+        } : {}),
+      });
+
+      // hreflang + og:locale:alternate — International SEO
+      toolExtraMeta.push(
+        `<link rel="alternate" hreflang="en"        href="${escapeHtml(canonical)}" />`,
+        `<link rel="alternate" hreflang="en-US"     href="${escapeHtml(canonical)}" />`,
+        `<link rel="alternate" hreflang="en-GB"     href="${escapeHtml(canonical)}" />`,
+        `<link rel="alternate" hreflang="en-AU"     href="${escapeHtml(canonical)}" />`,
+        `<link rel="alternate" hreflang="en-SG"     href="${escapeHtml(canonical)}" />`,
+        `<link rel="alternate" hreflang="en-CA"     href="${escapeHtml(canonical)}" />`,
+        `<link rel="alternate" hreflang="x-default" href="${escapeHtml(canonical)}" />`,
+        `<meta http-equiv="content-language" content="en" />`,
+        `<meta property="og:locale:alternate" content="en_GB" />`,
+        `<meta property="og:locale:alternate" content="en_AU" />`,
+        `<meta property="og:locale:alternate" content="en_SG" />`,
+        `<meta property="og:locale:alternate" content="en_CA" />`,
+      );
+    }
+
     return {
       title: m.title,
       description: m.description,
@@ -1088,8 +1351,9 @@ async function _buildMeta(pathname, siteUrl, apiBase) {
         breadcrumbSchema(pathname, m.title.split("|")[0].trim(), siteUrl),
         extraSchema,
         faqSchema(faqs),
+        ...toolSchemas,
       ],
-      ...(isToolPage ? { extraMeta: [`<meta http-equiv="content-language" content="en" />`] } : {}),
+      ...(isToolPage ? { extraMeta: toolExtraMeta } : {}),
       bodyContent,
     };
   }
