@@ -101,7 +101,7 @@ function htmlWordCount(html: string): number {
     .filter((w) => w.length > 0).length;
 }
 
-const CONTENT_MIN_WORDS = 1500;
+const CONTENT_MIN_WORDS = 800;
 const CONTENT_MAX_WORDS = 3000;
 
 const contentField = z
