@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
 import type { UppyFile, UploadResult } from "@uppy/core";
@@ -114,6 +114,25 @@ export function ObjectUploader({
   onValidationWarning,
 }: ObjectUploaderProps) {
   const [showModal, setShowModal] = useState(false);
+
+  // Keep stable refs to the latest callbacks so the Uppy instance (created
+  // once in useState) always calls the most-recent prop versions.
+  const onGetUploadParametersRef = useRef(onGetUploadParameters);
+  const onCompleteRef = useRef(onComplete);
+  const onValidationWarningRef = useRef(onValidationWarning);
+  const imageMinDimensionsRef = useRef(imageMinDimensions);
+
+  useEffect(() => { onGetUploadParametersRef.current = onGetUploadParameters; }, [onGetUploadParameters]);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+  useEffect(() => { onValidationWarningRef.current = onValidationWarning; }, [onValidationWarning]);
+  useEffect(() => { imageMinDimensionsRef.current = imageMinDimensions; }, [imageMinDimensions]);
+
+  // Map from Uppy file ID → presigned PUT URL, populated when
+  // getUploadParameters is called. GCS presigned PUT responses do not include
+  // a Location header, so Uppy cannot determine the upload URL on its own.
+  // We store it here and inject it back into the complete result ourselves.
+  const uploadURLByFileId = useRef<Map<string, string>>(new Map());
+
   const [uppy] = useState(() => {
     const instance = new Uppy({
       restrictions: {
@@ -124,31 +143,49 @@ export function ObjectUploader({
     })
       .use(AwsS3, {
         shouldUseMultipart: false,
-        getUploadParameters: onGetUploadParameters,
+        getUploadParameters: async (file) => {
+          const params = await onGetUploadParametersRef.current(file);
+          // Store the presigned URL so we can supply it in onComplete.
+          uploadURLByFileId.current.set(file.id, params.url);
+          return params;
+        },
       })
       .on("complete", (result) => {
-        onComplete?.(result);
+        // Uppy's AWS-S3 plugin sets uploadURL from the PUT response's
+        // Location header. GCS signed URLs never return that header, so
+        // uploadURL is undefined. We inject the presigned URL we stored
+        // during getUploadParameters so consumers can use it for finalization.
+        const enriched = {
+          ...result,
+          successful: result.successful?.map((f) => ({
+            ...f,
+            uploadURL: uploadURLByFileId.current.get(f.id) ?? f.uploadURL,
+          })),
+        } as typeof result;
+
+        // Clean up stored URLs for this batch.
+        result.successful?.forEach((f) => uploadURLByFileId.current.delete(f.id));
+        result.failed?.forEach((f) => uploadURLByFileId.current.delete(f.id));
+
+        onCompleteRef.current?.(enriched);
       });
 
-    if (imageMinDimensions) {
-      instance.on("file-added", (file) => {
-        const data = file.data as File | Blob;
-        if (typeof File === "undefined" || !(data instanceof File)) return;
-        void readImageDimensions(data).then((dims) => {
-          if (!dims) return;
-          if (
-            dims.width < imageMinDimensions.width ||
-            dims.height < imageMinDimensions.height
-          ) {
-            const msg =
-              `"${file.name}" is ${dims.width}×${dims.height}px — recommended ` +
-              `at least ${imageMinDimensions.width}×${imageMinDimensions.height}px ` +
-              `for a sharp display. The image will still upload.`;
-            onValidationWarning?.(msg);
-          }
-        });
+    instance.on("file-added", (file) => {
+      const dims = imageMinDimensionsRef.current;
+      if (!dims) return;
+      const data = file.data as File | Blob;
+      if (typeof File === "undefined" || !(data instanceof File)) return;
+      void readImageDimensions(data).then((fileDims) => {
+        if (!fileDims) return;
+        if (fileDims.width < dims.width || fileDims.height < dims.height) {
+          const msg =
+            `"${file.name}" is ${fileDims.width}×${fileDims.height}px — recommended ` +
+            `at least ${dims.width}×${dims.height}px ` +
+            `for a sharp display. The image will still upload.`;
+          onValidationWarningRef.current?.(msg);
+        }
       });
-    }
+    });
 
     return instance;
   });
@@ -168,4 +205,3 @@ export function ObjectUploader({
     </div>
   );
 }
-

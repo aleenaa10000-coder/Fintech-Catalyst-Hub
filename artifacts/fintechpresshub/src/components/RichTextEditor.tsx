@@ -84,7 +84,8 @@ async function uploadImageFile(file: File): Promise<string> {
     objectPath: string;
   };
 
-  return `/objects/${finalPath}`;
+  // finalPath already starts with "/objects/..." — return it as-is.
+  return finalPath;
 }
 
 export function RichTextEditor({
