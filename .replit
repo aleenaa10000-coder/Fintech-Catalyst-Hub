@@ -126,6 +126,8 @@ REPORT_FROM_EMAIL = "FintechPressHub <hello@fintechpresshub.com>"
 ADMIN_EMAILS = "hello@fintechpresshub.com,docalina11@outlook.com,sarah.linkbuildingexpert@hotmail.com"
 CONTACT_NOTIFY_TO = "hello@fintechpresshub.com"
 PITCH_RECIPIENT_EMAIL = "hello@fintechpresshub.com"
+PRIVATE_OBJECT_DIR = "/replit-objstore-6b7fdae2-303e-42ab-b7c8-ae94f42b0217/private"
+PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore-6b7fdae2-303e-42ab-b7c8-ae94f42b0217/public"
 
 [userenv.production]
 INDEXNOW_KEY = "cYBulNRfdK5MiecIhrEQr0r8jh0TI-ow"
