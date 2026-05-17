@@ -3381,6 +3381,186 @@ function formatViews(n: number) {
  * for featured / recently-published posts so an admin never accidentally
  * de-indexes a high-traffic post in a bulk action.
  */
+/**
+ * Dialog for bulk-filling missing SEO metadata (seoTitle / seoDescription)
+ * across a selection of posts. Only fills fields that are currently empty on
+ * each post — existing values are never overwritten.
+ */
+function BulkSeoFillDialog({
+  open,
+  posts,
+  form,
+  isPending,
+  onFormChange,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  posts: BlogPost[];
+  form: { seoTitle: string; seoDescription: string };
+  isPending: boolean;
+  onFormChange: (f: { seoTitle: string; seoDescription: string }) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const willUpdate = posts.filter(
+    (p) =>
+      (!p.seoTitle && form.seoTitle.trim()) ||
+      (!p.seoDescription && form.seoDescription.trim()),
+  );
+  const nothingToFill =
+    (form.seoTitle.trim() || form.seoDescription.trim()) &&
+    willUpdate.length === 0;
+
+  return (
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onCancel();
+      }}
+    >
+      <AlertDialogContent className="max-w-xl">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <Globe className="w-5 h-5 text-[#0052FF]" />
+            Fill missing SEO metadata
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="text-sm text-muted-foreground">
+              {posts.length} selected post{posts.length !== 1 ? "s" : ""}{" "}
+              have incomplete SEO. Values entered below are applied only where
+              the field is currently empty — nothing already filled will be
+              overwritten.
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="space-y-4 py-1">
+          <div>
+            <Label>SEO title</Label>
+            <Input
+              value={form.seoTitle}
+              maxLength={70}
+              placeholder="e.g. Why Fintech SEO Is Different | FintechPressHub"
+              onChange={(e) =>
+                onFormChange({ ...form, seoTitle: e.target.value })
+              }
+            />
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-muted-foreground">
+                Leave blank to skip this field.
+              </p>
+              <span
+                className={`text-xs tabular-nums font-medium ${
+                  form.seoTitle.length > 60
+                    ? "text-destructive"
+                    : form.seoTitle.length > 50
+                      ? "text-amber-600"
+                      : form.seoTitle.length > 0
+                        ? "text-green-700"
+                        : "text-muted-foreground"
+                }`}
+              >
+                {form.seoTitle.length} / 60
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <Label>SEO description</Label>
+            <Textarea
+              rows={2}
+              maxLength={300}
+              value={form.seoDescription}
+              placeholder="e.g. Discover why fintech companies need a different SEO approach…"
+              onChange={(e) =>
+                onFormChange({ ...form, seoDescription: e.target.value })
+              }
+            />
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-muted-foreground">
+                Leave blank to skip this field.
+              </p>
+              <span
+                className={`text-xs tabular-nums font-medium ${
+                  form.seoDescription.length > 160
+                    ? "text-destructive"
+                    : form.seoDescription.length > 130
+                      ? "text-amber-600"
+                      : form.seoDescription.length > 0
+                        ? "text-green-700"
+                        : "text-muted-foreground"
+                }`}
+              >
+                {form.seoDescription.length} / 160
+              </span>
+            </div>
+          </div>
+
+          {willUpdate.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                Will update {willUpdate.length} post
+                {willUpdate.length !== 1 ? "s" : ""}:
+              </p>
+              <div className="max-h-36 overflow-y-auto rounded-md border border-input bg-muted/30 divide-y divide-input">
+                {willUpdate.map((p) => (
+                  <div
+                    key={p.slug}
+                    className="flex items-center justify-between px-3 py-1.5 text-xs"
+                  >
+                    <span className="font-medium truncate flex-1 min-w-0">
+                      {p.title}
+                    </span>
+                    <div className="flex gap-1 ml-2 shrink-0">
+                      {!p.seoTitle && form.seoTitle.trim() && (
+                        <span className="rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-medium">
+                          title
+                        </span>
+                      )}
+                      {!p.seoDescription && form.seoDescription.trim() && (
+                        <span className="rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-medium">
+                          desc
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {nothingToFill && (
+            <p className="text-xs text-muted-foreground text-center py-1">
+              All selected posts already have these fields filled — nothing
+              will change.
+            </p>
+          )}
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isPending} onClick={onCancel}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            disabled={
+              isPending ||
+              willUpdate.length === 0 ||
+              (!form.seoTitle.trim() && !form.seoDescription.trim())
+            }
+            onClick={onConfirm}
+            className="bg-[#0052FF] hover:bg-[#0040cc]"
+          >
+            {isPending
+              ? "Updating…"
+              : `Apply to ${willUpdate.length} post${willUpdate.length !== 1 ? "s" : ""}`}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 function BulkNoIndexImpactDialog({
   open,
   mode,
@@ -3928,6 +4108,9 @@ export default function AdminBlog() {
   // content / re-publish" turnaround for a fintech blog post.
   const [snoozeEnabled, setSnoozeEnabled] = useState(false);
   const [snoozeDays, setSnoozeDays] = useState(14);
+  const [bulkSeoDialogOpen, setBulkSeoDialogOpen] = useState(false);
+  const [bulkSeoForm, setBulkSeoForm] = useState({ seoTitle: "", seoDescription: "" });
+  const [bulkSeoFilling, setBulkSeoFilling] = useState(false);
   // Whether we've already consumed the `?slug=` deep-link query param. We
   // only auto-open once per visit so re-opening the editor doesn't re-trigger
   // when the user later navigates away and back.
@@ -5242,6 +5425,9 @@ export default function AdminBlog() {
             posts,
             "noindex",
           );
+          const seoIncomplete = (posts ?? []).filter(
+            (p) => selectedSlugs.has(p.slug) && (!p.seoTitle || !p.seoDescription),
+          );
           return (
           <div
             className="sticky top-16 z-20 mb-4 rounded-md border bg-background/95 backdrop-blur px-4 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3"
@@ -5324,6 +5510,21 @@ export default function AdminBlog() {
               >
                 <Eye className="w-4 h-4 mr-1.5" /> Remove no-index
               </Button>
+              {seoIncomplete.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={bulkNoIndexMut.isPending || bulkSeoFilling}
+                  onClick={() => {
+                    setBulkSeoForm({ seoTitle: "", seoDescription: "" });
+                    setBulkSeoDialogOpen(true);
+                  }}
+                  data-testid="bulk-fill-seo"
+                >
+                  <Globe className="w-4 h-4 mr-1.5" />
+                  Fill SEO ({seoIncomplete.length})
+                </Button>
+              )}
               <Button
                 size="sm"
                 disabled={bulkNoIndexMut.isPending}
@@ -5446,6 +5647,69 @@ export default function AdminBlog() {
                   ? err.message
                   : "Failed to update posts",
               );
+            }
+          }}
+        />
+
+        <BulkSeoFillDialog
+          open={bulkSeoDialogOpen}
+          posts={(posts ?? []).filter(
+            (p) =>
+              selectedSlugs.has(p.slug) &&
+              (!p.seoTitle || !p.seoDescription),
+          )}
+          form={bulkSeoForm}
+          isPending={bulkSeoFilling}
+          onFormChange={setBulkSeoForm}
+          onCancel={() => {
+            if (!bulkSeoFilling) setBulkSeoDialogOpen(false);
+          }}
+          onConfirm={async () => {
+            const seoTitle = bulkSeoForm.seoTitle.trim() || null;
+            const seoDescription = bulkSeoForm.seoDescription.trim() || null;
+            const incomplete = (posts ?? []).filter(
+              (p) =>
+                selectedSlugs.has(p.slug) &&
+                (!p.seoTitle || !p.seoDescription),
+            );
+            const toUpdate = incomplete.filter(
+              (p) =>
+                (!p.seoTitle && seoTitle) ||
+                (!p.seoDescription && seoDescription),
+            );
+            if (toUpdate.length === 0) {
+              toast.info("No empty fields to fill on the selected posts.");
+              setBulkSeoDialogOpen(false);
+              return;
+            }
+            setBulkSeoFilling(true);
+            try {
+              await Promise.all(
+                toUpdate.map((p) =>
+                  updateBlogPost(p.slug, {
+                    ...(!p.seoTitle && seoTitle ? { seoTitle } : {}),
+                    ...(!p.seoDescription && seoDescription
+                      ? { seoDescription }
+                      : {}),
+                  }),
+                ),
+              );
+              await qc.invalidateQueries({
+                queryKey: getListBlogPostsQueryKey(),
+              });
+              toast.success(
+                `SEO metadata filled on ${toUpdate.length} post${toUpdate.length !== 1 ? "s" : ""}`,
+              );
+              setBulkSeoDialogOpen(false);
+              setSelectedSlugs(new Set());
+            } catch (err) {
+              toast.error(
+                err instanceof Error
+                  ? `Update failed: ${err.message}`
+                  : "Some updates failed. Please try again.",
+              );
+            } finally {
+              setBulkSeoFilling(false);
             }
           }}
         />
