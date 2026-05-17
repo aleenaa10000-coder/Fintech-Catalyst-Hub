@@ -1,5 +1,6 @@
 import { PageMeta } from "@/components/PageMeta";
 import { SITE_URL } from "@/lib/metaData";
+import { FaqSection } from "@/components/FaqSection";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -47,12 +48,6 @@ import aboutOfficeImg from "@/assets/about-office.png";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHero } from "@/components/PageHero";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 
 const benefits = [
   {
@@ -1452,30 +1447,13 @@ export default function WriteForUs() {
       {/* FAQ — .wfu-faq-section class is referenced by the SSR SpeakableSpecification
           (ssrMeta.ts) so voice assistants and AI answer engines can extract these
           Q&As directly for "fintech guest post FAQ" and "write for us fintech" queries. */}
-      <section className="py-24 bg-secondary/30 wfu-faq-section" id="faq">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <h2 className="text-3xl font-bold text-center mb-12">Fintech Guest Post FAQs — Your Questions Answered</h2>
-          <Accordion
-            type="single"
-            collapsible
-            className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
-          >
-            {wfuFaqs.map((faq, i) => (
-              <AccordionItem key={i} value={`wfu-faq-${i}`} className="border-b-0 group">
-                <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
-                  <span className="flex-1 pr-4">{faq.question}</span>
-                  <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
-                    <Plus className="w-5 h-5" />
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
-      </section>
+      <FaqSection
+        items={wfuFaqs}
+        heading="Fintech Guest Post FAQs — Your Questions Answered"
+        id="faq"
+        valuePrefix="wfu-faq"
+        className="py-24 bg-secondary/30 wfu-faq-section"
+      />
 
       {/* Sources & References — GEO citation optimisation.
           Visible annotated bibliography signals E-E-A-T to Google quality
