@@ -1794,8 +1794,75 @@ function PostEditor({
         <RichTextEditor
           value={draft.content}
           onChange={(html) => setDraft({ ...draft, content: html })}
-          placeholder="Write your post content here…"
+          placeholder="Write your post content here… (800–1500 words recommended)"
         />
+        {(() => {
+          const wc = draft.content
+            .replace(/<[^>]*>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .split(" ")
+            .filter((w) => w.length > 0).length;
+          const tooShort = wc > 0 && wc < 800;
+          const tooLong = wc > 1500;
+          const ok = wc >= 800 && wc <= 1500;
+          return (
+            <div className="mt-1 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span
+                  className={[
+                    "text-xs font-medium tabular-nums",
+                    ok
+                      ? "text-green-700"
+                      : tooShort
+                        ? "text-amber-600"
+                        : tooLong
+                          ? "text-destructive"
+                          : "text-muted-foreground",
+                  ].join(" ")}
+                >
+                  {wc} words
+                </span>
+                {tooShort && (
+                  <span className="text-xs text-amber-600">
+                    — needs {800 - wc} more to reach the 800-word minimum
+                  </span>
+                )}
+                {tooLong && (
+                  <span className="text-xs text-destructive">
+                    — {wc - 1500} words over the 1500-word maximum
+                  </span>
+                )}
+                {ok && (
+                  <span className="text-xs text-green-700">
+                    — within 800–1500 word limit ✓
+                  </span>
+                )}
+              </div>
+              {wc > 0 && (
+                <div
+                  className="relative h-1.5 w-full rounded-full bg-muted overflow-hidden"
+                  title={`${wc} / 1500 words`}
+                >
+                  <div
+                    className={`absolute inset-y-0 left-0 rounded-full transition-all duration-300 ${
+                      ok
+                        ? "bg-emerald-500"
+                        : tooShort
+                          ? "bg-amber-400"
+                          : "bg-destructive"
+                    }`}
+                    style={{ width: `${Math.min((wc / 1500) * 100, 100)}%` }}
+                  />
+                  <div
+                    className="absolute inset-y-0 w-px bg-muted-foreground/30"
+                    style={{ left: "53.33%" }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
       <div>
         <Label htmlFor={`authorSelect-${post.id}`}>Team member</Label>
@@ -1905,6 +1972,17 @@ function PostEditor({
             Recommended cover size: at least {COVER_MIN_WIDTH}×{COVER_MIN_HEIGHT} px (2:1).
           </p>
           <FieldError error={fieldErrors.coverImage} />
+          {draft.coverImage && (
+            <div className="mt-2">
+              <img
+                src={draft.coverImage}
+                alt="Cover preview"
+                className="h-24 w-full rounded-md object-cover border border-input"
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+                onLoad={(e) => { e.currentTarget.style.display = "block"; }}
+              />
+            </div>
+          )}
         </div>
         <div>
           <Label htmlFor={`readingMinutes-${post.id}`}>Reading minutes</Label>
@@ -4493,6 +4571,17 @@ export default function AdminBlog() {
                     Recommended cover size: at least 1600×800 px (2:1).
                   </p>
                   <FieldError error={publishFieldErrors.coverImage} />
+                  {form.coverImage && (
+                    <div className="mt-2">
+                      <img
+                        src={form.coverImage}
+                        alt="Cover preview"
+                        className="h-24 w-full rounded-md object-cover border border-input"
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                        onLoad={(e) => { e.currentTarget.style.display = "block"; }}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="readingMinutes">Reading minutes</Label>
