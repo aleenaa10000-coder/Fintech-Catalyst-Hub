@@ -178,6 +178,30 @@ function formatZodIssues(err: unknown): string | null {
     .join("\n");
 }
 
+/**
+ * Parses a 400 ApiError into a field-keyed map of error messages so each
+ * form input can display its own inline error without scanning the full list.
+ * Only the first issue per field is kept (Zod typically emits one per path).
+ */
+function parseZodIssues(err: unknown): Record<string, string> {
+  const data = (err as { data?: { issues?: { path: (string | number)[]; message: string }[] } })?.data;
+  if (!data?.issues?.length) return {};
+  const result: Record<string, string> = {};
+  for (const issue of data.issues) {
+    if (issue.path.length > 0) {
+      const key = String(issue.path[0]);
+      if (!result[key]) result[key] = issue.message;
+    }
+  }
+  return result;
+}
+
+/** Renders a small red error message below a form field when `error` is set. */
+function FieldError({ error }: { error?: string }) {
+  if (!error) return null;
+  return <p className="text-xs text-destructive mt-1">{error}</p>;
+}
+
 function authorSelectValue(name: string, role: string) {
   const match = authors.find(
     (a) => a.name === name && a.role === role,
@@ -1603,6 +1627,7 @@ function PostEditor({
   // sent in the PATCH payload, which avoids rounding the original
   // second/millisecond precision down to the minute on every save.
   const initialPublishedAt = toDateTimeLocalValue(post.publishedAt);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [draft, setDraft] = useState({
     title: post.title,
     excerpt: post.excerpt,
@@ -1638,6 +1663,7 @@ function PostEditor({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
     const readingMinutes = Number(draft.readingMinutes);
     if (!Number.isFinite(readingMinutes) || readingMinutes < 1) {
       toast.error("Reading minutes must be a positive number.");
@@ -1726,10 +1752,11 @@ function PostEditor({
     } catch (err) {
       const status = (err as { status?: number })?.status;
       if (status === 400) {
-        const fieldErrors = formatZodIssues(err);
+        const issues = formatZodIssues(err);
+        setFieldErrors(parseZodIssues(err));
         toast.error("Some fields are invalid. Please review and try again.", {
-          description: fieldErrors ?? undefined,
-          style: fieldErrors ? { whiteSpace: "pre-line" } : undefined,
+          description: issues ?? undefined,
+          style: issues ? { whiteSpace: "pre-line" } : undefined,
         });
       } else {
         toast.error("Could not save changes.");
@@ -1746,7 +1773,9 @@ function PostEditor({
           value={draft.title}
           onChange={(e) => setDraft({ ...draft, title: e.target.value })}
           required
+          className={fieldErrors.title ? "border-destructive" : ""}
         />
+        <FieldError error={fieldErrors.title} />
       </div>
       <div>
         <Label htmlFor={`excerpt-${post.id}`}>Excerpt</Label>
@@ -1756,7 +1785,9 @@ function PostEditor({
           value={draft.excerpt}
           onChange={(e) => setDraft({ ...draft, excerpt: e.target.value })}
           required
+          className={fieldErrors.excerpt ? "border-destructive" : ""}
         />
+        <FieldError error={fieldErrors.excerpt} />
       </div>
       <div>
         <Label htmlFor={`content-${post.id}`}>Content</Label>
@@ -1798,7 +1829,9 @@ function PostEditor({
             value={draft.author}
             onChange={(e) => setDraft({ ...draft, author: e.target.value })}
             required
+            className={fieldErrors.author ? "border-destructive" : ""}
           />
+          <FieldError error={fieldErrors.author} />
         </div>
         <div>
           <Label htmlFor={`authorRole-${post.id}`}>Author role</Label>
@@ -1809,7 +1842,9 @@ function PostEditor({
               setDraft({ ...draft, authorRole: e.target.value })
             }
             required
+            className={fieldErrors.authorRole ? "border-destructive" : ""}
           />
+          <FieldError error={fieldErrors.authorRole} />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1820,7 +1855,9 @@ function PostEditor({
             value={draft.category}
             onChange={(e) => setDraft({ ...draft, category: e.target.value })}
             required
+            className={fieldErrors.category ? "border-destructive" : ""}
           />
+          <FieldError error={fieldErrors.category} />
         </div>
         <div>
           <Label htmlFor={`tags-${post.id}`}>Tags (comma-separated)</Label>
@@ -1846,6 +1883,7 @@ function PostEditor({
                 void warnIfCoverTooSmall(e.target.value);
               }}
               required
+              className={fieldErrors.coverImage ? "border-destructive" : ""}
             />
             <ObjectUploader
               maxNumberOfFiles={1}
@@ -1866,6 +1904,7 @@ function PostEditor({
           <p className="text-xs text-muted-foreground mt-1">
             Recommended cover size: at least {COVER_MIN_WIDTH}×{COVER_MIN_HEIGHT} px (2:1).
           </p>
+          <FieldError error={fieldErrors.coverImage} />
         </div>
         <div>
           <Label htmlFor={`readingMinutes-${post.id}`}>Reading minutes</Label>
@@ -1878,7 +1917,9 @@ function PostEditor({
               setDraft({ ...draft, readingMinutes: e.target.value })
             }
             required
+            className={fieldErrors.readingMinutes ? "border-destructive" : ""}
           />
+          <FieldError error={fieldErrors.readingMinutes} />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3697,6 +3738,7 @@ export default function AdminBlog() {
   const publishMut = usePublishBlogPost();
   const deleteMut = useDeleteBlogPost();
   const [form, setForm] = useState(emptyForm);
+  const [publishFieldErrors, setPublishFieldErrors] = useState<Record<string, string>>({});
   const [autoSlug, setAutoSlug] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   // Slugs of posts the admin has ticked for a bulk-noindex / bulk-index
@@ -3902,6 +3944,7 @@ export default function AdminBlog() {
 
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPublishFieldErrors({});
 
     const tags = form.tags
       .split(",")
@@ -4004,6 +4047,7 @@ export default function AdminBlog() {
         toast.error("A post with this slug already exists.");
       } else if (status === 400) {
         const fieldErrors = formatZodIssues(err);
+        setPublishFieldErrors(parseZodIssues(err));
         toast.error("Some fields are invalid. Please review and try again.", {
           description: fieldErrors ?? undefined,
           style: fieldErrors ? { whiteSpace: "pre-line" } : undefined,
@@ -4208,7 +4252,9 @@ export default function AdminBlog() {
                     }));
                   }}
                   required
+                  className={publishFieldErrors.title ? "border-destructive" : ""}
                 />
+                <FieldError error={publishFieldErrors.title} />
               </div>
               <div>
                 <Label htmlFor="slug">Slug (URL-safe)</Label>
@@ -4222,10 +4268,12 @@ export default function AdminBlog() {
                   }}
                   pattern="^[a-z0-9][a-z0-9-]*$"
                   required
+                  className={publishFieldErrors.slug ? "border-destructive" : ""}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Lowercase letters, numbers and hyphens only.
                 </p>
+                <FieldError error={publishFieldErrors.slug} />
               </div>
               <div>
                 <Label htmlFor="excerpt">Excerpt</Label>
@@ -4237,7 +4285,9 @@ export default function AdminBlog() {
                     setForm({ ...form, excerpt: e.target.value })
                   }
                   required
+                  className={publishFieldErrors.excerpt ? "border-destructive" : ""}
                 />
+                <FieldError error={publishFieldErrors.excerpt} />
               </div>
               <div>
                 <Label htmlFor="content">Content</Label>
@@ -4358,7 +4408,9 @@ export default function AdminBlog() {
                       setForm({ ...form, author: e.target.value })
                     }
                     required
+                    className={publishFieldErrors.author ? "border-destructive" : ""}
                   />
+                  <FieldError error={publishFieldErrors.author} />
                 </div>
                 <div>
                   <Label htmlFor="authorRole">Author role</Label>
@@ -4370,7 +4422,9 @@ export default function AdminBlog() {
                       setForm({ ...form, authorRole: e.target.value })
                     }
                     required
+                    className={publishFieldErrors.authorRole ? "border-destructive" : ""}
                   />
+                  <FieldError error={publishFieldErrors.authorRole} />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -4384,7 +4438,9 @@ export default function AdminBlog() {
                       setForm({ ...form, category: e.target.value })
                     }
                     required
+                    className={publishFieldErrors.category ? "border-destructive" : ""}
                   />
+                  <FieldError error={publishFieldErrors.category} />
                 </div>
                 <div>
                   <Label htmlFor="tags">Tags (comma-separated)</Label>
@@ -4414,6 +4470,7 @@ export default function AdminBlog() {
                         void warnIfCoverTooSmall(e.target.value);
                       }}
                       required
+                      className={publishFieldErrors.coverImage ? "border-destructive" : ""}
                     />
                     <ObjectUploader
                       maxNumberOfFiles={1}
@@ -4435,6 +4492,7 @@ export default function AdminBlog() {
                     Paste an external URL or upload a file (≤10 MB).
                     Recommended cover size: at least 1600×800 px (2:1).
                   </p>
+                  <FieldError error={publishFieldErrors.coverImage} />
                 </div>
                 <div>
                   <Label htmlFor="readingMinutes">Reading minutes</Label>
@@ -4447,7 +4505,9 @@ export default function AdminBlog() {
                       setForm({ ...form, readingMinutes: e.target.value })
                     }
                     required
+                    className={publishFieldErrors.readingMinutes ? "border-destructive" : ""}
                   />
+                  <FieldError error={publishFieldErrors.readingMinutes} />
                 </div>
               </div>
               <div>
