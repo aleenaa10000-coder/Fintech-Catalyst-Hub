@@ -19,7 +19,7 @@ const VALID_TOOL_SLUGS = new Set([
 ]);
 
 router.get("/tools/:slug/ratings", async (req: Request, res: Response) => {
-  const { slug } = req.params;
+  const slug = req.params["slug"] as string;
   if (!VALID_TOOL_SLUGS.has(slug)) {
     res.status(404).json({ error: "Tool not found" });
     return;
@@ -44,7 +44,7 @@ const RatingBody = z.object({
 });
 
 router.post("/tools/:slug/ratings", async (req: Request, res: Response) => {
-  const { slug } = req.params;
+  const slug = req.params["slug"] as string;
   if (!VALID_TOOL_SLUGS.has(slug)) {
     res.status(404).json({ error: "Tool not found" });
     return;

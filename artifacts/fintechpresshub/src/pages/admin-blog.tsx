@@ -4977,7 +4977,7 @@ export default function AdminBlog() {
           )}
           {activeTab === "published" && (() => {
             const missingSeoCount = (posts ?? []).filter(
-              (p) => !p.seoTitle || !p.seoDescription,
+              (p: BlogPost) => !p.seoTitle || !p.seoDescription,
             ).length;
             return missingSeoCount > 0 ? (
               <div className="flex items-center gap-1.5">

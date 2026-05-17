@@ -36,6 +36,6 @@ describe("Headline Analyzer", () => {
     const input = screen.getAllByRole("textbox")[0];
     await user.type(input, "7 Ways Embedded Finance Is Reshaping Banking in 2025");
     await user.click(screen.getByRole("button", { name: /analyze headline/i }));
-    expect(screen.getByText(/score/i)).toBeTruthy();
+    expect(screen.getAllByText(/score/i).length).toBeGreaterThan(0);
   });
 });

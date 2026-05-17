@@ -9,6 +9,7 @@ import {
   useListFeaturedPosts,
   useListBlogPosts,
   getListBlogPostsQueryKey,
+  type BlogPost,
 } from "@workspace/api-client-react";
 import { ArrowRight, FileText, Link2, Cog, Clock } from "lucide-react";
 import { FaqSection } from "@/components/FaqSection";
@@ -115,9 +116,9 @@ export default function Home() {
       },
     },
   );
-  const featuredPostIds = new Set((featuredPosts ?? []).map((p) => p.id));
+  const featuredPostIds = new Set((featuredPosts ?? []).map((p: BlogPost) => p.id));
   const recentPosts = recentPostsQuery.data?.filter(
-    (p) => !featuredPostIds.has(p.id),
+    (p: BlogPost) => !featuredPostIds.has(p.id),
   );
   const recentPostsUpdatedAt = recentPostsQuery.dataUpdatedAt;
   // Tick every 30 s so the "Updated N seconds ago" label stays
@@ -472,7 +473,7 @@ export default function Home() {
             </FadeInView>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {recentPosts.map((post, i) => (
+              {recentPosts.map((post: BlogPost, i: number) => (
                 <FadeInView key={post.id} delay={i * 50}>
                   <Link
                     href={`/blog/${post.slug}`}

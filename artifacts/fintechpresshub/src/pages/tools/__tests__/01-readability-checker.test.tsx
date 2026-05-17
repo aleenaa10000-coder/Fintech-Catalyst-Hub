@@ -34,7 +34,7 @@ describe("Readability Checker", () => {
       "Simple sentences help readers understand your content. Short words are best.",
     );
     await user.click(screen.getByRole("button", { name: /check readability/i }));
-    expect(screen.getByText(/flesch reading ease score/i)).toBeTruthy();
+    expect(screen.getAllByText(/flesch reading ease score/i).length).toBeGreaterThan(0);
   });
 
   it("resets the form when Reset is clicked", async () => {

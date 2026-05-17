@@ -124,7 +124,7 @@ export function usePublicPosts(): {
 
   const posts = useMemo(() => {
     if (!apiPosts) return [];
-    return apiPosts.map(fromApi).sort((a, b) => {
+    return apiPosts.map(fromApi).sort((a: PublicPost, b: PublicPost) => {
       const da = new Date(a.date).getTime();
       const db = new Date(b.date).getTime();
       return db - da;
