@@ -3,6 +3,9 @@ import { Link } from "wouter";
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { RelatedTools } from "@/components/RelatedTools";
+import { ToolRatingWidget } from "@/components/ToolRatingWidget";
+import { ToolReviewActionLd } from "@/components/ToolReviewActionLd";
 import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -3006,6 +3009,9 @@ export default function BacklinkValueEstimator() {
           <ToolShareEmbed slug="backlink-value-estimator" state={form} />
         </div>
       </section>
+      <ToolRatingWidget toolSlug="backlink-value-estimator" toolName="Backlink Value Estimator" />
+      <RelatedTools currentSlug="backlink-value-estimator" relatedSlugs={["link-prospector", "keyword-difficulty-estimator", "guest-post-pitch-generator"]} />
+      <ToolReviewActionLd slug="backlink-value-estimator" name="Backlink Value Estimator" />
     </div>
   );
 }

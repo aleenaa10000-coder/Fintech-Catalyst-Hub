@@ -53,6 +53,9 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { RelatedTools } from "@/components/RelatedTools";
+import { ToolRatingWidget } from "@/components/ToolRatingWidget";
+import { ToolReviewActionLd } from "@/components/ToolReviewActionLd";
 import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 
 const MINOR_WORDS = new Set([
@@ -2333,6 +2336,9 @@ export default function GuestPostPitchGenerator() {
           <ToolShareEmbed slug="guest-post-pitch-generator" state={form} />
         </div>
       </section>
+      <ToolRatingWidget toolSlug="guest-post-pitch-generator" toolName="Guest Post Pitch Generator" />
+      <RelatedTools currentSlug="guest-post-pitch-generator" relatedSlugs={["outreach-email-generator", "link-prospector", "backlink-value-estimator"]} />
+      <ToolReviewActionLd slug="guest-post-pitch-generator" name="Guest Post Pitch Generator" />
     </div>
   );
 }

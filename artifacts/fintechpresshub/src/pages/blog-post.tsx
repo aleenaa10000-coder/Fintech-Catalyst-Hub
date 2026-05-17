@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { PageMeta } from "@/components/PageMeta";
 import { SITE_URL } from "@/lib/metaData";
 import { useParams, useLocation, Link, Redirect } from "wouter";
@@ -765,6 +766,33 @@ export default function BlogPost() {
             : undefined
         }
       />
+      {post.claimReviewClaim && post.claimReviewRating && (
+        <Helmet>
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "ClaimReview",
+              url: `${SITE_URL}/blog/${post.slug}`,
+              claimReviewed: post.claimReviewClaim,
+              reviewRating: {
+                "@type": "Rating",
+                ratingValue: post.claimReviewRating,
+                bestRating: "True",
+                worstRating: "False",
+                alternateName: post.claimReviewRating,
+              },
+              ...(post.claimReviewUrl
+                ? {
+                    itemReviewed: {
+                      "@type": "Claim",
+                      appearance: { "@type": "CreativeWork", url: post.claimReviewUrl },
+                    },
+                  }
+                : {}),
+            })}
+          </script>
+        </Helmet>
+      )}
       {/* Floating vertical share bar (xl+) — rendered in a portal so it is a
           direct child of <body>, bypassing any parent transforms or stacking
           contexts. Position is set via inline style (not Tailwind classes) to

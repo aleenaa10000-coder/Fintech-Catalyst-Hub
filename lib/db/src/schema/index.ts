@@ -23,3 +23,5 @@ export * from "./referringDomains";
 export * from "./webVitals";
 export * from "./pressMentions";
 export * from "./schemaHealthRuns";
+export * from "./toolRatings";
+export * from "./webmentions";

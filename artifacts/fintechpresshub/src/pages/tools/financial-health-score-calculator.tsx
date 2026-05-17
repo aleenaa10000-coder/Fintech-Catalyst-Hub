@@ -37,6 +37,9 @@ import { SITE_URL } from "@/lib/metaData";
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { RelatedTools } from "@/components/RelatedTools";
+import { ToolRatingWidget } from "@/components/ToolRatingWidget";
+import { ToolReviewActionLd } from "@/components/ToolReviewActionLd";
 import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 import { useEmailFinancialHealthScoreReport } from "@workspace/api-client-react";
 
@@ -1243,6 +1246,9 @@ export default function FinancialHealthScoreCalculator() {
           <ToolShareEmbed slug="financial-health-score-calculator" state={inputs} />
         </div>
       </section>
+      <ToolRatingWidget toolSlug="financial-health-score-calculator" toolName="Financial Health Score Calculator" />
+      <RelatedTools currentSlug="financial-health-score-calculator" relatedSlugs={["meta-description-generator", "readability-checker", "keyword-difficulty-estimator"]} />
+      <ToolReviewActionLd slug="financial-health-score-calculator" name="Financial Health Score Calculator" />
     </div>
   );
 }

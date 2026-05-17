@@ -7,6 +7,9 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
 import { PageMeta } from "@/components/PageMeta";
+import { RelatedTools } from "@/components/RelatedTools";
+import { ToolRatingWidget } from "@/components/ToolRatingWidget";
+import { ToolReviewActionLd } from "@/components/ToolReviewActionLd";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -2708,6 +2711,9 @@ export default function HeadlineAnalyzer() {
           <ToolShareEmbed slug="headline-analyzer" state={{ headline }} />
         </div>
       </section>
+      <ToolRatingWidget toolSlug="headline-analyzer" toolName="Headline Analyzer" />
+      <RelatedTools currentSlug="headline-analyzer" relatedSlugs={["readability-checker", "content-brief-generator", "meta-description-generator"]} />
+      <ToolReviewActionLd slug="headline-analyzer" name="Headline Analyzer" />
 
       {/* ── Content Brief Modal ──────────────────────────────────────── */}
       <AnimatePresence>

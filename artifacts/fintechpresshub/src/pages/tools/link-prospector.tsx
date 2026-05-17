@@ -62,6 +62,9 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { RelatedTools } from "@/components/RelatedTools";
+import { ToolRatingWidget } from "@/components/ToolRatingWidget";
+import { ToolReviewActionLd } from "@/components/ToolReviewActionLd";
 import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 import {
   Chart as ChartJS,
@@ -2708,6 +2711,9 @@ Looking forward to hearing from you,
           <ToolShareEmbed slug="link-prospector" state={{ textarea }} />
         </div>
       </section>
+      <ToolRatingWidget toolSlug="link-prospector" toolName="Link Prospector" />
+      <RelatedTools currentSlug="link-prospector" relatedSlugs={["backlink-value-estimator", "outreach-email-generator", "guest-post-pitch-generator"]} />
+      <ToolReviewActionLd slug="link-prospector" name="Link Prospector" />
 
       {/* ── Draft Pitch Side Panel (Sheet) ── */}
       <Sheet open={pitchModal !== null} onOpenChange={(open) => { if (!open) setPitchModal(null); }}>

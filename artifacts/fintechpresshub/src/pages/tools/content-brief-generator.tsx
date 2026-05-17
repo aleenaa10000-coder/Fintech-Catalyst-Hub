@@ -4,6 +4,9 @@ import { Link } from "wouter";
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { RelatedTools } from "@/components/RelatedTools";
+import { ToolRatingWidget } from "@/components/ToolRatingWidget";
+import { ToolReviewActionLd } from "@/components/ToolReviewActionLd";
 import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHero } from "@/components/PageHero";
@@ -3504,6 +3507,9 @@ export default function ContentBriefGenerator() {
           <ToolShareEmbed slug="content-brief-generator" state={form} />
         </div>
       </section>
+      <ToolRatingWidget toolSlug="content-brief-generator" toolName="Content Brief Generator" />
+      <RelatedTools currentSlug="content-brief-generator" relatedSlugs={["meta-description-generator", "headline-analyzer", "readability-checker"]} />
+      <ToolReviewActionLd slug="content-brief-generator" name="Content Brief Generator" />
     </div>
   );
 }

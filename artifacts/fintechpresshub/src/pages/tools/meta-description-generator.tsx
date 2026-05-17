@@ -21,6 +21,9 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { RelatedTools } from "@/components/RelatedTools";
+import { ToolRatingWidget } from "@/components/ToolRatingWidget";
+import { ToolReviewActionLd } from "@/components/ToolReviewActionLd";
 import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 
 type FormState = {
@@ -603,6 +606,9 @@ export default function MetaDescriptionGenerator() {
           <ToolShareEmbed slug="meta-description-generator" state={form} />
         </div>
       </section>
+      <ToolRatingWidget toolSlug="meta-description-generator" toolName="Meta Description Generator" />
+      <RelatedTools currentSlug="meta-description-generator" relatedSlugs={["content-brief-generator", "readability-checker", "headline-analyzer"]} />
+      <ToolReviewActionLd slug="meta-description-generator" name="Meta Description Generator" />
     </div>
   );
 }

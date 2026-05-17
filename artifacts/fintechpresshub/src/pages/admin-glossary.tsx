@@ -42,6 +42,7 @@ type GlossaryTerm = {
   relatedTerms: string[];
   seoTitle: string | null;
   seoDescription: string | null;
+  wikidataId: string | null;
   publishedAt: string;
   updatedAt: string;
 };
@@ -55,7 +56,18 @@ type TermDraft = {
   relatedTerms: string;
   seoTitle: string;
   seoDescription: string;
+  wikidataId: string;
 };
+
+function termSeoScore(term: GlossaryTerm): number {
+  let s = 0;
+  if (term.seoTitle) s += 25;
+  if (term.seoDescription) s += 25;
+  if (term.wikidataId) s += 25;
+  if (term.category) s += 15;
+  if (term.relatedTerms && term.relatedTerms.length > 0) s += 10;
+  return s;
+}
 
 const EMPTY_DRAFT: TermDraft = {
   slug: "",
@@ -66,6 +78,7 @@ const EMPTY_DRAFT: TermDraft = {
   relatedTerms: "",
   seoTitle: "",
   seoDescription: "",
+  wikidataId: "",
 };
 
 function slugify(s: string) {
@@ -220,6 +233,16 @@ function TermForm({
           />
         </div>
       </div>
+      <div>
+        <Label htmlFor="wikidataId">Wikidata ID <span className="text-muted-foreground font-normal">(optional — e.g. Q208728 for "Open Banking")</span></Label>
+        <Input
+          id="wikidataId"
+          value={draft.wikidataId}
+          onChange={set("wikidataId")}
+          placeholder="e.g. Q208728"
+        />
+        <p className="text-xs text-muted-foreground mt-1">Links this term to Wikidata for entity disambiguation and knowledge graph signals. Earns +25 SEO score points.</p>
+      </div>
       <div className="flex gap-2">
         <Button
           type="submit"
@@ -270,6 +293,7 @@ export default function AdminGlossary() {
             : [],
           seoTitle: draft.seoTitle || null,
           seoDescription: draft.seoDescription || null,
+          wikidataId: draft.wikidataId || null,
         }),
       }),
     onSuccess: (row) => {
@@ -297,6 +321,7 @@ export default function AdminGlossary() {
             : [],
           seoTitle: draft.seoTitle || null,
           seoDescription: draft.seoDescription || null,
+          wikidataId: draft.wikidataId || null,
         }),
       }),
     onSuccess: (row) => {
@@ -411,6 +436,7 @@ export default function AdminGlossary() {
                           relatedTerms: (term.relatedTerms ?? []).join(", "),
                           seoTitle: term.seoTitle ?? "",
                           seoDescription: term.seoDescription ?? "",
+                          wikidataId: term.wikidataId ?? "",
                         }}
                         onSave={(draft) => updateMut.mutate({ slug: term.slug, draft })}
                         onCancel={() => setEditingId(null)}
@@ -431,6 +457,17 @@ export default function AdminGlossary() {
                               {term.category}
                             </Badge>
                           )}
+                          {(() => {
+                            const score = termSeoScore(term);
+                            return (
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${score >= 75 ? "border-green-400 text-green-700 bg-green-50" : score >= 50 ? "border-amber-400 text-amber-700 bg-amber-50" : "border-red-300 text-red-700 bg-red-50"}`}
+                              >
+                                SEO {score}%
+                              </Badge>
+                            );
+                          })()}
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2">
                           {term.shortDef}

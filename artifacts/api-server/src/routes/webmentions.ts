@@ -1,0 +1,49 @@
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import { z } from "zod";
+import { db, webmentionsTable } from "@workspace/db";
+import { desc } from "drizzle-orm";
+import { isAdminEmail } from "../lib/auth";
+import { getSiteUrl } from "../lib/seo";
+
+const router: IRouter = Router();
+
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.user || !isAdminEmail((req.user as { email: string }).email)) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  next();
+}
+
+const WebmentionBody = z.object({
+  source: z.string().url(),
+  target: z.string().url(),
+});
+
+router.post("/webmention", async (req: Request, res: Response) => {
+  const parsed = WebmentionBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "source and target are required valid URLs" });
+    return;
+  }
+  const { source, target } = parsed.data;
+  const siteUrl = getSiteUrl().replace(/\/+$/, "");
+  if (!target.startsWith(siteUrl)) {
+    res.status(400).json({ error: "target must be a URL on this site" });
+    return;
+  }
+  const targetPath = target.replace(siteUrl, "") || "/";
+  await db.insert(webmentionsTable).values({ sourceUrl: source, targetUrl: target, targetPath });
+  res.status(202).json({ message: "Webmention received and queued for processing" });
+});
+
+router.get("/admin/webmentions", requireAdmin, async (_req: Request, res: Response) => {
+  const rows = await db
+    .select()
+    .from(webmentionsTable)
+    .orderBy(desc(webmentionsTable.receivedAt))
+    .limit(200);
+  res.json(rows);
+});
+
+export default router;

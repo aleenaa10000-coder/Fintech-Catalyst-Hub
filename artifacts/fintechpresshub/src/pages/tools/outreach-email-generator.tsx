@@ -48,6 +48,9 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { RelatedTools } from "@/components/RelatedTools";
+import { ToolRatingWidget } from "@/components/ToolRatingWidget";
+import { ToolReviewActionLd } from "@/components/ToolReviewActionLd";
 import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -2680,6 +2683,9 @@ export default function OutreachEmailGenerator() {
           <ToolShareEmbed slug="outreach-email-generator" state={form} />
         </div>
       </section>
+      <ToolRatingWidget toolSlug="outreach-email-generator" toolName="Outreach Email Generator" />
+      <RelatedTools currentSlug="outreach-email-generator" relatedSlugs={["guest-post-pitch-generator", "link-prospector", "backlink-value-estimator"]} />
+      <ToolReviewActionLd slug="outreach-email-generator" name="Outreach Email Generator" />
     </div>
   );
 }

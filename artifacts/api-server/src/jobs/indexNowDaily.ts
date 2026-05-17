@@ -130,11 +130,25 @@ export async function runIndexNowDaily(): Promise<void> {
         .where(gt(locationPagesTable.updatedAt, since)),
     ]);
 
+  const STATIC_TOOL_SLUGS = [
+    "financial-health-score-calculator",
+    "meta-description-generator",
+    "guest-post-pitch-generator",
+    "readability-checker",
+    "keyword-difficulty-estimator",
+    "backlink-value-estimator",
+    "content-brief-generator",
+    "headline-analyzer",
+    "link-prospector",
+    "outreach-email-generator",
+  ];
+
   const urlList: string[] = [
     ...recentPosts.map((p: { slug: string }) => `${config.siteUrl}/blog/${p.slug}`),
     ...recentGlossary.map((t: { slug: string }) => `${config.siteUrl}/glossary/${t.slug}`),
     ...recentServices.map((s: { slug: string }) => `${config.siteUrl}/services/${s.slug}`),
     ...recentLocations.map((l: { slug: string }) => `${config.siteUrl}/locations/${l.slug}`),
+    ...STATIC_TOOL_SLUGS.map((s) => `${config.siteUrl}/tools/${s}`),
   ];
 
   if (urlList.length === 0) {

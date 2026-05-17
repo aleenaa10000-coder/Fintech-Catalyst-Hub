@@ -33,6 +33,9 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { readSharedState } from "@/lib/toolShare";
 import { ToolShareEmbed } from "@/components/ToolShareEmbed";
+import { RelatedTools } from "@/components/RelatedTools";
+import { ToolRatingWidget } from "@/components/ToolRatingWidget";
+import { ToolReviewActionLd } from "@/components/ToolReviewActionLd";
 import { ToolSEOEnhancements } from "@/components/ToolSEOEnhancements";
 
 function countSyllables(word: string): number {
@@ -2495,6 +2498,9 @@ export default function ReadabilityChecker() {
           <ToolShareEmbed slug="readability-checker" state={{ text }} />
         </div>
       </section>
+      <ToolRatingWidget toolSlug="readability-checker" toolName="Readability Checker" />
+      <RelatedTools currentSlug="readability-checker" relatedSlugs={["headline-analyzer", "content-brief-generator", "meta-description-generator"]} />
+      <ToolReviewActionLd slug="readability-checker" name="Readability Checker" />
 
       {/* ── Sticky mobile bottom action bar ── shown only when results are visible on small screens */}
       {checked && results && (

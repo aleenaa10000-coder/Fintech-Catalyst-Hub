@@ -164,6 +164,9 @@ const PublishBlogPostBody = z.object({
       const t = v.trim();
       return t === "" ? null : t;
     }),
+  claimReviewClaim: z.string().nullable().optional(),
+  claimReviewRating: z.string().nullable().optional(),
+  claimReviewUrl: z.string().nullable().optional(),
 });
 
 const BulkNoIndexBody = z.object({
@@ -235,6 +238,9 @@ const UpdateBlogPostBody = z
         const t = v.trim();
         return t === "" ? null : t;
       }),
+    claimReviewClaim: z.string().nullable().optional(),
+    claimReviewRating: z.string().nullable().optional(),
+    claimReviewUrl: z.string().nullable().optional(),
   })
   .refine((obj) => Object.keys(obj).length > 0, {
     message: "At least one field is required",
@@ -292,6 +298,9 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
     wordCount: row.wordCount ?? 0,
     inlineImage1: row.inlineImage1 ?? null,
     inlineImage2: row.inlineImage2 ?? null,
+    claimReviewClaim: row.claimReviewClaim ?? null,
+    claimReviewRating: row.claimReviewRating ?? null,
+    claimReviewUrl: row.claimReviewUrl ?? null,
   };
 }
 
@@ -559,6 +568,15 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
           : {}),
         ...(body.inlineImage2 !== undefined
           ? { inlineImage2: body.inlineImage2 }
+          : {}),
+        ...(body.claimReviewClaim !== undefined
+          ? { claimReviewClaim: body.claimReviewClaim }
+          : {}),
+        ...(body.claimReviewRating !== undefined
+          ? { claimReviewRating: body.claimReviewRating }
+          : {}),
+        ...(body.claimReviewUrl !== undefined
+          ? { claimReviewUrl: body.claimReviewUrl }
           : {}),
       })
       .returning();

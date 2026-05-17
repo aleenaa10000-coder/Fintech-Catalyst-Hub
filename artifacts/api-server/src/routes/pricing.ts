@@ -9,6 +9,12 @@ import { z } from "zod";
 import { db, pricingPlansTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
+import { pingIndexNow, getSiteUrl } from "../lib/seo";
+
+function firePricingIndexNow(): void {
+  const siteUrl = getSiteUrl();
+  void pingIndexNow([`${siteUrl}/pricing`]).catch(() => null);
+}
 
 const router: IRouter = Router();
 
@@ -66,6 +72,7 @@ router.post("/admin/pricing/plans", requireAdmin, async (req, res, next) => {
       .insert(pricingPlansTable)
       .values(body)
       .returning();
+    firePricingIndexNow();
     res.status(201).json(mapRow(row));
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -93,6 +100,7 @@ router.put("/admin/pricing/plans/:id", requireAdmin, async (req, res, next) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
+    firePricingIndexNow();
     res.json(mapRow(row));
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -118,6 +126,7 @@ router.delete("/admin/pricing/plans/:id", requireAdmin, async (req, res, next) =
       res.status(404).json({ error: "Not found" });
       return;
     }
+    firePricingIndexNow();
     res.json({ success: true });
   } catch (err) {
     next(err);

@@ -349,6 +349,28 @@ export default function CompareSlug() {
           </div>
         </section>
 
+        <section className="py-10 bg-slate-50/60 border-t border-slate-100">
+          <div className="container mx-auto px-4 max-w-5xl">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-5 text-center">
+              Related Reading
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              <Link href="/pricing" className="text-sm text-slate-700 font-medium hover:text-[#0052FF] hover:underline">
+                Pricing Plans
+              </Link>
+              <Link href="/services" className="text-sm text-slate-700 font-medium hover:text-[#0052FF] hover:underline">
+                SEO Services
+              </Link>
+              <Link href="/blog/category/seo-strategy" className="text-sm text-slate-700 font-medium hover:text-[#0052FF] hover:underline">
+                SEO Strategy Blog
+              </Link>
+              <Link href="/tools/keyword-difficulty-estimator" className="text-sm text-slate-700 font-medium hover:text-[#0052FF] hover:underline">
+                Keyword Difficulty Tool
+              </Link>
+            </div>
+          </div>
+        </section>
+
         <section className="py-20 bg-[#0052FF]/5">
           <div className="container mx-auto px-4 max-w-2xl text-center">
             <Badge className="mb-4 bg-[#0052FF]/10 text-[#0052FF] hover:bg-[#0052FF]/10">

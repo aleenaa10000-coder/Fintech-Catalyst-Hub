@@ -122,6 +122,9 @@ const Press = lazy(() => import("@/pages/press"));
 // Lives in its own chunk so the embed payload doesn't pull in admin/blog code.
 const EmbedShell = lazy(() => import("@/components/EmbedShell"));
 const ReadingList = lazy(() => import("@/pages/reading-list"));
+const ServiceSubTopic = lazy(() => import("@/pages/service-sub-topic"));
+const SitemapHub = lazy(() => import("@/pages/sitemap-hub"));
+const WriteForUsTopic = lazy(() => import("@/pages/write-for-us-topic"));
 
 function RouteFallback() {
   const [location] = useLocation();
@@ -308,6 +311,7 @@ function Router() {
             <SafeRoute path="/" component={Home} />
             <SafeRoute path="/about" component={About} />
             <SafeRoute path="/services" component={Services} />
+            <SafeRoute path="/services/:slug/:subTopic" component={ServiceSubTopic} />
             <SafeRoute path="/services/:slug" component={ServiceDetail} />
             <SafeRoute path="/pricing" component={Pricing} />
             <SafeRoute path="/blog" component={Blog} />
@@ -324,7 +328,9 @@ function Router() {
             <SafeRoute path="/compare" component={Compare} />
             <SafeRoute path="/resources/fintech-publications" component={FintechPublications} />
             <SafeRoute path="/press" component={Press} />
+            <SafeRoute path="/write-for-us/:topic" component={WriteForUsTopic} />
             <SafeRoute path="/write-for-us" component={WriteForUs} />
+            <SafeRoute path="/sitemap" component={SitemapHub} />
             <SafeRoute path="/contact" component={Contact} />
             <SafeRoute path="/privacy-policy" component={PrivacyPolicy} />
             <SafeRoute path="/refund-policy" component={RefundPolicy} />

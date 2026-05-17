@@ -187,6 +187,12 @@ export interface BlogPost {
   inlineImage1?: string | null;
   /** Optional inline body image URL shown in the second half of the article. */
   inlineImage2?: string | null;
+  /** The claim being fact-checked (ClaimReview JSON-LD). */
+  claimReviewClaim?: string | null;
+  /** Fact-check verdict label, e.g. "True" or "False" (ClaimReview JSON-LD). */
+  claimReviewRating?: string | null;
+  /** Source URL for the ClaimReview fact-check. */
+  claimReviewUrl?: string | null;
 }
 
 export interface BlogCategory {
@@ -253,6 +259,9 @@ export interface UpdateBlogPostInput {
   inlineImage1?: string | null;
   /** Optional inline body image URL shown in the second half of the article. */
   inlineImage2?: string | null;
+  claimReviewClaim?: string | null;
+  claimReviewRating?: string | null;
+  claimReviewUrl?: string | null;
 }
 
 export type SeoNotificationIndexNowStatus = typeof SeoNotificationIndexNowStatus[keyof typeof SeoNotificationIndexNowStatus];
@@ -364,6 +373,9 @@ export interface PublishBlogPostInput {
   inlineImage1?: string | null;
   /** Optional inline body image URL shown in the second half of the article. */
   inlineImage2?: string | null;
+  claimReviewClaim?: string | null;
+  claimReviewRating?: string | null;
+  claimReviewUrl?: string | null;
 }
 
 /**

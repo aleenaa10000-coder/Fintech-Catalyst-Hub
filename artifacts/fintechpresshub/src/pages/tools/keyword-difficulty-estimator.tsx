@@ -18,6 +18,9 @@ import {
 } from "recharts";
 import { PageHero } from "@/components/PageHero";
 import { PageMeta } from "@/components/PageMeta";
+import { RelatedTools } from "@/components/RelatedTools";
+import { ToolRatingWidget } from "@/components/ToolRatingWidget";
+import { ToolReviewActionLd } from "@/components/ToolReviewActionLd";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5060,6 +5063,9 @@ export default function KeywordDifficultyEstimator() {
           </div>
         </div>{/* /container */}
       </section>
+      <ToolRatingWidget toolSlug="keyword-difficulty-estimator" toolName="Keyword Difficulty Estimator" />
+      <RelatedTools currentSlug="keyword-difficulty-estimator" relatedSlugs={["content-brief-generator", "backlink-value-estimator", "meta-description-generator"]} />
+      <ToolReviewActionLd slug="keyword-difficulty-estimator" name="Keyword Difficulty Estimator" />
 
       {/* Email capture modal */}
       <AnimatePresence>
