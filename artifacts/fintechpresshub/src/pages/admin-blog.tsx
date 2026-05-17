@@ -2127,9 +2127,29 @@ function PostEditor({
                 setDraft({ ...draft, seoTitle: e.target.value })
               }
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Recommended ≤ 60 chars. Used in browser tab + Google SERP.
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-muted-foreground">
+                Used in browser tab + Google SERP.
+              </p>
+              <span
+                className={`text-xs tabular-nums font-medium ${
+                  draft.seoTitle.length > 60
+                    ? "text-destructive"
+                    : draft.seoTitle.length > 50
+                      ? "text-amber-600"
+                      : draft.seoTitle.length > 0
+                        ? "text-green-700"
+                        : "text-muted-foreground"
+                }`}
+              >
+                {draft.seoTitle.length} / 60
+              </span>
+            </div>
+            {draft.seoTitle.length > 60 && (
+              <p className="text-xs text-destructive mt-0.5">
+                Over the 60-character limit — Google may truncate this in search results.
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor={`seoDescription-${post.id}`}>
@@ -2145,9 +2165,29 @@ function PostEditor({
                 setDraft({ ...draft, seoDescription: e.target.value })
               }
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Recommended ≤ 160 chars. Shown as the snippet in Google.
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-muted-foreground">
+                Shown as the snippet in Google.
+              </p>
+              <span
+                className={`text-xs tabular-nums font-medium ${
+                  draft.seoDescription.length > 160
+                    ? "text-destructive"
+                    : draft.seoDescription.length > 130
+                      ? "text-amber-600"
+                      : draft.seoDescription.length > 0
+                        ? "text-green-700"
+                        : "text-muted-foreground"
+                }`}
+              >
+                {draft.seoDescription.length} / 160
+              </span>
+            </div>
+            {draft.seoDescription.length > 160 && (
+              <p className="text-xs text-destructive mt-0.5">
+                Over the 160-character limit — Google may truncate this snippet.
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor={`seoOgImage-${post.id}`}>OG / social image</Label>
@@ -4657,10 +4697,29 @@ export default function AdminBlog() {
                         setForm({ ...form, seoTitle: e.target.value })
                       }
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Recommended ≤ 60 chars. Used in browser tab + Google
-                      SERP.
-                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-muted-foreground">
+                        Used in browser tab + Google SERP.
+                      </p>
+                      <span
+                        className={`text-xs tabular-nums font-medium ${
+                          form.seoTitle.length > 60
+                            ? "text-destructive"
+                            : form.seoTitle.length > 50
+                              ? "text-amber-600"
+                              : form.seoTitle.length > 0
+                                ? "text-green-700"
+                                : "text-muted-foreground"
+                        }`}
+                      >
+                        {form.seoTitle.length} / 60
+                      </span>
+                    </div>
+                    {form.seoTitle.length > 60 && (
+                      <p className="text-xs text-destructive mt-0.5">
+                        Over the 60-character limit — Google may truncate this in search results.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="seoDescription">SEO description</Label>
@@ -4677,10 +4736,29 @@ export default function AdminBlog() {
                         })
                       }
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Recommended ≤ 160 chars. Shown as the snippet in
-                      Google.
-                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-muted-foreground">
+                        Shown as the snippet in Google.
+                      </p>
+                      <span
+                        className={`text-xs tabular-nums font-medium ${
+                          form.seoDescription.length > 160
+                            ? "text-destructive"
+                            : form.seoDescription.length > 130
+                              ? "text-amber-600"
+                              : form.seoDescription.length > 0
+                                ? "text-green-700"
+                                : "text-muted-foreground"
+                        }`}
+                      >
+                        {form.seoDescription.length} / 160
+                      </span>
+                    </div>
+                    {form.seoDescription.length > 160 && (
+                      <p className="text-xs text-destructive mt-0.5">
+                        Over the 160-character limit — Google may truncate this snippet.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="seoOgImage">OG / social image</Label>
