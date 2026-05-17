@@ -157,6 +157,27 @@ async function warnIfCoverTooSmall(url: string) {
   }
 }
 
+/**
+ * Extracts human-readable field-level messages from a 400 ApiError whose
+ * body follows the { error: string, issues: ZodIssue[] } shape returned by
+ * the blog routes. Returns a formatted string, or null if no issues are present.
+ */
+function formatZodIssues(err: unknown): string | null {
+  const data = (err as { data?: { issues?: { path: (string | number)[]; message: string }[] } })?.data;
+  if (!data?.issues?.length) return null;
+  return data.issues
+    .map((issue) => {
+      const field = issue.path.length > 0
+        ? issue.path.map(String).join(".")
+        : "unknown field";
+      const label = field
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (c) => c.toUpperCase());
+      return `• ${label}: ${issue.message}`;
+    })
+    .join("\n");
+}
+
 function authorSelectValue(name: string, role: string) {
   const match = authors.find(
     (a) => a.name === name && a.role === role,
@@ -1702,8 +1723,17 @@ function PostEditor({
         toast.warning(`Saved "${draft.title}"`, { description });
       }
       onSaved();
-    } catch {
-      toast.error("Could not save changes.");
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      if (status === 400) {
+        const fieldErrors = formatZodIssues(err);
+        toast.error("Some fields are invalid. Please review and try again.", {
+          description: fieldErrors ?? undefined,
+          style: fieldErrors ? { whiteSpace: "pre-line" } : undefined,
+        });
+      } else {
+        toast.error("Could not save changes.");
+      }
     }
   };
 
@@ -3973,7 +4003,11 @@ export default function AdminBlog() {
       if (status === 409) {
         toast.error("A post with this slug already exists.");
       } else if (status === 400) {
-        toast.error("Some fields are invalid. Please review and try again.");
+        const fieldErrors = formatZodIssues(err);
+        toast.error("Some fields are invalid. Please review and try again.", {
+          description: fieldErrors ?? undefined,
+          style: fieldErrors ? { whiteSpace: "pre-line" } : undefined,
+        });
       } else {
         toast.error("Could not publish post.");
       }
