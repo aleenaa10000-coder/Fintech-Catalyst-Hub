@@ -22,7 +22,8 @@ import {
   useAuthorPhotoOverrides,
 } from "@/data/useAuthorPhotos";
 import { prefetchAuthor } from "@/lib/route-prefetch";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { FaqSection } from "@/components/FaqSection";
 
 // FAQs surface in voice-assistant results ("who writes for FintechPressHub?"),
 // Google's People Also Ask, and AI-powered search summaries for team queries.
@@ -79,7 +80,6 @@ export default function AuthorsIndex() {
   }, {});
 
   // FAQ accordion: first item open by default for AEO visibility.
-  const [openFaq, setOpenFaq] = useState<number>(0);
 
   // Warm the author bio chunk once any team card scrolls into range.
   const authorGridRef = useRef<HTMLDivElement | null>(null);
@@ -329,48 +329,12 @@ export default function AuthorsIndex() {
         {/* AEO FAQ accordion — answers team-discovery questions for voice
             assistants, Google PAA, and AI overview citation engines.
             Matches the FAQPage JSON-LD injected via PageMeta for schema parity. */}
-        <section
+        <FaqSection
+          items={teamFAQs}
+          heading="Questions About the FintechPressHub Team"
           id="team-faq"
-          aria-label="Questions about the FintechPressHub team"
-          className="py-16 bg-secondary/30 border-t border-slate-100"
-        >
-          <div className="container mx-auto px-4 max-w-3xl">
-            <h2 className="text-2xl font-bold mb-8 text-slate-900">
-              Questions About the FintechPressHub Team
-            </h2>
-            <div className="space-y-3">
-              {teamFAQs.map((faq, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-slate-200 bg-white overflow-hidden"
-                >
-                  <button
-                    type="button"
-                    aria-expanded={openFaq === i}
-                    aria-controls={`team-faq-answer-${i}`}
-                    onClick={() => setOpenFaq(openFaq === i ? -1 : i)}
-                    className="flex w-full cursor-pointer items-center justify-between gap-4 px-6 py-4 font-semibold text-slate-900 hover:text-[#0052FF] transition-colors text-left"
-                  >
-                    <span>{faq.question}</span>
-                    <ArrowRight
-                      className={`w-4 h-4 shrink-0 transition-transform text-slate-400 ${
-                        openFaq === i ? "rotate-90" : ""
-                      }`}
-                    />
-                  </button>
-                  {openFaq === i && (
-                    <div
-                      id={`team-faq-answer-${i}`}
-                      className="px-6 pb-5 text-sm leading-relaxed text-slate-700"
-                    >
-                      {faq.answer}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+          valuePrefix="team-faq"
+        />
 
         {/* Hire CTA */}
         <section className="pb-20 pt-8">

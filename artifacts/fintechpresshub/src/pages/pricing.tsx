@@ -2,16 +2,11 @@ import { PageMeta } from "@/components/PageMeta";
 import { SITE_URL } from "@/lib/metaData";
 import { useListPricingPlans, useListTestimonials } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Plus, ArrowRight } from "lucide-react";
+import { CheckCircle2, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { FaqSection } from "@/components/FaqSection";
 import { Link } from "wouter";
 import { PageHero } from "@/components/PageHero";
 
@@ -461,37 +456,12 @@ export default function Pricing() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-24 bg-secondary/30">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <h2 className="faq-heading text-3xl font-bold text-center mb-12">Fintech SEO Pricing — Frequently Asked Questions</h2>
-          <Accordion
-            type="single"
-            collapsible
-            className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
-          >
-            {faqs.map((item, i) => (
-              <AccordionItem
-                key={i}
-                id={`faq-${i}`}
-                value={`item-${i}`}
-                className="border-b-0 group"
-              >
-                <AccordionTrigger
-                  className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden"
-                >
-                  <span className="flex-1 pr-4">{item.q}</span>
-                  <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
-                    <Plus className="w-5 h-5" />
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
-                  {item.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
-      </section>
+      <FaqSection
+        items={faqs.map((f) => ({ question: f.q, answer: f.a }))}
+        heading="Fintech SEO Pricing — Frequently Asked Questions"
+        id="faq"
+        valuePrefix="pricing-faq"
+      />
     </div>
   );
 }

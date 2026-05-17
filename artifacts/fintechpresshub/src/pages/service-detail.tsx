@@ -1,6 +1,6 @@
 import { Link, useParams } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, HelpCircle, Plus, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
 import { useListServices } from "@workspace/api-client-react";
 
 import { PageMeta } from "@/components/PageMeta";
@@ -8,12 +8,7 @@ import { SITE_URL, SITE_NAME } from "@/lib/metaData";
 import { PageHero } from "@/components/PageHero";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { FaqSection } from "@/components/FaqSection";
 import NotFound from "@/pages/not-found";
 import {
   getServiceIcon,
@@ -276,48 +271,14 @@ export default function ServiceDetail() {
       )}
 
       {faqs.length > 0 && (
-        <section
-          className="py-16 border-t speakable-faq"
-          data-testid={`section-faq-${service.slug}`}
-          aria-labelledby={`faq-heading-${service.slug}`}
-        >
-          <div className="container mx-auto px-4 max-w-3xl">
-            <div className="text-center mb-10">
-              <HelpCircle className="h-8 w-8 text-primary mx-auto mb-4" aria-hidden="true" />
-              <h2 id={`faq-heading-${service.slug}`} className="text-2xl md:text-3xl font-bold mb-3">
-                Frequently asked questions about {shortLabel.toLowerCase()}
-              </h2>
-              <p className="text-muted-foreground">
-                The questions fintech marketers ask us most about{" "}
-                {shortLabel.toLowerCase()}.
-              </p>
-            </div>
-            <Accordion
-              type="single"
-              collapsible
-              className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
-            >
-              {faqs.map((faq, idx) => (
-                <AccordionItem
-                  key={faq.question}
-                  value={`faq-${idx}`}
-                  data-testid={`accordion-faq-${idx}`}
-                  className="border-b-0 group"
-                >
-                  <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
-                    <span className="flex-1 pr-4">{faq.question}</span>
-                    <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
-                      <Plus className="w-5 h-5" aria-hidden="true" />
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-        </section>
+        <FaqSection
+          items={faqs}
+          heading={`Frequently asked questions about ${shortLabel.toLowerCase()}`}
+          subtitle={`The questions fintech marketers ask us most about ${shortLabel.toLowerCase()}.`}
+          className="py-20 border-t bg-muted/20 speakable-faq"
+          valuePrefix={`faq-${service.slug}`}
+          testId={`section-faq-${service.slug}`}
+        />
       )}
 
       <section className="py-16">

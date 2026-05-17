@@ -14,13 +14,7 @@ import { prefetchServiceDetail } from "@/lib/route-prefetch";
 import { SITE_URL } from "@/lib/metaData";
 import { useEffect, useRef } from "react";
 import { servicesIndexFaqs } from "@/lib/serviceFaqs";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Plus } from "lucide-react";
+import { FaqSection } from "@/components/FaqSection";
 
 const TRUST_STATS = [
   { icon: Link2,   value: "2,400+",  label: "Editorial backlinks placed" },
@@ -256,41 +250,13 @@ export default function Services() {
           </div>
 
           {/* AEO/GEO: Services hub FAQ section — earns FAQPage rich result and AI citation eligibility */}
-          <section aria-labelledby="services-faq-heading" className="mt-20 speakable-faq">
-            <div className="max-w-3xl mx-auto">
-              <div className="text-center mb-10">
-                <h2 id="services-faq-heading" className="text-2xl md:text-3xl font-bold mb-3">
-                  Frequently asked questions about our fintech SEO services
-                </h2>
-                <p className="text-muted-foreground">
-                  Everything fintech founders, CMOs, and marketing leads ask us before starting an engagement.
-                </p>
-              </div>
-              <Accordion
-                type="single"
-                collapsible
-                className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-200 overflow-hidden"
-              >
-                {servicesIndexFaqs.map((faq, idx) => (
-                  <AccordionItem
-                    key={faq.question}
-                    value={`services-faq-${idx}`}
-                    className="border-b-0 group"
-                  >
-                    <AccordionTrigger className="px-6 py-5 text-base md:text-lg font-semibold text-left text-slate-900 hover:text-[#0052FF] hover:no-underline transition-colors [&>svg]:hidden">
-                      <span className="flex-1 pr-4">{faq.question}</span>
-                      <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
-                        <Plus className="w-5 h-5" aria-hidden="true" />
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-5 pt-0 text-muted-foreground text-base leading-relaxed">
-                      {faq.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </div>
-          </section>
+          <FaqSection
+            items={servicesIndexFaqs}
+            heading="Frequently asked questions about our fintech SEO services"
+            subtitle="Everything fintech founders, CMOs, and marketing leads ask us before starting an engagement."
+            className="py-20 border-t bg-muted/20 speakable-faq"
+            valuePrefix="services-faq"
+          />
         </div>
       </section>
     </div>

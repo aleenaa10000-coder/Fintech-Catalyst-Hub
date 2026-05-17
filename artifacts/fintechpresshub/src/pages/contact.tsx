@@ -9,18 +9,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { toast } from "sonner";
 import {
-  MapPin, Mail, Clock, HelpCircle, Plus, Globe, ShieldCheck, Timer,
+  MapPin, Mail, Clock, Globe, ShieldCheck, Timer,
   Linkedin, Twitter, FileText, UserCheck, PhoneCall, FileCheck2, Star,
   ArrowRight, CheckCircle2,
 } from "lucide-react";
+import { FaqSection } from "@/components/FaqSection";
 import { PageHero } from "@/components/PageHero";
 import { Link } from "wouter";
 import { useEffect, useState } from "react";
@@ -912,44 +907,13 @@ export default function Contact() {
       </section>
 
       {/* FAQ section */}
-      <section className="py-16 bg-muted/20" data-testid="section-contact-faq">
-        <div className="container mx-auto max-w-3xl px-4">
-          <div className="mb-10 text-center">
-            <HelpCircle className="mx-auto mb-4 h-8 w-8 text-primary" />
-            <h2 className="mb-3 text-2xl font-bold md:text-3xl">
-              Frequently Asked Questions About Our Fintech SEO Agency
-            </h2>
-            <p className="text-muted-foreground">
-              The most common questions from fintech teams considering a first
-              conversation with our strategists.
-            </p>
-          </div>
-          <Accordion
-            type="single"
-            collapsible
-            className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
-          >
-            {contactFaqs.map((faq, idx) => (
-              <AccordionItem
-                key={faq.question}
-                value={`contact-faq-${idx}`}
-                data-testid={`accordion-contact-faq-${idx}`}
-                className="group border-b-0"
-              >
-                <AccordionTrigger className="px-6 py-5 text-left text-base font-semibold text-slate-900 transition-colors hover:text-[#0052FF] hover:no-underline md:text-lg [&>svg]:hidden">
-                  <span className="flex-1 pr-4">{faq.question}</span>
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0052FF]/10 text-[#0052FF] transition-transform duration-300 group-data-[state=open]:rotate-45">
-                    <Plus className="h-5 w-5" />
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-5 pt-0 text-base leading-relaxed text-muted-foreground">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
-      </section>
+      <FaqSection
+        items={contactFaqs}
+        heading="Frequently Asked Questions About Our Fintech SEO Agency"
+        subtitle="The most common questions from fintech teams considering a first conversation with our strategists."
+        valuePrefix="contact-faq"
+        testId="section-contact-faq"
+      />
     </div>
   );
 }
