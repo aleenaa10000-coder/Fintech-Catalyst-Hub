@@ -1410,29 +1410,6 @@ function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
   );
 }
 
-async function presignAndUpload(file: {
-  name: string;
-  size: number;
-  type: string;
-}) {
-  const res = await fetch("/api/uploads/request-url", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(file),
-  });
-  if (!res.ok) throw new Error("Failed to get upload URL");
-  return (await res.json()) as { uploadURL: string; objectPath: string };
-}
-
-async function finalizeUpload(uploadURL: string) {
-  const res = await fetch("/api/uploads/finalize", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ uploadURL }),
-  });
-  if (!res.ok) throw new Error("Failed to finalize upload");
-  return (await res.json()) as { objectPath: string };
-}
 
 const emptyForm = {
   slug: "",
@@ -1845,35 +1822,11 @@ function PostEditor({
               maxFileSize={10 * 1024 * 1024}
               imageMinDimensions={{ width: 1600, height: 800 }}
               onValidationWarning={(msg) => toast.warning(msg)}
-              onGetUploadParameters={async (file) => {
-                const { uploadURL } = await presignAndUpload({
-                  name: file.name ?? "upload",
-                  size: file.size ?? 0,
-                  type: file.type ?? "application/octet-stream",
-                });
-                return {
-                  method: "PUT",
-                  url: uploadURL,
-                  headers: {
-                    "Content-Type":
-                      file.type ?? "application/octet-stream",
-                  },
-                };
-              }}
               onComplete={async (result) => {
-                const uploaded = result.successful?.[0];
-                const uploadURL = uploaded?.uploadURL;
-                if (!uploadURL) {
-                  toast.error("Upload did not return a URL");
-                  return;
-                }
-                try {
-                  const { objectPath } = await finalizeUpload(uploadURL);
-                  setDraft((d) => ({ ...d, coverImage: objectPath }));
-                  toast.success("Cover image uploaded");
-                } catch {
-                  toast.error("Could not finalize upload");
-                }
+                const objectPath = result.successful?.[0]?.uploadURL;
+                if (!objectPath) { toast.error("Upload did not return a path"); return; }
+                setDraft((d) => ({ ...d, coverImage: objectPath }));
+                toast.success("Cover image uploaded");
               }}
               buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
             >
@@ -1915,27 +1868,11 @@ function PostEditor({
               maxNumberOfFiles={1}
               maxFileSize={10 * 1024 * 1024}
               onValidationWarning={(msg) => toast.warning(msg)}
-              onGetUploadParameters={async (file) => {
-                const { uploadURL } = await presignAndUpload({
-                  name: file.name ?? "upload",
-                  size: file.size ?? 0,
-                  type: file.type ?? "application/octet-stream",
-                });
-                return {
-                  method: "PUT",
-                  url: uploadURL,
-                  headers: { "Content-Type": file.type ?? "application/octet-stream" },
-                };
-              }}
               onComplete={async (result) => {
-                const uploaded = result.successful?.[0];
-                const uploadURL = uploaded?.uploadURL;
-                if (!uploadURL) { toast.error("Upload did not return a URL"); return; }
-                try {
-                  const { objectPath } = await finalizeUpload(uploadURL);
-                  setDraft((d) => ({ ...d, inlineImage1: objectPath }));
-                  toast.success("Inline image 1 uploaded");
-                } catch { toast.error("Could not finalize upload"); }
+                const objectPath = result.successful?.[0]?.uploadURL;
+                if (!objectPath) { toast.error("Upload did not return a path"); return; }
+                setDraft((d) => ({ ...d, inlineImage1: objectPath }));
+                toast.success("Inline image 1 uploaded");
               }}
               buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
             >
@@ -1962,27 +1899,11 @@ function PostEditor({
               maxNumberOfFiles={1}
               maxFileSize={10 * 1024 * 1024}
               onValidationWarning={(msg) => toast.warning(msg)}
-              onGetUploadParameters={async (file) => {
-                const { uploadURL } = await presignAndUpload({
-                  name: file.name ?? "upload",
-                  size: file.size ?? 0,
-                  type: file.type ?? "application/octet-stream",
-                });
-                return {
-                  method: "PUT",
-                  url: uploadURL,
-                  headers: { "Content-Type": file.type ?? "application/octet-stream" },
-                };
-              }}
               onComplete={async (result) => {
-                const uploaded = result.successful?.[0];
-                const uploadURL = uploaded?.uploadURL;
-                if (!uploadURL) { toast.error("Upload did not return a URL"); return; }
-                try {
-                  const { objectPath } = await finalizeUpload(uploadURL);
-                  setDraft((d) => ({ ...d, inlineImage2: objectPath }));
-                  toast.success("Inline image 2 uploaded");
-                } catch { toast.error("Could not finalize upload"); }
+                const objectPath = result.successful?.[0]?.uploadURL;
+                if (!objectPath) { toast.error("Upload did not return a path"); return; }
+                setDraft((d) => ({ ...d, inlineImage2: objectPath }));
+                toast.success("Inline image 2 uploaded");
               }}
               buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
             >
@@ -2096,35 +2017,11 @@ function PostEditor({
                 maxFileSize={10 * 1024 * 1024}
                 imageMinDimensions={{ width: 1200, height: 630 }}
                 onValidationWarning={(msg) => toast.warning(msg)}
-                onGetUploadParameters={async (file) => {
-                  const { uploadURL } = await presignAndUpload({
-                    name: file.name ?? "upload",
-                    size: file.size ?? 0,
-                    type: file.type ?? "application/octet-stream",
-                  });
-                  return {
-                    method: "PUT",
-                    url: uploadURL,
-                    headers: {
-                      "Content-Type":
-                        file.type ?? "application/octet-stream",
-                    },
-                  };
-                }}
                 onComplete={async (result) => {
-                  const uploaded = result.successful?.[0];
-                  const uploadURL = uploaded?.uploadURL;
-                  if (!uploadURL) {
-                    toast.error("Upload did not return a URL");
-                    return;
-                  }
-                  try {
-                    const { objectPath } = await finalizeUpload(uploadURL);
-                    setDraft((d) => ({ ...d, seoOgImage: objectPath }));
-                    toast.success("OG image uploaded");
-                  } catch {
-                    toast.error("Could not finalize upload");
-                  }
+                  const objectPath = result.successful?.[0]?.uploadURL;
+                  if (!objectPath) { toast.error("Upload did not return a path"); return; }
+                  setDraft((d) => ({ ...d, seoOgImage: objectPath }));
+                  toast.success("OG image uploaded");
                 }}
                 buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
               >
@@ -4489,36 +4386,11 @@ export default function AdminBlog() {
                       maxFileSize={10 * 1024 * 1024}
                       imageMinDimensions={{ width: 1600, height: 800 }}
                       onValidationWarning={(msg) => toast.warning(msg)}
-                      onGetUploadParameters={async (file) => {
-                        const { uploadURL } = await presignAndUpload({
-                          name: file.name ?? "upload",
-                          size: file.size ?? 0,
-                          type: file.type ?? "application/octet-stream",
-                        });
-                        return {
-                          method: "PUT",
-                          url: uploadURL,
-                          headers: {
-                            "Content-Type":
-                              file.type ?? "application/octet-stream",
-                          },
-                        };
-                      }}
                       onComplete={async (result) => {
-                        const uploaded = result.successful?.[0];
-                        const uploadURL = uploaded?.uploadURL;
-                        if (!uploadURL) {
-                          toast.error("Upload did not return a URL");
-                          return;
-                        }
-                        try {
-                          const { objectPath } =
-                            await finalizeUpload(uploadURL);
-                          setForm((f) => ({ ...f, coverImage: objectPath }));
-                          toast.success("Cover image uploaded");
-                        } catch {
-                          toast.error("Could not finalize upload");
-                        }
+                        const objectPath = result.successful?.[0]?.uploadURL;
+                        if (!objectPath) { toast.error("Upload did not return a path"); return; }
+                        setForm((f) => ({ ...f, coverImage: objectPath }));
+                        toast.success("Cover image uploaded");
                       }}
                       buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
                     >
@@ -4644,39 +4516,11 @@ export default function AdminBlog() {
                         maxFileSize={10 * 1024 * 1024}
                         imageMinDimensions={{ width: 1200, height: 630 }}
                         onValidationWarning={(msg) => toast.warning(msg)}
-                        onGetUploadParameters={async (file) => {
-                          const { uploadURL } = await presignAndUpload({
-                            name: file.name ?? "upload",
-                            size: file.size ?? 0,
-                            type: file.type ?? "application/octet-stream",
-                          });
-                          return {
-                            method: "PUT",
-                            url: uploadURL,
-                            headers: {
-                              "Content-Type":
-                                file.type ?? "application/octet-stream",
-                            },
-                          };
-                        }}
                         onComplete={async (result) => {
-                          const uploaded = result.successful?.[0];
-                          const uploadURL = uploaded?.uploadURL;
-                          if (!uploadURL) {
-                            toast.error("Upload did not return a URL");
-                            return;
-                          }
-                          try {
-                            const { objectPath } =
-                              await finalizeUpload(uploadURL);
-                            setForm((f) => ({
-                              ...f,
-                              seoOgImage: objectPath,
-                            }));
-                            toast.success("OG image uploaded");
-                          } catch {
-                            toast.error("Could not finalize upload");
-                          }
+                          const objectPath = result.successful?.[0]?.uploadURL;
+                          if (!objectPath) { toast.error("Upload did not return a path"); return; }
+                          setForm((f) => ({ ...f, seoOgImage: objectPath }));
+                          toast.success("OG image uploaded");
                         }}
                         buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
                       >

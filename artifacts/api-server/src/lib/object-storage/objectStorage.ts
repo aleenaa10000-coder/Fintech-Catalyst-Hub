@@ -181,25 +181,36 @@ export class ObjectStorageService {
     }
   }
 
-  // Gets the upload URL for an object entity.
-  async getObjectEntityUploadURL(): Promise<string> {
+  /**
+   * Upload a buffer directly to object storage and return the canonical
+   * /objects/uploads/<uuid> path.  This avoids the signed-URL flow entirely
+   * (the Replit sidecar's signing endpoint is not accessible) and instead
+   * streams the data through the server using the working GCS credentials.
+   */
+  async uploadObjectEntityFromBuffer(
+    buffer: Buffer,
+    contentType: string,
+    userId: string,
+  ): Promise<string> {
     if (!isReplitStorageAvailable()) {
       throw new ObjectStorageUnavailableError();
     }
     const privateObjectDir = this.getPrivateObjectDir();
-
     const objectId = randomUUID();
     const fullPath = `${privateObjectDir}/uploads/${objectId}`;
-
     const { bucketName, objectName } = parseObjectPath(fullPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
 
-    // Sign URL for PUT method with TTL
-    return signObjectURL({
-      bucketName,
-      objectName,
-      method: "PUT",
-      ttlSec: 900,
+    await file.save(buffer, {
+      metadata: { contentType },
+      resumable: false,
     });
+
+    // Mark the object as publicly readable so /objects/* serving works.
+    await setObjectAclPolicy(file, { owner: userId, visibility: "public" });
+
+    return `/objects/uploads/${objectId}`;
   }
 
   // Gets the object entity file from the object path.
@@ -311,40 +322,3 @@ function parseObjectPath(path: string): {
   };
 }
 
-async function signObjectURL({
-  bucketName,
-  objectName,
-  method,
-  ttlSec,
-}: {
-  bucketName: string;
-  objectName: string;
-  method: "GET" | "PUT" | "DELETE" | "HEAD";
-  ttlSec: number;
-}): Promise<string> {
-  const request = {
-    bucket_name: bucketName,
-    object_name: objectName,
-    method,
-    expires_at: new Date(Date.now() + ttlSec * 1000).toISOString(),
-  };
-  const response = await fetch(
-    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(request),
-    }
-  );
-  if (!response.ok) {
-    throw new Error(
-      `Failed to sign object URL, errorcode: ${response.status}, ` +
-        `make sure you're running on Replit`
-    );
-  }
-
-  const payload = (await response.json()) as { signed_url: string };
-  return payload.signed_url;
-}

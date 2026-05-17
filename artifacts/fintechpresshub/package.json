@@ -99,6 +99,7 @@
     "@uppy/core": "^5.2.0",
     "@uppy/dashboard": "^5.1.1",
     "@uppy/react": "^5.2.0",
+    "@uppy/xhr-upload": "^5.2.0",
     "chart.js": "^4.5.1",
     "html2pdf.js": "^0.14.0",
     "jspdf": "^4.2.1",

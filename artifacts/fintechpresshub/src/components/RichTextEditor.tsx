@@ -51,41 +51,20 @@ interface RichTextEditorProps {
 }
 
 async function uploadImageFile(file: File): Promise<string> {
-  const reqRes = await fetch("/api/uploads/request-url", {
+  const res = await fetch("/api/uploads/upload", {
     method: "POST",
     credentials: "include",
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+    body: file,
   });
-  if (!reqRes.ok) {
-    const err = await reqRes.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
     throw new Error(
-      (err as { error?: string }).error ?? "Failed to request upload URL",
+      (err as { error?: string }).error ?? "Failed to upload image",
     );
   }
-  const { uploadURL, objectPath } = (await reqRes.json()) as {
-    uploadURL: string;
-    objectPath: string;
-  };
-
-  const putRes = await fetch(uploadURL, {
-    method: "PUT",
-    body: file,
-    headers: { "Content-Type": file.type },
-  });
-  if (!putRes.ok) throw new Error("Failed to upload file to storage");
-
-  const finalRes = await fetch("/api/uploads/finalize", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ uploadURL }),
-  });
-  if (!finalRes.ok) throw new Error("Failed to finalize upload");
-  const { objectPath: finalPath } = (await finalRes.json()) as {
-    objectPath: string;
-  };
-
-  // finalPath already starts with "/objects/..." — return it as-is.
-  return finalPath;
+  const { objectPath } = (await res.json()) as { objectPath: string };
+  return objectPath;
 }
 
 export function RichTextEditor({

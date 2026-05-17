@@ -26,29 +26,6 @@ interface Props {
   className?: string;
 }
 
-async function presignAndUpload(file: {
-  name: string;
-  size: number;
-  type: string;
-}) {
-  const res = await fetch("/api/uploads/request-url", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(file),
-  });
-  if (!res.ok) throw new Error("Failed to get upload URL");
-  return (await res.json()) as { uploadURL: string; objectPath: string };
-}
-
-async function finalizeUpload(uploadURL: string) {
-  const res = await fetch("/api/uploads/finalize", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ uploadURL }),
-  });
-  if (!res.ok) throw new Error("Failed to finalize upload");
-  return (await res.json()) as { objectPath: string };
-}
 
 export function AuthorHeadshotRequestDialog({
   authorSlug,
@@ -193,35 +170,11 @@ export function AuthorHeadshotRequestDialog({
                     maxFileSize={5 * 1024 * 1024}
                     imageMinDimensions={HEADSHOT_MIN}
                     onValidationWarning={(msg) => toast.warning(msg)}
-                    onGetUploadParameters={async (file) => {
-                      const { uploadURL } = await presignAndUpload({
-                        name: file.name ?? "headshot",
-                        size: file.size ?? 0,
-                        type: file.type ?? "application/octet-stream",
-                      });
-                      return {
-                        method: "PUT",
-                        url: uploadURL,
-                        headers: {
-                          "Content-Type":
-                            file.type ?? "application/octet-stream",
-                        },
-                      };
-                    }}
                     onComplete={async (result) => {
-                      const uploaded = result.successful?.[0];
-                      const uploadURL = uploaded?.uploadURL;
-                      if (!uploadURL) {
-                        toast.error("Upload did not return a URL");
-                        return;
-                      }
-                      try {
-                        const { objectPath } = await finalizeUpload(uploadURL);
-                        setPhotoUrl(objectPath);
-                        toast.success("Headshot uploaded — add a note and submit.");
-                      } catch {
-                        toast.error("Could not finalize upload");
-                      }
+                      const objectPath = result.successful?.[0]?.uploadURL;
+                      if (!objectPath) { toast.error("Upload did not return a path"); return; }
+                      setPhotoUrl(objectPath);
+                      toast.success("Headshot uploaded — add a note and submit.");
                     }}
                     buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] w-full"
                   >

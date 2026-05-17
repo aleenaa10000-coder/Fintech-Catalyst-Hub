@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import express, { Router, type IRouter } from "express";
 import { z } from "zod";
 import {
   ObjectStorageService,
@@ -11,72 +11,53 @@ const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 
 /**
- * Step 1 of the upload flow.
- * Returns a short-lived presigned PUT URL the client uploads the raw file to,
- * plus the canonical objectPath we'll later use to finalize and serve it.
+ * Single-step upload endpoint.
  *
- * Auth-gated so only signed-in admins can mint upload URLs.
+ * Accepts the raw file bytes as the request body (Content-Type must match the
+ * file's MIME type).  The server streams the data directly to GCS using the
+ * working Replit sidecar credentials, marks the object as publicly readable,
+ * and returns the canonical /objects/uploads/<uuid> path.
+ *
+ * Auth-gated so only signed-in admins can upload files.
  */
-router.post("/api/uploads/request-url", async (req, res) => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  try {
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
-    res.json({ uploadURL, objectPath });
-  } catch (err) {
-    if (err instanceof ObjectStorageUnavailableError) {
-      res.status(503).json({
-        error: "File uploads are not available in this environment. Configure Replit Object Storage to enable uploads.",
-      });
+router.post(
+  "/api/uploads/upload",
+  express.raw({ type: "*/*", limit: "20mb" }),
+  async (req, res) => {
+    if (!req.isAuthenticated()) {
+      res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    logger.error({ err }, "Failed to generate upload URL");
-    res.status(500).json({ error: "Failed to generate upload URL" });
-  }
-});
-
-const FinalizeBody = z.object({
-  uploadURL: z.string().url(),
-});
-
-/**
- * Step 2 of the upload flow.
- * After the client PUTs the file to the presigned URL, it calls this endpoint
- * to mark the object as publicly readable and to receive the canonical
- * /objects/<id> path that can be stored as e.g. a blog post cover image URL.
- */
-router.post("/api/uploads/finalize", async (req, res) => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  try {
-    const { uploadURL } = FinalizeBody.parse(req.body);
-    const userId =
-      (req.user as { id?: string } | undefined)?.id ?? "anonymous";
-    const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-      uploadURL,
-      { owner: userId, visibility: "public" },
-    );
-    res.json({ objectPath });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      res.status(400).json({ error: "Invalid body", issues: err.issues });
-      return;
+    try {
+      const contentType =
+        (req.headers["content-type"] ?? "").split(";")[0]?.trim() ||
+        "application/octet-stream";
+      const userId =
+        (req.user as { id?: string } | undefined)?.id ?? "anonymous";
+      const buffer = req.body as Buffer;
+      if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+        res.status(400).json({ error: "Empty or missing file body" });
+        return;
+      }
+      const objectPath = await objectStorageService.uploadObjectEntityFromBuffer(
+        buffer,
+        contentType,
+        userId,
+      );
+      res.json({ objectPath });
+    } catch (err) {
+      if (err instanceof ObjectStorageUnavailableError) {
+        res.status(503).json({
+          error:
+            "File uploads are not available in this environment. Configure Replit Object Storage to enable uploads.",
+        });
+        return;
+      }
+      logger.error({ err }, "Failed to upload file");
+      res.status(500).json({ error: "Failed to upload file" });
     }
-    if (err instanceof ObjectStorageUnavailableError) {
-      res.status(503).json({
-        error: "File uploads are not available in this environment. Configure Replit Object Storage to enable uploads.",
-      });
-      return;
-    }
-    logger.error({ err }, "Failed to finalize upload");
-    res.status(500).json({ error: "Failed to finalize upload" });
-  }
-});
+  },
+);
 
 /**
  * Public file serving for uploaded objects.
