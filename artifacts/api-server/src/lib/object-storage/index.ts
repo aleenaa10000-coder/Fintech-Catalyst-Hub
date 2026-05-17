@@ -13,6 +13,7 @@ export type {
 } from "./objectAcl";
 
 export {
+  LocalFile,
   canAccessObject,
   getObjectAclPolicy,
   setObjectAclPolicy,
