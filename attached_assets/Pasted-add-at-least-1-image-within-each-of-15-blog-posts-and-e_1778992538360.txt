@@ -1,0 +1,84 @@
+add at least 1 image within each of 15 blog posts. and ensure there should be option of adding 1-2 images witnin the future blog posts. 
+
+ add per-card data prefetching so hovering a blog post card silently fetches that post's full data in the background — meaning the article itself appears instantly when you click rather than waiting for the API response. 
+
+Make the UI of Faq section of “meet the team” and “locations” and all other sections exactly same as that of “home”  page.
+
+add a live "client success" testimonials carousel to the pricing page that pulls from the database and renders individual Review schema markup inline, reinforcing the Off-Page and White Hat signals on every visit.  
+
+ add a dynamic IndexNow ping that fires automatically whenever the /pricing page content changes (e.g., plan prices or features are updated via admin), so search engines are notified within seconds rather than waiting for the daily scheduled crawl.  
+
+add a PriceSpecification comparison table section to the pricing page that renders a structured HTML <table> comparing all four plans side-by-side with features — eligible for Google's table rich result and FAQPage featured snippet carousels 
+
+add a /services/[slug]/[sub-topic] programmatic expansion layer (e.g., /services/off-page-seo/for-payments-fintechs) that generates pre-populated landing pages targeting long-tail qualifier queries, multiplying indexable service URLs without any DB changes.  
+
+add a potentialAction: SearchAction schema to the /services hub page so Google can surface a sitelinks search box for service-specific queries directly in the SERP. 
+
+add SSR (server-side rendering) routes for all 6 legal pages in the Express API server, so Googlebot receives fully-rendered HTML without needing to execute JavaScript 
+
+add an admin-side SEO score preview for glossary terms that shows the completeness of each term's seoTitle, seoDescription, relatedTerms, and category fields — surfacing which terms need enrichment to maximise their individual SERP coverage.  
+
+add a wikidata_id column to the glossaryTerms DB schema and wire it through the CMS admin UI so editors can set verified per-term sameAs links without touching code. 
+
+ add a "Browse by Category" hub section to the glossary index page — static filtered views per fintech sub-vertical (Payments, Regtech, Neobanking, etc.) that link to pre-filtered term lists, adding another layer of programmatic internal linking. 
+
+add an internal-links block at the bottom of each comparison page that cross-links to related comparisons — boosting page equity distribution and topical clustering signals for Google. 
+
+add an aggregateRating schema block to each tool page that reads real user ratings from the database, enabling star-rating rich results in Google SERPs as soon as authentic rating data is collected. 
+ build the /embed/:slug chrome-free React route so FintechPressHub's free tools can be iframed by third-party fintech sites as a white-hat backlink hook. 
+
+add an automated Lighthouse CI score gate that blocks deployment if any tool page drops below a target score threshold 
+
+add a real user-rating widget to the tool pages that stores ratings in the database and outputs an authentic AggregateRating schema 
+
+ add JSON-LD dateModified and dateCreated properties to all 10 tool pages using TOOL_PAGE_LASTMOD from seoConstants.ts, which would further strengthen E-E-A-T signals for Google's freshness scoring 
+
+add IndexNow automatic pinging after each tool page update to notify Bing, Yandex, and Seznam crawlers of fresh content without waiting for natural re-crawl cycles. 
+
+add an automated structured-data validation route (/api/schema-validate) that checks each tool page's JSON-LD against schema.org's validator API on every deploy, so regressions are caught before they reach production 
+
+ add a /sitemap.xml HTML page (a human-readable sitemap hub listing all pages by category) to complement the machine-readable XML sitemaps and give both users and crawlers a single discovery entry point.  
+
+add a ReviewAction potentialAction to each tool's SoftwareApplication schema — letting Google surface a "Write a review" rich action directly in SERP listings, increasing click-through rate for the tool pages. 
+
+add a "Related Tools" cross-linking UI section to each tool detail page — visible recommendation cards at the bottom pointing to 2–3 related tools, backed by the TOOLS_RELATED entity-graph edges already in the schema. 
+
+add a "Related Tools" cross-linking section to each tool's detail page UI — visible recommended tools cards at the bottom, matching the TOOLS_RELATED entity-graph edges already in the schema.  
+
+add a structured data health dashboard to the admin panel that shows a live per-page score for each of the 8 SEO categories so the team can monitor any future drift. 
+
+ add individual topic-category landing pages (e.g., /write-for-us/payments-infrastructure, /write-for-us/embedded-finance) that each rank for their own "fintech guest post [topic]" long-tail keywords and upgrade the 16 ItemList url entries from the #topics anchor to real crawlable pages.  
+
+create individual topic-category pages (e.g., /write-for-us/payments-infrastructure, /write-for-us/open-banking) so each of the 16 ItemList entries resolves to a real URL — the largest remaining programmatic SEO lever for long-tail "fintech write for us [topic]" queries. 
+
+ build individual topic category pages (e.g. /write-for-us/payments-infrastructure) so each of the 16 ItemList entries resolves to a unique, indexable URL — unlocking the full programmatic SEO tier and replacing the current #topics anchor fallback. 
+
+add an automated schema health dashboard to the admin panel that validates each post's JSON-LD completeness against the 8 audit categories and flags any missing fields in real time 
+
+add a ClaimReview JSON-LD workflow to the blog post admin editor, so editors can tag verifiable financial claims and auto-generate the schema markup on save — pushing Off-Page SEO from 99 to 100.  
+
+add ClaimReview JSON-LD support to the blog post editor — allowing editors to mark specific financial claims as fact-checked, which unlocks Google's fact-check label in News results and improves E-E-A-T scoring for YMYL content. 
+
+implement a ClaimReview schema layer that automatically flags and structurally marks up specific factual claims in blog posts (e.g. statistics, regulatory facts) to further strengthen E-E-A-T for YMYL financial content.  
+
+add speakable selectors to the client-side PageMeta.tsx blog post rendering path to match the SSR ["h1", "h2", ".speakable-summary"] selectors — currently the client emits a separate standalone SpeakableSpecification block rather than embedding it in the BlogPosting entity as SSR does 
+
+ add IndexNow pings for static page updates (services, pricing, glossary edits) so Bing and Yandex are notified within seconds of any content change — not just on new blog posts. 
+
+add latitude and longitude to the locations API endpoint response so location.tsx can immediately pass geo coordinates to localBusinessJsonLd for full Google Maps Knowledge Panel coverage.  
+
+add a Last-Modified response header to the robots.txt and sitemap routes so crawlers can efficiently revalidate those files without re-downloading the full content. 
+
+ add an automated weekly AEO score regression test that alerts when the citation signals degrade — tracking which AI engines (Perplexity, ChatGPT, Google AIO) are actually citing FintechPressHub pages.  
+
+ add a lint rule ⑮ that validates outbound citation density (minimum 2 external authority links per 1 000 words) by parsing the post's HTML content, giving editors a quantified signal for YMYL credibility.  
+
+add a sameAs array to the root Organization schema linking to your verified LinkedIn, Twitter/X, and Crunchbase profiles — this directly improves Google Knowledge Panel eligibility and strengthens E-E-A-T signals across the entire domain. 
+
+ build a programmatic internal-linking pass that automatically surfaces 3 "related posts" links per article (as relatedLink JSON-LD + an on-page widget), boosting topical authority signals and reducing crawl depth across the blog. 
+
+add a /__seo-debug endpoint that renders a JSON snapshot of all JSON-LD blocks, HTTP headers, and hreflang tags for any given URL — useful for QA-ing new posts before they go live. 
+
+add a WebMention ingestion log — storing received citations in a new webmentions DB table with source URL, target URL, and timestamp — so you can see which external sites are citing FintechPressHub content. 
+
+update the blog_posts.json seed file and seed.ts mapping to include the SEO fields so a fresh database deploy always seeds with complete data rather than requiring a post-seed SQL patch 
