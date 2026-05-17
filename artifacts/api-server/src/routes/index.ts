@@ -42,7 +42,6 @@ import seoValidateRouter from "./seoValidate";
 import toolRatingsRouter from "./toolRatings";
 import webmentionsRouter from "./webmentions";
 import seoDebugRouter from "./seoDebug";
-import aiWriteAssistRouter from "./aiWriteAssist";
 
 const router: IRouter = Router();
 
@@ -89,7 +88,6 @@ router.use(seoValidateRouter);
 router.use(toolRatingsRouter);
 router.use(webmentionsRouter);
 router.use(seoDebugRouter);
-router.use(aiWriteAssistRouter);
 
 // JSON 404 fallback for unmatched /api/* routes — must come last so it
 // doesn't shadow any route registered above.

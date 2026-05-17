@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
@@ -29,12 +28,6 @@ import {
   AlignRight,
   Loader2,
   FileDown,
-  Sparkles,
-  RefreshCw,
-  Expand,
-  AlignJustify,
-  Scissors,
-  SpellCheck,
 } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
@@ -56,16 +49,6 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
 }
-
-type AiAction = "rewrite" | "expand" | "summarize" | "fixGrammar" | "makeShorter";
-
-const AI_ACTIONS: { action: AiAction; label: string; icon: React.ReactNode }[] = [
-  { action: "rewrite", label: "Rewrite", icon: <RefreshCw className="h-3 w-3" /> },
-  { action: "expand", label: "Expand", icon: <Expand className="h-3 w-3" /> },
-  { action: "summarize", label: "Summarize", icon: <AlignJustify className="h-3 w-3" /> },
-  { action: "fixGrammar", label: "Fix grammar", icon: <SpellCheck className="h-3 w-3" /> },
-  { action: "makeShorter", label: "Shorten", icon: <Scissors className="h-3 w-3" /> },
-];
 
 async function uploadImageFile(file: File): Promise<string> {
   const reqRes = await fetch("/api/uploads/request-url", {
@@ -114,7 +97,6 @@ export function RichTextEditor({
   const [mdDialogOpen, setMdDialogOpen] = useState(false);
   const [mdText, setMdText] = useState("");
   const [mdMode, setMdMode] = useState<"replace" | "append">("replace");
-  const [aiLoading, setAiLoading] = useState<AiAction | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -218,55 +200,6 @@ export function RichTextEditor({
     }
   }, [editor, mdText, mdMode, onChange]);
 
-  const handleAiAction = useCallback(
-    async (action: AiAction) => {
-      if (!editor || aiLoading) return;
-
-      const { from, to } = editor.state.selection;
-      const selectedText = editor.state.doc.textBetween(from, to, "\n");
-      if (!selectedText.trim()) {
-        toast.error("Select some text first, then choose an AI action.");
-        return;
-      }
-
-      setAiLoading(action);
-      try {
-        const res = await fetch("/api/ai/write-assist", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: selectedText, action }),
-        });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(
-            (err as { error?: string }).error ?? "AI request failed",
-          );
-        }
-
-        const { result } = (await res.json()) as { result: string };
-
-        editor
-          .chain()
-          .focus()
-          .deleteRange({ from, to })
-          .insertContentAt(from, result)
-          .run();
-
-        onChange(editor.getHTML());
-        toast.success("AI suggestion applied");
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "AI request failed",
-        );
-      } finally {
-        setAiLoading(null);
-      }
-    },
-    [editor, aiLoading, onChange],
-  );
-
   if (!editor) return null;
 
   const btn = (
@@ -290,35 +223,6 @@ export function RichTextEditor({
 
   return (
     <>
-      {/* AI bubble menu — appears when text is selected */}
-      <BubbleMenu
-        editor={editor}
-        options={{ placement: "top-start" }}
-        shouldShow={({ from, to, editor: ed }) => {
-          return from !== to && !ed.isActive("image");
-        }}
-      >
-        <div className="flex items-center gap-0.5 rounded-lg border border-border bg-popover shadow-lg px-1.5 py-1">
-          <Sparkles className="h-3 w-3 text-primary mr-1 shrink-0" />
-          {AI_ACTIONS.map(({ action, label, icon }) => (
-            <button
-              key={action}
-              onClick={() => void handleAiAction(action)}
-              disabled={aiLoading !== null}
-              title={label}
-              className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium hover:bg-muted disabled:opacity-50 transition-colors whitespace-nowrap"
-            >
-              {aiLoading === action ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                icon
-              )}
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-          ))}
-        </div>
-      </BubbleMenu>
-
       <div
         className={[
           "rounded-md border border-input bg-background text-sm shadow-sm",
@@ -427,13 +331,6 @@ export function RichTextEditor({
           <div className="flex items-center gap-1.5 border-t border-input px-3 py-1.5 text-xs text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" />
             Uploading image…
-          </div>
-        )}
-
-        {aiLoading && (
-          <div className="flex items-center gap-1.5 border-t border-input px-3 py-1.5 text-xs text-muted-foreground">
-            <Sparkles className="h-3 w-3 animate-pulse text-primary" />
-            AI is working on your selection…
           </div>
         )}
       </div>
