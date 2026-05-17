@@ -86,6 +86,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@tiptap/extension-bubble-menu": "^3.23.4",
     "@tiptap/extension-character-count": "^3.23.4",
     "@tiptap/extension-image": "^3.23.4",
     "@tiptap/extension-link": "^3.23.4",
