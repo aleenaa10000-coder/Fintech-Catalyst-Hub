@@ -1874,7 +1874,7 @@ function PostEditor({
           <div className="flex gap-2">
             <Input
               id={`coverImage-${post.id}`}
-              type="url"
+              type="text"
               value={draft.coverImage}
               onChange={(e) =>
                 setDraft({ ...draft, coverImage: e.target.value })
@@ -1928,8 +1928,8 @@ function PostEditor({
           <div className="flex gap-2">
             <Input
               id={`inlineImage1-${post.id}`}
-              type="url"
-              placeholder="https://…"
+              type="text"
+              placeholder="https://… or upload"
               value={draft.inlineImage1}
               onChange={(e) =>
                 setDraft({ ...draft, inlineImage1: e.target.value })
@@ -1959,8 +1959,8 @@ function PostEditor({
           <div className="flex gap-2">
             <Input
               id={`inlineImage2-${post.id}`}
-              type="url"
-              placeholder="https://…"
+              type="text"
+              placeholder="https://… or upload"
               value={draft.inlineImage2}
               onChange={(e) =>
                 setDraft({ ...draft, inlineImage2: e.target.value })
@@ -2076,7 +2076,7 @@ function PostEditor({
             <div className="flex gap-2">
               <Input
                 id={`seoOgImage-${post.id}`}
-                type="url"
+                type="text"
                 value={draft.seoOgImage}
                 placeholder={`Defaults to the auto-generated card`}
                 onChange={(e) =>
@@ -4460,7 +4460,7 @@ export default function AdminBlog() {
                   <div className="flex gap-2">
                     <Input
                       id="coverImage"
-                      type="url"
+                      type="text"
                       placeholder="https://… or upload"
                       value={form.coverImage}
                       onChange={(e) =>
@@ -4598,8 +4598,8 @@ export default function AdminBlog() {
                     <div className="flex gap-2">
                       <Input
                         id="seoOgImage"
-                        type="url"
-                        placeholder="Defaults to the cover image"
+                        type="text"
+                        placeholder="https://… or upload"
                         value={form.seoOgImage}
                         onChange={(e) =>
                           setForm({ ...form, seoOgImage: e.target.value })
