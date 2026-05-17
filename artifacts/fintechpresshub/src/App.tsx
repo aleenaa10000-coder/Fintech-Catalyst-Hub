@@ -1,7 +1,6 @@
 import { Header } from "@/components/Header";
 import { AdminHealthBanner } from "@/components/AdminHealthBanner";
 import { Footer } from "@/components/Footer";
-import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { useEffect, useLayoutEffect, lazy, Suspense, type ComponentType } from "react";
@@ -420,7 +419,6 @@ function Router() {
         </Suspense>
       </main>
       <Footer />
-      <CookieConsentBanner />
       <BackToTop />
     </div>
   );
