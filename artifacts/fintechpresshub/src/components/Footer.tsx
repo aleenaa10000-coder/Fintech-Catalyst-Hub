@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { Twitter, Linkedin } from "lucide-react";
 import logoSvg from "@assets/logo/fintechpresshub-logo.svg";
-import { CookiePreferencesButton } from "@/components/CookiePreferencesButton";
 import { prefetchRoute } from "@/lib/route-prefetch";
 import { BRAND_NAP } from "@/lib/metaData";
 
@@ -229,9 +228,6 @@ export function Footer() {
                 <PrefetchLink href="/community-guidelines" className="text-muted-foreground hover:text-primary transition-colors">
                   Community Guidelines
                 </PrefetchLink>
-              </li>
-              <li>
-                <CookiePreferencesButton data-testid="link-footer-manage-cookies" />
               </li>
             </ul>
           </div>

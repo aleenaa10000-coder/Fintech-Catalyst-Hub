@@ -1,6 +1,5 @@
 import { PageMeta } from "@/components/PageMeta";
 import { LegalPageLayout, type LegalSection } from "@/components/LegalPageLayout";
-import { CookiePreferencesButton } from "@/components/CookiePreferencesButton";
 
 const SECTIONS: LegalSection[] = [
   {
@@ -274,14 +273,6 @@ export default function CookiePolicy() {
 
         <h2 id="your-choices">4. Your Choices</h2>
         <p>You can manage your cookie preferences in several ways:</p>
-        <p>
-          <CookiePreferencesButton
-            className="underline underline-offset-2 font-medium"
-            data-testid="link-cookie-policy-manage-cookies"
-          >
-            Open the cookie preferences banner
-          </CookiePreferencesButton>
-        </p>
         <ul>
           <li>
             <strong>Cookie banner</strong> — use the preferences panel shown on your first visit
