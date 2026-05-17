@@ -123,7 +123,7 @@ channel = "stable-25_05"
 
 [userenv.shared]
 REPORT_FROM_EMAIL = "FintechPressHub <hello@fintechpresshub.com>"
-ADMIN_EMAILS = "hello@fintechpresshub.com,docalina11@outlook.com,sarah.linkbuildingexpert@hotmail.com"
+ADMIN_EMAILS = "hello@fintechpresshub.com,docalina11@outlook.com,sarah.linkbuildingexpert@hotmail.com,grace.guestpostingexpert@outlook.com"
 CONTACT_NOTIFY_TO = "hello@fintechpresshub.com"
 PITCH_RECIPIENT_EMAIL = "hello@fintechpresshub.com"
 PRIVATE_OBJECT_DIR = "/fintechpresshub-uploads/private"
