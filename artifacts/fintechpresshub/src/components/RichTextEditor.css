@@ -1,0 +1,91 @@
+.tiptap.ProseMirror {
+  outline: none;
+}
+
+.tiptap.ProseMirror p.is-editor-empty:first-child::before {
+  color: hsl(var(--muted-foreground));
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Prose styles scoped to the editor */
+.tiptap.ProseMirror h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1rem 0 0.5rem;
+}
+.tiptap.ProseMirror h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0.9rem 0 0.4rem;
+}
+.tiptap.ProseMirror h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0.8rem 0 0.35rem;
+}
+.tiptap.ProseMirror p {
+  margin: 0.5rem 0;
+  line-height: 1.65;
+}
+.tiptap.ProseMirror ul,
+.tiptap.ProseMirror ol {
+  padding-left: 1.4rem;
+  margin: 0.5rem 0;
+}
+.tiptap.ProseMirror li {
+  margin: 0.2rem 0;
+  line-height: 1.6;
+}
+.tiptap.ProseMirror blockquote {
+  border-left: 3px solid hsl(var(--border));
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+.tiptap.ProseMirror code {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+  font-size: 0.85em;
+  padding: 0.15em 0.35em;
+  font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+}
+.tiptap.ProseMirror pre {
+  background: hsl(var(--muted));
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+  overflow-x: auto;
+}
+.tiptap.ProseMirror pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.875rem;
+}
+.tiptap.ProseMirror a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  cursor: pointer;
+}
+.tiptap.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+  display: block;
+}
+.tiptap.ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid hsl(var(--primary));
+  border-radius: 4px;
+}
+.tiptap.ProseMirror hr {
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+  margin: 1rem 0;
+}

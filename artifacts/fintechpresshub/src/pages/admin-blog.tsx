@@ -101,6 +101,7 @@ import { Check, UserPlus } from "lucide-react";
 import { authors, type Author } from "@/data/authors";
 import { HealthBadge } from "@/components/HealthBadge";
 import { SchedulePicker } from "@/components/SchedulePicker";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 const GUEST_AUTHOR_VALUE = "__guest__";
 
@@ -1752,12 +1753,10 @@ function PostEditor({
       </div>
       <div>
         <Label htmlFor={`content-${post.id}`}>Content</Label>
-        <Textarea
-          id={`content-${post.id}`}
-          rows={8}
+        <RichTextEditor
           value={draft.content}
-          onChange={(e) => setDraft({ ...draft, content: e.target.value })}
-          required
+          onChange={(html) => setDraft({ ...draft, content: html })}
+          placeholder="Write your post content here…"
         />
       </div>
       <div>
@@ -4310,26 +4309,11 @@ export default function AdminBlog() {
                 />
               </div>
               <div>
-                <Label htmlFor="content">Content (Markdown or HTML)</Label>
-                <Textarea
-                  id="content"
-                  rows={10}
+                <Label htmlFor="content">Content</Label>
+                <RichTextEditor
                   value={form.content}
-                  onChange={(e) =>
-                    setForm({ ...form, content: e.target.value })
-                  }
-                  required
-                  className={(() => {
-                    const wc = form.content
-                      .replace(/<[^>]*>/g, " ")
-                      .replace(/\s+/g, " ")
-                      .trim()
-                      .split(" ")
-                      .filter((w) => w.length > 0).length;
-                    return wc > 0 && (wc < 800 || wc > 1500)
-                      ? "border-destructive focus-visible:ring-destructive"
-                      : "";
-                  })()}
+                  onChange={(html) => setForm({ ...form, content: html })}
+                  placeholder="Write your post content here… (800–1500 words recommended)"
                 />
                 {(() => {
                   const wc = form.content
