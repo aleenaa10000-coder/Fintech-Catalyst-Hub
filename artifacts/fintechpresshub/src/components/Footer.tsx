@@ -172,11 +172,11 @@ export function Footer() {
               </li>
               <li>
                 <PrefetchLink
-                  href="/tools/financial-health-score-calculator"
+                  href="/tools"
                   className="text-muted-foreground hover:text-primary transition-colors"
-                  data-testid="link-footer-tool-financial-health"
+                  data-testid="link-footer-free-tools"
                 >
-                  Financial Health Score
+                  Free Tools
                 </PrefetchLink>
               </li>
               <li>
