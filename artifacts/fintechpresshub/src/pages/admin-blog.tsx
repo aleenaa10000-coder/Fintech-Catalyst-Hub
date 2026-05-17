@@ -432,6 +432,54 @@ function ReadabilityBadge({ content }: { content: string }) {
   );
 }
 
+/**
+ * Shows how many of the three core SEO metadata fields are filled in:
+ * SEO title, SEO description, and OG/social image.
+ * Green = all three set. Amber = two. Orange = one. Red = none.
+ * Tooltip lists exactly which fields are missing so editors can act immediately.
+ */
+function SeoMetaBadge({
+  seoTitle,
+  seoDescription,
+  seoOgImage,
+}: {
+  seoTitle: string | null | undefined;
+  seoDescription: string | null | undefined;
+  seoOgImage: string | null | undefined;
+}) {
+  const checks = [
+    { label: "SEO title", ok: !!seoTitle },
+    { label: "SEO description", ok: !!seoDescription },
+    { label: "OG image", ok: !!seoOgImage },
+  ];
+  const score = checks.filter((c) => c.ok).length;
+  const missing = checks.filter((c) => !c.ok).map((c) => c.label);
+
+  const { colorClass, dotClass } =
+    score === 3
+      ? { colorClass: "bg-green-100 text-green-800", dotClass: "bg-green-600" }
+      : score === 2
+        ? { colorClass: "bg-amber-100 text-amber-800", dotClass: "bg-amber-500" }
+        : score === 1
+          ? { colorClass: "bg-orange-100 text-orange-800", dotClass: "bg-orange-500" }
+          : { colorClass: "bg-red-100 text-red-800", dotClass: "bg-red-500" };
+
+  const title =
+    score === 3
+      ? "SEO metadata complete — title, description, and OG image all set"
+      : `SEO metadata incomplete — missing: ${missing.join(", ")}`;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${colorClass}`}
+      title={title}
+    >
+      <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
+      SEO {score}/3
+    </span>
+  );
+}
+
 type ReadabilityBand = "all" | "elementary" | "middle" | "high" | "college";
 
 const READABILITY_BANDS: {
@@ -6086,6 +6134,11 @@ export default function AdminBlog() {
                             status={p.lastSeoPingStatus}
                           />
                           <ReadabilityBadge content={p.content} />
+                          <SeoMetaBadge
+                            seoTitle={p.seoTitle}
+                            seoDescription={p.seoDescription}
+                            seoOgImage={p.seoOgImage}
+                          />
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
