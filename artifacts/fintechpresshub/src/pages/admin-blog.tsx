@@ -86,6 +86,9 @@ import {
   ArrowUpDown,
   BookOpen,
   Globe,
+  Search,
+  Copy,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -102,6 +105,7 @@ import { authors, type Author } from "@/data/authors";
 import { HealthBadge } from "@/components/HealthBadge";
 import { SchedulePicker } from "@/components/SchedulePicker";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { formatRelativeTime, SeoStatusBadge, ReadabilityBadge, SeoMetaBadge, ReadabilityBand, READABILITY_BANDS, ReadabilityFilterPills, HardestPostsSpotlight } from "./admin-blog-cards";
 
 const GUEST_AUTHOR_VALUE = "__guest__";
 
@@ -297,248 +301,6 @@ function describeSeoNotification(seo: SeoNotification): string {
 
 function seoNotificationIsSuccess(seo: SeoNotification): boolean {
   return seo.indexNow.status === "accepted";
-}
-
-/**
- * Render an absolute timestamp as a short relative-time string
- * ("2 m ago", "3 h ago", "5 d ago"). Used by the per-post IndexNow
- * badge so admins can spot stale posts at a glance. Falls back to a
- * locale date for anything older than a week.
- */
-function formatRelativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (!Number.isFinite(then)) return "unknown";
-  const diffMs = Date.now() - then;
-  if (diffMs < 0) return "just now";
-  const sec = Math.floor(diffMs / 1000);
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
-
-/**
- * Per-row badge in the admin posts list summarising the latest
- * IndexNow ping for the post. Three visual states:
- *   - green: pinged successfully (shows "indexed Nm ago")
- *   - amber: last attempt failed/skipped (shows the status reason)
- *   - gray: never pinged (post predates the feature OR INDEXNOW_KEY
- *     was unset at publish time)
- *
- * Title attribute carries the full status string for hover details.
- */
-function SeoStatusBadge({
-  pingedAt,
-  status,
-}: {
-  pingedAt: string | null | undefined;
-  status: string | null | undefined;
-}) {
-  if (pingedAt) {
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-800"
-        title={`IndexNow accepted at ${new Date(pingedAt).toLocaleString()}`}
-      >
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-green-600" />
-        indexed {formatRelativeTime(pingedAt)}
-      </span>
-    );
-  }
-  if (status && status !== "accepted") {
-    const label =
-      status === "skipped_no_key"
-        ? "no INDEXNOW_KEY"
-        : status === "skipped_malformed_key"
-          ? "bad INDEXNOW_KEY"
-          : status === "rejected"
-            ? "ping rejected"
-            : status === "error"
-              ? "ping errored"
-              : status;
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800"
-        title={`Last IndexNow attempt status: ${status}`}
-      >
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-600" />
-        {label}
-      </span>
-    );
-  }
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700"
-      title="This post has never been submitted to IndexNow. Edit & save it to ping search engines now."
-    >
-      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-      not indexed
-    </span>
-  );
-}
-
-/**
- * Displays a colour-coded Flesch-Kincaid grade-level badge.
- *
- * Grade bands and their intended audience:
- *   ≤ 5   – Elementary (green)
- *   6–8   – Middle school (blue)
- *   9–12  – High school (amber)
- *   13+   – College / expert (red)
- *
- * When there is not enough text to compute a reliable score the badge
- * is omitted entirely so editors are not distracted by a misleading "1".
- */
-function ReadabilityBadge({ content }: { content: string }) {
-  const grade = fleschKincaidGrade(content);
-  if (grade === null) return null;
-
-  let colorClass: string;
-  let label: string;
-  if (grade <= 5) {
-    colorClass =
-      "bg-green-100 text-green-800";
-    label = "Elementary";
-  } else if (grade <= 8) {
-    colorClass = "bg-blue-100 text-blue-800";
-    label = "Middle school";
-  } else if (grade <= 12) {
-    colorClass = "bg-amber-100 text-amber-800";
-    label = "High school";
-  } else {
-    colorClass = "bg-red-100 text-red-800";
-    label = "College+";
-  }
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${colorClass}`}
-      title={`Flesch-Kincaid grade level ≈ ${grade} — ${label} reading level`}
-    >
-      <svg
-        aria-hidden
-        className="w-3 h-3 shrink-0"
-        viewBox="0 0 16 16"
-        fill="currentColor"
-      >
-        <path d="M2 2h12v2H2V2zm0 4h8v2H2V6zm0 4h10v2H2v-2z" />
-      </svg>
-      Grade {grade}
-    </span>
-  );
-}
-
-/**
- * Shows how many of the three core SEO metadata fields are filled in:
- * SEO title, SEO description, and OG/social image.
- * Green = all three set. Amber = two. Orange = one. Red = none.
- * Tooltip lists exactly which fields are missing so editors can act immediately.
- */
-function SeoMetaBadge({
-  seoTitle,
-  seoDescription,
-  seoOgImage,
-}: {
-  seoTitle: string | null | undefined;
-  seoDescription: string | null | undefined;
-  seoOgImage: string | null | undefined;
-}) {
-  const checks = [
-    { label: "SEO title", ok: !!seoTitle },
-    { label: "SEO description", ok: !!seoDescription },
-    { label: "OG image", ok: !!seoOgImage },
-  ];
-  const score = checks.filter((c) => c.ok).length;
-  const missing = checks.filter((c) => !c.ok).map((c) => c.label);
-
-  const { colorClass, dotClass } =
-    score === 3
-      ? { colorClass: "bg-green-100 text-green-800", dotClass: "bg-green-600" }
-      : score === 2
-        ? { colorClass: "bg-amber-100 text-amber-800", dotClass: "bg-amber-500" }
-        : score === 1
-          ? { colorClass: "bg-orange-100 text-orange-800", dotClass: "bg-orange-500" }
-          : { colorClass: "bg-red-100 text-red-800", dotClass: "bg-red-500" };
-
-  const title =
-    score === 3
-      ? "SEO metadata complete — title, description, and OG image all set"
-      : `SEO metadata incomplete — missing: ${missing.join(", ")}`;
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${colorClass}`}
-      title={title}
-    >
-      <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
-      SEO {score}/3
-    </span>
-  );
-}
-
-type ReadabilityBand = "all" | "elementary" | "middle" | "high" | "college";
-
-const READABILITY_BANDS: {
-  value: ReadabilityBand;
-  label: string;
-  colorClass: string;
-}[] = [
-  { value: "all", label: "All grades", colorClass: "bg-muted text-muted-foreground" },
-  { value: "elementary", label: "≤ 5 Elementary", colorClass: "bg-green-100 text-green-800" },
-  { value: "middle", label: "6–8 Middle", colorClass: "bg-blue-100 text-blue-800" },
-  { value: "high", label: "9–12 High school", colorClass: "bg-amber-100 text-amber-800" },
-  { value: "college", label: "13+ College", colorClass: "bg-red-100 text-red-800" },
-];
-
-/**
- * Row of pill buttons that let editors filter posts by Flesch-Kincaid
- * grade band. When a band is selected, a count badge shows how many posts
- * are visible out of the total.
- */
-function ReadabilityFilterPills({
-  value,
-  onChange,
-  totalCount,
-  filteredCount,
-}: {
-  value: ReadabilityBand;
-  onChange: (v: ReadabilityBand) => void;
-  totalCount: number;
-  filteredCount: number;
-}) {
-  if (totalCount === 0) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-xs text-muted-foreground mr-0.5">Readability:</span>
-      {READABILITY_BANDS.map((band) => {
-        const active = value === band.value;
-        return (
-          <button
-            key={band.value}
-            type="button"
-            onClick={() => onChange(band.value)}
-            className={[
-              "text-[11px] font-medium px-2 py-0.5 rounded-full border transition-all",
-              active
-                ? `${band.colorClass} border-current ring-1 ring-current`
-                : "border-transparent bg-muted/40 text-muted-foreground hover:bg-muted",
-            ].join(" ")}
-          >
-            {band.label}
-          </button>
-        );
-      })}
-      {value !== "all" && (
-        <span className="text-[11px] text-muted-foreground tabular-nums">
-          {filteredCount} of {totalCount}
-        </span>
-      )}
-    </div>
-  );
 }
 
 /**
@@ -1665,10 +1427,12 @@ function PostEditor({
   post,
   onCancel,
   onSaved,
+  allTags = [],
 }: {
   post: BlogPost;
   onCancel: () => void;
   onSaved: () => void;
+  allTags?: string[];
 }) {
   // Snapshot the original publishedAt as a datetime-local string so we can
   // detect whether the admin actually edited it. Untouched values are not
@@ -1814,6 +1578,21 @@ function PostEditor({
 
   return (
     <form onSubmit={handleSave} className="space-y-4 mt-4">
+      <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <span className="font-medium text-foreground shrink-0">Slug:</span>
+        <code className="flex-1 truncate">{post.slug}</code>
+        <button
+          type="button"
+          className="shrink-0 hover:text-foreground transition-colors"
+          title="Copy slug"
+          onClick={() => {
+            void navigator.clipboard.writeText(post.slug);
+            toast.success("Slug copied to clipboard");
+          }}
+        >
+          <Copy className="w-3.5 h-3.5" />
+        </button>
+      </div>
       <div>
         <Label htmlFor={`title-${post.id}`}>Title</Label>
         <Input
@@ -1850,7 +1629,7 @@ function PostEditor({
             .replace(/\s+/g, " ")
             .trim()
             .split(" ")
-            .filter((w) => w.length > 0).length;
+            .filter((w: string) => w.length > 0).length;
           const tooShort = wc > 0 && wc < 800;
           const tooLong = wc > 1500;
           const ok = wc >= 800 && wc <= 1500;
@@ -1978,9 +1757,15 @@ function PostEditor({
           <Label htmlFor={`tags-${post.id}`}>Tags (comma-separated)</Label>
           <Input
             id={`tags-${post.id}`}
+            list={`tags-suggestions-${post.id}`}
             value={draft.tags}
             onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
           />
+          {allTags.length > 0 && (
+            <datalist id={`tags-suggestions-${post.id}`}>
+              {allTags.map((t) => <option key={t} value={t} />)}
+            </datalist>
+          )}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3966,83 +3751,6 @@ function defaultPreviewAtLocal(): string {
   return new Date(future.getTime() - tzOffsetMs).toISOString().slice(0, 16);
 }
 
-const HARDEST_POSTS_TOP_N = 5;
-
-/**
- * Spotlight panel listing the top-N published posts with the highest
- * Flesch-Kincaid grade levels. Gives editors an instant shortlist of
- * articles that need a readability rewrite, ranked worst-first.
- */
-function HardestPostsSpotlight({
-  posts,
-  onJumpToPost,
-}: {
-  posts: BlogPost[];
-  onJumpToPost: (id: number) => void;
-}) {
-  const ranked = useMemo(() => {
-    return posts
-      .map((p) => ({ post: p, grade: fleschKincaidGrade(p.content ?? "") }))
-      .filter((x): x is { post: BlogPost; grade: number } => x.grade !== null)
-      .sort((a, b) => b.grade - a.grade)
-      .slice(0, HARDEST_POSTS_TOP_N);
-  }, [posts]);
-
-  if (ranked.length === 0) return null;
-
-  return (
-    <div className="mb-6 rounded-lg border border-red-200 bg-red-50/50" data-testid="hardest-posts-spotlight">
-      <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-red-100">
-        <BookOpen className="w-4 h-4 text-red-600 shrink-0" />
-        <h2 className="text-sm font-semibold text-red-900">
-          Hardest posts — readability spotlight
-        </h2>
-        <span className="ml-auto text-xs text-red-600/70">
-          Top {ranked.length} by FK grade · needs rewrite
-        </span>
-      </div>
-      <ol className="divide-y divide-red-100">
-        {ranked.map(({ post, grade }, i) => {
-          const gradeBg =
-            grade > 12
-              ? "bg-red-100 text-red-800"
-              : "bg-amber-100 text-amber-800";
-          return (
-            <li
-              key={post.id}
-              className="flex items-center gap-3 px-4 py-2.5"
-              data-testid={`hardest-post-row-${post.slug}`}
-            >
-              <span className="text-xs font-bold text-red-300 w-4 shrink-0 tabular-nums text-right">
-                {i + 1}
-              </span>
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold shrink-0 ${gradeBg}`}
-                title={`Flesch-Kincaid grade level ≈ ${grade}`}
-              >
-                Grade {grade}
-              </span>
-              <span className="flex-1 min-w-0 text-sm font-medium text-foreground truncate">
-                {post.title}
-              </span>
-              <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                {post.category}
-              </span>
-              <button
-                type="button"
-                onClick={() => onJumpToPost(post.id)}
-                className="shrink-0 text-xs font-medium text-red-700 hover:text-red-900 underline underline-offset-2 whitespace-nowrap"
-                data-testid={`hardest-post-edit-${post.slug}`}
-              >
-                Open editor
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-}
 
 export default function AdminBlog() {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } =
@@ -4111,6 +3819,10 @@ export default function AdminBlog() {
   const [bulkSeoDialogOpen, setBulkSeoDialogOpen] = useState(false);
   const [bulkSeoForm, setBulkSeoForm] = useState({ seoTitle: "", seoDescription: "" });
   const [bulkSeoFilling, setBulkSeoFilling] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [newPostOpen, setNewPostOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<BlogPost | null>(null);
+  const [bulkDeletePending, setBulkDeletePending] = useState(false);
   // Whether we've already consumed the `?slug=` deep-link query param. We
   // only auto-open once per visit so re-opening the editor doesn't re-trigger
   // when the user later navigates away and back.
@@ -4221,15 +3933,29 @@ export default function AdminBlog() {
     return true;
   };
 
-  /** Published posts narrowed by the active readability filter. */
-  const filteredPosts = useMemo(
-    () => (posts ?? []).filter((p: NonNullable<typeof posts>[number]) =>
+  /** Published posts narrowed by readability filter, SEO filter, and search query. */
+  const filteredPosts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return (posts ?? []).filter((p: NonNullable<typeof posts>[number]) =>
       matchesReadabilityFilter(p.content as string) &&
-      (seoFilter === "all" || !p.seoTitle || !p.seoDescription)
-    ),
+      (seoFilter === "all" || !p.seoTitle || !p.seoDescription) &&
+      (!q ||
+        p.title.toLowerCase().includes(q) ||
+        p.slug.toLowerCase().includes(q) ||
+        p.excerpt.toLowerCase().includes(q) ||
+        (p.tags ?? []).some((t: string) => t.toLowerCase().includes(q)))
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [posts, readabilityFilter, seoFilter],
-  );
+  }, [posts, readabilityFilter, seoFilter, searchQuery]);
+
+  /** All unique tags collected from published posts — used for autocomplete. */
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    (posts ?? []).forEach((p: NonNullable<typeof posts>[number]) => {
+      (p.tags ?? []).forEach((t: string) => tagSet.add(t));
+    });
+    return Array.from(tagSet).sort();
+  }, [posts]);
 
   /** Scheduled posts narrowed by the active readability filter. */
   const filteredScheduledPosts = useMemo(
@@ -4407,14 +4133,14 @@ export default function AdminBlog() {
     }
   };
 
-  const handleDelete = async (post: BlogPost) => {
-    if (
-      !confirm(
-        `Unpublish "${post.title}"? This permanently removes it from the blog and the sitemap.`,
-      )
-    ) {
-      return;
-    }
+  const handleDelete = (post: BlogPost) => {
+    setDeleteTarget(post);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const post = deleteTarget;
+    setDeleteTarget(null);
     try {
       await deleteMut.mutateAsync({ slug: post.slug });
       toast.success(`Unpublished "${post.title}"`);
@@ -4583,10 +4309,23 @@ export default function AdminBlog() {
 
         <Card id="new-post-form" className="mb-10">
           <CardContent className="pt-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Plus className="w-5 h-5" /> New blog post
-            </h2>
-            <form onSubmit={handlePublish} className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Plus className="w-5 h-5" /> New blog post
+              </h2>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setNewPostOpen((o) => !o)}
+                aria-expanded={newPostOpen}
+                className="gap-1.5 text-muted-foreground"
+              >
+                {newPostOpen ? "Collapse" : "Expand"}
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${newPostOpen ? "rotate-180" : ""}`} />
+              </Button>
+            </div>
+            <form onSubmit={handlePublish} className={`space-y-4 ${newPostOpen ? "" : "hidden"}`}>
               <div>
                 <Label htmlFor="title">Title</Label>
                 <Input
@@ -4795,12 +4534,18 @@ export default function AdminBlog() {
                   <Label htmlFor="tags">Tags (comma-separated)</Label>
                   <Input
                     id="tags"
+                    list="new-post-tags-suggestions"
                     placeholder="seo, fintech, content"
                     value={form.tags}
                     onChange={(e) =>
                       setForm({ ...form, tags: e.target.value })
                     }
                   />
+                  {allTags.length > 0 && (
+                    <datalist id="new-post-tags-suggestions">
+                      {allTags.map((t) => <option key={t} value={t} />)}
+                    </datalist>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -5426,7 +5171,7 @@ export default function AdminBlog() {
             "noindex",
           );
           const seoIncomplete = (posts ?? []).filter(
-            (p) => selectedSlugs.has(p.slug) && (!p.seoTitle || !p.seoDescription),
+            (p: NonNullable<typeof posts>[number]) => selectedSlugs.has(p.slug) && (!p.seoTitle || !p.seoDescription),
           );
           return (
           <div
@@ -5537,10 +5282,56 @@ export default function AdminBlog() {
                   ? "Updating…"
                   : "No-index selected"}
               </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={bulkDeletePending || deleteMut.isPending}
+                data-testid="bulk-unpublish"
+                onClick={async () => {
+                  const slugs = Array.from(selectedSlugs);
+                  if (slugs.length === 0) return;
+                  if (!window.confirm(`Unpublish ${slugs.length} post${slugs.length !== 1 ? "s" : ""}? This permanently removes them from the blog and sitemap.`)) return;
+                  setBulkDeletePending(true);
+                  try {
+                    await Promise.all(slugs.map((slug) => deleteMut.mutateAsync({ slug })));
+                    toast.success(`Unpublished ${slugs.length} post${slugs.length !== 1 ? "s" : ""}`);
+                    setSelectedSlugs(new Set());
+                    invalidate();
+                  } catch {
+                    toast.error("Some posts could not be unpublished.");
+                  } finally {
+                    setBulkDeletePending(false);
+                  }
+                }}
+              >
+                <Trash2 className="w-4 h-4 mr-1.5" />
+                {bulkDeletePending ? "Unpublishing…" : `Unpublish (${selectedSlugs.size})`}
+              </Button>
             </div>
           </div>
           );
         })()}
+
+        <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open && !deleteMut.isPending) setDeleteTarget(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unpublish post?</AlertDialogTitle>
+              <AlertDialogDescription>
+                <strong>"{deleteTarget?.title}"</strong> will be permanently removed from the blog and sitemap. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteMut.isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                disabled={deleteMut.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteMut.isPending ? "Removing…" : "Unpublish"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <BulkNoIndexImpactDialog
           open={impactDialogMode !== null}
@@ -5654,7 +5445,7 @@ export default function AdminBlog() {
         <BulkSeoFillDialog
           open={bulkSeoDialogOpen}
           posts={(posts ?? []).filter(
-            (p) =>
+            (p: NonNullable<typeof posts>[number]) =>
               selectedSlugs.has(p.slug) &&
               (!p.seoTitle || !p.seoDescription),
           )}
@@ -5668,12 +5459,12 @@ export default function AdminBlog() {
             const seoTitle = bulkSeoForm.seoTitle.trim() || null;
             const seoDescription = bulkSeoForm.seoDescription.trim() || null;
             const incomplete = (posts ?? []).filter(
-              (p) =>
+              (p: NonNullable<typeof posts>[number]) =>
                 selectedSlugs.has(p.slug) &&
                 (!p.seoTitle || !p.seoDescription),
             );
             const toUpdate = incomplete.filter(
-              (p) =>
+              (p: NonNullable<typeof posts>[number]) =>
                 (!p.seoTitle && seoTitle) ||
                 (!p.seoDescription && seoDescription),
             );
@@ -5685,7 +5476,7 @@ export default function AdminBlog() {
             setBulkSeoFilling(true);
             try {
               await Promise.all(
-                toUpdate.map((p) =>
+                toUpdate.map((p: NonNullable<typeof posts>[number]) =>
                   updateBlogPost(p.slug, {
                     ...(!p.seoTitle && seoTitle ? { seoTitle } : {}),
                     ...(!p.seoDescription && seoDescription
@@ -6275,6 +6066,7 @@ export default function AdminBlog() {
                           {editingId === p.id && (
                             <PostEditor
                               post={p}
+                              allTags={allTags}
                               onCancel={() => setEditingId(null)}
                               onSaved={() => {
                                 setEditingId(null);
@@ -6305,9 +6097,23 @@ export default function AdminBlog() {
           <p className="text-muted-foreground">Loading…</p>
         ) : activeTab === "published" && (
           <div className="space-y-3">
+            {!previewMode && (
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <input
+                  type="search"
+                  placeholder="Search posts by title, slug, excerpt or tag…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-md border bg-background pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
             {filteredPosts.length === 0 && (posts?.length ?? 0) > 0 && (
               <p className="text-center text-sm text-muted-foreground py-6">
-                No posts match the selected readability filter.
+                {searchQuery.trim()
+                  ? `No posts match "${searchQuery.trim()}".`
+                  : "No posts match the selected filter."}
               </p>
             )}
             {filteredPosts.map((p: (typeof filteredPosts)[number]) => {
@@ -6391,6 +6197,25 @@ export default function AdminBlog() {
                           slug: <code>{p.slug}</code> · {p.category} ·{" "}
                           {new Date(p.publishedAt).toLocaleDateString()}
                           {p.featured ? " · ★ featured" : ""}
+                          {(() => {
+                            const wc = p.content
+                              .replace(/<[^>]*>/g, " ")
+                              .replace(/\s+/g, " ")
+                              .trim()
+                              .split(" ")
+                              .filter((w: string) => w.length > 0).length;
+                            return wc > 0 ? ` · ${wc.toLocaleString()} words` : null;
+                          })()}
+                          {(() => {
+                            const pub = new Date(p.publishedAt).getTime();
+                            const upd = new Date(p.updatedAt).getTime();
+                            const diffDays = (upd - pub) / 86_400_000;
+                            return diffDays > 1 ? (
+                              <span className="ml-1 text-blue-600/80" title={`Last edited ${new Date(p.updatedAt).toLocaleString()}`}>
+                                · edited {new Date(p.updatedAt).toLocaleDateString()}
+                              </span>
+                            ) : null;
+                          })()}
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
                           <SeoStatusBadge
@@ -6422,6 +6247,36 @@ export default function AdminBlog() {
                         </Button>
                         {!previewMode && (
                           <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Duplicate post — prefills the New Post form"
+                              aria-label={`Duplicate ${p.title}`}
+                              onClick={() => {
+                                setForm({
+                                  ...emptyForm,
+                                  title: `${p.title} (copy)`,
+                                  excerpt: p.excerpt,
+                                  content: p.content,
+                                  author: p.author,
+                                  authorRole: p.authorRole,
+                                  category: p.category,
+                                  tags: (p.tags ?? []).join(", "),
+                                  coverImage: p.coverImage,
+                                  readingMinutes: String(p.readingMinutes),
+                                  seoTitle: p.seoTitle ?? "",
+                                  seoDescription: p.seoDescription ?? "",
+                                  seoOgImage: p.seoOgImage ?? "",
+                                });
+                                setAutoSlug(true);
+                                setNewPostOpen(true);
+                                setTimeout(() => {
+                                  document.getElementById("new-post-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                }, 80);
+                              }}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
                             <ProbeUrlButton post={p} />
                             <RepingButton post={p} />
                             <Button
@@ -6467,6 +6322,7 @@ export default function AdminBlog() {
                     {!previewMode && isEditing && (
                       <PostEditor
                         post={p}
+                        allTags={allTags}
                         onCancel={() => setEditingId(null)}
                         onSaved={() => {
                           setEditingId(null);
