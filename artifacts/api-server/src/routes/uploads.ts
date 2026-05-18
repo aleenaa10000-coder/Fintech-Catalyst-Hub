@@ -72,6 +72,37 @@ router.get("/admin/media", requireAdmin, async (_req, res) => {
   }
 });
 
+router.delete("/admin/media/:id", requireAdmin, (req, res) => {
+  const rawId = req.params["id"];
+  const id = Array.isArray(rawId) ? (rawId[0] ?? "") : (rawId ?? "");
+  if (!id || !/^[a-zA-Z0-9_\-]{8,128}$/.test(id)) {
+    res.status(400).json({ error: "Invalid file id" });
+    return;
+  }
+  const filePath = path.join(UPLOADS_DIR, id);
+  const metaPath = `${filePath}.meta.json`;
+  const resolvedBase = path.resolve(UPLOADS_DIR);
+  const resolvedFile = path.resolve(filePath);
+  if (!resolvedFile.startsWith(resolvedBase + path.sep)) {
+    res.status(400).json({ error: "Invalid file path" });
+    return;
+  }
+  try {
+    if (!fs.existsSync(filePath)) {
+      res.status(404).json({ error: "File not found" });
+      return;
+    }
+    fs.unlinkSync(filePath);
+    if (fs.existsSync(metaPath)) {
+      fs.unlinkSync(metaPath);
+    }
+    res.status(204).end();
+  } catch (err) {
+    logger.error({ err }, "Failed to delete media file");
+    res.status(500).json({ error: "Failed to delete file" });
+  }
+});
+
 /**
  * Single-step upload endpoint.
  *

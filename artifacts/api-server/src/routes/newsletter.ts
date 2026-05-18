@@ -16,7 +16,10 @@ router.post("/newsletter/subscribe", formRateLimiter, async (req, res) => {
   }
   const email = parsed.data.email.trim().toLowerCase();
   const source = parsed.data.source ?? null;
-  const keyword = parsed.data.keyword?.trim() || null;
+  const keyword =
+    typeof (req.body as Record<string, unknown>)["keyword"] === "string"
+      ? ((req.body as Record<string, unknown>)["keyword"] as string).trim() || null
+      : null;
 
   try {
     const existing = await db

@@ -641,8 +641,8 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
     }
 
     void logPostAction({
-      actorEmail: req.user!.email,
-      actorUserId: req.user!.id ?? null,
+      actorEmail: req.user!.email ?? "",
+      actorUserId: req.user!.id,
       action: "published",
       postId: String(row.id),
       postSlug: row.slug,
@@ -744,8 +744,8 @@ router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     invalidateSitemapCache();
 
     void logPostAction({
-      actorEmail: req.user!.email,
-      actorUserId: req.user!.id ?? null,
+      actorEmail: req.user!.email ?? "",
+      actorUserId: req.user!.id,
       action: "updated",
       postId: String(row.id),
       postSlug: row.slug,
@@ -1162,8 +1162,8 @@ router.delete("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     invalidateSitemapCache();
 
     void logPostAction({
-      actorEmail: req.user!.email,
-      actorUserId: req.user!.id ?? null,
+      actorEmail: req.user!.email ?? "",
+      actorUserId: req.user!.id,
       action: "deleted",
       postId: String(row.id),
       postSlug: row.slug,

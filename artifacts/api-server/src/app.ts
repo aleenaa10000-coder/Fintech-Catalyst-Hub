@@ -85,7 +85,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   if (
     req.path.startsWith("/admin") ||
     req.path.startsWith("/api/admin") ||
-    (req.path.startsWith("/api/") && !req.path.startsWith("/api/og"))
+    (req.path.startsWith("/api/") &&
+      !req.path.startsWith("/api/og") &&
+      req.path !== "/api/healthz")
   ) {
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
   }

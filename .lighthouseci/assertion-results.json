@@ -1,20 +1,5 @@
 [
   {
-    "name": "maxNumericValue",
-    "expected": 200,
-    "actual": 1185.5,
-    "values": [
-      1185.5
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "total-blocking-time",
-    "level": "warn",
-    "url": "http://localhost:4173/",
-    "auditTitle": "Total Blocking Time",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-total-blocking-time/"
-  },
-  {
     "name": "minScore",
     "expected": 0.9,
     "actual": 0,
@@ -23,33 +8,18 @@
     ],
     "operator": ">=",
     "passed": false,
-    "auditId": "bootup-time",
+    "auditId": "errors-in-console",
     "level": "warn",
     "url": "http://localhost:4173/",
-    "auditTitle": "Reduce JavaScript execution time",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/bootup-time/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "dom-size-insight",
-    "level": "warn",
-    "url": "http://localhost:4173/",
-    "auditTitle": "Optimize DOM size",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/dom-size/"
+    "auditTitle": "Browser errors were logged to the console",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/"
   },
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3255.983,
+    "actual": 4124.667,
     "values": [
-      3255.983
+      4124.667
     ],
     "operator": "<=",
     "passed": false,
@@ -60,26 +30,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/"
   },
   {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "forced-reflow-insight",
-    "level": "warn",
-    "url": "http://localhost:4173/",
-    "auditTitle": "Forced reflow",
-    "auditDocumentationLink": "https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts"
-  },
-  {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4263.9745,
+    "actual": 4124.667,
     "values": [
-      4263.9745
+      4124.667
     ],
     "operator": "<=",
     "passed": false,
@@ -88,36 +43,6 @@
     "url": "http://localhost:4173/",
     "auditTitle": "Largest Contentful Paint",
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "mainthread-work-breakdown",
-    "level": "warn",
-    "url": "http://localhost:4173/",
-    "auditTitle": "Minimize main-thread work",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/mainthread-work-breakdown/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0.06,
-    "values": [
-      0.06
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "max-potential-fid",
-    "level": "warn",
-    "url": "http://localhost:4173/",
-    "auditTitle": "Max Potential First Input Delay",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-max-potential-fid/"
   },
   {
     "name": "minScore",
@@ -167,9 +92,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.21,
+    "actual": 0.09,
     "values": [
-      0.21
+      0.09
     ],
     "operator": ">=",
     "passed": false,
@@ -182,9 +107,24 @@
   {
     "name": "maxLength",
     "expected": 0,
-    "actual": 2,
+    "actual": 1,
     "values": [
-      2
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "unused-css-rules",
+    "level": "warn",
+    "url": "http://localhost:4173/",
+    "auditTitle": "Reduce unused CSS",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 3,
+    "values": [
+      3
     ],
     "operator": "<=",
     "passed": false,
@@ -195,11 +135,26 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-javascript/"
   },
   {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "valid-source-maps",
+    "level": "warn",
+    "url": "http://localhost:4173/",
+    "auditTitle": "Missing source maps for large first-party JavaScript",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
+  },
+  {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4694.3330000000005,
+    "actual": 4124.667000000001,
     "values": [
-      4694.3330000000005
+      4124.667000000001
     ],
     "operator": "<=",
     "passed": false,
@@ -212,9 +167,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.32,
+    "actual": 0.6,
     "values": [
-      0.32
+      0.6
     ],
     "operator": ">=",
     "passed": false,
@@ -222,21 +177,6 @@
     "auditId": "categories",
     "level": "warn",
     "url": "http://localhost:4173/"
-  },
-  {
-    "name": "maxNumericValue",
-    "expected": 200,
-    "actual": 409,
-    "values": [
-      409
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "total-blocking-time",
-    "level": "warn",
-    "url": "http://localhost:4173/blog",
-    "auditTitle": "Total Blocking Time",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-total-blocking-time/"
   },
   {
     "name": "minScore",
@@ -247,18 +187,18 @@
     ],
     "operator": ">=",
     "passed": false,
-    "auditId": "color-contrast",
+    "auditId": "errors-in-console",
     "level": "warn",
     "url": "http://localhost:4173/blog",
-    "auditTitle": "Background and foreground colors do not have a sufficient contrast ratio.",
-    "auditDocumentationLink": "https://dequeuniversity.com/rules/axe/4.10/color-contrast"
+    "auditTitle": "Browser errors were logged to the console",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/"
   },
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3060.1331,
+    "actual": 4003.5832,
     "values": [
-      3060.1331
+      4003.5832
     ],
     "operator": "<=",
     "passed": false,
@@ -269,41 +209,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/"
   },
   {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "forced-reflow-insight",
-    "level": "warn",
-    "url": "http://localhost:4173/blog",
-    "auditTitle": "Forced reflow",
-    "auditDocumentationLink": "https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0.5,
-    "values": [
-      0.5
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "image-delivery-insight",
-    "level": "warn",
-    "url": "http://localhost:4173/blog",
-    "auditTitle": "Improve image delivery",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/uses-optimized-images/"
-  },
-  {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 7415.332749999999,
+    "actual": 4003.5832,
     "values": [
-      7415.332749999999
+      4003.5832
     ],
     "operator": "<=",
     "passed": false,
@@ -312,51 +222,6 @@
     "url": "http://localhost:4173/blog",
     "auditTitle": "Largest Contentful Paint",
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "mainthread-work-breakdown",
-    "level": "warn",
-    "url": "http://localhost:4173/blog",
-    "auditTitle": "Minimize main-thread work",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/mainthread-work-breakdown/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0.27,
-    "values": [
-      0.27
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "max-potential-fid",
-    "level": "warn",
-    "url": "http://localhost:4173/blog",
-    "auditTitle": "Max Potential First Input Delay",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-max-potential-fid/"
-  },
-  {
-    "name": "maxLength",
-    "expected": 0,
-    "actual": 4,
-    "values": [
-      4
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "modern-image-formats",
-    "level": "warn",
-    "url": "http://localhost:4173/blog",
-    "auditTitle": "Serve images in next-gen formats",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/uses-webp-images/"
   },
   {
     "name": "minScore",
@@ -406,9 +271,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.18,
+    "actual": 0.1,
     "values": [
-      0.18
+      0.1
     ],
     "operator": ">=",
     "passed": false,
@@ -419,19 +284,19 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/speed-index/"
   },
   {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0.5,
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 1,
     "values": [
-      0.5
+      1
     ],
-    "operator": ">=",
+    "operator": "<=",
     "passed": false,
-    "auditId": "total-byte-weight",
+    "auditId": "unused-css-rules",
     "level": "warn",
     "url": "http://localhost:4173/blog",
-    "auditTitle": "Avoid enormous network payloads",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/total-byte-weight/"
+    "auditTitle": "Reduce unused CSS",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/"
   },
   {
     "name": "maxLength",
@@ -449,21 +314,6 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-javascript/"
   },
   {
-    "name": "maxLength",
-    "expected": 0,
-    "actual": 5,
-    "values": [
-      5
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "uses-responsive-images",
-    "level": "warn",
-    "url": "http://localhost:4173/blog",
-    "auditTitle": "Properly size images",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/uses-responsive-images/"
-  },
-  {
     "name": "minScore",
     "expected": 0.9,
     "actual": 0,
@@ -472,18 +322,18 @@
     ],
     "operator": ">=",
     "passed": false,
-    "auditId": "canonical",
+    "auditId": "valid-source-maps",
     "level": "warn",
     "url": "http://localhost:4173/blog",
-    "auditTitle": "Document does not have a valid `rel=canonical`",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/seo/canonical/"
+    "auditTitle": "Missing source maps for large first-party JavaScript",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 7733.0594575,
+    "actual": 4003.5832,
     "values": [
-      7733.0594575
+      4003.5832
     ],
     "operator": "<=",
     "passed": false,
@@ -496,9 +346,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.4,
+    "actual": 0.6,
     "values": [
-      0.4
+      0.6
     ],
     "operator": ">=",
     "passed": false,
@@ -516,18 +366,18 @@
     ],
     "operator": ">=",
     "passed": false,
-    "auditId": "color-contrast",
+    "auditId": "errors-in-console",
     "level": "warn",
     "url": "http://localhost:4173/services",
-    "auditTitle": "Background and foreground colors do not have a sufficient contrast ratio.",
-    "auditDocumentationLink": "https://dequeuniversity.com/rules/axe/4.10/color-contrast"
+    "auditTitle": "Browser errors were logged to the console",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/"
   },
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3058.6241,
+    "actual": 3953.1363,
     "values": [
-      3058.6241
+      3953.1363
     ],
     "operator": "<=",
     "passed": false,
@@ -538,26 +388,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/"
   },
   {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "forced-reflow-insight",
-    "level": "warn",
-    "url": "http://localhost:4173/services",
-    "auditTitle": "Forced reflow",
-    "auditDocumentationLink": "https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts"
-  },
-  {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4207.2482,
+    "actual": 3953.1363,
     "values": [
-      4207.2482
+      3953.1363
     ],
     "operator": "<=",
     "passed": false,
@@ -566,21 +401,6 @@
     "url": "http://localhost:4173/services",
     "auditTitle": "Largest Contentful Paint",
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0.84,
-    "values": [
-      0.84
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "max-potential-fid",
-    "level": "warn",
-    "url": "http://localhost:4173/services",
-    "auditTitle": "Max Potential First Input Delay",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-max-potential-fid/"
   },
   {
     "name": "minScore",
@@ -630,9 +450,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.25,
+    "actual": 0.1,
     "values": [
-      0.25
+      0.1
     ],
     "operator": ">=",
     "passed": false,
@@ -645,9 +465,24 @@
   {
     "name": "maxLength",
     "expected": 0,
-    "actual": 4,
+    "actual": 1,
     "values": [
-      4
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "unused-css-rules",
+    "level": "warn",
+    "url": "http://localhost:4173/services",
+    "auditTitle": "Reduce unused CSS",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 3,
+    "values": [
+      3
     ],
     "operator": "<=",
     "passed": false,
@@ -666,18 +501,18 @@
     ],
     "operator": ">=",
     "passed": false,
-    "auditId": "canonical",
+    "auditId": "valid-source-maps",
     "level": "warn",
     "url": "http://localhost:4173/services",
-    "auditTitle": "Document does not have a valid `rel=canonical`",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/seo/canonical/"
+    "auditTitle": "Missing source maps for large first-party JavaScript",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4230.0765725,
+    "actual": 3953.1363,
     "values": [
-      4230.0765725
+      3953.1363
     ],
     "operator": "<=",
     "passed": false,
@@ -690,9 +525,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.57,
+    "actual": 0.6,
     "values": [
-      0.57
+      0.6
     ],
     "operator": ">=",
     "passed": false,
@@ -702,11 +537,26 @@
     "url": "http://localhost:4173/services"
   },
   {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "errors-in-console",
+    "level": "warn",
+    "url": "http://localhost:4173/pricing",
+    "auditTitle": "Browser errors were logged to the console",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/"
+  },
+  {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3079.1363,
+    "actual": 4059.1275,
     "values": [
-      3079.1363
+      4059.1275
     ],
     "operator": "<=",
     "passed": false,
@@ -717,26 +567,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/"
   },
   {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "heading-order",
-    "level": "warn",
-    "url": "http://localhost:4173/pricing",
-    "auditTitle": "Heading elements are not in a sequentially-descending order",
-    "auditDocumentationLink": "https://dequeuniversity.com/rules/axe/4.10/heading-order"
-  },
-  {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4211.2726,
+    "actual": 4059.1275,
     "values": [
-      4211.2726
+      4059.1275
     ],
     "operator": "<=",
     "passed": false,
@@ -745,21 +580,6 @@
     "url": "http://localhost:4173/pricing",
     "auditTitle": "Largest Contentful Paint",
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0.8,
-    "values": [
-      0.8
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "max-potential-fid",
-    "level": "warn",
-    "url": "http://localhost:4173/pricing",
-    "auditTitle": "Max Potential First Input Delay",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-max-potential-fid/"
   },
   {
     "name": "minScore",
@@ -809,9 +629,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.25,
+    "actual": 0.09,
     "values": [
-      0.25
+      0.09
     ],
     "operator": ">=",
     "passed": false,
@@ -824,9 +644,24 @@
   {
     "name": "maxLength",
     "expected": 0,
-    "actual": 4,
+    "actual": 1,
     "values": [
-      4
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "unused-css-rules",
+    "level": "warn",
+    "url": "http://localhost:4173/pricing",
+    "auditTitle": "Reduce unused CSS",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 3,
+    "values": [
+      3
     ],
     "operator": "<=",
     "passed": false,
@@ -845,18 +680,18 @@
     ],
     "operator": ">=",
     "passed": false,
-    "auditId": "canonical",
+    "auditId": "valid-source-maps",
     "level": "warn",
     "url": "http://localhost:4173/pricing",
-    "auditTitle": "Document does not have a valid `rel=canonical`",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/seo/canonical/"
+    "auditTitle": "Missing source maps for large first-party JavaScript",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4223.335117500001,
+    "actual": 4059.1275,
     "values": [
-      4223.335117500001
+      4059.1275
     ],
     "operator": "<=",
     "passed": false,
@@ -869,9 +704,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.57,
+    "actual": 0.6,
     "values": [
-      0.57
+      0.6
     ],
     "operator": ">=",
     "passed": false,
@@ -889,33 +724,18 @@
     ],
     "operator": ">=",
     "passed": false,
-    "auditId": "color-contrast",
+    "auditId": "errors-in-console",
     "level": "warn",
     "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "Background and foreground colors do not have a sufficient contrast ratio.",
-    "auditDocumentationLink": "https://dequeuniversity.com/rules/axe/4.10/color-contrast"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "dom-size-insight",
-    "level": "warn",
-    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "Optimize DOM size",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/dom-size/"
+    "auditTitle": "Browser errors were logged to the console",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/"
   },
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3006.8998,
+    "actual": 4209.2261,
     "values": [
-      3006.8998
+      4209.2261
     ],
     "operator": "<=",
     "passed": false,
@@ -926,41 +746,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/"
   },
   {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "forced-reflow-insight",
-    "level": "warn",
-    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "Forced reflow",
-    "auditDocumentationLink": "https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0.5,
-    "values": [
-      0.5
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "image-delivery-insight",
-    "level": "warn",
-    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "Improve image delivery",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/uses-optimized-images/"
-  },
-  {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4483.0959,
+    "actual": 4209.2261,
     "values": [
-      4483.0959
+      4209.2261
     ],
     "operator": "<=",
     "passed": false,
@@ -979,71 +769,11 @@
     ],
     "operator": ">=",
     "passed": false,
-    "auditId": "lcp-discovery-insight",
-    "level": "warn",
-    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "LCP request discovery",
-    "auditDocumentationLink": "https://web.dev/articles/optimize-lcp#1_eliminate_resource_load_delay"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0.85,
-    "values": [
-      0.85
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "max-potential-fid",
-    "level": "warn",
-    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "Max Potential First Input Delay",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-max-potential-fid/"
-  },
-  {
-    "name": "maxLength",
-    "expected": 0,
-    "actual": 1,
-    "values": [
-      1
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "modern-image-formats",
-    "level": "warn",
-    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "Serve images in next-gen formats",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/uses-webp-images/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
     "auditId": "network-dependency-tree-insight",
     "level": "warn",
     "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
     "auditTitle": "Network dependency tree",
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "prioritize-lcp-image",
-    "level": "warn",
-    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "Preload Largest Contentful Paint image",
-    "auditDocumentationLink": "https://web.dev/articles/optimize-lcp#optimize_when_the_resource_is_discovered"
   },
   {
     "name": "maxLength",
@@ -1078,9 +808,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.27,
+    "actual": 0.08,
     "values": [
-      0.27
+      0.08
     ],
     "operator": ">=",
     "passed": false,
@@ -1089,6 +819,21 @@
     "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
     "auditTitle": "Speed Index",
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/speed-index/"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 1,
+    "values": [
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "unused-css-rules",
+    "level": "warn",
+    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
+    "auditTitle": "Reduce unused CSS",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/"
   },
   {
     "name": "maxLength",
@@ -1106,21 +851,6 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-javascript/"
   },
   {
-    "name": "maxLength",
-    "expected": 0,
-    "actual": 2,
-    "values": [
-      2
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "uses-responsive-images",
-    "level": "warn",
-    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "Properly size images",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/uses-responsive-images/"
-  },
-  {
     "name": "minScore",
     "expected": 0.9,
     "actual": 0,
@@ -1129,18 +859,18 @@
     ],
     "operator": ">=",
     "passed": false,
-    "auditId": "canonical",
+    "auditId": "valid-source-maps",
     "level": "warn",
     "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "Document does not have a valid `rel=canonical`",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/seo/canonical/"
+    "auditTitle": "Missing source maps for large first-party JavaScript",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4492.132070000001,
+    "actual": 4209.2261,
     "values": [
-      4492.132070000001
+      4209.2261
     ],
     "operator": "<=",
     "passed": false,
@@ -1153,9 +883,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.56,
+    "actual": 0.59,
     "values": [
-      0.56
+      0.59
     ],
     "operator": ">=",
     "passed": false,
@@ -1165,11 +895,26 @@
     "url": "http://localhost:4173/blog/fintech-seo-strategy-2026"
   },
   {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "errors-in-console",
+    "level": "warn",
+    "url": "http://localhost:4173/locations/london",
+    "auditTitle": "Browser errors were logged to the console",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/"
+  },
+  {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3162.2428,
+    "actual": 4110.6005000000005,
     "values": [
-      3162.2428
+      4110.6005000000005
     ],
     "operator": "<=",
     "passed": false,
@@ -1180,26 +925,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/"
   },
   {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "forced-reflow-insight",
-    "level": "warn",
-    "url": "http://localhost:4173/locations/london",
-    "auditTitle": "Forced reflow",
-    "auditDocumentationLink": "https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts"
-  },
-  {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4093.8642,
+    "actual": 4110.6005000000005,
     "values": [
-      4093.8642
+      4110.6005000000005
     ],
     "operator": "<=",
     "passed": false,
@@ -1208,21 +938,6 @@
     "url": "http://localhost:4173/locations/london",
     "auditTitle": "Largest Contentful Paint",
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0.82,
-    "values": [
-      0.82
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "max-potential-fid",
-    "level": "warn",
-    "url": "http://localhost:4173/locations/london",
-    "auditTitle": "Max Potential First Input Delay",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-max-potential-fid/"
   },
   {
     "name": "minScore",
@@ -1272,9 +987,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.23,
+    "actual": 0.09,
     "values": [
-      0.23
+      0.09
     ],
     "operator": ">=",
     "passed": false,
@@ -1287,9 +1002,24 @@
   {
     "name": "maxLength",
     "expected": 0,
-    "actual": 4,
+    "actual": 1,
     "values": [
-      4
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "unused-css-rules",
+    "level": "warn",
+    "url": "http://localhost:4173/locations/london",
+    "auditTitle": "Reduce unused CSS",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 3,
+    "values": [
+      3
     ],
     "operator": "<=",
     "passed": false,
@@ -1308,18 +1038,18 @@
     ],
     "operator": ">=",
     "passed": false,
-    "auditId": "canonical",
+    "auditId": "valid-source-maps",
     "level": "warn",
     "url": "http://localhost:4173/locations/london",
-    "auditTitle": "Document does not have a valid `rel=canonical`",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/seo/canonical/"
+    "auditTitle": "Missing source maps for large first-party JavaScript",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4172.9142,
+    "actual": 4110.6005000000005,
     "values": [
-      4172.9142
+      4110.6005000000005
     ],
     "operator": "<=",
     "passed": false,
@@ -1332,9 +1062,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.57,
+    "actual": 0.6,
     "values": [
-      0.57
+      0.6
     ],
     "operator": ">=",
     "passed": false,
@@ -1344,26 +1074,26 @@
     "url": "http://localhost:4173/locations/london"
   },
   {
-    "name": "maxNumericValue",
-    "expected": 200,
-    "actual": 316,
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
     "values": [
-      316
+      0
     ],
-    "operator": "<=",
+    "operator": ">=",
     "passed": false,
-    "auditId": "total-blocking-time",
+    "auditId": "errors-in-console",
     "level": "warn",
     "url": "http://localhost:4173/glossary/api",
-    "auditTitle": "Total Blocking Time",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-total-blocking-time/"
+    "auditTitle": "Browser errors were logged to the console",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/"
   },
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 2617.6218,
+    "actual": 4102.0448,
     "values": [
-      2617.6218
+      4102.0448
     ],
     "operator": "<=",
     "passed": false,
@@ -1374,26 +1104,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/"
   },
   {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "forced-reflow-insight",
-    "level": "warn",
-    "url": "http://localhost:4173/glossary/api",
-    "auditTitle": "Forced reflow",
-    "auditDocumentationLink": "https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts"
-  },
-  {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4063.9326999999994,
+    "actual": 4102.0448,
     "values": [
-      4063.9326999999994
+      4102.0448
     ],
     "operator": "<=",
     "passed": false,
@@ -1402,36 +1117,6 @@
     "url": "http://localhost:4173/glossary/api",
     "auditTitle": "Largest Contentful Paint",
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0,
-    "values": [
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "mainthread-work-breakdown",
-    "level": "warn",
-    "url": "http://localhost:4173/glossary/api",
-    "auditTitle": "Minimize main-thread work",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/mainthread-work-breakdown/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0.65,
-    "values": [
-      0.65
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "max-potential-fid",
-    "level": "warn",
-    "url": "http://localhost:4173/glossary/api",
-    "auditTitle": "Max Potential First Input Delay",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-max-potential-fid/"
   },
   {
     "name": "minScore",
@@ -1481,9 +1166,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.38,
+    "actual": 0.09,
     "values": [
-      0.38
+      0.09
     ],
     "operator": ">=",
     "passed": false,
@@ -1496,9 +1181,24 @@
   {
     "name": "maxLength",
     "expected": 0,
-    "actual": 4,
+    "actual": 1,
     "values": [
-      4
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "unused-css-rules",
+    "level": "warn",
+    "url": "http://localhost:4173/glossary/api",
+    "auditTitle": "Reduce unused CSS",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-css-rules/"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 3,
+    "values": [
+      3
     ],
     "operator": "<=",
     "passed": false,
@@ -1517,18 +1217,18 @@
     ],
     "operator": ">=",
     "passed": false,
-    "auditId": "canonical",
+    "auditId": "valid-source-maps",
     "level": "warn",
     "url": "http://localhost:4173/glossary/api",
-    "auditTitle": "Document does not have a valid `rel=canonical`",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/seo/canonical/"
+    "auditTitle": "Missing source maps for large first-party JavaScript",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4456.632699999999,
+    "actual": 4102.0448,
     "values": [
-      4456.632699999999
+      4102.0448
     ],
     "operator": "<=",
     "passed": false,
@@ -1541,9 +1241,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.51,
+    "actual": 0.6,
     "values": [
-      0.51
+      0.6
     ],
     "operator": ">=",
     "passed": false,

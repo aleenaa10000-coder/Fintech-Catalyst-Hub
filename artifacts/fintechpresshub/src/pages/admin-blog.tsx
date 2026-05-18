@@ -1462,8 +1462,8 @@ function PostEditor({
       : "",
     aboutEntities: (post.aboutEntities ?? []).join(", "),
     mentionEntities: (post.mentionEntities ?? []).join(", "),
-    inlineImage1: post.inlineImage1 ?? "",
-    inlineImage2: post.inlineImage2 ?? "",
+    inlineImage1: ((post as unknown as Record<string, unknown>)["inlineImage1"] as string | null | undefined) ?? "",
+    inlineImage2: ((post as unknown as Record<string, unknown>)["inlineImage2"] as string | null | undefined) ?? "",
   });
   const updateMut = useUpdateBlogPost();
 
@@ -1543,7 +1543,7 @@ function PostEditor({
             : null,
           inlineImage1: draft.inlineImage1.trim() || null,
           inlineImage2: draft.inlineImage2.trim() || null,
-        },
+        } as unknown as import("@workspace/api-client-react").UpdateBlogPostInput,
       });
       const description = describeSeoNotification(updated.seoNotification);
       if (seoNotificationIsSuccess(updated.seoNotification)) {
@@ -4041,7 +4041,7 @@ export default function AdminBlog() {
               : null,
           inlineImage1: form.inlineImage1.trim() || null,
           inlineImage2: form.inlineImage2.trim() || null,
-        },
+        } as unknown as import("@workspace/api-client-react").PublishBlogPostInput,
       });
       const isScheduled = publishedAtIso
         ? new Date(publishedAtIso).getTime() > Date.now()

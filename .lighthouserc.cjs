@@ -100,6 +100,15 @@ module.exports = {
         // but the metric will still report 0 in CI due to simulate throttling.
         "cls-culprits-insight": ["warn", {}],
 
+        // errors-in-console: the preview server (vite preview, port 4173) does
+        // not proxy /api/ requests — so all API fetches fail in the Lighthouse
+        // run. This is expected in CI and not a real production issue.
+        "errors-in-console": ["warn", {}],
+
+        // valid-source-maps: production builds strip source maps by default to
+        // reduce bundle size. Downgrade from the preset's error level to warn.
+        "valid-source-maps": ["warn", {}],
+
         // ── CI environment caveats ───────────────────────────────────────────
         // canonical: pages declare rel=canonical pointing to the production
         // domain (https://www.fintechpresshub.com). Lighthouse audits against

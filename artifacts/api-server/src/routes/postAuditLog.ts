@@ -79,8 +79,8 @@ router.post("/admin/audit/post-actions", requireAdmin, async (req, res, next) =>
       return;
     }
     const { action, postId, postSlug, postTitle, changedFields } = parsed.data;
-    const actorEmail = req.user!.email;
-    const actorUserId = req.user!.id ?? null;
+    const actorEmail = req.user!.email ?? "";
+    const actorUserId = req.user!.id;
 
     const [row] = await db
       .insert(postAuditLogTable)

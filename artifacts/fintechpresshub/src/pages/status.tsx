@@ -4,11 +4,13 @@ import {
   useHealthCheck,
   getHealthCheckQueryKey,
   useGetSitemapHealth,
+  getGetSitemapHealthQueryKey,
   useRunSitemapHealth,
   useGetInternalLinkCheck,
   useRunInternalLinkCheck,
   getGetInternalLinkCheckQueryKey,
   useGetHreflangCheckReport,
+  getGetHreflangCheckReportQueryKey,
   useRunHreflangCheck,
   type HealthStatus,
   type SitemapHealthReport,
@@ -329,7 +331,7 @@ function SetupChecklist({
 
 function SitemapHealthSummary() {
   const { data, isLoading, isFetching, refetch } = useGetSitemapHealth<SitemapHealthReport>({
-    query: { staleTime: 5 * 60_000, retry: 1 },
+    query: { queryKey: getGetSitemapHealthQueryKey(), staleTime: 5 * 60_000, retry: 1 },
   });
   const runMutation = useRunSitemapHealth();
 
@@ -391,7 +393,7 @@ function SitemapHealthSummary() {
 
 function InternalLinkSummary() {
   const { data, isLoading, isFetching } = useGetInternalLinkCheck<InternalLinkCheckReport>({
-    query: { staleTime: 5 * 60_000, retry: 1 },
+    query: { queryKey: getGetInternalLinkCheckQueryKey(), staleTime: 5 * 60_000, retry: 1 },
   });
   const runMutation = useRunInternalLinkCheck();
 
@@ -489,7 +491,7 @@ function InternalLinkSummary() {
 
 function HreflangSummary() {
   const { data, isLoading, isFetching } = useGetHreflangCheckReport<HreflangCheckReport>({
-    query: { staleTime: 5 * 60_000, retry: 1 },
+    query: { queryKey: getGetHreflangCheckReportQueryKey(), staleTime: 5 * 60_000, retry: 1 },
   });
   const runMutation = useRunHreflangCheck();
 

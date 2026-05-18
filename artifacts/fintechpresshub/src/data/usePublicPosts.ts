@@ -99,8 +99,8 @@ function fromApi(post: ApiBlogPost): PublicPost {
     lastMaterialUpdateAt: post.lastMaterialUpdateAt ?? null,
     aboutEntities: post.aboutEntities ?? null,
     mentionEntities: post.mentionEntities ?? null,
-    inlineImage1: post.inlineImage1 ?? null,
-    inlineImage2: post.inlineImage2 ?? null,
+    inlineImage1: ((post as unknown as Record<string, unknown>)["inlineImage1"] as string | null | undefined) ?? null,
+    inlineImage2: ((post as unknown as Record<string, unknown>)["inlineImage2"] as string | null | undefined) ?? null,
   };
 }
 
