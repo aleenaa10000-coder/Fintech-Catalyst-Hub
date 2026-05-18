@@ -132,7 +132,12 @@ const PublishBlogPostBody = z.object({
   authorRole: z.string().min(1),
   category: z.string().min(1),
   tags: z.array(z.string()).default([]),
-  coverImage: z.string().url(),
+  coverImage: z
+    .string()
+    .refine(
+      (v) => /^https?:\/\//.test(v) || v.startsWith("/objects/"),
+      { message: "coverImage must be an https:// URL or an /objects/ path" },
+    ),
   readingMinutes: z.number().int().positive(),
   featured: z.boolean().default(false),
   publishedAt: z.string().datetime().optional(),
@@ -203,7 +208,13 @@ const UpdateBlogPostBody = z
     authorRole: z.string().min(1).optional(),
     category: z.string().min(1).optional(),
     tags: z.array(z.string()).optional(),
-    coverImage: z.string().url().optional(),
+    coverImage: z
+      .string()
+      .refine(
+        (v) => /^https?:\/\//.test(v) || v.startsWith("/objects/"),
+        { message: "coverImage must be an https:// URL or an /objects/ path" },
+      )
+      .optional(),
     readingMinutes: z.number().int().positive().optional(),
     featured: z.boolean().optional(),
     // Reschedule the post. A future timestamp puts the post into
