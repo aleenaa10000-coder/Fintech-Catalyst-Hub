@@ -2,6 +2,7 @@ import { db, guestPostSubmissionsTable } from "@workspace/db";
 import { gte, desc } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { sendMail, cleanEmail } from "../lib/mailer";
+import { escapeHtml } from "../lib/routeHelpers";
 
 const JOB_LOG = logger.child({ job: "pitch-digest-daily" });
 
@@ -34,15 +35,6 @@ function fmtUtc(d: Date): string {
     timeStyle: "short",
     timeZone: "UTC",
   });
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 type PitchRow = typeof guestPostSubmissionsTable.$inferSelect;

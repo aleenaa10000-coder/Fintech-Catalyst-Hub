@@ -7,25 +7,13 @@ import express, {
 } from "express";
 import { db, referringDomainsTable } from "@workspace/db";
 import { desc, count } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
+import { requireAdmin } from "../lib/routeHelpers";
 
 // Parses the request body as plain text for any content-type.
 // Scoped to this router only — does not affect the global middleware stack.
 const textParser = express.text({ type: "*/*", limit: "2mb" });
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 // ── CSV parsing helpers ────────────────────────────────────────────────────
 

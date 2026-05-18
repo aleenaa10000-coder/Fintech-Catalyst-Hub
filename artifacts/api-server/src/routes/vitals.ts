@@ -2,17 +2,9 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
 import { db, webVitalsTable } from "@workspace/db";
 import { sql, gte, count } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: () => void) {
-  if (!req.isAuthenticated?.() || !isAdminEmail(req.user?.email)) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  next();
-}
 
 const VitalsBody = z.object({
   // FID (First Input Delay) kept for backwards compat with older browser reports;

@@ -1,19 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { isAdminEmail } from "../lib/auth";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const router = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 /**
  * GET /api/seo/validate?url=<absolute-url>

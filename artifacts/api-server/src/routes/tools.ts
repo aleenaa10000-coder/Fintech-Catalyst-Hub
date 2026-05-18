@@ -7,6 +7,7 @@ import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/seo";
 import { sendMail } from "../lib/mailer";
 import { formRateLimiter } from "../lib/rateLimiter";
+import { escapeHtml } from "../lib/routeHelpers";
 
 // ── Site Preview Cache ────────────────────────────────────────────────────────
 // In-memory TTL cache so repeated hovers on the same domain don't re-fetch.
@@ -57,14 +58,6 @@ const router: IRouter = Router();
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const REPORT_FROM_EMAIL =
   process.env.REPORT_FROM_EMAIL ?? "FintechPressHub <reports@fintechpresshub.com>";
-
-const escapeHtml = (s: string) =>
-  s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 
 function bandColor(score: number): { bg: string; fg: string; ring: string } {
   if (score >= 85) return { bg: "#E6F8F0", fg: "#0BAC6E", ring: "#0BAC6E" };

@@ -7,21 +7,9 @@ import {
 } from "express";
 import { db, guestPostSubmissionsTable, contactSubmissionsTable, blogPostsTable, newsletterSubscribersTable, contentReportsTable, authorPhotoRequestsTable } from "@workspace/db";
 import { desc, count, eq } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 router.get("/admin/dashboard", requireAdmin, async (_req, res, next) => {
   try {

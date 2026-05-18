@@ -3,33 +3,21 @@ import {
   type IRouter,
   type Request,
   type Response,
-  type NextFunction,
 } from "express";
-import { isAdminEmail } from "../lib/auth";
+
 import {
   getStoredSitemapHealth,
   runSitemapCheck,
   buildReport,
   checkSingleUrl,
 } from "../lib/sitemapHealth";
+import { requireAdmin } from "../lib/routeHelpers";
 
 /**
  * Same admin-gating semantics as the blog admin endpoints:
  * - 401 when no session
  * - 403 when signed in but not on the ADMIN_EMAILS allowlist
  */
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
-
 const router: IRouter = Router();
 
 /**

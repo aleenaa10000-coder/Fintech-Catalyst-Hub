@@ -1,18 +1,7 @@
-import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { isAdminEmail } from "../lib/auth";
-import { getStoredInternalLinkReport, runInternalLinkCheck } from "../lib/internalLinkCheck";
+import { Router, type IRouter, type Request, type Response} from "express";
 
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
+import { getStoredInternalLinkReport, runInternalLinkCheck } from "../lib/internalLinkCheck";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const router: IRouter = Router();
 

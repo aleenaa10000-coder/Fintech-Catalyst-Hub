@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import express, { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import express, { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
 import {
   ObjectStorageService,
@@ -8,19 +8,7 @@ import {
   ObjectStorageUnavailableError,
 } from "../lib/object-storage";
 import { logger } from "../lib/logger";
-import { isAdminEmail } from "../lib/auth";
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
+import { requireAdmin } from "../lib/routeHelpers";
 
 const UPLOADS_DIR = path.resolve(
   process.env["LOCAL_UPLOADS_DIR"] || path.join(process.cwd(), "data", "uploads"),

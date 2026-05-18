@@ -8,24 +8,13 @@ import {
 import { db, contentReportsTable } from "@workspace/db";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { isAdminEmail } from "../lib/auth";
+
 import { sendMail, cleanEmail } from "../lib/mailer";
 import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/seo";
+import { escapeHtml, requireAdmin } from "../lib/routeHelpers";
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 const REASONS = [
   "spam",
@@ -44,15 +33,6 @@ const REASON_LABELS: Record<(typeof REASONS)[number], string> = {
   broken: "Broken link or media",
   other: "Other",
 };
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function buildReportEmail(args: {
   id: number;

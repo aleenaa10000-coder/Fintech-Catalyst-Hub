@@ -8,21 +8,9 @@ import {
 import { db, authorPhotoOverridesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { isAdminEmail } from "../lib/auth";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 const upsertSchema = z.object({
   photoUrl: z.string().min(1).max(2000),

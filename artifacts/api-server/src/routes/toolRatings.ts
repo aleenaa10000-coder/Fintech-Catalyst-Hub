@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
 import { db, toolRatingsTable } from "@workspace/db";
 import { eq, avg, count, sql } from "drizzle-orm";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const router: IRouter = Router();
 
@@ -71,7 +72,7 @@ router.post("/tools/:slug/ratings", async (req: Request, res: Response) => {
   });
 });
 
-router.get("/admin/tools/ratings/summary", async (_req: Request, res: Response) => {
+router.get("/admin/tools/ratings/summary", requireAdmin, async (_req: Request, res: Response) => {
   const rows = await db
     .select({
       toolSlug: toolRatingsTable.toolSlug,

@@ -1,24 +1,13 @@
-import { Router, type Request, type Response, type NextFunction } from "express";
-import { isAdminEmail } from "../lib/auth";
+import { Router, type Request, type Response} from "express";
+
 import { TOOL_SLUGS, SERVICE_SLUGS } from "../lib/seoConstants";
 import { validateJsonLd, buildSchemaFixtures } from "../lib/schemaValidator";
 import { runSchemaHealthCheck } from "../jobs/schemaHealthDaily";
 import { db, schemaHealthRunsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const router = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 /**
  * GET /api/admin/schema-test

@@ -5,7 +5,7 @@ import {
   type Response,
   type NextFunction,
 } from "express";
-import { isAdminEmail } from "../lib/auth";
+
 import { getSiteUrl } from "../lib/seo";
 import {
   runHreflangConsistencyCheck,
@@ -13,20 +13,9 @@ import {
   setCachedHreflangReport,
 } from "../lib/hreflangCheck";
 import { logger } from "../lib/logger";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const LOG = logger.child({ component: "hreflang-check-admin" });
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 const router: IRouter = Router();
 

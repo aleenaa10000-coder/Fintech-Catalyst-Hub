@@ -1,19 +1,12 @@
-import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import { Router, type IRouter, type Request, type Response} from "express";
 import { z } from "zod";
 import { db, webmentionsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
+
 import { getSiteUrl } from "../lib/seo";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.user || !isAdminEmail((req.user as { email: string }).email)) {
-    res.status(403).json({ error: "Forbidden" });
-    return;
-  }
-  next();
-}
 
 const WebmentionBody = z.object({
   source: z.string().url(),

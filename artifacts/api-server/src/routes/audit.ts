@@ -8,20 +8,9 @@ import {
 import { db, bulkNoIndexAuditLogTable } from "@workspace/db";
 import type { BulkNoIndexAuditPostSnapshot } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
-import { logger } from "../lib/logger";
 
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
+import { logger } from "../lib/logger";
+import { requireAdmin } from "../lib/routeHelpers";
 
 function serializeRow(row: typeof bulkNoIndexAuditLogTable.$inferSelect) {
   return {

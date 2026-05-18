@@ -7,40 +7,16 @@ import {
 } from "express";
 import { db, newsletterSubscribersTable, BRIEF_LEAD_STATUSES, type BriefLeadStatus } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
+
 import { z } from "zod";
 import { logger } from "../lib/logger";
+import { escapeCsv, requireAdmin, utcDayKey } from "../lib/routeHelpers";
 
 const UpdateBriefStatusBody = z.object({
   status: z.enum(BRIEF_LEAD_STATUSES),
 });
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
-
-function escapeCsv(value: string | null | undefined): string {
-  if (value == null) return "";
-  const s = String(value);
-  if (/[",\r\n]/.test(s)) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
-
-function utcDayKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
 
 async function loadDetail() {
   const rows = await db

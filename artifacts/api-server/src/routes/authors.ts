@@ -8,25 +8,14 @@ import {
 import { z } from "zod";
 import { db, authorsTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
+
 import { invalidateSitemapCache } from "./sitemapIndex";
 import { getSiteUrl, notifySearchEnginesOfPublishWithTimeout } from "../lib/seo";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const SEO_NOTIFY_TIMEOUT_MS = 4000;
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 

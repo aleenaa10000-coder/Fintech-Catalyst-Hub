@@ -12,35 +12,11 @@ import {
   authorsTable,
 } from "@workspace/db";
 import { eq, sql, desc, and, gte, asc } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
+
 import { logger } from "../lib/logger";
+import { escapeCsv, requireAdmin, utcDayKey } from "../lib/routeHelpers";
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
-
-function escapeCsv(value: string | null | undefined): string {
-  if (value == null) return "";
-  const s = String(value);
-  if (/[",\r\n]/.test(s)) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
-
-function utcDayKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
 
 router.get(
   "/admin/authors/subscribers/summary",

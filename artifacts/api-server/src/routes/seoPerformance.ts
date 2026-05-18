@@ -7,22 +7,11 @@ import {
 } from "express";
 import { db, blogPostsTable, linkCheckResultsTable, referringDomainsTable } from "@workspace/db";
 import { sql, lte, count, gte } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
+
 import { fetchGscDetail } from "../lib/gscClient";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 router.get(
   "/admin/seo-performance",

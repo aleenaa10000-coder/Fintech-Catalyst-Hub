@@ -1,24 +1,13 @@
-import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { isAdminEmail } from "../lib/auth";
+import { Router, type IRouter, type Request, type Response} from "express";
+
 import { getSiteUrl, pingIndexNow, pingGoogleSitemap } from "../lib/seo";
 import { buildSitemapEntries } from "./sitemap";
 import { logger } from "../lib/logger";
+import { requireAdmin } from "../lib/routeHelpers";
 
 function isIndexNowConfigured(): boolean {
   const key = process.env["INDEXNOW_KEY"];
   return typeof key === "string" && /^[a-zA-Z0-9-]{8,128}$/.test(key);
-}
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
 }
 
 const router: IRouter = Router();

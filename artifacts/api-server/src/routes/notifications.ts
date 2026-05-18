@@ -5,7 +5,7 @@ import {
   type Response,
   type NextFunction,
 } from "express";
-import { isAdminEmail } from "../lib/auth";
+
 import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/seo";
 import {
@@ -17,20 +17,9 @@ import {
   type BrokenUrlPayload,
 } from "../lib/slackNotifier";
 import { runWeeklyDigest } from "../jobs/weeklyDigest";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const ROUTE_LOG = logger.child({ route: "notifications" });
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 const router: IRouter = Router();
 

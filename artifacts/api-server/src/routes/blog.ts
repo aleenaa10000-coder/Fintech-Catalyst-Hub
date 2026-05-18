@@ -1,4 +1,4 @@
-import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import { Router, type IRouter, type Request, type Response} from "express";
 import { z } from "zod";
 import {
   db,
@@ -11,6 +11,7 @@ import { eq, desc, asc, sql, inArray, and, lte, gt, type SQL } from "drizzle-orm
 import { ListBlogPostsQueryParams, GetBlogPostParams } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { isAdminEmail } from "../lib/auth";
+
 import {
   getSiteUrl,
   notifySearchEnginesOfPublishWithTimeout,
@@ -18,6 +19,7 @@ import {
 } from "../lib/seo";
 import { invalidateSitemapCache } from "./sitemapIndex";
 import { logPostAction } from "./postAuditLog";
+import { requireAdmin } from "../lib/routeHelpers";
 
 // Bound on how long the publish/update response will wait for the
 // IndexNow ping before returning a "still in progress" placeholder.
@@ -30,18 +32,6 @@ const SEO_NOTIFY_TIMEOUT_MS = 4000;
  * the request has no session and 403 when the signed-in user isn't on the
  * allowlist — distinct so the client can show "log in" vs. "not authorized".
  */
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
-
 const router: IRouter = Router();
 
 // SEO override fields are nullable on the wire so the admin UI can

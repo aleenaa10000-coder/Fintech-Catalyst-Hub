@@ -1,22 +1,10 @@
-import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import { Router, type IRouter, type Request, type Response} from "express";
 import { z } from "zod";
 import { db, testimonialsTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
-import { logger } from "../lib/logger";
 
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  const email = (req.user as { email?: string } | undefined)?.email;
-  if (!email || !isAdminEmail(email)) {
-    res.status(403).json({ error: "Forbidden" });
-    return;
-  }
-  next();
-}
+import { logger } from "../lib/logger";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const createSchema = z.object({
   name: z.string().min(1).max(200),

@@ -8,8 +8,9 @@ import {
 import { z } from "zod";
 import { db, pricingPlansTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
+
 import { pingIndexNow, getSiteUrl } from "../lib/seo";
+import { requireAdmin } from "../lib/routeHelpers";
 
 function firePricingIndexNow(): void {
   const siteUrl = getSiteUrl();
@@ -17,18 +18,6 @@ function firePricingIndexNow(): void {
 }
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 function mapRow(r: typeof pricingPlansTable.$inferSelect) {
   return {

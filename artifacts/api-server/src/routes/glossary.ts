@@ -8,27 +8,16 @@ import {
 import { z } from "zod";
 import { db, glossaryTermsTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
-import { isAdminEmail } from "../lib/auth";
+
 import { logger } from "../lib/logger";
 import {
   getSiteUrl,
   notifySearchEnginesOfPublish,
 } from "../lib/seo";
 import { invalidateSitemapCache } from "./sitemapIndex";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  if (!isAdminEmail(req.user.email)) {
-    res.status(403).json({ error: "Forbidden — admin access required" });
-    return;
-  }
-  next();
-}
 
 const GlossaryTermBody = z.object({
   slug: z

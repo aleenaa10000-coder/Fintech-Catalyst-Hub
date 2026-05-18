@@ -6,21 +6,13 @@ import { SubmitContactFormBody } from "@workspace/api-zod";
 import { sendMail, cleanEmail } from "../lib/mailer";
 import { logger } from "../lib/logger";
 import { formRateLimiter } from "../lib/rateLimiter";
+import { escapeHtml } from "../lib/routeHelpers";
 
 const ContactBody = SubmitContactFormBody.extend({
   website: z.string().trim().url().max(500).optional().or(z.literal("")),
 });
 
 const router: IRouter = Router();
-
-function escapeHtml(input: string): string {
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
