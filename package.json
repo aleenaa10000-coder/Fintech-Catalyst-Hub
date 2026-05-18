@@ -16,7 +16,7 @@
     "setup": "bash scripts/setup.sh",
     "lighthouse": "lhci autorun",
     "validate:seo": "node scripts/validate-seo-files.mjs",
-    "prepare": "husky"
+    "prepare": "node -e \"process.exit(process.env.CI||process.env.REPL_ID?0:0)\" && husky || true"
   },
   "private": true,
   "engines": {
