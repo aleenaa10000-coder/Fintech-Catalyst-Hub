@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "hello": "tsx ./src/hello.ts",
     "seed": "tsx ./src/seed.ts",
     "seed:auto": "tsx ./src/auto-seed.ts",
     "seed:reset": "tsx ./src/seed-reset.ts",

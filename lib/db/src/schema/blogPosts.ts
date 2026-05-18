@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 
 export const blogPostsTable = pgTable("blog_posts", {
   id: serial("id").primaryKey(),
@@ -83,6 +83,15 @@ export const blogPostsTable = pgTable("blog_posts", {
   // the hero cover image.
   inlineImage1: text("inline_image_1"),
   inlineImage2: text("inline_image_2"),
-});
+},
+(t) => [
+  // Covers all ORDER BY published_at DESC queries (main blog list, RSS, sitemap).
+  index("blog_posts_published_at_idx").on(t.publishedAt),
+  // Covers all WHERE category = ? filters (category archive pages).
+  index("blog_posts_category_idx").on(t.category),
+  // Composite index for homepage featured widget:
+  // WHERE featured = true AND published_at <= now() ORDER BY published_at DESC
+  index("blog_posts_featured_published_at_idx").on(t.featured, t.publishedAt),
+]);
 
 export type BlogPostRow = typeof blogPostsTable.$inferSelect;
