@@ -9,6 +9,7 @@ import { db, newsletterSubscribersTable, BRIEF_LEAD_STATUSES, type BriefLeadStat
 import { desc, eq } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
 import { z } from "zod";
+import { logger } from "../lib/logger";
 
 const UpdateBriefStatusBody = z.object({
   status: z.enum(BRIEF_LEAD_STATUSES),
@@ -103,8 +104,8 @@ router.get("/admin/newsletter/subscribers", requireAdmin, async (_req, res) => {
     const detail = await loadDetail();
     res.json(detail);
   } catch (err) {
+    logger.error({ err }, "Failed to load newsletter subscribers");
     res.status(500).json({ error: "Failed to load subscribers" });
-    throw err;
   }
 });
 
@@ -138,8 +139,8 @@ router.patch(
       }
       res.json({ id: updated.id, briefStatus: updated.briefStatus });
     } catch (err) {
+      logger.error({ err }, "Failed to update newsletter lead status");
       res.status(500).json({ error: "Failed to update lead status" });
-      throw err;
     }
   },
 );
@@ -171,8 +172,8 @@ router.get(
       res.setHeader("Cache-Control", "no-store");
       res.send(body);
     } catch (err) {
+      logger.error({ err }, "Failed to export newsletter subscribers CSV");
       res.status(500).json({ error: "Failed to export subscribers" });
-      throw err;
     }
   },
 );

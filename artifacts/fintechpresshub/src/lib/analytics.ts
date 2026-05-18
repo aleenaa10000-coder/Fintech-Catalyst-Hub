@@ -154,7 +154,8 @@ function sendToProvider(name: string, props?: EventProps) {
   }
 
   // Dev fallback: log to console when Plausible is not configured.
-  if (typeof console !== "undefined") {
+  // Suppressed in production builds so browser DevTools stay clean.
+  if (import.meta.env.DEV && typeof console !== "undefined") {
     console.debug("[analytics]", name, props ?? {});
   }
 }

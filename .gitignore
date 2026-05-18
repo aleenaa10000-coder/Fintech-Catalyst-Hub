@@ -68,6 +68,11 @@ attached_assets/screenshots/
 attached_assets/Screenshot_*.png
 attached_assets/screencapture-*.png
 
+# Build artifacts — Lighthouse JSON reports and Replit IDE snapshots
+lh-reports/
+attached_assets/*.repl
+attached_assets/*.log
+
 # Environment / secrets — never commit local secrets.
 # .env.example is allowed and acts as the template for new clones.
 .env

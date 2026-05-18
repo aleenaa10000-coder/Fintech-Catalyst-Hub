@@ -13,6 +13,7 @@ import {
 } from "@workspace/db";
 import { eq, sql, desc, and, gte, asc } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -105,8 +106,8 @@ router.get(
 
       res.json(summary);
     } catch (err) {
+      logger.error({ err }, "Failed to load author subscriber summary");
       res.status(500).json({ error: "Failed to load subscriber summary" });
-      throw err;
     }
   },
 );
@@ -196,8 +197,8 @@ router.get(
       }
       res.json(detail);
     } catch (err) {
+      logger.error({ err }, "Failed to load author subscribers");
       res.status(500).json({ error: "Failed to load author subscribers" });
-      throw err;
     }
   },
 );
@@ -230,8 +231,8 @@ router.get(
       res.setHeader("Cache-Control", "no-store");
       res.send(body);
     } catch (err) {
+      logger.error({ err }, "Failed to export author subscribers CSV");
       res.status(500).json({ error: "Failed to export author subscribers" });
-      throw err;
     }
   },
 );

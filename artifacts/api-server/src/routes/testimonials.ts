@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db, testimonialsTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { isAdminEmail } from "../lib/auth";
+import { logger } from "../lib/logger";
 
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated()) {
@@ -38,8 +39,8 @@ router.get("/testimonials", async (_req, res) => {
       .orderBy(asc(testimonialsTable.sortOrder), asc(testimonialsTable.createdAt));
     res.json(rows);
   } catch (err) {
+    logger.error({ err }, "Failed to fetch testimonials");
     res.status(500).json({ error: "Failed to fetch testimonials" });
-    throw err;
   }
 });
 
@@ -53,8 +54,8 @@ router.post("/admin/testimonials", requireAdmin, async (req, res) => {
     const [row] = await db.insert(testimonialsTable).values(parsed.data).returning();
     res.status(201).json(row);
   } catch (err) {
+    logger.error({ err }, "Failed to create testimonial");
     res.status(500).json({ error: "Failed to create testimonial" });
-    throw err;
   }
 });
 
@@ -81,8 +82,8 @@ router.patch("/admin/testimonials/:id", requireAdmin, async (req, res) => {
     }
     res.json(row);
   } catch (err) {
+    logger.error({ err }, "Failed to update testimonial");
     res.status(500).json({ error: "Failed to update testimonial" });
-    throw err;
   }
 });
 
@@ -103,8 +104,8 @@ router.delete("/admin/testimonials/:id", requireAdmin, async (req, res) => {
     }
     res.status(204).end();
   } catch (err) {
+    logger.error({ err }, "Failed to delete testimonial");
     res.status(500).json({ error: "Failed to delete testimonial" });
-    throw err;
   }
 });
 

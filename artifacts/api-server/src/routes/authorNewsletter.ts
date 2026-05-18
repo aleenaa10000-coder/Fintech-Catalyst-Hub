@@ -8,6 +8,7 @@ import { SubscribeToAuthorBody } from "@workspace/api-zod";
 import { and, eq } from "drizzle-orm";
 import { getAuthorBySlug } from "../../../fintechpresshub/src/data/authors";
 import { formRateLimiter } from "../lib/rateLimiter";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -102,8 +103,8 @@ router.post("/authors/:slug/subscribe", formRateLimiter, async (req, res) => {
       createdAt: link.createdAt.toISOString(),
     });
   } catch (err) {
+    logger.error({ err }, "Author subscription failed");
     res.status(500).json({ error: "Subscription failed" });
-    throw err;
   }
 });
 
