@@ -85,18 +85,19 @@ router.patch(
 router.get("/admin/pitch-submissions", requireAdmin, async (req, res, next) => {
   try {
     const status = parseStatusFilter(req.query["status"]);
-    const base = db
-      .select()
-      .from(guestPostSubmissionsTable)
-      .orderBy(desc(guestPostSubmissionsTable.createdAt));
     const rows =
       status === "all"
-        ? await base
+        ? await db
+            .select()
+            .from(guestPostSubmissionsTable)
+            .orderBy(desc(guestPostSubmissionsTable.createdAt))
+            .limit(500)
         : await db
             .select()
             .from(guestPostSubmissionsTable)
             .where(eq(guestPostSubmissionsTable.status, status))
-            .orderBy(desc(guestPostSubmissionsTable.createdAt));
+            .orderBy(desc(guestPostSubmissionsTable.createdAt))
+            .limit(500);
     res.json({ submissions: rows });
   } catch (err) {
     next(err);
@@ -149,11 +150,13 @@ router.get("/admin/contact-submissions", requireAdmin, async (req, res, next) =>
             .select()
             .from(contactSubmissionsTable)
             .orderBy(desc(contactSubmissionsTable.createdAt))
+            .limit(500)
         : await db
             .select()
             .from(contactSubmissionsTable)
             .where(eq(contactSubmissionsTable.status, status))
-            .orderBy(desc(contactSubmissionsTable.createdAt));
+            .orderBy(desc(contactSubmissionsTable.createdAt))
+            .limit(500);
     res.json({ submissions: rows });
   } catch (err) {
     next(err);
