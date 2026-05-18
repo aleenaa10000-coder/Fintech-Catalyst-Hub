@@ -13,10 +13,6 @@ import {
   Sprout,
   RefreshCw,
   Loader2,
-  ClipboardList,
-  Terminal,
-  Copy,
-  Check,
 } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
@@ -159,13 +155,6 @@ export default function StatusPage() {
 
   const tone = overallTone(data, isError);
   const colors = TONE_COLORS[tone];
-
-  const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
-  const handleCopyCmd = (cmd: string) => {
-    navigator.clipboard.writeText(cmd).catch(() => {});
-    setCopiedCmd(cmd);
-    setTimeout(() => setCopiedCmd(null), 2000);
-  };
 
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
@@ -350,134 +339,6 @@ export default function StatusPage() {
           </a>
         </p>
 
-        {/* Setup checklist — shown whenever something is not fully green */}
-        {(!isLoading || isError) && (
-          <Card className="mt-8 border-slate-200" data-testid="status-setup-checklist">
-            <CardContent className="p-5 sm:p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <ClipboardList className="h-4 w-4 text-muted-foreground" aria-hidden />
-                <h3 className="text-sm font-semibold">New Replit account — setup checklist</h3>
-              </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                Run these steps once after importing or forking this project into a fresh Replit account.
-              </p>
-              <ol className="space-y-3 text-sm" aria-label="Setup steps">
-                <li className="flex items-start gap-3">
-                  <span className={cn(
-                    "mt-0.5 shrink-0 h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold",
-                    dbTone === "ok" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
-                  )}>
-                    {dbTone === "ok" ? "✓" : "1"}
-                  </span>
-                  <div>
-                    <p className="font-medium leading-snug">Provision a Postgres database</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Open the <strong>Database</strong> tool in Replit. One click creates the database and sets{" "}
-                      <code className="bg-muted px-1 rounded text-[11px]">DATABASE_URL</code> automatically.
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className={cn(
-                    "mt-0.5 shrink-0 h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold",
-                    dbTone === "ok" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
-                  )}>
-                    {dbTone === "ok" ? "✓" : "2"}
-                  </span>
-                  <div>
-                    <p className="font-medium leading-snug">Run the setup script</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Open the <strong>Shell</strong> tab and run:
-                    </p>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <pre className="flex-1 text-[11px] bg-muted rounded px-2 py-1.5 overflow-x-auto">
-                        <code>bash scripts/setup.sh</code>
-                      </pre>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCmd("bash scripts/setup.sh")}
-                        className={cn(
-                          "shrink-0 flex items-center gap-1 text-[11px] font-medium rounded px-2 py-1.5 border transition-colors",
-                          copiedCmd === "bash scripts/setup.sh"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-slate-200 bg-muted hover:bg-slate-100 text-muted-foreground hover:text-foreground",
-                        )}
-                        aria-label="Copy setup command"
-                      >
-                        {copiedCmd === "bash scripts/setup.sh"
-                          ? <><Check className="h-3 w-3" /> Copied</>
-                          : <><Copy className="h-3 w-3" /> Copy</>}
-                      </button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      This pushes the schema, seeds demo data, and runs a health check.
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className={cn(
-                    "mt-0.5 shrink-0 h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold",
-                    seedTone === "ok" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
-                  )}>
-                    {seedTone === "ok" ? "✓" : "3"}
-                  </span>
-                  <div>
-                    <p className="font-medium leading-snug">Verify demo content is seeded</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      The <strong>Demo content</strong> card above should show "Operational". If it shows "Degraded", re-run:
-                    </p>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <pre className="flex-1 text-[11px] bg-muted rounded px-2 py-1.5 overflow-x-auto">
-                        <code>pnpm --filter @workspace/scripts run seed:auto</code>
-                      </pre>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCmd("pnpm --filter @workspace/scripts run seed:auto")}
-                        className={cn(
-                          "shrink-0 flex items-center gap-1 text-[11px] font-medium rounded px-2 py-1.5 border transition-colors",
-                          copiedCmd === "pnpm --filter @workspace/scripts run seed:auto"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-slate-200 bg-muted hover:bg-slate-100 text-muted-foreground hover:text-foreground",
-                        )}
-                        aria-label="Copy seed command"
-                      >
-                        {copiedCmd === "pnpm --filter @workspace/scripts run seed:auto"
-                          ? <><Check className="h-3 w-3" /> Copied</>
-                          : <><Copy className="h-3 w-3" /> Copy</>}
-                      </button>
-                    </div>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className={cn(
-                    "mt-0.5 shrink-0 h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold",
-                    emailTone === "ok" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                  )}>
-                    {emailTone === "ok" ? "✓" : "4"}
-                  </span>
-                  <div>
-                    <p className="font-medium leading-snug">
-                      Configure email{" "}
-                      <span className="font-normal text-muted-foreground">(optional)</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Add <code className="bg-muted px-1 rounded text-[11px]">RESEND_API_KEY</code> in{" "}
-                      <strong>Secrets</strong> to enable outbound email. The site works without it.
-                    </p>
-                  </div>
-                </li>
-              </ol>
-              <div className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Terminal className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                <span>
-                  Full setup docs in{" "}
-                  <code className="bg-muted px-1 rounded text-[11px]">replit.md</code> and{" "}
-                  <code className="bg-muted px-1 rounded text-[11px]">scripts/setup.sh</code>.
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </section>
     </>
   );
