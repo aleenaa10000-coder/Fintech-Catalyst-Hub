@@ -274,8 +274,8 @@ const corsOrigin: cors.CorsOptions["origin"] =
 
 app.use(cors({ credentials: true, origin: corsOrigin }));
 app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 app.use(authMiddleware);
 
 // ── robots.txt (dynamic — uses getSiteUrl() so sitemap URLs match env) ───────

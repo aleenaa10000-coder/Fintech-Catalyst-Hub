@@ -3,7 +3,6 @@ import {
   type IRouter,
   type Request,
   type Response,
-  type NextFunction,
 } from "express";
 import { db, commissioningTopicsTable } from "@workspace/db";
 import { asc, desc, eq } from "drizzle-orm";
