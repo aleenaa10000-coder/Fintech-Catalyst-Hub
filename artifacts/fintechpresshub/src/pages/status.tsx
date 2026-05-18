@@ -2,8 +2,16 @@ import { useEffect, useState } from "react";
 import {
   useHealthCheck,
   getHealthCheckQueryKey,
+  useGetSitemapHealth,
+  useRunSitemapHealth,
+  useGetInternalLinkCheck,
+  useRunInternalLinkCheck,
+  getGetInternalLinkCheckQueryKey,
   type HealthStatus,
+  type SitemapHealthReport,
+  type InternalLinkCheckReport,
 } from "@workspace/api-client-react";
+import { useAuth } from "@workspace/replit-auth-web";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -13,6 +21,13 @@ import {
   Sprout,
   RefreshCw,
   Loader2,
+  ClipboardList,
+  Terminal,
+  Copy,
+  Check,
+  Link2,
+  ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
@@ -140,7 +155,365 @@ interface HistoryEntry {
   checkedAt: string;
 }
 
+// ── Admin-only sections ───────────────────────────────────────────────────────
+
+function SetupChecklist({
+  dbTone,
+  emailTone,
+  seedTone,
+}: {
+  dbTone: Tone;
+  emailTone: Tone;
+  seedTone: Tone;
+}) {
+  const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
+  const handleCopy = (cmd: string) => {
+    navigator.clipboard.writeText(cmd).catch(() => {});
+    setCopiedCmd(cmd);
+    setTimeout(() => setCopiedCmd(null), 2000);
+  };
+
+  const steps = [
+    {
+      tone: dbTone,
+      label: "Provision a Postgres database",
+      desc: (
+        <>
+          Open the <strong>Database</strong> tool in Replit. One click creates the database and sets{" "}
+          <code className="bg-muted px-1 rounded text-[11px]">DATABASE_URL</code> automatically.
+        </>
+      ),
+    },
+    {
+      tone: dbTone,
+      label: "Run the setup script",
+      desc: (
+        <>
+          Open the <strong>Shell</strong> tab and run:
+          <div className="mt-1 flex items-center gap-1.5">
+            <pre className="flex-1 text-[11px] bg-muted rounded px-2 py-1.5 overflow-x-auto">
+              <code>bash scripts/setup.sh</code>
+            </pre>
+            <button
+              type="button"
+              onClick={() => handleCopy("bash scripts/setup.sh")}
+              className={cn(
+                "shrink-0 flex items-center gap-1 text-[11px] font-medium rounded px-2 py-1.5 border transition-colors",
+                copiedCmd === "bash scripts/setup.sh"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-slate-200 bg-muted hover:bg-slate-100 text-muted-foreground hover:text-foreground",
+              )}
+              aria-label="Copy setup command"
+            >
+              {copiedCmd === "bash scripts/setup.sh" ? (
+                <><Check className="h-3 w-3" /> Copied</>
+              ) : (
+                <><Copy className="h-3 w-3" /> Copy</>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            This pushes the schema, seeds demo data, and runs a health check.
+          </p>
+        </>
+      ),
+    },
+    {
+      tone: seedTone,
+      label: "Verify demo content is seeded",
+      desc: (
+        <>
+          The <strong>Demo content</strong> card above should show "Operational". If it shows "Degraded", re-run:
+          <div className="mt-1 flex items-center gap-1.5">
+            <pre className="flex-1 text-[11px] bg-muted rounded px-2 py-1.5 overflow-x-auto">
+              <code>pnpm --filter @workspace/scripts run seed:auto</code>
+            </pre>
+            <button
+              type="button"
+              onClick={() => handleCopy("pnpm --filter @workspace/scripts run seed:auto")}
+              className={cn(
+                "shrink-0 flex items-center gap-1 text-[11px] font-medium rounded px-2 py-1.5 border transition-colors",
+                copiedCmd === "pnpm --filter @workspace/scripts run seed:auto"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-slate-200 bg-muted hover:bg-slate-100 text-muted-foreground hover:text-foreground",
+              )}
+              aria-label="Copy seed command"
+            >
+              {copiedCmd === "pnpm --filter @workspace/scripts run seed:auto" ? (
+                <><Check className="h-3 w-3" /> Copied</>
+              ) : (
+                <><Copy className="h-3 w-3" /> Copy</>
+              )}
+            </button>
+          </div>
+        </>
+      ),
+    },
+    {
+      tone: emailTone,
+      label: "Configure email",
+      optional: true,
+      desc: (
+        <>
+          Add <code className="bg-muted px-1 rounded text-[11px]">RESEND_API_KEY</code> in{" "}
+          <strong>Secrets</strong> to enable outbound email. The site works without it.
+        </>
+      ),
+    },
+  ];
+
+  const allGreen = dbTone === "ok" && seedTone === "ok";
+
+  return (
+    <Card className="border-slate-200" data-testid="status-setup-checklist">
+      <CardContent className="p-5 sm:p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <ClipboardList className="h-4 w-4 text-muted-foreground" aria-hidden />
+          <h3 className="text-sm font-semibold">Setup checklist</h3>
+          {allGreen && (
+            <span className="ml-auto text-xs text-emerald-600 font-medium flex items-center gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5" /> All done
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">
+          Run these steps once after importing or forking this project into a fresh Replit account.
+        </p>
+        <ol className="space-y-3 text-sm" aria-label="Setup steps">
+          {steps.map((step, idx) => (
+            <li key={idx} className="flex items-start gap-3">
+              <span
+                className={cn(
+                  "mt-0.5 shrink-0 h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold",
+                  step.tone === "ok"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : step.optional
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-slate-100 text-slate-500",
+                )}
+              >
+                {step.tone === "ok" ? "✓" : idx + 1}
+              </span>
+              <div>
+                <p className="font-medium leading-snug">
+                  {step.label}{" "}
+                  {step.optional && (
+                    <span className="font-normal text-muted-foreground">(optional)</span>
+                  )}
+                </p>
+                <div className="text-xs text-muted-foreground mt-0.5">{step.desc}</div>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Terminal className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>
+            Full setup docs in{" "}
+            <code className="bg-muted px-1 rounded text-[11px]">replit.md</code> and{" "}
+            <code className="bg-muted px-1 rounded text-[11px]">scripts/setup.sh</code>.
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SitemapHealthSummary() {
+  const { data, isLoading, isFetching, refetch } = useGetSitemapHealth<SitemapHealthReport>({
+    query: { staleTime: 5 * 60_000, retry: 1 },
+  });
+  const runMutation = useRunSitemapHealth();
+
+  const brokenCount = data?.brokenCount ?? 0;
+  const total = data?.total ?? 0;
+  const tone: Tone = isLoading ? "loading" : brokenCount > 0 ? "warn" : "ok";
+  const colors = TONE_COLORS[tone];
+
+  return (
+    <Card className={cn("border ring-1", colors.bg, colors.ring)}>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-muted-foreground" aria-hidden />
+            <h3 className="text-sm font-semibold">Sitemap health</h3>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => runMutation.mutate(undefined)}
+            disabled={runMutation.isPending || isFetching}
+          >
+            <RefreshCw className={cn("h-3 w-3", (runMutation.isPending || isFetching) && "animate-spin")} />
+            Run check
+          </Button>
+        </div>
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        ) : (
+          <>
+            <p className={cn("text-sm font-medium", colors.text)}>
+              {brokenCount === 0
+                ? `All ${total} URLs returning 2xx/3xx`
+                : `${brokenCount} of ${total} URLs broken`}
+            </p>
+            {data?.generatedAt && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Last checked {formatChecked(data.generatedAt)}
+              </p>
+            )}
+            {!data?.dailyJobEnabled && (
+              <p className="text-xs text-amber-700 mt-1">
+                Daily job paused in this environment — set <code className="bg-muted px-1 rounded">SITE_URL</code> to enable.
+              </p>
+            )}
+          </>
+        )}
+        <a
+          href="/admin/blog#sitemap-health"
+          className="mt-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+        >
+          Full report in Admin dashboard <ExternalLink className="h-3 w-3" />
+        </a>
+      </CardContent>
+    </Card>
+  );
+}
+
+function InternalLinkSummary() {
+  const { data, isLoading, isFetching } = useGetInternalLinkCheck<InternalLinkCheckReport>({
+    query: { staleTime: 5 * 60_000, retry: 1 },
+  });
+  const runMutation = useRunInternalLinkCheck();
+
+  const brokenCount = data?.brokenCount ?? 0;
+  const totalLinks = data?.totalLinks ?? 0;
+  const pagesChecked = data?.pagesChecked ?? 0;
+  const tone: Tone = isLoading ? "loading" : brokenCount > 0 ? "warn" : data ? "ok" : "loading";
+  const colors = TONE_COLORS[tone];
+  const neverRun = !isLoading && !data?.generatedAt;
+
+  return (
+    <Card className={cn("border ring-1", colors.bg, colors.ring)}>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-muted-foreground" aria-hidden />
+            <h3 className="text-sm font-semibold">Internal link health</h3>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => runMutation.mutate(undefined)}
+            disabled={runMutation.isPending || isFetching}
+            title="Crawls all pages and checks internal links — may take a minute"
+          >
+            <RefreshCw className={cn("h-3 w-3", runMutation.isPending && "animate-spin")} />
+            Run check
+          </Button>
+        </div>
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        ) : neverRun ? (
+          <p className="text-xs text-muted-foreground">
+            No scan has run yet. Click "Run check" to crawl all pages and probe internal links.
+          </p>
+        ) : (
+          <>
+            <p className={cn("text-sm font-medium", colors.text)}>
+              {brokenCount === 0
+                ? `All ${totalLinks} links across ${pagesChecked} pages are healthy`
+                : `${brokenCount} broken link${brokenCount !== 1 ? "s" : ""} across ${pagesChecked} pages`}
+            </p>
+            {data?.generatedAt && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Last checked {formatChecked(data.generatedAt)}
+              </p>
+            )}
+            {runMutation.isPending && (
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" /> Crawling pages — this may take a minute…
+              </p>
+            )}
+            {brokenCount > 0 && data?.brokenLinks && (
+              <details className="mt-3">
+                <summary className="cursor-pointer text-xs font-medium text-amber-800 hover:text-amber-900">
+                  Show {brokenCount} broken link{brokenCount !== 1 ? "s" : ""}
+                </summary>
+                <ul className="mt-2 space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {data.brokenLinks.map((bl, i) => (
+                    <li key={i} className="text-[11px] bg-background rounded px-2 py-1.5 border">
+                      <span className="font-medium text-red-600">
+                        {bl.statusCode ?? "ERR"}
+                      </span>{" "}
+                      <a
+                        href={bl.linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-1 hover:text-foreground break-all"
+                      >
+                        {bl.linkUrl}
+                      </a>
+                      <span className="text-muted-foreground ml-1">
+                        ← found on{" "}
+                        <a
+                          href={bl.sourcePage}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-1 hover:text-foreground"
+                        >
+                          {new URL(bl.sourcePage).pathname}
+                        </a>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AdminSection({
+  dbTone,
+  emailTone,
+  seedTone,
+}: {
+  dbTone: Tone;
+  emailTone: Tone;
+  seedTone: Tone;
+}) {
+  return (
+    <div className="mt-10 space-y-4" data-testid="status-admin-section">
+      <div className="flex items-center gap-2">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2">
+          Admin diagnostics
+        </span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SitemapHealthSummary />
+        <InternalLinkSummary />
+      </div>
+
+      <SetupChecklist dbTone={dbTone} emailTone={emailTone} seedTone={seedTone} />
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
 export default function StatusPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.isAdmin === true;
+
   const { data, isError, isLoading, isFetching, dataUpdatedAt, refetch } = useHealthCheck<HealthStatus>({
     query: {
       queryKey: getHealthCheckQueryKey(),
@@ -168,7 +541,6 @@ export default function StatusPage() {
     });
   }, [data, isError, isLoading, dataUpdatedAt, tone]);
 
-  // Subsystem tones + summaries
   const dbTone: Tone = isError ? "down" : !data ? "loading" : data.db.ok ? "ok" : "down";
   const emailTone: Tone = isError ? "down" : !data ? "loading" : data.email.ok ? "ok" : "warn";
   const seedTone: Tone = isError ? "down" : !data ? "loading" : data.seedData.ok ? "ok" : "warn";
@@ -339,6 +711,9 @@ export default function StatusPage() {
           </a>
         </p>
 
+        {isAdmin && (
+          <AdminSection dbTone={dbTone} emailTone={emailTone} seedTone={seedTone} />
+        )}
       </section>
     </>
   );

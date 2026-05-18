@@ -49,6 +49,7 @@ import type {
   HandleBrowserLoginCallbackParams,
   HealthStatus,
   HreflangCheckReport,
+  InternalLinkCheckReport,
   ListBlogPostsParams,
   ListBulkNoIndexAuditParams,
   LogoutSuccess,
@@ -2127,6 +2128,163 @@ export const useRunSitemapHealth = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRunSitemapHealthMutationOptions(options));
+    }
+
+/**
+ * Returns the most recent persisted results of the internal-link
+scanner, which crawls every sitemap page, extracts internal <a href>
+links, and probes them for broken responses. Read-only — does not
+trigger a fresh crawl. Pair with POST to refresh on demand.
+
+ * @summary Latest internal page link check report (admin)
+ */
+export const getGetInternalLinkCheckUrl = () => {
+
+
+
+
+  return `/api/admin/internal-link-check`
+}
+
+export const getInternalLinkCheck = async ( options?: RequestInit): Promise<InternalLinkCheckReport> => {
+
+  return customFetch<InternalLinkCheckReport>(getGetInternalLinkCheckUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInternalLinkCheckQueryKey = () => {
+    return [
+    `/api/admin/internal-link-check`
+    ] as const;
+    }
+
+
+export const getGetInternalLinkCheckQueryOptions = <TData = Awaited<ReturnType<typeof getInternalLinkCheck>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInternalLinkCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInternalLinkCheckQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInternalLinkCheck>>> = ({ signal }) => getInternalLinkCheck({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInternalLinkCheck>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInternalLinkCheckQueryResult = NonNullable<Awaited<ReturnType<typeof getInternalLinkCheck>>>
+export type GetInternalLinkCheckQueryError = ErrorType<void>
+
+
+/**
+ * @summary Latest internal page link check report (admin)
+ */
+
+export function useGetInternalLinkCheck<TData = Awaited<ReturnType<typeof getInternalLinkCheck>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInternalLinkCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInternalLinkCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+/**
+ * Crawls all sitemap pages, extracts internal <a href> links, probes
+each one, persists the results, and returns the full report. May take
+a few minutes depending on site size. Called by the admin dashboard
+"Run check now" button.
+
+ * @summary Run a fresh internal page link check (admin)
+ */
+export const getRunInternalLinkCheckUrl = () => {
+
+
+
+
+  return `/api/admin/internal-link-check`
+}
+
+export const runInternalLinkCheck = async ( options?: RequestInit): Promise<InternalLinkCheckReport> => {
+
+  return customFetch<InternalLinkCheckReport>(getRunInternalLinkCheckUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRunInternalLinkCheckMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runInternalLinkCheck>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runInternalLinkCheck>>, TError,void, TContext> => {
+
+const mutationKey = ['runInternalLinkCheck'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runInternalLinkCheck>>, void> = () => {
+
+
+          return  runInternalLinkCheck(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunInternalLinkCheckMutationResult = NonNullable<Awaited<ReturnType<typeof runInternalLinkCheck>>>
+
+    export type RunInternalLinkCheckMutationError = ErrorType<void>
+
+    /**
+ * @summary Run a fresh internal page link check (admin)
+ */
+export const useRunInternalLinkCheck = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runInternalLinkCheck>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runInternalLinkCheck>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRunInternalLinkCheckMutationOptions(options));
     }
 
 /**

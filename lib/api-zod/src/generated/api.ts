@@ -890,6 +890,68 @@ export const RunSitemapHealthResponse = zod.object({
 
 
 /**
+ * Returns the most recent persisted results of the internal-link
+scanner, which crawls every sitemap page, extracts internal <a href>
+links, and probes them for broken responses. Read-only — does not
+trigger a fresh crawl. Pair with POST to refresh on demand.
+
+ * @summary Latest internal page link check report (admin)
+ */
+export const getInternalLinkCheckResponsePagesCheckedMin = 0;
+
+export const getInternalLinkCheckResponseTotalLinksMin = 0;
+
+export const getInternalLinkCheckResponseBrokenCountMin = 0;
+
+
+
+export const GetInternalLinkCheckResponse = zod.object({
+  "generatedAt": zod.coerce.date().nullish().describe('When the most recent scan completed, or null if never run.'),
+  "pagesChecked": zod.number().min(getInternalLinkCheckResponsePagesCheckedMin).describe('Number of distinct pages whose HTML was crawled.'),
+  "totalLinks": zod.number().min(getInternalLinkCheckResponseTotalLinksMin).describe('Total unique (sourcePage, linkUrl) pairs probed.'),
+  "brokenCount": zod.number().min(getInternalLinkCheckResponseBrokenCountMin).describe('Number of broken (sourcePage, linkUrl) pairs found.'),
+  "brokenLinks": zod.array(zod.object({
+  "sourcePage": zod.string().describe('The page URL whose HTML contained the broken link.'),
+  "linkUrl": zod.string().describe('The internal URL that returned a broken response.'),
+  "statusCode": zod.number().nullable().describe('HTTP status code from the probe, or null on network error.'),
+  "lastError": zod.string().nullable().describe('Error message when the fetch threw (timeout, DNS, etc.).'),
+  "lastCheckedAt": zod.coerce.date()
+}).describe('A single broken internal link found on a page.'))
+}).describe('Report from GET\/POST \/admin\/internal-link-check. Summarises the\ninternal-link crawl across all sitemap pages.\n')
+
+
+/**
+ * Crawls all sitemap pages, extracts internal <a href> links, probes
+each one, persists the results, and returns the full report. May take
+a few minutes depending on site size. Called by the admin dashboard
+"Run check now" button.
+
+ * @summary Run a fresh internal page link check (admin)
+ */
+export const runInternalLinkCheckResponsePagesCheckedMin = 0;
+
+export const runInternalLinkCheckResponseTotalLinksMin = 0;
+
+export const runInternalLinkCheckResponseBrokenCountMin = 0;
+
+
+
+export const RunInternalLinkCheckResponse = zod.object({
+  "generatedAt": zod.coerce.date().nullish().describe('When the most recent scan completed, or null if never run.'),
+  "pagesChecked": zod.number().min(runInternalLinkCheckResponsePagesCheckedMin).describe('Number of distinct pages whose HTML was crawled.'),
+  "totalLinks": zod.number().min(runInternalLinkCheckResponseTotalLinksMin).describe('Total unique (sourcePage, linkUrl) pairs probed.'),
+  "brokenCount": zod.number().min(runInternalLinkCheckResponseBrokenCountMin).describe('Number of broken (sourcePage, linkUrl) pairs found.'),
+  "brokenLinks": zod.array(zod.object({
+  "sourcePage": zod.string().describe('The page URL whose HTML contained the broken link.'),
+  "linkUrl": zod.string().describe('The internal URL that returned a broken response.'),
+  "statusCode": zod.number().nullable().describe('HTTP status code from the probe, or null on network error.'),
+  "lastError": zod.string().nullable().describe('Error message when the fetch threw (timeout, DNS, etc.).'),
+  "lastCheckedAt": zod.coerce.date()
+}).describe('A single broken internal link found on a page.'))
+}).describe('Report from GET\/POST \/admin\/internal-link-check. Summarises the\ninternal-link crawl across all sitemap pages.\n')
+
+
+/**
  * Returns the cached results from the last hreflang consistency check
 (daily job or on-demand POST). Read-only — does not trigger a fresh
 check. Returns a "never run" report when the server has just started
@@ -1164,8 +1226,7 @@ export const subscribeToNewsletterBodySourceMax = 80;
 
 export const SubscribeToNewsletterBody = zod.object({
   "email": zod.string().email(),
-  "source": zod.string().max(subscribeToNewsletterBodySourceMax).optional(),
-  "keyword": zod.string().optional()
+  "source": zod.string().max(subscribeToNewsletterBodySourceMax).optional()
 })
 
 export const SubscribeToNewsletterResponse = zod.object({

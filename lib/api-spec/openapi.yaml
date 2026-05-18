@@ -707,6 +707,48 @@ paths:
         "401":
           description: Unauthorized
 
+  /admin/internal-link-check:
+    get:
+      operationId: getInternalLinkCheck
+      tags: [admin]
+      summary: Latest internal page link check report (admin)
+      description: |
+        Returns the most recent persisted results of the internal-link
+        scanner, which crawls every sitemap page, extracts internal <a href>
+        links, and probes them for broken responses. Read-only — does not
+        trigger a fresh crawl. Pair with POST to refresh on demand.
+      responses:
+        "200":
+          description: Internal link check report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalLinkCheckReport"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+    post:
+      operationId: runInternalLinkCheck
+      tags: [admin]
+      summary: Run a fresh internal page link check (admin)
+      description: |
+        Crawls all sitemap pages, extracts internal <a href> links, probes
+        each one, persists the results, and returns the full report. May take
+        a few minutes depending on site size. Called by the admin dashboard
+        "Run check now" button.
+      responses:
+        "200":
+          description: Internal link check report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalLinkCheckReport"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — admin access required
+
   /admin/hreflang-check:
     get:
       operationId: getHreflangCheckReport
@@ -1997,6 +2039,58 @@ components:
             `NODE_ENV !== "production"` and `SITE_URL` is not overridden.
             UI uses this to show a "daily job is paused" notice.
       required: [total, brokenCount, results]
+
+    PageLinkBroken:
+      type: object
+      description: A single broken internal link found on a page.
+      properties:
+        sourcePage:
+          type: string
+          description: The page URL whose HTML contained the broken link.
+        linkUrl:
+          type: string
+          description: The internal URL that returned a broken response.
+        statusCode:
+          type: integer
+          nullable: true
+          description: HTTP status code from the probe, or null on network error.
+        lastError:
+          type: string
+          nullable: true
+          description: Error message when the fetch threw (timeout, DNS, etc.).
+        lastCheckedAt:
+          type: string
+          format: date-time
+      required: [sourcePage, linkUrl, statusCode, lastError, lastCheckedAt]
+
+    InternalLinkCheckReport:
+      type: object
+      description: |
+        Report from GET/POST /admin/internal-link-check. Summarises the
+        internal-link crawl across all sitemap pages.
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the most recent scan completed, or null if never run.
+        pagesChecked:
+          type: integer
+          minimum: 0
+          description: Number of distinct pages whose HTML was crawled.
+        totalLinks:
+          type: integer
+          minimum: 0
+          description: Total unique (sourcePage, linkUrl) pairs probed.
+        brokenCount:
+          type: integer
+          minimum: 0
+          description: Number of broken (sourcePage, linkUrl) pairs found.
+        brokenLinks:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageLinkBroken"
+      required: [pagesChecked, totalLinks, brokenCount, brokenLinks]
 
     PricingPlan:
       type: object

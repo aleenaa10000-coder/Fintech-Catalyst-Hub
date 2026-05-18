@@ -183,10 +183,6 @@ export interface BlogPost {
   aboutEntities?: string[] | null;
   /** Entities mentioned in the article (BlogPosting `mentions`). */
   mentionEntities?: string[] | null;
-  /** Optional inline body image URL shown after the first article section. */
-  inlineImage1?: string | null;
-  /** Optional inline body image URL shown in the second half of the article. */
-  inlineImage2?: string | null;
 }
 
 export interface BlogCategory {
@@ -249,10 +245,6 @@ export interface UpdateBlogPostInput {
   lastMaterialUpdateAt?: string | null;
   aboutEntities?: string[] | null;
   mentionEntities?: string[] | null;
-  /** Optional inline body image URL shown after the first article section. */
-  inlineImage1?: string | null;
-  /** Optional inline body image URL shown in the second half of the article. */
-  inlineImage2?: string | null;
 }
 
 export type SeoNotificationIndexNowStatus = typeof SeoNotificationIndexNowStatus[keyof typeof SeoNotificationIndexNowStatus];
@@ -360,10 +352,6 @@ export interface PublishBlogPostInput {
   lastMaterialUpdateAt?: string | null;
   aboutEntities?: string[] | null;
   mentionEntities?: string[] | null;
-  /** Optional inline body image URL shown after the first article section. */
-  inlineImage1?: string | null;
-  /** Optional inline body image URL shown in the second half of the article. */
-  inlineImage2?: string | null;
 }
 
 /**
@@ -510,6 +498,47 @@ export interface SitemapHealthReport {
   UI uses this to show a "daily job is paused" notice.
    */
   dailyJobEnabled?: boolean;
+}
+
+/**
+ * A single broken internal link found on a page.
+ */
+export interface PageLinkBroken {
+  /** The page URL whose HTML contained the broken link. */
+  sourcePage: string;
+  /** The internal URL that returned a broken response. */
+  linkUrl: string;
+  /** HTTP status code from the probe, or null on network error. */
+  statusCode: number | null;
+  /** Error message when the fetch threw (timeout, DNS, etc.). */
+  lastError: string | null;
+  lastCheckedAt: string;
+}
+
+/**
+ * Report from GET/POST /admin/internal-link-check. Summarises the
+internal-link crawl across all sitemap pages.
+
+ */
+export interface InternalLinkCheckReport {
+  /** When the most recent scan completed, or null if never run. */
+  generatedAt?: string | null;
+  /**
+     * Number of distinct pages whose HTML was crawled.
+     * @minimum 0
+     */
+  pagesChecked: number;
+  /**
+     * Total unique (sourcePage, linkUrl) pairs probed.
+     * @minimum 0
+     */
+  totalLinks: number;
+  /**
+     * Number of broken (sourcePage, linkUrl) pairs found.
+     * @minimum 0
+     */
+  brokenCount: number;
+  brokenLinks: PageLinkBroken[];
 }
 
 export interface PricingPlan {
