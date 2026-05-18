@@ -83,9 +83,6 @@ export const blogPostsTable = pgTable("blog_posts", {
   // the hero cover image.
   inlineImage1: text("inline_image_1"),
   inlineImage2: text("inline_image_2"),
-  claimReviewClaim: text("claim_review_claim"),
-  claimReviewRating: text("claim_review_rating"),
-  claimReviewUrl: text("claim_review_url"),
 });
 
 export type BlogPostRow = typeof blogPostsTable.$inferSelect;

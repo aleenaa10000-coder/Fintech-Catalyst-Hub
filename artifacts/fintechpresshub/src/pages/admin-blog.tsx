@@ -1293,9 +1293,6 @@ const emptyForm = {
   mentionEntities: "",
   inlineImage1: "",
   inlineImage2: "",
-  claimReviewClaim: "",
-  claimReviewRating: "",
-  claimReviewUrl: "",
 };
 
 /**
@@ -1467,9 +1464,6 @@ function PostEditor({
     mentionEntities: (post.mentionEntities ?? []).join(", "),
     inlineImage1: post.inlineImage1 ?? "",
     inlineImage2: post.inlineImage2 ?? "",
-    claimReviewClaim: (post as any).claimReviewClaim ?? "",
-    claimReviewRating: (post as any).claimReviewRating ?? "",
-    claimReviewUrl: (post as any).claimReviewUrl ?? "",
   });
   const updateMut = useUpdateBlogPost();
 
@@ -1549,9 +1543,6 @@ function PostEditor({
             : null,
           inlineImage1: draft.inlineImage1.trim() || null,
           inlineImage2: draft.inlineImage2.trim() || null,
-          claimReviewClaim: draft.claimReviewClaim.trim() || null,
-          claimReviewRating: draft.claimReviewRating.trim() || null,
-          claimReviewUrl: draft.claimReviewUrl.trim() || null,
         },
       });
       const description = describeSeoNotification(updated.seoNotification);
@@ -2157,51 +2148,6 @@ function PostEditor({
             <p className="text-xs text-muted-foreground mt-1">
               Valid JSON array of <code>{"{ question, answer }"}</code> objects.
               Emits FAQPage JSON-LD and a rich-result FAQ accordion in Google (A1).
-            </p>
-          </div>
-        </div>
-      </details>
-
-      <details className="border rounded-lg">
-        <summary className="cursor-pointer px-4 py-3 font-medium text-sm select-none">
-          ClaimReview (fact-check schema)
-        </summary>
-        <div className="px-4 pb-4 pt-2 space-y-3">
-          <div>
-            <Label htmlFor={`claimReviewClaim-${post.id}`}>Claim reviewed</Label>
-            <Input
-              id={`claimReviewClaim-${post.id}`}
-              placeholder="The exact claim being fact-checked"
-              value={draft.claimReviewClaim}
-              onChange={(e) =>
-                setDraft({ ...draft, claimReviewClaim: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor={`claimReviewRating-${post.id}`}>Rating label</Label>
-            <Input
-              id={`claimReviewRating-${post.id}`}
-              placeholder="True / Mostly True / Misleading / False"
-              value={draft.claimReviewRating}
-              onChange={(e) =>
-                setDraft({ ...draft, claimReviewRating: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor={`claimReviewUrl-${post.id}`}>Source URL</Label>
-            <Input
-              id={`claimReviewUrl-${post.id}`}
-              type="url"
-              placeholder="https://example.com/source"
-              value={draft.claimReviewUrl}
-              onChange={(e) =>
-                setDraft({ ...draft, claimReviewUrl: e.target.value })
-              }
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Emits ClaimReview JSON-LD — eligible for Google fact-check rich results.
             </p>
           </div>
         </div>
@@ -4095,9 +4041,6 @@ export default function AdminBlog() {
               : null,
           inlineImage1: form.inlineImage1.trim() || null,
           inlineImage2: form.inlineImage2.trim() || null,
-          claimReviewClaim: form.claimReviewClaim.trim() || null,
-          claimReviewRating: form.claimReviewRating.trim() || null,
-          claimReviewUrl: form.claimReviewUrl.trim() || null,
         },
       });
       const isScheduled = publishedAtIso
@@ -4865,51 +4808,6 @@ export default function AdminBlog() {
                       Valid JSON array of{" "}
                       <code>{"{ question, answer }"}</code> objects. Emits
                       FAQPage JSON-LD and Google rich result (A1).
-                    </p>
-                  </div>
-                </div>
-              </details>
-
-              <details className="border rounded-lg">
-                <summary className="cursor-pointer px-4 py-3 font-medium text-sm select-none">
-                  ClaimReview (fact-check schema)
-                </summary>
-                <div className="px-4 pb-4 pt-2 space-y-3">
-                  <div>
-                    <Label htmlFor="claimReviewClaim">Claim reviewed</Label>
-                    <Input
-                      id="claimReviewClaim"
-                      placeholder="The exact claim being fact-checked"
-                      value={form.claimReviewClaim}
-                      onChange={(e) =>
-                        setForm({ ...form, claimReviewClaim: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="claimReviewRating">Rating label</Label>
-                    <Input
-                      id="claimReviewRating"
-                      placeholder="True / Mostly True / Misleading / False"
-                      value={form.claimReviewRating}
-                      onChange={(e) =>
-                        setForm({ ...form, claimReviewRating: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="claimReviewUrl">Source URL</Label>
-                    <Input
-                      id="claimReviewUrl"
-                      type="url"
-                      placeholder="https://example.com/source"
-                      value={form.claimReviewUrl}
-                      onChange={(e) =>
-                        setForm({ ...form, claimReviewUrl: e.target.value })
-                      }
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Emits ClaimReview JSON-LD — eligible for Google fact-check rich results.
                     </p>
                   </div>
                 </div>

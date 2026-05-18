@@ -64,12 +64,6 @@ export type PublicPost = {
   inlineImage1?: string | null;
   /** Optional inline body image shown in the second half of the article. */
   inlineImage2?: string | null;
-  /** Claim being fact-checked — used to emit ClaimReview JSON-LD. */
-  claimReviewClaim?: string | null;
-  /** Fact-check verdict label (e.g. "True", "False"). */
-  claimReviewRating?: string | null;
-  /** Source URL for the ClaimReview fact-check. */
-  claimReviewUrl?: string | null;
 };
 
 /**
@@ -107,9 +101,6 @@ function fromApi(post: ApiBlogPost): PublicPost {
     mentionEntities: post.mentionEntities ?? null,
     inlineImage1: post.inlineImage1 ?? null,
     inlineImage2: post.inlineImage2 ?? null,
-    claimReviewClaim: post.claimReviewClaim ?? null,
-    claimReviewRating: post.claimReviewRating ?? null,
-    claimReviewUrl: post.claimReviewUrl ?? null,
   };
 }
 
