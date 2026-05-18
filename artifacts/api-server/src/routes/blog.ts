@@ -356,7 +356,7 @@ router.get("/blog/posts", async (req, res) => {
   const rawAsOf =
     typeof req.query.asOf === "string" ? req.query.asOf : undefined;
   const asOfCandidate = rawAsOf ? new Date(rawAsOf) : undefined;
-  const params = ListBlogPostsQueryParams.parse({
+  const parsedParams = ListBlogPostsQueryParams.safeParse({
     category: req.query.category,
     limit: req.query.limit ? Number(req.query.limit) : undefined,
     asOf:
@@ -364,6 +364,11 @@ router.get("/blog/posts", async (req, res) => {
         ? asOfCandidate
         : undefined,
   });
+  if (!parsedParams.success) {
+    res.status(400).json({ error: "Invalid query parameters", issues: parsedParams.error.issues });
+    return;
+  }
+  const params = parsedParams.data;
 
   // The "preview as scheduled visitor" admin toggle pipes a future
   // timestamp through `asOf` so the response matches what the public

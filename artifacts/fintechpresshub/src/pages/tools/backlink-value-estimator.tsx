@@ -1045,8 +1045,6 @@ export default function BacklinkValueEstimator() {
     if (!result) return;
     setReportPdfLoading(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore — html2pdf.js has no bundled TS types
       const html2pdf = (await import("html2pdf.js")).default;
       const pitchAngle = generateOutreachAngle(form.domain, form.relevance as Relevance);
       const scoreColor =
