@@ -1,9 +1,10 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type NextFunction } from "express";
 import { db, siteStatsTable } from "@workspace/db";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-router.get("/stats/trust", async (_req, res) => {
+router.get("/stats/trust", async (_req, res, next: NextFunction) => {
   try {
     const [row] = await db.select().from(siteStatsTable).limit(1);
     if (!row) {
@@ -22,7 +23,8 @@ router.get("/stats/trust", async (_req, res) => {
       averageDomainRating: row.averageDomainRating,
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch stats" });
+    logger.error({ err }, "stats: failed to fetch trust stats");
+    next(err);
   }
 });
 

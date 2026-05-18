@@ -26,10 +26,11 @@ const REQUIRED_ENV: string[] = ["DATABASE_URL"];
 const REQUIRED_PROD_ENV: string[] = ["SITE_URL"];
 
 const WARN_ENV: { key: string; hint: string }[] = [
-  { key: "SITE_URL",       hint: "sitemaps, RSS, canonical tags, and CORS will use a fallback URL" },
-  { key: "SESSION_SECRET", hint: "sessions will not survive server restarts" },
-  { key: "ADMIN_EMAILS",   hint: "no admin access will be granted" },
-  { key: "ADMIN_PASSWORD", hint: "password-based admin login is disabled" },
+  { key: "SITE_URL",        hint: "sitemaps, RSS, canonical tags, and CORS will use a fallback URL" },
+  { key: "SESSION_SECRET",  hint: "sessions will not survive server restarts" },
+  { key: "ADMIN_EMAILS",    hint: "no admin access will be granted" },
+  { key: "ADMIN_PASSWORD",  hint: "password-based admin login is disabled" },
+  { key: "RESEND_API_KEY",  hint: "all outbound email (digests, alerts, contact replies) will silently fail unless SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS are also set" },
 ];
 
 function validateEnv(): void {

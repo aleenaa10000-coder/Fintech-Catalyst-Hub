@@ -1,12 +1,13 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type NextFunction } from "express";
 import { db, newsletterSubscribersTable } from "@workspace/db";
 import { SubscribeToNewsletterBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
 import { formRateLimiter } from "../lib/rateLimiter";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-router.post("/newsletter/subscribe", formRateLimiter, async (req, res) => {
+router.post("/newsletter/subscribe", formRateLimiter, async (req, res, next: NextFunction) => {
   const parsed = SubscribeToNewsletterBody.safeParse(req.body);
   if (!parsed.success) {
     res
@@ -58,7 +59,8 @@ router.post("/newsletter/subscribe", formRateLimiter, async (req, res) => {
       createdAt: row.createdAt.toISOString(),
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to subscribe" });
+    logger.error({ err }, "newsletter: failed to subscribe email");
+    next(err);
   }
 });
 

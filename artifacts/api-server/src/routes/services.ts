@@ -4,12 +4,14 @@ import { asc, eq } from "drizzle-orm";
 import { CreateServiceBody } from "@workspace/api-zod";
 import { invalidateSitemapCache } from "./sitemapIndex";
 import { getSiteUrl, notifySearchEnginesOfPublishWithTimeout } from "../lib/seo";
+import { logger } from "../lib/logger";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const SEO_NOTIFY_TIMEOUT_MS = 4000;
 
 const router: IRouter = Router();
 
-router.get("/services", async (_req, res) => {
+router.get("/services", async (_req, res, next) => {
   try {
     const rows = await db.select().from(servicesTable).orderBy(asc(servicesTable.id));
     res.json(
@@ -24,11 +26,12 @@ router.get("/services", async (_req, res) => {
       })),
     );
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch services" });
+    logger.error({ err }, "services: failed to fetch list");
+    next(err);
   }
 });
 
-router.get("/services/:slug", async (req, res) => {
+router.get("/services/:slug", async (req, res, next) => {
   const slug = req.params.slug;
   if (!slug) {
     res.status(400).json({ error: "Missing slug" });
@@ -54,15 +57,12 @@ router.get("/services/:slug", async (req, res) => {
       icon: row.icon,
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch service" });
+    logger.error({ err, slug }, "services: failed to fetch single service");
+    next(err);
   }
 });
 
-router.post("/services", async (req, res) => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+router.post("/services", requireAdmin, async (req, res, next) => {
   const parsed = CreateServiceBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input", issues: parsed.error.issues });
@@ -100,16 +100,13 @@ router.post("/services", async (req, res) => {
       icon: row.icon,
     });
   } catch (err) {
+    logger.error({ err, slug: body.slug }, "services: failed to create service");
     res.status(409).json({ error: "Slug already exists or insert failed" });
   }
 });
 
-router.delete("/services/:slug", async (req, res) => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  const slug = req.params.slug;
+router.delete("/services/:slug", requireAdmin, async (req, res, next) => {
+  const slug = req.params["slug"] as string;
   if (!slug) {
     res.status(400).json({ error: "Missing slug" });
     return;
@@ -119,7 +116,8 @@ router.delete("/services/:slug", async (req, res) => {
     invalidateSitemapCache();
     res.status(204).end();
   } catch (err) {
-    res.status(500).json({ error: "Failed to delete service" });
+    logger.error({ err, slug }, "services: failed to delete service");
+    next(err);
   }
 });
 
