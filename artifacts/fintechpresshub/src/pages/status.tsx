@@ -7,9 +7,12 @@ import {
   useGetInternalLinkCheck,
   useRunInternalLinkCheck,
   getGetInternalLinkCheckQueryKey,
+  useGetHreflangCheckReport,
+  useRunHreflangCheck,
   type HealthStatus,
   type SitemapHealthReport,
   type InternalLinkCheckReport,
+  type HreflangCheckReport,
 } from "@workspace/api-client-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import {
@@ -28,6 +31,7 @@ import {
   Link2,
   ShieldCheck,
   ExternalLink,
+  Globe,
 } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
@@ -479,6 +483,101 @@ function InternalLinkSummary() {
   );
 }
 
+function HreflangSummary() {
+  const { data, isLoading, isFetching } = useGetHreflangCheckReport<HreflangCheckReport>({
+    query: { staleTime: 5 * 60_000, retry: 1 },
+  });
+  const runMutation = useRunHreflangCheck();
+
+  const mismatchCount = data?.mismatchCount ?? 0;
+  const checkedCount = data?.checkedCount ?? 0;
+  const neverRun = !isLoading && !data?.generatedAt;
+  const tone: Tone = isLoading ? "loading" : mismatchCount > 0 ? "warn" : data ? "ok" : "loading";
+  const colors = TONE_COLORS[tone];
+
+  return (
+    <Card className={cn("border ring-1", colors.bg, colors.ring)}>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-muted-foreground" aria-hidden />
+            <h3 className="text-sm font-semibold">Hreflang consistency</h3>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => runMutation.mutate(undefined)}
+            disabled={runMutation.isPending || isFetching}
+            title="Validates hreflang self-references across a sample of pages"
+          >
+            <RefreshCw className={cn("h-3 w-3", runMutation.isPending && "animate-spin")} />
+            Run check
+          </Button>
+        </div>
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        ) : neverRun ? (
+          <p className="text-xs text-muted-foreground">
+            No check has run yet. Click "Run check" to validate hreflang tags across all pages.
+          </p>
+        ) : (
+          <>
+            <p className={cn("text-sm font-medium", colors.text)}>
+              {mismatchCount === 0
+                ? `All ${checkedCount} sampled pages have correct hreflang tags`
+                : `${mismatchCount} mismatch${mismatchCount !== 1 ? "es" : ""} across ${checkedCount} sampled pages`}
+            </p>
+            {data?.generatedAt && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Last checked {formatChecked(data.generatedAt)}
+              </p>
+            )}
+            {!data?.dailyJobEnabled && (
+              <p className="text-xs text-amber-700 mt-1">
+                Daily job paused — set <code className="bg-muted px-1 rounded">SITE_URL</code> to enable.
+              </p>
+            )}
+            {runMutation.isPending && (
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" /> Checking pages…
+              </p>
+            )}
+            {mismatchCount > 0 && data?.mismatches && (
+              <details className="mt-3">
+                <summary className="cursor-pointer text-xs font-medium text-amber-800 hover:text-amber-900">
+                  Show {mismatchCount} mismatch{mismatchCount !== 1 ? "es" : ""}
+                </summary>
+                <ul className="mt-2 space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {data.mismatches.map((m, i) => (
+                    <li key={i} className="text-[11px] bg-background rounded px-2 py-1.5 border">
+                      <a
+                        href={m.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-1 hover:text-foreground break-all"
+                      >
+                        {new URL(m.url).pathname}
+                      </a>
+                      <span className="text-muted-foreground ml-1">— {m.detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </>
+        )}
+        <a
+          href="/admin/blog#hreflang"
+          className="mt-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+        >
+          Full report in Admin dashboard <ExternalLink className="h-3 w-3" />
+        </a>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AdminSection({
   dbTone,
   emailTone,
@@ -498,9 +597,10 @@ function AdminSection({
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <SitemapHealthSummary />
         <InternalLinkSummary />
+        <HreflangSummary />
       </div>
 
       <SetupChecklist dbTone={dbTone} emailTone={emailTone} seedTone={seedTone} />
