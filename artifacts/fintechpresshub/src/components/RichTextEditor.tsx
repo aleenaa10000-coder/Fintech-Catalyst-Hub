@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -79,6 +79,15 @@ export function RichTextEditor({
   const [mdMode, setMdMode] = useState<"replace" | "append">("replace");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [wordCount, setWordCount] = useState(0);
+  const [charCount, setCharCount] = useState(0);
+
+  function countFromText(text: string) {
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const chars = text.length;
+    return { words, chars };
+  }
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -97,6 +106,9 @@ export function RichTextEditor({
     content: value,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
+      const { words, chars } = countFromText(editor.state.doc.textContent);
+      setWordCount(words);
+      setCharCount(chars);
     },
     editorProps: {
       attributes: {
@@ -179,6 +191,14 @@ export function RichTextEditor({
       toast.error("Failed to parse Markdown");
     }
   }, [editor, mdText, mdMode, onChange]);
+
+  useEffect(() => {
+    if (editor) {
+      const { words, chars } = countFromText(editor.state.doc.textContent);
+      setWordCount(words);
+      setCharCount(chars);
+    }
+  }, [editor]);
 
   if (!editor) return null;
 
@@ -307,12 +327,17 @@ export function RichTextEditor({
           <EditorContent editor={editor} />
         </div>
 
-        {uploading && (
-          <div className="flex items-center gap-1.5 border-t border-input px-3 py-1.5 text-xs text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Uploading image…
-          </div>
-        )}
+        <div className="flex items-center justify-between border-t border-input px-3 py-1.5 text-xs text-muted-foreground">
+          <span>
+            {wordCount} {wordCount === 1 ? "word" : "words"} · {charCount} {charCount === 1 ? "character" : "characters"}
+          </span>
+          {uploading && (
+            <span className="flex items-center gap-1.5">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Uploading image…
+            </span>
+          )}
+        </div>
       </div>
 
       <Dialog open={mdDialogOpen} onOpenChange={setMdDialogOpen}>

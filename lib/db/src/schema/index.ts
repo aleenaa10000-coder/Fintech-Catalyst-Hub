@@ -26,3 +26,4 @@ export * from "./pressMentions";
 export * from "./schemaHealthRuns";
 export * from "./toolRatings";
 export * from "./webmentions";
+export * from "./postAuditLog";

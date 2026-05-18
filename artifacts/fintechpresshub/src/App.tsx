@@ -94,6 +94,8 @@ const AdminCommissioningTopics = lazy(
 const AdminNewsletter = lazy(() => import("@/pages/admin-newsletter"));
 const AdminModeration = lazy(() => import("@/pages/admin-moderation"));
 const AdminAuditLog = lazy(() => import("@/pages/admin-audit-log"));
+const AdminMediaLibrary = lazy(() => import("@/pages/admin-media-library"));
+const AdminPostAuditLog = lazy(() => import("@/pages/admin-post-audit-log"));
 const AdminNotifications = lazy(() => import("@/pages/admin-notifications"));
 const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
 const AdminAuthorPhotos = lazy(() => import("@/pages/admin-author-photos"));
@@ -404,6 +406,8 @@ function Router() {
             <AdminRoute path="/admin/authors" component={AdminAuthors} />
             <AdminRoute path="/admin/pricing" component={AdminPricing} />
             <AdminRoute path="/admin/audit-log" component={AdminAuditLog} />
+            <AdminRoute path="/admin/media-library" component={AdminMediaLibrary} />
+            <AdminRoute path="/admin/post-audit-log" component={AdminPostAuditLog} />
             <AdminRoute path="/admin/notifications" component={AdminNotifications} />
             <AdminRoute path="/admin/analytics" component={AdminAnalytics} />
             <AdminRoute path="/admin/seo-performance" component={AdminSeoPerformance} />

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   useHealthCheck,
   getHealthCheckQueryKey,
@@ -13,6 +14,8 @@ import {
   type SitemapHealthReport,
   type InternalLinkCheckReport,
   type HreflangCheckReport,
+  type PageLinkBroken,
+  type HreflangMismatch,
 } from "@workspace/api-client-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import {
@@ -32,6 +35,7 @@ import {
   ShieldCheck,
   ExternalLink,
   Globe,
+  Braces,
 } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { PageHero } from "@/components/PageHero";
@@ -447,7 +451,7 @@ function InternalLinkSummary() {
                   Show {brokenCount} broken link{brokenCount !== 1 ? "s" : ""}
                 </summary>
                 <ul className="mt-2 space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                  {data.brokenLinks.map((bl, i) => (
+                  {data.brokenLinks.map((bl: PageLinkBroken, i: number) => (
                     <li key={i} className="text-[11px] bg-background rounded px-2 py-1.5 border">
                       <span className="font-medium text-red-600">
                         {bl.statusCode ?? "ERR"}
@@ -549,7 +553,7 @@ function HreflangSummary() {
                   Show {mismatchCount} mismatch{mismatchCount !== 1 ? "es" : ""}
                 </summary>
                 <ul className="mt-2 space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                  {data.mismatches.map((m, i) => (
+                  {data.mismatches.map((m: HreflangMismatch, i: number) => (
                     <li key={i} className="text-[11px] bg-background rounded px-2 py-1.5 border">
                       <a
                         href={m.url}
@@ -578,6 +582,86 @@ function HreflangSummary() {
   );
 }
 
+interface SchemaHealthRun {
+  id: number;
+  passCount: number;
+  failCount: number;
+  warnCount: number;
+  totalCount: number;
+  createdAt: string;
+}
+
+function SchemaHealthSummary() {
+  const { data, isLoading, refetch, isFetching } = useQuery<SchemaHealthRun[]>({
+    queryKey: ["schema-health-history-status"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/schema-health/history", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch schema health");
+      return res.json() as Promise<SchemaHealthRun[]>;
+    },
+    staleTime: 5 * 60_000,
+    retry: 1,
+  });
+
+  const latest = data?.[0];
+  const failCount = latest?.failCount ?? 0;
+  const warnCount = latest?.warnCount ?? 0;
+  const passCount = latest?.passCount ?? 0;
+  const tone: Tone = isLoading
+    ? "loading"
+    : !latest
+      ? "loading"
+      : failCount > 0
+        ? "warn"
+        : "ok";
+  const colors = TONE_COLORS[tone];
+
+  return (
+    <Card className={cn("border ring-1", colors.bg, colors.ring)}>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <Braces className="h-4 w-4 text-muted-foreground" aria-hidden />
+            <h3 className="text-sm font-semibold">Schema health</h3>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw className={cn("h-3 w-3", isFetching && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        ) : !latest ? (
+          <p className="text-xs text-muted-foreground">No schema health run on record yet.</p>
+        ) : (
+          <>
+            <p className={cn("text-sm font-medium", colors.text)}>
+              {failCount === 0
+                ? `All ${passCount} schema tests passing`
+                : `${failCount} failure${failCount !== 1 ? "s" : ""}${warnCount > 0 ? `, ${warnCount} warning${warnCount !== 1 ? "s" : ""}` : ""}`}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Last run {formatChecked(latest.createdAt)}
+            </p>
+          </>
+        )}
+        <a
+          href="/admin/schema-test"
+          className="mt-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+        >
+          Full report <ExternalLink className="h-3 w-3" />
+        </a>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AdminSection({
   dbTone,
   emailTone,
@@ -597,10 +681,11 @@ function AdminSection({
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SitemapHealthSummary />
         <InternalLinkSummary />
         <HreflangSummary />
+        <SchemaHealthSummary />
       </div>
 
       <SetupChecklist dbTone={dbTone} emailTone={emailTone} seedTone={seedTone} />

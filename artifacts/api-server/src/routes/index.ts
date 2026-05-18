@@ -43,6 +43,8 @@ import toolRatingsRouter from "./toolRatings";
 import webmentionsRouter from "./webmentions";
 import seoDebugRouter from "./seoDebug";
 import internalLinkCheckRouter from "./internalLinkCheck";
+import postAuditLogRouter from "./postAuditLog";
+import uploadsRouter from "./uploads";
 
 const router: IRouter = Router();
 
@@ -90,6 +92,8 @@ router.use(toolRatingsRouter);
 router.use(webmentionsRouter);
 router.use(seoDebugRouter);
 router.use(internalLinkCheckRouter);
+router.use(postAuditLogRouter);
+router.use(uploadsRouter);
 
 // JSON 404 fallback for unmatched /api/* routes — must come last so it
 // doesn't shadow any route registered above.

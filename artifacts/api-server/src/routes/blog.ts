@@ -17,6 +17,7 @@ import {
   type SeoNotificationResult,
 } from "../lib/seo";
 import { invalidateSitemapCache } from "./sitemapIndex";
+import { logPostAction } from "./postAuditLog";
 
 // Bound on how long the publish/update response will wait for the
 // IndexNow ping before returning a "still in progress" placeholder.
@@ -639,6 +640,15 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
       );
     }
 
+    void logPostAction({
+      actorEmail: req.user!.email,
+      actorUserId: req.user!.id ?? null,
+      action: "published",
+      postId: String(row.id),
+      postSlug: row.slug,
+      postTitle: row.title,
+    });
+
     res.status(201).json(serializeWithSeo(updatedRow ?? row, seoNotification));
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -732,6 +742,18 @@ router.patch("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
     // Flush the sitemap cache so Googlebot picks up the updated lastmod
     // on the next crawl rather than waiting for the 5-minute TTL.
     invalidateSitemapCache();
+
+    void logPostAction({
+      actorEmail: req.user!.email,
+      actorUserId: req.user!.id ?? null,
+      action: "updated",
+      postId: String(row.id),
+      postSlug: row.slug,
+      postTitle: row.title,
+      changedFields: Object.fromEntries(
+        Object.keys(body).map((k) => [k, (body as Record<string, unknown>)[k]]),
+      ),
+    });
 
     res.json(serializeWithSeo(updatedRow ?? row, seoNotification));
   } catch (err) {
@@ -1138,6 +1160,15 @@ router.delete("/blog/posts/:slug", requireAdmin, async (req, res, next) => {
       );
 
     invalidateSitemapCache();
+
+    void logPostAction({
+      actorEmail: req.user!.email,
+      actorUserId: req.user!.id ?? null,
+      action: "deleted",
+      postId: String(row.id),
+      postSlug: row.slug,
+      postTitle: row.title,
+    });
 
     res.status(204).end();
   } catch (err) {

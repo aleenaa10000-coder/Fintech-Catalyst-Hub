@@ -1,4 +1,6 @@
-import express, { Router, type IRouter } from "express";
+import * as fs from "fs";
+import * as path from "path";
+import express, { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
 import {
   ObjectStorageService,
@@ -6,9 +8,69 @@ import {
   ObjectStorageUnavailableError,
 } from "../lib/object-storage";
 import { logger } from "../lib/logger";
+import { isAdminEmail } from "../lib/auth";
+
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (!isAdminEmail(req.user.email)) {
+    res.status(403).json({ error: "Forbidden — admin access required" });
+    return;
+  }
+  next();
+}
+
+const UPLOADS_DIR = path.resolve(
+  process.env["LOCAL_UPLOADS_DIR"] || path.join(process.cwd(), "data", "uploads"),
+);
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+
+router.get("/admin/media", requireAdmin, async (_req, res) => {
+  try {
+    if (!fs.existsSync(UPLOADS_DIR)) {
+      res.json({ files: [], total: 0 });
+      return;
+    }
+    const entries = fs.readdirSync(UPLOADS_DIR);
+    const files = entries
+      .filter((name) => !name.endsWith(".meta.json"))
+      .map((name) => {
+        const filePath = path.join(UPLOADS_DIR, name);
+        const metaPath = `${filePath}.meta.json`;
+        let contentType = "application/octet-stream";
+        let visibility = "public";
+        try {
+          if (fs.existsSync(metaPath)) {
+            const meta = JSON.parse(fs.readFileSync(metaPath, "utf8")) as Record<string, unknown>;
+            if (typeof meta["contentType"] === "string") contentType = meta["contentType"];
+            const acl = meta["aclPolicy"] as { visibility?: string } | undefined;
+            if (acl?.visibility) visibility = acl.visibility;
+          }
+        } catch {}
+        let sizeBytes = 0;
+        try {
+          sizeBytes = fs.statSync(filePath).size;
+        } catch {}
+        return {
+          id: name,
+          objectPath: `/objects/uploads/${name}`,
+          contentType,
+          sizeBytes,
+          visibility,
+        };
+      })
+      .sort((a, b) => b.id.localeCompare(a.id));
+
+    res.json({ files, total: files.length });
+  } catch (err) {
+    logger.error({ err }, "Failed to list media files");
+    res.status(500).json({ error: "Failed to list media files" });
+  }
+});
 
 /**
  * Single-step upload endpoint.
