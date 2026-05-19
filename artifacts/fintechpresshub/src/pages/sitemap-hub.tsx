@@ -14,7 +14,6 @@ const SECTIONS = [
       { href: "/pricing", label: "Pricing Plans" },
       { href: "/contact", label: "Contact Us" },
       { href: "/press", label: "Press & Media" },
-      { href: "/status", label: "System Status" },
     ],
   },
   {

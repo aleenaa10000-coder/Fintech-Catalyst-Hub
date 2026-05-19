@@ -18,7 +18,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CountUp } from "@/components/CountUp";
 import { ParticleNetwork } from "@/components/ParticleNetwork";
 import { TrustedBy } from "@/components/TrustedBy";
-import { LandingHealthIndicator } from "@/components/LandingHealthIndicator";
 import { useAuth } from "@workspace/replit-auth-web";
 import { optimizeImageUrl, buildSrcSet } from "@/lib/imageUtils";
 
@@ -174,9 +173,6 @@ export default function Home() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <div className="hero-fade-in">
-              <div className="mb-6 flex justify-center">
-                <LandingHealthIndicator />
-              </div>
               <h1
                 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-tight"
                 style={{ textShadow: "0 2px 24px rgba(8, 18, 51, 0.55), 0 1px 2px rgba(0,0,0,0.3)" }}

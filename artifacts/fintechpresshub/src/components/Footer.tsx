@@ -189,15 +189,6 @@ export function Footer() {
                   Editorial Guidelines
                 </PrefetchLink>
               </li>
-              <li>
-                <PrefetchLink
-                  href="/status"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                  data-testid="link-footer-status"
-                >
-                  System Status
-                </PrefetchLink>
-              </li>
             </ul>
           </div>
 
