@@ -6,6 +6,7 @@ import {
   type NextFunction,
 } from "express";
 
+import { z } from "zod";
 import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/seo";
 import {
@@ -36,50 +37,50 @@ router.get(
   },
 );
 
+const notificationSettingsSchema = z.object({
+  slackWebhookUrl: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => (v === "" ? null : v ?? null)),
+  slackEnabled: z.boolean({
+    required_error: "slackEnabled is required",
+    invalid_type_error: "slackEnabled must be a boolean",
+  }),
+  weeklyDigestEnabled: z.boolean().optional(),
+  publishNotifyEnabled: z.boolean().optional(),
+  publishNotifyEmail: z
+    .string()
+    .email("publishNotifyEmail must be a valid email address")
+    .nullable()
+    .optional()
+    .transform((v) => (v === "" ? null : v ?? null)),
+});
+
 router.put(
   "/admin/notifications/settings",
   requireAdmin,
   async (req, res, next) => {
     try {
-      const body = req.body as
-        | {
-            slackWebhookUrl?: string | null;
-            slackEnabled?: boolean;
-            weeklyDigestEnabled?: boolean;
-            publishNotifyEnabled?: boolean;
-            publishNotifyEmail?: string | null;
-          }
-        | undefined;
-      if (!body || typeof body.slackEnabled !== "boolean") {
-        res.status(400).json({ error: "slackEnabled is required" });
+      const parsed = notificationSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        const firstIssue = parsed.error.issues[0];
+        res.status(400).json({
+          error: firstIssue?.message ?? "Invalid request body",
+          details: parsed.error.flatten(),
+        });
         return;
       }
-      // Accept null, empty string (treated as null), or a valid string.
-      const rawUrl =
-        body.slackWebhookUrl == null || body.slackWebhookUrl === ""
-          ? null
-          : String(body.slackWebhookUrl);
+      const body = parsed.data;
       try {
-        const next = await updateNotificationSettings({
-          slackWebhookUrl: rawUrl,
+        const result = await updateNotificationSettings({
+          slackWebhookUrl: body.slackWebhookUrl,
           slackEnabled: body.slackEnabled,
-          // Forward `undefined` when the client didn't include the
-          // field so the storage helper falls back to the saved value
-          // (lets older PUT callers keep working).
-          weeklyDigestEnabled:
-            typeof body.weeklyDigestEnabled === "boolean"
-              ? body.weeklyDigestEnabled
-              : undefined,
-          publishNotifyEnabled:
-            typeof body.publishNotifyEnabled === "boolean"
-              ? body.publishNotifyEnabled
-              : undefined,
-          publishNotifyEmail:
-            body.publishNotifyEmail !== undefined
-              ? body.publishNotifyEmail
-              : undefined,
+          weeklyDigestEnabled: body.weeklyDigestEnabled,
+          publishNotifyEnabled: body.publishNotifyEnabled,
+          publishNotifyEmail: body.publishNotifyEmail,
         });
-        res.json(toPublicSettings(next));
+        res.json(toPublicSettings(result));
       } catch (validationErr) {
         res.status(400).json({
           error:

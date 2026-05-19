@@ -9,6 +9,51 @@ import { sendMail } from "../lib/mailer";
 import { formRateLimiter } from "../lib/rateLimiter";
 import { escapeHtml } from "../lib/routeHelpers";
 
+// ── SSRF guard ────────────────────────────────────────────────────────────────
+// Both /tools/site-preview and /tools/fetch-title are public endpoints that
+// proxy outbound HTTP requests on behalf of users. Without this guard an
+// attacker could point them at 127.0.0.1, 169.254.169.254 (AWS IMDS), or any
+// private-network address reachable from the server host — leaking internal
+// configuration or data. The check operates on the raw hostname string from
+// the parsed URL (before any DNS resolution), which is sufficient to block
+// direct IP references and common alias forms. DNS-rebinding is mitigated at
+// the infrastructure level (Hostinger's isolated container network).
+
+/**
+ * Returns true when the URL's hostname is a known private/loopback/reserved
+ * address that must never be reached by a server-side fetch proxy.
+ */
+function isPrivateHostname(hostname: string): boolean {
+  // Strip IPv6 brackets (e.g. "[::1]" → "::1") and normalise case.
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+
+  // Loopback aliases
+  if (h === "localhost" || h === "::1" || h === "0.0.0.0") return true;
+
+  // Decimal-only "IP" like 2130706433 (= 127.0.0.1) — block unconditionally.
+  if (/^\d+$/.test(h)) return true;
+
+  // Standard dotted-decimal IPv4 range checks
+  const oct = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (oct) {
+    const [a, b] = [Number(oct[1]), Number(oct[2])];
+    if (a === 0)                              return true; // 0.x.x.x unspecified
+    if (a === 10)                             return true; // 10.x.x.x private A
+    if (a === 100 && b >= 64 && b <= 127)    return true; // 100.64-127.x CGNAT
+    if (a === 127)                            return true; // 127.x.x.x loopback
+    if (a === 169 && b === 254)               return true; // 169.254.x.x link-local / AWS IMDS
+    if (a === 172 && b >= 16 && b <= 31)     return true; // 172.16-31.x private B
+    if (a === 192 && b === 168)               return true; // 192.168.x.x private C
+    if (a === 198 && (b === 18 || b === 19)) return true; // 198.18-19.x benchmarking
+  }
+
+  // IPv6 private / link-local prefixes
+  if (h.startsWith("fc") || h.startsWith("fd")) return true; // fc00::/7 unique-local
+  if (h.startsWith("fe80"))                      return true; // fe80::/10 link-local
+
+  return false;
+}
+
 // ── Site Preview Cache ────────────────────────────────────────────────────────
 // In-memory TTL cache so repeated hovers on the same domain don't re-fetch.
 type PreviewEntry = { title: string; description: string; fetchedAt: number };
@@ -391,7 +436,12 @@ router.get("/tools/site-preview", async (req, res) => {
 
   let targetUrl: string;
   try {
-    targetUrl = new URL(domain.startsWith("http") ? domain : `https://${domain}`).href;
+    const parsed = new URL(domain.startsWith("http") ? domain : `https://${domain}`);
+    if (isPrivateHostname(parsed.hostname)) {
+      res.status(400).json({ error: "That domain is not publicly accessible." });
+      return;
+    }
+    targetUrl = parsed.href;
   } catch {
     res.status(400).json({ error: "Invalid domain." });
     return;
@@ -473,6 +523,11 @@ router.get("/tools/fetch-title", async (req, res) => {
     }
   } catch {
     res.status(400).json({ error: "Invalid URL. Make sure it starts with https://." });
+    return;
+  }
+
+  if (isPrivateHostname(parsedUrl.hostname)) {
+    res.status(400).json({ error: "That URL is not publicly accessible." });
     return;
   }
 
