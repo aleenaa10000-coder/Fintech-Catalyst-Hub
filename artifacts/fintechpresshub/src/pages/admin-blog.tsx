@@ -9,25 +9,9 @@ import {
   updateBlogPost,
   bulkRescheduleBlogPosts,
   useDeleteBlogPost,
-  useRepingBlogPostIndexNow,
   useBulkNoIndexBlogPosts,
-  useGetSitemapHealth,
-  useRunSitemapHealth,
-  useCheckSingleSitemapUrl,
-  checkSingleSitemapUrl,
-  useGetNotificationSettings,
-  usePostBrokenUrlsToSlack,
-  useGetHreflangCheckReport,
-  useRunHreflangCheck,
   getListBlogPostsQueryKey,
-  getGetSitemapHealthQueryKey,
-  getGetNotificationSettingsQueryKey,
-  getGetHreflangCheckReportQueryKey,
   type BlogPost,
-  type SeoNotification,
-  type SitemapHealthReport,
-  type CheckSingleUrlResult,
-  type HreflangCheckReport,
 } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -57,34 +41,25 @@ import {
   Pencil,
   Trash2,
   X,
-  Save,
   Upload,
   RefreshCw,
-  Activity,
   AlertTriangle,
-  CheckCircle2,
   EyeOff,
   Eye,
   Star,
   TrendingUp,
   Clock,
-  Download,
   ScrollText,
-  ClipboardCopy,
   Bell,
   Inbox,
-  Send as SendIcon,
   LayoutDashboard,
   Users,
   CalendarClock,
   RotateCcw,
   GripVertical,
-  ChevronLeft,
-  ChevronRight,
   LayoutList,
   CalendarDays,
   ArrowUpDown,
-  BookOpen,
   Globe,
   Search,
   Copy,
@@ -98,3595 +73,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import * as SelectPrimitive from "@radix-ui/react-select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, UserPlus } from "lucide-react";
-import { authors, type Author } from "@/data/authors";
+import { authors } from "@/data/authors";
 import { HealthBadge } from "@/components/HealthBadge";
 import { SchedulePicker } from "@/components/SchedulePicker";
 import { RichTextEditor } from "@/components/RichTextEditor";
-import { formatRelativeTime, SeoStatusBadge, ReadabilityBadge, SeoMetaBadge, ReadabilityBand, READABILITY_BANDS, ReadabilityFilterPills, HardestPostsSpotlight } from "./admin-blog-cards";
+import { formatRelativeTime, SeoStatusBadge, ReadabilityBadge, SeoMetaBadge, ReadabilityFilterPills, HardestPostsSpotlight } from "./admin-blog-cards";
+import {
+  GUEST_AUTHOR_VALUE,
+  FieldError,
+  formatZodIssues,
+  parseZodIssues,
+  describeSeoNotification,
+  seoNotificationIsSuccess,
+  RepingButton,
+  ProbeUrlButton,
+  warnIfCoverTooSmall,
+  authorSelectValue,
+  AuthorOption,
+  GuestAuthorOption,
+} from "./admin-blog-shared";
+import { emptyForm, slugify, toDateTimeLocalValue, PostEditor } from "./admin-blog-editor";
+import { ScheduledPostPanel, ScheduledCalendar } from "./admin-blog-scheduler";
+import { HreflangPanel, SitemapHealthPanel } from "./admin-blog-moderation";
+import {
+  BulkProbeButton,
+  BulkSeoFillDialog,
+  BulkNoIndexImpactDialog,
+  computeNoIndexImpact,
+  formatViews,
+} from "./admin-blog-bulk";
 
-const GUEST_AUTHOR_VALUE = "__guest__";
-
-const COVER_MIN_WIDTH = 1600;
-const COVER_MIN_HEIGHT = 800;
-
-/**
- * Loads a remote URL into an Image element to read its natural dimensions.
- * Used to give editors the same "image too small" warning the file-uploader
- * shows when they paste an external cover URL instead of uploading a file.
- * Resolves to null if the URL fails to load (CORS, 404, etc.) so callers
- * can choose to silently skip rather than firing a confusing toast.
- */
-async function probeImageDimensions(
-  url: string,
-): Promise<{ width: number; height: number } | null> {
-  if (!url || !/^https?:\/\//i.test(url.trim()) && !url.startsWith("/")) {
-    return null;
-  }
-  return new Promise((resolve) => {
-    const img = new Image();
-    let settled = false;
-    const timer = window.setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      resolve(null);
-    }, 8000);
-    img.onload = () => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timer);
-      resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    };
-    img.onerror = () => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timer);
-      resolve(null);
-    };
-    img.src = url;
-  });
-}
-
-async function warnIfCoverTooSmall(url: string) {
-  const trimmed = url.trim();
-  if (!trimmed) return;
-  const dims = await probeImageDimensions(trimmed);
-  if (!dims) return;
-  if (dims.width < COVER_MIN_WIDTH || dims.height < COVER_MIN_HEIGHT) {
-    toast.warning(
-      `Cover image is ${dims.width}×${dims.height}px — recommended at least ${COVER_MIN_WIDTH}×${COVER_MIN_HEIGHT}px (2:1) for hero crispness.`,
-    );
-  }
-}
-
-/**
- * Extracts human-readable field-level messages from a 400 ApiError whose
- * body follows the { error: string, issues: ZodIssue[] } shape returned by
- * the blog routes. Returns a formatted string, or null if no issues are present.
- */
-function formatZodIssues(err: unknown): string | null {
-  const data = (err as { data?: { issues?: { path: (string | number)[]; message: string }[] } })?.data;
-  if (!data?.issues?.length) return null;
-  return data.issues
-    .map((issue) => {
-      const field = issue.path.length > 0
-        ? issue.path.map(String).join(".")
-        : "unknown field";
-      const label = field
-        .replace(/([A-Z])/g, " $1")
-        .replace(/^./, (c) => c.toUpperCase());
-      return `• ${label}: ${issue.message}`;
-    })
-    .join("\n");
-}
-
-/**
- * Parses a 400 ApiError into a field-keyed map of error messages so each
- * form input can display its own inline error without scanning the full list.
- * Only the first issue per field is kept (Zod typically emits one per path).
- */
-function parseZodIssues(err: unknown): Record<string, string> {
-  const data = (err as { data?: { issues?: { path: (string | number)[]; message: string }[] } })?.data;
-  if (!data?.issues?.length) return {};
-  const result: Record<string, string> = {};
-  for (const issue of data.issues) {
-    if (issue.path.length > 0) {
-      const key = String(issue.path[0]);
-      if (!result[key]) result[key] = issue.message;
-    }
-  }
-  return result;
-}
-
-/** Renders a small red error message below a form field when `error` is set. */
-function FieldError({ error }: { error?: string }) {
-  if (!error) return null;
-  return <p className="text-xs text-destructive mt-1">{error}</p>;
-}
-
-function authorSelectValue(name: string, role: string) {
-  const match = authors.find(
-    (a) => a.name === name && a.role === role,
-  );
-  return match ? match.slug : name || role ? GUEST_AUTHOR_VALUE : "";
-}
-
-function authorInitials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
-function AuthorOption({ author }: { author: Author }) {
-  return (
-    <SelectPrimitive.Item
-      value={author.slug}
-      className="relative flex w-full cursor-default select-none items-center gap-3 rounded-sm py-2 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-    >
-      <Avatar className="h-9 w-9">
-        <AvatarImage src={author.photo} alt={author.name} />
-        <AvatarFallback className="text-xs bg-[#0052FF]/10 text-[#0052FF]">
-          {authorInitials(author.name)}
-        </AvatarFallback>
-      </Avatar>
-      <div className="min-w-0 flex-1">
-        <SelectPrimitive.ItemText>{author.name}</SelectPrimitive.ItemText>
-        <div className="text-xs text-muted-foreground truncate">
-          {author.role}
-        </div>
-      </div>
-      <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-        <SelectPrimitive.ItemIndicator>
-          <Check className="h-4 w-4" />
-        </SelectPrimitive.ItemIndicator>
-      </span>
-    </SelectPrimitive.Item>
-  );
-}
-
-function GuestAuthorOption() {
-  return (
-    <SelectPrimitive.Item
-      value={GUEST_AUTHOR_VALUE}
-      className="relative flex w-full cursor-default select-none items-center gap-3 rounded-sm py-2 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-    >
-      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground shrink-0">
-        <UserPlus className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <SelectPrimitive.ItemText>Guest author</SelectPrimitive.ItemText>
-        <div className="text-xs text-muted-foreground truncate">
-          Type a custom name and role below
-        </div>
-      </div>
-      <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-        <SelectPrimitive.ItemIndicator>
-          <Check className="h-4 w-4" />
-        </SelectPrimitive.ItemIndicator>
-      </span>
-    </SelectPrimitive.Item>
-  );
-}
-
-/**
- * Convert the structured `seoNotification` from the publish/update API
- * response into a human-readable line for the success toast. Surfaces
- * real failure modes (missing key, IndexNow rejection, timeout) instead
- * of a generic "Search engines have been notified" message.
- */
-function describeSeoNotification(seo: SeoNotification): string {
-  const idx = seo.indexNow;
-  switch (idx.status) {
-    case "accepted":
-      return idx.urlsSubmitted > 0
-        ? `IndexNow accepted ${idx.urlsSubmitted} URL${idx.urlsSubmitted === 1 ? "" : "s"} for Bing, Yandex, Seznam & Naver.`
-        : "IndexNow accepted (no new URLs to submit).";
-    case "rejected":
-      return `IndexNow rejected the ping (HTTP ${idx.httpStatus ?? "?"}). Search engines were not notified.`;
-    case "skipped_no_key":
-      return "INDEXNOW_KEY is not set on the API server, so Bing/Yandex/Seznam/Naver were not notified.";
-    case "skipped_malformed_key":
-      return "INDEXNOW_KEY is malformed (must be 8–128 chars, [a-zA-Z0-9-]). Search engines were not notified.";
-    case "error":
-      return idx.message;
-    default:
-      return idx.message;
-  }
-}
-
-function seoNotificationIsSuccess(seo: SeoNotification): boolean {
-  return seo.indexNow.status === "accepted";
-}
-
-/**
- * Per-row "Re-ping IndexNow" button. Mirrors the publish notification
- * flow without changing any post fields, so admins can resubmit a stale
- * post (or one that missed its original ping due to missing
- * INDEXNOW_KEY) in one click. On success, invalidates the posts list so
- * the SeoStatusBadge refreshes.
- */
-function RepingButton({ post }: { post: BlogPost }) {
-  const qc = useQueryClient();
-  const repingMut = useRepingBlogPostIndexNow();
-  const onClick = async () => {
-    try {
-      const updated = await repingMut.mutateAsync({ slug: post.slug });
-      const description = describeSeoNotification(updated.seoNotification);
-      if (seoNotificationIsSuccess(updated.seoNotification)) {
-        toast.success(`Re-pinged "${post.title}"`, { description });
-      } else {
-        toast.warning(`Re-ping attempted for "${post.title}"`, {
-          description,
-        });
-      }
-      qc.invalidateQueries({ queryKey: getListBlogPostsQueryKey() });
-    } catch (err) {
-      const status = (err as { status?: number })?.status;
-      if (status === 404) {
-        toast.error("Post not found.");
-      } else {
-        toast.error("Could not re-ping search engines.");
-      }
-    }
-  };
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onClick}
-      disabled={repingMut.isPending}
-      aria-label={`Re-ping IndexNow for ${post.title}`}
-      title="Re-submit this URL to IndexNow + Google"
-    >
-      <RefreshCw
-        className={`w-4 h-4 ${repingMut.isPending ? "animate-spin" : ""}`}
-      />
-    </Button>
-  );
-}
-
-/**
- * Per-row "probe live URL" button. Runs the same single-URL probe used
- * by the Sitemap Health panel against this post's canonical URL on the
- * current host (so dev probes the dev server, prod probes prod). The
- * result is shown inline as a small status pill next to the button —
- * green for 2xx/3xx, amber for 4xx/5xx or network failure — and a
- * matching toast pops up. Does NOT update the persisted sitemap report
- * (mirrors the panel's spot-check semantics).
- */
-function ProbeUrlButton({ post }: { post: BlogPost }) {
-  const mut = useCheckSingleSitemapUrl();
-  const [result, setResult] = useState<CheckSingleUrlResult | null>(null);
-  const onClick = async () => {
-    const origin =
-      typeof window !== "undefined" ? window.location.origin : "";
-    if (!origin) return;
-    const url = `${origin}/blog/${post.slug}`;
-    try {
-      const probed = await mut.mutateAsync({ data: { url } });
-      setResult(probed);
-      const codeOrError = probed.statusCode ?? probed.error ?? "failed";
-      if (probed.isBroken) {
-        toast.warning(`Live URL probe → ${codeOrError}`, {
-          description: post.title,
-        });
-      } else {
-        toast.success(`Live URL OK (${codeOrError})`, {
-          description: post.title,
-        });
-      }
-    } catch {
-      setResult(null);
-      toast.error(`Could not probe "${post.title}".`);
-    }
-  };
-  const tone: "good" | "bad" | null = result
-    ? result.isBroken
-      ? "bad"
-      : "good"
-    : null;
-  return (
-    <div className="flex items-center gap-1">
-      {result && (
-        <span
-          className={`font-mono text-[10px] px-1.5 py-0.5 rounded border ${
-            tone === "bad"
-              ? "bg-amber-50 text-amber-800 border-amber-200"
-              : "bg-green-50 text-green-700 border-green-200"
-          }`}
-          title={
-            result.error
-              ? `${result.error} — checked ${new Date(
-                  result.checkedAt as unknown as string,
-                ).toLocaleTimeString()}`
-              : `Checked ${new Date(
-                  result.checkedAt as unknown as string,
-                ).toLocaleTimeString()}`
-          }
-          data-testid={`probe-result-${post.slug}`}
-        >
-          {result.statusCode ?? "ERR"}
-        </span>
-      )}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onClick}
-        disabled={mut.isPending}
-        aria-label={`Probe live URL for ${post.title}`}
-        title="Probe the live URL (HEAD/GET via the link checker)"
-        data-testid={`probe-url-${post.slug}`}
-      >
-        {mut.isPending ? (
-          <RefreshCw className="w-4 h-4 animate-spin" />
-        ) : (
-          <Activity
-            className={`w-4 h-4 ${
-              tone === "bad"
-                ? "text-amber-600"
-                : tone === "good"
-                  ? "text-green-600"
-                  : ""
-            }`}
-          />
-        )}
-      </Button>
-    </div>
-  );
-}
-
-/**
- * Live countdown string from `now` to a future `targetMs`. Returns
- * a formatted "Xd Yh Zm Ws" string; returns "any moment now" once
- * the target is in the past (the auto-publish job or next page refresh
- * will flip the badge).
- */
-function formatCountdown(targetMs: number): string {
-  const remaining = targetMs - Date.now();
-  if (remaining <= 0) return "any moment now";
-  const totalSec = Math.floor(remaining / 1000);
-  const d = Math.floor(totalSec / 86400);
-  const h = Math.floor((totalSec % 86400) / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (d > 0) return `${d}d ${h}h ${m}m ${s}s`;
-  if (h > 0) return `${h}h ${m}m ${s}s`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
-}
-
-/**
- * Inline panel that appears on every scheduled post row. Shows a live
- * ticking countdown to the post's publish time and a one-click "Publish
- * Now" button that immediately sets publishedAt to the current moment,
- * making the post publicly visible right away without any page reload.
- */
-function ScheduledPostPanel({
-  post,
-  onPublished,
-}: {
-  post: BlogPost;
-  onPublished: () => void;
-}) {
-  const updateMut = useUpdateBlogPost();
-  const targetMs = new Date(post.publishedAt).getTime();
-  const [countdown, setCountdown] = useState<string>(() =>
-    formatCountdown(targetMs),
-  );
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setCountdown(formatCountdown(targetMs));
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [targetMs]);
-
-  const publishNow = async () => {
-    try {
-      await updateMut.mutateAsync({
-        slug: post.slug,
-        data: { publishedAt: new Date().toISOString() },
-      });
-      toast.success(`"${post.title}" is now live.`);
-      onPublished();
-    } catch {
-      toast.error("Could not publish post immediately.");
-    }
-  };
-
-  return (
-    <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm">
-      <CalendarClock className="w-4 h-4 text-blue-600 shrink-0" />
-      <span className="text-blue-800 font-medium">Scheduled</span>
-      <span className="text-blue-700">
-        {new Date(post.publishedAt).toLocaleString(undefined, {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </span>
-      <span className="font-mono text-xs text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
-        {countdown}
-      </span>
-      <Button
-        size="sm"
-        variant="outline"
-        className="ml-auto border-blue-300 text-blue-700 hover:bg-blue-100 hover:text-blue-900"
-        onClick={publishNow}
-        disabled={updateMut.isPending}
-        data-testid={`publish-now-${post.slug}`}
-      >
-        {updateMut.isPending ? (
-          <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-        ) : (
-          <Send className="w-3.5 h-3.5 mr-1.5" />
-        )}
-        Publish now
-      </Button>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Monthly content-calendar for the Scheduled queue                           */
-/* -------------------------------------------------------------------------- */
-
-const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-/** Format a local-timezone Date as YYYY-MM-DD (no UTC conversion). */
-function localDateKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-/**
- * Monthly grid calendar that visualises scheduled posts. Days with posts
- * show coloured pills; clusters of empty days get a subtle "gap" tint so
- * admins can instantly spot holes in the content plan. Clicking a day
- * expands an inline panel listing the posts scheduled for that day.
- */
-function ScheduledCalendar({
-  posts,
-  onScrollToPost,
-}: {
-  posts: BlogPost[];
-  /** Called when the admin clicks a post title — scrolls the queue list to
-   *  that card. The parent can switch to list view and scroll. */
-  onScrollToPost: (postId: number) => void;
-}) {
-  const today = new Date();
-  // Default to the month of the earliest scheduled post, or today.
-  const firstPostDate =
-    posts.length > 0 ? new Date(posts[0].publishedAt) : today;
-  const initYear =
-    firstPostDate < today ? today.getFullYear() : firstPostDate.getFullYear();
-  const initMonth =
-    firstPostDate < today ? today.getMonth() : firstPostDate.getMonth();
-
-  const [viewYear, setViewYear] = useState(initYear);
-  const [viewMonth, setViewMonth] = useState(initMonth);
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-
-  // Build a map: localDateKey → BlogPost[]
-  const postsByDay = useMemo(() => {
-    const map = new Map<string, BlogPost[]>();
-    for (const p of posts) {
-      const key = localDateKey(new Date(p.publishedAt));
-      const arr = map.get(key) ?? [];
-      arr.push(p);
-      map.set(key, arr);
-    }
-    return map;
-  }, [posts]);
-
-  // Build the 6-row × 7-col grid for the current month view.
-  const grid = useMemo(() => {
-    const firstDay = new Date(viewYear, viewMonth, 1);
-    const startOffset = firstDay.getDay(); // 0 = Sunday
-    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-
-    const cells: Array<{ date: Date; isCurrentMonth: boolean } | null> = [];
-    // Leading blanks from previous month
-    for (let i = 0; i < startOffset; i++) {
-      const d = new Date(viewYear, viewMonth, -startOffset + i + 1);
-      cells.push({ date: d, isCurrentMonth: false });
-    }
-    // Days of this month
-    for (let d = 1; d <= daysInMonth; d++) {
-      cells.push({ date: new Date(viewYear, viewMonth, d), isCurrentMonth: true });
-    }
-    // Trailing blanks to fill last row
-    const remainder = cells.length % 7;
-    if (remainder !== 0) {
-      for (let i = 1; i <= 7 - remainder; i++) {
-        cells.push({ date: new Date(viewYear, viewMonth + 1, i), isCurrentMonth: false });
-      }
-    }
-    return cells;
-  }, [viewYear, viewMonth]);
-
-  // Count how many posts are scheduled in the currently viewed month (for the gap indicator).
-  const postsThisMonth = useMemo(
-    () =>
-      posts.filter((p) => {
-        const d = new Date(p.publishedAt);
-        return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
-      }),
-    [posts, viewYear, viewMonth],
-  );
-
-  // Find the longest consecutive gap (in days) between posts this month.
-  const longestGap = useMemo(() => {
-    if (postsThisMonth.length < 2) return 0;
-    const dates = postsThisMonth
-      .map((p) => new Date(p.publishedAt).getTime())
-      .sort((a, b) => a - b);
-    let max = 0;
-    for (let i = 1; i < dates.length; i++) {
-      const gap = Math.round((dates[i] - dates[i - 1]) / 86_400_000);
-      if (gap > max) max = gap;
-    }
-    return max;
-  }, [postsThisMonth]);
-
-  const todayKey = localDateKey(today);
-  const selectedPosts = selectedKey ? (postsByDay.get(selectedKey) ?? []) : [];
-
-  const prevMonth = () => {
-    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
-    else setViewMonth(m => m - 1);
-  };
-  const nextMonth = () => {
-    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
-    else setViewMonth(m => m + 1);
-  };
-
-  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString(
-    undefined,
-    { month: "long", year: "numeric" },
-  );
-
-  return (
-    <div className="space-y-4">
-      {/* Month navigator */}
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={prevMonth}
-          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Previous month"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <span className="font-semibold text-sm">{monthLabel}</span>
-        <button
-          type="button"
-          onClick={nextMonth}
-          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Next month"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Gap warning */}
-      {longestGap >= 7 && (
-        <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          <CalendarDays className="w-3.5 h-3.5 shrink-0" />
-          Longest gap this month: <strong>{longestGap} days</strong> between
-          scheduled posts — consider filling it.
-        </div>
-      )}
-
-      {/* Density heatmap legend */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[10px] font-medium text-muted-foreground shrink-0">Density:</span>
-        {(
-          [
-            { label: "Empty",  bg: "bg-background border border-border" },
-            { label: "1 post", bg: "bg-sky-50 border border-sky-200" },
-            { label: "2–3",    bg: "bg-blue-100 border border-blue-200" },
-            { label: "4+ ⚠",  bg: "bg-amber-100 border border-amber-300" },
-          ] as const
-        ).map(({ label, bg }) => (
-          <span key={label} className="flex items-center gap-1">
-            <span className={`inline-block w-3.5 h-3.5 rounded-sm ${bg}`} />
-            <span className="text-[10px] text-muted-foreground">{label}</span>
-          </span>
-        ))}
-      </div>
-
-      {/* Day-of-week headers */}
-      <div className="grid grid-cols-7 text-center">
-        {DAYS_OF_WEEK.map((d) => (
-          <div key={d} className="text-[10px] font-medium text-muted-foreground py-1">
-            {d}
-          </div>
-        ))}
-      </div>
-
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden border">
-        {grid.map((cell, i) => {
-          if (!cell) return <div key={i} className="bg-background" />;
-          const key = localDateKey(cell.date);
-          const dayPosts = postsByDay.get(key) ?? [];
-          const isToday = key === todayKey;
-          const isSelected = key === selectedKey;
-          const hasPosts = dayPosts.length > 0;
-          const isOtherMonth = !cell.isCurrentMonth;
-
-          // Heatmap tier: 0 = empty, 1 = 1 post, 2 = 2–3 posts, 3 = 4+ crowded
-          const tier = isOtherMonth ? -1 : dayPosts.length === 0 ? 0 : dayPosts.length === 1 ? 1 : dayPosts.length <= 3 ? 2 : 3;
-          const tierBg  = tier === 1 ? "bg-sky-50"    : tier === 2 ? "bg-blue-100"  : tier === 3 ? "bg-amber-100" : "bg-background";
-          const tierHover = tier === 1 ? "hover:bg-sky-100" : tier === 2 ? "hover:bg-blue-200" : tier === 3 ? "hover:bg-amber-200" : "hover:bg-muted/30";
-          const tierRing  = tier === 3 ? "ring-2 ring-inset ring-amber-400" : "ring-2 ring-inset ring-blue-400";
-          const tierDot   = tier === 3 ? "bg-amber-500" : tier === 2 ? "bg-blue-600" : "bg-sky-500";
-          const tierBadge = tier === 3 ? "text-amber-700" : tier === 2 ? "text-blue-700" : "text-sky-600";
-
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => {
-                if (!hasPosts) return;
-                setSelectedKey(isSelected ? null : key);
-              }}
-              className={[
-                "relative flex flex-col items-start p-1.5 min-h-[64px] text-left transition-colors",
-                isOtherMonth ? "bg-muted/30 text-muted-foreground/40" : tierBg,
-                hasPosts && !isOtherMonth ? `${tierHover} cursor-pointer` : "cursor-default",
-                isSelected ? tierRing : "",
-              ].join(" ")}
-              disabled={!hasPosts}
-              aria-label={
-                hasPosts
-                  ? `${cell.date.getDate()} — ${dayPosts.length} post${dayPosts.length > 1 ? "s" : ""}`
-                  : String(cell.date.getDate())
-              }
-            >
-              {/* Day number */}
-              <span
-                className={[
-                  "text-xs font-medium leading-none mb-1",
-                  isToday
-                    ? "flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px]"
-                    : "",
-                  !isToday && isOtherMonth ? "text-muted-foreground/40" : "",
-                  !isToday && !isOtherMonth ? "text-foreground" : "",
-                ].join(" ")}
-              >
-                {cell.date.getDate()}
-              </span>
-
-              {/* Post dots — color-coded to tier */}
-              {hasPosts && !isOtherMonth && (
-                <div className="flex flex-wrap gap-0.5 mt-0.5">
-                  {dayPosts.slice(0, 3).map((p) => (
-                    <span
-                      key={p.id}
-                      className={`block w-1.5 h-1.5 rounded-full ${tierDot}`}
-                      title={p.title}
-                    />
-                  ))}
-                  {dayPosts.length > 3 && (
-                    <span className={`text-[9px] font-bold leading-none mt-0.5 ${tierBadge}`}>
-                      +{dayPosts.length - 3}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Post count badge — color-coded to tier */}
-              {hasPosts && !isOtherMonth && (
-                <span className={`mt-auto text-[9px] font-semibold ${tierBadge}`}>
-                  {dayPosts.length === 1 ? "1 post" : `${dayPosts.length} posts`}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Expanded day panel */}
-      {selectedKey && selectedPosts.length > 0 && (
-        <div className="rounded-md border border-blue-200 bg-blue-50 divide-y divide-blue-100">
-          <div className="px-3 py-2 flex items-center justify-between">
-            <span className="text-xs font-semibold text-blue-800">
-              {new Date(selectedKey + "T12:00:00").toLocaleDateString(undefined, {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-              {" — "}
-              {selectedPosts.length} post{selectedPosts.length > 1 ? "s" : ""}
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedKey(null)}
-              className="text-blue-500 hover:text-blue-700 p-0.5"
-              aria-label="Close"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          {selectedPosts.map((p) => (
-            <div
-              key={p.id}
-              className="flex items-start justify-between gap-3 px-3 py-2.5"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate text-blue-900">{p.title}</p>
-                <p className="text-xs text-blue-700 truncate">{p.excerpt}</p>
-                <p className="text-[10px] text-blue-600 mt-0.5">
-                  {new Date(p.publishedAt).toLocaleTimeString(undefined, {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}{" "}
-                  · {p.category} · {p.readingMinutes} min read
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onScrollToPost(p.id)}
-                className="shrink-0 text-xs text-blue-600 underline underline-offset-2 hover:text-blue-800 whitespace-nowrap"
-              >
-                Go to post
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* No posts this month */}
-      {postsThisMonth.length === 0 && (
-        <p className="text-center text-xs text-muted-foreground py-2">
-          No posts scheduled in {monthLabel}.
-        </p>
-      )}
-    </div>
-  );
-}
-
-/** Concurrency cap for the bulk probe: enough to be fast, low enough
- *  not to stampede the link-checker route (HEAD then GET fallback) or
- *  whatever upstream CDN is in front of the live site. */
-const BULK_PROBE_CONCURRENCY = 6;
-
-/** localStorage key for the persisted bulk-probe summary. The `:v1`
- *  suffix lets us bump the schema if the shape changes without
- *  surprising users with corrupt JSON. */
-const BULK_PROBE_STORAGE_KEY = "fph:admin:bulkProbeSummary:v1";
-
-/** Persisted summaries older than this are dropped on load. Past a day
- *  the data is too stale to act on — a deploy or content change in the
- *  meantime would silently invalidate every chip. */
-const BULK_PROBE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-
-interface BulkProbeRowResult {
-  post: BlogPost;
-  /** Null when the request itself rejected (network/auth/server 500). */
-  result: CheckSingleUrlResult | null;
-}
-
-interface BulkProbeSummary {
-  okCount: number;
-  brokenCount: number;
-  total: number;
-  broken: BulkProbeRowResult[];
-  ranAt: string;
-}
-
-/**
- * Read the persisted summary, dropping anything malformed or older than
- * BULK_PROBE_MAX_AGE_MS. Runs synchronously inside a useState initializer
- * so the strip flashes back into view on the first render after reload
- * instead of after an effect tick.
- */
-function loadStoredBulkProbeSummary(): BulkProbeSummary | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(BULK_PROBE_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as BulkProbeSummary | null;
-    if (!parsed || typeof parsed !== "object") return null;
-    if (
-      typeof parsed.okCount !== "number" ||
-      typeof parsed.brokenCount !== "number" ||
-      typeof parsed.total !== "number" ||
-      typeof parsed.ranAt !== "string" ||
-      !Array.isArray(parsed.broken)
-    ) {
-      return null;
-    }
-    const ranAtMs = Date.parse(parsed.ranAt);
-    if (!Number.isFinite(ranAtMs)) return null;
-    if (Date.now() - ranAtMs > BULK_PROBE_MAX_AGE_MS) {
-      window.localStorage.removeItem(BULK_PROBE_STORAGE_KEY);
-      return null;
-    }
-    return parsed;
-  } catch {
-    // Corrupt JSON / quota errors / privacy mode — clear and start fresh.
-    try {
-      window.localStorage.removeItem(BULK_PROBE_STORAGE_KEY);
-    } catch {
-      /* ignore */
-    }
-    return null;
-  }
-}
-
-/**
- * "Probe all live URLs" — fires the single-URL spot-check against every
- * currently-rendered post in parallel (capped concurrency) and shows a
- * summary strip with clickable chips for any URL that came back broken.
- * Like the per-row button and the panel input, this does NOT touch the
- * persisted sitemap report — purely an on-demand sweep so an admin can
- * confirm a recent deploy didn't 404 the post list before walking off.
- */
-function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
-  const [progress, setProgress] = useState<{
-    done: number;
-    total: number;
-  } | null>(null);
-  // Hydrate from localStorage synchronously so the strip is visible on
-  // first paint after a reload — admins picking back up a session don't
-  // have to re-run the sweep just to see what was broken.
-  const [summary, setSummary] = useState<BulkProbeSummary | null>(
-    loadStoredBulkProbeSummary,
-  );
-
-  // Slack notification settings — used to conditionally show the
-  // "Send to Slack" button on the broken-URL strip. We refetch on focus
-  // so a fresh save on /admin/notifications shows up here without a
-  // hard reload.
-  const slackSettingsQuery = useGetNotificationSettings({
-    query: {
-      queryKey: getGetNotificationSettingsQueryKey(),
-      refetchOnWindowFocus: true,
-      staleTime: 30_000,
-    },
-  });
-  const slackPostMutation = usePostBrokenUrlsToSlack({
-    mutation: {
-      onSuccess: (result: { ok: boolean; posted?: number; error?: string }) => {
-        if (result.ok) {
-          toast.success(
-            `Posted ${result.posted ?? "list"} to Slack — check the channel.`,
-          );
-        } else {
-          toast.error(`Slack post failed: ${result.error ?? "unknown error"}`);
-        }
-      },
-      onError: (err: unknown) => {
-        const msg =
-          err instanceof Error ? err.message : "Failed to post to Slack";
-        toast.error(msg);
-      },
-    },
-  });
-  const slackEnabled = slackSettingsQuery.data?.slackEnabled === true;
-
-  // Mirror summary state to localStorage. Removing the key on dismiss
-  // (summary === null) keeps the storage tidy and ensures a clean slate
-  // for the next session.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      if (summary) {
-        window.localStorage.setItem(
-          BULK_PROBE_STORAGE_KEY,
-          JSON.stringify(summary),
-        );
-      } else {
-        window.localStorage.removeItem(BULK_PROBE_STORAGE_KEY);
-      }
-    } catch {
-      // Quota or privacy mode — non-fatal, just lose the persistence.
-    }
-  }, [summary]);
-
-  const runAll = async () => {
-    if (posts.length === 0 || progress !== null) return;
-    if (typeof window === "undefined") return;
-    const origin = window.location.origin;
-    setSummary(null);
-    setProgress({ done: 0, total: posts.length });
-
-    const queue = posts.slice();
-    const results: BulkProbeRowResult[] = [];
-    let cursor = 0;
-
-    /**
-     * Worker pulls the next index off the shared cursor and probes it.
-     * Several workers run in parallel so total wall-clock time scales
-     * with the slowest URLs, not the post count. We swallow per-URL
-     * exceptions and record `result: null` so one flaky probe doesn't
-     * abort the entire sweep.
-     */
-    const worker = async () => {
-      while (true) {
-        const idx = cursor++;
-        if (idx >= queue.length) return;
-        const post = queue[idx];
-        let probed: CheckSingleUrlResult | null = null;
-        try {
-          probed = await checkSingleSitemapUrl({
-            url: `${origin}/blog/${post.slug}`,
-          });
-        } catch {
-          probed = null;
-        }
-        results.push({ post, result: probed });
-        setProgress({ done: results.length, total: queue.length });
-      }
-    };
-
-    const workerCount = Math.min(BULK_PROBE_CONCURRENCY, queue.length);
-    await Promise.all(Array.from({ length: workerCount }, worker));
-
-    const broken = results.filter(
-      (r) => r.result === null || r.result.isBroken,
-    );
-    // Preserve original list order for the broken chips so admins can
-    // scan top-to-bottom and the chips line up with the row order.
-    const orderIndex = new Map(posts.map((p, i) => [p.slug, i]));
-    broken.sort(
-      (a, b) =>
-        (orderIndex.get(a.post.slug) ?? 0) -
-        (orderIndex.get(b.post.slug) ?? 0),
-    );
-
-    const okCount = results.length - broken.length;
-    setSummary({
-      okCount,
-      brokenCount: broken.length,
-      total: results.length,
-      broken,
-      ranAt: new Date().toISOString(),
-    });
-    setProgress(null);
-
-    if (broken.length === 0) {
-      toast.success(`Probed ${okCount} URL${okCount === 1 ? "" : "s"} — all OK`);
-    } else {
-      const sample = broken
-        .slice(0, 3)
-        .map((b) => b.post.slug)
-        .join(", ");
-      const more =
-        broken.length > 3 ? ` and ${broken.length - 3} more` : "";
-      toast.warning(
-        `${okCount}/${results.length} OK · ${broken.length} broken`,
-        { description: `${sample}${more}` },
-      );
-    }
-  };
-
-  if (posts.length === 0) return null;
-
-  /**
-   * The summary is rendered as a sibling with `basis-full`, which makes
-   * it consume an entire flex row inside the parent `flex-wrap`
-   * container — i.e. it tucks itself underneath the header without
-   * having to lift state up out of this component.
-   */
-  return (
-    <>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={runAll}
-        disabled={progress !== null}
-        data-testid="bulk-probe-button"
-        title="Run the link-checker probe against every post in this list"
-      >
-        <Activity
-          className={`w-4 h-4 mr-1.5 ${progress ? "animate-pulse" : ""}`}
-        />
-        {progress
-          ? `Probing ${progress.done}/${progress.total}…`
-          : `Probe all (${posts.length})`}
-      </Button>
-      {summary && (
-        <div
-          className="basis-full rounded-md border bg-muted/20 px-3 py-2 text-xs space-y-1.5"
-          data-testid="bulk-probe-summary"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            {summary.brokenCount === 0 ? (
-              <CheckCircle2 className="w-4 h-4 text-green-700 shrink-0" />
-            ) : (
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-            )}
-            <span>
-              <strong className="tabular-nums">{summary.okCount}</strong>/
-              <span className="tabular-nums">{summary.total}</span> OK
-              {summary.brokenCount > 0 && (
-                <>
-                  {" · "}
-                  <strong
-                    className="tabular-nums text-amber-800"
-                    data-testid="bulk-probe-broken-count"
-                  >
-                    {summary.brokenCount}
-                  </strong>{" "}
-                  broken
-                </>
-              )}
-            </span>
-            <span className="ml-auto text-[11px] text-muted-foreground">
-              {formatRelativeTime(summary.ranAt)}
-            </span>
-            {summary.broken.length > 0 && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => downloadBulkProbeCsv(summary.broken)}
-                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
-                  data-testid="bulk-probe-summary-export"
-                  title="Download the broken-URL list as CSV"
-                >
-                  <Download className="w-3 h-3" />
-                  Export CSV
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const md = buildBulkProbeMarkdown(summary.broken);
-                    const ok = await copyTextToClipboard(md);
-                    if (ok) {
-                      toast.success(
-                        `Copied ${summary.broken.length} broken URL${
-                          summary.broken.length === 1 ? "" : "s"
-                        } as Markdown — paste into Slack, GitHub, or Linear.`,
-                      );
-                    } else {
-                      toast.error(
-                        "Couldn't access the clipboard. Try the CSV export instead.",
-                      );
-                    }
-                  }}
-                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
-                  data-testid="bulk-probe-summary-copy-md"
-                  title="Copy the broken-URL list as a Markdown table (Slack / GitHub / Linear)"
-                >
-                  <ClipboardCopy className="w-3 h-3" />
-                  Copy as Markdown
-                </button>
-                {slackEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      slackPostMutation.mutate({
-                        data: {
-                          broken: summary.broken.map(({ post, result }) => ({
-                            slug: post.slug,
-                            title: post.title,
-                            url:
-                              result?.url ??
-                              `${typeof window !== "undefined" ? window.location.origin : ""}/blog/${post.slug}`,
-                            statusCode: result?.statusCode ?? null,
-                            error: result?.error ?? null,
-                            checkedAt:
-                              (result?.checkedAt as unknown as
-                                | string
-                                | undefined) ?? null,
-                          })),
-                        },
-                      });
-                    }}
-                    disabled={slackPostMutation.isPending}
-                    className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50"
-                    data-testid="bulk-probe-summary-send-slack"
-                    title="Post the broken-URL list to the configured Slack channel"
-                  >
-                    <SendIcon className="w-3 h-3" />
-                    {slackPostMutation.isPending ? "Posting…" : "Send to Slack"}
-                  </button>
-                )}
-              </>
-            )}
-            <button
-              type="button"
-              onClick={() => setSummary(null)}
-              className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
-              data-testid="bulk-probe-summary-dismiss"
-            >
-              Dismiss
-            </button>
-          </div>
-          {summary.broken.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {summary.broken.map(({ post, result }) => {
-                const code = result?.statusCode ?? "ERR";
-                const tooltip = result?.error
-                  ? `${result.error}`
-                  : result
-                    ? `Status ${result.statusCode ?? "—"}`
-                    : "Request failed";
-                const grade = fleschKincaidGrade(post.content);
-                const gradeLabel =
-                  grade === null
-                    ? null
-                    : grade <= 5
-                      ? { text: `Gr.${grade}`, cls: "text-green-700 border-green-200" }
-                      : grade <= 8
-                        ? { text: `Gr.${grade}`, cls: "text-blue-700 border-blue-200" }
-                        : grade <= 12
-                          ? { text: `Gr.${grade}`, cls: "text-amber-700 border-amber-300" }
-                          : { text: `Gr.${grade}`, cls: "text-red-700 border-red-200" };
-                return (
-                  <a
-                    key={post.slug}
-                    href={`#admin-post-${post.id}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const el = document.getElementById(
-                        `admin-post-${post.id}`,
-                      );
-                      if (el) {
-                        el.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        });
-                      }
-                    }}
-                    title={`${tooltip}${grade !== null ? ` · FK grade ${grade}` : ""} — click to scroll to this post`}
-                    className="inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-amber-900 hover:bg-amber-100"
-                    data-testid={`bulk-probe-broken-chip-${post.slug}`}
-                  >
-                    <span className="font-mono text-[10px]">{code}</span>
-                    <span className="truncate max-w-[16rem]">
-                      {post.slug}
-                    </span>
-                    {gradeLabel && (
-                      <span
-                        className={`border-l pl-1 font-medium text-[10px] ${gradeLabel.cls}`}
-                        aria-label={`Flesch-Kincaid grade ${grade}`}
-                      >
-                        {gradeLabel.text}
-                      </span>
-                    )}
-                  </a>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </>
-  );
-}
-
-
-const emptyForm = {
-  slug: "",
-  title: "",
-  excerpt: "",
-  content: "",
-  author: "",
-  authorRole: "",
-  category: "",
-  tags: "",
-  coverImage: "",
-  readingMinutes: "5",
-  featured: false,
-  // Empty string = "publish immediately" (server stamps now()). A future
-  // local-time value (YYYY-MM-DDTHH:MM) schedules the post — public reads
-  // hide it until that moment passes.
-  publishedAt: "",
-  seoTitle: "",
-  seoDescription: "",
-  seoOgImage: "",
-  noIndex: false,
-  faqItems: "",
-  blufSummary: "",
-  lastMaterialUpdateAt: "",
-  aboutEntities: "",
-  mentionEntities: "",
-  inlineImage1: "",
-  inlineImage2: "",
-};
-
-/**
- * Convert a UTC ISO timestamp into the value expected by an
- * `<input type="datetime-local">` (`YYYY-MM-DDTHH:MM` in *local* time).
- * Keeps the local wall-clock time the admin chose intact across renders.
- */
-function toDateTimeLocalValue(iso: string): string {
-  const d = new Date(iso);
-  const tzOffsetMs = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - tzOffsetMs).toISOString().slice(0, 16);
-}
-
-function slugify(input: string) {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
-
-/**
- * Live preview of the auto-generated Open Graph card the API server
- * produces for this post. Re-renders the image as the admin edits the
- * title, category, author, or role — debounced so we don't hammer the
- * `/api/og` endpoint on every keystroke. When a manual `seoOgImage`
- * URL is set, that override is shown instead so admins can verify the
- * exact image LinkedIn / X / Slack will fetch.
- */
-function OgImagePreview({
-  postId,
-  override,
-  title,
-  category,
-  author,
-  authorRole,
-}: {
-  postId: number;
-  override: string;
-  title: string;
-  category: string;
-  author: string;
-  authorRole: string;
-}) {
-  const trimmedOverride = override.trim();
-  const params = useMemo(() => {
-    const p = new URLSearchParams();
-    if (title.trim()) p.set("title", title.trim());
-    if (category.trim()) p.set("category", category.trim());
-    if (author.trim()) p.set("author", author.trim());
-    if (authorRole.trim()) p.set("authorRole", authorRole.trim());
-    return p.toString();
-  }, [title, category, author, authorRole]);
-
-  // Debounce by ~400ms so typing into the title field doesn't spam
-  // the OG endpoint with one request per keystroke.
-  const [debouncedSrc, setDebouncedSrc] = useState(
-    trimmedOverride || `/api/og?${params}`,
-  );
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setDebouncedSrc(trimmedOverride || `/api/og?${params}`);
-    }, 400);
-    return () => clearTimeout(t);
-  }, [trimmedOverride, params]);
-
-  const isOverride = trimmedOverride.length > 0;
-  const displayUrl = isOverride
-    ? trimmedOverride
-    : `/api/og?${params}`;
-  const cacheBustedSrc = isOverride
-    ? trimmedOverride
-    : `${debouncedSrc}${debouncedSrc.includes("?") ? "&" : "?"}_=${reloadKey}`;
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label className="text-sm">
-          Live preview ({isOverride ? "manual override" : "auto-generated"})
-        </Label>
-        {!isOverride && (
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => setReloadKey((k) => k + 1)}
-            className="h-7 px-2"
-            aria-label="Refresh OG preview"
-          >
-            <RefreshCw className="w-3.5 h-3.5 mr-1" />
-            Refresh
-          </Button>
-        )}
-      </div>
-      <div className="border rounded-md overflow-hidden bg-slate-900">
-        <img
-          key={`og-${postId}-${reloadKey}-${cacheBustedSrc}`}
-          src={cacheBustedSrc}
-          alt="Open Graph preview"
-          width={1200}
-          height={630}
-          className="w-full h-auto block"
-          loading="lazy"
-        />
-      </div>
-      <p className="text-xs text-muted-foreground break-all">
-        <span className="font-medium">URL:</span>{" "}
-        <a
-          href={displayUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="underline hover:text-foreground"
-        >
-          {displayUrl}
-        </a>
-      </p>
-      <p className="text-xs text-muted-foreground">
-        This is exactly the image LinkedIn, X, Slack, Facebook, iMessage, and
-        Discord will show when someone shares this post.
-      </p>
-    </div>
-  );
-}
-
-function PostEditor({
-  post,
-  onCancel,
-  onSaved,
-  allTags = [],
-}: {
-  post: BlogPost;
-  onCancel: () => void;
-  onSaved: () => void;
-  allTags?: string[];
-}) {
-  // Snapshot the original publishedAt as a datetime-local string so we can
-  // detect whether the admin actually edited it. Untouched values are not
-  // sent in the PATCH payload, which avoids rounding the original
-  // second/millisecond precision down to the minute on every save.
-  const initialPublishedAt = toDateTimeLocalValue(post.publishedAt);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [draft, setDraft] = useState({
-    title: post.title,
-    excerpt: post.excerpt,
-    content: post.content,
-    author: post.author,
-    authorRole: post.authorRole,
-    category: post.category,
-    tags: (post.tags ?? []).join(", "),
-    coverImage: post.coverImage,
-    readingMinutes: String(post.readingMinutes),
-    featured: post.featured,
-    publishedAt: initialPublishedAt,
-    seoTitle: post.seoTitle ?? "",
-    seoDescription: post.seoDescription ?? "",
-    seoOgImage: post.seoOgImage ?? "",
-    noIndex: post.noIndex ?? false,
-    faqItems: post.faqItems
-      ? JSON.stringify(post.faqItems, null, 2)
-      : "",
-    blufSummary: post.blufSummary ?? "",
-    lastMaterialUpdateAt: post.lastMaterialUpdateAt
-      ? toDateTimeLocalValue(post.lastMaterialUpdateAt)
-      : "",
-    aboutEntities: (post.aboutEntities ?? []).join(", "),
-    mentionEntities: (post.mentionEntities ?? []).join(", "),
-    inlineImage1: ((post as unknown as Record<string, unknown>)["inlineImage1"] as string | null | undefined) ?? "",
-    inlineImage2: ((post as unknown as Record<string, unknown>)["inlineImage2"] as string | null | undefined) ?? "",
-  });
-  const updateMut = useUpdateBlogPost();
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFieldErrors({});
-    const readingMinutes = Number(draft.readingMinutes);
-    if (!Number.isFinite(readingMinutes) || readingMinutes < 1) {
-      toast.error("Reading minutes must be a positive number.");
-      return;
-    }
-    // Only send publishedAt when the admin actually changed the value;
-    // sending the unchanged round-tripped value would round seconds off
-    // the original timestamp on every save.
-    const publishedAtChanged =
-      draft.publishedAt && draft.publishedAt !== initialPublishedAt;
-    try {
-      const updated = await updateMut.mutateAsync({
-        slug: post.slug,
-        data: {
-          title: draft.title.trim(),
-          excerpt: draft.excerpt.trim(),
-          content: draft.content.trim(),
-          author: draft.author.trim(),
-          authorRole: draft.authorRole.trim(),
-          category: draft.category.trim(),
-          tags: draft.tags
-            .split(",")
-            .map((t: string) => t.trim())
-            .filter(Boolean),
-          coverImage: draft.coverImage.trim(),
-          readingMinutes,
-          featured: draft.featured,
-          noIndex: draft.noIndex,
-          ...(publishedAtChanged
-            ? { publishedAt: new Date(draft.publishedAt).toISOString() }
-            : {}),
-          seoTitle: draft.seoTitle.trim() || null,
-          seoDescription: draft.seoDescription.trim() || null,
-          seoOgImage: draft.seoOgImage.trim() || null,
-          ...(draft.faqItems.trim()
-            ? (() => {
-                try {
-                  return { faqItems: JSON.parse(draft.faqItems) };
-                } catch {
-                  return {};
-                }
-              })()
-            : { faqItems: null }),
-          blufSummary: draft.blufSummary.trim() || null,
-          ...(draft.lastMaterialUpdateAt
-            ? {
-                lastMaterialUpdateAt: new Date(
-                  draft.lastMaterialUpdateAt,
-                ).toISOString(),
-              }
-            : { lastMaterialUpdateAt: null }),
-          aboutEntities: draft.aboutEntities
-            .split(",")
-            .map((s: string) => s.trim())
-            .filter(Boolean)
-            .length > 0
-            ? draft.aboutEntities
-                .split(",")
-                .map((s: string) => s.trim())
-                .filter(Boolean)
-            : null,
-          mentionEntities: draft.mentionEntities
-            .split(",")
-            .map((s: string) => s.trim())
-            .filter(Boolean)
-            .length > 0
-            ? draft.mentionEntities
-                .split(",")
-                .map((s: string) => s.trim())
-                .filter(Boolean)
-            : null,
-          inlineImage1: draft.inlineImage1.trim() || null,
-          inlineImage2: draft.inlineImage2.trim() || null,
-        } as unknown as import("@workspace/api-client-react").UpdateBlogPostInput,
-      });
-      const description = describeSeoNotification(updated.seoNotification);
-      if (seoNotificationIsSuccess(updated.seoNotification)) {
-        toast.success(`Saved "${draft.title}"`, { description });
-      } else {
-        toast.warning(`Saved "${draft.title}"`, { description });
-      }
-      onSaved();
-    } catch (err) {
-      const status = (err as { status?: number })?.status;
-      if (status === 400) {
-        const issues = formatZodIssues(err);
-        setFieldErrors(parseZodIssues(err));
-        toast.error("Some fields are invalid. Please review and try again.", {
-          description: issues ?? undefined,
-          style: issues ? { whiteSpace: "pre-line" } : undefined,
-        });
-      } else {
-        toast.error("Could not save changes.");
-      }
-    }
-  };
-
-  return (
-    <form onSubmit={handleSave} className="space-y-4 mt-4">
-      <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground shrink-0">Slug:</span>
-        <code className="flex-1 truncate">{post.slug}</code>
-        <button
-          type="button"
-          className="shrink-0 hover:text-foreground transition-colors"
-          title="Copy slug"
-          onClick={() => {
-            void navigator.clipboard.writeText(post.slug);
-            toast.success("Slug copied to clipboard");
-          }}
-        >
-          <Copy className="w-3.5 h-3.5" />
-        </button>
-      </div>
-      <div>
-        <Label htmlFor={`title-${post.id}`}>Title</Label>
-        <Input
-          id={`title-${post.id}`}
-          value={draft.title}
-          onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-          required
-          className={fieldErrors.title ? "border-destructive" : ""}
-        />
-        <FieldError error={fieldErrors.title} />
-      </div>
-      <div>
-        <Label htmlFor={`excerpt-${post.id}`}>Excerpt</Label>
-        <Textarea
-          id={`excerpt-${post.id}`}
-          rows={2}
-          value={draft.excerpt}
-          onChange={(e) => setDraft({ ...draft, excerpt: e.target.value })}
-          required
-          className={fieldErrors.excerpt ? "border-destructive" : ""}
-        />
-        <FieldError error={fieldErrors.excerpt} />
-      </div>
-      <div>
-        <Label htmlFor={`content-${post.id}`}>Content</Label>
-        <RichTextEditor
-          value={draft.content}
-          onChange={(html) => setDraft({ ...draft, content: html })}
-          placeholder="Write your post content here… (800–1500 words recommended)"
-        />
-        {(() => {
-          const wc = draft.content
-            .replace(/<[^>]*>/g, " ")
-            .replace(/\s+/g, " ")
-            .trim()
-            .split(" ")
-            .filter((w: string) => w.length > 0).length;
-          const tooShort = wc > 0 && wc < 800;
-          const tooLong = wc > 1500;
-          const ok = wc >= 800 && wc <= 1500;
-          return (
-            <div className="mt-1 space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span
-                  className={[
-                    "text-xs font-medium tabular-nums",
-                    ok
-                      ? "text-green-700"
-                      : tooShort
-                        ? "text-amber-600"
-                        : tooLong
-                          ? "text-destructive"
-                          : "text-muted-foreground",
-                  ].join(" ")}
-                >
-                  {wc} words
-                </span>
-                {tooShort && (
-                  <span className="text-xs text-amber-600">
-                    — needs {800 - wc} more to reach the 800-word minimum
-                  </span>
-                )}
-                {tooLong && (
-                  <span className="text-xs text-destructive">
-                    — {wc - 1500} words over the 1500-word maximum
-                  </span>
-                )}
-                {ok && (
-                  <span className="text-xs text-green-700">
-                    — within 800–1500 word limit ✓
-                  </span>
-                )}
-              </div>
-              {wc > 0 && (
-                <div
-                  className="relative h-1.5 w-full rounded-full bg-muted overflow-hidden"
-                  title={`${wc} / 1500 words`}
-                >
-                  <div
-                    className={`absolute inset-y-0 left-0 rounded-full transition-all duration-300 ${
-                      ok
-                        ? "bg-emerald-500"
-                        : tooShort
-                          ? "bg-amber-400"
-                          : "bg-destructive"
-                    }`}
-                    style={{ width: `${Math.min((wc / 1500) * 100, 100)}%` }}
-                  />
-                  <div
-                    className="absolute inset-y-0 w-px bg-muted-foreground/30"
-                    style={{ left: "53.33%" }}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })()}
-      </div>
-      <div>
-        <Label htmlFor={`authorSelect-${post.id}`}>Team member</Label>
-        <Select
-          value={authorSelectValue(draft.author, draft.authorRole)}
-          onValueChange={(v) => {
-            if (v === GUEST_AUTHOR_VALUE) {
-              setDraft({ ...draft, author: "", authorRole: "" });
-              return;
-            }
-            const a = authors.find((x) => x.slug === v);
-            if (a) setDraft({ ...draft, author: a.name, authorRole: a.role });
-          }}
-        >
-          <SelectTrigger id={`authorSelect-${post.id}`}>
-            <SelectValue placeholder="Select a team member…" />
-          </SelectTrigger>
-          <SelectContent>
-            {authors.map((a) => (
-              <AuthorOption key={a.slug} author={a} />
-            ))}
-            <GuestAuthorOption />
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor={`author-${post.id}`}>Author</Label>
-          <Input
-            id={`author-${post.id}`}
-            value={draft.author}
-            onChange={(e) => setDraft({ ...draft, author: e.target.value })}
-            required
-            className={fieldErrors.author ? "border-destructive" : ""}
-          />
-          <FieldError error={fieldErrors.author} />
-        </div>
-        <div>
-          <Label htmlFor={`authorRole-${post.id}`}>Author role</Label>
-          <Input
-            id={`authorRole-${post.id}`}
-            value={draft.authorRole}
-            onChange={(e) =>
-              setDraft({ ...draft, authorRole: e.target.value })
-            }
-            required
-            className={fieldErrors.authorRole ? "border-destructive" : ""}
-          />
-          <FieldError error={fieldErrors.authorRole} />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor={`category-${post.id}`}>Category</Label>
-          <Input
-            id={`category-${post.id}`}
-            value={draft.category}
-            onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-            required
-            className={fieldErrors.category ? "border-destructive" : ""}
-          />
-          <FieldError error={fieldErrors.category} />
-        </div>
-        <div>
-          <Label htmlFor={`tags-${post.id}`}>Tags (comma-separated)</Label>
-          <Input
-            id={`tags-${post.id}`}
-            list={`tags-suggestions-${post.id}`}
-            value={draft.tags}
-            onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
-          />
-          {allTags.length > 0 && (
-            <datalist id={`tags-suggestions-${post.id}`}>
-              {allTags.map((t) => <option key={t} value={t} />)}
-            </datalist>
-          )}
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor={`coverImage-${post.id}`}>Cover image</Label>
-          <div className="flex gap-2">
-            <Input
-              id={`coverImage-${post.id}`}
-              type="text"
-              value={draft.coverImage}
-              onChange={(e) =>
-                setDraft({ ...draft, coverImage: e.target.value })
-              }
-              onBlur={(e) => {
-                void warnIfCoverTooSmall(e.target.value);
-              }}
-              required
-              className={fieldErrors.coverImage ? "border-destructive" : ""}
-            />
-            <ObjectUploader
-              maxNumberOfFiles={1}
-              maxFileSize={10 * 1024 * 1024}
-              imageMinDimensions={{ width: 1600, height: 800 }}
-              onValidationWarning={(msg) => toast.warning(msg)}
-              onComplete={async (result) => {
-                const objectPath = result.successful?.[0]?.uploadURL;
-                if (!objectPath) { toast.error("Upload did not return a path"); return; }
-                setDraft((d) => ({ ...d, coverImage: objectPath }));
-                toast.success("Cover image uploaded");
-              }}
-              buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
-            >
-              <Upload className="w-4 h-4" />
-            </ObjectUploader>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Recommended cover size: at least {COVER_MIN_WIDTH}×{COVER_MIN_HEIGHT} px (2:1).
-          </p>
-          <FieldError error={fieldErrors.coverImage} />
-          {draft.coverImage && (
-            <div className="mt-2">
-              <img
-                src={draft.coverImage}
-                alt="Cover preview"
-                className="h-24 w-full rounded-md object-cover border border-input"
-                onError={(e) => { e.currentTarget.style.display = "none"; }}
-                onLoad={(e) => { e.currentTarget.style.display = "block"; }}
-              />
-            </div>
-          )}
-        </div>
-        <div>
-          <Label htmlFor={`readingMinutes-${post.id}`}>Reading minutes</Label>
-          <Input
-            id={`readingMinutes-${post.id}`}
-            type="number"
-            min={1}
-            value={draft.readingMinutes}
-            onChange={(e) =>
-              setDraft({ ...draft, readingMinutes: e.target.value })
-            }
-            required
-            className={fieldErrors.readingMinutes ? "border-destructive" : ""}
-          />
-          <FieldError error={fieldErrors.readingMinutes} />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor={`inlineImage1-${post.id}`}>Inline image 1 (URL)</Label>
-          <div className="flex gap-2">
-            <Input
-              id={`inlineImage1-${post.id}`}
-              type="text"
-              placeholder="https://… or upload"
-              value={draft.inlineImage1}
-              onChange={(e) =>
-                setDraft({ ...draft, inlineImage1: e.target.value })
-              }
-            />
-            <ObjectUploader
-              maxNumberOfFiles={1}
-              maxFileSize={10 * 1024 * 1024}
-              onValidationWarning={(msg) => toast.warning(msg)}
-              onComplete={async (result) => {
-                const objectPath = result.successful?.[0]?.uploadURL;
-                if (!objectPath) { toast.error("Upload did not return a path"); return; }
-                setDraft((d) => ({ ...d, inlineImage1: objectPath }));
-                toast.success("Inline image 1 uploaded");
-              }}
-              buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
-            >
-              <Upload className="w-4 h-4" />
-            </ObjectUploader>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Optional. Shown after the first content section. Leave blank to omit.
-          </p>
-        </div>
-        <div>
-          <Label htmlFor={`inlineImage2-${post.id}`}>Inline image 2 (URL)</Label>
-          <div className="flex gap-2">
-            <Input
-              id={`inlineImage2-${post.id}`}
-              type="text"
-              placeholder="https://… or upload"
-              value={draft.inlineImage2}
-              onChange={(e) =>
-                setDraft({ ...draft, inlineImage2: e.target.value })
-              }
-            />
-            <ObjectUploader
-              maxNumberOfFiles={1}
-              maxFileSize={10 * 1024 * 1024}
-              onValidationWarning={(msg) => toast.warning(msg)}
-              onComplete={async (result) => {
-                const objectPath = result.successful?.[0]?.uploadURL;
-                if (!objectPath) { toast.error("Upload did not return a path"); return; }
-                setDraft((d) => ({ ...d, inlineImage2: objectPath }));
-                toast.success("Inline image 2 uploaded");
-              }}
-              buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
-            >
-              <Upload className="w-4 h-4" />
-            </ObjectUploader>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Optional. Shown in the second half of the article. Leave blank to omit.
-          </p>
-        </div>
-      </div>
-      <div>
-        <Label className="mb-2 block">Scheduling</Label>
-        <SchedulePicker
-          id={`publishedAt-${post.id}`}
-          value={draft.publishedAt}
-          onChange={(v) => setDraft({ ...draft, publishedAt: v })}
-          mode="edit"
-          data-testid={`edit-post-${post.id}-published-at`}
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id={`featured-${post.id}`}
-          checked={draft.featured}
-          onCheckedChange={(v) =>
-            setDraft({ ...draft, featured: v === true })
-          }
-        />
-        <Label htmlFor={`featured-${post.id}`} className="cursor-pointer">
-          Feature on the homepage
-        </Label>
-      </div>
-
-      <div className="flex items-start gap-2">
-        <Checkbox
-          id={`noIndex-${post.id}`}
-          checked={draft.noIndex}
-          onCheckedChange={(v) =>
-            setDraft({ ...draft, noIndex: v === true })
-          }
-          data-testid={`edit-post-${post.id}-noindex`}
-        />
-        <div className="grid gap-1 leading-tight">
-          <Label htmlFor={`noIndex-${post.id}`} className="cursor-pointer">
-            No-index (hide from search engines)
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Emits{" "}
-            <code>&lt;meta name="robots" content="noindex,nofollow"&gt;</code>{" "}
-            on the post detail page.
-          </p>
-        </div>
-      </div>
-
-      {/* SEO overrides — leave blank to use the post title/excerpt/cover.
-          Filled values take precedence in <title>, meta description,
-          and Open Graph / Twitter image tags. */}
-      <details className="border rounded-md p-3">
-        <summary className="cursor-pointer text-sm font-medium select-none">
-          SEO overrides (optional)
-        </summary>
-        <div className="space-y-4 mt-3">
-          <div>
-            <Label htmlFor={`seoTitle-${post.id}`}>SEO title</Label>
-            <Input
-              id={`seoTitle-${post.id}`}
-              value={draft.seoTitle}
-              maxLength={70}
-              placeholder={`Defaults to: ${post.title}`}
-              onChange={(e) =>
-                setDraft({ ...draft, seoTitle: e.target.value })
-              }
-            />
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">
-                Used in browser tab + Google SERP.
-              </p>
-              <span
-                className={`text-xs tabular-nums font-medium ${
-                  draft.seoTitle.length > 60
-                    ? "text-destructive"
-                    : draft.seoTitle.length > 50
-                      ? "text-amber-600"
-                      : draft.seoTitle.length > 0
-                        ? "text-green-700"
-                        : "text-muted-foreground"
-                }`}
-              >
-                {draft.seoTitle.length} / 60
-              </span>
-            </div>
-            {draft.seoTitle.length > 60 && (
-              <p className="text-xs text-destructive mt-0.5">
-                Over the 60-character limit — Google may truncate this in search results.
-              </p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor={`seoDescription-${post.id}`}>
-              SEO description
-            </Label>
-            <Textarea
-              id={`seoDescription-${post.id}`}
-              rows={2}
-              maxLength={300}
-              value={draft.seoDescription}
-              placeholder={`Defaults to the excerpt: ${post.excerpt.slice(0, 80)}…`}
-              onChange={(e) =>
-                setDraft({ ...draft, seoDescription: e.target.value })
-              }
-            />
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">
-                Shown as the snippet in Google.
-              </p>
-              <span
-                className={`text-xs tabular-nums font-medium ${
-                  draft.seoDescription.length > 160
-                    ? "text-destructive"
-                    : draft.seoDescription.length > 130
-                      ? "text-amber-600"
-                      : draft.seoDescription.length > 0
-                        ? "text-green-700"
-                        : "text-muted-foreground"
-                }`}
-              >
-                {draft.seoDescription.length} / 160
-              </span>
-            </div>
-            {draft.seoDescription.length > 160 && (
-              <p className="text-xs text-destructive mt-0.5">
-                Over the 160-character limit — Google may truncate this snippet.
-              </p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor={`seoOgImage-${post.id}`}>OG / social image</Label>
-            <div className="flex gap-2">
-              <Input
-                id={`seoOgImage-${post.id}`}
-                type="text"
-                value={draft.seoOgImage}
-                placeholder={`Defaults to the auto-generated card`}
-                onChange={(e) =>
-                  setDraft({ ...draft, seoOgImage: e.target.value })
-                }
-              />
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={10 * 1024 * 1024}
-                imageMinDimensions={{ width: 1200, height: 630 }}
-                onValidationWarning={(msg) => toast.warning(msg)}
-                onComplete={async (result) => {
-                  const objectPath = result.successful?.[0]?.uploadURL;
-                  if (!objectPath) { toast.error("Upload did not return a path"); return; }
-                  setDraft((d) => ({ ...d, seoOgImage: objectPath }));
-                  toast.success("OG image uploaded");
-                }}
-                buttonClassName="bg-[#0052FF] hover:bg-[#0040cc] shrink-0"
-              >
-                <Upload className="w-4 h-4" />
-              </ObjectUploader>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              1200×630 PNG/JPG works best for LinkedIn, X, Slack & Facebook.
-              Leave blank to use the branded auto-generated card below.
-            </p>
-          </div>
-          <OgImagePreview
-            postId={post.id}
-            override={draft.seoOgImage}
-            title={draft.title || post.title}
-            category={draft.category || post.category || "Insights"}
-            author={draft.author || post.author}
-            authorRole={draft.authorRole || post.authorRole}
-          />
-        </div>
-      </details>
-
-      <details className="border rounded-md p-3">
-        <summary className="cursor-pointer text-sm font-medium select-none">
-          Structured content (optional)
-        </summary>
-        <div className="space-y-4 mt-3">
-          <div>
-            <Label htmlFor={`blufSummary-${post.id}`}>Bottom-line summary</Label>
-            <Textarea
-              id={`blufSummary-${post.id}`}
-              rows={2}
-              maxLength={400}
-              placeholder="One crisp sentence that gives the reader the key takeaway before they read."
-              value={draft.blufSummary}
-              onChange={(e) =>
-                setDraft({ ...draft, blufSummary: e.target.value })
-              }
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Displayed as a "Bottom line" callout above the article and
-              used in SpeakableSpecification JSON-LD (G3).
-            </p>
-          </div>
-          <div>
-            <Label htmlFor={`lastMaterialUpdateAt-${post.id}`}>
-              Last material update
-            </Label>
-            <Input
-              id={`lastMaterialUpdateAt-${post.id}`}
-              type="datetime-local"
-              value={draft.lastMaterialUpdateAt}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  lastMaterialUpdateAt: e.target.value,
-                })
-              }
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Overrides <code>dateModified</code> in BlogPosting JSON-LD.
-              Set only when this edit materially changes the article (W6).
-            </p>
-          </div>
-          <div>
-            <Label htmlFor={`aboutEntities-${post.id}`}>
-              About (topics / entities)
-            </Label>
-            <Input
-              id={`aboutEntities-${post.id}`}
-              placeholder="e.g. Open Banking, PSD3, Embedded Finance"
-              value={draft.aboutEntities}
-              onChange={(e) =>
-                setDraft({ ...draft, aboutEntities: e.target.value })
-              }
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Comma-separated primary topics. Populates BlogPosting{" "}
-              <code>about</code> in JSON-LD (G5).
-            </p>
-          </div>
-          <div>
-            <Label htmlFor={`mentionEntities-${post.id}`}>
-              Mentions (entities)
-            </Label>
-            <Input
-              id={`mentionEntities-${post.id}`}
-              placeholder="e.g. Stripe, Visa, Mastercard, FCA"
-              value={draft.mentionEntities}
-              onChange={(e) =>
-                setDraft({ ...draft, mentionEntities: e.target.value })
-              }
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Comma-separated entities mentioned. Populates BlogPosting{" "}
-              <code>mentions</code> in JSON-LD (G5).
-            </p>
-          </div>
-          <div>
-            <Label htmlFor={`faqItems-${post.id}`}>FAQ items (JSON)</Label>
-            <Textarea
-              id={`faqItems-${post.id}`}
-              rows={5}
-              className="font-mono text-xs"
-              placeholder={`[\n  { "question": "What is X?", "answer": "X is…" }\n]`}
-              value={draft.faqItems}
-              onChange={(e) =>
-                setDraft({ ...draft, faqItems: e.target.value })
-              }
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Valid JSON array of <code>{"{ question, answer }"}</code> objects.
-              Emits FAQPage JSON-LD and a rich-result FAQ accordion in Google (A1).
-            </p>
-          </div>
-        </div>
-      </details>
-
-      <div className="flex gap-2">
-        <Button
-          type="submit"
-          disabled={updateMut.isPending}
-          className="bg-[#0052FF] hover:bg-[#0040cc]"
-        >
-          <Save className="w-4 h-4 mr-2" />
-          {updateMut.isPending ? "Saving…" : "Save changes"}
-        </Button>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          <X className="w-4 h-4 mr-2" /> Cancel
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-/**
- * Inline panel showing the latest sitemap link-check report. The daily
- * cron job runs in the background and emails admins on regressions, but
- * this panel lets an admin trigger an on-demand recheck and see all
- * currently-broken or recently-recovered URLs without leaving the
- * dashboard.
- */
-// ---------------------------------------------------------------------------
-// Hreflang Consistency Panel
-// ---------------------------------------------------------------------------
-
-function HreflangPanel() {
-  const qc = useQueryClient();
-  const { data, isLoading, error } = useGetHreflangCheckReport();
-  const runMut = useRunHreflangCheck();
-
-  const runNow = async () => {
-    try {
-      const fresh = await runMut.mutateAsync();
-      qc.setQueryData(getGetHreflangCheckReportQueryKey(), fresh);
-      const count = fresh.mismatchCount;
-      const description = `Checked ${fresh.checkedCount} URL${fresh.checkedCount === 1 ? "" : "s"}.`;
-      if (count === 0) {
-        toast.success("All hreflang tags look healthy", { description });
-      } else {
-        toast.warning(
-          `${count} hreflang mismatch${count === 1 ? "" : "es"} found`,
-          { description },
-        );
-      }
-    } catch {
-      toast.error("Could not run hreflang check.");
-    }
-  };
-
-  return (
-    <Card className="mb-10">
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Globe className="w-5 h-5" /> Hreflang consistency
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Daily background job verifies that every page renders the correct{" "}
-              <code className="px-1 py-0.5 rounded bg-muted text-foreground">
-                hreflang="en"
-              </code>{" "}
-              and{" "}
-              <code className="px-1 py-0.5 rounded bg-muted text-foreground">
-                hreflang="x-default"
-              </code>{" "}
-              self-references. Admins receive an alert when mismatches appear.
-            </p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={runNow}
-            disabled={runMut.isPending}
-          >
-            <RefreshCw
-              className={`w-4 h-4 mr-1.5 ${runMut.isPending ? "animate-spin" : ""}`}
-            />
-            {runMut.isPending ? "Checking…" : "Run check now"}
-          </Button>
-        </div>
-
-        {error ? (
-          <p className="text-sm text-destructive">
-            Could not load hreflang report.
-          </p>
-        ) : isLoading || !data ? (
-          <p className="text-sm text-muted-foreground">Loading report…</p>
-        ) : (
-          <HreflangBody report={data} />
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function HreflangBody({ report }: { report: HreflangCheckReport }) {
-  const lastRun = report.generatedAt
-    ? new Date(report.generatedAt as unknown as string).toLocaleString()
-    : "never";
-  const dailyJobEnabled = report.dailyJobEnabled !== false;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs">
-        {dailyJobEnabled ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200">
-            <CheckCircle2 className="w-3 h-3" />
-            Daily job active
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 border border-amber-200">
-            <Clock className="w-3 h-3" />
-            Daily job paused (dev)
-          </span>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-        <Stat label="Last run" value={lastRun} />
-        <Stat label="URLs checked" value={String(report.checkedCount)} />
-        <Stat
-          label="Mismatches"
-          value={String(report.mismatchCount)}
-          tone={report.mismatchCount > 0 ? "bad" : "good"}
-        />
-      </div>
-
-      {report.generatedAt === null ? (
-        <p className="text-sm text-muted-foreground">
-          No check has run yet. Click "Run check now" to validate hreflang tags
-          across all pages.
-        </p>
-      ) : report.mismatches.length === 0 ? (
-        <div className="flex items-center gap-2 text-sm text-green-700">
-          <CheckCircle2 className="w-4 h-4" />
-          All sampled pages have valid hreflang self-references.
-        </div>
-      ) : (
-        <div>
-          <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-amber-600" /> Hreflang
-            mismatches
-          </h3>
-          <div className="border rounded-md divide-y">
-            {report.mismatches.map(
-              (row: { url: string; kind: string; detail: string }) => (
-                <div
-                  key={row.url}
-                  className="px-3 py-2 text-xs grid grid-cols-[1fr_auto] gap-3 items-start"
-                >
-                  <div className="min-w-0">
-                    <a
-                      href={row.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="truncate block text-[#0052FF] hover:underline font-mono"
-                      title={row.url}
-                    >
-                      {row.url}
-                    </a>
-                    <span className="text-muted-foreground">{row.detail}</span>
-                  </div>
-                  <span className="font-mono text-amber-700 whitespace-nowrap">
-                    {row.kind}
-                  </span>
-                </div>
-              ),
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SitemapHealthPanel() {
-  const qc = useQueryClient();
-  const { data, isLoading, error } = useGetSitemapHealth();
-  const runMut = useRunSitemapHealth();
-
-  const runNow = async () => {
-    try {
-      const fresh = await runMut.mutateAsync();
-      qc.setQueryData(getGetSitemapHealthQueryKey(), fresh);
-      const broken = fresh.brokenCount;
-      const description = `Checked ${fresh.total} URL${fresh.total === 1 ? "" : "s"}.`;
-      if (broken === 0) {
-        toast.success("Sitemap is healthy", { description });
-      } else {
-        toast.warning(`${broken} broken URL${broken === 1 ? "" : "s"}`, {
-          description,
-        });
-      }
-    } catch {
-      toast.error("Could not run sitemap health check.");
-    }
-  };
-
-  return (
-    <Card className="mb-10">
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Activity className="w-5 h-5" /> Sitemap health
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Daily background job verifies every URL in{" "}
-              <code className="px-1 py-0.5 rounded bg-muted text-foreground">
-                /sitemap.xml
-              </code>
-              . Admins receive an email whenever new 4xx/5xx links appear.
-            </p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={runNow}
-            disabled={runMut.isPending}
-          >
-            <RefreshCw
-              className={`w-4 h-4 mr-1.5 ${runMut.isPending ? "animate-spin" : ""}`}
-            />
-            {runMut.isPending ? "Checking…" : "Run check now"}
-          </Button>
-        </div>
-
-        {error ? (
-          <p className="text-sm text-destructive">
-            Could not load sitemap health report.
-          </p>
-        ) : isLoading || !data ? (
-          <p className="text-sm text-muted-foreground">Loading report…</p>
-        ) : (
-          <SitemapHealthBody report={data} />
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function SitemapHealthBody({ report }: { report: SitemapHealthReport }) {
-  const broken = report.results.filter((r: { isBroken: boolean }) => r.isBroken);
-  const lastRun = report.generatedAt
-    ? new Date(report.generatedAt as unknown as string).toLocaleString()
-    : "never";
-  const target = report.targetSiteUrl;
-  const dailyJobEnabled = report.dailyJobEnabled !== false;
-  // When the configured target host doesn't match the host the admin is
-  // browsing from, manual + daily checks will hit a different server.
-  // That's the normal case in dev (admin opens a Replit preview URL but
-  // the link-checker walks the production domain) and produces
-  // false-positive "broken" reports — surface that mismatch loudly so
-  // the admin doesn't waste time chasing ghosts.
-  const browsingHost =
-    typeof window !== "undefined" ? window.location.host : "";
-  let targetHost = "";
-  try {
-    if (target) targetHost = new URL(target).host;
-  } catch {
-    targetHost = "";
-  }
-  const hostMismatch = Boolean(
-    target && targetHost && browsingHost && targetHost !== browsingHost,
-  );
-  return (
-    <div className="space-y-4">
-      {target && (
-        <div
-          className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs"
-          data-testid="sitemap-health-target"
-        >
-          <span className="text-muted-foreground">Checking</span>
-          <code className="rounded bg-background border px-1.5 py-0.5 text-foreground">
-            {target}
-          </code>
-          {dailyJobEnabled ? (
-            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200">
-              <CheckCircle2 className="w-3 h-3" />
-              Daily job active
-            </span>
-          ) : (
-            <span
-              className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 border border-amber-200"
-              data-testid="sitemap-health-daily-paused"
-              title="Daily job is paused in non-production environments unless SITE_URL is set."
-            >
-              <Clock className="w-3 h-3" />
-              Daily job paused (dev)
-            </span>
-          )}
-        </div>
-      )}
-      {hostMismatch && (
-        <div
-          className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
-          data-testid="sitemap-health-host-mismatch"
-        >
-          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-          <div className="min-w-0">
-            <strong>Heads up — host mismatch.</strong> The link-checker
-            walks <code className="rounded bg-amber-100 px-1">{targetHost}</code>{" "}
-            but you're viewing the dashboard from{" "}
-            <code className="rounded bg-amber-100 px-1">{browsingHost}</code>.
-            If the target host doesn't actually serve this codebase, every
-            URL will look broken — those results are likely false positives.
-            Set <code className="rounded bg-amber-100 px-1">SITE_URL</code>{" "}
-            to your preview URL to point checks at this server.
-          </div>
-        </div>
-      )}
-      <SingleUrlProbe defaultBase={target ?? null} />
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-        <Stat label="Last run" value={lastRun} />
-        <Stat label="URLs checked" value={String(report.total)} />
-        <Stat
-          label="Broken"
-          value={String(report.brokenCount)}
-          tone={report.brokenCount > 0 ? "bad" : "good"}
-        />
-      </div>
-      {broken.length === 0 ? (
-        <div className="flex items-center gap-2 text-sm text-green-700">
-          <CheckCircle2 className="w-4 h-4" />
-          All URLs in the sitemap are returning 2xx/3xx.
-        </div>
-      ) : (
-        <div>
-          <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-amber-600" /> Broken URLs
-          </h3>
-          <div className="border rounded-md divide-y">
-            {broken.map((row: { url: string; lastStatusCode?: number | null; lastError?: string | null; lastCheckedAt?: string | null }) => (
-              <div
-                key={row.url}
-                className="px-3 py-2 text-xs grid grid-cols-[1fr_auto_auto] gap-3 items-center"
-              >
-                <a
-                  href={row.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="truncate text-[#0052FF] hover:underline"
-                  title={row.url}
-                >
-                  {row.url}
-                </a>
-                <span className="font-mono text-amber-700">
-                  {row.lastStatusCode ?? row.lastError ?? "—"}
-                </span>
-                <span className="text-muted-foreground whitespace-nowrap">
-                  {row.lastCheckedAt
-                    ? formatRelativeTime(
-                        row.lastCheckedAt as unknown as string,
-                      )
-                    : ""}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * On-demand single-URL spot-check. Lets an admin verify one URL without
- * re-walking the whole sitemap (which is expensive on big content sets
- * and writes to the persistent report). The result is purely local —
- * the dashboard report is untouched.
- *
- * `defaultBase` is the configured target site URL; when present it pre-
- * fills the input with the origin so the admin only has to type the
- * path. When the input is a bare path ("/blog/foo"), we resolve it
- * against the target before sending — same shape the daily job uses.
- */
-/** Maximum URLs the in-session probe history keeps. */
-const PROBE_HISTORY_LIMIT = 5;
-
-/**
- * True when the current platform's primary keyboard modifier is the
- * Mac Command key. Used to render the right shortcut hint (⌘K vs Ctrl+K)
- * and to match the right modifier in the global keydown listener.
- */
-function isMacPlatform(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return /Mac|iPhone|iPad|iPod/i.test(navigator.platform);
-}
-
-function SingleUrlProbe({ defaultBase }: { defaultBase: string | null }) {
-  const baseOrigin = (() => {
-    if (!defaultBase) return "";
-    try {
-      return new URL(defaultBase).origin;
-    } catch {
-      return "";
-    }
-  })();
-  const [value, setValue] = useState(baseOrigin ? `${baseOrigin}/` : "");
-  const [result, setResult] = useState<CheckSingleUrlResult | null>(null);
-  const [history, setHistory] = useState<CheckSingleUrlResult[]>([]);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const isMac = useMemo(isMacPlatform, []);
-  const mut = useCheckSingleSitemapUrl();
-
-  /**
-   * Global Cmd/Ctrl+K listener — focuses and selects the probe input
-   * from anywhere on the page so an admin doesn't have to scroll past
-   * the post list to spot-check a URL. Mirrors the convention popular
-   * search/command palettes (Linear, GitHub, Slack) use, so it'll
-   * already be in admins' muscle memory. We only intercept the
-   * shortcut when no other input/textarea/contenteditable is already
-   * focused — typing `Cmd+K` inside the post editor should still do
-   * whatever the editor wants with it (or, in plain inputs, nothing).
-   */
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const wantsModifier = isMac ? e.metaKey : e.ctrlKey;
-      if (!wantsModifier) return;
-      if (e.key !== "k" && e.key !== "K") return;
-      const active = document.activeElement as HTMLElement | null;
-      if (active && active !== inputRef.current) {
-        const tag = active.tagName;
-        if (
-          tag === "INPUT" ||
-          tag === "TEXTAREA" ||
-          active.isContentEditable
-        ) {
-          return;
-        }
-      }
-      e.preventDefault();
-      const el = inputRef.current;
-      if (el) {
-        el.focus();
-        el.select();
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isMac]);
-
-  const resolveUrl = (raw: string): string | null => {
-    const trimmed = raw.trim();
-    if (!trimmed) return null;
-    // Bare path — resolve against the configured target so admins can
-    // type "/blog/foo" instead of repeating the origin every time.
-    if (trimmed.startsWith("/") && baseOrigin) {
-      try {
-        return new URL(trimmed, baseOrigin).toString();
-      } catch {
-        return null;
-      }
-    }
-    try {
-      const u = new URL(trimmed);
-      if (u.protocol !== "http:" && u.protocol !== "https:") return null;
-      return u.toString();
-    } catch {
-      return null;
-    }
-  };
-
-  /**
-   * Probe a fully-resolved URL and update both the main result strip
-   * and the in-session history. Dedupes by URL — re-checking a URL
-   * already in history bumps it to the top with the fresh status
-   * instead of producing a duplicate row, so the list stays tight.
-   */
-  const probe = async (url: string) => {
-    setValidationError(null);
-    try {
-      const probed = await mut.mutateAsync({ data: { url } });
-      setResult(probed);
-      setHistory((prev) => {
-        const filtered = prev.filter((h) => h.url !== probed.url);
-        return [probed, ...filtered].slice(0, PROBE_HISTORY_LIMIT);
-      });
-    } catch {
-      setResult(null);
-      toast.error("Probe failed — server returned an error.");
-    }
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const url = resolveUrl(value);
-    if (!url) {
-      setValidationError(
-        "Enter an absolute http(s) URL, or a path like /blog/foo when a target is configured.",
-      );
-      setResult(null);
-      return;
-    }
-    await probe(url);
-  };
-
-  const recheck = async (url: string) => {
-    setValue(url);
-    await probe(url);
-  };
-
-  const tone: "good" | "bad" | null = result
-    ? result.isBroken
-      ? "bad"
-      : "good"
-    : null;
-
-  return (
-    <div
-      className="rounded-md border bg-muted/20 p-3 space-y-2"
-      data-testid="sitemap-health-single-probe"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">Check a single URL</h3>
-        <span className="text-[11px] text-muted-foreground">
-          Doesn't update the report
-        </span>
-      </div>
-      <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
-          <Input
-            ref={inputRef}
-            type="text"
-            inputMode="url"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={
-              baseOrigin
-                ? `${baseOrigin}/blog/your-slug`
-                : "https://example.com/page"
-            }
-            className="font-mono text-xs pr-16"
-            data-testid="sitemap-health-probe-input"
-            disabled={mut.isPending}
-            aria-keyshortcuts={isMac ? "Meta+K" : "Control+K"}
-          />
-          <kbd
-            className="hidden sm:inline-flex pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground"
-            data-testid="sitemap-health-probe-kbd"
-            aria-hidden="true"
-            title={
-              isMac
-                ? "Press ⌘K from anywhere to focus this input"
-                : "Press Ctrl+K from anywhere to focus this input"
-            }
-          >
-            {isMac ? "⌘" : "Ctrl"}
-            <span>K</span>
-          </kbd>
-        </div>
-        <Button
-          type="submit"
-          size="sm"
-          variant="outline"
-          disabled={mut.isPending || value.trim().length === 0}
-          data-testid="sitemap-health-probe-submit"
-        >
-          <RefreshCw
-            className={`w-4 h-4 mr-1.5 ${mut.isPending ? "animate-spin" : ""}`}
-          />
-          {mut.isPending ? "Probing…" : "Check URL"}
-        </Button>
-      </form>
-      {validationError && (
-        <p className="text-xs text-destructive">{validationError}</p>
-      )}
-      {result && (
-        <div
-          className={`flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-xs ${
-            tone === "bad"
-              ? "border-amber-200 bg-amber-50 text-amber-900"
-              : "border-green-200 bg-green-50 text-green-800"
-          }`}
-          data-testid="sitemap-health-probe-result"
-        >
-          {tone === "bad" ? (
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-          )}
-          <span className="font-mono">
-            {result.statusCode ?? result.error ?? "—"}
-          </span>
-          <a
-            href={result.url}
-            target="_blank"
-            rel="noreferrer"
-            className="truncate hover:underline"
-            title={result.url}
-          >
-            {result.url}
-          </a>
-          <span className="ml-auto text-[11px] opacity-75 whitespace-nowrap">
-            {formatRelativeTime(result.checkedAt as unknown as string)}
-          </span>
-        </div>
-      )}
-      {history.length > 0 && (
-        <div
-          className="space-y-1 pt-1"
-          data-testid="sitemap-health-probe-history"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              Recent checks ({history.length})
-            </h4>
-            <button
-              type="button"
-              onClick={() => setHistory([])}
-              className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
-              data-testid="sitemap-health-probe-history-clear"
-            >
-              Clear
-            </button>
-          </div>
-          <ul className="border rounded-md divide-y bg-background">
-            {history.map((h) => (
-              <li
-                key={h.url}
-                className="px-2.5 py-1.5 text-xs grid grid-cols-[auto_1fr_auto_auto] gap-2 items-center"
-                data-testid="sitemap-health-probe-history-row"
-              >
-                <span
-                  className={`font-mono px-1.5 py-0.5 rounded text-[11px] ${
-                    h.isBroken
-                      ? "bg-amber-50 text-amber-800 border border-amber-200"
-                      : "bg-green-50 text-green-700 border border-green-200"
-                  }`}
-                  title={h.error ?? undefined}
-                >
-                  {h.statusCode ?? "ERR"}
-                </span>
-                <a
-                  href={h.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="truncate text-[#0052FF] hover:underline"
-                  title={h.url}
-                >
-                  {h.url}
-                </a>
-                <span className="text-muted-foreground whitespace-nowrap">
-                  {formatRelativeTime(h.checkedAt as unknown as string)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => recheck(h.url)}
-                  disabled={mut.isPending}
-                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50"
-                  data-testid="sitemap-health-probe-history-recheck"
-                  title="Re-probe this URL"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  Re-check
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: "good" | "bad";
-}) {
-  const valueColor =
-    tone === "bad"
-      ? "text-amber-700"
-      : tone === "good"
-        ? "text-green-700"
-        : "text-foreground";
-  return (
-    <div className="rounded-md border px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
-      <div className={`text-sm font-medium ${valueColor}`}>{value}</div>
-    </div>
-  );
-}
-
-/**
- * Number of days a post is considered "recently published". Posts inside
- * this window get a warning chip in the no-index impact preview because
- * they're typically still earning their initial wave of organic traffic
- * and de-indexing them can wipe rankings before they've even matured.
- */
-const RECENT_POST_WINDOW_DAYS = 30;
-
-/**
- * Compute the "before-you-confirm" impact summary for a bulk no-index /
- * remove-no-index action. The result drives the <BulkNoIndexImpactDialog>
- * so the admin can see exactly which currently-indexed posts (and how
- * much traffic) would disappear from search before they pull the trigger.
- *
- *  - For `mode: "noindex"` the impact set is the selected posts that are
- *    currently indexed (i.e. `noIndex !== true`). Posts already hidden are
- *    excluded from the impact because re-flagging them is a no-op.
- *  - For `mode: "reindex"` the impact set is the selected posts that are
- *    currently hidden, since those are the only ones that would actually
- *    re-appear in search.
- */
-function computeNoIndexImpact(
-  selectedSlugs: Set<string>,
-  posts: BlogPost[] | undefined,
-  mode: "noindex" | "reindex",
-) {
-  const selected = (posts ?? []).filter((p) => selectedSlugs.has(p.slug));
-  const wantHidden = mode === "noindex";
-  const impacted = selected.filter((p) =>
-    wantHidden ? !p.noIndex : !!p.noIndex,
-  );
-  const skipped = selected.filter((p) =>
-    wantHidden ? !!p.noIndex : !p.noIndex,
-  );
-
-  const totalViews = impacted.reduce((sum, p) => sum + (p.viewCount ?? 0), 0);
-  const featuredCount = impacted.filter((p) => p.featured).length;
-  const recentCutoff = Date.now() - RECENT_POST_WINDOW_DAYS * 86_400_000;
-  const recentCount = impacted.filter((p) => {
-    const t = new Date(p.publishedAt).getTime();
-    return Number.isFinite(t) && t >= recentCutoff;
-  }).length;
-
-  const topByViews = [...impacted]
-    .sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0))
-    .slice(0, 5);
-
-  return {
-    selectedCount: selected.length,
-    impactedCount: impacted.length,
-    skippedCount: skipped.length,
-    totalViews,
-    featuredCount,
-    recentCount,
-    topByViews,
-    impacted,
-  };
-}
-
-type NoIndexImpact = ReturnType<typeof computeNoIndexImpact>;
-
-/**
- * Wrap a single CSV cell so embedded commas, quotes, or newlines don't
- * corrupt the column layout. Follows RFC 4180: any field containing a
- * special char is double-quoted and inner quotes are doubled.
- */
-function csvEscape(value: string | number | boolean): string {
-  const str = String(value);
-  if (/[",\r\n]/.test(str)) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
-
-/**
- * Build a CSV blob of every post in the impact set so the admin gets an
- * audit trail of exactly which URLs were affected by a bulk no-index /
- * re-index batch. Columns: slug, title, current views, featured flag.
- * Includes a UTF-8 BOM so Excel opens it with the right encoding.
- */
-function buildImpactCsv(impacted: BlogPost[]): string {
-  const header = ["slug", "title", "current_views", "featured"];
-  const rows = impacted.map((p) => [
-    p.slug,
-    p.title,
-    p.viewCount ?? 0,
-    p.featured ? "true" : "false",
-  ]);
-  const lines = [header, ...rows].map((r) => r.map(csvEscape).join(","));
-  return "\ufeff" + lines.join("\r\n") + "\r\n";
-}
-
-/**
- * Build a CSV blob of the broken URLs from a bulk-probe summary so the
- * admin can paste them into a ticket or hand them off to a developer
- * without retyping. Columns: slug, url, status_code, error, checked_at.
- * Rows are emitted in the same order they appear in the summary chip
- * list (which already mirrors the post-list order). UTF-8 BOM keeps
- * Excel happy on the receiving end.
- */
-function buildBulkProbeCsv(broken: BulkProbeRowResult[]): string {
-  const header = ["slug", "url", "status_code", "error", "fk_grade", "checked_at"];
-  const rows = broken.map(({ post, result }) => {
-    const grade = fleschKincaidGrade(post.content);
-    return [
-      post.slug,
-      result?.url ?? "",
-      result?.statusCode ?? "",
-      result?.error ?? "",
-      grade !== null ? String(grade) : "",
-      result?.checkedAt ?? "",
-    ];
-  });
-  const lines = [header, ...rows].map((r) => r.map(csvEscape).join(","));
-  return "\ufeff" + lines.join("\r\n") + "\r\n";
-}
-
-/**
- * Escape a single Markdown table cell so embedded pipes and newlines
- * don't corrupt the column layout. `|` becomes `\|`; CR/LF collapse to a
- * single space (Markdown tables are strictly one-line-per-row). We don't
- * touch `*`, `_`, etc. — admins generally *want* an URL to render as a
- * link in Slack/Linear/GitHub, and those are inert inside table cells
- * for plain text content anyway.
- */
-function mdEscapeCell(value: string | number | null | undefined): string {
-  if (value === null || value === undefined) return "—";
-  const str = String(value);
-  if (str === "") return "—";
-  return str.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
-}
-
-/**
- * Build a GitHub-flavoured Markdown table of the broken URLs from a
- * bulk-probe summary. Designed to paste straight into Slack, GitHub
- * issues, or Linear comments — all three render this format natively
- * (Slack since 2024, GitHub/Linear since launch). Same column set as
- * the CSV so the two exports stay parallel:
- *   `# | Slug | URL | Status | Error | Checked at`
- * A leading "Bulk URL probe …" caption lets the receiver see at a
- * glance how big the failure set is and when it was generated.
- */
-function buildBulkProbeMarkdown(broken: BulkProbeRowResult[]): string {
-  const header = ["#", "Slug", "URL", "Status", "Error", "FK Grade", "Checked at"];
-  const lines: string[] = [];
-  lines.push(
-    `**Bulk URL probe — ${broken.length} broken URL${broken.length === 1 ? "" : "s"}** (${new Date().toISOString()})`,
-  );
-  lines.push("");
-  lines.push(`| ${header.join(" | ")} |`);
-  lines.push(`| ${header.map(() => "---").join(" | ")} |`);
-  broken.forEach(({ post, result }, i) => {
-    const grade = fleschKincaidGrade(post.content);
-    const row = [
-      String(i + 1),
-      mdEscapeCell(post.slug),
-      mdEscapeCell(result?.url ?? ""),
-      mdEscapeCell(result?.statusCode ?? "ERR"),
-      mdEscapeCell(result?.error ?? ""),
-      grade !== null ? mdEscapeCell(grade) : "—",
-      mdEscapeCell(result?.checkedAt ?? ""),
-    ];
-    lines.push(`| ${row.join(" | ")} |`);
-  });
-  return lines.join("\n");
-}
-
-/**
- * Copy a string to the clipboard with a graceful fallback for non-secure
- * contexts (HTTP previews, etc.) where `navigator.clipboard` is gated.
- * Returns true on success so the caller can branch its toast.
- */
-async function copyTextToClipboard(text: string): Promise<boolean> {
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      // Fall through to the textarea fallback — Safari occasionally
-      // rejects the modern API even in secure contexts when the page
-      // doesn't have focus.
-    }
-  }
-  if (typeof document === "undefined") return false;
-  try {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.setAttribute("readonly", "");
-    ta.style.position = "absolute";
-    ta.style.left = "-9999px";
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand("copy");
-    document.body.removeChild(ta);
-    return ok;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Trigger a browser download of the broken-URL list. Filename is
- * timestamped so multiple exports from the same session don't clobber.
- */
-function downloadBulkProbeCsv(broken: BulkProbeRowResult[]) {
-  const csv = buildBulkProbeCsv(broken);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const ts = new Date()
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "_")
-    .slice(0, 19);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `bulk-probe-broken_${ts}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-/**
- * Trigger a browser download of the impact set as a CSV. Filename is
- * timestamped + tagged with the action mode so multiple exports from a
- * single session don't clobber each other.
- */
-function downloadImpactCsv(
-  impacted: BlogPost[],
-  mode: "noindex" | "reindex",
-) {
-  const csv = buildImpactCsv(impacted);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const ts = new Date()
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "_")
-    .slice(0, 19);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `bulk-${mode}-impact_${ts}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // Defer revoke so Safari has time to start the download.
-  setTimeout(() => URL.revokeObjectURL(url), 1_000);
-}
-
-function formatViews(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return n.toLocaleString();
-}
-
-/**
- * "Preview no-index impact" panel — a confirmation dialog that lists how
- * many of the selected posts would actually be hidden from search (vs
- * already-hidden no-ops), the total view count those URLs are currently
- * pulling in, the highest-traffic posts in the impact set, and warnings
- * for featured / recently-published posts so an admin never accidentally
- * de-indexes a high-traffic post in a bulk action.
- */
-/**
- * Dialog for bulk-filling missing SEO metadata (seoTitle / seoDescription)
- * across a selection of posts. Only fills fields that are currently empty on
- * each post — existing values are never overwritten.
- */
-function BulkSeoFillDialog({
-  open,
-  posts,
-  form,
-  isPending,
-  onFormChange,
-  onCancel,
-  onConfirm,
-}: {
-  open: boolean;
-  posts: BlogPost[];
-  form: { seoTitle: string; seoDescription: string };
-  isPending: boolean;
-  onFormChange: (f: { seoTitle: string; seoDescription: string }) => void;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  const willUpdate = posts.filter(
-    (p) =>
-      (!p.seoTitle && form.seoTitle.trim()) ||
-      (!p.seoDescription && form.seoDescription.trim()),
-  );
-  const nothingToFill =
-    (form.seoTitle.trim() || form.seoDescription.trim()) &&
-    willUpdate.length === 0;
-
-  return (
-    <AlertDialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) onCancel();
-      }}
-    >
-      <AlertDialogContent className="max-w-xl">
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <Globe className="w-5 h-5 text-[#0052FF]" />
-            Fill missing SEO metadata
-          </AlertDialogTitle>
-          <AlertDialogDescription asChild>
-            <div className="text-sm text-muted-foreground">
-              {posts.length} selected post{posts.length !== 1 ? "s" : ""}{" "}
-              have incomplete SEO. Values entered below are applied only where
-              the field is currently empty — nothing already filled will be
-              overwritten.
-            </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-
-        <div className="space-y-4 py-1">
-          <div>
-            <Label>SEO title</Label>
-            <Input
-              value={form.seoTitle}
-              maxLength={70}
-              placeholder="e.g. Why Fintech SEO Is Different | FintechPressHub"
-              onChange={(e) =>
-                onFormChange({ ...form, seoTitle: e.target.value })
-              }
-            />
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">
-                Leave blank to skip this field.
-              </p>
-              <span
-                className={`text-xs tabular-nums font-medium ${
-                  form.seoTitle.length > 60
-                    ? "text-destructive"
-                    : form.seoTitle.length > 50
-                      ? "text-amber-600"
-                      : form.seoTitle.length > 0
-                        ? "text-green-700"
-                        : "text-muted-foreground"
-                }`}
-              >
-                {form.seoTitle.length} / 60
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <Label>SEO description</Label>
-            <Textarea
-              rows={2}
-              maxLength={300}
-              value={form.seoDescription}
-              placeholder="e.g. Discover why fintech companies need a different SEO approach…"
-              onChange={(e) =>
-                onFormChange({ ...form, seoDescription: e.target.value })
-              }
-            />
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">
-                Leave blank to skip this field.
-              </p>
-              <span
-                className={`text-xs tabular-nums font-medium ${
-                  form.seoDescription.length > 160
-                    ? "text-destructive"
-                    : form.seoDescription.length > 130
-                      ? "text-amber-600"
-                      : form.seoDescription.length > 0
-                        ? "text-green-700"
-                        : "text-muted-foreground"
-                }`}
-              >
-                {form.seoDescription.length} / 160
-              </span>
-            </div>
-          </div>
-
-          {willUpdate.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">
-                Will update {willUpdate.length} post
-                {willUpdate.length !== 1 ? "s" : ""}:
-              </p>
-              <div className="max-h-36 overflow-y-auto rounded-md border border-input bg-muted/30 divide-y divide-input">
-                {willUpdate.map((p) => (
-                  <div
-                    key={p.slug}
-                    className="flex items-center justify-between px-3 py-1.5 text-xs"
-                  >
-                    <span className="font-medium truncate flex-1 min-w-0">
-                      {p.title}
-                    </span>
-                    <div className="flex gap-1 ml-2 shrink-0">
-                      {!p.seoTitle && form.seoTitle.trim() && (
-                        <span className="rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-medium">
-                          title
-                        </span>
-                      )}
-                      {!p.seoDescription && form.seoDescription.trim() && (
-                        <span className="rounded bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-medium">
-                          desc
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {nothingToFill && (
-            <p className="text-xs text-muted-foreground text-center py-1">
-              All selected posts already have these fields filled — nothing
-              will change.
-            </p>
-          )}
-        </div>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending} onClick={onCancel}>
-            Cancel
-          </AlertDialogCancel>
-          <AlertDialogAction
-            disabled={
-              isPending ||
-              willUpdate.length === 0 ||
-              (!form.seoTitle.trim() && !form.seoDescription.trim())
-            }
-            onClick={onConfirm}
-            className="bg-[#0052FF] hover:bg-[#0040cc]"
-          >
-            {isPending
-              ? "Updating…"
-              : `Apply to ${willUpdate.length} post${willUpdate.length !== 1 ? "s" : ""}`}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
-function BulkNoIndexImpactDialog({
-  open,
-  mode,
-  impact,
-  isPending,
-  snoozeEnabled,
-  snoozeDays,
-  onSnoozeEnabledChange,
-  onSnoozeDaysChange,
-  onCancel,
-  onConfirm,
-}: {
-  open: boolean;
-  mode: "noindex" | "reindex";
-  impact: NoIndexImpact;
-  isPending: boolean;
-  snoozeEnabled: boolean;
-  snoozeDays: number;
-  onSnoozeEnabledChange: (v: boolean) => void;
-  onSnoozeDaysChange: (v: number) => void;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  const isHide = mode === "noindex";
-  const verb = isHide ? "Hide" : "Re-expose";
-  const verbed = isHide ? "hidden" : "re-exposed";
-  const noun = impact.impactedCount === 1 ? "post" : "posts";
-  const hasImpact = impact.impactedCount > 0;
-  const hasHighTraffic = impact.totalViews >= 500;
-
-  return (
-    <AlertDialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) onCancel();
-      }}
-    >
-      <AlertDialogContent
-        className="max-w-xl"
-        data-testid="bulk-noindex-impact-dialog"
-      >
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            {isHide ? (
-              <EyeOff className="w-5 h-5 text-amber-600" />
-            ) : (
-              <Eye className="w-5 h-5 text-green-600" />
-            )}
-            Preview no-index impact
-          </AlertDialogTitle>
-          <AlertDialogDescription asChild>
-            <div className="text-sm text-muted-foreground">
-              {isHide ? (
-                <>
-                  Each affected post will get{" "}
-                  <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
-                    &lt;meta name="robots" content="noindex,nofollow"&gt;
-                  </code>{" "}
-                  and drop out of Google, Bing &amp; co. on the next crawl.
-                  The URL stays publicly reachable — only search engines
-                  are told to forget it.
-                </>
-              ) : (
-                <>
-                  Each affected post will lose its{" "}
-                  <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
-                    noindex
-                  </code>{" "}
-                  flag and become eligible for the index again on the next
-                  crawl.
-                </>
-              )}
-            </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-
-        <div className="grid grid-cols-3 gap-2">
-          <ImpactStat
-            label={isHide ? "Will be hidden" : "Will return"}
-            value={impact.impactedCount.toLocaleString()}
-            tone={hasImpact ? (isHide ? "warn" : "good") : "neutral"}
-            testid="impact-stat-impacted"
-          />
-          <ImpactStat
-            label={
-              isHide
-                ? "Views being hidden"
-                : "Views returning"
-            }
-            value={formatViews(impact.totalViews)}
-            tone={
-              isHide && hasHighTraffic
-                ? "warn"
-                : hasImpact
-                  ? "good"
-                  : "neutral"
-            }
-            testid="impact-stat-views"
-          />
-          <ImpactStat
-            label="Already no-op"
-            value={impact.skippedCount.toLocaleString()}
-            tone="neutral"
-            testid="impact-stat-skipped"
-          />
-        </div>
-
-        {!hasImpact && (
-          <div
-            className="rounded-md border border-muted bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-            data-testid="impact-empty"
-          >
-            None of the {impact.selectedCount} selected{" "}
-            {impact.selectedCount === 1 ? "post is" : "posts are"} eligible
-            for this action — every selected post is already in the
-            target state. Nothing will change.
-          </div>
-        )}
-
-        {hasImpact && isHide && (
-          <div className="space-y-2">
-            {impact.featuredCount > 0 && (
-              <ImpactWarning
-                icon={<Star className="w-4 h-4" />}
-                tone="warn"
-                testid="impact-warn-featured"
-              >
-                <strong>{impact.featuredCount}</strong>{" "}
-                {impact.featuredCount === 1 ? "post is" : "posts are"}{" "}
-                marked <em>featured</em> on the public blog. Hiding{" "}
-                {impact.featuredCount === 1 ? "it" : "them"} will also
-                strip {impact.featuredCount === 1 ? "it" : "them"} from
-                search snippets while the public blog still links there.
-              </ImpactWarning>
-            )}
-            {impact.recentCount > 0 && (
-              <ImpactWarning
-                icon={<Clock className="w-4 h-4" />}
-                tone="warn"
-                testid="impact-warn-recent"
-              >
-                <strong>{impact.recentCount}</strong>{" "}
-                {impact.recentCount === 1 ? "post was" : "posts were"}{" "}
-                published in the last {RECENT_POST_WINDOW_DAYS} days and
-                may still be ranking up — de-indexing now usually wipes
-                the early-traffic ramp.
-              </ImpactWarning>
-            )}
-            {hasHighTraffic && (
-              <ImpactWarning
-                icon={<TrendingUp className="w-4 h-4" />}
-                tone="warn"
-                testid="impact-warn-traffic"
-              >
-                <strong>{formatViews(impact.totalViews)} views</strong>{" "}
-                across the selection — that traffic will stop landing
-                from search after the next crawl.
-              </ImpactWarning>
-            )}
-          </div>
-        )}
-
-        {hasImpact && isHide && (
-          <div
-            className="rounded-md border bg-muted/30 px-3 py-2.5 space-y-2"
-            data-testid="snooze-noindex-control"
-          >
-            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-              <Checkbox
-                checked={snoozeEnabled}
-                onCheckedChange={(v) => onSnoozeEnabledChange(v === true)}
-                data-testid="snooze-toggle"
-              />
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              Snooze — auto re-expose after a set number of days
-            </label>
-            {snoozeEnabled && (
-              <div className="flex flex-wrap items-center gap-2 pl-6">
-                <span className="text-sm text-muted-foreground">Hide for</span>
-                <Input
-                  type="number"
-                  min={1}
-                  max={365}
-                  step={1}
-                  value={snoozeDays}
-                  onChange={(e) => {
-                    const n = Number.parseInt(e.target.value, 10);
-                    if (Number.isFinite(n)) onSnoozeDaysChange(n);
-                  }}
-                  className="w-20 h-8"
-                  data-testid="snooze-days-input"
-                />
-                <span className="text-sm text-muted-foreground">
-                  {snoozeDays === 1 ? "day" : "days"}, then auto re-index on{" "}
-                  <strong className="text-foreground">
-                    {new Date(
-                      Date.now() + snoozeDays * 86_400_000,
-                    ).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </strong>
-                </span>
-              </div>
-            )}
-            <p className="pl-6 text-xs text-muted-foreground">
-              {snoozeEnabled
-                ? "An hourly background job will flip these posts back to indexed once the snooze window elapses — no need to remember to re-expose them."
-                : "Leave off for an indefinite hide that only a manual action can reverse."}
-            </p>
-          </div>
-        )}
-
-        {hasImpact && (
-          <div
-            className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2"
-            data-testid="impact-csv-export"
-          >
-            <div className="min-w-0 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">
-                Audit trail
-              </span>{" "}
-              — download every affected URL (slug, title, current views,
-              featured) as a CSV before you confirm.
-            </div>
-            <button
-              type="button"
-              onClick={() => downloadImpactCsv(impact.impacted, mode)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
-              data-testid="impact-csv-download"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Download CSV
-              <span className="ml-0.5 rounded bg-muted px-1 py-0.5 text-[10px] tabular-nums text-muted-foreground">
-                {impact.impactedCount}
-              </span>
-            </button>
-          </div>
-        )}
-
-        {hasImpact && impact.topByViews.length > 0 && (
-          <div className="rounded-md border">
-            <div className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground border-b">
-              Highest-traffic posts in this batch
-            </div>
-            <ul
-              className="divide-y text-sm"
-              data-testid="impact-top-posts"
-            >
-              {impact.topByViews.map((p) => (
-                <li
-                  key={p.slug}
-                  className="flex items-center justify-between gap-3 px-3 py-2"
-                  data-testid={`impact-top-post-${p.slug}`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{p.title}</div>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <span className="truncate">/blog/{p.slug}</span>
-                      {p.featured && (
-                        <span className="inline-flex items-center gap-0.5 text-amber-600">
-                          <Star className="w-3 h-3" />
-                          featured
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-sm font-semibold tabular-nums">
-                      {(p.viewCount ?? 0).toLocaleString()}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      views
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            {impact.impactedCount > impact.topByViews.length && (
-              <div className="px-3 py-2 text-[11px] text-muted-foreground border-t bg-muted/40">
-                + {impact.impactedCount - impact.topByViews.length} more
-                {" "}
-                {impact.impactedCount - impact.topByViews.length === 1
-                  ? "post"
-                  : "posts"}{" "}
-                in this batch
-              </div>
-            )}
-          </div>
-        )}
-
-        <AlertDialogFooter>
-          <AlertDialogCancel
-            disabled={isPending}
-            data-testid="impact-cancel"
-          >
-            Cancel
-          </AlertDialogCancel>
-          <AlertDialogAction
-            disabled={isPending || !hasImpact}
-            onClick={(e) => {
-              e.preventDefault();
-              onConfirm();
-            }}
-            className={
-              isHide
-                ? "bg-amber-600 text-white hover:bg-amber-700"
-                : "bg-[#0052FF] hover:bg-[#0040cc]"
-            }
-            data-testid="impact-confirm"
-          >
-            {isPending
-              ? "Working…"
-              : hasImpact
-                ? `${verb} ${impact.impactedCount} ${noun}`
-                : `Nothing to be ${verbed}`}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
-function ImpactStat({
-  label,
-  value,
-  tone,
-  testid,
-}: {
-  label: string;
-  value: string;
-  tone: "neutral" | "good" | "warn";
-  testid?: string;
-}) {
-  const toneClass =
-    tone === "warn"
-      ? "text-amber-700"
-      : tone === "good"
-        ? "text-green-700"
-        : "text-foreground";
-  return (
-    <div className="rounded-md border px-3 py-2" data-testid={testid}>
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
-      <div className={`text-base font-semibold tabular-nums ${toneClass}`}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function ImpactWarning({
-  icon,
-  tone,
-  children,
-  testid,
-}: {
-  icon: React.ReactNode;
-  tone: "warn" | "info";
-  children: React.ReactNode;
-  testid?: string;
-}) {
-  const cls =
-    tone === "warn"
-      ? "border-amber-200 bg-amber-50 text-amber-900"
-      : "border-blue-200 bg-blue-50 text-blue-900";
-  return (
-    <div
-      className={`flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${cls}`}
-      data-testid={testid}
-    >
-      <span className="mt-0.5 shrink-0">{icon}</span>
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
-}
-
-/**
- * Default lookahead used when the admin first turns on "preview as
- * scheduled visitor" with no prior date in mind. Seven days is far
- * enough out to surface a typical content-calendar week — most
- * editorial schedules in this app are queued for a sprint at a time —
- * but close enough that the rendered "as of …" date still feels
- * concrete instead of abstract. Admins can dial it forward or back from
- * the inline picker.
- */
 const PREVIEW_DEFAULT_DAYS_AHEAD = 7;
 
-/**
- * Compute a sensible default value for the preview datetime picker:
- * one week from now, snapped to the next round hour in the admin's
- * local timezone so the picker doesn't show jagged ":37" minute values.
- */
 function defaultPreviewAtLocal(): string {
   const now = new Date();
   const future = new Date(
@@ -3702,22 +120,10 @@ export default function AdminBlog() {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } =
     useAuth();
   const qc = useQueryClient();
-  // "Preview as scheduled visitor" — when on, we forward an `asOf`
-  // timestamp to /blog/posts so the API returns exactly the list a
-  // public visitor would see at that moment (scheduled posts whose
-  // publishedAt has passed by then become visible). Admin-only chrome
-  // (bulk select, edit/delete, probe/re-ping) is hidden in preview
-  // mode so the row layout reads as close to the real public list as
-  // possible. The toggle starts off so the page looks like its old
-  // self for admins who don't care about scheduling.
   const [previewMode, setPreviewMode] = useState(false);
   const [previewAtLocal, setPreviewAtLocal] = useState<string>(
     defaultPreviewAtLocal,
   );
-  // Convert the local-time picker value into the ISO-8601 `asOf` the
-  // API expects. Only forward when the toggle is on AND the picker
-  // holds a parseable value — otherwise we fall back to the standard
-  // "now()" filter so the page never silently goes blank.
   const previewAsOfIso = useMemo(() => {
     if (!previewMode) return undefined;
     if (!previewAtLocal) return undefined;
@@ -3727,11 +133,6 @@ export default function AdminBlog() {
   }, [previewMode, previewAtLocal]);
   const listParams = previewAsOfIso ? { asOf: previewAsOfIso } : undefined;
   const { data: posts, isLoading } = useListBlogPosts(listParams);
-  // Cutoff used for client-side rendering decisions (e.g. whether to
-  // show a "scheduled →" badge). Mirrors the cutoff the server used to
-  // build the response, so a post that's only visible because we're
-  // previewing the future no longer wears the "scheduled" badge — by
-  // the previewed moment it would already be live.
   const visibilityCutoffMs = previewAsOfIso
     ? new Date(previewAsOfIso).getTime()
     : Date.now();
@@ -3741,25 +142,13 @@ export default function AdminBlog() {
   const [publishFieldErrors, setPublishFieldErrors] = useState<Record<string, string>>({});
   const [autoSlug, setAutoSlug] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
-  // Slugs of posts the admin has ticked for a bulk-noindex / bulk-index
-  // operation. Stored as a Set for O(1) membership checks while rendering
-  // each row's checkbox.
   const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(
     () => new Set(),
   );
   const bulkNoIndexMut = useBulkNoIndexBlogPosts();
-  // Which bulk no-index dialog is open (if any). Driving the dialog from
-  // here — instead of inline window.confirm() — lets us render a rich
-  // "preview impact" panel before the destructive action fires.
   const [impactDialogMode, setImpactDialogMode] = useState<
     "noindex" | "reindex" | null
   >(null);
-  // "Snooze no-index for N days" controls inside the impact dialog. When
-  // `snoozeEnabled` is true, the bulk-noindex mutation forwards
-  // `snoozeDays` so the API stamps each post's `noindex_until`, and the
-  // hourly background job will auto-flip them back to indexed once the
-  // window elapses. Defaults to a 14-day window — the typical "fix thin
-  // content / re-publish" turnaround for a fintech blog post.
   const [snoozeEnabled, setSnoozeEnabled] = useState(false);
   const [snoozeDays, setSnoozeDays] = useState(14);
   const [bulkSeoDialogOpen, setBulkSeoDialogOpen] = useState(false);
@@ -3769,56 +158,38 @@ export default function AdminBlog() {
   const [newPostOpen, setNewPostOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<BlogPost | null>(null);
   const [bulkDeletePending, setBulkDeletePending] = useState(false);
-  // Whether we've already consumed the `?slug=` deep-link query param. We
-  // only auto-open once per visit so re-opening the editor doesn't re-trigger
-  // when the user later navigates away and back.
   const deepLinkConsumed = useRef(false);
 
-  // Tab for the post list: "published" = public / live posts,
-  // "scheduled" = future-dated posts queued via the admin queue.
   const [activeTab, setActiveTab] = useState<"published" | "scheduled">(
     "published",
   );
 
-  // Readability grade-level filter shared by both tabs.
-  // "all" = no filter; other values correspond to FK grade bands.
   const [readabilityFilter, setReadabilityFilter] = useState<
     "all" | "elementary" | "middle" | "high" | "college"
   >("all");
 
-  // SEO completeness filter: "missing" = only posts missing seoTitle or seoDescription.
   const [seoFilter, setSeoFilter] = useState<"all" | "missing">("all");
 
-  // Drag-to-reorder state for the Scheduled tab.
   const [dragSrcIdx, setDragSrcIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  // Local ordering: null = server order; array of post IDs = unsaved drag order.
   const [localQueueOrder, setLocalQueueOrder] = useState<number[] | null>(null);
   const [reorderSavePending, setReorderSavePending] = useState(false);
-  // Snapshot of timestamps captured just before saving so the admin can undo.
   const [reorderUndoSnapshot, setReorderUndoSnapshot] = useState<{ slug: string; publishedAt: string }[] | null>(null);
   const [reorderUndoPending, setReorderUndoPending] = useState(false);
 
-  // View mode for the Scheduled tab: list (default) or calendar.
   const [calendarView, setCalendarView] = useState(false);
 
-  // Bulk "shift queue" inline form state.
   const [shiftQueueOpen, setShiftQueueOpen] = useState(false);
   const [shiftHoursInput, setShiftHoursInput] = useState("");
   const [shiftQueuePending, setShiftQueuePending] = useState(false);
 
-  // Undo snapshot: stores the previous timestamps so the admin can reverse a bulk shift.
   const [shiftSnapshot, setShiftSnapshot] = useState<{ slug: string; publishedAt: string }[] | null>(null);
   const [shiftSnapshotLabel, setShiftSnapshotLabel] = useState<string>("");
   const [shiftUndoPending, setShiftUndoPending] = useState(false);
 
-  // Gap detector: configurable threshold (hours) for highlighting scheduling holes.
   const [gapThresholdHours, setGapThresholdHours] = useState(48);
   const [gapThresholdInput, setGapThresholdInput] = useState("48");
 
-  // Scheduled posts come from an admin-only endpoint that inverts the
-  // public visibility filter. We re-fetch after any mutation that could
-  // change the queue (publish-now, delete, create with a future date).
   const SCHEDULED_QUERY_KEY = ["admin", "blog", "scheduled-posts"] as const;
   const {
     data: scheduledPosts,
@@ -3842,11 +213,6 @@ export default function AdminBlog() {
     void refetchScheduled();
   };
 
-  /**
-   * Called from HardestPostsSpotlight when an editor clicks "Open editor".
-   * Switches to the Published tab, clears the readability filter so the post
-   * is visible, opens its inline edit form, and scrolls it into view.
-   */
   const handleJumpToPost = (id: number) => {
     setActiveTab("published");
     setReadabilityFilter("all");
@@ -3859,7 +225,6 @@ export default function AdminBlog() {
     }, 80);
   };
 
-  // Ordered list for the scheduled queue — reflects local drag order before save.
   const displayedScheduledPosts = useMemo(() => {
     if (!scheduledPosts) return [];
     if (!localQueueOrder) return scheduledPosts;
@@ -3867,7 +232,6 @@ export default function AdminBlog() {
     return localQueueOrder.map((id) => byId.get(id)).filter(Boolean) as typeof scheduledPosts;
   }, [scheduledPosts, localQueueOrder]);
 
-  /** Helper: does a post's content match the active readability filter? */
   const matchesReadabilityFilter = (content: string) => {
     if (readabilityFilter === "all") return true;
     const grade = fleschKincaidGrade(content);
@@ -3879,7 +243,6 @@ export default function AdminBlog() {
     return true;
   };
 
-  /** Published posts narrowed by readability filter, SEO filter, and search query. */
   const filteredPosts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return (posts ?? []).filter((p: NonNullable<typeof posts>[number]) =>
@@ -3894,7 +257,6 @@ export default function AdminBlog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [posts, readabilityFilter, seoFilter, searchQuery]);
 
-  /** All unique tags collected from published posts — used for autocomplete. */
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
     (posts ?? []).forEach((p: NonNullable<typeof posts>[number]) => {
@@ -3903,14 +265,12 @@ export default function AdminBlog() {
     return Array.from(tagSet).sort();
   }, [posts]);
 
-  /** Scheduled posts narrowed by the active readability filter. */
   const filteredScheduledPosts = useMemo(
     () => displayedScheduledPosts.filter((p) => matchesReadabilityFilter(p.content)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [displayedScheduledPosts, readabilityFilter],
   );
 
-  // True when the local drag order differs from the server order.
   const hasQueueChanges = useMemo(
     () =>
       localQueueOrder !== null &&
@@ -3919,15 +279,6 @@ export default function AdminBlog() {
     [localQueueOrder, scheduledPosts],
   );
 
-  /**
-   * Deep-link handler: when an admin lands here from a public post via the
-   * "Edit" pencil button (`/admin/blog?slug=<slug>`), auto-open that post in
-   * the inline editor and scroll it into view. If the slug doesn't match any
-   * API-managed post (e.g., the public post is one of the legacy seed posts
-   * shipped in `posts.js`), we surface a friendly toast instead of silently
-   * doing nothing. The query param is stripped after handling so a refresh
-   * doesn't re-trigger the behaviour.
-   */
   useEffect(() => {
     if (deepLinkConsumed.current) return;
     if (!posts) return;
@@ -3942,7 +293,6 @@ export default function AdminBlog() {
     const match = posts.find((p: { slug: string; id: number }) => p.slug === targetSlug);
     if (match) {
       setEditingId(match.id);
-      // Wait one tick so the editor card has rendered before scrolling.
       window.setTimeout(() => {
         const card = document.getElementById(`admin-post-${match.id}`);
         if (card) {
@@ -3956,7 +306,6 @@ export default function AdminBlog() {
       });
     }
 
-    // Strip the query param without triggering a navigation.
     const url = new URL(window.location.href);
     url.searchParams.delete("slug");
     window.history.replaceState({}, "", url.toString());
@@ -3978,8 +327,6 @@ export default function AdminBlog() {
       return;
     }
 
-    // Empty publishedAt = publish immediately; the server will stamp now().
-    // A future-dated value puts the post into "scheduled" state.
     const publishedAtIso = form.publishedAt
       ? new Date(form.publishedAt).toISOString()
       : undefined;
@@ -4343,53 +690,22 @@ export default function AdminBlog() {
                         <span
                           className={[
                             "text-xs font-medium tabular-nums",
-                            ok
-                              ? "text-green-700"
-                              : tooShort
-                                ? "text-amber-600"
-                                : tooLong
-                                  ? "text-destructive"
-                                  : "text-muted-foreground",
+                            ok ? "text-green-700" : tooShort ? "text-amber-600" : tooLong ? "text-destructive" : "text-muted-foreground",
                           ].join(" ")}
                         >
                           {wc} words
                         </span>
-                        {tooShort && (
-                          <span className="text-xs text-amber-600">
-                            — needs {800 - wc} more to reach the 800-word minimum
-                          </span>
-                        )}
-                        {tooLong && (
-                          <span className="text-xs text-destructive">
-                            — {wc - 1500} words over the 1500-word maximum
-                          </span>
-                        )}
-                        {ok && (
-                          <span className="text-xs text-green-700">
-                            — within 800–1500 word limit ✓
-                          </span>
-                        )}
+                        {tooShort && <span className="text-xs text-amber-600">— needs {800 - wc} more to reach the 800-word minimum</span>}
+                        {tooLong && <span className="text-xs text-destructive">— {wc - 1500} words over the 1500-word maximum</span>}
+                        {ok && <span className="text-xs text-green-700">— within 800–1500 word limit ✓</span>}
                       </div>
                       {wc > 0 && (
-                        <div
-                          className="relative h-1.5 w-full rounded-full bg-muted overflow-hidden"
-                          title={`${wc} / 1 500 words`}
-                        >
+                        <div className="relative h-1.5 w-full rounded-full bg-muted overflow-hidden" title={`${wc} / 1 500 words`}>
                           <div
-                            className={`absolute inset-y-0 left-0 rounded-full transition-all duration-300 ${
-                              ok
-                                ? "bg-emerald-500"
-                                : tooShort
-                                  ? "bg-amber-400"
-                                  : "bg-destructive"
-                            }`}
+                            className={`absolute inset-y-0 left-0 rounded-full transition-all duration-300 ${ok ? "bg-emerald-500" : tooShort ? "bg-amber-400" : "bg-destructive"}`}
                             style={{ width: `${Math.min((wc / 1500) * 100, 100)}%` }}
                           />
-                          {/* 800-word minimum marker at 53.3 % */}
-                          <div
-                            className="absolute inset-y-0 w-px bg-muted-foreground/30"
-                            style={{ left: "53.33%" }}
-                          />
+                          <div className="absolute inset-y-0 w-px bg-muted-foreground/30" style={{ left: "53.33%" }} />
                         </div>
                       )}
                     </div>
@@ -4620,17 +936,7 @@ export default function AdminBlog() {
                       <p className="text-xs text-muted-foreground">
                         Used in browser tab + Google SERP.
                       </p>
-                      <span
-                        className={`text-xs tabular-nums font-medium ${
-                          form.seoTitle.length > 60
-                            ? "text-destructive"
-                            : form.seoTitle.length > 50
-                              ? "text-amber-600"
-                              : form.seoTitle.length > 0
-                                ? "text-green-700"
-                                : "text-muted-foreground"
-                        }`}
-                      >
+                      <span className={`text-xs tabular-nums font-medium ${form.seoTitle.length > 60 ? "text-destructive" : form.seoTitle.length > 50 ? "text-amber-600" : form.seoTitle.length > 0 ? "text-green-700" : "text-muted-foreground"}`}>
                         {form.seoTitle.length} / 60
                       </span>
                     </div>
@@ -4659,17 +965,7 @@ export default function AdminBlog() {
                       <p className="text-xs text-muted-foreground">
                         Shown as the snippet in Google.
                       </p>
-                      <span
-                        className={`text-xs tabular-nums font-medium ${
-                          form.seoDescription.length > 160
-                            ? "text-destructive"
-                            : form.seoDescription.length > 130
-                              ? "text-amber-600"
-                              : form.seoDescription.length > 0
-                                ? "text-green-700"
-                                : "text-muted-foreground"
-                        }`}
-                      >
+                      <span className={`text-xs tabular-nums font-medium ${form.seoDescription.length > 160 ? "text-destructive" : form.seoDescription.length > 130 ? "text-amber-600" : form.seoDescription.length > 0 ? "text-green-700" : "text-muted-foreground"}`}>
                         {form.seoDescription.length} / 160
                       </span>
                     </div>
@@ -4708,7 +1004,7 @@ export default function AdminBlog() {
                       </ObjectUploader>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      1200×630 PNG/JPG works best for LinkedIn, X, Slack &
+                      1200×630 PNG/JPG works best for LinkedIn, X, Slack &amp;
                       Facebook.
                     </p>
                   </div>
@@ -4894,9 +1190,6 @@ export default function AdminBlog() {
               checked={previewMode}
               onCheckedChange={(v) => {
                 setPreviewMode(v);
-                // Wipe any in-progress bulk selection when entering
-                // preview mode — once admin chrome disappears the
-                // selection state would be invisible and confusing.
                 if (v) setSelectedSlugs(new Set());
               }}
               data-testid="preview-as-visitor-switch"
@@ -5001,13 +1294,6 @@ export default function AdminBlog() {
         </div>
 
         {previewMode && previewAsOfIso && (() => {
-          // Banner that anchors the preview: tells the admin which
-          // moment they're previewing, how many posts the public would
-          // see, and how that compares to the current live list. The
-          // delta is computed by counting "scheduled" posts in the
-          // returned set — i.e. posts whose publishedAt is still in
-          // the future relative to *now* but at or before the preview
-          // cutoff.
           const previewDate = new Date(previewAsOfIso);
           const visibleCount = posts?.length ?? 0;
           const newlyVisible = (posts ?? []).filter(
@@ -5057,12 +1343,6 @@ export default function AdminBlog() {
         })()}
 
         {!previewMode && selectedSlugs.size > 0 && (() => {
-          // Live "before-you-confirm" preview rendered directly in the
-          // bulk action bar. Computed on every render against the current
-          // selection — cheap because `posts` is already in memory and
-          // capped at the admin list page size. Driving both the inline
-          // strip and the impact dialog from the same helper keeps the
-          // numbers consistent.
           const livePreview = computeNoIndexImpact(
             selectedSlugs,
             posts,
@@ -5255,10 +1535,6 @@ export default function AdminBlog() {
           onConfirm={async () => {
             const mode = impactDialogMode;
             if (!mode) return;
-            // Only fire the mutation against the slugs that would actually
-            // change state — posts already in the target state are filtered
-            // out so the request stays minimal and the response count
-            // matches the impact preview the admin just confirmed.
             const impact = computeNoIndexImpact(selectedSlugs, posts, mode);
             const slugs = impact.impacted.map((p) => p.slug);
             if (slugs.length === 0) {
@@ -5266,9 +1542,6 @@ export default function AdminBlog() {
               return;
             }
             const wantHidden = mode === "noindex";
-            // Only forward `snoozeDays` when hiding AND the snooze toggle
-            // is on. The API treats the absent field as "indefinite hide"
-            // and clears any prior `noindex_until` automatically.
             const useSnooze =
               wantHidden && snoozeEnabled && snoozeDays >= 1;
             try {
@@ -5281,10 +1554,6 @@ export default function AdminBlog() {
               });
               const noun =
                 result.updatedCount === 1 ? "post" : "posts";
-              // Snapshot the just-changed slugs so the Undo affordance
-              // below fires the inverse mutation against exactly the same
-              // set, even if the admin starts re-selecting other posts
-              // while the toast is still on screen.
               const undoSlugs = result.posts.map((p: { slug: string }) => p.slug);
               const undoNoIndex = !wantHidden;
               const undoVerbed = wantHidden ? "re-exposed" : "no-indexed";
@@ -5294,8 +1563,6 @@ export default function AdminBlog() {
                   : `No-indexed ${result.updatedCount} ${noun}`
                 : `Removed no-index from ${result.updatedCount} ${noun}`;
               toast.success(message, {
-                // Wider window than the default ~4s so a distracted admin
-                // still has time to reverse a sweeping bulk action.
                 duration: 10_000,
                 action:
                   undoSlugs.length > 0
@@ -5506,7 +1773,6 @@ export default function AdminBlog() {
                           const hours = Number(shiftHoursInput);
                           if (!scheduledPosts || Number.isNaN(hours) || hours === 0) return;
                           setShiftQueuePending(true);
-                          // Capture a snapshot of the current timestamps before shifting.
                           const snapshot = scheduledPosts.map((p) => ({
                             slug: p.slug,
                             publishedAt: p.publishedAt,
@@ -5523,7 +1789,6 @@ export default function AdminBlog() {
                             toast.success(
                               `Shifted ${result.updatedCount} post${result.updatedCount === 1 ? "" : "s"} by ${hours > 0 ? "+" : ""}${hours}h.`,
                             );
-                            // Save snapshot so the admin can undo this shift.
                             setShiftSnapshot(snapshot);
                             setShiftSnapshotLabel(
                               `${hours > 0 ? "+" : ""}${hours}h across ${snapshot.length} post${snapshot.length === 1 ? "" : "s"}`,
@@ -5553,7 +1818,7 @@ export default function AdminBlog() {
                   )}
                 </div>
 
-                {/* Undo last shift bar — visible after a successful bulk reschedule */}
+                {/* Undo last shift bar */}
                 {shiftSnapshot && !shiftQueueOpen && (
                   <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
                     <RotateCcw className="w-3.5 h-3.5 shrink-0" />
@@ -5597,7 +1862,7 @@ export default function AdminBlog() {
                   </div>
                 )}
 
-                {/* Save order bar — visible when the admin has dragged posts into a new order */}
+                {/* Save order bar */}
                 {hasQueueChanges && !calendarView && (
                   <div className="mb-3 flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40 px-3 py-2 text-xs text-blue-800 dark:text-blue-300">
                     <ArrowUpDown className="w-3.5 h-3.5 shrink-0" />
@@ -5625,7 +1890,6 @@ export default function AdminBlog() {
                           publishedAt: p.publishedAt,
                         }));
                         try {
-                          // Each post in the new display order inherits the slot's original timestamp.
                           const byId = new Map(scheduledPosts.map((p) => [p.id, p]));
                           const reordered = localQueueOrder
                             .map((id) => byId.get(id))
@@ -5653,7 +1917,7 @@ export default function AdminBlog() {
                   </div>
                 )}
 
-                {/* Undo reorder bar — visible after saving a new queue order */}
+                {/* Undo reorder bar */}
                 {reorderUndoSnapshot && !hasQueueChanges && !calendarView && (
                   <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
                     <RotateCcw className="w-3.5 h-3.5 shrink-0" />
@@ -5694,7 +1958,7 @@ export default function AdminBlog() {
                   </div>
                 )}
 
-                {/* Gap detector settings row — list view only */}
+                {/* Gap detector settings row */}
                 {!calendarView && (
                   <div className="mb-3 flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -5753,8 +2017,6 @@ export default function AdminBlog() {
                     posts={scheduledPosts}
                     onScrollToPost={(postId) => {
                       setCalendarView(false);
-                      // Give React a tick to unmount the calendar and mount
-                      // the list before scrolling to the card.
                       requestAnimationFrame(() => {
                         const el = document.getElementById(`admin-post-${postId}`);
                         if (el) {
@@ -5777,16 +2039,12 @@ export default function AdminBlog() {
                   </p>
                 )}
                 {filteredScheduledPosts.map((p, idx) => {
-                  // Drag-to-reorder is disabled while a readability filter is active
-                  // because the filtered indices would not match the server order.
                   const dragEnabled = readabilityFilter === "all";
                   const isDragging = dragEnabled && dragSrcIdx === idx;
                   const isDropTarget = dragEnabled && dragOverIdx === idx && dragSrcIdx !== idx;
-                  // A post is "moved" if it sits in a different position than the server order.
                   const serverIdx = scheduledPosts?.findIndex((sp) => sp.id === p.id) ?? idx;
                   const isMoved = dragEnabled && serverIdx !== idx;
 
-                  // Gap detector: compute hours since the previous post.
                   const prevPost = idx > 0 ? filteredScheduledPosts[idx - 1] : null;
                   const gapMs = prevPost
                     ? new Date(p.publishedAt).getTime() - new Date(prevPost.publishedAt).getTime()
@@ -5799,7 +2057,7 @@ export default function AdminBlog() {
 
                   return (
                     <div key={p.id}>
-                      {/* Gap banner — shown between consecutive cards with a scheduling hole */}
+                      {/* Gap banner */}
                       {isGap && (
                         <div
                           aria-label={`Scheduling gap: ${gapLabel} between posts`}
@@ -5813,14 +2071,12 @@ export default function AdminBlog() {
                             variant="outline"
                             className="ml-auto h-6 text-xs px-2 shrink-0 border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/50 gap-1"
                             onClick={() => {
-                              // Compute the midpoint of the gap as the suggested publish time.
                               const midMs = (
                                 new Date(prevPost!.publishedAt).getTime() +
                                 new Date(p.publishedAt).getTime()
                               ) / 2;
                               const midLocalStr = toDateTimeLocalValue(new Date(midMs).toISOString());
                               setForm((f) => ({ ...f, publishedAt: midLocalStr }));
-                              // Scroll to the new post form and flash it.
                               const el = document.getElementById("new-post-form");
                               if (el) {
                                 el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -5859,7 +2115,6 @@ export default function AdminBlog() {
                         setDragSrcIdx(null);
                         setDragOverIdx(null);
                         if (src === null || src === dest || !scheduledPosts) return;
-                        // Build the new ID ordering locally — no API call yet.
                         const currentIds = localQueueOrder ?? scheduledPosts.map((sp) => sp.id);
                         const nextIds = [...currentIds];
                         const [movedId] = nextIds.splice(src, 1);
@@ -5875,7 +2130,6 @@ export default function AdminBlog() {
                       <Card id={`admin-post-${p.id}`}>
                         <CardContent className="pt-6">
                           <div className="flex items-start justify-between gap-4">
-                            {/* Drag handle + slot number */}
                             <div className="flex flex-col items-center gap-0.5 shrink-0 self-center">
                               <div
                                 className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground"
@@ -6017,14 +2271,6 @@ export default function AdminBlog() {
             {filteredPosts.map((p: (typeof filteredPosts)[number]) => {
               const isEditing = editingId === p.id;
               const isSelected = selectedSlugs.has(p.slug);
-              // In preview mode, suppress the "scheduled" badge for any
-              // post whose publishedAt has already passed the previewed
-              // moment — by then the public would see it as a normal
-              // live post, so the badge would lie. The badge stays for
-              // posts that are *still* scheduled past the preview
-              // cutoff (they wouldn't appear in the list at all in
-              // that case, but be defensive in case the server returns
-              // something edge-case).
               const publishedAtMs = new Date(p.publishedAt).getTime();
               const isStillScheduled = publishedAtMs > visibilityCutoffMs;
               return (

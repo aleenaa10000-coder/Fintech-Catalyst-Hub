@@ -1,4 +1,6 @@
 import { Router, type IRouter } from "express";
+import * as fs from "fs";
+import * as path from "path";
 import { sql } from "drizzle-orm";
 import {
   db,
@@ -111,6 +113,59 @@ router.get("/healthz", async (_req, res) => {
 
   const data = HealthCheckResponse.parse(payload);
   res.status(dbOk ? 200 : 503).json(data);
+});
+
+router.get("/healthz/deep", async (_req, res) => {
+  const probeDb = async (): Promise<{ ok: boolean; latencyMs: number; error?: string }> => {
+    const t0 = Date.now();
+    try {
+      await db.execute(sql`select 1`);
+      return { ok: true, latencyMs: Date.now() - t0 };
+    } catch (err) {
+      logger.warn({ err }, "Deep health: DB probe failed");
+      return { ok: false, latencyMs: Date.now() - t0, error: "database_unavailable" };
+    }
+  };
+
+  const probeEmail = async (): Promise<{ ok: boolean; latencyMs: number; provider: string; error?: string }> => {
+    const t0 = Date.now();
+    const provider = detectEmailProvider();
+    return { ok: provider !== "none", latencyMs: Date.now() - t0, provider };
+  };
+
+  const probeStorage = async (): Promise<{ ok: boolean; latencyMs: number; error?: string }> => {
+    const t0 = Date.now();
+    const uploadsDir = process.env["UPLOADS_DIR"] ?? "data/uploads";
+    try {
+      fs.accessSync(uploadsDir, fs.constants.W_OK);
+      return { ok: true, latencyMs: Date.now() - t0 };
+    } catch (err) {
+      logger.warn({ err }, "Deep health: storage probe failed");
+      return { ok: false, latencyMs: Date.now() - t0, error: "storage_not_writable" };
+    }
+  };
+
+  const [dbResult, emailResult, storageResult] = await Promise.allSettled([
+    probeDb(),
+    probeEmail(),
+    probeStorage(),
+  ]);
+
+  const db_ = dbResult.status === "fulfilled" ? dbResult.value : { ok: false, latencyMs: 0, error: "probe_threw" };
+  const email_ = emailResult.status === "fulfilled" ? emailResult.value : { ok: false, latencyMs: 0, provider: "none", error: "probe_threw" };
+  const storage_ = storageResult.status === "fulfilled" ? storageResult.value : { ok: false, latencyMs: 0, error: "probe_threw" };
+
+  const allOk = db_.ok && email_.ok && storage_.ok;
+  const payload = {
+    status: allOk ? "ok" : "degraded",
+    db: db_,
+    email: email_,
+    storage: storage_,
+    uptimeSeconds: Math.round((Date.now() - startedAt) / 1000),
+    checkedAt: new Date().toISOString(),
+  };
+
+  res.status(allOk ? 200 : 503).json(payload);
 });
 
 export default router;

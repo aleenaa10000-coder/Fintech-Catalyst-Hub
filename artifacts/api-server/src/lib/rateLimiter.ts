@@ -43,3 +43,21 @@ export const viewRateLimiter = rateLimit({
   },
   skipFailedRequests: true,
 });
+
+/**
+ * Rate limiter for admin service mutation endpoints (POST /services,
+ * DELETE /services/:slug). Even though these are protected by requireAdmin,
+ * a rate limit adds a second layer of defence against credential abuse or
+ * brute-force service manipulation — limiting an attacker who has obtained
+ * a valid admin session to 20 mutations per 15 minutes per IP.
+ */
+export const adminMutationRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: "Too many admin mutation requests from this IP. Please wait before retrying.",
+  },
+  skipSuccessfulRequests: false,
+});

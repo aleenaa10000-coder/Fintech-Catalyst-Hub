@@ -6,6 +6,7 @@ import { invalidateSitemapCache } from "./sitemapIndex";
 import { getSiteUrl, notifySearchEnginesOfPublishWithTimeout } from "../lib/seo";
 import { logger } from "../lib/logger";
 import { requireAdmin } from "../lib/routeHelpers";
+import { adminMutationRateLimiter } from "../lib/rateLimiter";
 
 const SEO_NOTIFY_TIMEOUT_MS = 4000;
 
@@ -62,7 +63,7 @@ router.get("/services/:slug", async (req, res, next) => {
   }
 });
 
-router.post("/services", requireAdmin, async (req, res, next) => {
+router.post("/services", requireAdmin, adminMutationRateLimiter, async (req, res, next) => {
   const parsed = CreateServiceBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input", issues: parsed.error.issues });
@@ -114,7 +115,7 @@ router.post("/services", requireAdmin, async (req, res, next) => {
   }
 });
 
-router.delete("/services/:slug", requireAdmin, async (req, res, next) => {
+router.delete("/services/:slug", requireAdmin, adminMutationRateLimiter, async (req, res, next) => {
   const slug = req.params["slug"] as string;
   if (!slug) {
     res.status(400).json({ error: "Missing slug" });
