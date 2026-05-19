@@ -93,6 +93,10 @@ async function sendViaSMTP(opts: SendMailOptions & { from: string }): Promise<bo
 
 const RESEND_API_KEY = process.env["RESEND_API_KEY"];
 const DEFAULT_FROM_EMAIL =
+  // IMPORTANT: Set REPORT_FROM_EMAIL in production to a verified sender address
+  // (e.g. "FintechPressHub <noreply@yourdomain.com>"). The Resend sandbox default
+  // (onboarding@resend.dev) is blocked by most mail providers and only works
+  // inside Resend's test environment.
   process.env["REPORT_FROM_EMAIL"] ?? "FintechPressHub <onboarding@resend.dev>";
 
 async function sendViaResend(opts: SendMailOptions): Promise<boolean> {

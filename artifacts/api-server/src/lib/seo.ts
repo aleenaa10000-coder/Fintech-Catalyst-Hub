@@ -65,7 +65,20 @@ export async function pingIndexNow(urls: string[]): Promise<IndexNowResult> {
     };
   }
 
-  const host = new URL(SITE_URL).host;
+  let host: string;
+  try {
+    host = new URL(SITE_URL).host;
+  } catch {
+    logger.error(
+      { siteUrl: SITE_URL },
+      "SITE_URL is not a valid URL (missing protocol?). IndexNow ping aborted.",
+    );
+    return {
+      status: "error",
+      message: `SITE_URL "${SITE_URL}" is not a valid URL. Ensure it starts with https://.`,
+      urlsSubmitted: 0,
+    };
+  }
   const body = {
     host,
     key: INDEXNOW_KEY,

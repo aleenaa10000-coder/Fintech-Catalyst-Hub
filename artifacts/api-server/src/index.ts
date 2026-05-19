@@ -26,11 +26,12 @@ const REQUIRED_ENV: string[] = ["DATABASE_URL"];
 const REQUIRED_PROD_ENV: string[] = ["SITE_URL"];
 
 const WARN_ENV: { key: string; hint: string }[] = [
-  { key: "SITE_URL",        hint: "sitemaps, RSS, canonical tags, and CORS will use a fallback URL" },
-  { key: "SESSION_SECRET",  hint: "sessions will not survive server restarts" },
-  { key: "ADMIN_EMAILS",    hint: "no admin access will be granted" },
-  { key: "ADMIN_PASSWORD",  hint: "password-based admin login is disabled" },
-  { key: "RESEND_API_KEY",  hint: "all outbound email (digests, alerts, contact replies) will silently fail unless SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS are also set" },
+  { key: "SITE_URL",             hint: "sitemaps, RSS, canonical tags, and CORS will use the fallback URL https://www.fintechpresshub.com" },
+  { key: "SESSION_SECRET",       hint: "set this to a random 64-char hex string — it is reserved for future cookie-signing and helps document the secret surface for Hostinger deployments" },
+  { key: "ADMIN_EMAILS",         hint: "no admin access will be granted" },
+  { key: "ADMIN_PASSWORD",       hint: "password-based admin login is disabled" },
+  { key: "RESEND_API_KEY",       hint: "all outbound email (digests, alerts, contact replies) will silently fail unless SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS are also set" },
+  { key: "REPORT_FROM_EMAIL",    hint: "outbound emails will use the Resend sandbox address onboarding@resend.dev which is blocked by most mail providers in production — set to 'Name <you@yourdomain.com>'" },
 ];
 
 function validateEnv(): void {
@@ -53,7 +54,7 @@ function validateEnv(): void {
     process.exit(1);
   }
 
-  // Warn about important-but-optional vars (dev only for SITE_URL; always for auth vars)
+  // Warn about important-but-optional vars
   for (const { key, hint } of WARN_ENV) {
     if (isProduction && REQUIRED_PROD_ENV.includes(key)) continue; // already required-checked
     if (!process.env[key]?.trim()) {
@@ -62,6 +63,16 @@ function validateEnv(): void {
         `[startup] Optional env var "${key}" is not set — ${hint}. See .env.example.`,
       );
     }
+  }
+
+  // Validate SITE_URL is a proper URL (not just a bare hostname) so that
+  // new URL(SITE_URL) never throws at runtime (e.g. in pingIndexNow).
+  const siteUrl = process.env["SITE_URL"]?.trim();
+  if (siteUrl && !siteUrl.startsWith("http://") && !siteUrl.startsWith("https://")) {
+    logger.warn(
+      { SITE_URL: siteUrl },
+      "[startup] SITE_URL does not start with https:// — URL construction will fail at runtime. Correct format: https://www.yourdomain.com",
+    );
   }
 }
 

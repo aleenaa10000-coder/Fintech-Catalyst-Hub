@@ -1,10 +1,21 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { getSiteUrl } from "../lib/seo";
+import { requireAdmin } from "../lib/routeHelpers";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-router.get("/__seo-debug", async (req: Request, res: Response) => {
-  const targetPath = (req.query.path as string) || "/";
+router.get("/__seo-debug", requireAdmin, async (req: Request, res: Response) => {
+  // Validate the path to prevent SSRF: it must begin with "/" and must not
+  // contain "@" (URL authority-injection) or "://" (full-URL injection).
+  const rawPath = typeof req.query.path === "string" ? req.query.path : "/";
+  if (!rawPath.startsWith("/") || rawPath.includes("@") || rawPath.includes("://")) {
+    res.status(400).json({
+      error: "Invalid path: must start with '/' and must not contain '@' or '://'.",
+    });
+    return;
+  }
+  const targetPath = rawPath;
   const siteUrl = getSiteUrl();
   const targetUrl = `${siteUrl}${targetPath}`;
 
