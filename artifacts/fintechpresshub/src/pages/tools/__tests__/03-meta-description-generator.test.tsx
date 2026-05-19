@@ -17,7 +17,7 @@ describe("Meta Description Generator", () => {
   });
 
   it("enables generate button after filling required fields", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<MetaDescriptionGenerator />);
     const inputs = screen.getAllByRole("textbox");
     await user.type(inputs[0], "Best Fintech Tools 2025");
@@ -27,7 +27,7 @@ describe("Meta Description Generator", () => {
   });
 
   it("generates and displays meta descriptions after clicking generate", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<MetaDescriptionGenerator />);
     const inputs = screen.getAllByRole("textbox");
     await user.type(inputs[0], "Best Fintech Payment Solutions 2025");
@@ -40,7 +40,7 @@ describe("Meta Description Generator", () => {
   });
 
   it("resets fields when Reset is clicked", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<MetaDescriptionGenerator />);
     const inputs = screen.getAllByRole("textbox");
     await user.type(inputs[0], "Test Title");

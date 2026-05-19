@@ -39,7 +39,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("enables generate button once required fields are filled", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     await fillRequiredFields(user);
     const btn = screen.getByRole("button", { name: /generate pitch email/i });
@@ -47,7 +47,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("generates and displays pitch email content after clicking generate", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
@@ -60,7 +60,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("Regenerate button appears after first generate", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
@@ -68,7 +68,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("Regenerate produces a different opening sentence on the same inputs", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
@@ -83,7 +83,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("Regenerate does not clear the form fields", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
@@ -95,7 +95,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("Copy subject line button appears after pitch is generated", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
@@ -103,7 +103,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("greeting uses only first name when a full name is provided", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     const inputs = screen.getAllByRole("textbox");
     await user.type(inputs[0], "Jane Smith");
@@ -120,7 +120,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("greeting defaults to 'Hi there,' when editor name is empty", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     const inputs = screen.getAllByRole("textbox");
     await user.type(inputs[0], "Jane Smith");
@@ -135,7 +135,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("formal tone uses 'Dear [FirstName],' when a name is provided", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     const inputs = screen.getAllByRole("textbox");
     await user.type(inputs[0], "Jane Smith");
@@ -155,7 +155,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("formal tone defaults to 'Hi there,' when editor name is empty", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     const inputs = screen.getAllByRole("textbox");
     await user.type(inputs[0], "Jane Smith");
@@ -174,7 +174,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("subject line title-cases the topic while preserving acronyms", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     const inputs = screen.getAllByRole("textbox");
     await user.type(inputs[0], "Jane Smith");
@@ -191,7 +191,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("email body wraps the topic in double quotation marks", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
@@ -200,7 +200,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("Regenerate button shows a word-count delta badge after first regenerate", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
@@ -211,7 +211,7 @@ describe("Guest Post Pitch Generator", () => {
   });
 
   it("word-count delta resets to hidden after a fresh Generate", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<GuestPostPitchGenerator />);
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /generate pitch email/i }));
