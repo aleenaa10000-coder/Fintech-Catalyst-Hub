@@ -39,18 +39,21 @@ export interface SessionData {
 let oidcConfig: client.Configuration | null = null;
 
 export async function getOidcConfig(): Promise<client.Configuration> {
-  const replId = process.env.REPL_ID;
-  if (!replId) {
+  // Support OIDC_CLIENT_ID as a portable alternative to REPL_ID so the app
+  // can authenticate on Hostinger (or any non-Replit host) without renaming
+  // the variable. On Replit the platform injects REPL_ID automatically.
+  const clientId = process.env.OIDC_CLIENT_ID ?? process.env.REPL_ID;
+  if (!clientId) {
     throw new Error(
-      "REPL_ID environment variable is not set. " +
-      "Replit OIDC authentication requires a Replit environment. " +
-      "Set REPL_ID to your application ID, or omit login/logout flows on non-Replit hosts.",
+      "OIDC client ID is not set. " +
+      "Set OIDC_CLIENT_ID (or REPL_ID on Replit) to your Replit application ID. " +
+      "Find it in your Replit workspace URL: replit.com/app/<REPL_ID>.",
     );
   }
   if (!oidcConfig) {
     oidcConfig = await client.discovery(
       new URL(ISSUER_URL),
-      replId,
+      clientId,
     );
   }
   return oidcConfig;

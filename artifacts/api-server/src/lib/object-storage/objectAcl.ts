@@ -146,7 +146,7 @@ function readMeta(objectFile: LocalFile): Record<string, unknown> {
     if (fs.existsSync(objectFile.metaPath)) {
       return JSON.parse(fs.readFileSync(objectFile.metaPath, "utf8"));
     }
-  } catch {}
+  } catch { /* malformed or missing meta JSON — return empty object as safe default */ }
   return {};
 }
 

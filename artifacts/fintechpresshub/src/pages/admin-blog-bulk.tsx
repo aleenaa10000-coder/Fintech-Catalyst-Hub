@@ -262,7 +262,7 @@ export function BulkProbeButton({ posts }: { posts: BlogPost[] }) {
       } else {
         window.localStorage.removeItem(BULK_PROBE_STORAGE_KEY);
       }
-    } catch { }
+    } catch { /* localStorage may be unavailable (private mode / QuotaExceededError) — non-fatal */ }
   }, [summary]);
 
   const runAll = async () => {

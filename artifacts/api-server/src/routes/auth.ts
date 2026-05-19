@@ -127,7 +127,7 @@ router.get("/login", async (req: Request, res: Response) => {
   } catch {
     res.status(503).type("text/plain").send(
       "Authentication is not available in this environment. " +
-      "REPL_ID must be set to enable Replit OIDC login.",
+      "Set OIDC_CLIENT_ID (or REPL_ID on Replit) to your Replit application ID to enable login.",
     );
     return;
   }
@@ -242,7 +242,7 @@ router.get("/logout", async (req: Request, res: Response) => {
 
   const origin = getOrigin(req);
   const endSessionUrl = oidc.buildEndSessionUrl(config, {
-    client_id: process.env.REPL_ID ?? "",
+    client_id: process.env.OIDC_CLIENT_ID ?? process.env.REPL_ID ?? "",
     post_logout_redirect_uri: origin,
   });
 

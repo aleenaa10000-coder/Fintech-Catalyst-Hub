@@ -137,7 +137,7 @@ export default function AdminStats() {
 
   return (
     <>
-      <PageMeta title="Homepage Stats | Admin" noIndex />
+      <PageMeta title="Homepage Stats | Admin" noindex />
       <div className="container mx-auto px-4 py-10 max-w-2xl">
         <div className="mb-6">
           <Link
