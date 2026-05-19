@@ -5,9 +5,10 @@ interface CountUpProps {
   duration?: number;
   suffix?: string;
   className?: string;
+  separator?: boolean;
 }
 
-export function CountUp({ end, duration = 2000, suffix = "", className }: CountUpProps) {
+export function CountUp({ end, duration = 2000, suffix = "", className, separator = true }: CountUpProps) {
   const [value, setValue] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const ref = useRef<HTMLSpanElement | null>(null);
@@ -46,9 +47,11 @@ export function CountUp({ end, duration = 2000, suffix = "", className }: CountU
     return () => cancelAnimationFrame(raf);
   }, [hasStarted, end, duration]);
 
+  const formatted = separator ? value.toLocaleString("en-US") : String(value);
+
   return (
     <span ref={ref} className={className}>
-      {value.toLocaleString("en-US")}
+      {formatted}
       {suffix}
     </span>
   );
