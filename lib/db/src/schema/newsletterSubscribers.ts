@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const BRIEF_LEAD_STATUSES = ["new", "in_progress", "sent", "actioned"] as const;
 export type BriefLeadStatus = typeof BRIEF_LEAD_STATUSES[number];
@@ -18,5 +18,6 @@ export const newsletterSubscribersTable = pgTable(
   },
   (table) => ({
     emailUnique: uniqueIndex("newsletter_subscribers_email_unique").on(table.email),
+    createdAtIdx: index("newsletter_subscribers_created_at_idx").on(table.createdAt),
   }),
 );

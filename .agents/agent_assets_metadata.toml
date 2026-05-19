@@ -185,3 +185,9 @@ id = "QF9mGT3ncomfk-NPtLjfP"
 uri = "file://docs/compare-section-seo-audit-report.md"
 type = "text"
 title = "Compare Section — Complete Exhaustive SEO Audit (8 Categories, 22 Issues Fixed, 100/100)"
+
+[[outputs]]
+id = "WB3RDXa7FmobOTvvVUquy"
+uri = "file://docs/audit-report-2026-05-19.md"
+type = "text"
+title = "FintechPressHub — Exhaustive Audit Report (68 → 93/100)"

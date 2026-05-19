@@ -10,5 +10,5 @@ export const pressMentionsTable = pgTable("press_mentions", {
   logoUrl: text("logo_url"),
   category: text("category"),
   sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

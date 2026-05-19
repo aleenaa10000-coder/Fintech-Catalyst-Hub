@@ -1,4 +1,4 @@
-import { doublePrecision, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { doublePrecision, index, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 export const locationPagesTable = pgTable("location_pages", {
   id: serial("id").primaryKey(),
@@ -23,6 +23,9 @@ export const locationPagesTable = pgTable("location_pages", {
   seoDescription: text("seo_description"),
   lat: doublePrecision("lat"),
   lng: doublePrecision("lng"),
-});
+}, (table) => ({
+  countryIdx: index("location_pages_country_idx").on(table.country),
+  cityIdx: index("location_pages_city_idx").on(table.city),
+}));
 
 export type LocationPageRow = typeof locationPagesTable.$inferSelect;
