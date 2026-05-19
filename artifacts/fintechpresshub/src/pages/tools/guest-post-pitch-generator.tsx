@@ -865,7 +865,6 @@ export default function GuestPostPitchGenerator() {
       doc.save(`pitch-${slug}.pdf`);
       trackEvent("Result Downloaded", { tool: "guest-post-pitch-generator", format: "pdf" });
     } catch (err) {
-      console.error("PDF export failed", err);
       toast.error("PDF export failed", { description: "Please try again." });
     } finally {
       setPdfExporting(false);

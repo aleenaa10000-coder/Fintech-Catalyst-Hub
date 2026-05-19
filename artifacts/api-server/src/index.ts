@@ -10,6 +10,7 @@ import { schedulePublishNotifyHourly } from "./jobs/scheduledPostPublishNotify";
 import { schedulePitchDigestDaily } from "./jobs/pitchDigestDaily";
 import { scheduleSchemaHealthDaily } from "./jobs/schemaHealthDaily";
 import { scheduleInternalLinkCheckDaily } from "./jobs/internalLinkCheckDaily";
+import { scheduleSessionCleanupDaily } from "./jobs/sessionCleanupDaily";
 
 // ── Startup environment validation (F1) ──────────────────────────────────────
 // These vars are required for the server to function correctly. The process
@@ -128,6 +129,7 @@ async function bootstrap() {
     schedulePitchDigestDaily();
     scheduleSchemaHealthDaily();
     scheduleInternalLinkCheckDaily();
+    scheduleSessionCleanupDaily();
   });
 
   server.on("error", (err: NodeJS.ErrnoException) => {

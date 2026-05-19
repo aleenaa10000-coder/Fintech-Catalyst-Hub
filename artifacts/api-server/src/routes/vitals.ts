@@ -52,7 +52,11 @@ router.get(
   requireAdmin,
   async (req: Request, res: Response, next: (err?: unknown) => void) => {
     try {
-      const days = Math.min(Number(req.query.days ?? 30), 90);
+      const rawDays = req.query.days;
+      const parsedDays = rawDays !== undefined ? Number(rawDays) : 30;
+      const days = Number.isFinite(parsedDays) && parsedDays > 0
+        ? Math.min(parsedDays, 90)
+        : 30;
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
       const rows = await db
