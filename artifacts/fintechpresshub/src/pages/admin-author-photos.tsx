@@ -240,7 +240,7 @@ export default function AdminAuthorPhotos() {
 
   return (
     <div className="min-h-screen bg-background py-16">
-      <PageMeta page="adminBlog" />
+      <PageMeta page="adminBlog" noindex />
       <div className="container mx-auto px-4 max-w-5xl">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>

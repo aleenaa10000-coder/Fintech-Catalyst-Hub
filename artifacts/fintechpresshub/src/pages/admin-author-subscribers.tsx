@@ -208,7 +208,7 @@ export default function AdminAuthorSubscribers() {
 
   return (
     <div className="min-h-screen bg-background py-16">
-      <PageMeta page="adminBlog" />
+      <PageMeta page="adminBlog" noindex />
       <div className="container mx-auto px-4 max-w-5xl">
         <Link href="/admin/authors/subscribers">
           <Button variant="ghost" size="sm" className="mb-4">

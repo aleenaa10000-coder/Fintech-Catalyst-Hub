@@ -109,7 +109,7 @@ export default function AdminServices() {
 
   return (
     <div className="min-h-screen bg-background py-16">
-      <PageMeta page="adminServices" />
+      <PageMeta page="adminServices" noindex />
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
           <div>

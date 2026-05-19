@@ -171,7 +171,7 @@ export default function AdminCommissioningTopics() {
 
   return (
     <div className="min-h-screen bg-background py-16">
-      <PageMeta page="adminCommissioningTopics" />
+      <PageMeta page="adminCommissioningTopics" noindex />
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
           <div>

@@ -298,7 +298,7 @@ export default function AdminAuthors() {
 
   return (
     <div className="min-h-screen bg-background py-12">
-      <PageMeta page="adminBlog" />
+      <PageMeta page="adminBlog" noindex />
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>

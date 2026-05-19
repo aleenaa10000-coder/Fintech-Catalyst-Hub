@@ -901,7 +901,7 @@ export default function AdminModeration() {
 
   return (
     <div className="min-h-screen bg-background py-16">
-      <PageMeta page="adminModeration" />
+      <PageMeta page="adminModeration" noindex />
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>

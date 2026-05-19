@@ -161,7 +161,7 @@ export default function AdminAuthorsSubscribers() {
 
   return (
     <div className="min-h-screen bg-background py-16">
-      <PageMeta page="adminBlog" />
+      <PageMeta page="adminBlog" noindex />
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="mb-10">
           <div className="text-xs uppercase tracking-wider text-[#0052FF] font-semibold mb-2">

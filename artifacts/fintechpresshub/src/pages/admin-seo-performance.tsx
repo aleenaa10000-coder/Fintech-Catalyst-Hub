@@ -395,6 +395,7 @@ export default function AdminSeoPerformance() {
       <PageMeta
         title="SEO Performance — Admin"
         description="Content indexing health, IndexNow ping status, and per-post SEO metadata completeness."
+        noindex
       />
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
         {/* Header */}

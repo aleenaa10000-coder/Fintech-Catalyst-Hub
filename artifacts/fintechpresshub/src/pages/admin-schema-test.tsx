@@ -686,6 +686,7 @@ export default function AdminSchemaTest() {
       <PageMeta
         title="Schema & Rich Results — Admin"
         description="Validate JSON-LD structured data coverage and run live Google Rich Results Tests on any page URL."
+        noindex
       />
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
         {/* Header */}
