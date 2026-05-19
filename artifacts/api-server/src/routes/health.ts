@@ -43,7 +43,10 @@ router.get("/healthz", async (_req, res) => {
     dbLatencyMs = Date.now() - t0;
   } catch (err) {
     dbLatencyMs = Date.now() - t0;
-    dbError = err instanceof Error ? err.message : String(err);
+    // Store a generic code — the real error is logged server-side only,
+    // never returned to callers to avoid leaking connection strings or
+    // schema details via the public health endpoint.
+    dbError = "database_unavailable";
     logger.warn({ err }, "Health check: database probe failed");
   }
 
@@ -81,11 +84,11 @@ router.get("/healthz", async (_req, res) => {
       };
       seedOk = Object.values(seedCounts).every((n) => n > 0);
     } catch (err) {
-      seedError = err instanceof Error ? err.message : String(err);
+      seedError = "seed_check_failed";
       logger.warn({ err }, "Health check: seed-data probe failed");
     }
   } else {
-    seedError = "skipped — database probe failed";
+    seedError = "skipped_db_unavailable";
   }
 
   const seedData = {

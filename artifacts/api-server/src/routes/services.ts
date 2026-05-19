@@ -13,7 +13,7 @@ const router: IRouter = Router();
 
 router.get("/services", async (_req, res, next) => {
   try {
-    const rows = await db.select().from(servicesTable).orderBy(asc(servicesTable.id));
+    const rows = await db.select().from(servicesTable).orderBy(asc(servicesTable.id)).limit(500);
     res.json(
       rows.map((r: { id: number; slug: string; name: string; tagline: string | null; description: string | null; deliverables: string[] | null; icon: string | null }) => ({
         id: r.id,

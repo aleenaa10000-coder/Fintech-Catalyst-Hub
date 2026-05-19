@@ -81,9 +81,9 @@ router.get("/__seo-debug", async (req: Request, res: Response) => {
       generatedAt: new Date().toISOString(),
     });
   } catch (err) {
+    logger.warn({ err, targetUrl }, "seo-debug: failed to fetch target URL");
     res.status(500).json({
       error: "Failed to fetch target URL",
-      message: err instanceof Error ? err.message : String(err),
       url: targetUrl,
     });
   }

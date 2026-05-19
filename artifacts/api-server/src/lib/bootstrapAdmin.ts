@@ -29,7 +29,8 @@ export async function bootstrapAdminFromEnv(): Promise<void> {
 
   if (emails.length === 0) return;
 
-  const hash = await bcrypt.hash(rawPassword, 10);
+  // Use cost factor 12, consistent with the dummy hash in adminAuth.ts.
+  const hash = await bcrypt.hash(rawPassword, 12);
 
   for (const email of emails) {
     const [existing] = await db

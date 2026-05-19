@@ -38,11 +38,15 @@ router.get("/admin/media", requireAdmin, async (_req, res) => {
             const acl = meta["aclPolicy"] as { visibility?: string } | undefined;
             if (acl?.visibility) visibility = acl.visibility;
           }
-        } catch {}
+        } catch (metaErr) {
+          logger.warn({ metaErr, metaPath }, "uploads: failed to read metadata file");
+        }
         let sizeBytes = 0;
         try {
           sizeBytes = fs.statSync(filePath).size;
-        } catch {}
+        } catch (statErr) {
+          logger.warn({ statErr, filePath }, "uploads: failed to stat file");
+        }
         return {
           id: name,
           objectPath: `/objects/uploads/${name}`,
@@ -101,6 +105,24 @@ router.delete("/admin/media/:id", requireAdmin, (req, res) => {
  *
  * Auth-gated so only signed-in admins can upload files.
  */
+/**
+ * Allowlisted MIME types for uploaded files.
+ * SVG and HTML are intentionally excluded — they can embed JavaScript
+ * and would enable stored-XSS when served back from the same origin.
+ */
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/avif",
+  "application/pdf",
+  "text/plain",
+  "text/csv",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
 router.post(
   "/api/uploads/upload",
   express.raw({ type: "*/*", limit: "20mb" }),
@@ -113,6 +135,14 @@ router.post(
       const contentType =
         (req.headers["content-type"] ?? "").split(";")[0]?.trim() ||
         "application/octet-stream";
+
+      if (!ALLOWED_MIME_TYPES.has(contentType)) {
+        res.status(415).json({
+          error: `Unsupported file type: ${contentType}. Allowed types: JPEG, PNG, GIF, WebP, AVIF, PDF, plain text, CSV, Word documents.`,
+        });
+        return;
+      }
+
       const userId =
         (req.user as { id?: string } | undefined)?.id ?? "anonymous";
       const buffer = req.body as Buffer;

@@ -24,7 +24,8 @@ router.get("/testimonials", async (_req, res) => {
     const rows = await db
       .select()
       .from(testimonialsTable)
-      .orderBy(asc(testimonialsTable.sortOrder), asc(testimonialsTable.createdAt));
+      .orderBy(asc(testimonialsTable.sortOrder), asc(testimonialsTable.createdAt))
+      .limit(500);
     res.json(rows);
   } catch (err) {
     logger.error({ err }, "Failed to fetch testimonials");

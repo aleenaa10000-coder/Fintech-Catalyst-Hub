@@ -25,7 +25,8 @@ router.get("/press-mentions", async (_req, res, next) => {
     const rows = await db
       .select()
       .from(pressMentionsTable)
-      .orderBy(asc(pressMentionsTable.sortOrder), asc(pressMentionsTable.createdAt));
+      .orderBy(asc(pressMentionsTable.sortOrder), asc(pressMentionsTable.createdAt))
+      .limit(500);
     res.json(rows);
   } catch (err) {
     next(err);
