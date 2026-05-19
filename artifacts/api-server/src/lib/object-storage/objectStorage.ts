@@ -13,8 +13,9 @@ import {
 } from "./objectAcl";
 
 /**
- * Local-disk storage root.  On Replit the workspace has 254 GB of space so
- * we persist uploads here.  The directory is created on first use.
+ * Local-disk storage root. Uploads are persisted here on any Node.js host
+ * (Replit, Hostinger, etc.). The directory is created on first use.
+ * Set LOCAL_UPLOADS_DIR to override the default path.
  */
 const UPLOADS_DIR = path.resolve(
   process.env.LOCAL_UPLOADS_DIR ||

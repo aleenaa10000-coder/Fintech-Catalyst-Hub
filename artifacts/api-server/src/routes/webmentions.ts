@@ -26,17 +26,25 @@ router.post("/webmention", async (req: Request, res: Response) => {
     return;
   }
   const targetPath = target.replace(siteUrl, "") || "/";
-  await db.insert(webmentionsTable).values({ sourceUrl: source, targetUrl: target, targetPath });
-  res.status(202).json({ message: "Webmention received and queued for processing" });
+  try {
+    await db.insert(webmentionsTable).values({ sourceUrl: source, targetUrl: target, targetPath });
+    res.status(202).json({ message: "Webmention received and queued for processing" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to store webmention" });
+  }
 });
 
 router.get("/admin/webmentions", requireAdmin, async (_req: Request, res: Response) => {
-  const rows = await db
-    .select()
-    .from(webmentionsTable)
-    .orderBy(desc(webmentionsTable.receivedAt))
-    .limit(200);
-  res.json(rows);
+  try {
+    const rows = await db
+      .select()
+      .from(webmentionsTable)
+      .orderBy(desc(webmentionsTable.receivedAt))
+      .limit(200);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch webmentions" });
+  }
 });
 
 export default router;

@@ -6,6 +6,7 @@ import cors from "cors";
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
+import { z } from "zod";
 import router from "./routes";
 import sitemapRouter from "./routes/sitemap";
 import sitemapIndexRouter from "./routes/sitemapIndex";
@@ -23,6 +24,7 @@ import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
 import { ssrMetaMiddleware } from "./middlewares/ssrMeta";
 import { getSiteUrl } from "./lib/seo";
+import { db, webmentionsTable } from "@workspace/db";
 
 const app: Express = express();
 
@@ -432,18 +434,34 @@ app.get("/robots.txt", (_req: Request, res: Response) => {
 // Accepts POST notifications when external pages cite FintechPressHub content.
 // Advertised via <link rel="webmention"> in <head> so compatible publishing tools
 // (WordPress Webmention plugin, Bridgy, Telegraph) auto-discover the endpoint.
-// Returns 202 Accepted for valid submissions; 400 for missing required fields.
-// Full async processing (source verification, database storage) would be added
-// in a future iteration — this initial endpoint satisfies the W3C protocol
-// requirement of accepting and acknowledging inbound WebMention requests.
-app.post("/webmention", express.urlencoded({ extended: false }), (req: Request, res: Response): void => {
-  const body = (req.body ?? {}) as { source?: string; target?: string };
-  const { source, target } = body;
-  if (!source || !target) {
-    res.status(400).json({ error: "source and target parameters are required" });
+// Returns 202 Accepted for valid submissions; 400 for invalid fields.
+// This root-level endpoint stores the webmention directly in the database.
+// The /api/webmention endpoint (under the API router) mirrors this behaviour
+// for API clients that use the /api/ prefix.
+const WebmentionBodySchema = z.object({
+  source: z.string().url(),
+  target: z.string().url(),
+});
+app.post("/webmention", express.urlencoded({ extended: false }), async (req: Request, res: Response): Promise<void> => {
+  const parsed = WebmentionBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "source and target are required valid URLs" });
     return;
   }
-  res.status(202).json({ status: "accepted", source, target });
+  const { source, target } = parsed.data;
+  const siteUrl = getSiteUrl().replace(/\/+$/, "");
+  if (!target.startsWith(siteUrl)) {
+    res.status(400).json({ error: "target must be a URL on this site" });
+    return;
+  }
+  const targetPath = target.replace(siteUrl, "") || "/";
+  try {
+    await db.insert(webmentionsTable).values({ sourceUrl: source, targetUrl: target, targetPath });
+    res.status(202).json({ status: "accepted", source, target });
+  } catch (err) {
+    logger.error({ err, source, target }, "webmention: failed to store");
+    res.status(500).json({ error: "Failed to store webmention" });
+  }
 });
 
 // /ai.txt — redirect to canonical well-known path. Many AI crawlers and

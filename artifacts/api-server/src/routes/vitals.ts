@@ -28,15 +28,18 @@ router.post("/vitals", async (req: Request, res: Response) => {
     return;
   }
 
-  await db.insert(webVitalsTable).values({
-    name: parsed.data.name,
-    value: parsed.data.value,
-    rating: parsed.data.rating,
-    delta: parsed.data.delta ?? null,
-    page: parsed.data.page.slice(0, 2000),
-  });
-
-  res.status(201).json({ ok: true });
+  try {
+    await db.insert(webVitalsTable).values({
+      name: parsed.data.name,
+      value: parsed.data.value,
+      rating: parsed.data.rating,
+      delta: parsed.data.delta ?? null,
+      page: parsed.data.page.slice(0, 2000),
+    });
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to record vitals" });
+  }
 });
 
 /**
@@ -46,7 +49,7 @@ router.post("/vitals", async (req: Request, res: Response) => {
  */
 router.get(
   "/admin/vitals/summary",
-  requireAdmin as (req: Request, res: Response, next: () => void) => void,
+  requireAdmin,
   async (req: Request, res: Response, next: (err?: unknown) => void) => {
     try {
       const days = Math.min(Number(req.query.days ?? 30), 90);

@@ -11,6 +11,7 @@ import { eq, desc, asc, sql, inArray, and, lte, gt, type SQL } from "drizzle-orm
 import { ListBlogPostsQueryParams, GetBlogPostParams } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { isAdminEmail } from "../lib/auth";
+import { viewRateLimiter } from "../lib/rateLimiter";
 
 import {
   getSiteUrl,
@@ -494,20 +495,29 @@ router.get("/blog/posts/:slug", async (req, res) => {
  * Uses a single UPDATE ... RETURNING so we never have to read-modify-write
  * (which would race under concurrent loads).
  */
-router.post("/blog/posts/:slug/view", async (req, res) => {
-  const params = GetBlogPostParams.parse({ slug: req.params.slug });
-  // Only count views once a post is publicly visible — scheduled posts
-  // shouldn't accumulate "phantom" views from admin preview hits.
-  const [row] = await db
-    .update(blogPostsTable)
-    .set({ viewCount: sql`${blogPostsTable.viewCount} + 1` })
-    .where(and(eq(blogPostsTable.slug, params.slug), visibleToPublic()))
-    .returning({ slug: blogPostsTable.slug, viewCount: blogPostsTable.viewCount });
-  if (!row) {
-    res.status(404).json({ error: "Not found" });
-    return;
+router.post("/blog/posts/:slug/view", viewRateLimiter, async (req, res) => {
+  try {
+    const params = GetBlogPostParams.safeParse({ slug: req.params.slug });
+    if (!params.success) {
+      res.status(400).json({ error: "Invalid slug" });
+      return;
+    }
+    // Only count views once a post is publicly visible — scheduled posts
+    // shouldn't accumulate "phantom" views from admin preview hits.
+    const [row] = await db
+      .update(blogPostsTable)
+      .set({ viewCount: sql`${blogPostsTable.viewCount} + 1` })
+      .where(and(eq(blogPostsTable.slug, params.data.slug), visibleToPublic()))
+      .returning({ slug: blogPostsTable.slug, viewCount: blogPostsTable.viewCount });
+    if (!row) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    res.json({ slug: row.slug, viewCount: row.viewCount });
+  } catch (err) {
+    logger.error({ err, slug: req.params.slug }, "blog: failed to increment view count");
+    res.status(500).json({ error: "Failed to record view" });
   }
-  res.json({ slug: row.slug, viewCount: row.viewCount });
 });
 
 /**

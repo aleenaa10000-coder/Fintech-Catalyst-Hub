@@ -99,9 +99,18 @@ router.post("/services", requireAdmin, async (req, res, next) => {
       deliverables: row.deliverables ?? [],
       icon: row.icon,
     });
-  } catch (err) {
+  } catch (err: unknown) {
     logger.error({ err, slug: body.slug }, "services: failed to create service");
-    res.status(409).json({ error: "Slug already exists or insert failed" });
+    const isUniqueViolation =
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      (err as { code?: string }).code === "23505";
+    if (isUniqueViolation) {
+      res.status(409).json({ error: "A service with this slug already exists" });
+    } else {
+      res.status(500).json({ error: "Failed to create service" });
+    }
   }
 });
 
