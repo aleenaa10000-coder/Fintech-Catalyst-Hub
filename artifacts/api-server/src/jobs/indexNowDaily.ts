@@ -96,7 +96,13 @@ export async function runIndexNowDaily(): Promise<void> {
   }
 
   const now = new Date();
-  const lastRunAt = await readLastRunAt();
+  let lastRunAt: Date | null;
+  try {
+    lastRunAt = await readLastRunAt();
+  } catch (err) {
+    JOB_LOG.error({ err }, "IndexNow: failed to read last-run cursor from kv_store; will retry tomorrow");
+    return;
+  }
 
   // Window: posts published since (lastRunAt - 1h overlap), capped at 36h back.
   const earliestAllowed = new Date(now.getTime() - MAX_LOOKBACK_MS);
@@ -110,25 +116,34 @@ export async function runIndexNowDaily(): Promise<void> {
 
   // Collect recently updated content across all four tables in parallel.
   // Blog posts use publishedAt; glossary/service/location pages use updatedAt.
-  const [recentPosts, recentGlossary, recentServices, recentLocations] =
-    await Promise.all([
-      db
-        .select({ slug: blogPostsTable.slug })
-        .from(blogPostsTable)
-        .where(gt(blogPostsTable.publishedAt, since)),
-      db
-        .select({ slug: glossaryTermsTable.slug })
-        .from(glossaryTermsTable)
-        .where(gt(glossaryTermsTable.updatedAt, since)),
-      db
-        .select({ slug: servicesTable.slug })
-        .from(servicesTable)
-        .where(gt(servicesTable.updatedAt, since)),
-      db
-        .select({ slug: locationPagesTable.slug })
-        .from(locationPagesTable)
-        .where(gt(locationPagesTable.updatedAt, since)),
-    ]);
+  let recentPosts: { slug: string }[];
+  let recentGlossary: { slug: string }[];
+  let recentServices: { slug: string }[];
+  let recentLocations: { slug: string }[];
+  try {
+    [recentPosts, recentGlossary, recentServices, recentLocations] =
+      await Promise.all([
+        db
+          .select({ slug: blogPostsTable.slug })
+          .from(blogPostsTable)
+          .where(gt(blogPostsTable.publishedAt, since)),
+        db
+          .select({ slug: glossaryTermsTable.slug })
+          .from(glossaryTermsTable)
+          .where(gt(glossaryTermsTable.updatedAt, since)),
+        db
+          .select({ slug: servicesTable.slug })
+          .from(servicesTable)
+          .where(gt(servicesTable.updatedAt, since)),
+        db
+          .select({ slug: locationPagesTable.slug })
+          .from(locationPagesTable)
+          .where(gt(locationPagesTable.updatedAt, since)),
+      ]);
+  } catch (err) {
+    JOB_LOG.error({ err }, "IndexNow: DB query failed while collecting updated content; will retry tomorrow");
+    return;
+  }
 
   const STATIC_TOOL_SLUGS = [
     "financial-health-score-calculator",

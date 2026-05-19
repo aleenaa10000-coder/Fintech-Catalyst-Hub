@@ -389,8 +389,13 @@ export async function runDailyLinkCheck(): Promise<void> {
   if (hreflangMismatches.length > 0) {
     const nowMs = Date.now();
     const shouldAlert =
-      lastHreflangAlertMs === null ||
-      nowMs - lastHreflangAlertMs >= HREFLANG_RENOTIFY_MS;
+      // Only page admins in production — in development the checker fetches
+      // from the canonical SITE_URL which may not be deployed yet, causing
+      // every page to return a fetch_error and producing 26 false-positive
+      // mismatches on every run.
+      process.env["NODE_ENV"] === "production" &&
+      (lastHreflangAlertMs === null ||
+        nowMs - lastHreflangAlertMs >= HREFLANG_RENOTIFY_MS);
 
     if (shouldAlert && recipients.length > 0) {
       const { subject, text } = buildHreflangAlertEmail(hreflangMismatches);

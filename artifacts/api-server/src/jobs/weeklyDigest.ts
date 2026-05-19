@@ -93,7 +93,13 @@ export async function runWeeklyDigest(
   options: { force?: boolean } = {},
 ): Promise<{ ok: boolean; reason?: string; sentAt?: string }> {
   const force = options.force === true;
-  const settings = await getNotificationSettings();
+  let settings: Awaited<ReturnType<typeof getNotificationSettings>>;
+  try {
+    settings = await getNotificationSettings();
+  } catch (err) {
+    JOB_LOG.error({ err }, "weekly-digest: failed to read notification settings");
+    return { ok: false, reason: "settings_read_failed" };
+  }
 
   if (!settings.slackWebhookUrl) {
     return { ok: false, reason: "no_webhook" };

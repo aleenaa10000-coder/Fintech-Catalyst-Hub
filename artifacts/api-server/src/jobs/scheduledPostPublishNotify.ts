@@ -108,13 +108,25 @@ function buildEmailBody(
 }
 
 export async function runScheduledPostPublishNotify(): Promise<void> {
-  const settings = await getNotificationSettings();
+  let settings: Awaited<ReturnType<typeof getNotificationSettings>>;
+  try {
+    settings = await getNotificationSettings();
+  } catch (err) {
+    JOB_LOG.error({ err }, "publish-notify: failed to read notification settings; will retry next hour");
+    return;
+  }
   if (!settings.publishNotifyEnabled || !settings.publishNotifyEmail) {
     return;
   }
 
   const now = new Date();
-  const lastCheck = await getLastCheckAt();
+  let lastCheck: Date;
+  try {
+    lastCheck = await getLastCheckAt();
+  } catch (err) {
+    JOB_LOG.error({ err }, "publish-notify: failed to read last-check cursor from kv_store; will retry next hour");
+    return;
+  }
 
   // Protect against an uninitialized store sending one huge catch-up
   // email on first run — treat anything older than 2 hours as "2 hours ago".
@@ -168,11 +180,15 @@ export function schedulePublishNotifyHourly(): void {
   scheduled = true;
 
   setTimeout(() => {
-    void runScheduledPostPublishNotify();
+    void runScheduledPostPublishNotify().catch((err) =>
+      JOB_LOG.error({ err }, "publish-notify: unexpected error in scheduled run"),
+    );
   }, INITIAL_DELAY_MS);
 
   setInterval(() => {
-    void runScheduledPostPublishNotify();
+    void runScheduledPostPublishNotify().catch((err) =>
+      JOB_LOG.error({ err }, "publish-notify: unexpected error in interval run"),
+    );
   }, ONE_HOUR_MS);
 
   JOB_LOG.info(

@@ -211,8 +211,16 @@ router.post("/pitch", formRateLimiter, async (req, res) => {
   });
 
   if (!notified) {
-    logger.error({ topic: safe.raw.topic }, "pitch: failed to send editorial notification");
-    res.status(502).json({ ok: false, error: "Failed to send email. Please try again later." });
+    // The submission was already persisted to the DB — returning 502 here would
+    // cause the submitter to resubmit, creating duplicate rows. Instead, return
+    // 202 to acknowledge that the data was received, and surface the email
+    // failure as a non-fatal warning so the admin can follow up manually.
+    logger.error({ topic: safe.raw.topic }, "pitch: failed to send editorial notification; submission saved");
+    res.status(202).json({
+      ok: true,
+      emailed: false,
+      message: "Pitch received. We had a temporary email issue — our team will still see your submission.",
+    });
     return;
   }
 

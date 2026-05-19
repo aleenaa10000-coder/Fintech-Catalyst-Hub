@@ -57,11 +57,15 @@ export function scheduleNoIndexExpiryHourly(): void {
   scheduled = true;
 
   setTimeout(() => {
-    void runNoIndexExpiry();
+    void runNoIndexExpiry().catch((err) =>
+      JOB_LOG.error({ err }, "noindex-expiry: unexpected error in scheduled run"),
+    );
   }, INITIAL_DELAY_MS);
 
   setInterval(() => {
-    void runNoIndexExpiry();
+    void runNoIndexExpiry().catch((err) =>
+      JOB_LOG.error({ err }, "noindex-expiry: unexpected error in interval run"),
+    );
   }, ONE_HOUR_MS);
 
   JOB_LOG.info(
