@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useUpdateBlogPost,
   type BlogPost,
@@ -105,9 +105,11 @@ export function ScheduledPostPanel({
 export function ScheduledCalendar({
   posts,
   onScrollToPost,
+  onPostRescheduled,
 }: {
   posts: BlogPost[];
   onScrollToPost: (postId: number) => void;
+  onPostRescheduled?: () => void;
 }) {
   const today = new Date();
   const firstPostDate =
@@ -120,6 +122,13 @@ export function ScheduledCalendar({
   const [viewYear, setViewYear] = useState(initYear);
   const [viewMonth, setViewMonth] = useState(initMonth);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  // Drag state
+  const dragPostRef = useRef<BlogPost | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const [draggingPostId, setDraggingPostId] = useState<number | null>(null);
+
+  const updateMut = useUpdateBlogPost();
 
   const postsByDay = useMemo(() => {
     const map = new Map<string, BlogPost[]>();
@@ -193,6 +202,65 @@ export function ScheduledCalendar({
     { month: "long", year: "numeric" },
   );
 
+  // Drag handlers
+  const handleDotDragStart = (e: React.DragEvent, post: BlogPost) => {
+    dragPostRef.current = post;
+    setDraggingPostId(post.id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(post.id));
+  };
+
+  const handleDotDragEnd = () => {
+    dragPostRef.current = null;
+    setDraggingPostId(null);
+    setDragOverKey(null);
+  };
+
+  const handleCellDragOver = (e: React.DragEvent, key: string, isCurrentMonth: boolean) => {
+    if (!dragPostRef.current || !isCurrentMonth) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverKey(key);
+  };
+
+  const handleCellDragLeave = () => {
+    setDragOverKey(null);
+  };
+
+  const handleCellDrop = async (e: React.DragEvent, targetDate: Date, isCurrentMonth: boolean) => {
+    e.preventDefault();
+    setDragOverKey(null);
+    const post = dragPostRef.current;
+    dragPostRef.current = null;
+    setDraggingPostId(null);
+
+    if (!post || !isCurrentMonth) return;
+
+    const oldDate = new Date(post.publishedAt);
+    const newDate = new Date(targetDate);
+    // Preserve the original time-of-day
+    newDate.setHours(oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds(), 0);
+
+    const oldKey = localDateKey(oldDate);
+    const newKey = localDateKey(newDate);
+    if (oldKey === newKey) return;
+
+    try {
+      await updateMut.mutateAsync({
+        slug: post.slug,
+        data: { publishedAt: newDate.toISOString() },
+      });
+      toast.success(
+        `"${post.title}" rescheduled to ${newDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}.`,
+      );
+      // If the selected panel was showing the source day, close it
+      if (selectedKey === oldKey) setSelectedKey(null);
+      onPostRescheduled?.();
+    } catch {
+      toast.error("Could not reschedule post. Please try again.");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -238,6 +306,11 @@ export function ScheduledCalendar({
             <span className="text-[10px] text-muted-foreground">{label}</span>
           </span>
         ))}
+        {draggingPostId !== null && (
+          <span className="ml-auto text-[10px] text-blue-600 font-medium animate-pulse">
+            Drop on a date to reschedule
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-7 text-center">
@@ -257,6 +330,7 @@ export function ScheduledCalendar({
           const isSelected = key === selectedKey;
           const hasPosts = dayPosts.length > 0;
           const isOtherMonth = !cell.isCurrentMonth;
+          const isDragOver = dragOverKey === key && !isOtherMonth;
 
           const tier = isOtherMonth ? -1 : dayPosts.length === 0 ? 0 : dayPosts.length === 1 ? 1 : dayPosts.length <= 3 ? 2 : 3;
           const tierBg  = tier === 1 ? "bg-sky-50"    : tier === 2 ? "bg-blue-100"  : tier === 3 ? "bg-amber-100" : "bg-background";
@@ -266,20 +340,25 @@ export function ScheduledCalendar({
           const tierBadge = tier === 3 ? "text-amber-700" : tier === 2 ? "text-blue-700" : "text-sky-600";
 
           return (
-            <button
+            <div
               key={key}
-              type="button"
-              onClick={() => {
-                if (!hasPosts) return;
-                setSelectedKey(isSelected ? null : key);
-              }}
               className={[
                 "relative flex flex-col items-start p-1.5 min-h-[64px] text-left transition-colors",
                 isOtherMonth ? "bg-muted/30 text-muted-foreground/40" : tierBg,
-                hasPosts && !isOtherMonth ? `${tierHover} cursor-pointer` : "cursor-default",
+                hasPosts && !isOtherMonth ? `${tierHover}` : "",
                 isSelected ? tierRing : "",
+                isDragOver && !isOtherMonth ? "ring-2 ring-inset ring-blue-500 bg-blue-50" : "",
+                draggingPostId !== null && !isOtherMonth ? "cursor-copy" : "",
               ].join(" ")}
-              disabled={!hasPosts}
+              onDragOver={(e) => handleCellDragOver(e, key, !isOtherMonth)}
+              onDragLeave={handleCellDragLeave}
+              onDrop={(e) => handleCellDrop(e, cell.date, !isOtherMonth)}
+              onClick={() => {
+                if (draggingPostId !== null) return;
+                if (!hasPosts) return;
+                setSelectedKey(isSelected ? null : key);
+              }}
+              role="gridcell"
               aria-label={
                 hasPosts
                   ? `${cell.date.getDate()} — ${dayPosts.length} post${dayPosts.length > 1 ? "s" : ""}`
@@ -304,8 +383,16 @@ export function ScheduledCalendar({
                   {dayPosts.slice(0, 3).map((p) => (
                     <span
                       key={p.id}
-                      className={`block w-1.5 h-1.5 rounded-full ${tierDot}`}
-                      title={p.title}
+                      draggable
+                      onDragStart={(e) => handleDotDragStart(e, p)}
+                      onDragEnd={handleDotDragEnd}
+                      className={[
+                        "block w-1.5 h-1.5 rounded-full cursor-grab active:cursor-grabbing",
+                        draggingPostId === p.id ? "opacity-40" : "",
+                        tierDot,
+                      ].join(" ")}
+                      title={`Drag to reschedule: ${p.title}`}
+                      onClick={(e) => e.stopPropagation()}
                     />
                   ))}
                   {dayPosts.length > 3 && (
@@ -321,7 +408,13 @@ export function ScheduledCalendar({
                   {dayPosts.length === 1 ? "1 post" : `${dayPosts.length} posts`}
                 </span>
               )}
-            </button>
+
+              {isDragOver && !isOtherMonth && updateMut.isPending && (
+                <div className="absolute inset-0 flex items-center justify-center bg-blue-100/80 rounded">
+                  <RefreshCw className="w-3 h-3 text-blue-600 animate-spin" />
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
@@ -352,16 +445,25 @@ export function ScheduledCalendar({
               key={p.id}
               className="flex items-start justify-between gap-3 px-3 py-2.5"
             >
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate text-blue-900">{p.title}</p>
-                <p className="text-xs text-blue-700 truncate">{p.excerpt}</p>
-                <p className="text-[10px] text-blue-600 mt-0.5">
-                  {new Date(p.publishedAt).toLocaleTimeString(undefined, {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}{" "}
-                  · {p.category} · {p.readingMinutes} min read
-                </p>
+              <div className="min-w-0 flex items-start gap-2">
+                <span
+                  draggable
+                  onDragStart={(e) => handleDotDragStart(e, p)}
+                  onDragEnd={handleDotDragEnd}
+                  className="mt-1 shrink-0 w-2 h-2 rounded-full bg-blue-400 cursor-grab active:cursor-grabbing"
+                  title={`Drag to reschedule: ${p.title}`}
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate text-blue-900">{p.title}</p>
+                  <p className="text-xs text-blue-700 truncate">{p.excerpt}</p>
+                  <p className="text-[10px] text-blue-600 mt-0.5">
+                    {new Date(p.publishedAt).toLocaleTimeString(undefined, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    · {p.category} · {p.readingMinutes} min read
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -372,6 +474,9 @@ export function ScheduledCalendar({
               </button>
             </div>
           ))}
+          <div className="px-3 py-1.5">
+            <p className="text-[10px] text-blue-500">Drag a dot to a different date to reschedule</p>
+          </div>
         </div>
       )}
 

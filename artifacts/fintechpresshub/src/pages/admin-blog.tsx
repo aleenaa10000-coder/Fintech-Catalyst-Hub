@@ -2015,6 +2015,7 @@ export default function AdminBlog() {
                 {calendarView && (
                   <ScheduledCalendar
                     posts={scheduledPosts}
+                    onPostRescheduled={() => { void refetchScheduled(); }}
                     onScrollToPost={(postId) => {
                       setCalendarView(false);
                       requestAnimationFrame(() => {

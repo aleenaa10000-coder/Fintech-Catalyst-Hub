@@ -45,6 +45,24 @@ export const viewRateLimiter = rateLimit({
 });
 
 /**
+ * Rate limiter for the public GET /blog/posts list endpoint.
+ * Allows 60 requests per IP per minute — enough for any legitimate SPA
+ * navigation pattern (infinite scroll, category switches, pagination) while
+ * blocking query-param fuzzing and scraping loops that hammer the endpoint
+ * with hundreds of crafted requests per second.
+ */
+export const blogListRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: "Too many requests to the blog list. Please slow down and try again in a minute.",
+  },
+  skipSuccessfulRequests: false,
+});
+
+/**
  * Rate limiter for admin service mutation endpoints (POST /services,
  * DELETE /services/:slug). Even though these are protected by requireAdmin,
  * a rate limit adds a second layer of defence against credential abuse or

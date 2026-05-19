@@ -11,7 +11,7 @@ import { eq, desc, asc, sql, inArray, and, lte, gt, type SQL } from "drizzle-orm
 import { ListBlogPostsQueryParams, GetBlogPostParams } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { isAdminEmail } from "../lib/auth";
-import { viewRateLimiter } from "../lib/rateLimiter";
+import { viewRateLimiter, blogListRateLimiter } from "../lib/rateLimiter";
 
 import {
   getSiteUrl,
@@ -338,7 +338,7 @@ function serializeWithSeo(
   return { ...serialize(row), seoNotification };
 }
 
-router.get("/blog/posts", async (req, res) => {
+router.get("/blog/posts", blogListRateLimiter, async (req, res) => {
   // `asOf` arrives as a string on the wire but the generated zod schema
   // expects a Date (orval doesn't coerce dates from query params), so we
   // hand-parse here before handing it to the schema. An invalid timestamp
