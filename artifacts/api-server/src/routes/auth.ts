@@ -25,6 +25,13 @@ const OIDC_COOKIE_TTL = 10 * 60 * 1000;
 const router: IRouter = Router();
 
 function getOrigin(req: Request): string {
+  // In production, pin the origin to the canonical SITE_URL to prevent
+  // Host-header injection from producing a spoofed redirect_uri in the
+  // OIDC authorization flow. SITE_URL is required in production (enforced
+  // by validateEnv in index.ts) so this branch is always safe on Hostinger.
+  if (process.env.NODE_ENV === "production" && process.env.SITE_URL) {
+    return process.env.SITE_URL.replace(/\/+$/, "");
+  }
   const proto = req.headers["x-forwarded-proto"] || "https";
   const host =
     req.headers["x-forwarded-host"] || req.headers["host"] || "localhost";

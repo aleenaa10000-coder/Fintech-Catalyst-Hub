@@ -80,3 +80,7 @@ attached_assets/*.log
 !.env.example
 *.pem
 *.key
+
+# Local file uploads (created at runtime by ObjectStorageService)
+data/uploads/
+data/

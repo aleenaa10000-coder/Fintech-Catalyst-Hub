@@ -135,7 +135,9 @@ router.get("/healthz/deep", async (_req, res) => {
 
   const probeStorage = async (): Promise<{ ok: boolean; latencyMs: number; error?: string }> => {
     const t0 = Date.now();
-    const uploadsDir = process.env["UPLOADS_DIR"] ?? "data/uploads";
+    // Must match the LOCAL_UPLOADS_DIR env var used by objectStorage.ts
+    // so this probe tests the directory the upload service actually writes to.
+    const uploadsDir = process.env["LOCAL_UPLOADS_DIR"] ?? path.join(process.cwd(), "data", "uploads");
     try {
       fs.accessSync(uploadsDir, fs.constants.W_OK);
       return { ok: true, latencyMs: Date.now() - t0 };

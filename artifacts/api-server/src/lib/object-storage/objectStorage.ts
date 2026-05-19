@@ -28,16 +28,13 @@ function ensureDir(dir: string) {
   }
 }
 
-/** Always available — we're on local disk. */
-function isStorageAvailable(): boolean {
-  return true;
-}
-
 /**
  * Shim exported so existing import sites compile without changes.
- * Nothing calls methods on it directly anymore.
+ * The real object-storage client was removed when the service migrated
+ * from Replit Object Storage / Google Cloud Storage to local-disk storage.
+ * This empty object satisfies any import without introducing Replit-only deps.
  */
-export const objectStorageClient = {} as never;
+export const objectStorageClient: Record<string, never> = {};
 
 export class ObjectNotFoundError extends Error {
   constructor() {
@@ -149,12 +146,13 @@ export class ObjectStorageService {
     }
   }
 
+  /**
+   * Previously normalised Google Cloud Storage URLs to local paths.
+   * GCS was removed when the service migrated to local-disk storage, so
+   * the method now returns the path unchanged. Kept for API compatibility.
+   */
   normalizeObjectEntityPath(rawPath: string): string {
-    if (!rawPath.startsWith("https://storage.googleapis.com/")) {
-      return rawPath;
-    }
-    const url = new URL(rawPath);
-    return url.pathname;
+    return rawPath;
   }
 
   async trySetObjectEntityAclPolicy(

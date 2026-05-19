@@ -113,12 +113,12 @@ async function bootstrap() {
     );
   }
 
-  app.listen(port, (err) => {
-    if (err) {
-      logger.error({ err }, "Error listening on port");
-      process.exit(1);
-    }
-
+  // Express 5 / Node.js http.Server: the listen() callback is called ONLY on
+  // success — it does NOT receive an error argument. Port-binding failures
+  // (e.g. EADDRINUSE) are emitted as an "error" event on the server object.
+  // Attaching a handler here ensures a clear log message and clean exit
+  // instead of an uncaught-exception crash on Hostinger or any Node host.
+  const server = app.listen(port, () => {
     logger.info({ port }, "Server listening");
     scheduleIndexNowDaily();
     scheduleLinkCheckDaily();
@@ -128,6 +128,11 @@ async function bootstrap() {
     schedulePitchDigestDaily();
     scheduleSchemaHealthDaily();
     scheduleInternalLinkCheckDaily();
+  });
+
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    logger.error({ err, port }, "Failed to bind server to port — check PORT env var and that no other process is using it");
+    process.exit(1);
   });
 }
 
