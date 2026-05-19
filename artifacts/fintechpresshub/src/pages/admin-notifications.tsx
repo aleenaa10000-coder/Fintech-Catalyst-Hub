@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { PageMeta } from "@/components/PageMeta";
 import { Link, useLocation } from "wouter";
 import {
   useGetNotificationSettings,
@@ -260,6 +261,11 @@ export default function AdminNotifications() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <PageMeta
+        title="Notifications | Admin"
+        description="Admin notification settings."
+        noindex
+      />
       <div className="mb-6">
         <Link
           href="/admin/blog"

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
@@ -280,17 +281,15 @@ interface TopicalAuthorityData {
 }
 
 function TopicalAuthorityWidget() {
-  const [data, setData] = useState<TopicalAuthorityData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/admin/blog/topical-authority", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d: TopicalAuthorityData) => setData(d))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, isLoading: loading, isError: error } = useQuery<TopicalAuthorityData>({
+    queryKey: ["admin", "topical-authority"],
+    queryFn: async () => {
+      const r = await fetch("/api/admin/blog/topical-authority", { credentials: "include" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    },
+    retry: 1,
+  });
 
   const score = data?.score ?? null;
   const band =
@@ -403,17 +402,19 @@ interface VelocityRow {
 }
 
 function ContentVelocityWidget() {
-  const [rows, setRows] = useState<VelocityRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { data: analyticsData, isLoading: loading, isError: error } = useQuery<{
+    velocityByWeek: VelocityRow[];
+  }>({
+    queryKey: ["admin", "analytics"],
+    queryFn: async () => {
+      const r = await fetch("/api/admin/analytics", { credentials: "include" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    },
+    retry: 1,
+  });
 
-  useEffect(() => {
-    fetch("/api/admin/analytics", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => setRows((d.velocityByWeek as VelocityRow[]) ?? []))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
+  const rows = analyticsData?.velocityByWeek ?? [];
 
   const chartData = useMemo(
     () =>
@@ -483,72 +484,65 @@ function ContentVelocityWidget() {
 
 export default function AdminDashboard() {
   const { user, isAuthenticated, login, logout } = useAuth();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const [sitemapCounts, setSitemapCounts] = useState<SitemapEntryCounts | null>(null);
-  const [sitemapCountsLoading, setSitemapCountsLoading] = useState(false);
-  const [pinging, setPinging] = useState(false);
   const [pingResult, setPingResult] = useState<SitemapPingResult | null>(null);
   const [pingError, setPingError] = useState<string | null>(null);
 
-  async function fetchDashboard() {
-    try {
-      setRefreshing(true);
-      const res = await fetch("/api/admin/dashboard");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setData(json);
-      setError(null);
-    } catch (e) {
-      setError("Failed to load dashboard data.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
+  const enabled = isAuthenticated && !!user?.isAdmin;
 
-  async function fetchSitemapCounts() {
-    try {
-      setSitemapCountsLoading(true);
-      const res = await fetch("/api/admin/sitemap/entries");
+  const {
+    data,
+    isLoading: loading,
+    error: dashboardQueryError,
+    refetch: refetchDashboard,
+    isFetching: refreshing,
+  } = useQuery<DashboardData>({
+    queryKey: ["admin", "dashboard"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/dashboard", { credentials: "include" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setSitemapCounts(json);
-    } catch {
-      // silently ignore — panel shows a retry button
-    } finally {
-      setSitemapCountsLoading(false);
-    }
-  }
+      return res.json();
+    },
+    enabled,
+    retry: 2,
+  });
 
-  async function handlePing() {
-    try {
-      setPinging(true);
-      setPingResult(null);
-      setPingError(null);
-      const res = await fetch("/api/admin/sitemap/ping", { method: "POST" });
+  const {
+    data: sitemapCounts,
+    isLoading: sitemapCountsLoading,
+    refetch: refetchSitemap,
+  } = useQuery<SitemapEntryCounts>({
+    queryKey: ["admin", "sitemap", "entries"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/sitemap/entries", { credentials: "include" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
+    enabled,
+    retry: 1,
+  });
+
+  const pingMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/sitemap/ping", {
+        method: "POST",
+        credentials: "include",
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
-      setPingResult(json);
-      fetchSitemapCounts();
-    } catch (e: unknown) {
+      return json as SitemapPingResult;
+    },
+    onSuccess: (result) => {
+      setPingResult(result);
+      setPingError(null);
+      void refetchSitemap();
+    },
+    onError: (e: unknown) => {
       setPingError(e instanceof Error ? e.message : "Ping failed.");
-    } finally {
-      setPinging(false);
-    }
-  }
+      setPingResult(null);
+    },
+  });
 
-  useEffect(() => {
-    if (isAuthenticated && user?.isAdmin) {
-      fetchDashboard();
-      fetchSitemapCounts();
-    } else {
-      setLoading(false);
-    }
-  }, [isAuthenticated, user]);
+  const error = dashboardQueryError ? "Failed to load dashboard data." : null;
 
   if (!isAuthenticated) {
     return (
@@ -626,7 +620,7 @@ export default function AdminDashboard() {
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchDashboard}
+              onClick={() => void refetchDashboard()}
               disabled={refreshing}
             >
               <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
@@ -953,7 +947,7 @@ export default function AdminDashboard() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={fetchSitemapCounts}
+                      onClick={() => void refetchSitemap()}
                       disabled={sitemapCountsLoading}
                       className="text-xs h-7"
                     >
@@ -1026,15 +1020,19 @@ export default function AdminDashboard() {
                 <div className="flex items-start gap-3 flex-wrap">
                   <Button
                     size="sm"
-                    onClick={handlePing}
-                    disabled={pinging}
+                    onClick={() => {
+                      setPingResult(null);
+                      setPingError(null);
+                      pingMutation.mutate();
+                    }}
+                    disabled={pingMutation.isPending}
                     className="bg-[#0052FF] hover:bg-[#0040cc] text-white shrink-0"
                   >
-                    <Send className={`w-3.5 h-3.5 mr-1.5 ${pinging ? "animate-pulse" : ""}`} />
-                    {pinging ? "Submitting…" : "Submit to Search Engines"}
+                    <Send className={`w-3.5 h-3.5 mr-1.5 ${pingMutation.isPending ? "animate-pulse" : ""}`} />
+                    {pingMutation.isPending ? "Submitting…" : "Submit to Search Engines"}
                   </Button>
 
-                  {pingResult && !pinging && (
+                  {pingResult && !pingMutation.isPending && (
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       {(() => {
                         const accepted = pingResult.indexNow.status === "accepted";
@@ -1062,7 +1060,7 @@ export default function AdminDashboard() {
                     </div>
                   )}
 
-                  {pingError && !pinging && (
+                  {pingError && !pingMutation.isPending && (
                     <p className="text-xs text-destructive flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3 shrink-0" /> {pingError}
                     </p>

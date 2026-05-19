@@ -72,11 +72,17 @@ router.post("/admin-auth/login", formRateLimiter, async (req: Request, res: Resp
     return;
   }
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.email, email))
-    .limit(1);
+  let user: typeof usersTable.$inferSelect | undefined;
+  try {
+    [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, email))
+      .limit(1);
+  } catch {
+    res.status(500).json({ error: "Database error. Please try again." });
+    return;
+  }
 
   // Always run bcrypt.compare — even when the user/hash is missing — so the
   // response timing for "no user" and "wrong password" is indistinguishable.
