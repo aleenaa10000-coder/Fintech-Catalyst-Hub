@@ -191,3 +191,9 @@ id = "WB3RDXa7FmobOTvvVUquy"
 uri = "file://docs/audit-report-2026-05-19.md"
 type = "text"
 title = "FintechPressHub — Complete Audit Report (68 → 99/100, 35 fixes, 5 passes)"
+
+[[outputs]]
+id = "g4M4htn64LICyGchbGOkU"
+uri = "file://fintechpresshub-deploy.zip"
+type = "unspecified"
+title = "FintechPressHub — Hostinger Production Package (57 MB)"

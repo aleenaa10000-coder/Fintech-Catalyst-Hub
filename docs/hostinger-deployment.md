@@ -1,105 +1,274 @@
 # Hostinger Deployment Guide — FintechPressHub
 
 **Target:** Hostinger Node.js Business Plan  
-**Start command:** `node artifacts/api-server/dist/index.mjs`  
-**Build command:** `pnpm run build:production`
+**Start command:** `node --enable-source-maps artifacts/api-server/dist/index.mjs`  
+**Build command:** `pnpm run build:production`  
+**Node.js:** 20+ required
 
 ---
 
-## Prerequisites
+## What Goes to Hostinger
 
-- Node.js 20+ (select in hPanel → Node.js → Node version)
-- PostgreSQL database provisioned (hPanel → Databases → PostgreSQL)
-- Domain pointed to Hostinger nameservers with SSL enabled
+This is a **Node.js monorepo**. You upload the full source code, install dependencies on the server, and run the Node.js process. Hostinger's PM2 process manager keeps it alive 24/7.
+
+- The Express server handles all routes — both the API (`/api/*`) and the React frontend as pre-built static files
+- PostgreSQL stores all content (blog posts, subscribers, contact forms, etc.)
+- A single process serves everything: `node --enable-source-maps artifacts/api-server/dist/index.mjs`
+
+> **What "skill files" are:** The `.agents/skills/` and `.local/skills/` directories are Replit Agent AI assistant tools — they are **not** part of the running application and **do not** need to go to Hostinger. Only the application source code files matter.
 
 ---
 
 ## Step-by-Step Deployment
 
-### 1. Create the Node.js application in hPanel
+### Step 1 — Prepare your Hostinger account
 
-1. hPanel → Hosting → Manage → Node.js
-2. Click **Create application**
-3. Set **Application root**: `/` (project root)
-4. Set **Application URL**: `www.fintechpresshub.com`
-5. Set **Application startup file**: `artifacts/api-server/dist/index.mjs`
-6. Node version: **20.x** or higher
+1. Log in to [hpanel.hostinger.com](https://hpanel.hostinger.com)
+2. Make sure you have a **Node.js Business Plan** (required — shared hosting does not support Node.js)
+3. Point your domain DNS to Hostinger nameservers if you haven't already
 
-### 2. Provision PostgreSQL
+---
 
-1. hPanel → Databases → PostgreSQL → Create database
-2. Note the host, port, username, password, and database name
-3. Construct your `DATABASE_URL`:
+### Step 2 — Create PostgreSQL database
+
+1. hPanel → **Databases → PostgreSQL → Create database**
+2. Fill in: database name, username, password
+3. Note all the details — you'll need them for `DATABASE_URL`
+4. Construct your connection string:
    ```
-   postgresql://USERNAME:PASSWORD@HOST:PORT/DATABASE
+   postgresql://USERNAME:PASSWORD@localhost:5432/DATABASE_NAME
+   ```
+   (On Hostinger, the host is usually `localhost` for same-server databases)
+
+---
+
+### Step 3 — Upload the project files
+
+**Option A — SFTP (recommended)**
+1. hPanel → **Files → FTP Accounts** → create FTP/SFTP credentials
+2. Use FileZilla or Cyberduck, connect via SFTP
+3. Upload `fintechpresshub-deploy.zip` to `/home/USERNAME/`
+4. SSH in and extract:
+   ```bash
+   cd /home/USERNAME
+   unzip fintechpresshub-deploy.zip
+   mv fintechpresshub-deploy fintechpresshub
    ```
 
-### 3. Set environment variables
+**Option B — SSH + Git (if you have a private Git repo)**
+```bash
+ssh USERNAME@your-server-ip
+git clone https://github.com/you/fintechpresshub.git
+```
 
-In hPanel → Node.js application → Environment variables, add every variable from `.env.example`. The critical ones for a first deploy:
+---
 
-| Variable | Value | Notes |
-|----------|-------|-------|
-| `NODE_ENV` | `production` | Enables www redirect, security headers, static file serving |
-| `DATABASE_URL` | `postgresql://...` | Full connection string from step 2 |
-| `SITE_URL` | `https://www.fintechpresshub.com` | No trailing slash |
-| `ADMIN_EMAILS` | `you@example.com` | Comma-separated admin emails |
-| `SESSION_SECRET` | 64-char random hex | Generate: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
-| `RESEND_API_KEY` | `re_...` | From resend.com |
-| `REPORT_FROM_EMAIL` | `FintechPressHub <hello@fintechpresshub.com>` | Must be a verified Resend domain |
-| `CONTACT_NOTIFY_TO` | `hello@fintechpresshub.com` | Contact form destination |
-| `PITCH_RECIPIENT_EMAIL` | `editorial@fintechpresshub.com` | Guest post pitch destination |
-| `INDEXNOW_KEY` | `your-key` | Random alphanumeric string |
-| `PORT` | *(leave blank)* | Hostinger sets this automatically |
+### Step 4 — Install Node.js 20+
 
-### 4. Upload and build
+1. hPanel → **Hosting → Manage → Node.js**
+2. Set **Node.js version** to `20.x` or higher
+3. Click **Save**
 
-Connect via SSH or use Hostinger's File Manager to upload the project, then run:
+---
+
+### Step 5 — Set environment variables
+
+**IMPORTANT: Never put real passwords in any file you upload. Use the `.env` file ON the server.**
+
+SSH into your server and create the `.env` file:
 
 ```bash
-# Install dependencies
-pnpm install --frozen-lockfile
-
-# Run database migrations
-pnpm --filter @workspace/db run push
-
-# Build API server + frontend + prerender
-pnpm run build:production
+cd /home/USERNAME/fintechpresshub
+cp .env.example .env
+nano .env
 ```
 
-The build command sequence is:
-1. `pnpm --filter @workspace/api-server run build` — compiles the Express server to `artifacts/api-server/dist/`
-2. `pnpm --filter @workspace/fintechpresshub run build` — runs Vite build + `prerender.mjs`
+Fill in every variable. Critical ones for first launch:
 
-### 5. Start the application
+| Variable | Required | Example value |
+|----------|----------|---------------|
+| `NODE_ENV` | **YES** | `production` |
+| `DATABASE_URL` | **YES** | `postgresql://user:pass@localhost:5432/dbname` |
+| `SITE_URL` | **YES** | `https://www.yourdomain.com` (no trailing slash) |
+| `ADMIN_EMAILS` | **YES** | `your@email.com` |
+| `ADMIN_PASSWORD` | **YES** | A strong password (min 16 chars) |
+| `SESSION_SECRET` | **YES** | 64-char random hex — generate with: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
+| `PORT` | NO | Leave blank — Hostinger sets this automatically |
+| `RESEND_API_KEY` | for email | Get free from [resend.com](https://resend.com) |
+| `REPORT_FROM_EMAIL` | for email | `FintechPressHub <hello@yourdomain.com>` |
+| `CONTACT_NOTIFY_TO` | for email | Where contact form emails go |
+| `PITCH_RECIPIENT_EMAIL` | for email | Where guest post pitches go |
+| `INDEXNOW_KEY` | for SEO | Random 8–128 char string from [indexnow.org](https://www.indexnow.org/) |
+| `OBJECT_STORAGE_*` | for uploads | Hostinger Object Storage credentials (see Step 8) |
 
-hPanel will start the app automatically using the startup file you set in step 1:
-
+**Alternative email: SMTP (use Hostinger Business Mail)**
 ```
-node artifacts/api-server/dist/index.mjs
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=587
+SMTP_USER=hello@yourdomain.com
+SMTP_PASS=your-email-password
 ```
 
-The server:
-- Listens on `PORT` (set by Hostinger)
-- Serves the Express API at `/api/*`
-- Serves the pre-rendered frontend from `artifacts/fintechpresshub/dist/public/`
-- Redirects bare-domain (non-www) traffic to www with 301
-- Adds security headers on every response
+---
 
-### 6. Verify the deployment
+### Step 6 — Run the automated install script
+
+SSH into your server and run:
 
 ```bash
-# Should return 200 with JSON
-curl -s https://www.fintechpresshub.com/api/healthz
+cd /home/USERNAME/fintechpresshub
+chmod +x scripts/hostinger-install.sh
+./scripts/hostinger-install.sh
+```
 
-# Should return the sitemap with blog post image extensions
-curl -s https://www.fintechpresshub.com/sitemap.xml | head -30
+This script automatically:
+1. Checks Node.js version (must be 20+)
+2. Installs pnpm package manager
+3. Installs all Node.js dependencies
+4. Applies database schema (creates all tables)
+5. Builds the production bundle (API + frontend + prerender)
+6. Starts the application with PM2
 
-# Should return pre-rendered HTML with <title> tag (not blank shell)
-curl -s https://www.fintechpresshub.com/ | grep "<title"
+**Or run steps manually if you prefer:**
 
-# Confirm www redirect is working (non-www → www with 301)
-curl -I http://fintechpresshub.com/
+```bash
+# 1. Install pnpm
+npm install -g pnpm@latest
+
+# 2. Install dependencies
+GIT_DIR=/tmp/fakegit pnpm install --frozen-lockfile
+
+# 3. Apply database schema (creates all tables)
+source .env && GIT_DIR=/tmp/fakegit pnpm --filter @workspace/db run push
+
+# 4. Build production bundle
+GIT_DIR=/tmp/fakegit pnpm run build:production
+
+# 5. Create logs directory
+mkdir -p logs
+
+# 6. Install PM2 process manager
+npm install -g pm2
+
+# 7. Start the app
+pm2 start ecosystem.config.cjs --env production
+pm2 save
+
+# 8. Enable auto-restart on server reboot (follow the output instructions)
+pm2 startup
+```
+
+---
+
+### Step 7 — Configure Hostinger Node.js application in hPanel
+
+1. hPanel → **Hosting → Manage → Node.js**
+2. Click **Create application** (or **Edit** if already created)
+3. Set these fields:
+
+   | Field | Value |
+   |-------|-------|
+   | Application root | `/home/USERNAME/fintechpresshub` |
+   | Application URL | `yourdomain.com` |
+   | Application startup file | `artifacts/api-server/dist/index.mjs` |
+   | Node.js version | `20.x` or higher |
+
+4. Click **Save**
+
+---
+
+### Step 8 — Set up Object Storage for image uploads (recommended)
+
+Without object storage, uploaded images are stored on local disk and **will be lost** if you redeploy. Hostinger Object Storage is S3-compatible and persistent.
+
+1. hPanel → **Object Storage → Create bucket**
+2. Name it (e.g., `fintechpresshub-assets`)
+3. Create access keys in **Object Storage → Access Keys**
+4. Add to `.env`:
+   ```
+   OBJECT_STORAGE_ACCESS_KEY_ID=your-access-key-id
+   OBJECT_STORAGE_SECRET_ACCESS_KEY=your-secret-key
+   OBJECT_STORAGE_ENDPOINT=https://s3.eu-central-1.hostingerapp.com
+   OBJECT_STORAGE_BUCKET_NAME=fintechpresshub-assets
+   OBJECT_STORAGE_REGION=eu-central-1
+   OBJECT_STORAGE_PUBLIC_URL=https://fintechpresshub-assets.s3.eu-central-1.hostingerapp.com
+   ```
+
+Without object storage, set a persistent uploads directory instead:
+```
+LOCAL_UPLOADS_DIR=/home/USERNAME/uploads
+```
+This directory survives deployments as long as you don't delete it.
+
+---
+
+### Step 9 — Enable SSL
+
+1. hPanel → **Websites → SSL**
+2. Enable **Let's Encrypt** for your domain (free, auto-renews)
+3. Enable **Force HTTPS** redirect
+
+---
+
+### Step 10 — Verify the deployment
+
+```bash
+# Homepage returns HTML with <title>
+curl -s https://www.yourdomain.com/ | grep "<title"
+
+# API health check returns JSON
+curl -s https://www.yourdomain.com/api/healthz
+
+# Sitemap returns XML
+curl -sI https://www.yourdomain.com/sitemap.xml | grep "200"
+
+# Admin login works
+# Visit: https://www.yourdomain.com/admin/login
+```
+
+Live logs:
+```bash
+pm2 logs fintechpresshub
+```
+
+---
+
+## Updating the Application
+
+When you receive an updated version:
+
+```bash
+cd /home/USERNAME/fintechpresshub
+
+# 1. Upload new files via SFTP (or git pull)
+
+# 2. Install any new dependencies
+GIT_DIR=/tmp/fakegit pnpm install --frozen-lockfile
+
+# 3. Apply any database schema changes
+source .env && GIT_DIR=/tmp/fakegit pnpm --filter @workspace/db run push
+
+# 4. Rebuild
+GIT_DIR=/tmp/fakegit pnpm run build:production
+
+# 5. Zero-downtime restart
+pm2 reload fintechpresshub
+```
+
+---
+
+## Useful PM2 Commands
+
+```bash
+pm2 status                              # show running processes
+pm2 logs fintechpresshub               # live log stream (Ctrl+C to exit)
+pm2 logs fintechpresshub --lines 200   # last 200 log lines
+pm2 restart fintechpresshub            # restart (brief downtime)
+pm2 reload fintechpresshub             # zero-downtime reload
+pm2 stop fintechpresshub               # stop the app
+pm2 delete fintechpresshub             # remove from PM2
+pm2 save                               # save list for auto-start on reboot
+pm2 monit                              # real-time CPU/memory dashboard
 ```
 
 ---
@@ -112,203 +281,196 @@ Set the following DNS records in hPanel → Domains → DNS Zone:
 |------|------|-------|
 | A | `@` | Hostinger server IP |
 | A | `www` | Hostinger server IP |
-| CNAME | `mail` | *(Hostinger mail server)* |
 
-Enable **Force HTTPS** in hPanel → SSL → Manage. This combined with the `Strict-Transport-Security` header in Express gives full HSTS coverage.
+Enable **Force HTTPS** in hPanel → SSL → Manage. Combined with the `Strict-Transport-Security` header in Express, this gives full HSTS coverage.
 
 ---
 
-## Post-deployment SEO checklist
+## Troubleshooting Guide
 
-- [ ] Verify `https://www.fintechpresshub.com/sitemap.xml` loads and contains blog posts with `<image:image>` elements
-- [ ] Submit sitemap to Google Search Console: `https://www.fintechpresshub.com/sitemap.xml`
+### Site shows error / won't start
+
+**Always start here:**
+```bash
+pm2 logs fintechpresshub --lines 100
+```
+
+**Missing environment variable** — look for `[startup] FATAL: required env var` in logs
+```bash
+# Fix: add the missing var to .env, then:
+source .env && pm2 restart fintechpresshub
+```
+
+**Database connection failure** — look for `ECONNREFUSED` or `authentication failed`
+```bash
+# Verify DATABASE_URL is correct:
+grep DATABASE_URL .env
+# Test connection:
+psql "$DATABASE_URL" -c "SELECT 1"
+```
+
+**Port conflict** — look for `EADDRINUSE`
+```bash
+# Check what's using the port:
+lsof -i :8080
+# Change PORT in .env if needed, then restart
+```
+
+**Build files missing** — look for `Cannot find module`
+```bash
+# Check dist exists:
+ls artifacts/api-server/dist/
+# If empty, rebuild:
+GIT_DIR=/tmp/fakegit pnpm run build:production
+```
+
+---
+
+### Admin login doesn't work
+
+1. Verify `ADMIN_EMAILS` matches your exact email (case-insensitive)
+2. Verify `ADMIN_PASSWORD` is set and doesn't contain shell-special characters (`$`, `` ` ``, `!`)
+   - If it does, wrap the value in single quotes in `.env`: `ADMIN_PASSWORD='p@$$w0rd!'`
+3. Verify `SESSION_SECRET` is at least 32 characters
+4. After changing any env var: `source .env && pm2 restart fintechpresshub`
+5. Check logs: `pm2 logs fintechpresshub | grep -i admin`
+
+---
+
+### Images / uploads not working
+
+**Local storage:**
+```bash
+# Create uploads directory with correct permissions
+mkdir -p /home/USERNAME/uploads
+chmod 755 /home/USERNAME/uploads
+# Set in .env:
+# LOCAL_UPLOADS_DIR=/home/USERNAME/uploads
+```
+
+**Object Storage errors:**
+```bash
+pm2 logs fintechpresshub | grep -i "storage\|upload\|S3"
+# Verify all OBJECT_STORAGE_* vars are set in .env
+```
+
+**Sharp (image processing) errors:**
+```bash
+pm2 logs fintechpresshub | grep -i sharp
+# If errors, reinstall native modules:
+GIT_DIR=/tmp/fakegit pnpm install --frozen-lockfile
+pm2 restart fintechpresshub
+```
+
+---
+
+### Email notifications not sending
+
+1. **Using Resend:** verify `RESEND_API_KEY` is valid and `REPORT_FROM_EMAIL` domain is verified in your Resend dashboard
+2. **Using SMTP:** verify `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` are correct
+3. Test from admin panel: **Admin → Notifications → Test**
+4. Check logs: `pm2 logs fintechpresshub | grep -i email`
+5. Check health endpoint: `curl https://yourdomain.com/api/healthz` — reports email transport status
+
+---
+
+### SEO / sitemap not working
+
+```bash
+# Test sitemap
+curl -sI https://www.yourdomain.com/sitemap.xml
+# Test robots.txt
+curl -s https://www.yourdomain.com/robots.txt
+```
+
+If returning 404: verify `SITE_URL=https://www.yourdomain.com` (exact domain, no trailing slash)
+
+---
+
+### Database errors after deployment
+
+```bash
+# "column does not exist" or "relation does not exist":
+source .env && GIT_DIR=/tmp/fakegit pnpm --filter @workspace/db run push
+pm2 restart fintechpresshub
+```
+
+---
+
+### App is slow or keeps restarting
+
+```bash
+pm2 monit    # watch CPU and memory in real time
+```
+
+If memory approaches 1 GB, increase the limit in `ecosystem.config.cjs`:
+```js
+max_memory_restart: "1500M",
+```
+Then: `pm2 reload ecosystem.config.cjs`
+
+---
+
+### Build fails on server
+
+```bash
+node --version   # must be 20+
+df -h            # need 2+ GB free disk
+free -m          # need 512+ MB free RAM
+
+# Run build steps separately to find which one fails:
+GIT_DIR=/tmp/fakegit pnpm --filter @workspace/api-server run build 2>&1 | tail -30
+GIT_DIR=/tmp/fakegit pnpm --filter @workspace/fintechpresshub run build 2>&1 | tail -30
+```
+
+---
+
+## Post-deployment SEO Checklist
+
+- [ ] Visit `https://www.yourdomain.com/sitemap.xml` — should show all blog posts
+- [ ] Submit sitemap to Google Search Console
 - [ ] Submit sitemap to Bing Webmaster Tools
-- [ ] Verify `https://www.fintechpresshub.com/robots.txt` shows AI crawler differentiation
-- [ ] Confirm `curl -I http://fintechpresshub.com/` returns `301 → https://www.fintechpresshub.com/`
-- [ ] Confirm security headers with: `curl -I https://www.fintechpresshub.com/ | grep -E "Strict|X-Content|X-Frame|Referrer"`
-- [ ] Test IndexNow by publishing a new blog post from the admin dashboard
-- [ ] Submit `https://www.fintechpresshub.com/<INDEXNOW_KEY>.txt` to indexnow.org
+- [ ] Verify `curl -I http://yourdomain.com/` returns `301 → https://www.yourdomain.com/`
+- [ ] Verify security headers: `curl -I https://www.yourdomain.com/ | grep -E "Strict|X-Content|X-Frame"`
+- [ ] Test IndexNow by publishing a blog post from the admin dashboard
+- [ ] Verify `https://www.yourdomain.com/<INDEXNOW_KEY>.txt` is reachable
+- [ ] Verify `https://www.yourdomain.com/llms.txt` returns 200 with text/plain
+- [ ] Verify `https://www.yourdomain.com/robots.txt` looks correct
 
 ---
 
-## Troubleshooting
+## Replit-Only Features (Graceful Degradation on Hostinger)
 
-**App won't start:** Check that `artifacts/api-server/dist/index.mjs` exists (run the build first). Verify `DATABASE_URL` is set — the server will crash on startup if it can't connect to Postgres.
+Two features are Replit-specific and will degrade gracefully on Hostinger:
 
-**Blank pages / no content:** The frontend builds to `artifacts/fintechpresshub/dist/public/`. Confirm this directory exists and contains `index.html`. If it's missing, the Vite build failed — check build logs.
+| Feature | Behaviour on Hostinger | Fix |
+|---------|------------------------|-----|
+| **Replit OIDC login** | Login via Replit Google OAuth unavailable | Use `/admin/login` with `ADMIN_PASSWORD` instead — this is the standard path on Hostinger |
+| **Replit Object Storage** | Upload button shows "storage unavailable" error | Set `OBJECT_STORAGE_*` vars (Hostinger S3-compatible Object Storage) or `LOCAL_UPLOADS_DIR` |
 
-**Admin login not working:** On Hostinger, Replit OIDC auth is unavailable. Use `/admin/login` with the `ADMIN_PASSWORD` set in environment variables.
-
-**Emails not sending:** Verify `RESEND_API_KEY` is set and the `REPORT_FROM_EMAIL` domain is verified in your Resend dashboard. Check `/api/healthz` — it reports email transport status.
-
-**www redirect loop:** Ensure `NODE_ENV=production` is set. The redirect middleware only activates in production to avoid interfering with Replit dev previews.
-
----
-
-## GEO-related Hostinger checks (added 2026-05-14)
-
-The full GEO posture is documented in `docs/geo-audit-report-2026-05.md`. The two
-Hostinger-specific items that affect generative-engine discoverability and that
-must be verified post-deployment are:
-
-1. **`/llms.txt` and `/llms-full.txt` must be reachable.** They are served by
-   `artifacts/api-server/src/routes/llmsTxt.ts` and require no extra
-   configuration beyond `SITE_URL` being set so the absolute URLs inside the
-   Markdown match the production hostname. After deploy, verify with:
-   ```
-   curl -sI https://www.fintechpresshub.com/llms.txt | grep -E "200|text/plain"
-   curl -sI https://www.fintechpresshub.com/llms-full.txt | grep -E "200|text/plain"
-   ```
-
-2. **Every HTML page must emit the `Link: rel="alternate"; type="text/plain"`
-   header** that points AI crawlers at the LLM content index. The header is
-   set by `ssrMeta.ts` and survives any reverse-proxy hop. Verify with:
-   ```
-   curl -sI https://www.fintechpresshub.com/ | grep -i "^link:"
-   ```
-   The expected output includes `</llms.txt>; rel="alternate"; type="text/plain"`.
-
-3. **Object-storage uploads on Hostinger.** The Replit Object Storage sidecar
-   is unavailable. `lib/object-storage/objectStorage.ts` already gates every
-   public method behind `isReplitStorageAvailable()` and throws a friendly
-   error when `REPL_ID` is unset, so the server boots cleanly. *Existing*
-   uploads served from `/objects/*` continue to work because they are read
-   from the storage URL stored in the DB row, not re-uploaded. *New* uploads
-   from the admin dashboard (cover images, author photos) will fail with a
-   "Replit Object Storage required" error until an S3-compatible adapter is
-   wired in. For an interim Hostinger deployment, upload assets directly to
-   `artifacts/fintechpresshub/public/author-photos/` and reference them by
-   relative path in the admin UI — the existing `/objects/*` route already
-   transparently passes through to the public folder when the sidecar is
-   absent.
-
-4. **Skill-Creator outputs are runtime-independent.** All skills under
-   `.local/skills/` and `.agents/skills/` are static Markdown plus optional
-   shell scripts; none depend on Replit-only services. They will continue to
-   function on Hostinger because the agent runtime that consumes them is not
-   part of this deployment artefact.
+Everything else works identically on Hostinger: blog, SEO, tools, contact forms, newsletter, admin dashboard, notifications.
 
 ---
 
-## International SEO checks (added 2026-05-14)
+## File Structure After Deployment
 
-The full international-SEO posture is documented in
-`docs/i18n-seo-audit-2026-05.md`. Hostinger Business shared hosting can
-sometimes strip custom HTTP response headers via the reverse proxy, so
-verify these post-deploy:
-
-```bash
-# 1. Content-Language header survives the proxy
-curl -sI https://www.fintechpresshub.com/ | grep -i "^content-language:"
-# Expected: content-language: en
-
-# 2. Vary header includes Accept-Language
-curl -sI https://www.fintechpresshub.com/ | grep -i "^vary:"
-# Expected: vary contains Accept-Language
-
-# 3. Hreflang <link> tags are in served HTML head
-curl -s https://www.fintechpresshub.com/ | grep -E 'hreflang="(en|x-default)"'
-# Expected: two lines (rel="alternate" hreflang="en" and hreflang="x-default")
-
-# 4. og:locale + all four alternates present
-curl -s https://www.fintechpresshub.com/ | grep -E 'og:locale'
-# Expected: en_US + en_GB + en_SG + en_AU + en_CA
-
-# 5. Sitemap hreflang annotations reach the wire
-curl -s https://www.fintechpresshub.com/sitemap.xml | grep -c '<xhtml:link'
-# Expected: 2 × number of URLs in that sitemap
-
-# 6. Currency declaration on Organization @graph
-curl -s https://www.fintechpresshub.com/ | grep -o '"currenciesAccepted":"[^"]*"'
-# Expected: "currenciesAccepted":"USD, GBP, EUR, SGD, AUD, CAD"
 ```
-
-If any header (1, 2) is missing post-deploy, add it explicitly in
-`.htaccess` at the site root:
-
-```apache
-<IfModule mod_headers.c>
-    Header set Content-Language "en"
-    Header append Vary "Accept-Language"
-</IfModule>
+/home/USERNAME/fintechpresshub/
+├── artifacts/
+│   ├── api-server/
+│   │   ├── dist/             ← compiled Express server (the running app)
+│   │   └── src/              ← source code
+│   └── fintechpresshub/
+│       ├── dist/public/      ← compiled React frontend (served as static files)
+│       └── src/              ← source code
+├── lib/
+│   └── db/                   ← database schema (used by drizzle push)
+├── scripts/
+│   └── hostinger-install.sh  ← automated setup script
+├── ecosystem.config.cjs       ← PM2 configuration
+├── .env                       ← your environment variables (NEVER commit this)
+├── .env.example               ← template with all variables documented
+├── package.json
+├── pnpm-lock.yaml
+└── logs/                      ← PM2 log files (created by install script)
 ```
-
-**Search Console geo-targeting:** leave the international-targeting setting
-as "Unlisted" (i.e., not country-specific). The site serves five English
-markets and a country-specific target would suppress ranking in the other
-four. The `hreflang="en"` + `hreflang="x-default"` tags already give Google
-the correct signal.
-
----
-
-## Technical SEO checks (added 2026-05-14)
-
-The full technical-SEO posture is documented in
-`docs/technical-seo-audit-2026-05.md`. Verify these post-deploy:
-
-```bash
-# 1. Soft-404 fix — unknown URL returns 404, not 200
-curl -sI https://www.fintechpresshub.com/random-junk-xyz | head -1
-# Expected: HTTP/1.1 404 Not Found
-
-# 2. Real SPA route still returns 200
-curl -sI https://www.fintechpresshub.com/about | head -1
-# Expected: HTTP/1.1 200 OK
-
-# 3. Permissions-Policy includes Privacy Sandbox denials
-curl -sI https://www.fintechpresshub.com/ | grep -i "^permissions-policy:"
-# Expected line includes: browsing-topics=(), interest-cohort=(),
-#   join-ad-interest-group=(), run-ad-auction=(), attribution-reporting=()
-
-# 4. Strict CSP active
-curl -sI https://www.fintechpresshub.com/ | grep -i "^content-security-policy:"
-# Expected: starts with default-src 'self'
-
-# 5. HSTS preload-eligible
-curl -sI https://www.fintechpresshub.com/ | grep -i "^strict-transport-security:"
-# Expected: max-age=31536000; includeSubDomains; preload
-
-# 6. Brotli active on hashed assets (LiteSpeed mod_brotli on Hostinger)
-ASSET=$(curl -s https://www.fintechpresshub.com/ | grep -oE '/assets/[a-z0-9-]+\.[a-f0-9]+\.js' | head -1)
-curl -sI -H "Accept-Encoding: br, gzip" "https://www.fintechpresshub.com${ASSET}" | grep -i "^content-encoding:"
-# Expected: content-encoding: br  (gzip is acceptable fallback)
-
-# 7. Immutable cache on hashed asset
-curl -sI "https://www.fintechpresshub.com${ASSET}" | grep -i "^cache-control:"
-# Expected: public, max-age=31536000, immutable
-```
-
-If brotli is not active on `/assets/*`, add to `.htaccess` at the site root:
-
-```apache
-<IfModule mod_brotli.c>
-    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css text/javascript
-    AddOutputFilterByType BROTLI_COMPRESS application/javascript application/json
-    AddOutputFilterByType BROTLI_COMPRESS application/xml image/svg+xml
-</IfModule>
-```
-
-LiteSpeed Web Server (the default on Hostinger Business shared) honours
-the same directive natively. If `Content-Encoding: gzip` keeps appearing
-even after the snippet is added, contact Hostinger support to enable
-`mod_brotli` on the account — this is a single-click toggle on their side.
-
----
-
-## Replit-only Subsystems (Graceful Degradation on Hostinger)
-
-The codebase contains two subsystems that depend on Replit-specific
-infrastructure. Both detect the runtime via `process.env.REPL_ID` and
-gracefully fail (or no-op) when that variable is absent — so they will
-**not** crash a Hostinger deployment, but the corresponding feature
-surfaces will be inactive.
-
-| Subsystem | File | Behaviour on Hostinger | Mitigation |
-|-----------|------|------------------------|-----------|
-| Object Storage (admin author photo / asset uploads) | `artifacts/api-server/src/lib/object-storage/objectStorage.ts` | `ObjectStorageUnavailableError` thrown on any upload attempt; existing photos served from `/api/author-photos` continue to work because they hit the database, not the sidecar | Either (a) leave admin uploads disabled and continue to seed author photos via DB only, or (b) swap the sidecar fetch (gated by `isReplitStorageAvailable()` in `objectStorage.ts`) for an S3-compatible adapter (Hostinger Object Storage add-on, Backblaze B2, or Cloudflare R2). The rest of the surface is environment-agnostic. |
-| Replit OIDC login (admin auth) | `artifacts/api-server/src/lib/auth.ts`, `artifacts/api-server/src/routes/auth.ts` | Login route returns 503 with a clear "REPL_ID must be set" message when the env var is absent | If admin login is needed in production, point `ISSUER_URL` and `REPL_ID` at any OIDC provider (Auth0, Clerk, Keycloak, Cognito) — the OIDC client is generic. Otherwise, leave the routes inactive; everything else (blog, services, tools, AEO endpoints) runs without auth. |
-
-Neither subsystem affects AEO signal delivery: `robots.txt`, `sitemap*.xml`,
-`llms.txt`, `llms-full.txt`, `.well-known/ai.txt`, `/.well-known/security.txt`,
-RSS feeds, and all SSR JSON-LD are emitted from environment-independent
-routes that run identically on Hostinger.
