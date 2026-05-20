@@ -42,6 +42,29 @@ function parseDateFromDatetimeLocal(dtl: string): Date | undefined {
   return new Date(y, mo - 1, d);
 }
 
+function getPresetDate(daysFromNow: number, hour = 9): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromNow);
+  d.setHours(hour, 0, 0, 0);
+  return d;
+}
+
+function getNextWeekday(weekday: number, hour = 9): Date {
+  const d = new Date();
+  const current = d.getDay();
+  const daysUntil = ((weekday - current + 7) % 7) || 7;
+  d.setDate(d.getDate() + daysUntil);
+  d.setHours(hour, 0, 0, 0);
+  return d;
+}
+
+const QUICK_PRESETS: { label: string; getDate: () => Date }[] = [
+  { label: "Tomorrow 9am", getDate: () => getPresetDate(1) },
+  { label: "In 3 days",    getDate: () => getPresetDate(3) },
+  { label: "Next Monday",  getDate: () => getNextWeekday(1) },
+  { label: "In 1 week",    getDate: () => getPresetDate(7) },
+];
+
 export function SchedulePicker({
   value,
   onChange,
@@ -81,6 +104,13 @@ export function SchedulePicker({
     }
   }
 
+  function applyPreset(presetDate: Date) {
+    const time = `${String(presetDate.getHours()).padStart(2, "0")}:${String(presetDate.getMinutes()).padStart(2, "0")}`;
+    setSelectedDate(presetDate);
+    setSelectedTime(time);
+    onChange(buildDateTimeLocal(presetDate, time));
+  }
+
   function activateSchedule() {
     const base = selectedDate ?? (() => {
       const d = new Date();
@@ -98,6 +128,15 @@ export function SchedulePicker({
   const isFuture = value ? new Date(value).getTime() > Date.now() : false;
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
+
+  function isActivePreset(presetDate: Date): boolean {
+    if (!value || !isFuture) return false;
+    const presetStr = buildDateTimeLocal(
+      presetDate,
+      `${String(presetDate.getHours()).padStart(2, "0")}:${String(presetDate.getMinutes()).padStart(2, "0")}`,
+    );
+    return value === presetStr;
+  }
 
   return (
     <div className="space-y-2" id={id} data-testid={dataTestId}>
@@ -134,9 +173,37 @@ export function SchedulePicker({
 
       {isScheduled && (
         <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+
+          {/* One-click presets */}
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground font-medium">Quick schedule</p>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_PRESETS.map((preset) => {
+                const presetDate = preset.getDate();
+                const active = isActivePreset(presetDate);
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => applyPreset(presetDate)}
+                    className={cn(
+                      "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors cursor-pointer",
+                      active
+                        ? "border-transparent bg-primary text-primary-foreground"
+                        : "border-border bg-background text-foreground hover:bg-muted",
+                    )}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Custom date + time */}
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex-1 min-w-[190px] space-y-1">
-              <Label className="text-xs">Date</Label>
+              <Label className="text-xs">Custom date</Label>
               <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
