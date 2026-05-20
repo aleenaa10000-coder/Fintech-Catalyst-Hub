@@ -52,6 +52,7 @@ export const emptyForm = {
   seoDescription: "",
   seoOgImage: "",
   noIndex: false,
+  isDraft: false,
   faqItems: "",
   blufSummary: "",
   lastMaterialUpdateAt: "",
@@ -200,6 +201,7 @@ export function PostEditor({
     seoDescription: post.seoDescription ?? "",
     seoOgImage: post.seoOgImage ?? "",
     noIndex: post.noIndex ?? false,
+    isDraft: (post as unknown as { isDraft?: boolean }).isDraft ?? false,
     faqItems: post.faqItems
       ? JSON.stringify(post.faqItems, null, 2)
       : "",
@@ -242,6 +244,7 @@ export function PostEditor({
           readingMinutes,
           featured: draft.featured,
           noIndex: draft.noIndex,
+          isDraft: draft.isDraft,
           ...(publishedAtChanged
             ? { publishedAt: new Date(draft.publishedAt).toISOString() }
             : {}),
@@ -621,6 +624,22 @@ export function PostEditor({
             Emits{" "}
             <code>&lt;meta name="robots" content="noindex,nofollow"&gt;</code>{" "}
             on the post detail page.
+          </p>
+        </div>
+      </div>
+      <div className="flex items-start gap-2">
+        <Checkbox
+          id={`isDraft-${post.id}`}
+          checked={draft.isDraft}
+          onCheckedChange={(v) => setDraft({ ...draft, isDraft: v === true })}
+          data-testid={`edit-post-${post.id}-isdraft`}
+        />
+        <div className="grid gap-1 leading-tight">
+          <Label htmlFor={`isDraft-${post.id}`} className="cursor-pointer">
+            Draft (hidden from the public site)
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Draft posts are stored in the database but never appear on the public blog.
           </p>
         </div>
       </div>

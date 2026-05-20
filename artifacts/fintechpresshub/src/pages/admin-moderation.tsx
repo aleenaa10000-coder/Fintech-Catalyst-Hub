@@ -390,6 +390,8 @@ function ContactRow({
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [replyMessage, setReplyMessage] = useState("");
+  const [replySending, setReplySending] = useState(false);
 
   async function handle(next: SubmissionStatus) {
     setBusy(true);
@@ -503,13 +505,48 @@ function ContactRow({
               {sub.message}
             </p>
           </div>
-          <div className="flex gap-2 pt-1 flex-wrap">
-            <StatusActions status={sub.status} busy={busy} onMark={handle} />
-            <a href={`mailto:${sub.email}?subject=Re: Your enquiry`}>
-              <Button size="sm" variant="outline" className="text-xs">
-                Reply via email
+          <div className="space-y-2 pt-1">
+            <div>
+              <label className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                Reply directly
+              </label>
+              <Textarea
+                className="mt-1 text-sm min-h-[80px] resize-y"
+                placeholder="Type your reply… (sends an email to the lead)"
+                value={replyMessage}
+                onChange={(e) => setReplyMessage(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                size="sm"
+                className="text-xs bg-[#0052FF] hover:bg-[#0040cc]"
+                disabled={replySending || !replyMessage.trim()}
+                onClick={async () => {
+                  if (!replyMessage.trim()) return;
+                  setReplySending(true);
+                  try {
+                    const r = await fetch(`/api/admin/contact/${sub.id}/reply`, {
+                      method: "POST",
+                      credentials: "include",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ message: replyMessage.trim() }),
+                    });
+                    if (!r.ok) throw new Error("Failed to send reply");
+                    toast.success(`Reply sent to ${sub.email}`);
+                    setReplyMessage("");
+                    await handle("handled");
+                  } catch {
+                    toast.error("Could not send reply — check mail config.");
+                  } finally {
+                    setReplySending(false);
+                  }
+                }}
+              >
+                {replySending ? "Sending…" : "Send reply"}
               </Button>
-            </a>
+              <StatusActions status={sub.status} busy={busy} onMark={handle} />
+            </div>
           </div>
         </div>
       )}

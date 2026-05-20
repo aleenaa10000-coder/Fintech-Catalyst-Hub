@@ -188,10 +188,19 @@ export default function Contact() {
   }, [form]);
 
   const submitContact = useSubmitContactForm();
+  const [hpValue, setHpValue] = useState("");
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // Honeypot: if the hidden field was filled by a bot, silently succeed without calling API
+    if (hpValue) {
+      toast.success("Message sent successfully!", {
+        description: "One of our strategists will be in touch within 24 hours.",
+      });
+      form.reset();
+      return;
+    }
     submitContact.mutate(
-      { data: values },
+      { data: { ...values, __hp: "" } as unknown as Parameters<typeof submitContact.mutate>[0]["data"] },
       {
         onSuccess: () => {
           toast.success("Message sent successfully!", {
@@ -807,6 +816,20 @@ export default function Contact() {
                         </a>
                         .
                       </p>
+
+                      {/* Honeypot — hidden from real users, visible to bots */}
+                      <div style={{ position: "absolute", left: "-9999px", top: "-9999px", width: "1px", height: "1px", overflow: "hidden" }} aria-hidden="true">
+                        <label htmlFor="__hp_contact">Website</label>
+                        <input
+                          id="__hp_contact"
+                          name="__hp"
+                          type="text"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          value={hpValue}
+                          onChange={(e) => setHpValue(e.target.value)}
+                        />
+                      </div>
 
                       <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
                         <Timer className="h-5 w-5 shrink-0 text-primary" />

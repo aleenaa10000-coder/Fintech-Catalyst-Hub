@@ -598,9 +598,14 @@ export default function WriteForUs() {
   });
 
   const [submitted, setSubmitted] = useState(false);
+  const [hpValue, setHpValue] = useState("");
 
   const submitPost = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
+      // Honeypot: silently succeed if the hidden field was filled by a bot
+      if (hpValue) {
+        return { status: 200, data: { ok: true } } as { status: number; data: { ok?: boolean; emailed?: boolean } | null };
+      }
       const res = await fetch("/api/pitch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1372,6 +1377,20 @@ export default function WriteForUs() {
                         </FormItem>
                       )}
                     />
+
+                    {/* Honeypot — hidden from real users via absolute off-screen positioning, visible to bots */}
+                    <div style={{ position: "absolute", left: "-9999px", top: "-9999px", width: "1px", height: "1px", overflow: "hidden" }} aria-hidden="true">
+                      <label htmlFor="__hp_pitch">Website</label>
+                      <input
+                        id="__hp_pitch"
+                        name="__hp"
+                        type="text"
+                        tabIndex={-1}
+                        autoComplete="off"
+                        value={hpValue}
+                        onChange={(e) => setHpValue(e.target.value)}
+                      />
+                    </div>
 
                     <Button
                       type="submit"

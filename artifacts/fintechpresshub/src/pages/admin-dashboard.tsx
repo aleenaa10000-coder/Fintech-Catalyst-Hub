@@ -167,24 +167,16 @@ function StatCard({
  * polyline trend below the stat so admins can spot regressions at a glance.
  */
 function SchemaHealthSparklineCard() {
-  const STORAGE_KEY = "schema_health_history";
   const MAX_DAYS = 14;
   const [sparkHistory, setSparkHistory] = useState<number[]>([]);
   useEffect(() => {
-    let entries: { date: string; pass: boolean }[] = [];
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      entries = stored ? JSON.parse(stored) : [];
-    } catch {
-      entries = [];
-    }
-    const today = new Date().toISOString().slice(0, 10);
-    if (!entries.find((e) => e.date === today)) {
-      entries.push({ date: today, pass: true });
-    }
-    entries = entries.slice(-MAX_DAYS);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-    setSparkHistory(entries.map((e) => (e.pass ? 1 : 0)));
+    fetch("/api/admin/schema-health/history", { credentials: "include" })
+      .then((r) => r.ok ? r.json() : [])
+      .then((rows: { pass: boolean; ranAt?: string }[]) => {
+        const last = rows.slice(0, MAX_DAYS).reverse();
+        setSparkHistory(last.map((e) => (e.pass ? 1 : 0)));
+      })
+      .catch(() => setSparkHistory([]));
   }, []);
 
   const passCount = sparkHistory.filter((v) => v === 1).length;

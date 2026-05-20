@@ -83,6 +83,11 @@ export const blogPostsTable = pgTable("blog_posts", {
   // the hero cover image.
   inlineImage1: text("inline_image_1"),
   inlineImage2: text("inline_image_2"),
+  // When true the post is a private draft — never shown on the public blog,
+  // never indexed, never returned by public list/detail routes regardless of
+  // `publishedAt`. Admins can save work-in-progress without the risk of the
+  // post accidentally going live via a scheduled timestamp.
+  isDraft: boolean("is_draft").notNull().default(false),
 },
 (t) => [
   // Covers all ORDER BY published_at DESC queries (main blog list, RSS, sitemap).

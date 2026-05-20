@@ -160,6 +160,9 @@ export default function AdminBlog() {
   const [bulkDeletePending, setBulkDeletePending] = useState(false);
   const deepLinkConsumed = useRef(false);
 
+  const [suggestions, setSuggestions] = useState<{slug: string; title: string; category: string; publishedAt: string; url: string}[]>([]);
+  const suggestionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [activeTab, setActiveTab] = useState<"published" | "scheduled">(
     "published",
   );
@@ -345,10 +348,20 @@ export default function AdminBlog() {
           readingMinutes,
           featured: form.featured,
           noIndex: form.noIndex,
+          isDraft: form.isDraft,
           ...(publishedAtIso ? { publishedAt: publishedAtIso } : {}),
           seoTitle: form.seoTitle.trim() || null,
           seoDescription: form.seoDescription.trim() || null,
-          seoOgImage: form.seoOgImage.trim() || null,
+          seoOgImage: (() => {
+            const v = form.seoOgImage.trim();
+            if (v) return v;
+            const p = new URLSearchParams();
+            if (form.title.trim()) p.set("title", form.title.trim());
+            if (form.category.trim()) p.set("category", form.category.trim());
+            if (form.author.trim()) p.set("author", form.author.trim());
+            if (form.authorRole.trim()) p.set("authorRole", form.authorRole.trim());
+            return `/api/og?${p.toString()}`;
+          })(),
           ...(form.faqItems.trim()
             ? (() => {
                 try {
@@ -585,6 +598,15 @@ export default function AdminBlog() {
                 <Users className="w-4 h-4 mr-1.5" /> Author photos
               </Link>
             </Button>
+            <a
+              href="/api/admin/blog/posts/export.csv"
+              download
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+              data-testid="export-csv"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </a>
             <span className="text-muted-foreground">
               Signed in as{" "}
               <strong className="text-foreground">
@@ -781,9 +803,21 @@ export default function AdminBlog() {
                     id="category"
                     placeholder="e.g. SEO Strategy"
                     value={form.category}
-                    onChange={(e) =>
-                      setForm({ ...form, category: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, category: e.target.value });
+                      if (suggestionsTimerRef.current) clearTimeout(suggestionsTimerRef.current);
+                      suggestionsTimerRef.current = setTimeout(() => {
+                        const tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+                        const params = new URLSearchParams();
+                        if (e.target.value.trim()) params.set("category", e.target.value.trim());
+                        if (tags.length) params.set("tags", tags.join(","));
+                        if (form.slug.trim()) params.set("exclude", form.slug.trim());
+                        fetch(`/api/admin/blog/posts/suggestions?${params}`, { credentials: "include" })
+                          .then((r) => r.ok ? r.json() : [])
+                          .then(setSuggestions)
+                          .catch(() => {});
+                      }, 600);
+                    }}
                     required
                     className={publishFieldErrors.category ? "border-destructive" : ""}
                   />
@@ -796,9 +830,21 @@ export default function AdminBlog() {
                     list="new-post-tags-suggestions"
                     placeholder="seo, fintech, content"
                     value={form.tags}
-                    onChange={(e) =>
-                      setForm({ ...form, tags: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, tags: e.target.value });
+                      if (suggestionsTimerRef.current) clearTimeout(suggestionsTimerRef.current);
+                      suggestionsTimerRef.current = setTimeout(() => {
+                        const tags = e.target.value.split(",").map((t) => t.trim()).filter(Boolean);
+                        const params = new URLSearchParams();
+                        if (form.category.trim()) params.set("category", form.category.trim());
+                        if (tags.length) params.set("tags", tags.join(","));
+                        if (form.slug.trim()) params.set("exclude", form.slug.trim());
+                        fetch(`/api/admin/blog/posts/suggestions?${params}`, { credentials: "include" })
+                          .then((r) => r.ok ? r.json() : [])
+                          .then(setSuggestions)
+                          .catch(() => {});
+                      }, 600);
+                    }}
                   />
                   {allTags.length > 0 && (
                     <datalist id="new-post-tags-suggestions">
@@ -807,6 +853,36 @@ export default function AdminBlog() {
                   )}
                 </div>
               </div>
+
+              {suggestions.length > 0 && (
+                <details className="border rounded-md p-3 bg-sky-50/50">
+                  <summary className="cursor-pointer text-sm font-medium select-none text-sky-800">
+                    Internal link suggestions ({suggestions.length} related posts)
+                  </summary>
+                  <ul className="mt-2 space-y-1.5">
+                    {suggestions.map((s) => (
+                      <li key={s.slug} className="text-xs flex items-center gap-2">
+                        <span className="text-muted-foreground font-mono shrink-0">/blog/{s.slug}</span>
+                        <span className="text-foreground truncate">{s.title}</span>
+                        <button
+                          type="button"
+                          className="ml-auto shrink-0 text-[#0052FF] hover:underline text-xs"
+                          onClick={() => {
+                            const link = `<a href="/blog/${s.slug}">${s.title}</a>`;
+                            navigator.clipboard.writeText(link).then(() => {
+                              toast.success("Link copied to clipboard");
+                            }).catch(() => {
+                              toast.info(`Link: /blog/${s.slug}`);
+                            });
+                          }}
+                        >
+                          Copy link
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="coverImage">Cover image</Label>
@@ -912,6 +988,25 @@ export default function AdminBlog() {
                   </Label>
                   <p className="text-xs text-muted-foreground">
                     Adds <code>&lt;meta name="robots" content="noindex,nofollow"&gt;</code> to the post page. The URL stays publicly accessible.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="isDraft"
+                  checked={form.isDraft}
+                  onCheckedChange={(v) =>
+                    setForm({ ...form, isDraft: v === true })
+                  }
+                  data-testid="new-post-isdraft"
+                />
+                <div className="grid gap-1 leading-tight">
+                  <Label htmlFor="isDraft" className="cursor-pointer">
+                    Save as draft (hidden from the public site)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Draft posts are stored in the database but never shown on the public blog. Uncheck to publish.
                   </p>
                 </div>
               </div>
@@ -2363,6 +2458,11 @@ export default function AdminBlog() {
                           })()}
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          {(p as unknown as { isDraft?: boolean }).isDraft && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                              DRAFT
+                            </span>
+                          )}
                           <SeoStatusBadge
                             pingedAt={p.lastSeoPingAt}
                             status={p.lastSeoPingStatus}

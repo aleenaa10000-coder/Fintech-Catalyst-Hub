@@ -1,15 +1,19 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import { gte, desc } from "drizzle-orm";
+import { gte, desc, eq } from "drizzle-orm";
 import { db, contactSubmissionsTable } from "@workspace/db";
 import { SubmitContactFormBody } from "@workspace/api-zod";
 import { sendMail, cleanEmail } from "../lib/mailer";
 import { logger } from "../lib/logger";
 import { formRateLimiter } from "../lib/rateLimiter";
 import { escapeHtml } from "../lib/routeHelpers";
+import { requireAdmin } from "../lib/routeHelpers";
 
 const ContactBody = SubmitContactFormBody.extend({
   website: z.string().trim().url().max(500).optional().or(z.literal("")),
+  // Honeypot field — hidden from real users via CSS, visible to bots.
+  // Reject silently (return 200) so bots don't know they were caught.
+  __hp: z.string().optional(),
 });
 
 const router: IRouter = Router();
@@ -30,6 +34,13 @@ router.post("/contact", formRateLimiter, async (req, res) => {
     return;
   }
   const body = parsed.data;
+
+  // Honeypot check — if the hidden __hp field is non-empty, it's a bot.
+  // Return 200 to avoid revealing the rejection.
+  if (body.__hp) {
+    res.json({ id: 0, name: body.name, email: body.email, message: body.message, createdAt: new Date().toISOString() });
+    return;
+  }
   let row: typeof contactSubmissionsTable.$inferSelect | undefined;
   try {
     [row] = await db
@@ -347,6 +358,77 @@ router.get("/contact/digest", async (req, res) => {
     count: rows.length,
     notifyTo,
   });
+});
+
+/**
+ * POST /api/admin/contact/:id/reply
+ * Sends a direct email reply to a contact submission from the admin moderation panel.
+ */
+router.post("/admin/contact/:id/reply", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id) || id <= 0) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const body = z.object({ message: z.string().min(1).max(10000) }).safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "message is required" });
+    return;
+  }
+
+  const [sub] = await db
+    .select()
+    .from(contactSubmissionsTable)
+    .where(eq(contactSubmissionsTable.id, id))
+    .limit(1);
+
+  if (!sub) {
+    res.status(404).json({ error: "Submission not found" });
+    return;
+  }
+
+  const replyFromAddr =
+    process.env["SMTP_FROM"] ??
+    process.env["SMTP_USER"] ??
+    process.env["REPORT_FROM_EMAIL"];
+
+  const html = `
+    <div style="font-family:system-ui,-apple-system,sans-serif;max-width:560px;margin:0 auto;color:#0a2540">
+      <div style="background:linear-gradient(135deg,#0052FF 0%,#0040CC 100%);color:#fff;padding:24px 28px;border-radius:12px 12px 0 0">
+        <div style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;margin-bottom:4px">FintechPressHub</div>
+        <h2 style="margin:0;font-size:20px;font-weight:700">Reply from the team</h2>
+      </div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-top:0;padding:24px 28px;border-radius:0 0 12px 12px">
+        <p style="font-size:15px;color:#334155;margin:0 0 16px">Hi ${escapeHtml(sub.name.split(" ")[0] ?? sub.name)},</p>
+        <div style="border-left:3px solid #0052FF;background:#f1f5ff;padding:14px 16px;border-radius:6px;font-size:14px;line-height:1.7;color:#334155;white-space:pre-wrap">${escapeHtml(body.data.message)}</div>
+        <p style="font-size:13px;color:#94a3b8;margin-top:24px">
+          The FintechPressHub Team
+        </p>
+      </div>
+    </div>
+  `;
+
+  const sent = await sendMail({
+    to: sub.email,
+    subject: `Re: Your message to FintechPressHub`,
+    text: body.data.message,
+    html,
+    ...(replyFromAddr ? { replyTo: replyFromAddr } : {}),
+  });
+
+  if (!sent) {
+    res.status(502).json({ error: "Email could not be sent — check mail configuration." });
+    return;
+  }
+
+  // Mark the submission as handled after replying
+  await db
+    .update(contactSubmissionsTable)
+    .set({ status: "handled", handledAt: new Date(), handledBy: req.user?.email ?? "admin" })
+    .where(eq(contactSubmissionsTable.id, id));
+
+  res.json({ sent: true, to: sub.email });
 });
 
 export default router;

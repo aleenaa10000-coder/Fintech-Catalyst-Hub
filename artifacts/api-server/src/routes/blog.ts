@@ -137,6 +137,7 @@ const PublishBlogPostBody = z.object({
   seoDescription: seoDescriptionField,
   seoOgImage: seoOgImageField,
   noIndex: z.boolean().optional(),
+  isDraft: z.boolean().optional(),
   faqItems: z
     .array(z.object({ question: z.string(), answer: z.string() }))
     .nullable()
@@ -215,6 +216,7 @@ const UpdateBlogPostBody = z
     seoDescription: seoDescriptionField,
     seoOgImage: seoOgImageField,
     noIndex: z.boolean().optional(),
+    isDraft: z.boolean().optional(),
     faqItems: z
       .array(z.object({ question: z.string(), answer: z.string() }))
       .nullable()
@@ -258,9 +260,10 @@ const UpdateBlogPostBody = z
  * given, since it has no view of the session.
  */
 const visibleToPublic = (asOf?: Date): SQL =>
-  asOf
-    ? lte(blogPostsTable.publishedAt, asOf)
-    : lte(blogPostsTable.publishedAt, sql`now()`);
+  and(
+    asOf ? lte(blogPostsTable.publishedAt, asOf) : lte(blogPostsTable.publishedAt, sql`now()`),
+    eq(blogPostsTable.isDraft, false),
+  ) as SQL;
 
 function serialize(row: typeof blogPostsTable.$inferSelect) {
   return {
@@ -296,6 +299,7 @@ function serialize(row: typeof blogPostsTable.$inferSelect) {
     wordCount: row.wordCount ?? 0,
     inlineImage1: row.inlineImage1 ?? null,
     inlineImage2: row.inlineImage2 ?? null,
+    isDraft: row.isDraft,
   };
 }
 
@@ -559,6 +563,7 @@ router.post("/blog/posts", requireAdmin, async (req, res, next) => {
           ? { seoOgImage: body.seoOgImage }
           : {}),
         ...(body.noIndex !== undefined ? { noIndex: body.noIndex } : {}),
+        ...(body.isDraft !== undefined ? { isDraft: body.isDraft } : {}),
         ...(body.faqItems !== undefined ? { faqItems: body.faqItems } : {}),
         ...(body.blufSummary !== undefined
           ? { blufSummary: body.blufSummary }
@@ -1024,10 +1029,121 @@ router.get(
     const rows = await db
       .select()
       .from(blogPostsTable)
-      .where(gt(blogPostsTable.publishedAt, sql`now()`))
+      .where(and(gt(blogPostsTable.publishedAt, sql`now()`), eq(blogPostsTable.isDraft, false)))
       .orderBy(asc(blogPostsTable.publishedAt));
     res.set("Cache-Control", "no-store");
     res.json(rows.map(serialize));
+  },
+);
+
+/**
+ * GET /api/admin/blog/posts/export.csv
+ * Downloads all blog posts (published + scheduled + draft) as a CSV file.
+ * Useful for content audits and client reporting.
+ */
+router.get(
+  "/admin/blog/posts/export.csv",
+  requireAdmin,
+  async (_req, res, next) => {
+    try {
+      const rows = await db
+        .select()
+        .from(blogPostsTable)
+        .orderBy(desc(blogPostsTable.publishedAt));
+
+      const escape = (v: unknown) => {
+        const s = v == null ? "" : String(v);
+        if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+          return `"${s.replace(/"/g, '""')}"`;
+        }
+        return s;
+      };
+
+      const headers = ["slug","title","category","author","publishedAt","wordCount","viewCount","isDraft","noIndex","tags"];
+      const lines = [
+        headers.join(","),
+        ...rows.map((r) =>
+          [
+            r.slug,
+            r.title,
+            r.category,
+            r.author,
+            r.publishedAt.toISOString(),
+            r.wordCount ?? 0,
+            r.viewCount,
+            r.isDraft ? "true" : "false",
+            r.noIndex ? "true" : "false",
+            (r.tags ?? []).join(";"),
+          ]
+            .map(escape)
+            .join(","),
+        ),
+      ];
+
+      const csv = lines.join("\r\n");
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="blog-posts-${new Date().toISOString().slice(0, 10)}.csv"`);
+      res.send(csv);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/**
+ * GET /api/admin/blog/posts/suggestions?category=X&tags=tag1,tag2&exclude=slug
+ * Returns up to 8 published posts that share the given category or tags,
+ * excluding the post identified by `exclude`. Used by the editor sidebar
+ * to suggest internal links without manual searching.
+ */
+router.get(
+  "/admin/blog/posts/suggestions",
+  requireAdmin,
+  async (req, res, next) => {
+    try {
+      const category = typeof req.query["category"] === "string" ? req.query["category"] : "";
+      const tagsRaw = typeof req.query["tags"] === "string" ? req.query["tags"] : "";
+      const exclude = typeof req.query["exclude"] === "string" ? req.query["exclude"] : "";
+      const queryTags = tagsRaw.split(",").map((t) => t.trim()).filter(Boolean);
+
+      const rows = await db
+        .select({
+          id: blogPostsTable.id,
+          slug: blogPostsTable.slug,
+          title: blogPostsTable.title,
+          category: blogPostsTable.category,
+          tags: blogPostsTable.tags,
+          publishedAt: blogPostsTable.publishedAt,
+        })
+        .from(blogPostsTable)
+        .where(visibleToPublic())
+        .orderBy(desc(blogPostsTable.publishedAt));
+
+      const scored = rows
+        .filter((r) => r.slug !== exclude)
+        .map((r) => {
+          let score = 0;
+          if (category && r.category === category) score += 3;
+          const postTags = r.tags ?? [];
+          for (const t of queryTags) {
+            if (postTags.includes(t)) score += 1;
+          }
+          return { ...r, score };
+        })
+        .filter((r) => r.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 8);
+
+      res.json(scored.map((r) => ({
+        slug: r.slug,
+        title: r.title,
+        category: r.category,
+        publishedAt: r.publishedAt.toISOString(),
+        url: `/blog/${r.slug}`,
+      })));
+    } catch (err) {
+      next(err);
+    }
   },
 );
 

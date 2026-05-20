@@ -119,6 +119,7 @@ const AdminPress = lazy(() => import("@/pages/admin-press"));
 const AdminTestimonials = lazy(() => import("@/pages/admin-testimonials"));
 const AdminSchemaTest = lazy(() => import("@/pages/admin-schema-test"));
 const AdminStats = lazy(() => import("@/pages/admin-stats"));
+const AdminPublications = lazy(() => import("@/pages/admin-publications"));
 const Press = lazy(() => import("@/pages/press"));
 // Chrome-free wrapper for the third-party-iframe `/embed/:slug` route.
 // Lives in its own chunk so the embed payload doesn't pull in admin/blog code.
@@ -419,6 +420,7 @@ function Router() {
             <AdminRoute path="/admin/testimonials" component={AdminTestimonials} />
             <AdminRoute path="/admin/schema-test" component={AdminSchemaTest} />
             <AdminRoute path="/admin/stats" component={AdminStats} />
+            <AdminRoute path="/admin/publications" component={AdminPublications} />
             <Route path="/404" component={NotFound} />
             <Route component={NotFound} />
           </Switch>
