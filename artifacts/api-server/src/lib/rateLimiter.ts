@@ -12,6 +12,27 @@ export const formRateLimiter = rateLimit({
 });
 
 /**
+ * Dedicated rate limiter for the admin login endpoint.
+ *
+ * Tighter than formRateLimiter: 10 attempts per 15 minutes.
+ * Successful logins are NOT counted — only failed ones — so a legitimate
+ * admin who logs in repeatedly (e.g. after a session timeout) is never
+ * locked out. Attackers burning through credentials still hit the cap.
+ *
+ * Applied to POST /api/admin-auth/login only.
+ */
+export const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: "Too many login attempts from this IP. Please wait 15 minutes before trying again.",
+  },
+  skipSuccessfulRequests: true,
+});
+
+/**
  * Rate limiter for tool rating submissions.
  * Allows up to 10 ratings per IP per hour to prevent abuse while
  * allowing legitimate users to rate multiple tools.

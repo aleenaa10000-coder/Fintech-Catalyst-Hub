@@ -16,7 +16,7 @@ import {
   SESSION_TTL,
   type SessionData,
 } from "../lib/auth";
-import { formRateLimiter } from "../lib/rateLimiter";
+import { loginRateLimiter } from "../lib/rateLimiter";
 
 // Constant placeholder hash used to keep bcrypt.compare timing equivalent
 // for missing-user / no-password-hash branches. The actual value never
@@ -55,7 +55,7 @@ function setSessionCookie(res: Response, sid: string) {
  * `GET /auth/user` so the existing `useAuth()` hook on the client just
  * works after a refetch.
  */
-router.post("/admin-auth/login", formRateLimiter, async (req: Request, res: Response) => {
+router.post("/admin-auth/login", loginRateLimiter, async (req: Request, res: Response) => {
   const parsed = LoginAdminWithPasswordBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Email and password are required" });

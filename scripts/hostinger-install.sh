@@ -112,12 +112,25 @@ ok "Production build complete (schema migrated + frontend + API built)"
 mkdir -p logs
 ok "logs/ directory created"
 
-# ── 9. Install PM2 and start the application ─────────────────────────────────
+# ── 9. Install PM2, log rotation, and start the application ──────────────────
 log "Setting up PM2 process manager..."
 if ! command -v pm2 &>/dev/null; then
   npm install -g pm2
-  ok "PM2 installed"
+  ok "PM2 installed: $(pm2 --version)"
+else
+  ok "PM2 already installed: $(pm2 --version)"
 fi
+
+# Install pm2-logrotate to cap log file sizes and prevent disk fill.
+# Rotates at 50 MB, keeps 7 days, compresses old files.
+log "Configuring PM2 log rotation..."
+pm2 install pm2-logrotate 2>/dev/null || true
+pm2 set pm2-logrotate:max_size 50M
+pm2 set pm2-logrotate:retain 7
+pm2 set pm2-logrotate:compress true
+pm2 set pm2-logrotate:dateFormat YYYY-MM-DD_HH-mm-ss
+pm2 set pm2-logrotate:rotateInterval '0 0 * * *'
+ok "PM2 log rotation configured (50 MB limit, 7 day retention)"
 
 # Stop any existing instance, then start fresh
 pm2 delete fintechpresshub 2>/dev/null || true
@@ -126,8 +139,13 @@ pm2 save
 
 # Set up auto-restart on server reboot
 log "Enabling auto-start on server reboot..."
-pm2 startup 2>/dev/null | tail -1 | grep -E "^sudo" | bash 2>/dev/null || \
-  warn "Auto-start setup requires running the command printed above manually."
+STARTUP_CMD=$(pm2 startup 2>/dev/null | tail -1)
+if echo "$STARTUP_CMD" | grep -qE "^sudo"; then
+  echo "$STARTUP_CMD" | bash 2>/dev/null && ok "Auto-start on reboot enabled" || \
+    warn "Auto-start: run this command manually as root: $STARTUP_CMD"
+else
+  warn "Auto-start: run 'pm2 startup' and follow the printed instructions to enable auto-start on reboot."
+fi
 
 ok "Application started with PM2"
 pm2 status

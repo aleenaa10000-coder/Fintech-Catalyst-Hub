@@ -3,6 +3,15 @@ import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { logger } from "./logger";
 
+// Bcrypt hash pattern — $2a$, $2b$, or $2y$ prefix followed by cost + salt + hash.
+// If ADMIN_PASSWORD starts with this pattern it is treated as a pre-computed
+// bcrypt hash and used directly, skipping the bcrypt.hash() call on startup.
+// This lets operators store the hash in hPanel instead of the plaintext password.
+//
+// To pre-hash your password:
+//   node -e "const b=require('bcryptjs'); b.hash('YOUR_PASSWORD', 12).then(console.log)"
+const BCRYPT_HASH_RE = /^\$2[aby]?\$\d{2}\$/;
+
 /**
  * Idempotent admin-user bootstrap. When the deployment sets both
  * `ADMIN_EMAILS` and `ADMIN_PASSWORD`, ensure each allowlisted email has
@@ -13,6 +22,10 @@ import { logger } from "./logger";
  * has the correct password hash we skip them; if the password rotated
  * we update the hash. Removing `ADMIN_PASSWORD` does NOT rotate any
  * existing hash — existing admins keep their last set password.
+ *
+ * ADMIN_PASSWORD may be either:
+ *   - Plaintext (e.g. "MyStr0ngP@ssword!") — hashed with bcrypt cost 12 on startup
+ *   - A pre-computed bcrypt hash (starting with $2b$12$) — used as-is, no re-hashing
  */
 export async function bootstrapAdminFromEnv(): Promise<void> {
   const rawEmails = process.env.ADMIN_EMAILS?.trim();
@@ -29,8 +42,11 @@ export async function bootstrapAdminFromEnv(): Promise<void> {
 
   if (emails.length === 0) return;
 
-  // Use cost factor 12, consistent with the dummy hash in adminAuth.ts.
-  const hash = await bcrypt.hash(rawPassword, 12);
+  // Support pre-hashed passwords: if the value looks like a bcrypt hash,
+  // use it directly. This avoids storing plaintext passwords in hPanel
+  // environment variables and eliminates the bcrypt.hash() CPU cost on startup.
+  const isPreHashed = BCRYPT_HASH_RE.test(rawPassword);
+  const hash = isPreHashed ? rawPassword : await bcrypt.hash(rawPassword, 12);
 
   for (const email of emails) {
     const [existing] = await db

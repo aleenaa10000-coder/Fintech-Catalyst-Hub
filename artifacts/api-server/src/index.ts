@@ -11,6 +11,7 @@ import { schedulePitchDigestDaily } from "./jobs/pitchDigestDaily";
 import { scheduleSchemaHealthDaily } from "./jobs/schemaHealthDaily";
 import { scheduleInternalLinkCheckDaily } from "./jobs/internalLinkCheckDaily";
 import { scheduleSessionCleanupDaily } from "./jobs/sessionCleanupDaily";
+import { scheduleNeonKeepAlive } from "./jobs/neonKeepAlive";
 
 // ── Startup environment validation (F1) ──────────────────────────────────────
 // These vars are required for the server to function correctly. The process
@@ -121,6 +122,15 @@ async function bootstrap() {
   // instead of an uncaught-exception crash on Hostinger or any Node host.
   const server = app.listen(port, () => {
     logger.info({ port }, "Server listening");
+
+    // Signal PM2 that the worker is ready. With wait_ready: true in
+    // ecosystem.config.cjs, PM2 waits for this signal before routing traffic
+    // to the new worker during a zero-downtime reload. Without it PM2 would
+    // send requests to the worker before it has finished binding the port.
+    if (typeof process.send === "function") {
+      process.send("ready");
+    }
+
     scheduleIndexNowDaily();
     scheduleLinkCheckDaily();
     scheduleNoIndexExpiryHourly();
@@ -130,6 +140,7 @@ async function bootstrap() {
     scheduleSchemaHealthDaily();
     scheduleInternalLinkCheckDaily();
     scheduleSessionCleanupDaily();
+    scheduleNeonKeepAlive();
   });
 
   server.on("error", (err: NodeJS.ErrnoException) => {

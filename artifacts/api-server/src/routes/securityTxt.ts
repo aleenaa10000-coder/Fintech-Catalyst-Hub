@@ -18,8 +18,13 @@ router.get("/.well-known/security.txt", (_req, res) => {
     .toISOString()
     .replace(/\.\d{3}Z$/, "Z");
 
+  // Allow the contact email to be configured via env var so operators don't
+  // need to redeploy when rotating their security contact address.
+  const contactEmail =
+    process.env.SECURITY_CONTACT_EMAIL?.trim() || `security@${new URL(siteUrl).hostname}`;
+
   const txt = [
-    `Contact: mailto:security@fintechpresshub.com`,
+    `Contact: mailto:${contactEmail}`,
     `Expires: ${expires}`,
     `Preferred-Languages: en`,
     `Canonical: ${siteUrl}/.well-known/security.txt`,

@@ -593,6 +593,55 @@ const _frontendDist = path.resolve(
 if (process.env.NODE_ENV === "production" && existsSync(_frontendDist)) {
   logger.info({ frontendDist: _frontendDist }, "Serving pre-built frontend as static files");
 
+  // ── Pre-compressed asset serving ──────────────────────────────────────────
+  // The build step (compress-dist.mjs) generates .gz and .br siblings for every
+  // compressible static asset. This middleware serves them directly when the
+  // client supports the encoding, eliminating per-request CPU cost for
+  // compression and enabling Brotli (avg 20% smaller than gzip) for JS/CSS.
+  // Falls through to express.static for files without a pre-compressed variant.
+  const PRECOMPRESSED_TYPES: Record<string, string> = {
+    ".js": "application/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".html": "text/html; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".svg": "image/svg+xml; charset=utf-8",
+    ".xml": "application/xml; charset=utf-8",
+    ".txt": "text/plain; charset=utf-8",
+    ".map": "application/json; charset=utf-8",
+  };
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    const accept = (req.headers["accept-encoding"] as string) ?? "";
+    const urlPath = req.path;
+    const ext = path.extname(urlPath).toLowerCase();
+    const contentType = PRECOMPRESSED_TYPES[ext];
+    if (!contentType) return next();
+
+    const basePath = path.join(_frontendDist, urlPath);
+    const isHashedAsset = /\.[a-f0-9]{8,}\.(js|css)$/i.test(urlPath);
+    const cacheControl = isHashedAsset
+      ? "public, max-age=31536000, immutable"
+      : "no-cache";
+
+    // Prefer brotli (better ratio) over gzip, fall back to uncompressed.
+    const candidates: Array<[string, string]> =
+      accept.includes("br")
+        ? [[basePath + ".br", "br"], [basePath + ".gz", "gzip"]]
+        : [[basePath + ".gz", "gzip"]];
+
+    for (const [compressedPath, encoding] of candidates) {
+      if (existsSync(compressedPath)) {
+        res.setHeader("Content-Encoding", encoding);
+        res.setHeader("Content-Type", contentType);
+        res.setHeader("Vary", "Accept-Encoding");
+        res.setHeader("Cache-Control", cacheControl);
+        res.sendFile(compressedPath);
+        return;
+      }
+    }
+    next();
+  });
+
   // Hashed JS/CSS assets (e.g. index-Cx3bDiMi.js) never change for a given
   // build hash — serve them with a 1-year immutable cache.
   app.use(

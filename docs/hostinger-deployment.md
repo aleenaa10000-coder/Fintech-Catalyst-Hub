@@ -183,16 +183,80 @@ Schema changes are applied automatically on every push — `build:hostinger` run
 
 ---
 
+## Using a Neon Connection Pooler (Recommended for Production)
+
+Neon's free tier limits direct database connections. Under traffic, you may hit `too many clients` errors. The fix is to use Neon's built-in **connection pooler** instead of the direct connection:
+
+1. In Neon → your project → **Connection Details**
+2. Toggle **Connection pooling** to ON
+3. Copy the new connection string — it has `-pooler` in the hostname:
+   ```
+   postgresql://user:pass@ep-xxxx-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require
+   ```
+4. Update `DATABASE_URL` in hPanel → Environment Variables → paste the pooler URL
+5. Restart: `pm2 restart fintechpresshub`
+
+The pooler multiplexes hundreds of app connections through a handful of real Postgres connections, eliminating connection exhaustion on the free tier.
+
+---
+
+## Cloudflare CDN (Recommended for Performance & Security)
+
+Put Cloudflare in front of Hostinger for free DDoS protection, global asset CDN, and automatic HTTPS management. Takes ~5 minutes.
+
+1. Sign up at [cloudflare.com](https://cloudflare.com) (free plan)
+2. Add your domain → Cloudflare will import your existing DNS records
+3. Change your domain's nameservers at your registrar to the two Cloudflare nameservers shown
+4. In Cloudflare → **SSL/TLS** → set mode to **Full (strict)**
+5. In Cloudflare → **Caching** → **Configuration** → set **Caching Level** to Standard
+6. **Optional — Cache Rules:** Create a rule to cache `/assets/*` with `Cache-Control: public, max-age=31536000` to serve hashed JS/CSS from Cloudflare's edge instead of Hostinger
+
+> Hostinger's Nginx is still the origin — Cloudflare just sits in front of it and absorbs traffic globally. Your `SITE_URL` and SSL setup remain unchanged.
+
+---
+
+## Uptime Monitoring (Free)
+
+Set up automated alerts so you know the moment the site goes down, before visitors do.
+
+**Option A — UptimeRobot (free, 5-minute checks):**
+1. Sign up at [uptimerobot.com](https://uptimerobot.com)
+2. Add New Monitor → HTTP(s) → URL: `https://www.yourdomain.com/api/healthz`
+3. Set alert contacts (email, Slack, etc.)
+4. UptimeRobot pings the endpoint every 5 min and alerts you if it returns non-200
+
+**Option B — Better Stack (free, 30-second checks):**
+1. Sign up at [betterstack.com](https://betterstack.com/uptime)
+2. Create a monitor → URL: `https://www.yourdomain.com/api/healthz`
+3. The `/api/healthz` endpoint returns `{"status":"ok"}` when all systems are healthy
+
+The health endpoint checks the database, email provider, and seed data in one call.
+
+---
+
+## Custom 502 Error Page (Hostinger Nginx)
+
+When your Node.js process is down (deploying, crashing), Nginx shows a plain Hostinger 502 page. Replace it with a branded page:
+
+1. Create a file at `/home/USERNAME/public_html/502.html` with your branded HTML
+2. In hPanel → **Hosting** → **Advanced** → **Error Pages** → set a custom 502 page
+3. Point it to the file you created
+
+Visitors will see your branded maintenance page instead of the default Hostinger error.
+
+---
+
 ## Useful PM2 Commands
 
 ```bash
-pm2 status                              # list running processes
+pm2 status                              # list running processes and workers
 pm2 logs fintechpresshub               # live log stream (Ctrl+C to stop)
 pm2 logs fintechpresshub --lines 200   # last 200 log lines
-pm2 restart fintechpresshub            # full restart (brief downtime)
-pm2 reload fintechpresshub             # zero-downtime reload
+pm2 restart fintechpresshub            # full restart (brief downtime, both workers)
+pm2 reload fintechpresshub             # zero-downtime reload (workers reload one-by-one)
 pm2 monit                              # real-time CPU + memory dashboard
 pm2 save                               # persist process list across server reboots
+pm2 scale fintechpresshub 4            # scale to 4 workers (if your plan has more cores)
 ```
 
 ---
