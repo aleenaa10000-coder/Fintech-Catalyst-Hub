@@ -89,23 +89,23 @@ fi
 
 # ── 4. Install dependencies ───────────────────────────────────────────────────
 log "Installing Node.js dependencies (this may take a few minutes)..."
-GIT_DIR=/tmp/fakegit pnpm install --frozen-lockfile
+pnpm install --frozen-lockfile
 ok "Dependencies installed"
 
 # ── 5. Apply database schema ──────────────────────────────────────────────────
 log "Applying database schema to your PostgreSQL database..."
-GIT_DIR=/tmp/fakegit pnpm --filter @workspace/db run push
+pnpm --filter @workspace/db run push
 ok "Database schema applied"
 
 # ── 6. Seed demo content ──────────────────────────────────────────────────────
 log "Seeding demo content (blog posts, authors, services, testimonials)..."
-GIT_DIR=/tmp/fakegit pnpm --filter @workspace/scripts run seed 2>/dev/null || \
-  warn "Seed script not found or already seeded — the server will auto-seed on first boot."
+pnpm --filter @workspace/scripts run seed:auto 2>/dev/null || \
+  warn "Demo content already seeded or will auto-seed on first boot."
 ok "Demo content ready (or will auto-seed on first boot)"
 
 # ── 7. Build production bundle ────────────────────────────────────────────────
 log "Building production bundle (React frontend + Express API)..."
-GIT_DIR=/tmp/fakegit pnpm run build:production
+pnpm run build:production
 ok "Production build complete"
 
 # ── 8. Create logs directory ──────────────────────────────────────────────────

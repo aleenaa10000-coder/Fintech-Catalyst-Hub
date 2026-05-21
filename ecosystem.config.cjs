@@ -38,14 +38,13 @@ module.exports = {
 
       env_production: {
         NODE_ENV: "production",
-        PORT: "8080",
-        // --- Required for admin login (Replit OIDC) on Hostinger ---
-        // OIDC_CLIENT_ID: "your-replit-app-id"   # found in your Replit workspace URL
-        // ISSUER_URL defaults to https://replit.com/oidc — only override if using a different OIDC provider
+        // PORT is intentionally omitted — Hostinger assigns it automatically via the
+        // system environment. Setting it here would override Hostinger's value and
+        // make the app unreachable. The app reads process.env.PORT at startup.
         // ADMIN_EMAILS: "you@example.com"         # comma-separated admin allowlist
-        // DATABASE_URL: "postgresql://..."
+        // DATABASE_URL: "postgresql://..."        # set via hPanel → Environment Variables
         // SITE_URL: "https://www.fintechpresshub.com"
-        // LOCAL_UPLOADS_DIR: "/var/data/uploads"  # must be a persistent volume on Hostinger
+        // LOCAL_UPLOADS_DIR: "/home/USERNAME/uploads"  # persistent path outside app dir
       },
     },
   ],
