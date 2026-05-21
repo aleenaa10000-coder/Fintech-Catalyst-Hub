@@ -17,9 +17,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3701.5753,
+    "actual": 3781.1936,
     "values": [
-      3701.5753
+      3781.1936
     ],
     "operator": "<=",
     "passed": false,
@@ -47,9 +47,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3701.5753,
+    "actual": 3781.1936,
     "values": [
-      3701.5753
+      3781.1936
     ],
     "operator": "<=",
     "passed": false,
@@ -107,9 +107,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.13,
+    "actual": 0.12,
     "values": [
-      0.13
+      0.12
     ],
     "operator": ">=",
     "passed": false,
@@ -167,9 +167,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.62,
+    "actual": 0.61,
     "values": [
-      0.62
+      0.61
     ],
     "operator": ">=",
     "passed": false,
@@ -196,9 +196,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3657.7193,
+    "actual": 3659.3689000000004,
     "values": [
-      3657.7193
+      3659.3689000000004
     ],
     "operator": "<=",
     "passed": false,
@@ -211,9 +211,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3657.7193,
+    "actual": 3659.3689000000004,
     "values": [
-      3657.7193
+      3659.3689000000004
     ],
     "operator": "<=",
     "passed": false,
@@ -360,9 +360,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3667.3955,
+    "actual": 3764.0400999999997,
     "values": [
-      3667.3955
+      3764.0400999999997
     ],
     "operator": "<=",
     "passed": false,
@@ -375,9 +375,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3667.3955,
+    "actual": 3764.0400999999997,
     "values": [
-      3667.3955
+      3764.0400999999997
     ],
     "operator": "<=",
     "passed": false,
@@ -435,9 +435,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.14,
+    "actual": 0.13,
     "values": [
-      0.14
+      0.13
     ],
     "operator": ">=",
     "passed": false,
@@ -524,9 +524,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3650.4847,
+    "actual": 3909.6664,
     "values": [
-      3650.4847
+      3909.6664
     ],
     "operator": "<=",
     "passed": false,
@@ -539,9 +539,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3650.4847,
+    "actual": 4059.6664,
     "values": [
-      3650.4847
+      4059.6664
     ],
     "operator": "<=",
     "passed": false,
@@ -599,9 +599,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.14,
+    "actual": 0.11,
     "values": [
-      0.14
+      0.11
     ],
     "operator": ">=",
     "passed": false,
@@ -657,11 +657,26 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
+    "name": "maxNumericValue",
+    "expected": 3800,
+    "actual": 4059.6664,
+    "values": [
+      4059.6664
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "interactive",
+    "level": "warn",
+    "url": "http://localhost:4173/pricing",
+    "auditTitle": "Time to Interactive",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/interactive/"
+  },
+  {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.62,
+    "actual": 0.6,
     "values": [
-      0.62
+      0.6
     ],
     "operator": ">=",
     "passed": false,
@@ -688,9 +703,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3954.1196,
+    "actual": 3607.1051,
     "values": [
-      3954.1196
+      3607.1051
     ],
     "operator": "<=",
     "passed": false,
@@ -703,9 +718,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3954.1196,
+    "actual": 3607.1051,
     "values": [
-      3954.1196
+      3607.1051
     ],
     "operator": "<=",
     "passed": false,
@@ -763,9 +778,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.1,
+    "actual": 0.15,
     "values": [
-      0.1
+      0.15
     ],
     "operator": ">=",
     "passed": false,
@@ -821,26 +836,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
-    "name": "maxNumericValue",
-    "expected": 3800,
-    "actual": 3954.1196,
-    "values": [
-      3954.1196
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "interactive",
-    "level": "warn",
-    "url": "http://localhost:4173/blog/fintech-seo-strategy-2026",
-    "auditTitle": "Time to Interactive",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/interactive/"
-  },
-  {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.6,
+    "actual": 0.62,
     "values": [
-      0.6
+      0.62
     ],
     "operator": ">=",
     "passed": false,
@@ -867,9 +867,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3685.7846,
+    "actual": 3986.7454000000007,
     "values": [
-      3685.7846
+      3986.7454000000007
     ],
     "operator": "<=",
     "passed": false,
@@ -882,9 +882,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3685.7846,
+    "actual": 3986.7454000000007,
     "values": [
-      3685.7846
+      3986.7454000000007
     ],
     "operator": "<=",
     "passed": false,
@@ -942,9 +942,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.14,
+    "actual": 0.1,
     "values": [
-      0.14
+      0.1
     ],
     "operator": ">=",
     "passed": false,
@@ -1000,11 +1000,26 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
+    "name": "maxNumericValue",
+    "expected": 3800,
+    "actual": 3986.7454000000007,
+    "values": [
+      3986.7454000000007
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "interactive",
+    "level": "warn",
+    "url": "http://localhost:4173/locations/london",
+    "auditTitle": "Time to Interactive",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/interactive/"
+  },
+  {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.62,
+    "actual": 0.6,
     "values": [
-      0.62
+      0.6
     ],
     "operator": ">=",
     "passed": false,
@@ -1031,9 +1046,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3656.3265,
+    "actual": 3652.5275,
     "values": [
-      3656.3265
+      3652.5275
     ],
     "operator": "<=",
     "passed": false,
@@ -1046,9 +1061,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3656.3265,
+    "actual": 3652.5275,
     "values": [
-      3656.3265
+      3652.5275
     ],
     "operator": "<=",
     "passed": false,
