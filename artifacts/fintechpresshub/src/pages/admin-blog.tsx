@@ -1566,12 +1566,25 @@ export default function AdminBlog() {
                   if (!window.confirm(`Unpublish ${slugs.length} post${slugs.length !== 1 ? "s" : ""}? This permanently removes them from the blog and sitemap.`)) return;
                   setBulkDeletePending(true);
                   try {
-                    await Promise.all(slugs.map((slug) => deleteMut.mutateAsync({ slug })));
-                    toast.success(`Unpublished ${slugs.length} post${slugs.length !== 1 ? "s" : ""}`);
+                    // Promise.allSettled instead of Promise.all so a single
+                    // failure doesn't abort the remaining deletions mid-batch.
+                    // The user gets a clear count of what succeeded vs failed.
+                    const results = await Promise.allSettled(
+                      slugs.map((slug) => deleteMut.mutateAsync({ slug }))
+                    );
+                    const failed = results.filter((r) => r.status === "rejected").length;
+                    const succeeded = results.length - failed;
                     setSelectedSlugs(new Set());
                     invalidate();
-                  } catch {
-                    toast.error("Some posts could not be unpublished.");
+                    if (failed === 0) {
+                      toast.success(`Unpublished ${succeeded} post${succeeded !== 1 ? "s" : ""}`);
+                    } else {
+                      toast.error(
+                        succeeded > 0
+                          ? `Unpublished ${succeeded} of ${slugs.length} posts — ${failed} failed.`
+                          : `Failed to unpublish ${failed} post${failed !== 1 ? "s" : ""}.`
+                      );
+                    }
                   } finally {
                     setBulkDeletePending(false);
                   }

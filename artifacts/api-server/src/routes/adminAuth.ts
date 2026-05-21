@@ -65,13 +65,11 @@ router.post("/admin-auth/login", loginRateLimiter, async (req: Request, res: Res
   const email = parsed.data.email.trim().toLowerCase();
   const password = parsed.data.password;
 
-  if (!isAdminEmail(email)) {
-    // Don't reveal whether the email exists — admin allowlist is the
-    // first gate, so a non-allowlisted email always reads as 403.
-    res.status(403).json({ error: "This email is not authorized for admin access." });
-    return;
-  }
-
+  // Always look up the user AND run bcrypt.compare before checking the admin
+  // allowlist. If we returned 403 early (before bcrypt), non-admin emails
+  // would complete in <1ms while admin emails take ~100ms — leaking which
+  // addresses are in ADMIN_EMAILS via timing. Doing DB + bcrypt first makes
+  // every request take the same wall-clock time regardless of the allowlist.
   let user: typeof usersTable.$inferSelect | undefined;
   try {
     [user] = await db
@@ -85,11 +83,16 @@ router.post("/admin-auth/login", loginRateLimiter, async (req: Request, res: Res
   }
 
   // Always run bcrypt.compare — even when the user/hash is missing — so the
-  // response timing for "no user" and "wrong password" is indistinguishable.
-  // Without this, an attacker can enumerate which allowlisted emails have
-  // a password set by measuring response latency.
+  // response timing for "no user", "wrong password", and "not admin" is
+  // indistinguishable to an outside observer.
   const hashToCompare = user?.passwordHash ?? DUMMY_BCRYPT_HASH;
   const passwordOk = await bcrypt.compare(password, hashToCompare);
+
+  // Admin allowlist check comes AFTER bcrypt so timing is uniform.
+  if (!isAdminEmail(email)) {
+    res.status(403).json({ error: "This email is not authorized for admin access." });
+    return;
+  }
 
   if (!user || !user.passwordHash || !passwordOk) {
     res.status(401).json({ error: "Email or password is incorrect." });

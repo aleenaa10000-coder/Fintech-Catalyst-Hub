@@ -32,28 +32,33 @@ router.post("/authors/:slug/subscribe", formRateLimiter, async (req, res) => {
     const email = parsed.data.email.trim().toLowerCase();
     const source = `author:${author.slug}`;
 
-    // 1. Upsert into the global newsletter list. The unique index on email
-    //    means we either find an existing row or insert a new one — first
-    //    touch wins for `source`.
+    // 1. Upsert into the global newsletter list using insert-first to avoid
+    //    the race condition inherent in select→insert. Two concurrent requests
+    //    for the same new email would both see an empty select and both try to
+    //    insert — the second hits the unique constraint and returns 500.
+    //    With onConflictDoNothing(), the second insert is a no-op and we fall
+    //    through to a follow-up select to get the existing id.
     let subscriberId: number;
-    const existingSub = await db
-      .select({ id: newsletterSubscribersTable.id })
-      .from(newsletterSubscribersTable)
-      .where(eq(newsletterSubscribersTable.email, email))
-      .limit(1);
+    const [inserted] = await db
+      .insert(newsletterSubscribersTable)
+      .values({ email, source })
+      .onConflictDoNothing()
+      .returning({ id: newsletterSubscribersTable.id });
 
-    if (existingSub.length > 0) {
-      subscriberId = existingSub[0]!.id;
+    if (inserted) {
+      subscriberId = inserted.id;
     } else {
-      const [inserted] = await db
-        .insert(newsletterSubscribersTable)
-        .values({ email, source })
-        .returning({ id: newsletterSubscribersTable.id });
-      if (!inserted) {
+      // Email already existed — the unique constraint fired. Read the row.
+      const [existing] = await db
+        .select({ id: newsletterSubscribersTable.id })
+        .from(newsletterSubscribersTable)
+        .where(eq(newsletterSubscribersTable.email, email))
+        .limit(1);
+      if (!existing) {
         res.status(500).json({ error: "Failed to subscribe" });
         return;
       }
-      subscriberId = inserted.id;
+      subscriberId = existing.id;
     }
 
     // 2. Link to this author. Idempotent: if the (subscriberId, authorSlug)

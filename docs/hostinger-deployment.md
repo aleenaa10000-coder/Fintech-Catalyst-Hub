@@ -183,6 +183,43 @@ Schema changes are applied automatically on every push — `build:hostinger` run
 
 ---
 
+## GitHub Branch Protection (Recommended)
+
+Block direct pushes to `main` so every change must pass CI before it can deploy. Takes 2 minutes to configure.
+
+### Setup
+
+1. GitHub → your repo → **Settings** → **Branches** → **Add rule**
+2. Branch name pattern: `main`
+3. Enable these options:
+
+| Setting | Value |
+|---|---|
+| Require a pull request before merging | ✅ ON |
+| Require status checks to pass before merging | ✅ ON |
+| Require branches to be up to date before merging | ✅ ON |
+| Do not allow bypassing the above settings | ✅ ON |
+
+4. Under "Require status checks", add these (names match `.github/workflows/ci.yml`):
+   - `typecheck`
+   - `build`
+   - `test`
+
+> **Note:** If the status checks don't appear in the autocomplete, push a branch and open a PR first — GitHub only shows checks it has seen run at least once.
+
+### Development workflow after protection is on
+
+```bash
+git checkout -b feat/my-change
+# ... make changes ...
+git push origin feat/my-change
+# Open PR → CI runs → merge when green → Hostinger deploys automatically
+```
+
+Direct `git push origin main` is now rejected by GitHub. Any PR with a failing test, TypeScript error, or Lighthouse regression cannot be merged.
+
+---
+
 ## Using a Neon Connection Pooler (Recommended for Production)
 
 Neon's free tier limits direct database connections. Under traffic, you may hit `too many clients` errors. The fix is to use Neon's built-in **connection pooler** instead of the direct connection:

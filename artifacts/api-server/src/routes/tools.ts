@@ -51,6 +51,14 @@ function isPrivateHostname(hostname: string): boolean {
   if (h.startsWith("fc") || h.startsWith("fd")) return true; // fc00::/7 unique-local
   if (h.startsWith("fe80"))                      return true; // fe80::/10 link-local
 
+  // Cloud provider instance metadata hostnames. These resolve to private IPs
+  // (169.254.169.254 on GCP/AWS/Azure) so they're blocked by the IPv4 check
+  // above when used as IPs, but also need blocking as hostnames.
+  if (
+    h === "metadata.google.internal" || // GCP instance metadata
+    h === "metadata.internal"           // Azure / generic cloud metadata
+  ) return true;
+
   return false;
 }
 

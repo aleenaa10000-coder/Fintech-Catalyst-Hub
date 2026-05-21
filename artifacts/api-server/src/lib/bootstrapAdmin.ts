@@ -67,10 +67,21 @@ export async function bootstrapAdminFromEnv(): Promise<void> {
     // Re-hash on every boot when the env-supplied password differs from
     // the stored one. Compare against the existing hash so we don't
     // churn the row needlessly.
-    if (
-      !existing.passwordHash ||
-      !(await bcrypt.compare(rawPassword, existing.passwordHash))
-    ) {
+    //
+    // When the env value is already a bcrypt hash (isPreHashed=true), compare
+    // the stored hash strings directly. bcrypt.compare() treats its first
+    // argument as plaintext, so passing a hash string as the first arg always
+    // returns false — which would trigger a useless DB write on every boot.
+    // Short-circuit to false when passwordHash is null so bcrypt.compare never
+    // receives null (it expects string for both arguments).
+    const storedHash = existing.passwordHash;
+    const passwordMatches =
+      !!storedHash &&
+      (isPreHashed
+        ? rawPassword === storedHash
+        : await bcrypt.compare(rawPassword, storedHash));
+
+    if (!storedHash || !passwordMatches) {
       await db
         .update(usersTable)
         .set({ passwordHash: hash })
