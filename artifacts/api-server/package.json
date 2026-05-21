@@ -23,7 +23,7 @@
     "google-auth-library": "^10.6.2",
     "nodemailer": "^8.0.7",
     "openid-client": "^6.8.4",
-    "pino": "^9",
+    "pino": "^10",
     "pino-http": "^10",
     "sharp": "^0.34.5",
     "validator": "^13.15.35",
