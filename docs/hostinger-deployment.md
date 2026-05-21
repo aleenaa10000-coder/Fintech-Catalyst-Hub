@@ -67,11 +67,12 @@
 6. Under **Repository** click **Connect to GitHub**, authorise Hostinger, select your repo and the `main` branch
 7. Set the **Build command**:
    ```
-   npm install -g pnpm@10 && pnpm install --frozen-lockfile && pnpm run build:production
+   npm install -g pnpm@10 && pnpm install --frozen-lockfile && pnpm run build:hostinger
    ```
+   > `build:hostinger` automatically applies any database schema changes **and** builds the full app in one step — no SSH required after updates.
 8. Click **Save and Deploy**
 
-Hostinger will auto-redeploy every time you push to `main`.
+Hostinger will auto-redeploy every time you push to `main`. Database migrations run automatically as part of every deploy.
 
 ---
 
@@ -130,30 +131,20 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 
 ---
 
-## Step 5 — Apply the Database Schema (One Time)
+## Step 5 — Apply the Database Schema
 
-After the first deployment, SSH into your server to create all database tables:
-
-**Get SSH credentials:** hPanel → **Advanced** → **SSH Access**
-
-```bash
-# SSH into your server
-ssh USERNAME@your-server-ip
-
-# Navigate to your app directory
-cd /home/USERNAME/fintechpresshub
-
-# Set your database URL (copy from Step 1)
-export DATABASE_URL="postgresql://your-neon-connection-string"
-
-# Create all database tables (safe to run multiple times — it is idempotent)
-pnpm --filter @workspace/db run push
-
-# Restart the app (it auto-seeds demo content on first boot)
-pm2 restart fintechpresshub
-```
+The `build:hostinger` command (Step 3) automatically runs the database migration on every deploy — including the very first one. No SSH required.
 
 The server auto-seeds blog posts, authors, services, pricing, and testimonials on first boot.
+
+> **If schema migration fails during build** (e.g. `DATABASE_URL` was not set in hPanel before the first deploy), you can run it manually once via SSH:
+> ```bash
+> ssh USERNAME@your-server-ip
+> cd /home/USERNAME/fintechpresshub
+> export DATABASE_URL="postgresql://your-neon-connection-string"
+> pnpm --filter @workspace/db run push
+> pm2 restart fintechpresshub
+> ```
 
 ---
 
@@ -188,14 +179,7 @@ Use your `ADMIN_EMAILS` address + `ADMIN_PASSWORD`
 
 Push to `main` on GitHub → Hostinger auto-rebuilds and redeploys.
 
-If an update adds new database columns or tables, apply them after deployment:
-```bash
-ssh USERNAME@your-server-ip
-cd /home/USERNAME/fintechpresshub
-export DATABASE_URL="postgresql://your-neon-connection-string"
-pnpm --filter @workspace/db run push
-pm2 reload fintechpresshub
-```
+Schema changes are applied automatically on every push — `build:hostinger` runs `db push` before building. No manual SSH migration needed.
 
 ---
 

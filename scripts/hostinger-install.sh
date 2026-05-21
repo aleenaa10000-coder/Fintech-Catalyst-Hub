@@ -103,10 +103,10 @@ pnpm --filter @workspace/scripts run seed:auto 2>/dev/null || \
   warn "Demo content already seeded or will auto-seed on first boot."
 ok "Demo content ready (or will auto-seed on first boot)"
 
-# ── 7. Build production bundle ────────────────────────────────────────────────
-log "Building production bundle (React frontend + Express API)..."
-pnpm run build:production
-ok "Production build complete"
+# ── 7. Build production bundle (includes DB schema migration) ─────────────────
+log "Building production bundle (DB migration + React frontend + Express API)..."
+pnpm run build:hostinger
+ok "Production build complete (schema migrated + frontend + API built)"
 
 # ── 8. Create logs directory ──────────────────────────────────────────────────
 mkdir -p logs
