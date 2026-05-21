@@ -17,9 +17,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3786.1881,
+    "actual": 3701.5753,
     "values": [
-      3786.1881
+      3701.5753
     ],
     "operator": "<=",
     "passed": false,
@@ -30,11 +30,26 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/first-contentful-paint/"
   },
   {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "forced-reflow-insight",
+    "level": "warn",
+    "url": "http://localhost:4173/",
+    "auditTitle": "Forced reflow",
+    "auditDocumentationLink": "https://developers.google.com/web/fundamentals/performance/rendering/avoid-large-complex-layouts-and-layout-thrashing#avoid-forced-synchronous-layouts"
+  },
+  {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3786.1881,
+    "actual": 3701.5753,
     "values": [
-      3786.1881
+      3701.5753
     ],
     "operator": "<=",
     "passed": false,
@@ -43,21 +58,6 @@
     "url": "http://localhost:4173/",
     "auditTitle": "Largest Contentful Paint",
     "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-largest-contentful-paint/"
-  },
-  {
-    "name": "minScore",
-    "expected": 0.9,
-    "actual": 0.5,
-    "values": [
-      0.5
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "mainthread-work-breakdown",
-    "level": "warn",
-    "url": "http://localhost:4173/",
-    "auditTitle": "Minimize main-thread work",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/mainthread-work-breakdown/"
   },
   {
     "name": "minScore",
@@ -107,9 +107,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.12,
+    "actual": 0.13,
     "values": [
-      0.12
+      0.13
     ],
     "operator": ">=",
     "passed": false,
@@ -167,9 +167,9 @@
   {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.61,
+    "actual": 0.62,
     "values": [
-      0.61
+      0.62
     ],
     "operator": ">=",
     "passed": false,
@@ -196,9 +196,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3961.415,
+    "actual": 3657.7193,
     "values": [
-      3961.415
+      3657.7193
     ],
     "operator": "<=",
     "passed": false,
@@ -211,9 +211,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3961.415,
+    "actual": 3657.7193,
     "values": [
-      3961.415
+      3657.7193
     ],
     "operator": "<=",
     "passed": false,
@@ -271,9 +271,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.1,
+    "actual": 0.14,
     "values": [
-      0.1
+      0.14
     ],
     "operator": ">=",
     "passed": false,
@@ -329,26 +329,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
-    "name": "maxNumericValue",
-    "expected": 3800,
-    "actual": 3961.4150000000004,
-    "values": [
-      3961.4150000000004
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "interactive",
-    "level": "warn",
-    "url": "http://localhost:4173/blog",
-    "auditTitle": "Time to Interactive",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/interactive/"
-  },
-  {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.6,
+    "actual": 0.62,
     "values": [
-      0.6
+      0.62
     ],
     "operator": ">=",
     "passed": false,
@@ -375,9 +360,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 4120.1988,
+    "actual": 3667.3955,
     "values": [
-      4120.1988
+      3667.3955
     ],
     "operator": "<=",
     "passed": false,
@@ -390,9 +375,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4120.1988,
+    "actual": 3667.3955,
     "values": [
-      4120.1988
+      3667.3955
     ],
     "operator": "<=",
     "passed": false,
@@ -450,9 +435,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.09,
+    "actual": 0.14,
     "values": [
-      0.09
+      0.14
     ],
     "operator": ">=",
     "passed": false,
@@ -508,26 +493,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
-    "name": "maxNumericValue",
-    "expected": 3800,
-    "actual": 4120.1988,
-    "values": [
-      4120.1988
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "interactive",
-    "level": "warn",
-    "url": "http://localhost:4173/services",
-    "auditTitle": "Time to Interactive",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/interactive/"
-  },
-  {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.6,
+    "actual": 0.62,
     "values": [
-      0.6
+      0.62
     ],
     "operator": ">=",
     "passed": false,
@@ -554,9 +524,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 3958.5571999999993,
+    "actual": 3650.4847,
     "values": [
-      3958.5571999999993
+      3650.4847
     ],
     "operator": "<=",
     "passed": false,
@@ -569,9 +539,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 3958.5571999999993,
+    "actual": 3650.4847,
     "values": [
-      3958.5571999999993
+      3650.4847
     ],
     "operator": "<=",
     "passed": false,
@@ -629,9 +599,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.1,
+    "actual": 0.14,
     "values": [
-      0.1
+      0.14
     ],
     "operator": ">=",
     "passed": false,
@@ -687,26 +657,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
-    "name": "maxNumericValue",
-    "expected": 3800,
-    "actual": 3958.5571999999993,
-    "values": [
-      3958.5571999999993
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "interactive",
-    "level": "warn",
-    "url": "http://localhost:4173/pricing",
-    "auditTitle": "Time to Interactive",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/interactive/"
-  },
-  {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.6,
+    "actual": 0.62,
     "values": [
-      0.6
+      0.62
     ],
     "operator": ">=",
     "passed": false,
@@ -733,9 +688,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 4101.4076000000005,
+    "actual": 3954.1196,
     "values": [
-      4101.4076000000005
+      3954.1196
     ],
     "operator": "<=",
     "passed": false,
@@ -748,9 +703,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4101.4076000000005,
+    "actual": 3954.1196,
     "values": [
-      4101.4076000000005
+      3954.1196
     ],
     "operator": "<=",
     "passed": false,
@@ -808,9 +763,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.09,
+    "actual": 0.1,
     "values": [
-      0.09
+      0.1
     ],
     "operator": ">=",
     "passed": false,
@@ -868,9 +823,9 @@
   {
     "name": "maxNumericValue",
     "expected": 3800,
-    "actual": 4101.4076000000005,
+    "actual": 3954.1196,
     "values": [
-      4101.4076000000005
+      3954.1196
     ],
     "operator": "<=",
     "passed": false,
@@ -912,9 +867,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 4104.5711,
+    "actual": 3685.7846,
     "values": [
-      4104.5711
+      3685.7846
     ],
     "operator": "<=",
     "passed": false,
@@ -927,9 +882,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4104.5711,
+    "actual": 3685.7846,
     "values": [
-      4104.5711
+      3685.7846
     ],
     "operator": "<=",
     "passed": false,
@@ -987,9 +942,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.09,
+    "actual": 0.14,
     "values": [
-      0.09
+      0.14
     ],
     "operator": ">=",
     "passed": false,
@@ -1045,26 +1000,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
-    "name": "maxNumericValue",
-    "expected": 3800,
-    "actual": 4104.5711,
-    "values": [
-      4104.5711
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "interactive",
-    "level": "warn",
-    "url": "http://localhost:4173/locations/london",
-    "auditTitle": "Time to Interactive",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/interactive/"
-  },
-  {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.6,
+    "actual": 0.62,
     "values": [
-      0.6
+      0.62
     ],
     "operator": ">=",
     "passed": false,
@@ -1091,9 +1031,9 @@
   {
     "name": "maxNumericValue",
     "expected": 1800,
-    "actual": 4110.5791,
+    "actual": 3656.3265,
     "values": [
-      4110.5791
+      3656.3265
     ],
     "operator": "<=",
     "passed": false,
@@ -1106,9 +1046,9 @@
   {
     "name": "maxNumericValue",
     "expected": 2500,
-    "actual": 4110.5791,
+    "actual": 3656.3265,
     "values": [
-      4110.5791
+      3656.3265
     ],
     "operator": "<=",
     "passed": false,
@@ -1166,9 +1106,9 @@
   {
     "name": "minScore",
     "expected": 0.9,
-    "actual": 0.09,
+    "actual": 0.14,
     "values": [
-      0.09
+      0.14
     ],
     "operator": ">=",
     "passed": false,
@@ -1224,26 +1164,11 @@
     "auditDocumentationLink": "https://developer.chrome.com/docs/devtools/javascript/source-maps/"
   },
   {
-    "name": "maxNumericValue",
-    "expected": 3800,
-    "actual": 4110.5791,
-    "values": [
-      4110.5791
-    ],
-    "operator": "<=",
-    "passed": false,
-    "auditId": "interactive",
-    "level": "warn",
-    "url": "http://localhost:4173/glossary/api",
-    "auditTitle": "Time to Interactive",
-    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/interactive/"
-  },
-  {
     "name": "minScore",
     "expected": 0.8,
-    "actual": 0.6,
+    "actual": 0.62,
     "values": [
-      0.6
+      0.62
     ],
     "operator": ">=",
     "passed": false,

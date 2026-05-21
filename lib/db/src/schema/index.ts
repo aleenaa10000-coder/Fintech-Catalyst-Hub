@@ -28,3 +28,4 @@ export * from "./toolRatings";
 export * from "./webmentions";
 export * from "./postAuditLog";
 export * from "./fintechPublications";
+export * from "./lighthouseScores";
